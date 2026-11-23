@@ -38,9 +38,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "db"
+        - {type: name/unresolved, text: "db"}
     cursor:
       search:
         text: db
@@ -82,9 +80,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "sch"
+        - {type: name/unresolved, text: "sch"}
     cursor:
       search:
         text: sch
@@ -126,9 +122,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "fo"
+        - {type: name/unresolved, text: "fo"}
     cursor:
       search:
         text: fo
@@ -146,7 +140,7 @@ completion-snapshots:
           location-qualified: "fo"
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: foo
               qualified-idx: 0
@@ -197,20 +191,14 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "tab"
+        - {type: name/unresolved, text: "tab"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "attr2"
+        - {id: 0, type: colref/unresolved, text: "attr2"}
       inferred-tables:
         - name: tab
           confidence: confident
           columns:
-            - name: attr2
-              confidence: confident
+            - {name: attr2, confidence: confident}
     cursor:
       search:
         text: tab
@@ -228,7 +216,7 @@ completion-snapshots:
           location-qualified: "tab"
           objects:
             - type: table
-              id: "256.65536.4294967297"
+              id: "256.65536.1:1"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,RESOLVING_TABLE,THROUGH_CATALOG]
               qualified: table2
               qualified-idx: 0
@@ -242,7 +230,7 @@ completion-snapshots:
           location-qualified: "tab"
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: table1
               qualified-idx: 0
@@ -256,7 +244,7 @@ completion-snapshots:
           location-qualified: "tab"
           objects:
             - type: table
-              id: "256.65536.4294967298"
+              id: "256.65536.1:2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: table3
               qualified-idx: 0
@@ -275,10 +263,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "mys"
+        - {id: 0, type: colref/unresolved, text: "mys"}
     cursor:
       search:
         text: mys
@@ -301,7 +286,7 @@ completion-snapshots:
           location-qualified: "mys"
           objects:
             - type: function
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: mysum
               qualified-idx: 0
@@ -324,21 +309,10 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "external_name1"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "external_name1"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "external_name1"
-          statement-id: 0
-          text: "external_name2"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "external_"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "external_name1", text: "external_name2"}
+        - {id: 1, type: colref/unresolved, text: "external_"}
     cursor:
       search:
         text: where external_
@@ -361,7 +335,7 @@ completion-snapshots:
           location-qualified: "external_"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: external_name1.external_name2
               qualified-idx: 1
@@ -379,7 +353,7 @@ completion-snapshots:
           location-qualified: "external_"
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: external_name1
               qualified-idx: 0
@@ -404,21 +378,10 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "external_name1"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "external_name1"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "external_name1"
-          statement-id: 0
-          text: "external_name2"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "external_"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "external_name1", text: "external_name2"}
+        - {id: 1, type: colref/unresolved, text: "external_"}
     cursor:
       search:
         text: where external_
@@ -436,7 +399,7 @@ completion-snapshots:
           location-qualified: "external_"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: external_name1.external_name2
               qualified-idx: 1
@@ -454,7 +417,7 @@ completion-snapshots:
           location-qualified: "external_"
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: external_name1
               qualified-idx: 0

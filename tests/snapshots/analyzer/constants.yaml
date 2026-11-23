@@ -6,22 +6,12 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'30 days'"
-        - expression-idx: 1
-          type: constcast/interval
-          is-const: true
-          statement-id: 0
-          text: "interval '30 days'"
+        - {id: 0, type: literal/string, is-const: true, text: "'30 days'"}
+        - {id: 1, type: constcast/interval, is-const: true, text: "interval '30 days'"}
       constants:
-        - expression: 1
-          text: "interval '30 days'"
+        - {expression: 1, text: "interval '30 days'"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: '?'
-              expression: 1
+            - {name: '?', expression: 1}
           text: "select int.. '30 days'"

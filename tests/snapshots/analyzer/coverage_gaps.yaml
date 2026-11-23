@@ -6,166 +6,52 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 2
-          type: binary
-          op: PLUS
-          arg-left: 0
-          arg-right: 1
-          is-const: true
-          statement-id: 0
-          text: "1 + 2"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "3"
-        - expression-idx: 4
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 5
-          type: binary
-          op: MINUS
-          arg-left: 3
-          arg-right: 4
-          is-const: true
-          statement-id: 0
-          text: "3 - 1"
-        - expression-idx: 6
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 7
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "3"
-        - expression-idx: 8
-          type: binary
-          op: MULTIPLY
-          arg-left: 6
-          arg-right: 7
-          is-const: true
-          statement-id: 0
-          text: "2 * 3"
-        - expression-idx: 9
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "6"
-        - expression-idx: 10
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 11
-          type: binary
-          op: DIVIDE
-          arg-left: 9
-          arg-right: 10
-          is-const: true
-          statement-id: 0
-          text: "6 / 2"
-        - expression-idx: 12
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "7"
-        - expression-idx: 13
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "3"
-        - expression-idx: 14
-          type: binary
-          op: MODULUS
-          arg-left: 12
-          arg-right: 13
-          is-const: true
-          statement-id: 0
-          text: "7 % 3"
-        - expression-idx: 15
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "5"
-        - expression-idx: 16
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 17
-          type: binary
-          op: XOR
-          arg-left: 15
-          arg-right: 16
-          is-const: true
-          statement-id: 0
-          text: "5 ^ 2"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, text: "2"}
+        - {id: 2, type: binary, op: PLUS, arg-left: 0, arg-right: 1, is-const: true, text: "1 + 2"}
+        - {id: 3, type: literal/integer, is-const: true, text: "3"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+        - {id: 5, type: binary, op: MINUS, arg-left: 3, arg-right: 4, is-const: true, text: "3 - 1"}
+        - {id: 6, type: literal/integer, is-const: true, text: "2"}
+        - {id: 7, type: literal/integer, is-const: true, text: "3"}
+        - {id: 8, type: binary, op: MULTIPLY, arg-left: 6, arg-right: 7, is-const: true, text: "2 * 3"}
+        - {id: 9, type: literal/integer, is-const: true, text: "6"}
+        - {id: 10, type: literal/integer, is-const: true, text: "2"}
+        - {id: 11, type: binary, op: DIVIDE, arg-left: 9, arg-right: 10, is-const: true, text: "6 / 2"}
+        - {id: 12, type: literal/integer, is-const: true, text: "7"}
+        - {id: 13, type: literal/integer, is-const: true, text: "3"}
+        - {id: 14, type: binary, op: MODULUS, arg-left: 12, arg-right: 13, is-const: true, text: "7 % 3"}
+        - {id: 15, type: literal/integer, is-const: true, text: "5"}
+        - {id: 16, type: literal/integer, is-const: true, text: "2"}
+        - {id: 17, type: binary, op: XOR, arg-left: 15, arg-right: 16, is-const: true, text: "5 ^ 2"}
       constants:
-        - expression: 0
-          text: "1"
-        - expression: 1
-          text: "2"
-        - expression: 2
-          text: "1 + 2"
-        - expression: 3
-          text: "3"
-        - expression: 4
-          text: "1"
-        - expression: 5
-          text: "3 - 1"
-        - expression: 6
-          text: "2"
-        - expression: 7
-          text: "3"
-        - expression: 8
-          text: "2 * 3"
-        - expression: 9
-          text: "6"
-        - expression: 10
-          text: "2"
-        - expression: 11
-          text: "6 / 2"
-        - expression: 12
-          text: "7"
-        - expression: 13
-          text: "3"
-        - expression: 14
-          text: "7 % 3"
-        - expression: 15
-          text: "5"
-        - expression: 16
-          text: "2"
-        - expression: 17
-          text: "5 ^ 2"
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "2"}
+        - {expression: 2, text: "1 + 2"}
+        - {expression: 3, text: "3"}
+        - {expression: 4, text: "1"}
+        - {expression: 5, text: "3 - 1"}
+        - {expression: 6, text: "2"}
+        - {expression: 7, text: "3"}
+        - {expression: 8, text: "2 * 3"}
+        - {expression: 9, text: "6"}
+        - {expression: 10, text: "2"}
+        - {expression: 11, text: "6 / 2"}
+        - {expression: 12, text: "7"}
+        - {expression: 13, text: "3"}
+        - {expression: 14, text: "7 % 3"}
+        - {expression: 15, text: "5"}
+        - {expression: 16, text: "2"}
+        - {expression: 17, text: "5 ^ 2"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: '?'
-              expression: 2
-            - name: '?'
-              expression: 5
-            - name: '?'
-              expression: 8
-            - name: '?'
-              expression: 11
-            - name: '?'
-              expression: 14
-            - name: '?'
-              expression: 17
+            - {name: '?', expression: 2}
+            - {name: '?', expression: 5}
+            - {name: '?', expression: 8}
+            - {name: '?', expression: 11}
+            - {name: '?', expression: 14}
+            - {name: '?', expression: 17}
           text: "select 1 +..% 3, 5 ^ 2"
 
   - name: const_comparisons
@@ -174,166 +60,52 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 2
-          type: comparison
-          op: EQUAL
-          arg-left: 0
-          arg-right: 1
-          is-const: true
-          statement-id: 0
-          text: "1 = 1"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 4
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 5
-          type: comparison
-          op: NOT_EQUAL
-          arg-left: 3
-          arg-right: 4
-          is-const: true
-          statement-id: 0
-          text: "1 <> 2"
-        - expression-idx: 6
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 7
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 8
-          type: comparison
-          op: LESS_THAN
-          arg-left: 6
-          arg-right: 7
-          is-const: true
-          statement-id: 0
-          text: "1 < 2"
-        - expression-idx: 9
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 10
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 11
-          type: comparison
-          op: LESS_EQUAL
-          arg-left: 9
-          arg-right: 10
-          is-const: true
-          statement-id: 0
-          text: "1 <= 2"
-        - expression-idx: 12
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "3"
-        - expression-idx: 13
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 14
-          type: comparison
-          op: GREATER_THAN
-          arg-left: 12
-          arg-right: 13
-          is-const: true
-          statement-id: 0
-          text: "3 > 2"
-        - expression-idx: 15
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "3"
-        - expression-idx: 16
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 17
-          type: comparison
-          op: GREATER_EQUAL
-          arg-left: 15
-          arg-right: 16
-          is-const: true
-          statement-id: 0
-          text: "3 >= 2"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
+        - {id: 2, type: comparison, op: EQUAL, arg-left: 0, arg-right: 1, is-const: true, text: "1 = 1"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
+        - {id: 4, type: literal/integer, is-const: true, text: "2"}
+        - {id: 5, type: comparison, op: NOT_EQUAL, arg-left: 3, arg-right: 4, is-const: true, text: "1 <> 2"}
+        - {id: 6, type: literal/integer, is-const: true, text: "1"}
+        - {id: 7, type: literal/integer, is-const: true, text: "2"}
+        - {id: 8, type: comparison, op: LESS_THAN, arg-left: 6, arg-right: 7, is-const: true, text: "1 < 2"}
+        - {id: 9, type: literal/integer, is-const: true, text: "1"}
+        - {id: 10, type: literal/integer, is-const: true, text: "2"}
+        - {id: 11, type: comparison, op: LESS_EQUAL, arg-left: 9, arg-right: 10, is-const: true, text: "1 <= 2"}
+        - {id: 12, type: literal/integer, is-const: true, text: "3"}
+        - {id: 13, type: literal/integer, is-const: true, text: "2"}
+        - {id: 14, type: comparison, op: GREATER_THAN, arg-left: 12, arg-right: 13, is-const: true, text: "3 > 2"}
+        - {id: 15, type: literal/integer, is-const: true, text: "3"}
+        - {id: 16, type: literal/integer, is-const: true, text: "2"}
+        - {id: 17, type: comparison, op: GREATER_EQUAL, arg-left: 15, arg-right: 16, is-const: true, text: "3 >= 2"}
       constants:
-        - expression: 0
-          text: "1"
-        - expression: 1
-          text: "1"
-        - expression: 2
-          text: "1 = 1"
-        - expression: 3
-          text: "1"
-        - expression: 4
-          text: "2"
-        - expression: 5
-          text: "1 <> 2"
-        - expression: 6
-          text: "1"
-        - expression: 7
-          text: "2"
-        - expression: 8
-          text: "1 < 2"
-        - expression: 9
-          text: "1"
-        - expression: 10
-          text: "2"
-        - expression: 11
-          text: "1 <= 2"
-        - expression: 12
-          text: "3"
-        - expression: 13
-          text: "2"
-        - expression: 14
-          text: "3 > 2"
-        - expression: 15
-          text: "3"
-        - expression: 16
-          text: "2"
-        - expression: 17
-          text: "3 >= 2"
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "1"}
+        - {expression: 2, text: "1 = 1"}
+        - {expression: 3, text: "1"}
+        - {expression: 4, text: "2"}
+        - {expression: 5, text: "1 <> 2"}
+        - {expression: 6, text: "1"}
+        - {expression: 7, text: "2"}
+        - {expression: 8, text: "1 < 2"}
+        - {expression: 9, text: "1"}
+        - {expression: 10, text: "2"}
+        - {expression: 11, text: "1 <= 2"}
+        - {expression: 12, text: "3"}
+        - {expression: 13, text: "2"}
+        - {expression: 14, text: "3 > 2"}
+        - {expression: 15, text: "3"}
+        - {expression: 16, text: "2"}
+        - {expression: 17, text: "3 >= 2"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: '?'
-              expression: 2
-            - name: '?'
-              expression: 5
-            - name: '?'
-              expression: 8
-            - name: '?'
-              expression: 11
-            - name: '?'
-              expression: 14
-            - name: '?'
-              expression: 17
+            - {name: '?', expression: 2}
+            - {name: '?', expression: 5}
+            - {name: '?', expression: 8}
+            - {name: '?', expression: 11}
+            - {name: '?', expression: 14}
+            - {name: '?', expression: 17}
           text: "select 1 =.. 2, 3 >= 2"
 
   - name: const_mixed_not_constant
@@ -347,105 +119,36 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 4
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 5
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "3"
-        - expression-idx: 6
-          type: binary
-          op: MULTIPLY
-          arg-left: 4
-          arg-right: 5
-          is-const: true
-          statement-id: 0
-          text: "2 * 3"
-        - expression-idx: 7
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 8
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "5"
-        - expression-idx: 9
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "5"
-        - expression-idx: 10
-          type: binary
-          op: PLUS
-          arg-left: 8
-          arg-right: 9
-          is-const: true
-          statement-id: 0
-          text: "5 + 5"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
+        - {id: 4, type: literal/integer, is-const: true, text: "2"}
+        - {id: 5, type: literal/integer, is-const: true, text: "3"}
+        - {id: 6, type: binary, op: MULTIPLY, arg-left: 4, arg-right: 5, is-const: true, text: "2 * 3"}
+        - {id: 7, type: literal/integer, is-const: true, text: "2"}
+        - {id: 8, type: literal/integer, is-const: true, text: "5"}
+        - {id: 9, type: literal/integer, is-const: true, text: "5"}
+        - {id: 10, type: binary, op: PLUS, arg-left: 8, arg-right: 9, is-const: true, text: "5 + 5"}
       constants:
-        - expression: 3
-          text: "1"
-        - expression: 4
-          text: "2"
-        - expression: 5
-          text: "3"
-        - expression: 6
-          text: "2 * 3"
-        - expression: 7
-          text: "2"
-        - expression: 8
-          text: "5"
-        - expression: 9
-          text: "5"
-        - expression: 10
-          text: "5 + 5"
+        - {expression: 3, text: "1"}
+        - {expression: 4, text: "2"}
+        - {expression: 5, text: "3"}
+        - {expression: 6, text: "2 * 3"}
+        - {expression: 7, text: "2"}
+        - {expression: 8, text: "5"}
+        - {expression: 9, text: "5"}
+        - {expression: 10, text: "5 + 5"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: '?'
-              computed: true
-            - name: '?'
-              expression: 6
-            - name: '?'
-              computed: true
+            - {name: '?', computed: true}
+            - {name: '?', expression: 6}
+            - {name: '?', computed: true}
           text: "select a +.. a < 5 + 5"
 
   - name: const_unary_and_nested
@@ -454,105 +157,35 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "3"
-        - expression-idx: 3
-          type: binary
-          op: PLUS
-          arg-left: 1
-          arg-right: 2
-          is-const: true
-          statement-id: 0
-          text: "2 + 3"
-        - expression-idx: 4
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 5
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 6
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "3"
-        - expression-idx: 7
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "4"
-        - expression-idx: 8
-          type: binary
-          op: PLUS
-          arg-left: 4
-          arg-right: 5
-          is-const: true
-          statement-id: 0
-          text: "1 + 2"
-        - expression-idx: 9
-          type: binary
-          op: PLUS
-          arg-left: 6
-          arg-right: 7
-          is-const: true
-          statement-id: 0
-          text: "3 + 4"
-        - expression-idx: 10
-          type: binary
-          op: MULTIPLY
-          arg-left: 8
-          arg-right: 9
-          is-const: true
-          statement-id: 0
-          text: "(1 + 2) * (3 + 4)"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, text: "2"}
+        - {id: 2, type: literal/integer, is-const: true, text: "3"}
+        - {id: 3, type: binary, op: PLUS, arg-left: 1, arg-right: 2, is-const: true, text: "2 + 3"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+        - {id: 5, type: literal/integer, is-const: true, text: "2"}
+        - {id: 6, type: literal/integer, is-const: true, text: "3"}
+        - {id: 7, type: literal/integer, is-const: true, text: "4"}
+        - {id: 8, type: binary, op: PLUS, arg-left: 4, arg-right: 5, is-const: true, text: "1 + 2"}
+        - {id: 9, type: binary, op: PLUS, arg-left: 6, arg-right: 7, is-const: true, text: "3 + 4"}
+        - {id: 10, type: binary, op: MULTIPLY, arg-left: 8, arg-right: 9, is-const: true, text: "(1 + 2) * (3 + 4)"}
       constants:
-        - expression: 0
-          text: "1"
-        - expression: 1
-          text: "2"
-        - expression: 2
-          text: "3"
-        - expression: 3
-          text: "2 + 3"
-        - expression: 4
-          text: "1"
-        - expression: 5
-          text: "2"
-        - expression: 6
-          text: "3"
-        - expression: 7
-          text: "4"
-        - expression: 8
-          text: "1 + 2"
-        - expression: 9
-          text: "3 + 4"
-        - expression: 10
-          text: "(1 + 2) * (3 + 4)"
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "2"}
+        - {expression: 2, text: "3"}
+        - {expression: 3, text: "2 + 3"}
+        - {expression: 4, text: "1"}
+        - {expression: 5, text: "2"}
+        - {expression: 6, text: "3"}
+        - {expression: 7, text: "4"}
+        - {expression: 8, text: "1 + 2"}
+        - {expression: 9, text: "3 + 4"}
+        - {expression: 10, text: "(1 + 2) * (3 + 4)"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: '?'
-              computed: true
-            - name: '?'
-              computed: true
-            - name: '?'
-              expression: 10
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+            - {name: '?', expression: 10}
           text: "select -1,.. * (3 + 4)"
 
   - name: const_interval_precision
@@ -561,62 +194,24 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'1'"
-        - expression-idx: 1
-          type: constcast/interval
-          is-const: true
-          statement-id: 0
-          text: "interval '1' day"
-        - expression-idx: 2
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'1 2'"
-        - expression-idx: 3
-          type: constcast/interval
-          is-const: true
-          statement-id: 0
-          text: "interval '..ay to hour"
-        - expression-idx: 4
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'4'"
-        - expression-idx: 5
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "3"
-        - expression-idx: 6
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'1'"
-        - expression-idx: 7
-          type: constcast/interval
-          is-const: true
-          statement-id: 0
-          text: "interval '..r to month"
+        - {id: 0, type: literal/string, is-const: true, text: "'1'"}
+        - {id: 1, type: constcast/interval, is-const: true, text: "interval '1' day"}
+        - {id: 2, type: literal/string, is-const: true, text: "'1 2'"}
+        - {id: 3, type: constcast/interval, is-const: true, text: "interval '..ay to hour"}
+        - {id: 4, type: literal/string, is-const: true, text: "'4'"}
+        - {id: 5, type: literal/integer, is-const: true, text: "3"}
+        - {id: 6, type: literal/string, is-const: true, text: "'1'"}
+        - {id: 7, type: constcast/interval, is-const: true, text: "interval '..r to month"}
       constants:
-        - expression: 1
-          text: "interval '1' day"
-        - expression: 3
-          text: "interval '..ay to hour"
-        - expression: 7
-          text: "interval '..r to month"
+        - {expression: 1, text: "interval '1' day"}
+        - {expression: 3, text: "interval '..ay to hour"}
+        - {expression: 7, text: "interval '..r to month"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: '?'
-              expression: 1
-            - name: '?'
-              expression: 3
-            - name: '?'
-              expression: 7
+            - {name: '?', expression: 1}
+            - {name: '?', expression: 3}
+            - {name: '?', expression: 7}
           text: "select int..r to month"
 
   - name: const_function_calls
@@ -630,106 +225,38 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: function
-          name: now
-          is-const: true
-          statement-id: 0
-          text: "now()"
-        - expression-idx: 2
-          type: function
-          name: upper
-          is-const: true
-          statement-id: 0
-          text: "upper('a')"
-        - expression-idx: 3
-          type: function
-          name: upper
-          is-const: true
-          statement-id: 0
-          text: "upper('b')"
-        - expression-idx: 4
-          type: function
-          name: lower
-          is-const: true
-          statement-id: 0
-          text: "lower(upper('b'))"
-        - expression-idx: 5
-          type: function
-          name: length
-          statement-id: 0
-          text: "length(a)"
-        - expression-idx: 6
-          type: function
-          known-function: COALESCE
-          is-const: true
-          statement-id: 0
-          text: "coalesce(1, 2)"
-        - expression-idx: 7
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
-        - expression-idx: 8
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'b'"
-        - expression-idx: 9
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 10
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: function, name: now, is-const: true, text: "now()"}
+        - {id: 2, type: function, name: upper, is-const: true, text: "upper('a')"}
+        - {id: 3, type: function, name: upper, is-const: true, text: "upper('b')"}
+        - {id: 4, type: function, name: lower, is-const: true, text: "lower(upper('b'))"}
+        - {id: 5, type: function, name: length, text: "length(a)"}
+        - {id: 6, type: function, known-function: COALESCE, is-const: true, text: "coalesce(1, 2)"}
+        - {id: 7, type: literal/string, is-const: true, text: "'a'"}
+        - {id: 8, type: literal/string, is-const: true, text: "'b'"}
+        - {id: 9, type: literal/integer, is-const: true, text: "1"}
+        - {id: 10, type: literal/integer, is-const: true, text: "2"}
       constants:
-        - expression: 7
-          text: "'a'"
-        - expression: 2
-          text: "upper('a')"
-        - expression: 8
-          text: "'b'"
-        - expression: 3
-          text: "upper('b')"
-        - expression: 4
-          text: "lower(upper('b'))"
-        - expression: 9
-          text: "1"
-        - expression: 10
-          text: "2"
-        - expression: 6
-          text: "coalesce(1, 2)"
+        - {expression: 7, text: "'a'"}
+        - {expression: 2, text: "upper('a')"}
+        - {expression: 8, text: "'b'"}
+        - {expression: 3, text: "upper('b')"}
+        - {expression: 4, text: "lower(upper('b'))"}
+        - {expression: 9, text: "1"}
+        - {expression: 10, text: "2"}
+        - {expression: 6, text: "coalesce(1, 2)"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: '?'
-              expression: 1
-            - name: '?'
-              expression: 2
-            - name: '?'
-              expression: 4
-            - name: '?'
-              expression: 5
-            - name: '?'
-              expression: 6
+            - {name: '?', expression: 1}
+            - {name: '?', expression: 2}
+            - {name: '?', expression: 4}
+            - {name: '?', expression: 5}
+            - {name: '?', expression: 6}
           text: "select now.. 2) from t"
 
   - name: const_function_modifiers
@@ -743,68 +270,28 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: function
-          name: count
-          statement-id: 0
-          text: "count(*)"
-        - expression-idx: 1
-          type: function
-          name: count
-          statement-id: 0
-          text: "count(distinct 1)"
-        - expression-idx: 2
-          type: function
-          name: sum
-          statement-id: 0
-          text: "sum(1) over ()"
-        - expression-idx: 3
-          type: function
-          name: sum
-          statement-id: 0
-          text: "sum(1) over w"
-        - expression-idx: 4
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 5
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 6
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: function, name: count, text: "count(*)"}
+        - {id: 1, type: function, name: count, text: "count(distinct 1)"}
+        - {id: 2, type: function, name: sum, text: "sum(1) over ()"}
+        - {id: 3, type: function, name: sum, text: "sum(1) over w"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+        - {id: 5, type: literal/integer, is-const: true, text: "1"}
+        - {id: 6, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 4
-          text: "1"
-        - expression: 5
-          text: "1"
-        - expression: 6
-          text: "1"
+        - {expression: 4, text: "1"}
+        - {expression: 5, text: "1"}
+        - {expression: 6, text: "1"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: '?'
-              expression: 0
-            - name: '?'
-              expression: 1
-            - name: '?'
-              expression: 2
-            - name: '?'
-              expression: 3
+            - {name: '?', expression: 0}
+            - {name: '?', expression: 1}
+            - {name: '?', expression: 2}
+            - {name: '?', expression: 3}
           text: "select cou..ow w as ()"
 
   - name: func_named_arguments
@@ -813,58 +300,24 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: function
-          name: f
-          is-const: true
-          statement-id: 0
-          text: "f(a => 1, b => 'x')"
-        - expression-idx: 1
-          type: function
-          name: g
-          is-const: true
-          statement-id: 0
-          text: "g(1, name => 2)"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 3
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'x'"
-        - expression-idx: 4
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 5
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
+        - {id: 0, type: function, name: f, is-const: true, text: "f(a => 1, b => 'x')"}
+        - {id: 1, type: function, name: g, is-const: true, text: "g(1, name => 2)"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
+        - {id: 3, type: literal/string, is-const: true, text: "'x'"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+        - {id: 5, type: literal/integer, is-const: true, text: "2"}
       constants:
-        - expression: 2
-          text: "1"
-        - expression: 3
-          text: "'x'"
-        - expression: 0
-          text: "f(a => 1, b => 'x')"
-        - expression: 4
-          text: "1"
-        - expression: 5
-          text: "2"
-        - expression: 1
-          text: "g(1, name => 2)"
+        - {expression: 2, text: "1"}
+        - {expression: 3, text: "'x'"}
+        - {expression: 0, text: "f(a => 1, b => 'x')"}
+        - {expression: 4, text: "1"}
+        - {expression: 5, text: "2"}
+        - {expression: 1, text: "g(1, name => 2)"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: '?'
-              expression: 0
-            - name: '?'
-              expression: 1
+            - {name: '?', expression: 0}
+            - {name: '?', expression: 1}
           text: "select f(a..name => 2)"
 
   - name: func_qualified_name
@@ -873,52 +326,22 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: function
-          name: pg_catalog.length
-          is-const: true
-          statement-id: 0
-          text: "pg_catalog..ength('a')"
-        - expression-idx: 1
-          type: function
-          name: db.sch.f
-          is-const: true
-          statement-id: 0
-          text: "db.sch.f(1)"
-        - expression-idx: 2
-          type: function
-          name: s.f
-          is-const: true
-          statement-id: 0
-          text: "s.f()"
-        - expression-idx: 3
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
-        - expression-idx: 4
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: function, name: pg_catalog.length, is-const: true, text: "pg_catalog..ength('a')"}
+        - {id: 1, type: function, name: db.sch.f, is-const: true, text: "db.sch.f(1)"}
+        - {id: 2, type: function, name: s.f, is-const: true, text: "s.f()"}
+        - {id: 3, type: literal/string, is-const: true, text: "'a'"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 3
-          text: "'a'"
-        - expression: 0
-          text: "pg_catalog..ength('a')"
-        - expression: 4
-          text: "1"
-        - expression: 1
-          text: "db.sch.f(1)"
+        - {expression: 3, text: "'a'"}
+        - {expression: 0, text: "pg_catalog..ength('a')"}
+        - {expression: 4, text: "1"}
+        - {expression: 1, text: "db.sch.f(1)"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: '?'
-              expression: 0
-            - name: '?'
-              expression: 1
-            - name: '?'
-              expression: 2
+            - {name: '?', expression: 0}
+            - {name: '?', expression: 1}
+            - {name: '?', expression: 2}
           text: "select pg_..(1), s.f()"
 
   - name: func_known_functions
@@ -927,214 +350,66 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: function
-          known-function: EXTRACT
-          is-const: true
-          statement-id: 0
-          text: "extract(ye..20-01-01')"
-        - expression-idx: 1
-          type: function
-          known-function: POSITION
-          is-const: true
-          statement-id: 0
-          text: "position('.. in 'abc')"
-        - expression-idx: 2
-          type: function
-          known-function: SUBSTRING
-          is-const: true
-          statement-id: 0
-          text: "substring(..m 2 for 1)"
-        - expression-idx: 3
-          type: function
-          known-function: TRIM
-          is-const: true
-          statement-id: 0
-          text: "trim(both ..rom 'abc')"
-        - expression-idx: 4
-          type: function
-          known-function: OVERLAY
-          is-const: true
-          statement-id: 0
-          text: "overlay('a..x' from 2)"
-        - expression-idx: 5
-          type: function
-          known-function: NULLIF
-          is-const: true
-          statement-id: 0
-          text: "nullif(1, 2)"
-        - expression-idx: 6
-          type: function
-          known-function: COALESCE
-          is-const: true
-          statement-id: 0
-          text: "coalesce(1, 2)"
-        - expression-idx: 7
-          type: function
-          known-function: CAST
-          is-const: true
-          statement-id: 0
-          text: "cast(1 as text)"
-        - expression-idx: 8
-          type: function
-          known-function: CURRENT_DATE
-          is-const: true
-          statement-id: 0
-          text: "current_date"
-        - expression-idx: 9
-          type: function
-          known-function: CURRENT_TIMESTAMP
-          is-const: true
-          statement-id: 0
-          text: "current_timestamp"
-        - expression-idx: 10
-          type: function
-          known-function: CURRENT_USER
-          is-const: true
-          statement-id: 0
-          text: "current_user"
-        - expression-idx: 11
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'2020-01-01'"
-        - expression-idx: 12
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
-        - expression-idx: 13
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'abc'"
-        - expression-idx: 14
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'abc'"
-        - expression-idx: 15
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 16
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 17
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'abc'"
-        - expression-idx: 18
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
-        - expression-idx: 19
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'abc'"
-        - expression-idx: 20
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'x'"
-        - expression-idx: 21
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 22
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 23
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 24
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 25
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 26
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: function, known-function: EXTRACT, is-const: true, text: "extract(ye..20-01-01')"}
+        - {id: 1, type: function, known-function: POSITION, is-const: true, text: "position('.. in 'abc')"}
+        - {id: 2, type: function, known-function: SUBSTRING, is-const: true, text: "substring(..m 2 for 1)"}
+        - {id: 3, type: function, known-function: TRIM, is-const: true, text: "trim(both ..rom 'abc')"}
+        - {id: 4, type: function, known-function: OVERLAY, is-const: true, text: "overlay('a..x' from 2)"}
+        - {id: 5, type: function, known-function: NULLIF, is-const: true, text: "nullif(1, 2)"}
+        - {id: 6, type: function, known-function: COALESCE, is-const: true, text: "coalesce(1, 2)"}
+        - {id: 7, type: function, known-function: CAST, is-const: true, text: "cast(1 as text)"}
+        - {id: 8, type: function, known-function: CURRENT_DATE, is-const: true, text: "current_date"}
+        - {id: 9, type: function, known-function: CURRENT_TIMESTAMP, is-const: true, text: "current_timestamp"}
+        - {id: 10, type: function, known-function: CURRENT_USER, is-const: true, text: "current_user"}
+        - {id: 11, type: literal/string, is-const: true, text: "'2020-01-01'"}
+        - {id: 12, type: literal/string, is-const: true, text: "'a'"}
+        - {id: 13, type: literal/string, is-const: true, text: "'abc'"}
+        - {id: 14, type: literal/string, is-const: true, text: "'abc'"}
+        - {id: 15, type: literal/integer, is-const: true, text: "2"}
+        - {id: 16, type: literal/integer, is-const: true, text: "1"}
+        - {id: 17, type: literal/string, is-const: true, text: "'abc'"}
+        - {id: 18, type: literal/string, is-const: true, text: "'a'"}
+        - {id: 19, type: literal/string, is-const: true, text: "'abc'"}
+        - {id: 20, type: literal/string, is-const: true, text: "'x'"}
+        - {id: 21, type: literal/integer, is-const: true, text: "2"}
+        - {id: 22, type: literal/integer, is-const: true, text: "1"}
+        - {id: 23, type: literal/integer, is-const: true, text: "2"}
+        - {id: 24, type: literal/integer, is-const: true, text: "1"}
+        - {id: 25, type: literal/integer, is-const: true, text: "2"}
+        - {id: 26, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 11
-          text: "'2020-01-01'"
-        - expression: 12
-          text: "'a'"
-        - expression: 13
-          text: "'abc'"
-        - expression: 14
-          text: "'abc'"
-        - expression: 15
-          text: "2"
-        - expression: 16
-          text: "1"
-        - expression: 17
-          text: "'abc'"
-        - expression: 18
-          text: "'a'"
-        - expression: 19
-          text: "'abc'"
-        - expression: 20
-          text: "'x'"
-        - expression: 21
-          text: "2"
-        - expression: 22
-          text: "1"
-        - expression: 23
-          text: "2"
-        - expression: 5
-          text: "nullif(1, 2)"
-        - expression: 24
-          text: "1"
-        - expression: 25
-          text: "2"
-        - expression: 6
-          text: "coalesce(1, 2)"
-        - expression: 26
-          text: "1"
+        - {expression: 11, text: "'2020-01-01'"}
+        - {expression: 12, text: "'a'"}
+        - {expression: 13, text: "'abc'"}
+        - {expression: 14, text: "'abc'"}
+        - {expression: 15, text: "2"}
+        - {expression: 16, text: "1"}
+        - {expression: 17, text: "'abc'"}
+        - {expression: 18, text: "'a'"}
+        - {expression: 19, text: "'abc'"}
+        - {expression: 20, text: "'x'"}
+        - {expression: 21, text: "2"}
+        - {expression: 22, text: "1"}
+        - {expression: 23, text: "2"}
+        - {expression: 5, text: "nullif(1, 2)"}
+        - {expression: 24, text: "1"}
+        - {expression: 25, text: "2"}
+        - {expression: 6, text: "coalesce(1, 2)"}
+        - {expression: 26, text: "1"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: '?'
-              expression: 0
-            - name: '?'
-              expression: 1
-            - name: '?'
-              expression: 2
-            - name: '?'
-              expression: 3
-            - name: '?'
-              expression: 4
-            - name: '?'
-              expression: 5
-            - name: '?'
-              expression: 6
-            - name: '?'
-              expression: 7
-            - name: '?'
-              expression: 8
-            - name: '?'
-              expression: 9
-            - name: '?'
-              expression: 10
+            - {name: '?', expression: 0}
+            - {name: '?', expression: 1}
+            - {name: '?', expression: 2}
+            - {name: '?', expression: 3}
+            - {name: '?', expression: 4}
+            - {name: '?', expression: 5}
+            - {name: '?', expression: 6}
+            - {name: '?', expression: 7}
+            - {name: '?', expression: 8}
+            - {name: '?', expression: 9}
+            - {name: '?', expression: 10}
           text: "select ext..rrent_user"
 
   - name: func_variadic_star_all_distinct
@@ -1148,89 +423,31 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 2
-          type: colref/unresolved
-          statement-id: 0
-          text: "arr"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 4
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 5
-          type: function
-          name: count
-          statement-id: 0
-          text: "count(*)"
-        - expression-idx: 6
-          type: function
-          name: count
-          statement-id: 0
-          text: "count(all a)"
-        - expression-idx: 7
-          type: function
-          name: count
-          statement-id: 0
-          text: "count(distinct a)"
-        - expression-idx: 8
-          type: function
-          name: f
-          statement-id: 0
-          text: "f(variadic arr)"
-        - expression-idx: 9
-          type: function
-          name: string_agg
-          statement-id: 0
-          text: "string_agg..rder by b)"
-        - expression-idx: 10
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "','"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 2, type: colref/unresolved, text: "arr"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 5, type: function, name: count, text: "count(*)"}
+        - {id: 6, type: function, name: count, text: "count(all a)"}
+        - {id: 7, type: function, name: count, text: "count(distinct a)"}
+        - {id: 8, type: function, name: f, text: "f(variadic arr)"}
+        - {id: 9, type: function, name: string_agg, text: "string_agg..rder by b)"}
+        - {id: 10, type: literal/string, is-const: true, text: "','"}
       constants:
-        - expression: 10
-          text: "','"
+        - {expression: 10, text: "','"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: '?'
-              expression: 5
-            - name: '?'
-              expression: 6
-            - name: '?'
-              expression: 7
-            - name: '?'
-              expression: 8
-            - name: '?'
-              expression: 9
+            - {name: '?', expression: 5}
+            - {name: '?', expression: 6}
+            - {name: '?', expression: 7}
+            - {name: '?', expression: 8}
+            - {name: '?', expression: 9}
           text: "select cou.. b) from t"
 
   - name: func_within_group_filter
@@ -1244,59 +461,24 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 2
-          type: function
-          name: percentile_cont
-          statement-id: 0
-          text: "percentile..rder by a)"
-        - expression-idx: 3
-          type: function
-          name: count
-          statement-id: 0
-          text: "count(*) f..ere b > 1)"
-        - expression-idx: 4
-          type: literal/float
-          is-const: true
-          statement-id: 0
-          text: "0.5"
-        - expression-idx: 5
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 2, type: function, name: percentile_cont, text: "percentile..rder by a)"}
+        - {id: 3, type: function, name: count, text: "count(*) f..ere b > 1)"}
+        - {id: 4, type: literal/float, is-const: true, text: "0.5"}
+        - {id: 5, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 4
-          text: "0.5"
-        - expression: 5
-          text: "1"
+        - {expression: 4, text: "0.5"}
+        - {expression: 5, text: "1"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: '?'
-              expression: 2
-            - name: '?'
-              expression: 3
+            - {name: '?', expression: 2}
+            - {name: '?', expression: 3}
           text: "select per.. 1) from t"
 
   - name: func_incomplete_args
@@ -1310,10 +492,7 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
 
   - name: malformed_comment_tag
     script:
@@ -1322,22 +501,13 @@ analyzer-snapshots:
         select 1
       catalog-id: 1
       errors:
-        - type: MALFORMED_COMMENT_TAG
-          severity: WARNING
-          message: '@end without an opening tag'
-          text: "-- @end"
+        - {type: MALFORMED_COMMENT_TAG, severity: WARNING, message: '@end without an opening tag', text: "-- @end"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: '?'
-              expression: 0
+            - {name: '?', expression: 0}
           text: "select 1"

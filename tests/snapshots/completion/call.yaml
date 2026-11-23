@@ -95,8 +95,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - statement: 0
-          namespace: tickets
+        - {statement: 0, namespace: tickets}
     cursor:
       search:
         text: tickets.
@@ -370,10 +369,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          text: "'a'"
+        - {id: 0, type: literal/string, is-const: true, text: "'a'"}
     cursor:
       search:
         text: "'a',"
@@ -423,10 +419,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          text: "'a'"
+        - {id: 0, type: literal/string, is-const: true, text: "'a'"}
     cursor:
       search:
         text: "'a',"
@@ -577,13 +570,9 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: "(id = 1), "
@@ -636,10 +625,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          text: "'a'"
+        - {id: 0, type: literal/string, is-const: true, text: "'a'"}
     cursor:
       search:
         text: "= [("
@@ -691,10 +677,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
     cursor:
       search:
         text: "1,"
@@ -751,7 +734,7 @@ completion-snapshots:
           location-qualified: "ale"
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: alerts
               qualified-idx: 0
@@ -773,13 +756,9 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: ")),"
@@ -820,19 +799,11 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_list
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\"}}"
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\"}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
+        - {id: 0, type: literal/string, is-const: true, text: "'a'"}
       constants:
-        - expression: 0
-          text: "'a'"
+        - {expression: 0, text: "'a'"}
     cursor:
       search:
         text: sel
@@ -918,10 +889,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          text: "'csv'"
+        - {id: 0, type: literal/string, is-const: true, text: "'csv'"}
     cursor:
       search:
         text: ", _"
@@ -996,10 +964,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          text: "'x'"
+        - {id: 0, type: literal/string, is-const: true, text: "'x'"}
     cursor:
       search:
         text: "'x',"
@@ -1026,10 +991,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          text: "'queue'"
+        - {id: 0, type: literal/string, is-const: true, text: "'queue'"}
     cursor:
       search:
         text: "'queue',"

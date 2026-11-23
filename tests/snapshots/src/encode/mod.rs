@@ -13,7 +13,8 @@ pub mod planner;
 pub mod query_profile;
 pub mod visualize;
 
-use crate::ryml::{Node, Scalar, ScalarStyle};
+use crate::ryml::{ContainerStyle, Node, Scalar, ScalarStyle};
+use dashql_core::catalog::ExternalObjectId;
 use yaml_rust2::Yaml;
 
 /// Texts shorter than this are encoded in full, longer ones as prefix..suffix
@@ -58,9 +59,19 @@ impl Map {
         Node::Map(self.0, Default::default())
     }
 
+    /// A mapping on a single line, `{a: 1, b: 2}`
+    pub fn into_flow_node(self) -> Node {
+        Node::Map(self.0, ContainerStyle::Flow)
+    }
+
     pub fn into_yaml(self) -> Yaml {
         self.into_node().to_yaml()
     }
+}
+
+/// An object of a catalog entry as `origin:index`, e.g. the table `1:0`, the first table of the entry 1
+pub fn object_id_text(id: ExternalObjectId) -> String {
+    format!("{}:{}", id.origin, id.object)
 }
 
 /// A scalar in the style the emitter chooses: plain, unless it has to be quoted

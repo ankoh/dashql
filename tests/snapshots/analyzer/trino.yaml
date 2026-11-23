@@ -16,174 +16,62 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "iceberg.so..me_queries"
+        - {type: name/unresolved, text: "iceberg.so..me_queries"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "query_hash"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "query_hash"
-        - expression-idx: 2
-          type: colref/unresolved
-          statement-id: 0
-          text: "query"
-        - expression-idx: 3
-          type: colref/unresolved
-          statement-id: 0
-          text: "query"
-        - expression-idx: 4
-          type: colref/unresolved
-          statement-id: 0
-          text: "tenant"
-        - expression-idx: 5
-          type: colref/unresolved
-          statement-id: 0
-          text: "tenant"
-        - expression-idx: 6
-          type: colref/unresolved
-          statement-id: 0
-          text: "query_metrics"
-        - expression-idx: 7
-          type: colref/unresolved
-          statement-id: 0
-          text: "event_timestamp"
-        - expression-idx: 8
-          type: function
-          name: regexp_extract
-          statement-id: 0
-          text: "regexp_ext..A-Z]+', 1)"
-        - expression-idx: 9
-          type: function
-          name: regexp_extract
-          statement-id: 0
-          text: "regexp_ext..-Z]+)', 1)"
-        - expression-idx: 10
-          type: function
-          known-function: CURRENT_TIMESTAMP
-          is-const: true
-          statement-id: 0
-          text: "current_timestamp"
-        - expression-idx: 11
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'[0-9a-zA-..9a-zA-Z]+'"
-        - expression-idx: 12
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 13
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'[0-9a-zA-..a-zA-Z]+)'"
-        - expression-idx: 14
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 15
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'EXPLAIN (..l_spark,%'"
-        - expression-idx: 16
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'%select d..count(*)%'"
-        - expression-idx: 17
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a360/prod3/foo'"
-        - expression-idx: 18
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a360/prod/bar'"
-        - expression-idx: 19
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'%raw_sql%'"
-        - expression-idx: 20
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'30'"
-        - expression-idx: 21
-          type: constcast/interval
-          is-const: true
-          statement-id: 0
-          text: "interval '30' day"
-        - expression-idx: 22
-          type: binary
-          op: MINUS
-          arg-left: 10
-          arg-right: 21
-          is-const: true
-          statement-id: 0
-          text: "current_ti..l '30' day"
+        - {id: 0, type: colref/unresolved, text: "query_hash"}
+        - {id: 1, type: colref/unresolved, text: "query_hash"}
+        - {id: 2, type: colref/unresolved, text: "query"}
+        - {id: 3, type: colref/unresolved, text: "query"}
+        - {id: 4, type: colref/unresolved, text: "tenant"}
+        - {id: 5, type: colref/unresolved, text: "tenant"}
+        - {id: 6, type: colref/unresolved, text: "query_metrics"}
+        - {id: 7, type: colref/unresolved, text: "event_timestamp"}
+        - {id: 8, type: function, name: regexp_extract, text: "regexp_ext..A-Z]+', 1)"}
+        - {id: 9, type: function, name: regexp_extract, text: "regexp_ext..-Z]+)', 1)"}
+        - {id: 10, type: function, known-function: CURRENT_TIMESTAMP, is-const: true, text: "current_timestamp"}
+        - {id: 11, type: literal/string, is-const: true, text: "'[0-9a-zA-..9a-zA-Z]+'"}
+        - {id: 12, type: literal/integer, is-const: true, text: "1"}
+        - {id: 13, type: literal/string, is-const: true, text: "'[0-9a-zA-..a-zA-Z]+)'"}
+        - {id: 14, type: literal/integer, is-const: true, text: "1"}
+        - {id: 15, type: literal/string, is-const: true, text: "'EXPLAIN (..l_spark,%'"}
+        - {id: 16, type: literal/string, is-const: true, text: "'%select d..count(*)%'"}
+        - {id: 17, type: literal/string, is-const: true, text: "'a360/prod3/foo'"}
+        - {id: 18, type: literal/string, is-const: true, text: "'a360/prod/bar'"}
+        - {id: 19, type: literal/string, is-const: true, text: "'%raw_sql%'"}
+        - {id: 20, type: literal/string, is-const: true, text: "'30'"}
+        - {id: 21, type: constcast/interval, is-const: true, text: "interval '30' day"}
+        - {id: 22, type: binary, op: MINUS, arg-left: 10, arg-right: 21, is-const: true, text: "current_ti..l '30' day"}
       constants:
-        - expression: 11
-          text: "'[0-9a-zA-..9a-zA-Z]+'"
-        - expression: 12
-          text: "1"
-        - expression: 13
-          text: "'[0-9a-zA-..a-zA-Z]+)'"
-        - expression: 14
-          text: "1"
-        - expression: 15
-          text: "'EXPLAIN (..l_spark,%'"
-        - expression: 16
-          text: "'%select d..count(*)%'"
-        - expression: 17
-          text: "'a360/prod3/foo'"
-        - expression: 18
-          text: "'a360/prod/bar'"
-        - expression: 19
-          text: "'%raw_sql%'"
-        - expression: 21
-          text: "interval '30' day"
-        - expression: 22
-          text: "current_ti..l '30' day"
+        - {expression: 11, text: "'[0-9a-zA-..9a-zA-Z]+'"}
+        - {expression: 12, text: "1"}
+        - {expression: 13, text: "'[0-9a-zA-..a-zA-Z]+)'"}
+        - {expression: 14, text: "1"}
+        - {expression: 15, text: "'EXPLAIN (..l_spark,%'"}
+        - {expression: 16, text: "'%select d..count(*)%'"}
+        - {expression: 17, text: "'a360/prod3/foo'"}
+        - {expression: 18, text: "'a360/prod/bar'"}
+        - {expression: 19, text: "'%raw_sql%'"}
+        - {expression: 21, text: "interval '30' day"}
+        - {expression: 22, text: "current_ti..l '30' day"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: some_queries
-              text: "iceberg.so..me_queries"
+            - {type: unresolved, name: some_queries, text: "iceberg.so..me_queries"}
           columns:
-            - name: query_hash_1
-              expression: 8
-            - name: literals_hash
-              expression: 9
-            - name: is_explain
-              computed: true
-            - name: is_count_star
-              computed: true
+            - {name: query_hash_1, expression: 8}
+            - {name: literals_hash, expression: 9}
+            - {name: is_explain, computed: true}
+            - {name: is_count_star, computed: true}
           text: "select\n  *..l '30' day"
       inferred-tables:
         - name: iceberg.some_events.some_queries
           confidence: confident
           columns:
-            - name: query_hash
-              confidence: confident
-            - name: query
-              confidence: confident
-            - name: tenant
-              confidence: confident
-            - name: query_metrics
-              confidence: confident
-            - name: event_timestamp
-              confidence: confident
+            - {name: query_hash, confidence: confident}
+            - {name: query, confidence: confident}
+            - {name: tenant, confidence: confident}
+            - {name: query_metrics, confidence: confident}
+            - {name: event_timestamp, confidence: confident}
 
   - name: trino_inhibitors
     script:
@@ -200,135 +88,52 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "iceberg.so..me_queries"
+        - {type: name/unresolved, text: "iceberg.so..me_queries"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "event_timestamp"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "elapsed"
-        - expression-idx: 2
-          type: colref/unresolved
-          statement-id: 0
-          text: "processed_rows_byol"
-        - expression-idx: 3
-          type: colref/unresolved
-          statement-id: 0
-          text: "workload_name"
-        - expression-idx: 4
-          type: colref/unresolved
-          statement-id: 0
-          text: "pre_execut..ry_metrics"
-        - expression-idx: 5
-          type: colref/unresolved
-          statement-id: 0
-          text: "query_plan"
-        - expression-idx: 6
-          type: colref/unresolved
-          statement-id: 0
-          text: "tenant"
-        - expression-idx: 7
-          type: colref/unresolved
-          statement-id: 0
-          text: "event_timestamp"
-        - expression-idx: 8
-          type: colref/unresolved
-          statement-id: 0
-          text: "processed_rows_byol"
-        - expression-idx: 9
-          type: function
-          name: regexp_extract
-          statement-id: 0
-          text: "regexp_ext..*}),\"', 1)"
-        - expression-idx: 10
-          type: function
-          known-function: CAST
-          is-const: true
-          statement-id: 0
-          text: "cast ('202..timestamp)"
-        - expression-idx: 11
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'\"federati..:({.*}),\"'"
-        - expression-idx: 12
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 13
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a360/prod/foo'"
-        - expression-idx: 14
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'2025-04-14'"
-        - expression-idx: 15
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "0"
-        - expression-idx: 16
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "3"
+        - {id: 0, type: colref/unresolved, text: "event_timestamp"}
+        - {id: 1, type: colref/unresolved, text: "elapsed"}
+        - {id: 2, type: colref/unresolved, text: "processed_rows_byol"}
+        - {id: 3, type: colref/unresolved, text: "workload_name"}
+        - {id: 4, type: colref/unresolved, text: "pre_execut..ry_metrics"}
+        - {id: 5, type: colref/unresolved, text: "query_plan"}
+        - {id: 6, type: colref/unresolved, text: "tenant"}
+        - {id: 7, type: colref/unresolved, text: "event_timestamp"}
+        - {id: 8, type: colref/unresolved, text: "processed_rows_byol"}
+        - {id: 9, type: function, name: regexp_extract, text: "regexp_ext..*}),\"', 1)"}
+        - {id: 10, type: function, known-function: CAST, is-const: true, text: "cast ('202..timestamp)"}
+        - {id: 11, type: literal/string, is-const: true, text: "'\"federati..:({.*}),\"'"}
+        - {id: 12, type: literal/integer, is-const: true, text: "1"}
+        - {id: 13, type: literal/string, is-const: true, text: "'a360/prod/foo'"}
+        - {id: 14, type: literal/string, is-const: true, text: "'2025-04-14'"}
+        - {id: 15, type: literal/integer, is-const: true, text: "0"}
+        - {id: 16, type: literal/integer, is-const: true, text: "3"}
       constants:
-        - expression: 11
-          text: "'\"federati..:({.*}),\"'"
-        - expression: 12
-          text: "1"
-        - expression: 13
-          text: "'a360/prod/foo'"
-        - expression: 14
-          text: "'2025-04-14'"
-        - expression: 15
-          text: "0"
-        - expression: 16
-          text: "3"
+        - {expression: 11, text: "'\"federati..:({.*}),\"'"}
+        - {expression: 12, text: "1"}
+        - {expression: 13, text: "'a360/prod/foo'"}
+        - {expression: 14, text: "'2025-04-14'"}
+        - {expression: 15, text: "0"}
+        - {expression: 16, text: "3"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: some_queries
-              text: "iceberg.so..me_queries"
+            - {type: unresolved, name: some_queries, text: "iceberg.so..me_queries"}
           columns:
-            - name: event_timestamp
-              expression: 0
-            - name: elapsed
-              expression: 1
-            - name: processed_rows_byol
-              expression: 2
-            - name: workload_name
-              expression: 3
-            - name: inhibitors
-              expression: 9
-            - name: query_plan
-              expression: 5
+            - {name: event_timestamp, expression: 0}
+            - {name: elapsed, expression: 1}
+            - {name: processed_rows_byol, expression: 2}
+            - {name: workload_name, expression: 3}
+            - {name: inhibitors, expression: 9}
+            - {name: query_plan, expression: 5}
           text: "select\n  e.. by 3 desc"
       inferred-tables:
         - name: iceberg.some_events.some_queries
           confidence: confident
           columns:
-            - name: event_timestamp
-              confidence: confident
-            - name: elapsed
-              confidence: confident
-            - name: processed_rows_byol
-              confidence: confident
-            - name: workload_name
-              confidence: confident
-            - name: pre_execution_query_metrics
-              confidence: confident
-            - name: query_plan
-              confidence: confident
-            - name: tenant
-              confidence: confident
+            - {name: event_timestamp, confidence: confident}
+            - {name: elapsed, confidence: confident}
+            - {name: processed_rows_byol, confidence: confident}
+            - {name: workload_name, confidence: confident}
+            - {name: pre_execution_query_metrics, confidence: confident}
+            - {name: query_plan, confidence: confident}
+            - {name: tenant, confidence: confident}

@@ -12,45 +12,21 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "db1.schema1.A x"
-        - type: name/catalog
-          catalog-id: "257.65537.4294967297"
-          statement-id: 0
-          text: "db2.schema2.A y"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "db1.schema1.A x"}
+        - {type: name/catalog, catalog-id: "257.65537.1:1", text: "db2.schema2.A y"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "db1.schema1.A x"
-          statement-id: 0
-          text: "x.a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "257.65537.4294967297.0"
-          source: "db2.schema2.A y"
-          statement-id: 0
-          text: "c"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "db1.schema1.A x", text: "x.a"}
+        - {id: 1, type: colref/catalog, catalog: "257.65537.1:1.0", source: "db2.schema2.A y", text: "c"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: x
-              text: "db1.schema1.A x"
-            - type: table
-              name: y
-              text: "db2.schema2.A y"
+            - {type: table, name: x, text: "db1.schema1.A x"}
+            - {type: table, name: y, text: "db2.schema2.A y"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
-            - name: c
-              table-column: "257.65537.4294967297.0"
-            - name: d
-              table-column: "257.65537.4294967297.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+            - {name: c, table-column: "257.65537.1:1.0"}
+            - {name: d, table-column: "257.65537.1:1.1"}
           text: "select * f..re x.a = c"
 
   - name: cross_1_entry_implicit
@@ -65,45 +41,25 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "db1.schema1.A x"
-        - type: name/catalog
-          catalog-id: "257.65537.4294967297"
-          statement-id: 0
-          text: "db2.schema2.A"
+        - {type: name/unresolved, text: "db1.schema1.A x"}
+        - {type: name/catalog, catalog-id: "257.65537.1:1", text: "db2.schema2.A"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "x.a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "257.65537.4294967297.0"
-          source: "db2.schema2.A"
-          statement-id: 0
-          text: "c"
+        - {id: 0, type: colref/unresolved, text: "x.a"}
+        - {id: 1, type: colref/catalog, catalog: "257.65537.1:1.0", source: "db2.schema2.A", text: "c"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: x
-              text: "db1.schema1.A x"
-            - type: table
-              name: a
-              text: "db2.schema2.A"
+            - {type: unresolved, name: x, text: "db1.schema1.A x"}
+            - {type: table, name: a, text: "db2.schema2.A"}
           columns:
-            - name: c
-              table-column: "257.65537.4294967297.0"
-            - name: d
-              table-column: "257.65537.4294967297.1"
+            - {name: c, table-column: "257.65537.1:1.0"}
+            - {name: d, table-column: "257.65537.1:1.1"}
           text: "select * f..re x.a = c"
       inferred-tables:
         - name: db1.schema1.a
           confidence: confident
           columns:
-            - name: a
-              confidence: confident
+            - {name: a, confidence: confident}
 
   - name: cross_2_entries_implicit
     catalog:
@@ -115,43 +71,23 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "db1.schema1.A"
-        - type: name/unresolved
-          statement-id: 0
-          text: "db2.schema2.B"
+        - {type: name/unresolved, text: "db1.schema1.A"}
+        - {type: name/unresolved, text: "db2.schema2.B"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "c"
+        - {id: 0, type: colref/unresolved, text: "a"}
+        - {id: 1, type: colref/unresolved, text: "c"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: a
-              text: "db1.schema1.A"
-            - type: unresolved
-              name: b
-              text: "db2.schema2.B"
+            - {type: unresolved, name: a, text: "db1.schema1.A"}
+            - {type: unresolved, name: b, text: "db2.schema2.B"}
           text: "select * f..here a = c"
       inferred-tables:
         - name: db1.schema1.a
           confidence: candidate
           columns:
-            - name: a
-              confidence: candidate
-              candidates:
-                - db2.schema2.b
-            - name: c
-              confidence: candidate
-              candidates:
-                - db2.schema2.b
+            - {name: a, confidence: candidate, candidates: [db2.schema2.b]}
+            - {name: c, confidence: candidate, candidates: [db2.schema2.b]}
 
   - name: cross_2_entries_explicit
     catalog:
@@ -163,45 +99,25 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "db1.schema1.A"
-        - type: name/unresolved
-          statement-id: 0
-          text: "db2.schema2.B"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "db1.schema1.A"}
+        - {type: name/unresolved, text: "db2.schema2.B"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "db1.schema1.A"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "c"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "db1.schema1.A", text: "a"}
+        - {id: 1, type: colref/unresolved, text: "c"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: a
-              text: "db1.schema1.A"
-            - type: unresolved
-              name: b
-              text: "db2.schema2.B"
+            - {type: table, name: a, text: "db1.schema1.A"}
+            - {type: unresolved, name: b, text: "db2.schema2.B"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
           text: "select * f..here a = c"
       inferred-tables:
         - name: db2.schema2.b
           confidence: confident
           columns:
-            - name: c
-              confidence: confident
+            - {name: c, confidence: confident}
 
   - name: cross_first_schema_wins
     catalog:
@@ -215,59 +131,28 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "db1.schema1.A"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 1
-          text: "db1.schema1.A"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 0, text: "db1.schema1.A"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 1, text: "db1.schema1.A"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "db1.schema1.A"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 1
-          text: "c"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          text: "1"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 1
-          text: "1"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "db1.schema1.A", statement-id: 0, text: "a"}
+        - {id: 1, type: colref/unresolved, statement-id: 1, text: "c"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
+        - {id: 3, type: literal/integer, is-const: true, statement-id: 1, text: "1"}
       constants:
-        - expression: 2
-          text: "1"
-        - expression: 3
-          text: "1"
+        - {expression: 2, text: "1"}
+        - {expression: 3, text: "1"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: a
-              text: "db1.schema1.A"
+            - {type: table, name: a, text: "db1.schema1.A"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
           text: "select * f..here a = 1"
         - scope-id: 1
           sources:
-            - type: table
-              name: a
-              text: "db1.schema1.A"
+            - {type: table, name: a, text: "db1.schema1.A"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
           text: "select * f..here c = 1"

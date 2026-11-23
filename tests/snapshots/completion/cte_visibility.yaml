@@ -12,21 +12,12 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "fi"
-        - type: name/cte
-          statement-id: 0
-          text: "second_c"
+        - {type: name/unresolved, text: "fi"}
+        - {type: name/cte, text: "second_c"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: 'from fi'
@@ -77,21 +68,12 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "se"
-        - type: name/cte
-          statement-id: 0
-          text: "first_c"
+        - {type: name/unresolved, text: "se"}
+        - {type: name/cte, text: "first_c"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: 'from se'
@@ -141,12 +123,8 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "se"
-        - type: name/cte
-          statement-id: 0
-          text: "self_c"
+        - {type: name/unresolved, text: "se"}
+        - {type: name/cte, text: "self_c"}
     cursor:
       search:
         text: 'from se'
@@ -196,21 +174,12 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "se"
-        - type: name/cte
-          statement-id: 0
-          text: "self_c"
+        - {type: name/unresolved, text: "se"}
+        - {type: name/cte, text: "self_c"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: 'from se'
@@ -261,18 +230,11 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "inn"
+        - {type: name/unresolved, text: "inn"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: 'from inn'
@@ -324,25 +286,13 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 1
-          text: "my_"
+        - {type: name/unresolved, statement-id: 1, text: "my_"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
-        - expression: 1
-          text: "1"
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "1"}
     cursor:
       search:
         text: 'from my_'
@@ -394,30 +344,12 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/cte
-          statement-id: 0
-          text: "c"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/cte, text: "c"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 2
-          type: colref/unresolved
-          statement-id: 0
-          text: "c."
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 2, type: colref/unresolved, text: "c."}
     cursor:
       search:
         text: 'c.'
@@ -455,31 +387,12 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "u"
-          statement-id: 0
-          text: "c"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "na"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+        - {id: 1, type: colref/unresolved, text: "na"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
     cursor:
       search:
         text: 'where na'
@@ -497,7 +410,7 @@ completion-snapshots:
           location-qualified: "na"
           objects:
             - type: column
-              id: "256.65536.4294967296.2"
+              id: "256.65536.1:0.2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
@@ -533,21 +446,16 @@ completion-snapshots:
         create table local_t (x int);
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: local_t
           text: "create tab.._t (x int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: x
-              text: "x int"
+            - {catalog-id: "256.65536.1:0.0", name: x, text: "x int"}
       touched-relations:
-        - statement-id: 1
-          name: local_t
+        - {statement-id: 1, name: local_t}
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "loc"
+        - {type: name/unresolved, statement-id: 0, text: "loc"}
     cursor:
       search:
         text: 'from loc'
@@ -593,21 +501,16 @@ completion-snapshots:
         select * from loc
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: local_t
           text: "create tab.._t (x int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: x
-              text: "x int"
+            - {catalog-id: "256.65536.1:0.0", name: x, text: "x int"}
       touched-relations:
-        - statement-id: 0
-          name: local_t
+        - {statement-id: 0, name: local_t}
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 1
-          text: "loc"
+        - {type: name/unresolved, statement-id: 1, text: "loc"}
     cursor:
       search:
         text: 'from loc'
@@ -630,7 +533,7 @@ completion-snapshots:
           location-qualified: "loc"
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
               qualified: local_t
               qualified-idx: 0

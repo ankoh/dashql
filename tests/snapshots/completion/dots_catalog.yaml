@@ -10,9 +10,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "dbname."
+        - {type: name/unresolved, text: "dbname."}
     cursor:
       search:
         text: dbname.
@@ -45,9 +43,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "dbname.sch"
+        - {type: name/unresolved, text: "dbname.sch"}
     cursor:
       search:
         text: .sch
@@ -70,9 +66,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "dbname.sch"
+        - {type: name/unresolved, text: "dbname.sch"}
     cursor:
       search:
         text: .sch
@@ -105,9 +99,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "dbname.\"sch\""
+        - {type: name/unresolved, text: "dbname.\"sch\""}
     cursor:
       search:
         text: name.
@@ -138,21 +130,16 @@ completion-snapshots:
         select * from dbname.
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: foo
           text: "create tab..foo(a int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: a
-              text: "a int"
+            - {catalog-id: "256.65536.1:0.0", name: a, text: "a int"}
       touched-relations:
-        - statement-id: 0
-          name: dbname.schemaname.foo
+        - {statement-id: 0, name: dbname.schemaname.foo}
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 1
-          text: "dbname."
+        - {type: name/unresolved, statement-id: 1, text: "dbname."}
     cursor:
       search:
         text: from dbname.
@@ -185,9 +172,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "x."
+        - {type: name/unresolved, text: "x."}
     cursor:
       search:
         text: x.
@@ -206,7 +191,7 @@ completion-snapshots:
           location-qualified: "x."
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
               qualified: x.foo
               qualified-idx: 1

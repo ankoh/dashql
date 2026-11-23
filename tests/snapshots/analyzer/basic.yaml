@@ -18,45 +18,21 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "B"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "A"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "B"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "A"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "A"
-          statement-id: 0
-          text: "b"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "A", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "A", text: "b"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: a
-              text: "A"
-            - type: table
-              name: b
-              text: "B"
+            - {type: table, name: a, text: "A"}
+            - {type: table, name: b, text: "B"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
-            - name: d
-              table-column: "256.65536.4294967297.0"
-            - name: e
-              table-column: "256.65536.4294967297.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+            - {name: d, table-column: "256.65536.1:1.0"}
+            - {name: e, table-column: "256.65536.1:1.1"}
           text: "select * f..here a = b"
 
   - name: edges_0
@@ -71,51 +47,22 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "B"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "A"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "B"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "A"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "B"
-          statement-id: 0
-          text: "d"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "B"
-          statement-id: 0
-          text: "e"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "A", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.0", source: "B", text: "d"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.1", source: "B", text: "e"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: a
-              text: "A"
-            - type: table
-              name: b
-              text: "B"
+            - {type: table, name: a, text: "A"}
+            - {type: table, name: b, text: "B"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
-            - name: d
-              table-column: "256.65536.4294967297.0"
-            - name: e
-              table-column: "256.65536.4294967297.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+            - {name: d, table-column: "256.65536.1:1.0"}
+            - {name: e, table-column: "256.65536.1:1.1"}
           text: "select * f.. a + d = e"
 
   - name: edges_1
@@ -130,57 +77,23 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "B"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "A"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "B"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "A"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "B"
-          statement-id: 0
-          text: "d"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "A"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "B"
-          statement-id: 0
-          text: "e"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "A", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.0", source: "B", text: "d"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "A", text: "b"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:1.1", source: "B", text: "e"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: a
-              text: "A"
-            - type: table
-              name: b
-              text: "B"
+            - {type: table, name: a, text: "A"}
+            - {type: table, name: b, text: "B"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
-            - name: d
-              table-column: "256.65536.4294967297.0"
-            - name: e
-              table-column: "256.65536.4294967297.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+            - {name: d, table-column: "256.65536.1:1.0"}
+            - {name: e, table-column: "256.65536.1:1.1"}
           text: "select * f.. and b = e"
 
   - name: edges_2
@@ -195,83 +108,29 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "B"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "A"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "B"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "A"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "B"
-          statement-id: 0
-          text: "d"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "A"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "B"
-          statement-id: 0
-          text: "e"
-        - expression-idx: 4
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "A"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 5
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "B"
-          statement-id: 0
-          text: "d"
-        - expression-idx: 6
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "B"
-          statement-id: 0
-          text: "d"
-        - expression-idx: 7
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "42"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "A", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.0", source: "B", text: "d"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "A", text: "b"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:1.1", source: "B", text: "e"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:0.0", source: "A", text: "a"}
+        - {id: 5, type: colref/catalog, catalog: "256.65536.1:1.0", source: "B", text: "d"}
+        - {id: 6, type: colref/catalog, catalog: "256.65536.1:1.0", source: "B", text: "d"}
+        - {id: 7, type: literal/integer, is-const: true, text: "42"}
       constants:
-        - expression: 7
-          text: "42"
+        - {expression: 7, text: "42"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: a
-              text: "A"
-            - type: table
-              name: b
-              text: "B"
+            - {type: table, name: a, text: "A"}
+            - {type: table, name: b, text: "B"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
-            - name: d
-              table-column: "256.65536.4294967297.0"
-            - name: e
-              table-column: "256.65536.4294967297.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+            - {name: d, table-column: "256.65536.1:1.0"}
+            - {name: e, table-column: "256.65536.1:1.1"}
           text: "select * f..nd d = 42)"
 
   - name: edges_3
@@ -286,53 +145,24 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "B"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "A"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "B"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "B"
-          statement-id: 0
-          text: "d"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "A"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "42"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.0", source: "B", text: "d"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "A", text: "a"}
+        - {id: 2, type: literal/integer, is-const: true, text: "42"}
       constants:
-        - expression: 2
-          text: "42"
+        - {expression: 2, text: "42"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: a
-              text: "A"
-            - type: table
-              name: b
-              text: "B"
+            - {type: table, name: a, text: "A"}
+            - {type: table, name: b, text: "B"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
-            - name: d
-              table-column: "256.65536.4294967297.0"
-            - name: e
-              table-column: "256.65536.4294967297.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+            - {name: d, table-column: "256.65536.1:1.0"}
+            - {name: e, table-column: "256.65536.1:1.1"}
           text: "select * f..= (d + 42)"
 
   - name: edges_4
@@ -347,45 +177,21 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "B"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "A"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "B"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "A"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "A"
-          statement-id: 0
-          text: "b"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "A", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "A", text: "b"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: a
-              text: "A"
-            - type: table
-              name: b
-              text: "B"
+            - {type: table, name: a, text: "A"}
+            - {type: table, name: b, text: "B"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
-            - name: d
-              table-column: "256.65536.4294967297.0"
-            - name: e
-              table-column: "256.65536.4294967297.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+            - {name: d, table-column: "256.65536.1:1.0"}
+            - {name: e, table-column: "256.65536.1:1.1"}
           text: "select * f..on (a = b)"
 
   - name: unresolved_0
@@ -400,45 +206,25 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
-        - type: name/unresolved
-          statement-id: 0
-          text: "C"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "A"}
+        - {type: name/unresolved, text: "C"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "A"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "c"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "A", text: "a"}
+        - {id: 1, type: colref/unresolved, text: "c"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: a
-              text: "A"
-            - type: unresolved
-              name: c
-              text: "C"
+            - {type: table, name: a, text: "A"}
+            - {type: unresolved, name: c, text: "C"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
           text: "select * f..here a = c"
       inferred-tables:
         - name: c
           confidence: confident
           columns:
-            - name: c
-              confidence: confident
+            - {name: c, confidence: confident}
 
   - name: unresolved_1
     catalog:
@@ -452,43 +238,21 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "B"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "A"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "B"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "A"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "c"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "A", text: "a"}
+        - {id: 1, type: colref/unresolved, text: "c"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: a
-              text: "A"
-            - type: table
-              name: b
-              text: "B"
+            - {type: table, name: a, text: "A"}
+            - {type: table, name: b, text: "B"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
-            - name: d
-              table-column: "256.65536.4294967297.0"
-            - name: e
-              table-column: "256.65536.4294967297.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+            - {name: d, table-column: "256.65536.1:1.0"}
+            - {name: e, table-column: "256.65536.1:1.1"}
           text: "select * f..here a = c"
 
   - name: unresolved_2
@@ -501,15 +265,11 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "A"
+        - {type: name/unresolved, text: "A"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: a
-              text: "A"
+            - {type: unresolved, name: a, text: "A"}
           text: "select * from A"
 
   - name: unresolved_3
@@ -522,43 +282,23 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "A"
-        - type: name/unresolved
-          statement-id: 0
-          text: "B"
+        - {type: name/unresolved, text: "A"}
+        - {type: name/unresolved, text: "B"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "c"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "d"
+        - {id: 0, type: colref/unresolved, text: "c"}
+        - {id: 1, type: colref/unresolved, text: "d"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: a
-              text: "A"
-            - type: unresolved
-              name: b
-              text: "B"
+            - {type: unresolved, name: a, text: "A"}
+            - {type: unresolved, name: b, text: "B"}
           text: "select * f..here c = d"
       inferred-tables:
         - name: a
           confidence: candidate
           columns:
-            - name: c
-              confidence: candidate
-              candidates:
-                - b
-            - name: d
-              confidence: candidate
-              candidates:
-                - b
+            - {name: c, confidence: candidate, candidates: [b]}
+            - {name: d, confidence: candidate, candidates: [b]}
 
   - name: nesting_1
     catalog:
@@ -572,50 +312,26 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "B"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "B"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "A"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "A"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "B"
-          statement-id: 0
-          text: "d"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "A", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.0", source: "B", text: "d"}
       name-scopes:
         - scope-id: 0
           parent: 1
           sources:
-            - type: table
-              name: b
-              text: "B"
+            - {type: table, name: b, text: "B"}
           columns:
-            - name: d
-              table-column: "256.65536.4294967297.0"
-            - name: e
-              table-column: "256.65536.4294967297.1"
+            - {name: d, table-column: "256.65536.1:1.0"}
+            - {name: e, table-column: "256.65536.1:1.1"}
           text: "(select * ..ere a = d)"
         - scope-id: 1
           sources:
-            - type: table
-              name: a
-              text: "A"
+            - {type: table, name: a, text: "A"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
           text: "select * f..ere a = d)"
 
   - name: nesting_2
@@ -630,61 +346,30 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "B"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "A"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "B"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "A"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "A"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "B"
-          statement-id: 0
-          text: "d"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "A", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.0", source: "B", text: "d"}
       name-scopes:
         - scope-id: 0
           parent: 1
           sources:
-            - type: table
-              name: a
-              text: "A"
-            - type: table
-              name: b
-              text: "B"
+            - {type: table, name: a, text: "A"}
+            - {type: table, name: b, text: "B"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
-            - name: d
-              table-column: "256.65536.4294967297.0"
-            - name: e
-              table-column: "256.65536.4294967297.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+            - {name: d, table-column: "256.65536.1:1.0"}
+            - {name: e, table-column: "256.65536.1:1.1"}
           text: "(select * ..ere a = d)"
         - scope-id: 1
           sources:
-            - type: table
-              name: a
-              text: "A"
+            - {type: table, name: a, text: "A"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
           text: "select * f..ere a = d)"
 
   - name: nesting_correlated_select
@@ -699,65 +384,28 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "orders"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "customer"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "orders"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "customer"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "customer"
-          statement-id: 0
-          text: "c_name"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "orders"
-          statement-id: 0
-          text: "o_totalprice"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "orders"
-          statement-id: 0
-          text: "o_custkey"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "customer"
-          statement-id: 0
-          text: "c_custkey"
-        - expression-idx: 4
-          type: function
-          name: sum
-          statement-id: 0
-          text: "sum(o_totalprice)"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.1", source: "customer", text: "c_name"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "orders", text: "o_totalprice"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "orders", text: "o_custkey"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:1.0", source: "customer", text: "c_custkey"}
+        - {id: 4, type: function, name: sum, text: "sum(o_totalprice)"}
       name-scopes:
         - scope-id: 0
           parent: 1
           sources:
-            - type: table
-              name: orders
-              text: "orders"
+            - {type: table, name: orders, text: "orders"}
           columns:
-            - name: '?'
-              expression: 4
+            - {name: '?', expression: 4}
           text: "(select su..c_custkey)"
         - scope-id: 1
           sources:
-            - type: table
-              name: customer
-              text: "customer"
+            - {type: table, name: customer, text: "customer"}
           columns:
-            - name: c_name
-              expression: 0
-            - name: total
-              computed: true
+            - {name: c_name, expression: 0}
+            - {name: total, computed: true}
           text: "select c_n..m customer"
 
   - name: nesting_correlated_deep
@@ -773,78 +421,37 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967298"
-          statement-id: 0
-          text: "C"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "B"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "C"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "B"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "A"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "A"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "B"
-          statement-id: 0
-          text: "d"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967298.0"
-          source: "C"
-          statement-id: 0
-          text: "f"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "B"
-          statement-id: 0
-          text: "d"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "A", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.0", source: "B", text: "d"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:2.0", source: "C", text: "f"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:1.0", source: "B", text: "d"}
       name-scopes:
         - scope-id: 0
           parent: 1
           sources:
-            - type: table
-              name: c
-              text: "C"
+            - {type: table, name: c, text: "C"}
           columns:
-            - name: f
-              table-column: "256.65536.4294967298.0"
-            - name: g
-              table-column: "256.65536.4294967298.1"
+            - {name: f, table-column: "256.65536.1:2.0"}
+            - {name: g, table-column: "256.65536.1:2.1"}
           text: "(select * ..ere f = d)"
         - scope-id: 1
           parent: 2
           sources:
-            - type: table
-              name: b
-              text: "B"
+            - {type: table, name: b, text: "B"}
           columns:
-            - name: d
-              table-column: "256.65536.4294967297.0"
-            - name: e
-              table-column: "256.65536.4294967297.1"
+            - {name: d, table-column: "256.65536.1:1.0"}
+            - {name: e, table-column: "256.65536.1:1.1"}
           text: "(select * ..re f = d))"
         - scope-id: 2
           sources:
-            - type: table
-              name: a
-              text: "A"
+            - {type: table, name: a, text: "A"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
           text: "select * f..re f = d))"
 
   - name: nesting_derived_table
@@ -858,87 +465,34 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "sales"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "sales"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "(select pr..duct) as s"
-          statement-id: 0
-          text: "product"
-        - expression-idx: 1
-          type: colref/local
-          scope: 0
-          column: 1
-          source: "(select pr..duct) as s"
-          statement-id: 0
-          text: "total"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "sales"
-          statement-id: 0
-          text: "product"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "sales"
-          statement-id: 0
-          text: "amount"
-        - expression-idx: 4
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "sales"
-          statement-id: 0
-          text: "product"
-        - expression-idx: 5
-          type: colref/local
-          scope: 0
-          column: 1
-          source: "(select pr..duct) as s"
-          statement-id: 0
-          text: "total"
-        - expression-idx: 6
-          type: function
-          name: sum
-          statement-id: 0
-          text: "sum(amount)"
-        - expression-idx: 7
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "100"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "(select pr..duct) as s", text: "product"}
+        - {id: 1, type: colref/local, scope: 0, column: 1, source: "(select pr..duct) as s", text: "total"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "sales", text: "product"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.1", source: "sales", text: "amount"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:0.0", source: "sales", text: "product"}
+        - {id: 5, type: colref/local, scope: 0, column: 1, source: "(select pr..duct) as s", text: "total"}
+        - {id: 6, type: function, name: sum, text: "sum(amount)"}
+        - {id: 7, type: literal/integer, is-const: true, text: "100"}
       constants:
-        - expression: 7
-          text: "100"
+        - {expression: 7, text: "100"}
       name-scopes:
         - scope-id: 0
           parent: 1
           parent-sources: none
           sources:
-            - type: table
-              name: sales
-              text: "sales"
+            - {type: table, name: sales, text: "sales"}
           columns:
-            - name: product
-              expression: 2
-            - name: total
-              expression: 6
+            - {name: product, expression: 2}
+            - {name: total, expression: 6}
           text: "(select pr..y product)"
         - scope-id: 1
           sources:
-            - type: subquery
-              name: s
-              scope: 0
-              text: "(select pr..duct) as s"
+            - {type: subquery, name: s, scope: 0, text: "(select pr..duct) as s"}
           columns:
-            - name: product
-              expression: 0
-            - name: total
-              expression: 1
+            - {name: product, expression: 0}
+            - {name: total, expression: 1}
           text: "select pro..otal > 100"
 
   - name: cte_basic
@@ -952,75 +506,31 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "sales"
-        - type: name/cte
-          statement-id: 0
-          text: "totals"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "sales"}
+        - {type: name/cte, text: "totals"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "sales"
-          statement-id: 0
-          text: "product"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "sales"
-          statement-id: 0
-          text: "amount"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "sales"
-          statement-id: 0
-          text: "product"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "totals"
-          statement-id: 0
-          text: "product"
-        - expression-idx: 4
-          type: colref/local
-          scope: 0
-          column: 1
-          source: "totals"
-          statement-id: 0
-          text: "total"
-        - expression-idx: 5
-          type: function
-          name: sum
-          statement-id: 0
-          text: "sum(amount)"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "sales", text: "product"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "sales", text: "amount"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "sales", text: "product"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.0", source: "totals", text: "product"}
+        - {id: 4, type: colref/local, scope: 0, column: 1, source: "totals", text: "total"}
+        - {id: 5, type: function, name: sum, text: "sum(amount)"}
       name-scopes:
         - scope-id: 0
           parent: 1
           parent-sources: none
           sources:
-            - type: table
-              name: sales
-              text: "sales"
+            - {type: table, name: sales, text: "sales"}
           columns:
-            - name: product
-              expression: 0
-            - name: total
-              expression: 5
+            - {name: product, expression: 0}
+            - {name: total, expression: 5}
           text: "select pro..by product"
         - scope-id: 1
           sources:
-            - type: cte
-              name: totals
-              scope: 0
-              text: "totals"
+            - {type: cte, name: totals, scope: 0, text: "totals"}
           columns:
-            - name: product
-              expression: 3
-            - name: total
-              expression: 4
+            - {name: product, expression: 3}
+            - {name: total, expression: 4}
           text: "with total..rom totals"
 
   - name: cte_column_aliases
@@ -1034,75 +544,31 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "sales"
-        - type: name/cte
-          statement-id: 0
-          text: "totals"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "sales"}
+        - {type: name/cte, text: "totals"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "sales"
-          statement-id: 0
-          text: "product"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "sales"
-          statement-id: 0
-          text: "amount"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "sales"
-          statement-id: 0
-          text: "product"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "totals"
-          statement-id: 0
-          text: "item"
-        - expression-idx: 4
-          type: colref/local
-          scope: 0
-          column: 1
-          source: "totals"
-          statement-id: 0
-          text: "revenue"
-        - expression-idx: 5
-          type: function
-          name: sum
-          statement-id: 0
-          text: "sum(amount)"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "sales", text: "product"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "sales", text: "amount"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "sales", text: "product"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.0", source: "totals", text: "item"}
+        - {id: 4, type: colref/local, scope: 0, column: 1, source: "totals", text: "revenue"}
+        - {id: 5, type: function, name: sum, text: "sum(amount)"}
       name-scopes:
         - scope-id: 0
           parent: 1
           parent-sources: none
           sources:
-            - type: table
-              name: sales
-              text: "sales"
+            - {type: table, name: sales, text: "sales"}
           columns:
-            - name: product
-              expression: 0
-            - name: '?'
-              expression: 5
+            - {name: product, expression: 0}
+            - {name: '?', expression: 5}
           text: "select pro..by product"
         - scope-id: 1
           sources:
-            - type: cte
-              name: totals
-              scope: 0
-              text: "totals"
+            - {type: cte, name: totals, scope: 0, text: "totals"}
           columns:
-            - name: item
-              expression: 3
-            - name: revenue
-              expression: 4
+            - {name: item, expression: 3}
+            - {name: revenue, expression: 4}
           text: "with total..rom totals"
 
   - name: cte_chained
@@ -1120,116 +586,45 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "orders"
-        - type: name/cte
-          statement-id: 0
-          text: "completed"
-        - type: name/cte
-          statement-id: 0
-          text: "summary"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "orders"}
+        - {type: name/cte, text: "completed"}
+        - {type: name/cte, text: "summary"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "orders"
-          statement-id: 0
-          text: "customer_id"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "orders"
-          statement-id: 0
-          text: "amount"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.2"
-          source: "orders"
-          statement-id: 0
-          text: "status"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "completed"
-          statement-id: 0
-          text: "customer_id"
-        - expression-idx: 4
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "completed"
-          statement-id: 0
-          text: "amount"
-        - expression-idx: 5
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "completed"
-          statement-id: 0
-          text: "customer_id"
-        - expression-idx: 6
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "summary"
-          statement-id: 0
-          text: "customer_id"
-        - expression-idx: 7
-          type: colref/local
-          scope: 1
-          column: 1
-          source: "summary"
-          statement-id: 0
-          text: "total"
-        - expression-idx: 8
-          type: function
-          name: sum
-          statement-id: 0
-          text: "sum(amount)"
-        - expression-idx: 9
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'done'"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "orders", text: "customer_id"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "orders", text: "amount"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.2", source: "orders", text: "status"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.0", source: "completed", text: "customer_id"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:0.1", source: "completed", text: "amount"}
+        - {id: 5, type: colref/catalog, catalog: "256.65536.1:0.0", source: "completed", text: "customer_id"}
+        - {id: 6, type: colref/catalog, catalog: "256.65536.1:0.0", source: "summary", text: "customer_id"}
+        - {id: 7, type: colref/local, scope: 1, column: 1, source: "summary", text: "total"}
+        - {id: 8, type: function, name: sum, text: "sum(amount)"}
+        - {id: 9, type: literal/string, is-const: true, text: "'done'"}
       constants:
-        - expression: 9
-          text: "'done'"
+        - {expression: 9, text: "'done'"}
       name-scopes:
         - scope-id: 0
           parent: 2
           parent-sources: none
           sources:
-            - type: table
-              name: orders
-              text: "orders"
+            - {type: table, name: orders, text: "orders"}
           columns:
-            - name: customer_id
-              expression: 0
-            - name: amount
-              expression: 1
+            - {name: customer_id, expression: 0}
+            - {name: amount, expression: 1}
           text: "select cus..s = 'done'"
         - scope-id: 1
           parent: 2
           parent-sources: none
           sources:
-            - type: cte
-              name: completed
-              scope: 0
-              text: "completed"
+            - {type: cte, name: completed, scope: 0, text: "completed"}
           columns:
-            - name: customer_id
-              expression: 3
-            - name: total
-              expression: 8
+            - {name: customer_id, expression: 3}
+            - {name: total, expression: 8}
           text: "select cus..ustomer_id"
         - scope-id: 2
           sources:
-            - type: cte
-              name: summary
-              scope: 1
-              text: "summary"
+            - {type: cte, name: summary, scope: 1, text: "summary"}
           columns:
-            - name: customer_id
-              expression: 6
-            - name: total
-              expression: 7
+            - {name: customer_id, expression: 6}
+            - {name: total, expression: 7}
           text: "with\n  com..om summary"

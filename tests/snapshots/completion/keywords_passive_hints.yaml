@@ -41,10 +41,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "foo"
+        - {id: 0, type: colref/unresolved, text: "foo"}
     cursor:
       search:
         text: "foo "
@@ -114,9 +111,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo"
+        - {type: name/unresolved, text: "foo"}
     cursor:
       search:
         text: "where "
@@ -136,12 +131,8 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo"
-        - type: name/unresolved
-          statement-id: 0
-          text: "bar"
+        - {type: name/unresolved, text: "foo"}
+        - {type: name/unresolved, text: "bar"}
     cursor:
       search:
         text: "on "
@@ -161,28 +152,17 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo"
+        - {type: name/unresolved, text: "foo"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "x"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/unresolved, text: "x"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 1
-          text: "1"
+        - {expression: 1, text: "1"}
       inferred-tables:
         - name: foo
           confidence: confident
           columns:
-            - name: x
-              confidence: confident
+            - {name: x, confidence: confident}
     cursor:
       search:
         text: "and "
@@ -202,28 +182,17 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo"
+        - {type: name/unresolved, text: "foo"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "x"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/unresolved, text: "x"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 1
-          text: "1"
+        - {expression: 1, text: "1"}
       inferred-tables:
         - name: foo
           confidence: confident
           columns:
-            - name: x
-              confidence: confident
+            - {name: x, confidence: confident}
     cursor:
       search:
         text: "or "
@@ -243,9 +212,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo"
+        - {type: name/unresolved, text: "foo"}
     cursor:
       search:
         text: "foo "
@@ -303,8 +270,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          text: "foo"
+        - {type: name/unresolved, text: "foo"}
     cursor:
       search:
         text: "order "

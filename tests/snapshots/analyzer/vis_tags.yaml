@@ -15,34 +15,17 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "sales"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "sales"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "sales"
-          statement-id: 0
-          text: "region"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "sales"
-          statement-id: 0
-          text: "revenue"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "sales", text: "region"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "sales", text: "revenue"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: sales
-              text: "sales"
+            - {type: table, name: sales, text: "sales"}
           columns:
-            - name: region
-              expression: 0
-            - name: revenue
-              expression: 1
+            - {name: region, expression: 0}
+            - {name: revenue, expression: 1}
           text: "select reg..from sales"
       visualizations:
         - statement-id: 0
@@ -67,45 +50,19 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "sales"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "sales"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.2"
-          source: "sales"
-          statement-id: 0
-          text: "date"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "sales"
-          statement-id: 0
-          text: "revenue"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.2"
-          source: "sales"
-          statement-id: 0
-          text: "date"
-        - expression-idx: 3
-          type: function
-          name: sum
-          statement-id: 0
-          text: "sum(revenue)"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.2", source: "sales", text: "date"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "sales", text: "revenue"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.2", source: "sales", text: "date"}
+        - {id: 3, type: function, name: sum, text: "sum(revenue)"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: sales
-              text: "sales"
+            - {type: table, name: sales, text: "sales"}
           columns:
-            - name: date
-              expression: 0
-            - name: total
-              expression: 3
+            - {name: date, expression: 0}
+            - {name: total, expression: 3}
           text: "select dat..up by date"
       visualizations:
         - statement-id: 0
@@ -138,23 +95,15 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "sales"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "sales"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: sales
-              text: "sales"
+            - {type: table, name: sales, text: "sales"}
           columns:
-            - name: region
-              table-column: "256.65536.4294967296.0"
-            - name: revenue
-              table-column: "256.65536.4294967296.1"
-            - name: date
-              table-column: "256.65536.4294967296.2"
+            - {name: region, table-column: "256.65536.1:0.0"}
+            - {name: revenue, table-column: "256.65536.1:0.1"}
+            - {name: date, table-column: "256.65536.1:0.2"}
           text: "select * from sales"
       visualizations:
         - statement-id: 0
@@ -176,37 +125,19 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 2
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'x'"
+        - {id: 0, type: literal/string, is-const: true, text: "'a'"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
+        - {id: 2, type: literal/string, is-const: true, text: "'x'"}
       constants:
-        - expression: 0
-          text: "'a'"
-        - expression: 1
-          text: "1"
-        - expression: 2
-          text: "'x'"
+        - {expression: 0, text: "'a'"}
+        - {expression: 1, text: "1"}
+        - {expression: 2, text: "'x'"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: metric
-              expression: 0
-            - name: value
-              expression: 1
-            - name: detail
-              expression: 2
+            - {name: metric, expression: 0}
+            - {name: value, expression: 1}
+            - {name: detail, expression: 2}
           text: "select 'a'.. as detail"
       visualizations:
         - statement-id: 0
@@ -239,47 +170,21 @@ analyzer-snapshots:
         select region, revenue, date from sales;
       catalog-id: 2
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'unknown field "regoin", the statement has the columns date, region, revenue'
-          text: "\"regoin\""
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'unknown field "regoin", the statement has the columns date, region, revenue', text: "\"regoin\""}
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "sales"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "sales"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "sales"
-          statement-id: 0
-          text: "region"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "sales"
-          statement-id: 0
-          text: "revenue"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.2"
-          source: "sales"
-          statement-id: 0
-          text: "date"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "sales", text: "region"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "sales", text: "revenue"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.2", source: "sales", text: "date"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: sales
-              text: "sales"
+            - {type: table, name: sales, text: "sales"}
           columns:
-            - name: region
-              expression: 0
-            - name: revenue
-              expression: 1
-            - name: date
-              expression: 2
+            - {name: region, expression: 0}
+            - {name: revenue, expression: 1}
+            - {name: date, expression: 2}
           text: "select reg..from sales"
       visualizations:
         - statement-id: 0
@@ -298,15 +203,11 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "unknown_table"
+        - {type: name/unresolved, text: "unknown_table"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: unknown_table
-              text: "unknown_table"
+            - {type: unresolved, name: unknown_table, text: "unknown_table"}
           text: "select * f..nown_table"
       visualizations:
         - statement-id: 0
@@ -327,24 +228,15 @@ analyzer-snapshots:
         select 1 as a;
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'invalid Vega-Lite JSON: expected value at line 2 column 14'
-          text: "}"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'invalid Vega-Lite JSON: expected value at line 2 column 14', text: "}"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select 1 as a"
 
   - name: vis_tag_markdown_empty
@@ -355,24 +247,15 @@ analyzer-snapshots:
         select 'Ada' as author;
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@vis markdown needs a row template'
-          text: "markdown"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis markdown needs a row template', text: "markdown"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'Ada'"
+        - {id: 0, type: literal/string, is-const: true, text: "'Ada'"}
       constants:
-        - expression: 0
-          text: "'Ada'"
+        - {expression: 0, text: "'Ada'"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: author
-              expression: 0
+            - {name: author, expression: 0}
           text: "select 'Ad.. as author"
 
   - name: vis_tag_data_ignored
@@ -382,24 +265,15 @@ analyzer-snapshots:
         select 1 as a;
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'data is ignored, the statement is the data of the chart'
-          text: "\"data\""
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'data is ignored, the statement is the data of the chart', text: "\"data\""}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select 1 as a"
       visualizations:
         - statement-id: 0
@@ -422,52 +296,22 @@ analyzer-snapshots:
         select 1 as a;
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'unknown @vis kind "chart", expected vegalite, markdown, kpi or table'
-          text: "chart"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@vis needs a kind: vegalite, markdown, kpi or table'
-          text: "vis"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@vis table takes no args, they are ignored'
-          text: "extra"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'the statement is already visualized by @vis table, this tag is ignored'
-          text: "markdown"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'unknown @board arg "depth", expected row, column, width or height'
-          text: "depth=2"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@board takes key=value args, not "row"'
-          text: "row"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@board width must be an integer'
-          text: "width=x"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'the statement already has a @board, this tag is ignored'
-          text: "board"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'unknown @vis kind "chart", expected vegalite, markdown, kpi or table', text: "chart"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis needs a kind: vegalite, markdown, kpi or table', text: "vis"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis table takes no args, they are ignored', text: "extra"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'the statement is already visualized by @vis table, this tag is ignored', text: "markdown"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'unknown @board arg "depth", expected row, column, width or height', text: "depth=2"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@board takes key=value args, not "row"', text: "row"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@board width must be an integer', text: "width=x"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'the statement already has a @board, this tag is ignored', text: "board"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select 1 as a"
       visualizations:
         - statement-id: 0
@@ -489,32 +333,17 @@ analyzer-snapshots:
         select 1 as a;
       catalog-id: 1
       errors:
-        - type: INVALID_DASHBOARD_LAYOUT
-          severity: WARNING
-          message: dashboard row must be non-negative and was removed
-          text: "row=-1"
-        - type: INVALID_DASHBOARD_LAYOUT
-          severity: WARNING
-          message: dashboard height was clamped to 1
-          text: "height=0"
-        - type: INVALID_DASHBOARD_LAYOUT
-          severity: WARNING
-          message: dashboard column was moved so column + width does not exceed 12
-          text: "column=9"
+        - {type: INVALID_DASHBOARD_LAYOUT, severity: WARNING, message: dashboard row must be non-negative and was removed, text: "row=-1"}
+        - {type: INVALID_DASHBOARD_LAYOUT, severity: WARNING, message: dashboard height was clamped to 1, text: "height=0"}
+        - {type: INVALID_DASHBOARD_LAYOUT, severity: WARNING, message: dashboard column was moved so column + width does not exceed 12, text: "column=9"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select 1 as a"
       visualizations:
         - statement-id: 0
@@ -543,31 +372,19 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 1
-          text: "2"
+        - {id: 0, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, statement-id: 1, text: "2"}
       constants:
-        - expression: 0
-          text: "1"
-        - expression: 1
-          text: "2"
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "2"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select 1 as a"
         - scope-id: 1
           columns:
-            - name: b
-              expression: 1
+            - {name: b, expression: 1}
           text: "select 2 as b"
       visualizations:
         - statement-id: 0
@@ -601,19 +418,13 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select 1 as a"
       board:
         statement-id: 0
@@ -629,31 +440,22 @@ analyzer-snapshots:
         create table t (a int);
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: t
           text: "create tab.. t (a int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: a
-              text: "a int"
+            - {catalog-id: "256.65536.1:0.0", name: a, text: "a int"}
       touched-relations:
-        - statement-id: 1
-          name: t
+        - {statement-id: 1, name: t}
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select 1 as a"
       board:
         statement-id: 1
@@ -671,38 +473,24 @@ analyzer-snapshots:
         select a from t;
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: t
           text: "create tab.. t (a int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: a
-              text: "a int"
+            - {catalog-id: "256.65536.1:0.0", name: a, text: "a int"}
       touched-relations:
-        - statement-id: 0
-          name: t
+        - {statement-id: 0, name: t}
       errors: []
       table-refs:
-        - type: name/internal
-          catalog-id: "256.65536.4294967296"
-          statement-id: 1
-          text: "t"
+        - {type: name/internal, catalog-id: "256.65536.1:0", statement-id: 1, text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/internal
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 1
-          text: "a"
+        - {id: 0, type: colref/internal, catalog: "256.65536.1:0.0", source: "t", statement-id: 1, text: "a"}
       name-scopes:
         - scope-id: 1
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select a from t"
       visualizations:
         - statement-id: 1
@@ -726,42 +514,25 @@ analyzer-snapshots:
         select a from t;
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: t
           text: "create tab.. t (a int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: a
-              text: "a int"
+            - {catalog-id: "256.65536.1:0.0", name: a, text: "a int"}
       touched-relations:
-        - statement-id: 0
-          name: t
+        - {statement-id: 0, name: t}
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'the script already has a @flow, this tag is ignored'
-          text: "flow"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'the script already has a @flow, this tag is ignored', text: "flow"}
       table-refs:
-        - type: name/internal
-          catalog-id: "256.65536.4294967296"
-          statement-id: 1
-          text: "t"
+        - {type: name/internal, catalog-id: "256.65536.1:0", statement-id: 1, text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/internal
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 1
-          text: "a"
+        - {id: 0, type: colref/internal, catalog: "256.65536.1:0.0", source: "t", statement-id: 1, text: "a"}
       name-scopes:
         - scope-id: 1
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select a from t"
       visualizations:
         - statement-id: 1
@@ -786,68 +557,32 @@ analyzer-snapshots:
         select 3;
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'unknown @flow arg "depth", expected x, y, width or height'
-          text: "depth=3"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@flow takes key=value args, not "z"'
-          text: "z"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@flow needs y'
-          text: "flow"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@flow x must be an integer'
-          text: "x=y"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@flow y is out of range'
-          text: "y=99999999999"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@flow needs x'
-          text: "flow"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'unknown @flow arg "depth", expected x, y, width or height', text: "depth=3"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@flow takes key=value args, not "z"', text: "z"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@flow needs y', text: "flow"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@flow x must be an integer', text: "x=y"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@flow y is out of range', text: "y=99999999999"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@flow needs x', text: "flow"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 1
-          text: "2"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 2
-          text: "3"
+        - {id: 0, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, statement-id: 1, text: "2"}
+        - {id: 2, type: literal/integer, is-const: true, statement-id: 2, text: "3"}
       constants:
-        - expression: 0
-          text: "1"
-        - expression: 1
-          text: "2"
-        - expression: 2
-          text: "3"
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "2"}
+        - {expression: 2, text: "3"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: '?'
-              expression: 0
+            - {name: '?', expression: 0}
           text: "select 1"
         - scope-id: 1
           columns:
-            - name: '?'
-              expression: 1
+            - {name: '?', expression: 1}
           text: "select 2"
         - scope-id: 2
           columns:
-            - name: '?'
-              expression: 2
+            - {name: '?', expression: 2}
           text: "select 3"
       flow:
         statement-id: 2
@@ -862,19 +597,13 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: '?'
-              expression: 0
+            - {name: '?', expression: 0}
           text: "select 1"
       flow:
         statement-id: 0
@@ -890,44 +619,23 @@ analyzer-snapshots:
         select 2;
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@flow width must be positive'
-          text: "width=0"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@flow needs y'
-          text: "flow"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@flow height must be positive'
-          text: "height=-3"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@flow width must be positive', text: "width=0"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@flow needs y', text: "flow"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@flow height must be positive', text: "height=-3"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 1
-          text: "2"
+        - {id: 0, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, statement-id: 1, text: "2"}
       constants:
-        - expression: 0
-          text: "1"
-        - expression: 1
-          text: "2"
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "2"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: '?'
-              expression: 0
+            - {name: '?', expression: 0}
           text: "select 1"
         - scope-id: 1
           columns:
-            - name: '?'
-              expression: 1
+            - {name: '?', expression: 1}
           text: "select 2"
       flow:
         statement-id: 1
@@ -942,19 +650,13 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select 1 as a"
       manual: true
 
@@ -968,65 +670,35 @@ analyzer-snapshots:
         select a + 1 from t;
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: t
           text: "create tab.. t (a int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: a
-              text: "a int"
+            - {catalog-id: "256.65536.1:0.0", name: a, text: "a int"}
       touched-relations:
-        - statement-id: 0
-          name: t
+        - {statement-id: 0, name: t}
       errors: []
       table-refs:
-        - type: name/internal
-          catalog-id: "256.65536.4294967296"
-          statement-id: 1
-          text: "t"
-        - type: name/internal
-          catalog-id: "256.65536.4294967296"
-          statement-id: 2
-          text: "t"
+        - {type: name/internal, catalog-id: "256.65536.1:0", statement-id: 1, text: "t"}
+        - {type: name/internal, catalog-id: "256.65536.1:0", statement-id: 2, text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/internal
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 1
-          text: "a"
-        - expression-idx: 1
-          type: colref/internal
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 2
-          text: "a"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 2
-          text: "1"
+        - {id: 0, type: colref/internal, catalog: "256.65536.1:0.0", source: "t", statement-id: 1, text: "a"}
+        - {id: 1, type: colref/internal, catalog: "256.65536.1:0.0", source: "t", statement-id: 2, text: "a"}
+        - {id: 2, type: literal/integer, is-const: true, statement-id: 2, text: "1"}
       constants:
-        - expression: 2
-          text: "1"
+        - {expression: 2, text: "1"}
       name-scopes:
         - scope-id: 1
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select a from t"
         - scope-id: 2
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: '?'
-              computed: true
+            - {name: '?', computed: true}
           text: "select a + 1 from t"
       manual: true
 
@@ -1037,21 +709,15 @@ analyzer-snapshots:
         create table t (a int);
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: t
           text: "create tab.. t (a int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: a
-              text: "a int"
+            - {catalog-id: "256.65536.1:0.0", name: a, text: "a int"}
       touched-relations:
-        - statement-id: 0
-          name: t
+        - {statement-id: 0, name: t}
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@vis visualizes a query, this statement returns no rows'
-          text: "vis"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis visualizes a query, this statement returns no rows', text: "vis"}
 
   - name: vis_tag_per_statement
     script:
@@ -1064,43 +730,25 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 1
-          text: "2"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 2
-          text: "3"
+        - {id: 0, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, statement-id: 1, text: "2"}
+        - {id: 2, type: literal/integer, is-const: true, statement-id: 2, text: "3"}
       constants:
-        - expression: 0
-          text: "1"
-        - expression: 1
-          text: "2"
-        - expression: 2
-          text: "3"
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "2"}
+        - {expression: 2, text: "3"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select 1 as a"
         - scope-id: 1
           columns:
-            - name: b
-              expression: 1
+            - {name: b, expression: 1}
           text: "select 2 as b"
         - scope-id: 2
           columns:
-            - name: c
-              expression: 2
+            - {name: c, expression: 2}
           text: "select 3 as c"
       visualizations:
         - statement-id: 0
@@ -1126,40 +774,22 @@ analyzer-snapshots:
         select 2 as b;
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@vis vegalite needs a Vega-Lite spec as JSON object'
-          text: "vegalite"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: the Vega-Lite spec must be a JSON object
-          text: "["
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis vegalite needs a Vega-Lite spec as JSON object', text: "vegalite"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: the Vega-Lite spec must be a JSON object, text: "["}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 1
-          text: "2"
+        - {id: 0, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, statement-id: 1, text: "2"}
       constants:
-        - expression: 0
-          text: "1"
-        - expression: 1
-          text: "2"
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "2"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select 1 as a"
         - scope-id: 1
           columns:
-            - name: b
-              expression: 1
+            - {name: b, expression: 1}
           text: "select 2 as b"
 
   - name: vis_tag_unknown_field_of_many_columns
@@ -1169,105 +799,42 @@ analyzer-snapshots:
         select 1 as a1, 2 as a2, 3 as a3, 4 as a4, 5 as a5, 6 as a6, 7 as a7, 8 as a8, 9 as a9, 10 as a10;
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'unknown field "k", the statement has the columns a1, a10, a2, a3, a4, a5, a6, a7 and 2 more'
-          text: "\"k\""
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'unknown field "k", the statement has the columns a1, a10, a2, a3, a4, a5, a6, a7 and 2 more', text: "\"k\""}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "3"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "4"
-        - expression-idx: 4
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "5"
-        - expression-idx: 5
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "6"
-        - expression-idx: 6
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "7"
-        - expression-idx: 7
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "8"
-        - expression-idx: 8
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "9"
-        - expression-idx: 9
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "10"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, text: "2"}
+        - {id: 2, type: literal/integer, is-const: true, text: "3"}
+        - {id: 3, type: literal/integer, is-const: true, text: "4"}
+        - {id: 4, type: literal/integer, is-const: true, text: "5"}
+        - {id: 5, type: literal/integer, is-const: true, text: "6"}
+        - {id: 6, type: literal/integer, is-const: true, text: "7"}
+        - {id: 7, type: literal/integer, is-const: true, text: "8"}
+        - {id: 8, type: literal/integer, is-const: true, text: "9"}
+        - {id: 9, type: literal/integer, is-const: true, text: "10"}
       constants:
-        - expression: 0
-          text: "1"
-        - expression: 1
-          text: "2"
-        - expression: 2
-          text: "3"
-        - expression: 3
-          text: "4"
-        - expression: 4
-          text: "5"
-        - expression: 5
-          text: "6"
-        - expression: 6
-          text: "7"
-        - expression: 7
-          text: "8"
-        - expression: 8
-          text: "9"
-        - expression: 9
-          text: "10"
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "2"}
+        - {expression: 2, text: "3"}
+        - {expression: 3, text: "4"}
+        - {expression: 4, text: "5"}
+        - {expression: 5, text: "6"}
+        - {expression: 6, text: "7"}
+        - {expression: 7, text: "8"}
+        - {expression: 8, text: "9"}
+        - {expression: 9, text: "10"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: a1
-              expression: 0
-            - name: a2
-              expression: 1
-            - name: a3
-              expression: 2
-            - name: a4
-              expression: 3
-            - name: a5
-              expression: 4
-            - name: a6
-              expression: 5
-            - name: a7
-              expression: 6
-            - name: a8
-              expression: 7
-            - name: a9
-              expression: 8
-            - name: a10
-              expression: 9
+            - {name: a1, expression: 0}
+            - {name: a2, expression: 1}
+            - {name: a3, expression: 2}
+            - {name: a4, expression: 3}
+            - {name: a5, expression: 4}
+            - {name: a6, expression: 5}
+            - {name: a7, expression: 6}
+            - {name: a8, expression: 7}
+            - {name: a9, expression: 8}
+            - {name: a10, expression: 9}
           text: "select 1 a.. 10 as a10"
       visualizations:
         - statement-id: 0
@@ -1291,63 +858,34 @@ analyzer-snapshots:
         select 1 as a, 2 as b union all select 3, 4;
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'unknown field "c", the statement has the columns a, b'
-          text: "\"c\""
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'unknown field "c", the statement has the columns a, b', text: "\"c\""}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "3"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "4"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, text: "2"}
+        - {id: 2, type: literal/integer, is-const: true, text: "3"}
+        - {id: 3, type: literal/integer, is-const: true, text: "4"}
       constants:
-        - expression: 0
-          text: "1"
-        - expression: 1
-          text: "2"
-        - expression: 2
-          text: "3"
-        - expression: 3
-          text: "4"
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "2"}
+        - {expression: 2, text: "3"}
+        - {expression: 3, text: "4"}
       name-scopes:
         - scope-id: 0
           parent: 2
           columns:
-            - name: a
-              expression: 0
-            - name: b
-              expression: 1
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
           text: "select 1 a.. a, 2 as b"
         - scope-id: 1
           parent: 2
           columns:
-            - name: '?'
-              expression: 2
-            - name: '?'
-              expression: 3
+            - {name: '?', expression: 2}
+            - {name: '?', expression: 3}
           text: "select 3, 4"
         - scope-id: 2
           columns:
-            - name: a
-              expression: 0
-            - name: b
-              expression: 1
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
           text: "select 1 a..elect 3, 4"
       visualizations:
         - statement-id: 0
@@ -1368,40 +906,22 @@ analyzer-snapshots:
         select 2 as b;
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@flow needs x and y, a width or a height'
-          text: "flow"
-        - type: INVALID_DASHBOARD_LAYOUT
-          severity: WARNING
-          message: dashboard column must be non-negative and was removed
-          text: "column=-2"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@flow needs x and y, a width or a height', text: "flow"}
+        - {type: INVALID_DASHBOARD_LAYOUT, severity: WARNING, message: dashboard column must be non-negative and was removed, text: "column=-2"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 1
-          text: "2"
+        - {id: 0, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, statement-id: 1, text: "2"}
       constants:
-        - expression: 0
-          text: "1"
-        - expression: 1
-          text: "2"
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "2"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: '?'
-              expression: 0
+            - {name: '?', expression: 0}
           text: "select 1"
         - scope-id: 1
           columns:
-            - name: b
-              expression: 1
+            - {name: b, expression: 1}
           text: "select 2 as b"
       visualizations:
         - statement-id: 1
@@ -1433,50 +953,20 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "sales"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "sales"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.2"
-          source: "sales"
-          statement-id: 0
-          text: "date"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "sales"
-          statement-id: 0
-          text: "revenue"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.2"
-          source: "sales"
-          statement-id: 0
-          text: "date"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967296.2"
-          statement-id: 0
-          text: "date"
-        - expression-idx: 4
-          type: function
-          name: sum
-          statement-id: 0
-          text: "sum(revenue)"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.2", source: "sales", text: "date"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "sales", text: "revenue"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.2", source: "sales", text: "date"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.2", text: "date"}
+        - {id: 4, type: function, name: sum, text: "sum(revenue)"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: sales
-              text: "sales"
+            - {type: table, name: sales, text: "sales"}
           columns:
-            - name: date
-              expression: 0
-            - name: total
-              expression: 4
+            - {name: date, expression: 0}
+            - {name: total, expression: 4}
           text: "select dat..er by date"
       visualizations:
         - statement-id: 0
@@ -1510,81 +1000,32 @@ analyzer-snapshots:
         select date, sum(revenue) as total from sales group by date;
       catalog-id: 2
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'unknown column "revenue", the statement has the columns date, total'
-          text: "value=revenue"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'unknown column "day", the statement has the columns date, total'
-          text: "x=day"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'unknown @vis kpi delta "last", expected previous, first, none'
-          text: "delta=last"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'unknown column "revenue", the statement has the columns date, total', text: "value=revenue"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'unknown column "day", the statement has the columns date, total', text: "x=day"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'unknown @vis kpi delta "last", expected previous, first, none', text: "delta=last"}
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "sales"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 1
-          text: "sales"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 0, text: "sales"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 1, text: "sales"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "sales"
-          statement-id: 0
-          text: "revenue"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.2"
-          source: "sales"
-          statement-id: 1
-          text: "date"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "sales"
-          statement-id: 1
-          text: "revenue"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967296.2"
-          source: "sales"
-          statement-id: 1
-          text: "date"
-        - expression-idx: 4
-          type: function
-          name: sum
-          text: "sum(revenue)"
-        - expression-idx: 5
-          type: function
-          name: sum
-          statement-id: 1
-          text: "sum(revenue)"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.1", source: "sales", statement-id: 0, text: "revenue"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.2", source: "sales", statement-id: 1, text: "date"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "sales", statement-id: 1, text: "revenue"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.2", source: "sales", statement-id: 1, text: "date"}
+        - {id: 4, type: function, name: sum, text: "sum(revenue)"}
+        - {id: 5, type: function, name: sum, statement-id: 1, text: "sum(revenue)"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: sales
-              text: "sales"
+            - {type: table, name: sales, text: "sales"}
           columns:
-            - name: total
-              expression: 4
+            - {name: total, expression: 4}
           text: "select sum..from sales"
         - scope-id: 1
           sources:
-            - type: table
-              name: sales
-              text: "sales"
+            - {type: table, name: sales, text: "sales"}
           columns:
-            - name: date
-              expression: 1
-            - name: total
-              expression: 5
+            - {name: date, expression: 1}
+            - {name: total, expression: 5}
           text: "select dat..up by date"
       visualizations:
         - statement-id: 0
@@ -1623,127 +1064,46 @@ analyzer-snapshots:
         select sum(revenue) as total from sales;
       catalog-id: 2
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@vis kpi takes key=value args, not "delta"'
-          text: "delta"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@vis kpi value takes a column name, a name with spaces in double quotes'
-          text: "value='total'"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@vis kpi has an unterminated delimited identifier'
-          text: "\"Total"
-        - type: INVALID_DASHBOARD_LAYOUT
-          severity: WARNING
-          message: dashboard width was clamped to the range 1..12
-          text: "width=-2"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis kpi takes key=value args, not "delta"', text: "delta"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis kpi value takes a column name, a name with spaces in double quotes', text: "value='total'"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis kpi has an unterminated delimited identifier', text: "\"Total"}
+        - {type: INVALID_DASHBOARD_LAYOUT, severity: WARNING, message: dashboard width was clamped to the range 1..12, text: "width=-2"}
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "sales"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 1
-          text: "sales"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 2
-          text: "sales"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 0, text: "sales"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 1, text: "sales"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 2, text: "sales"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.2"
-          source: "sales"
-          statement-id: 0
-          text: "date"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "sales"
-          statement-id: 0
-          text: "revenue"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.2"
-          source: "sales"
-          statement-id: 0
-          text: "date"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967296.2"
-          statement-id: 0
-          text: "date"
-        - expression-idx: 4
-          type: colref/catalog
-          catalog: "256.65536.4294967296.2"
-          source: "sales"
-          statement-id: 1
-          text: "date"
-        - expression-idx: 5
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "sales"
-          statement-id: 1
-          text: "revenue"
-        - expression-idx: 6
-          type: colref/catalog
-          catalog: "256.65536.4294967296.2"
-          source: "sales"
-          statement-id: 1
-          text: "date"
-        - expression-idx: 7
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "sales"
-          statement-id: 2
-          text: "revenue"
-        - expression-idx: 8
-          type: function
-          name: sum
-          text: "sum(revenue)"
-        - expression-idx: 9
-          type: function
-          name: sum
-          text: "sum(revenue)"
-        - expression-idx: 10
-          type: function
-          name: sum
-          statement-id: 2
-          text: "sum(revenue)"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.2", source: "sales", statement-id: 0, text: "date"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "sales", statement-id: 0, text: "revenue"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.2", source: "sales", statement-id: 0, text: "date"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.2", statement-id: 0, text: "date"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:0.2", source: "sales", statement-id: 1, text: "date"}
+        - {id: 5, type: colref/catalog, catalog: "256.65536.1:0.1", source: "sales", statement-id: 1, text: "revenue"}
+        - {id: 6, type: colref/catalog, catalog: "256.65536.1:0.2", source: "sales", statement-id: 1, text: "date"}
+        - {id: 7, type: colref/catalog, catalog: "256.65536.1:0.1", source: "sales", statement-id: 2, text: "revenue"}
+        - {id: 8, type: function, name: sum, text: "sum(revenue)"}
+        - {id: 9, type: function, name: sum, text: "sum(revenue)"}
+        - {id: 10, type: function, name: sum, statement-id: 2, text: "sum(revenue)"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: sales
-              text: "sales"
+            - {type: table, name: sales, text: "sales"}
           columns:
-            - name: date
-              expression: 0
-            - name: Total Revenue
-              expression: 8
+            - {name: date, expression: 0}
+            - {name: Total Revenue, expression: 8}
           text: "select dat..er by date"
         - scope-id: 1
           sources:
-            - type: table
-              name: sales
-              text: "sales"
+            - {type: table, name: sales, text: "sales"}
           columns:
-            - name: date
-              expression: 4
-            - name: total
-              expression: 9
+            - {name: date, expression: 4}
+            - {name: total, expression: 9}
           text: "select dat..up by date"
         - scope-id: 2
           sources:
-            - type: table
-              name: sales
-              text: "sales"
+            - {type: table, name: sales, text: "sales"}
           columns:
-            - name: total
-              expression: 10
+            - {name: total, expression: 10}
           text: "select sum..from sales"
       visualizations:
         - statement-id: 0

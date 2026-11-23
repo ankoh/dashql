@@ -5,22 +5,15 @@ analyzer-snapshots:
       input: create table orders (id int, product row(name text, quantity int), tags array(row(tag text)))
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: orders
           text: "create tab..ag text)))"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: id
-              text: "id int"
-            - catalog-id: "256.65536.4294967296.1"
-              name: product
-              text: "product ro..ntity int)"
-            - catalog-id: "256.65536.4294967296.2"
-              name: tags
-              text: "tags array..tag text))"
+            - {catalog-id: "256.65536.1:0.0", name: id, text: "id int"}
+            - {catalog-id: "256.65536.1:0.1", name: product, text: "product ro..ntity int)"}
+            - {catalog-id: "256.65536.1:0.2", name: tags, text: "tags array..tag text))"}
       touched-relations:
-        - statement-id: 0
-          name: orders
+        - {statement-id: 0, name: orders}
       errors: []
 
   - name: row_field_access
@@ -33,50 +26,21 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "orders o"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "orders o"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "orders o"
-          statement-id: 0
-          text: "product"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "orders o"
-          statement-id: 0
-          text: "o.product"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "orders o"
-          statement-id: 0
-          text: "o.product.name"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "orders o"
-          statement-id: 0
-          text: "product.quantity"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.1", source: "orders o", text: "product"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "orders o", text: "o.product"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "orders o", text: "o.product.name"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.1", source: "orders o", text: "product.quantity"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: o
-              text: "orders o"
+            - {type: table, name: o, text: "orders o"}
           columns:
-            - name: '?'
-              computed: true
-            - name: '?'
-              computed: true
-            - name: product
-              expression: 2
-            - name: quantity
-              expression: 3
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+            - {name: product, expression: 2}
+            - {name: quantity, expression: 3}
           text: "select (pr..m orders o"
 
   - name: row_field_access_table_wins
@@ -91,33 +55,17 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "product"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "orders"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "product"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "orders"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "product"
-          statement-id: 0
-          text: "product.name"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "product", text: "product.name"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: product
-              text: "product"
-            - type: table
-              name: orders
-              text: "orders"
+            - {type: table, name: product, text: "product"}
+            - {type: table, name: orders, text: "orders"}
           columns:
-            - name: name
-              expression: 0
+            - {name: name, expression: 0}
           text: "select pro..ct, orders"
 
   - name: row_field_access_correlated
@@ -132,60 +80,28 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "stock"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "orders"
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "stock"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "orders"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "orders"
-          statement-id: 0
-          text: "id"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "stock"
-          statement-id: 0
-          text: "stock.name"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "orders"
-          statement-id: 0
-          text: "product.name"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "orders", text: "id"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.0", source: "stock", text: "stock.name"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "orders", text: "product.name"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 3
-          text: "1"
+        - {expression: 3, text: "1"}
       name-scopes:
         - scope-id: 0
           parent: 1
           sources:
-            - type: table
-              name: stock
-              text: "stock"
+            - {type: table, name: stock, text: "stock"}
           columns:
-            - name: '?'
-              expression: 3
+            - {name: '?', expression: 3}
           text: "(select 1 ..duct.name)"
         - scope-id: 1
           sources:
-            - type: table
-              name: orders
-              text: "orders"
+            - {type: table, name: orders, text: "orders"}
           columns:
-            - name: id
-              expression: 0
+            - {name: id, expression: 0}
           text: "select id ..duct.name)"
 
   - name: row_constructor_columns
@@ -198,59 +114,23 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "orders"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "orders"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "orders"
-          statement-id: 0
-          text: "id"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "orders"
-          statement-id: 0
-          text: "product.name"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "orders"
-          statement-id: 0
-          text: "product"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "orders"
-          statement-id: 0
-          text: "id"
-        - expression-idx: 4
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 5
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "orders", text: "id"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "orders", text: "product.name"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "orders", text: "product"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.0", source: "orders", text: "id"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+        - {id: 5, type: literal/integer, is-const: true, text: "2"}
       constants:
-        - expression: 4
-          text: "1"
-        - expression: 5
-          text: "2"
+        - {expression: 4, text: "1"}
+        - {expression: 5, text: "2"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: orders
-              text: "orders"
+            - {type: table, name: orders, text: "orders"}
           columns:
-            - name: '?'
-              computed: true
+            - {name: '?', computed: true}
           text: "select row..) = (1, 2)"
 
   - name: row_field_access_inferred
@@ -259,30 +139,21 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "orders o"
+        - {type: name/unresolved, text: "orders o"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "o.product.name"
+        - {id: 0, type: colref/unresolved, text: "o.product.name"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: o
-              text: "orders o"
+            - {type: unresolved, name: o, text: "orders o"}
           columns:
-            - name: product
-              expression: 0
+            - {name: product, expression: 0}
           text: "select o.p..m orders o"
       inferred-tables:
         - name: orders
           confidence: confident
           columns:
-            - name: product
-              confidence: confident
+            - {name: product, confidence: confident}
 
   - name: row_field_access_unresolved
     catalog:
@@ -294,55 +165,26 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "orders"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "orders"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "orders"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "orders"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "(select id.. orders) s"
-          statement-id: 0
-          text: "s.id"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "missing.name"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "orders"
-          statement-id: 0
-          text: "id"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "(select id.. orders) s", text: "s.id"}
+        - {id: 1, type: colref/unresolved, text: "missing.name"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "orders", text: "id"}
       name-scopes:
         - scope-id: 0
           parent: 1
           parent-sources: none
           sources:
-            - type: table
-              name: orders
-              text: "orders"
+            - {type: table, name: orders, text: "orders"}
           columns:
-            - name: id
-              expression: 2
+            - {name: id, expression: 2}
           text: "(select id..om orders)"
         - scope-id: 1
           sources:
-            - type: subquery
-              name: s
-              scope: 0
-              text: "(select id.. orders) s"
-            - type: table
-              name: orders
-              text: "orders"
+            - {type: subquery, name: s, scope: 0, text: "(select id.. orders) s"}
+            - {type: table, name: orders, text: "orders"}
           columns:
-            - name: id
-              expression: 0
-            - name: name
-              expression: 1
+            - {name: id, expression: 0}
+            - {name: name, expression: 1}
           text: "select s.i.. s, orders"

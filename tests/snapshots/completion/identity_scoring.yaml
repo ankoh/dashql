@@ -10,10 +10,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "ba"
+        - {id: 0, type: colref/unresolved, text: "ba"}
     cursor:
       search:
         text: ba
@@ -36,7 +33,7 @@ completion-snapshots:
           location-qualified: "ba"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: foo.bar
               qualified-idx: 1
@@ -69,15 +66,9 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "supplier"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "supplier"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "s_co"
+        - {id: 0, type: colref/unresolved, text: "s_co"}
     cursor:
       search:
         text: s_co
@@ -95,7 +86,7 @@ completion-snapshots:
           location-qualified: "s_co"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: supplier.s_comment
               qualified-idx: 1
@@ -133,20 +124,14 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "supplier"
+        - {type: name/unresolved, text: "supplier"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "s_co"
+        - {id: 0, type: colref/unresolved, text: "s_co"}
       inferred-tables:
         - name: supplier
           confidence: confident
           columns:
-            - name: s_co
-              confidence: confident
+            - {name: s_co, confidence: confident}
     cursor:
       search:
         text: s_co
@@ -169,7 +154,7 @@ completion-snapshots:
           location-qualified: "s_co"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: other_table.s_comment
               qualified-idx: 1
@@ -202,9 +187,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "sup"
+        - {type: name/unresolved, text: "sup"}
     cursor:
       search:
         text: sup
@@ -222,7 +205,7 @@ completion-snapshots:
           location-qualified: "sup"
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: supplier
               qualified-idx: 0
@@ -263,9 +246,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "xyz"
+        - {type: name/unresolved, text: "xyz"}
     cursor:
       search:
         text: xyz
@@ -315,17 +296,9 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "foo"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "foo"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "foo"
-          statement-id: 0
-          text: "bar"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "foo", text: "bar"}
     cursor:
       search:
         text: as ba
@@ -373,13 +346,8 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "foo"
-        - type: name/cte
-          statement-id: 0
-          text: "fo"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "foo"}
+        - {type: name/cte, text: "fo"}
     cursor:
       search:
         text: fo as

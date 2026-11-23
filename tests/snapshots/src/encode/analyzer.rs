@@ -1,6 +1,6 @@
 //! The analyzer snapshot encoder.
 
-use super::{encode_location_text, Map};
+use super::{encode_location_text, object_id_text, Map};
 use crate::ryml::Node;
 use dashql_buffers::algebra::LiteralType;
 use dashql_buffers::parser::{Node as AstNode, SymbolSpan};
@@ -32,16 +32,23 @@ impl Encoder<'_> {
         &self.script.parsed.nodes[node_id as usize]
     }
 
+    /// The statement of an item, left out in scripts with a single statement
+    fn statement_id(&self, map: &mut Map, statement: u32) {
+        if self.script.parsed.statements.len() > 1 {
+            map.int("statement-id", statement as i64);
+        }
+    }
+
     fn location(&self, map: &mut Map, node_id: u32, key: &str) {
         let span = self.resolve(*self.node(node_id).symbol_span());
         encode_location_text(map, self.text, span.offset, span.length, key);
     }
 }
 
-/// `db.schema.packed_table_id`
+/// `db.schema.origin:table`
 fn table_catalog_id(schema: QualifiedCatalogObjectId, table: QualifiedCatalogObjectId) -> String {
     let (db, schema) = schema.unpack_schema_id();
-    format!("{db}.{schema}.{}", table.unpack_table_id().pack())
+    format!("{db}.{schema}.{}", object_id_text(table.unpack_table_id()))
 }
 
 fn encode_tables(e: &Encoder, tables: &[TableDeclaration]) -> Node {
@@ -64,7 +71,7 @@ fn encode_tables(e: &Encoder, tables: &[TableDeclaration]) -> Node {
                     if let Some(node_id) = column.ast_node_id {
                         e.location(&mut c, node_id, "text");
                     }
-                    c.into_node()
+                    c.into_flow_node()
                 })
                 .collect();
             m.insert("columns", Node::seq(columns));
@@ -87,7 +94,7 @@ fn encode_touched_relations(script: &AnalyzedScript) -> Option<Node> {
                 let mut m = Map::new();
                 m.int("statement-id", statement_id as i64);
                 m.plain("name", &name.join("."));
-                m.into_node()
+                m.into_flow_node()
             })
         })
         .collect();
@@ -141,7 +148,7 @@ fn encode_errors(e: &Encoder) -> Node {
                 None => error.text_span.unwrap_or_default(),
             };
             encode_location_text(&mut m, e.text, span.offset, span.length, "text");
-            m.into_node()
+            m.into_flow_node()
         })
         .collect();
     Node::seq(errors)
@@ -174,7 +181,7 @@ pub fn encode_script(script: &AnalyzedScript, scope_catalog: ScopeCatalog) -> No
                 if let Some(end) = block.end {
                     m.int("end", end as i64);
                 }
-                m.into_node()
+                m.into_flow_node()
             })
             .collect();
         out.insert("transactions", Node::seq(blocks));
@@ -195,7 +202,7 @@ pub fn encode_script(script: &AnalyzedScript, scope_catalog: ScopeCatalog) -> No
                 if let Some(description) = script.describe_client_function_call(call.ast_statement_id) {
                     m.quoted("description", &description.to_string());
                 }
-                m.into_node()
+                m.into_flow_node()
             })
             .collect();
         out.insert("client-function-calls", Node::seq(calls));
@@ -228,13 +235,13 @@ pub fn encode_script(script: &AnalyzedScript, scope_catalog: ScopeCatalog) -> No
                     }
                 }
                 if let Some(statement) = table_ref.ast_statement_id {
-                    m.int("statement-id", statement as i64);
+                    e.statement_id(&mut m, statement);
                 }
                 if table_ref.role == TableRole::Write {
                     m.plain("role", "write");
                 }
                 e.location(&mut m, table_ref.ast_node_id, "text");
-                m.into_node()
+                m.into_flow_node()
             })
             .collect();
         out.insert("table-refs", Node::seq(items));
@@ -248,7 +255,7 @@ pub fn encode_script(script: &AnalyzedScript, scope_catalog: ScopeCatalog) -> No
             .map(|insert| {
                 let mut m = Map::new();
                 if let Some(statement) = insert.ast_statement_id {
-                    m.int("statement-id", statement as i64);
+                    e.statement_id(&mut m, statement);
                 }
                 let target = &script.table_references[insert.target as usize];
                 m.int("target-ref", target.table_reference_id.object as i64);
@@ -269,7 +276,7 @@ pub fn encode_script(script: &AnalyzedScript, scope_catalog: ScopeCatalog) -> No
                             let mut c = Map::new();
                             c.plain("name", &column.column_name.text);
                             c.insert("resolved", boolean(column.resolved.is_some()));
-                            c.into_node()
+                            c.into_flow_node()
                         })
                         .collect();
                     m.insert("columns", Node::seq(columns));
@@ -288,7 +295,7 @@ pub fn encode_script(script: &AnalyzedScript, scope_catalog: ScopeCatalog) -> No
             .enumerate()
             .map(|(i, expr)| {
                 let mut m = Map::new();
-                m.int("expression-idx", i as i64);
+                m.int("id", i as i64);
                 match &expr.inner {
                     ExpressionInner::None => {}
                     ExpressionInner::ColumnRef(column_ref) => {
@@ -309,7 +316,10 @@ pub fn encode_script(script: &AnalyzedScript, scope_catalog: ScopeCatalog) -> No
                                     let (table_id, column) = ids.catalog_table_column_id.unpack_table_column_id();
                                     let internal = table_id.origin == entry_id;
                                     m.plain("type", if internal { "colref/internal" } else { "colref/catalog" });
-                                    m.quoted("catalog", &format!("{db}.{schema}.{}.{column}", table_id.pack()));
+                                    m.quoted(
+                                        "catalog",
+                                        &format!("{db}.{schema}.{}.{column}", object_id_text(table_id)),
+                                    );
                                 }
                             }
                             // The FROM item that the column ref reads, none for an output column of the own scope
@@ -360,10 +370,10 @@ pub fn encode_script(script: &AnalyzedScript, scope_catalog: ScopeCatalog) -> No
                     m.insert("is-const", boolean(true));
                 }
                 if let Some(statement) = expr.ast_statement_id {
-                    m.int("statement-id", statement as i64);
+                    e.statement_id(&mut m, statement);
                 }
                 e.location(&mut m, expr.ast_node_id, "text");
-                m.into_node()
+                m.into_flow_node()
             })
             .collect();
         out.insert("expressions", Node::seq(items));
@@ -379,7 +389,7 @@ pub fn encode_script(script: &AnalyzedScript, scope_catalog: ScopeCatalog) -> No
                 let mut m = Map::new();
                 m.int("expression", root.expression_id as i64);
                 e.location(&mut m, root.ast_node_id, "text");
-                m.into_node()
+                m.into_flow_node()
             })
             .collect();
         out.insert("constants", Node::seq(items));
@@ -403,13 +413,13 @@ pub fn encode_script(script: &AnalyzedScript, scope_catalog: ScopeCatalog) -> No
                     m.plain("name", name);
                 }
                 if let Some(statement) = parameter.ast_statement_id {
-                    m.int("statement-id", statement as i64);
+                    e.statement_id(&mut m, statement);
                 }
                 if let Some(cast) = &parameter.cast_type {
                     m.quoted("cast", &cast.to_string());
                 }
                 e.location(&mut m, parameter.ast_node_id, "text");
-                m.into_node()
+                m.into_flow_node()
             })
             .collect();
         out.insert("parameters", Node::seq(items));
@@ -442,7 +452,7 @@ pub fn encode_script(script: &AnalyzedScript, scope_catalog: ScopeCatalog) -> No
                     m.quoted("value", &literal.to_hyper());
                 }
                 m.int("statement-id", input.statement_id as i64);
-                m.into_node()
+                m.into_flow_node()
             })
             .collect();
         out.insert("param-values", Node::seq(items));
@@ -511,7 +521,7 @@ pub fn encode_script(script: &AnalyzedScript, scope_catalog: ScopeCatalog) -> No
                                 column.candidate_table_names.iter().map(|n| super::plain(&n.debug_string())).collect();
                             c.insert("candidates", Node::seq(candidates));
                         }
-                        c.into_node()
+                        c.into_flow_node()
                     })
                     .collect();
                 m.insert("columns", Node::seq(columns));
@@ -523,7 +533,7 @@ pub fn encode_script(script: &AnalyzedScript, scope_catalog: ScopeCatalog) -> No
     out.into_node()
 }
 
-/// `db.schema.packed_table_id.column` of a table column
+/// `db.schema.origin:table.column` of a table column
 fn column_catalog_id(e: &Encoder, catalog: &Catalog, loc: ColumnLoc) -> String {
     let table = if loc.table.entry == e.script.catalog_entry_id() {
         e.script.entry.table_declarations.get(loc.table.index as usize)
@@ -590,7 +600,7 @@ fn encode_name_scope(e: &Encoder, catalog: &Catalog, scope: &NameScope) -> Optio
                     s.insert("column-aliases", Node::seq(aliases));
                 }
                 e.location(&mut s, source.ast_node_id, "text");
-                s.into_node()
+                s.into_flow_node()
             })
             .collect();
         m.insert("sources", Node::seq(sources));
@@ -614,7 +624,7 @@ fn encode_name_scope(e: &Encoder, catalog: &Catalog, scope: &NameScope) -> Optio
                         c.insert("computed", boolean(true));
                     }
                 }
-                c.into_node()
+                c.into_flow_node()
             })
             .collect();
         m.insert("columns", Node::seq(columns));

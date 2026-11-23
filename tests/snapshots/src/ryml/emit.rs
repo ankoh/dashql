@@ -432,7 +432,8 @@ impl Emitter {
                     self.flow_value(value);
                     if i + 1 != entries.len() {
                         self.write_pws_and_pend(Pws::None);
-                        self.write(",");
+                        // Unlike rapidyaml, a space after the comma: the snapshots list items as single-line maps
+                        self.write(", ");
                     }
                 }
                 self.write_pws_and_pend(Pws::None);

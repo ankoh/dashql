@@ -101,10 +101,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "foo"
+        - {id: 0, type: colref/unresolved, text: "foo"}
     cursor:
       search:
         text: foo f
@@ -144,10 +141,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "bar"
+        - {id: 0, type: colref/unresolved, text: "bar"}
     cursor:
       search:
         text: as baz

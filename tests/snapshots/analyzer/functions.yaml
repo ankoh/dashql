@@ -6,50 +6,27 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo"
+        - {type: name/unresolved, text: "foo"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: function
-          name: regexp_extract
-          statement-id: 0
-          text: "regexp_ext..-Z]+)', 1)"
-        - expression-idx: 2
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'[0-9a-zA-..a-zA-Z]+)'"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/unresolved, text: "a"}
+        - {id: 1, type: function, name: regexp_extract, text: "regexp_ext..-Z]+)', 1)"}
+        - {id: 2, type: literal/string, is-const: true, text: "'[0-9a-zA-..a-zA-Z]+)'"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 2
-          text: "'[0-9a-zA-..a-zA-Z]+)'"
-        - expression: 3
-          text: "1"
+        - {expression: 2, text: "'[0-9a-zA-..a-zA-Z]+)'"}
+        - {expression: 3, text: "1"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: foo
-              text: "foo"
+            - {type: unresolved, name: foo, text: "foo"}
           columns:
-            - name: '?'
-              expression: 1
+            - {name: '?', expression: 1}
           text: "select reg..) from foo"
       inferred-tables:
         - name: foo
           confidence: confident
           columns:
-            - name: a
-              confidence: confident
+            - {name: a, confidence: confident}
 
   - name: func_restrict_time
     script:
@@ -57,56 +34,26 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo"
+        - {type: name/unresolved, text: "foo"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "event_timestamp"
-        - expression-idx: 1
-          type: function
-          known-function: CURRENT_TIMESTAMP
-          is-const: true
-          statement-id: 0
-          text: "current_timestamp"
-        - expression-idx: 2
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'30 days'"
-        - expression-idx: 3
-          type: constcast/interval
-          is-const: true
-          statement-id: 0
-          text: "interval '30 days'"
-        - expression-idx: 4
-          type: binary
-          op: MINUS
-          arg-left: 1
-          arg-right: 3
-          is-const: true
-          statement-id: 0
-          text: "current_ti.. '30 days'"
+        - {id: 0, type: colref/unresolved, text: "event_timestamp"}
+        - {id: 1, type: function, known-function: CURRENT_TIMESTAMP, is-const: true, text: "current_timestamp"}
+        - {id: 2, type: literal/string, is-const: true, text: "'30 days'"}
+        - {id: 3, type: constcast/interval, is-const: true, text: "interval '30 days'"}
+        - {id: 4, type: binary, op: MINUS, arg-left: 1, arg-right: 3, is-const: true, text: "current_ti.. '30 days'"}
       constants:
-        - expression: 3
-          text: "interval '30 days'"
-        - expression: 4
-          text: "current_ti.. '30 days'"
+        - {expression: 3, text: "interval '30 days'"}
+        - {expression: 4, text: "current_ti.. '30 days'"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: foo
-              text: "foo"
+            - {type: unresolved, name: foo, text: "foo"}
           text: "select * f.. '30 days'"
       inferred-tables:
         - name: foo
           confidence: confident
           columns:
-            - name: event_timestamp
-              confidence: confident
+            - {name: event_timestamp, confidence: confident}
 
   - name: func_restrict_time_minus_interval
     script:
@@ -114,53 +61,23 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo"
+        - {type: name/unresolved, text: "foo"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "event_timestamp"
-        - expression-idx: 1
-          type: function
-          known-function: CURRENT_TIMESTAMP
-          is-const: true
-          statement-id: 0
-          text: "current_timestamp"
-        - expression-idx: 2
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'30 days'"
-        - expression-idx: 3
-          type: constcast/interval
-          is-const: true
-          statement-id: 0
-          text: "interval '30 days'"
-        - expression-idx: 4
-          type: binary
-          op: MINUS
-          arg-left: 1
-          arg-right: 3
-          is-const: true
-          statement-id: 0
-          text: "current_ti.. '30 days'"
+        - {id: 0, type: colref/unresolved, text: "event_timestamp"}
+        - {id: 1, type: function, known-function: CURRENT_TIMESTAMP, is-const: true, text: "current_timestamp"}
+        - {id: 2, type: literal/string, is-const: true, text: "'30 days'"}
+        - {id: 3, type: constcast/interval, is-const: true, text: "interval '30 days'"}
+        - {id: 4, type: binary, op: MINUS, arg-left: 1, arg-right: 3, is-const: true, text: "current_ti.. '30 days'"}
       constants:
-        - expression: 3
-          text: "interval '30 days'"
-        - expression: 4
-          text: "current_ti.. '30 days'"
+        - {expression: 3, text: "interval '30 days'"}
+        - {expression: 4, text: "current_ti.. '30 days'"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: foo
-              text: "foo"
+            - {type: unresolved, name: foo, text: "foo"}
           text: "select * f.. '30 days'"
       inferred-tables:
         - name: foo
           confidence: confident
           columns:
-            - name: event_timestamp
-              confidence: confident
+            - {name: event_timestamp, confidence: confident}

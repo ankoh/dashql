@@ -12,27 +12,11 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 2
-          type: colref/unresolved
-          statement-id: 0
-          text: "c. from"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 2, type: colref/unresolved, text: "c. from"}
     cursor:
       search:
         text: 'c.'
@@ -58,12 +42,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       expressions:
-        - expression-idx: 0
-          type: function
-          name: s.from
-          is-const: true
-          statement-id: 0
-          text: "s. from (s.. b from t)"
+        - {id: 0, type: function, name: s.from, is-const: true, text: "s. from (s.. b from t)"}
     cursor:
       search:
         text: 's.'
@@ -89,9 +68,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          text: "x. from"
+        - {id: 0, type: colref/unresolved, text: "x. from"}
     cursor:
       search:
         text: 'x.'
@@ -115,9 +92,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          text: "x. from"
+        - {id: 0, type: colref/unresolved, text: "x. from"}
     cursor:
       search:
         text: 'x.'
@@ -141,14 +116,8 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "u. from"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "u"
+        - {id: 0, type: colref/unresolved, text: "u. from"}
+        - {id: 1, type: colref/unresolved, text: "u"}
     cursor:
       search:
         text: 'u.'
@@ -174,15 +143,9 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "t.na"
+        - {id: 0, type: colref/unresolved, text: "t.na"}
     cursor:
       search:
         text: 't.na'
@@ -201,7 +164,7 @@ completion-snapshots:
           location-qualified: "t.na"
           objects:
             - type: column
-              id: "256.65536.4294967296.2"
+              id: "256.65536.1:0.2"
               candidate-tags: [DOT_RESOLUTION_COLUMN,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
@@ -214,7 +177,7 @@ completion-snapshots:
           location-qualified: "t.na"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.a
               qualified-idx: 1
@@ -227,7 +190,7 @@ completion-snapshots:
           location-qualified: "t.na"
           objects:
             - type: column
-              id: "256.65536.4294967296.1"
+              id: "256.65536.1:0.1"
               candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.b
               qualified-idx: 1
@@ -247,10 +210,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "my"
+        - {id: 0, type: colref/unresolved, text: "my"}
     cursor:
       search:
         text: 'my'
@@ -273,7 +233,7 @@ completion-snapshots:
           location-qualified: "my"
           objects:
             - type: function
-              id: "257.65538.4294967298"
+              id: "257.65538.1:2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: myabs
               qualified-idx: 0
@@ -286,7 +246,7 @@ completion-snapshots:
           location-qualified: "my"
           objects:
             - type: function
-              id: "257.65537.4294967297"
+              id: "257.65537.1:1"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: sch2.mymax
               qualified-idx: 1
@@ -299,7 +259,7 @@ completion-snapshots:
           location-qualified: "my"
           objects:
             - type: function
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: db1.sch1.mysum
               qualified-idx: 2
@@ -324,28 +284,17 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "t"
+        - {type: name/unresolved, text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "my"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/unresolved, text: "my"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 1
-          text: "1"
+        - {expression: 1, text: "1"}
       inferred-tables:
         - name: t
           confidence: confident
           columns:
-            - name: my
-              confidence: confident
+            - {name: my, confidence: confident}
     cursor:
       search:
         text: 'where my'
@@ -368,7 +317,7 @@ completion-snapshots:
           location-qualified: "my"
           objects:
             - type: function
-              id: "257.65538.4294967298"
+              id: "257.65538.1:2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: myabs
               qualified-idx: 0
@@ -381,7 +330,7 @@ completion-snapshots:
           location-qualified: "my"
           objects:
             - type: function
-              id: "257.65537.4294967297"
+              id: "257.65537.1:1"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: sch2.mymax
               qualified-idx: 1
@@ -394,7 +343,7 @@ completion-snapshots:
           location-qualified: "my"
           objects:
             - type: function
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: db1.sch1.mysum
               qualified-idx: 2
@@ -420,10 +369,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
     cursor:
       search:
         text: 'from t'
@@ -441,7 +387,7 @@ completion-snapshots:
           location-qualified: "t"
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: t
               qualified-idx: 0
@@ -483,17 +429,9 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
     cursor:
       search:
         text: 'a'
@@ -511,7 +449,7 @@ completion-snapshots:
           location-qualified: "a"
           objects:
             - type: column
-              id: "256.65536.4294967296.2"
+              id: "256.65536.1:0.2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
@@ -529,14 +467,14 @@ completion-snapshots:
           location-qualified: "a"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.a
               qualified-idx: 1
               prefer-qualified: 0
               detail: "integer · t"
             - type: column
-              id: "256.65536.4294967297.0"
+              id: "256.65536.1:1.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: u.a
               qualified-idx: 1
@@ -566,19 +504,11 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "12345"
+        - {id: 0, type: literal/integer, is-const: true, text: "12345"}
       constants:
-        - expression: 0
-          text: "12345"
+        - {expression: 0, text: "12345"}
     cursor:
       search:
         text: '12345'
@@ -603,19 +533,11 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'some text'"
+        - {id: 0, type: literal/string, is-const: true, text: "'some text'"}
       constants:
-        - expression: 0
-          text: "'some text'"
+        - {expression: 0, text: "'some text'"}
     cursor:
       search:
         text: 'some'
@@ -640,17 +562,9 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
     cursor:
       search:
         text: '(a)'
@@ -675,23 +589,10 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
     cursor:
       search:
         text: '+'
@@ -716,23 +617,10 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
     cursor:
       search:
         text: ','
@@ -757,17 +645,9 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
     cursor:
       search:
         text: 't;'
@@ -792,15 +672,9 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "aaaaaaaaaa..aaaaaaaaaa"
+        - {id: 0, type: colref/unresolved, text: "aaaaaaaaaa..aaaaaaaaaa"}
     cursor:
       search:
         text: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
@@ -850,33 +724,14 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "u"
-          statement-id: 0
-          text: "u.c"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "t.na"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "u.c"}
+        - {id: 1, type: colref/unresolved, text: "t.na"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 2
-          text: "1"
+        - {expression: 2, text: "1"}
     cursor:
       search:
         text: 't.na'
@@ -894,7 +749,7 @@ completion-snapshots:
           location-qualified: "na"
           objects:
             - type: column
-              id: "256.65536.4294967296.2"
+              id: "256.65536.1:0.2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
@@ -934,18 +789,10 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/cte
-          statement-id: 0
-          text: "c"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/cte, text: "c"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "na"
+        - {id: 0, type: colref/unresolved, text: "na"}
     cursor:
       search:
         text: 'na from'
@@ -996,36 +843,19 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          role: write
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
       inserts:
-        - statement-id: 0
-          target-ref: 0
+        - target-ref: 0
           source: "values (1, 2)"
           columns:
-            - name: a
-              resolved: true
-            - name: na
-              resolved: false
+            - {name: a, resolved: true}
+            - {name: na, resolved: false}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, text: "2"}
       constants:
-        - expression: 0
-          text: "1"
-        - expression: 1
-          text: "2"
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "2"}
     cursor:
       search:
         text: 'na)'
@@ -1048,7 +878,7 @@ completion-snapshots:
           location-qualified: "na"
           objects:
             - type: column
-              id: "256.65536.4294967296.2"
+              id: "256.65536.1:0.2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
@@ -1102,7 +932,7 @@ completion-snapshots:
           location-qualified: "u"
           objects:
             - type: table
-              id: "256.65536.4294967297"
+              id: "256.65536.1:1"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
               qualified: u
               qualified-idx: 0
@@ -1138,16 +968,9 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          role: write
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "na"
+        - {id: 0, type: colref/unresolved, text: "na"}
     cursor:
       search:
         text: 'where na'
@@ -1165,7 +988,7 @@ completion-snapshots:
           location-qualified: "na"
           objects:
             - type: column
-              id: "256.65536.4294967296.2"
+              id: "256.65536.1:0.2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
@@ -1205,21 +1028,10 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.2"
-          source: "t"
-          statement-id: 0
-          text: "name"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "na"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.2", source: "t", text: "name"}
+        - {id: 1, type: colref/unresolved, text: "na"}
     cursor:
       search:
         text: 'by na'
@@ -1237,7 +1049,7 @@ completion-snapshots:
           location-qualified: "na"
           objects:
             - type: column
-              id: "256.65536.4294967296.2"
+              id: "256.65536.1:0.2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
@@ -1277,17 +1089,9 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
     cursor:
       search:
         text: 'to'
@@ -1337,25 +1141,11 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "t.a"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "u."
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 1, type: colref/unresolved, text: "u."}
     cursor:
       search:
         text: 'u.'
@@ -1412,14 +1202,14 @@ completion-snapshots:
           location-qualified: "a"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
               qualified: t.a
               qualified-idx: 1
               prefer-qualified: 0
               detail: "integer · t"
             - type: column
-              id: "256.65536.4294967297.0"
+              id: "256.65536.1:1.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
               qualified: u.a
               qualified-idx: 1
@@ -1496,24 +1286,15 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "t"
+        - {type: name/unresolved, text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "a"
+        - {id: 0, type: colref/unresolved, text: "a"}
+        - {id: 1, type: colref/unresolved, text: "a"}
       inferred-tables:
         - name: t
           confidence: confident
           columns:
-            - name: a
-              confidence: confident
+            - {name: a, confidence: confident}
     cursor:
       search:
         text: 'where a'
@@ -1563,30 +1344,14 @@ completion-snapshots:
         select a from t, u where a
       catalog-id: 2
       errors:
-        - type: COLUMN_REF_AMBIGUOUS
-          message: 'column reference is ambiguous, candidates: t.a, u.a'
-          text: "a"
-        - type: COLUMN_REF_AMBIGUOUS
-          message: 'column reference is ambiguous, candidates: t.a, u.a'
-          text: "a"
+        - {type: COLUMN_REF_AMBIGUOUS, message: 'column reference is ambiguous, candidates: t.a, u.a', text: "a"}
+        - {type: COLUMN_REF_AMBIGUOUS, message: 'column reference is ambiguous, candidates: t.a, u.a', text: "a"}
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "a"
+        - {id: 0, type: colref/unresolved, text: "a"}
+        - {id: 1, type: colref/unresolved, text: "a"}
     cursor:
       search:
         text: 'where a'
@@ -1604,14 +1369,14 @@ completion-snapshots:
           location-qualified: "a"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
               qualified: t.a
               qualified-idx: 1
               prefer-qualified: 1
               detail: "integer · t"
             - type: column
-              id: "256.65536.4294967297.0"
+              id: "256.65536.1:1.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
               qualified: u.a
               qualified-idx: 1
@@ -1624,7 +1389,7 @@ completion-snapshots:
           location-qualified: "a"
           objects:
             - type: column
-              id: "256.65536.4294967296.2"
+              id: "256.65536.1:0.2"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
@@ -1659,15 +1424,9 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "\"na\""
+        - {id: 0, type: colref/unresolved, text: "\"na\""}
     cursor:
       search:
         text: '"na"'
@@ -1685,7 +1444,7 @@ completion-snapshots:
           location-qualified: "\"na\""
           objects:
             - type: column
-              id: "256.65536.4294967296.2"
+              id: "256.65536.1:0.2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
@@ -1725,15 +1484,9 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "NA"
+        - {id: 0, type: colref/unresolved, text: "NA"}
     cursor:
       search:
         text: 'NA'
@@ -1751,7 +1504,7 @@ completion-snapshots:
           location-qualified: "NA"
           objects:
             - type: column
-              id: "256.65536.4294967296.2"
+              id: "256.65536.1:0.2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
@@ -1791,28 +1544,13 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 1
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 1, text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 1
-          text: "a"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 1
-          text: "na"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          text: "1"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", statement-id: 1, text: "a"}
+        - {id: 1, type: colref/unresolved, statement-id: 1, text: "na"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 2
-          text: "1"
+        - {expression: 2, text: "1"}
     cursor:
       search:
         text: 'na'
@@ -1830,7 +1568,7 @@ completion-snapshots:
           location-qualified: "na"
           objects:
             - type: column
-              id: "256.65536.4294967296.2"
+              id: "256.65536.1:0.2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1

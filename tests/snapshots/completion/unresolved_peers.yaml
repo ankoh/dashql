@@ -10,38 +10,24 @@ completion-snapshots:
         select apple, ju
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: foo
           text: "create tab..uice0 int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: apple
-              text: "apple int"
-            - catalog-id: "256.65536.4294967296.1"
-              name: juice0
-              text: "juice0 int"
-        - catalog-id: "256.65536.4294967297"
+            - {catalog-id: "256.65536.1:0.0", name: apple, text: "apple int"}
+            - {catalog-id: "256.65536.1:0.1", name: juice0, text: "juice0 int"}
+        - catalog-id: "256.65536.1:1"
           name: bar
           text: "create tab..uice1 int)"
           columns:
-            - catalog-id: "256.65536.4294967297.0"
-              name: juice1
-              text: "juice1 int"
+            - {catalog-id: "256.65536.1:1.0", name: juice1, text: "juice1 int"}
       touched-relations:
-        - statement-id: 0
-          name: foo
-        - statement-id: 1
-          name: bar
+        - {statement-id: 0, name: foo}
+        - {statement-id: 1, name: bar}
       errors: []
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 2
-          text: "apple"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 2
-          text: "ju"
+        - {id: 0, type: colref/unresolved, statement-id: 2, text: "apple"}
+        - {id: 1, type: colref/unresolved, statement-id: 2, text: "ju"}
     cursor:
       search:
         text: apple, ju
@@ -64,7 +50,7 @@ completion-snapshots:
           location-qualified: "ju"
           objects:
             - type: column
-              id: "256.65536.4294967296.1"
+              id: "256.65536.1:0.1"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER]
               qualified: foo.juice0
               qualified-idx: 1
@@ -77,7 +63,7 @@ completion-snapshots:
           location-qualified: "ju"
           objects:
             - type: column
-              id: "256.65536.4294967297.0"
+              id: "256.65536.1:1.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
               qualified: bar.juice1
               qualified-idx: 1

@@ -10,44 +10,30 @@ completion-snapshots:
         select juice0 from s
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: similar_name_0
           text: "create tab..uice0 int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: apple
-              text: "apple int"
-            - catalog-id: "256.65536.4294967296.1"
-              name: juice0
-              text: "juice0 int"
-        - catalog-id: "256.65536.4294967297"
+            - {catalog-id: "256.65536.1:0.0", name: apple, text: "apple int"}
+            - {catalog-id: "256.65536.1:0.1", name: juice0, text: "juice0 int"}
+        - catalog-id: "256.65536.1:1"
           name: similar_name_1
           text: "create tab..uice1 int)"
           columns:
-            - catalog-id: "256.65536.4294967297.0"
-              name: juice1
-              text: "juice1 int"
+            - {catalog-id: "256.65536.1:1.0", name: juice1, text: "juice1 int"}
       touched-relations:
-        - statement-id: 0
-          name: similar_name_0
-        - statement-id: 1
-          name: similar_name_1
+        - {statement-id: 0, name: similar_name_0}
+        - {statement-id: 1, name: similar_name_1}
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 2
-          text: "s"
+        - {type: name/unresolved, statement-id: 2, text: "s"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 2
-          text: "juice0"
+        - {id: 0, type: colref/unresolved, statement-id: 2, text: "juice0"}
       inferred-tables:
         - name: s
           confidence: confident
           columns:
-            - name: juice0
-              confidence: confident
+            - {name: juice0, confidence: confident}
     cursor:
       search:
         text: from s
@@ -65,7 +51,7 @@ completion-snapshots:
           location-qualified: "s"
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,RESOLVING_TABLE]
               qualified: similar_name_0
               qualified-idx: 0

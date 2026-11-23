@@ -11,45 +11,23 @@ analyzer-snapshots:
       input: select * from A, B where a = 2;
       catalog-id: 2
       errors:
-        - type: COLUMN_REF_AMBIGUOUS
-          message: 'column reference is ambiguous, candidates: a.a, b.a'
-          text: "a"
+        - {type: COLUMN_REF_AMBIGUOUS, message: 'column reference is ambiguous, candidates: a.a, b.a', text: "a"}
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "B"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "A"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "B"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
+        - {id: 0, type: colref/unresolved, text: "a"}
+        - {id: 1, type: literal/integer, is-const: true, text: "2"}
       constants:
-        - expression: 1
-          text: "2"
+        - {expression: 1, text: "2"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: a
-              text: "A"
-            - type: table
-              name: b
-              text: "B"
+            - {type: table, name: a, text: "A"}
+            - {type: table, name: b, text: "B"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: a
-              table-column: "256.65536.4294967297.0"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: a, table-column: "256.65536.1:1.0"}
           text: "select * f..here a = 2"
 
   - name: names_columnref_ambiguous_scope_overrules
@@ -64,54 +42,29 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "B"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "B"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "A"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "B"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.0", source: "B", text: "a"}
+        - {id: 1, type: literal/integer, is-const: true, text: "2"}
       constants:
-        - expression: 1
-          text: "2"
+        - {expression: 1, text: "2"}
       name-scopes:
         - scope-id: 0
           parent: 1
           parent-sources: none
           sources:
-            - type: table
-              name: b
-              text: "B"
+            - {type: table, name: b, text: "B"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967297.0"
+            - {name: a, table-column: "256.65536.1:1.0"}
           text: "(select * ..ere a = 2)"
         - scope-id: 1
           sources:
-            - type: table
-              name: a
-              text: "A"
-            - type: subquery
-              scope: 0
-              text: "(select * ..ere a = 2)"
+            - {type: table, name: a, text: "A"}
+            - {type: subquery, scope: 0, text: "(select * ..ere a = 2)"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: a
-              table-column: "256.65536.4294967297.0"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: a, table-column: "256.65536.1:1.0"}
           text: "select * f..ere a = 2)"
 
   - name: names_columnref_ambiguous_with_derived_table
@@ -125,70 +78,34 @@ analyzer-snapshots:
       input: select * from A, (select * from B where a = 2) c where a = 3;
       catalog-id: 2
       errors:
-        - type: COLUMN_REF_AMBIGUOUS
-          message: 'column reference is ambiguous, candidates: a.a, c.a'
-          text: "a"
+        - {type: COLUMN_REF_AMBIGUOUS, message: 'column reference is ambiguous, candidates: a.a, c.a', text: "a"}
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "B"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "B"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "A"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "B"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "a"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "3"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.0", source: "B", text: "a"}
+        - {id: 1, type: colref/unresolved, text: "a"}
+        - {id: 2, type: literal/integer, is-const: true, text: "2"}
+        - {id: 3, type: literal/integer, is-const: true, text: "3"}
       constants:
-        - expression: 2
-          text: "2"
-        - expression: 3
-          text: "3"
+        - {expression: 2, text: "2"}
+        - {expression: 3, text: "3"}
       name-scopes:
         - scope-id: 0
           parent: 1
           parent-sources: none
           sources:
-            - type: table
-              name: b
-              text: "B"
+            - {type: table, name: b, text: "B"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967297.0"
+            - {name: a, table-column: "256.65536.1:1.0"}
           text: "(select * ..ere a = 2)"
         - scope-id: 1
           sources:
-            - type: table
-              name: a
-              text: "A"
-            - type: subquery
-              name: c
-              scope: 0
-              text: "(select * ..e a = 2) c"
+            - {type: table, name: a, text: "A"}
+            - {type: subquery, name: c, scope: 0, text: "(select * ..e a = 2) c"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: a
-              table-column: "256.65536.4294967297.0"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: a, table-column: "256.65536.1:1.0"}
           text: "select * f..here a = 3"
 
   - name: names_duplicate_tableref
@@ -200,27 +117,16 @@ analyzer-snapshots:
       input: select * from A, A;
       catalog-id: 2
       errors:
-        - type: DUPLICATE_TABLE_ALIAS
-          message: duplicate table alias a
-          text: "A"
+        - {type: DUPLICATE_TABLE_ALIAS, message: duplicate table alias a, text: "A"}
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "A"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "A"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: a
-              text: "A"
+            - {type: table, name: a, text: "A"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
+            - {name: a, table-column: "256.65536.1:0.0"}
           text: "select * from A, A"
 
   - name: names_duplicate_tableref_different_casing
@@ -235,28 +141,16 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "\"A\""
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "\"A\""}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "A"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: A
-              text: "\"A\""
-            - type: table
-              name: a
-              text: "A"
+            - {type: table, name: A, text: "\"A\""}
+            - {type: table, name: a, text: "A"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967297.0"
-            - name: a
-              table-column: "256.65536.4294967296.0"
+            - {name: a, table-column: "256.65536.1:1.0"}
+            - {name: a, table-column: "256.65536.1:0.0"}
           text: "select * f..rom \"A\", A"
 
   - name: names_duplicate_tableref_colliding_with_quotes
@@ -268,27 +162,16 @@ analyzer-snapshots:
       input: select * from "a", A;
       catalog-id: 2
       errors:
-        - type: DUPLICATE_TABLE_ALIAS
-          message: duplicate table alias a
-          text: "A"
+        - {type: DUPLICATE_TABLE_ALIAS, message: duplicate table alias a, text: "A"}
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "\"a\""
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "\"a\""}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "A"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: a
-              text: "\"a\""
+            - {type: table, name: a, text: "\"a\""}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
+            - {name: a, table-column: "256.65536.1:0.0"}
           text: "select * f..rom \"a\", A"
 
   - name: names_tablename_as_alias
@@ -301,34 +184,18 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "foo"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "foo"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "foo"
-          statement-id: 0
-          text: "foo.a"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "foo", text: "foo.a"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 1
-          text: "1"
+        - {expression: 1, text: "1"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: foo
-              text: "foo"
+            - {type: table, name: foo, text: "foo"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
+            - {name: a, table-column: "256.65536.1:0.0"}
           text: "select * f.. foo.a = 1"
 
   - name: names_tablename_as_alias_with_cross_join
@@ -341,43 +208,21 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "foo a"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "foo"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "foo a"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "foo"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "foo"
-          statement-id: 0
-          text: "foo.a"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "foo", text: "foo.a"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 1
-          text: "1"
+        - {expression: 1, text: "1"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: a
-              text: "foo a"
-            - type: table
-              name: foo
-              text: "foo"
+            - {type: table, name: a, text: "foo a"}
+            - {type: table, name: foo, text: "foo"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: a
-              table-column: "256.65536.4294967296.0"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: a, table-column: "256.65536.1:0.0"}
           text: "select * f.. foo.a = 1"
 
   - name: names_tablename_as_alias_but_duplicate
@@ -389,51 +234,24 @@ analyzer-snapshots:
       input: select * from foo x, foo, foo where foo.a = 1;
       catalog-id: 2
       errors:
-        - type: DUPLICATE_TABLE_ALIAS
-          message: duplicate table alias foo
-          text: "foo"
+        - {type: DUPLICATE_TABLE_ALIAS, message: duplicate table alias foo, text: "foo"}
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "foo x"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "foo"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "foo"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "foo x"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "foo"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "foo"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "foo"
-          statement-id: 0
-          text: "foo.a"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "foo", text: "foo.a"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 1
-          text: "1"
+        - {expression: 1, text: "1"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: x
-              text: "foo x"
-            - type: table
-              name: foo
-              text: "foo"
+            - {type: table, name: x, text: "foo x"}
+            - {type: table, name: foo, text: "foo"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: a
-              table-column: "256.65536.4294967296.0"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: a, table-column: "256.65536.1:0.0"}
           text: "select * f.. foo.a = 1"
 
   - name: names_unresolved_tablename_as_alias_with_tableref_alias
@@ -446,30 +264,16 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "foo x"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "foo x"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "foo.a"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/unresolved, text: "foo.a"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 1
-          text: "1"
+        - {expression: 1, text: "1"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: x
-              text: "foo x"
+            - {type: table, name: x, text: "foo x"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
+            - {name: a, table-column: "256.65536.1:0.0"}
           text: "select * f.. foo.a = 1"

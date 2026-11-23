@@ -6,14 +6,9 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
 
   - name: call_other_namespace
     catalog:
@@ -23,14 +18,9 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
 
   - name: call_valid
     catalog:
@@ -40,26 +30,13 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_list
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"OPS\",\"page_size\":50}}"
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"OPS\",\"page_size\":50}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'OPS'"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "50"
+        - {id: 0, type: literal/string, is-const: true, text: "'OPS'"}
+        - {id: 1, type: literal/integer, is-const: true, text: "50"}
       constants:
-        - expression: 0
-          text: "'OPS'"
-        - expression: 1
-          text: "50"
+        - {expression: 0, text: "'OPS'"}
+        - {expression: 1, text: "50"}
 
   - name: call_case_folding
     catalog:
@@ -69,26 +46,13 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_list
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"OPS\",\"page_size\":50}}"
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"OPS\",\"page_size\":50}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'OPS'"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "50"
+        - {id: 0, type: literal/string, is-const: true, text: "'OPS'"}
+        - {id: 1, type: literal/integer, is-const: true, text: "50"}
       constants:
-        - expression: 0
-          text: "'OPS'"
-        - expression: 1
-          text: "50"
+        - {expression: 0, text: "'OPS'"}
+        - {expression: 1, text: "50"}
 
   - name: call_values
     catalog:
@@ -104,75 +68,27 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"it's\",\"title\":\"raw ' text\",\"labels\":[1,-2,-1.5,true,false,null,\"x\",[2]],\"assignee\":{\"id\":42,\"notify\":true}}}"
+        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"it's\",\"title\":\"raw ' text\",\"labels\":[1,-2,-1.5,true,false,null,\"x\",[2]],\"assignee\":{\"id\":42,\"notify\":true}}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'it''s'"
-        - expression-idx: 1
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "$$raw ' text$$"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 3
-          type: literal/float
-          is-const: true
-          statement-id: 0
-          text: "1.5"
-        - expression-idx: 4
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 5
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 6
-          type: literal/null
-          is-const: true
-          statement-id: 0
-          text: "null"
-        - expression-idx: 7
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'x'"
-        - expression-idx: 8
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "42"
+        - {id: 0, type: literal/string, is-const: true, text: "'it''s'"}
+        - {id: 1, type: literal/string, is-const: true, text: "$$raw ' text$$"}
+        - {id: 2, type: literal/integer, is-const: true, text: "2"}
+        - {id: 3, type: literal/float, is-const: true, text: "1.5"}
+        - {id: 4, type: literal/integer, is-const: true, text: "2"}
+        - {id: 5, type: literal/integer, is-const: true, text: "1"}
+        - {id: 6, type: literal/null, is-const: true, text: "null"}
+        - {id: 7, type: literal/string, is-const: true, text: "'x'"}
+        - {id: 8, type: literal/integer, is-const: true, text: "42"}
       constants:
-        - expression: 0
-          text: "'it''s'"
-        - expression: 1
-          text: "$$raw ' text$$"
-        - expression: 2
-          text: "2"
-        - expression: 3
-          text: "1.5"
-        - expression: 4
-          text: "2"
-        - expression: 5
-          text: "1"
-        - expression: 6
-          text: "null"
-        - expression: 7
-          text: "'x'"
-        - expression: 8
-          text: "42"
+        - {expression: 0, text: "'it''s'"}
+        - {expression: 1, text: "$$raw ' text$$"}
+        - {expression: 2, text: "2"}
+        - {expression: 3, text: "1.5"}
+        - {expression: 4, text: "2"}
+        - {expression: 5, text: "1"}
+        - {expression: 6, text: "null"}
+        - {expression: 7, text: "'x'"}
+        - {expression: 8, text: "42"}
 
   - name: call_embedded_sql
     catalog:
@@ -185,59 +101,25 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"select host from alerts where level > 1\"}}"
+        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"select host from alerts where level > 1\"}}"}
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "alerts"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "alerts"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "alerts"
-          statement-id: 0
-          text: "host"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "alerts"
-          statement-id: 0
-          text: "level"
-        - expression-idx: 2
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
-        - expression-idx: 3
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'b'"
-        - expression-idx: 4
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "alerts", text: "host"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "alerts", text: "level"}
+        - {id: 2, type: literal/string, is-const: true, text: "'a'"}
+        - {id: 3, type: literal/string, is-const: true, text: "'b'"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 2
-          text: "'a'"
-        - expression: 3
-          text: "'b'"
-        - expression: 4
-          text: "1"
+        - {expression: 2, text: "'a'"}
+        - {expression: 3, text: "'b'"}
+        - {expression: 4, text: "1"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: alerts
-              text: "alerts"
+            - {type: table, name: alerts, text: "alerts"}
           columns:
-            - name: host
-              expression: 0
+            - {name: host, expression: 0}
           text: "((select h..evel > 1))"
 
   - name: call_bindings
@@ -249,32 +131,15 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: webhook_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"webhook_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"url\":null,\"signing_key\":null,\"credentials\":[{\"param_name\":\"pw\",\"value\":null}]},\"bindings\":[{\"pointer\":\"/url\",\"param\":\"hook_url\"},{\"pointer\":\"/signing_key\",\"param\":\"hook_key\"},{\"pointer\":\"/credentials/0/value\",\"param\":\"stored\"}]}"
+        - {statement: 0, namespace: tickets, function: webhook_create, description: "{\"namespace\":\"tickets\",\"function\":\"webhook_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"url\":null,\"signing_key\":null,\"credentials\":[{\"param_name\":\"pw\",\"value\":null}]},\"bindings\":[{\"pointer\":\"/url\",\"param\":\"hook_url\"},{\"pointer\":\"/signing_key\",\"param\":\"hook_key\"},{\"pointer\":\"/credentials/0/value\",\"param\":\"stored\"}]}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'pw'"
+        - {id: 0, type: literal/string, is-const: true, text: "'pw'"}
       constants:
-        - expression: 0
-          text: "'pw'"
+        - {expression: 0, text: "'pw'"}
       parameters:
-        - kind: scalar
-          name: hook_url
-          statement-id: 0
-          text: ":hook_url"
-        - kind: scalar
-          name: hook_key
-          statement-id: 0
-          text: ":hook_key"
-        - kind: scalar
-          name: stored
-          statement-id: 0
-          text: ":stored"
+        - {kind: scalar, name: hook_url, text: ":hook_url"}
+        - {kind: scalar, name: hook_key, text: ":hook_key"}
+        - {kind: scalar, name: stored, text: ":stored"}
 
   - name: call_explain
     catalog:
@@ -283,26 +148,14 @@ analyzer-snapshots:
       input: explain call tickets.ticket_delete (idd => 7);
       catalog-id: 1
       errors:
-        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
-          message: 'tickets.ticket_delete has no option idd, did you mean id?'
-          text: "idd"
-        - type: CLIENT_FUNCTION_MISSING_OPTION
-          message: tickets.ticket_delete needs the option id
-          text: "call ticke..(idd => 7)"
+        - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: 'tickets.ticket_delete has no option idd, did you mean id?', text: "idd"}
+        - {type: CLIENT_FUNCTION_MISSING_OPTION, message: tickets.ticket_delete needs the option id, text: "call ticke..(idd => 7)"}
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_delete
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":true,\"options\":{\"idd\":7}}"
+        - {statement: 0, namespace: tickets, function: ticket_delete, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":true,\"options\":{\"idd\":7}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "7"
+        - {id: 0, type: literal/integer, is-const: true, text: "7"}
       constants:
-        - expression: 0
-          text: "7"
+        - {expression: 0, text: "7"}
 
   - name: call_unknown_function
     catalog:
@@ -311,21 +164,13 @@ analyzer-snapshots:
       input: call tickets.ticket_lst (project => 'a');
       catalog-id: 1
       errors:
-        - type: CLIENT_FUNCTION_UNKNOWN_FUNCTION
-          message: 'unknown function tickets.ticket_lst, did you mean ticket_list?'
-          text: "tickets.ticket_lst"
+        - {type: CLIENT_FUNCTION_UNKNOWN_FUNCTION, message: 'unknown function tickets.ticket_lst, did you mean ticket_list?', text: "tickets.ticket_lst"}
       client-function-calls:
-        - statement: 0
-          namespace: tickets
+        - {statement: 0, namespace: tickets}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
+        - {id: 0, type: literal/string, is-const: true, text: "'a'"}
       constants:
-        - expression: 0
-          text: "'a'"
+        - {expression: 0, text: "'a'"}
 
   - name: call_unknown_function_path
     catalog:
@@ -334,12 +179,9 @@ analyzer-snapshots:
       input: call tickets.a.b ();
       catalog-id: 1
       errors:
-        - type: CLIENT_FUNCTION_UNKNOWN_FUNCTION
-          message: unknown function tickets.a.b
-          text: "tickets.a.b"
+        - {type: CLIENT_FUNCTION_UNKNOWN_FUNCTION, message: unknown function tickets.a.b, text: "tickets.a.b"}
       client-function-calls:
-        - statement: 0
-          namespace: tickets
+        - {statement: 0, namespace: tickets}
 
   - name: call_unknown_options
     catalog:
@@ -348,50 +190,21 @@ analyzer-snapshots:
       input: call tickets.ticket_list (project => 'a', batch_size => 1, pageSize => 2, offset => 3);
       catalog-id: 1
       errors:
-        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
-          message: tickets.ticket_list has no option batch_size
-          text: "batch_size"
-        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
-          message: 'tickets.ticket_list has no option pageSize, did you mean page_size?'
-          text: "pageSize"
-        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
-          message: tickets.ticket_list has no option offset
-          text: "offset"
+        - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: tickets.ticket_list has no option batch_size, text: "batch_size"}
+        - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: 'tickets.ticket_list has no option pageSize, did you mean page_size?', text: "pageSize"}
+        - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: tickets.ticket_list has no option offset, text: "offset"}
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_list
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"batch_size\":1,\"pageSize\":2,\"offset\":3}}"
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"batch_size\":1,\"pageSize\":2,\"offset\":3}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "3"
+        - {id: 0, type: literal/string, is-const: true, text: "'a'"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
+        - {id: 2, type: literal/integer, is-const: true, text: "2"}
+        - {id: 3, type: literal/integer, is-const: true, text: "3"}
       constants:
-        - expression: 0
-          text: "'a'"
-        - expression: 1
-          text: "1"
-        - expression: 2
-          text: "2"
-        - expression: 3
-          text: "3"
+        - {expression: 0, text: "'a'"}
+        - {expression: 1, text: "1"}
+        - {expression: 2, text: "2"}
+        - {expression: 3, text: "3"}
 
   - name: call_quoted_unknown
     catalog:
@@ -401,33 +214,15 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_list
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"pageSize\":2,\"offset\":3}}"
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"pageSize\":2,\"offset\":3}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "3"
+        - {id: 0, type: literal/string, is-const: true, text: "'a'"}
+        - {id: 1, type: literal/integer, is-const: true, text: "2"}
+        - {id: 2, type: literal/integer, is-const: true, text: "3"}
       constants:
-        - expression: 0
-          text: "'a'"
-        - expression: 1
-          text: "2"
-        - expression: 2
-          text: "3"
+        - {expression: 0, text: "'a'"}
+        - {expression: 1, text: "2"}
+        - {expression: 2, text: "3"}
 
   - name: call_quoted_known
     catalog:
@@ -437,40 +232,17 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"X-Trace-Id\":\"c\",\"DataSourceId__c\":\"d\"}}"
+        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"X-Trace-Id\":\"c\",\"DataSourceId__c\":\"d\"}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
-        - expression-idx: 1
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'b'"
-        - expression-idx: 2
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'c'"
-        - expression-idx: 3
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'d'"
+        - {id: 0, type: literal/string, is-const: true, text: "'a'"}
+        - {id: 1, type: literal/string, is-const: true, text: "'b'"}
+        - {id: 2, type: literal/string, is-const: true, text: "'c'"}
+        - {id: 3, type: literal/string, is-const: true, text: "'d'"}
       constants:
-        - expression: 0
-          text: "'a'"
-        - expression: 1
-          text: "'b'"
-        - expression: 2
-          text: "'c'"
-        - expression: 3
-          text: "'d'"
+        - {expression: 0, text: "'a'"}
+        - {expression: 1, text: "'b'"}
+        - {expression: 2, text: "'c'"}
+        - {expression: 3, text: "'d'"}
 
   - name: call_missing_and_duplicate
     catalog:
@@ -479,33 +251,16 @@ analyzer-snapshots:
       input: call tickets.ticket_create (project => 'a', PROJECT => 'b');
       catalog-id: 1
       errors:
-        - type: CLIENT_FUNCTION_DUPLICATE_OPTION
-          message: duplicate option project
-          text: "PROJECT"
-        - type: CLIENT_FUNCTION_MISSING_OPTION
-          message: tickets.ticket_create needs the option title
-          text: "call ticke..CT => 'b')"
+        - {type: CLIENT_FUNCTION_DUPLICATE_OPTION, message: duplicate option project, text: "PROJECT"}
+        - {type: CLIENT_FUNCTION_MISSING_OPTION, message: tickets.ticket_create needs the option title, text: "call ticke..CT => 'b')"}
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"b\"}}"
+        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"b\"}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
-        - expression-idx: 1
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'b'"
+        - {id: 0, type: literal/string, is-const: true, text: "'a'"}
+        - {id: 1, type: literal/string, is-const: true, text: "'b'"}
       constants:
-        - expression: 0
-          text: "'a'"
-        - expression: 1
-          text: "'b'"
+        - {expression: 0, text: "'a'"}
+        - {expression: 1, text: "'b'"}
 
   - name: call_nested_attributes
     catalog:
@@ -520,64 +275,25 @@ analyzer-snapshots:
         );
       catalog-id: 1
       errors:
-        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
-          message: no attribute nam here
-          text: "nam"
-        - type: CLIENT_FUNCTION_MISSING_OPTION
-          message: needs the attribute id
-          text: "(notify = ..nam = 'x')"
-        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
-          message: 'no attribute nmae here, did you mean name?'
-          text: "nmae"
+        - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: no attribute nam here, text: "nam"}
+        - {type: CLIENT_FUNCTION_MISSING_OPTION, message: needs the attribute id, text: "(notify = ..nam = 'x')"}
+        - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: 'no attribute nmae here, did you mean name?', text: "nmae"}
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"assignee\":{\"notify\":true,\"nam\":\"x\"},\"components\":[{\"name\":\"a\",\"children\":[{\"name\":\"b\",\"children\":{\"nmae\":\"c\"}}]}]}}"
+        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"assignee\":{\"notify\":true,\"nam\":\"x\"},\"components\":[{\"name\":\"a\",\"children\":[{\"name\":\"b\",\"children\":{\"nmae\":\"c\"}}]}]}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
-        - expression-idx: 1
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'b'"
-        - expression-idx: 2
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'x'"
-        - expression-idx: 3
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
-        - expression-idx: 4
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'b'"
-        - expression-idx: 5
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'c'"
+        - {id: 0, type: literal/string, is-const: true, text: "'a'"}
+        - {id: 1, type: literal/string, is-const: true, text: "'b'"}
+        - {id: 2, type: literal/string, is-const: true, text: "'x'"}
+        - {id: 3, type: literal/string, is-const: true, text: "'a'"}
+        - {id: 4, type: literal/string, is-const: true, text: "'b'"}
+        - {id: 5, type: literal/string, is-const: true, text: "'c'"}
       constants:
-        - expression: 0
-          text: "'a'"
-        - expression: 1
-          text: "'b'"
-        - expression: 2
-          text: "'x'"
-        - expression: 3
-          text: "'a'"
-        - expression: 4
-          text: "'b'"
-        - expression: 5
-          text: "'c'"
+        - {expression: 0, text: "'a'"}
+        - {expression: 1, text: "'b'"}
+        - {expression: 2, text: "'x'"}
+        - {expression: 3, text: "'a'"}
+        - {expression: 4, text: "'b'"}
+        - {expression: 5, text: "'c'"}
 
   - name: call_unknown_policies
     catalog:
@@ -587,52 +303,21 @@ analyzer-snapshots:
         call tickets.ticket_create (project => 'a', title => 'b', inferred => (other = 1), metadata => (someKey = 1, "with space" = 2));
       catalog-id: 1
       errors:
-        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
-          severity: WARNING
-          message: no attribute other here
-          text: "other"
+        - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, severity: WARNING, message: no attribute other here, text: "other"}
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"inferred\":{\"other\":1},\"metadata\":{\"someKey\":1,\"with space\":2}}}"
+        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"inferred\":{\"other\":1},\"metadata\":{\"someKey\":1,\"with space\":2}}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
-        - expression-idx: 1
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'b'"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 4
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
+        - {id: 0, type: literal/string, is-const: true, text: "'a'"}
+        - {id: 1, type: literal/string, is-const: true, text: "'b'"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
+        - {id: 4, type: literal/integer, is-const: true, text: "2"}
       constants:
-        - expression: 0
-          text: "'a'"
-        - expression: 1
-          text: "'b'"
-        - expression: 2
-          text: "1"
-        - expression: 3
-          text: "1"
-        - expression: 4
-          text: "2"
+        - {expression: 0, text: "'a'"}
+        - {expression: 1, text: "'b'"}
+        - {expression: 2, text: "1"}
+        - {expression: 3, text: "1"}
+        - {expression: 4, text: "2"}
 
   - name: call_unknown_option_warning
     catalog:
@@ -641,31 +326,15 @@ analyzer-snapshots:
       input: call tickets.ticket_search (query => 'a', other => 1);
       catalog-id: 1
       errors:
-        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
-          severity: WARNING
-          message: tickets.ticket_search has no option other
-          text: "other"
+        - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, severity: WARNING, message: tickets.ticket_search has no option other, text: "other"}
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_search
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_search\",\"effect\":\"read\",\"explain\":false,\"options\":{\"query\":\"a\",\"other\":1}}"
+        - {statement: 0, namespace: tickets, function: ticket_search, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_search\",\"effect\":\"read\",\"explain\":false,\"options\":{\"query\":\"a\",\"other\":1}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/string, is-const: true, text: "'a'"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "'a'"
-        - expression: 1
-          text: "1"
+        - {expression: 0, text: "'a'"}
+        - {expression: 1, text: "1"}
 
   - name: call_raw
     catalog:
@@ -675,40 +344,17 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: request
-          description: "{\"namespace\":\"tickets\",\"function\":\"request\",\"effect\":\"write\",\"explain\":false,\"options\":{\"method\":\"POST\",\"path\":\"/x\",\"body\":{\"a\":1},\"someParam\":1}}"
+        - {statement: 0, namespace: tickets, function: request, description: "{\"namespace\":\"tickets\",\"function\":\"request\",\"effect\":\"write\",\"explain\":false,\"options\":{\"method\":\"POST\",\"path\":\"/x\",\"body\":{\"a\":1},\"someParam\":1}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'POST'"
-        - expression-idx: 1
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'/x'"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/string, is-const: true, text: "'POST'"}
+        - {id: 1, type: literal/string, is-const: true, text: "'/x'"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "'POST'"
-        - expression: 1
-          text: "'/x'"
-        - expression: 2
-          text: "1"
-        - expression: 3
-          text: "1"
+        - {expression: 0, text: "'POST'"}
+        - {expression: 1, text: "'/x'"}
+        - {expression: 2, text: "1"}
+        - {expression: 3, text: "1"}
 
   - name: call_credentials
     catalog:
@@ -725,45 +371,19 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: webhook_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"webhook_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"signing_key\":\"literal\",\"credentials\":[{\"param_name\":\"user\",\"value\":\"public\"},{\"param_name\":\"password\",\"value\":null}]},\"bindings\":[{\"pointer\":\"/credentials/1/value\",\"param\":\"stored\"}]}"
+        - {statement: 0, namespace: tickets, function: webhook_create, description: "{\"namespace\":\"tickets\",\"function\":\"webhook_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"signing_key\":\"literal\",\"credentials\":[{\"param_name\":\"user\",\"value\":\"public\"},{\"param_name\":\"password\",\"value\":null}]},\"bindings\":[{\"pointer\":\"/credentials/1/value\",\"param\":\"stored\"}]}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'literal'"
-        - expression-idx: 1
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'user'"
-        - expression-idx: 2
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'public'"
-        - expression-idx: 3
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'password'"
+        - {id: 0, type: literal/string, is-const: true, text: "'literal'"}
+        - {id: 1, type: literal/string, is-const: true, text: "'user'"}
+        - {id: 2, type: literal/string, is-const: true, text: "'public'"}
+        - {id: 3, type: literal/string, is-const: true, text: "'password'"}
       constants:
-        - expression: 0
-          text: "'literal'"
-        - expression: 1
-          text: "'user'"
-        - expression: 2
-          text: "'public'"
-        - expression: 3
-          text: "'password'"
+        - {expression: 0, text: "'literal'"}
+        - {expression: 1, text: "'user'"}
+        - {expression: 2, text: "'public'"}
+        - {expression: 3, text: "'password'"}
       parameters:
-        - kind: scalar
-          name: stored
-          statement-id: 0
-          text: ":stored"
+        - {kind: scalar, name: stored, text: ":stored"}
 
   - name: call_invalid_functions
     catalog:
@@ -772,50 +392,19 @@ analyzer-snapshots:
       input: call tickets.ticket_list (project => now(), page_size => secret(a), page_token => cast(1 as text));
       catalog-id: 1
       errors:
-        - type: CLIENT_FUNCTION_INVALID_VALUE
-          message: a value can't call a function
-          text: "now()"
-        - type: CLIENT_FUNCTION_INVALID_VALUE
-          message: a value can't call a function
-          text: "secret(a)"
-        - type: CLIENT_FUNCTION_INVALID_VALUE
-          message: a value can't call a function
-          text: "cast(1 as text)"
+        - {type: CLIENT_FUNCTION_INVALID_VALUE, message: a value can't call a function, text: "now()"}
+        - {type: CLIENT_FUNCTION_INVALID_VALUE, message: a value can't call a function, text: "secret(a)"}
+        - {type: CLIENT_FUNCTION_INVALID_VALUE, message: a value can't call a function, text: "cast(1 as text)"}
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_list
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":null,\"page_size\":null,\"page_token\":null}}"
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":null,\"page_size\":null,\"page_token\":null}}"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: function
-          name: now
-          is-const: true
-          statement-id: 0
-          text: "now()"
-        - expression-idx: 2
-          type: function
-          name: secret
-          statement-id: 0
-          text: "secret(a)"
-        - expression-idx: 3
-          type: function
-          known-function: CAST
-          is-const: true
-          statement-id: 0
-          text: "cast(1 as text)"
-        - expression-idx: 4
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/unresolved, text: "a"}
+        - {id: 1, type: function, name: now, is-const: true, text: "now()"}
+        - {id: 2, type: function, name: secret, text: "secret(a)"}
+        - {id: 3, type: function, known-function: CAST, is-const: true, text: "cast(1 as text)"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 4
-          text: "1"
+        - {expression: 4, text: "1"}
 
   - name: call_paging
     catalog:
@@ -826,40 +415,17 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_list
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"page_size\":50,\"_next\":\"abc\",\"_pages\":10}}"
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"page_size\":50,\"_next\":\"abc\",\"_pages\":10}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "50"
-        - expression-idx: 2
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'abc'"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "10"
+        - {id: 0, type: literal/string, is-const: true, text: "'a'"}
+        - {id: 1, type: literal/integer, is-const: true, text: "50"}
+        - {id: 2, type: literal/string, is-const: true, text: "'abc'"}
+        - {id: 3, type: literal/integer, is-const: true, text: "10"}
       constants:
-        - expression: 0
-          text: "'a'"
-        - expression: 1
-          text: "50"
-        - expression: 2
-          text: "'abc'"
-        - expression: 3
-          text: "10"
+        - {expression: 0, text: "'a'"}
+        - {expression: 1, text: "50"}
+        - {expression: 2, text: "'abc'"}
+        - {expression: 3, text: "10"}
 
   - name: call_paging_url
     catalog:
@@ -869,19 +435,11 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_feed
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_feed\",\"effect\":\"read\",\"explain\":false,\"options\":{\"_next\":\"/feed?page=2\"}}"
+        - {statement: 0, namespace: tickets, function: ticket_feed, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_feed\",\"effect\":\"read\",\"explain\":false,\"options\":{\"_next\":\"/feed?page=2\"}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'/feed?page=2'"
+        - {id: 0, type: literal/string, is-const: true, text: "'/feed?page=2'"}
       constants:
-        - expression: 0
-          text: "'/feed?page=2'"
+        - {expression: 0, text: "'/feed?page=2'"}
 
   - name: call_paging_conflict
     catalog:
@@ -890,37 +448,17 @@ analyzer-snapshots:
       input: call tickets.ticket_list (project => 'a', page_token => 'x', _next => 'y');
       catalog-id: 1
       errors:
-        - type: CLIENT_FUNCTION_DUPLICATE_OPTION
-          message: '_next sets the option page_token, use one of them'
-          text: "call ticke..xt => 'y')"
+        - {type: CLIENT_FUNCTION_DUPLICATE_OPTION, message: '_next sets the option page_token, use one of them', text: "call ticke..xt => 'y')"}
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_list
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"page_token\":\"x\",\"_next\":\"y\"}}"
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"page_token\":\"x\",\"_next\":\"y\"}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
-        - expression-idx: 1
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'x'"
-        - expression-idx: 2
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'y'"
+        - {id: 0, type: literal/string, is-const: true, text: "'a'"}
+        - {id: 1, type: literal/string, is-const: true, text: "'x'"}
+        - {id: 2, type: literal/string, is-const: true, text: "'y'"}
       constants:
-        - expression: 0
-          text: "'a'"
-        - expression: 1
-          text: "'x'"
-        - expression: 2
-          text: "'y'"
+        - {expression: 0, text: "'a'"}
+        - {expression: 1, text: "'x'"}
+        - {expression: 2, text: "'y'"}
 
   - name: call_paging_errors
     catalog:
@@ -931,61 +469,24 @@ analyzer-snapshots:
         call tickets.ticket_delete (id => 1, _next => 'x', _unknown => 1);
       catalog-id: 1
       errors:
-        - type: CLIENT_FUNCTION_INVALID_VALUE
-          message: _pages takes a positive number
-          text: "0"
-        - type: CLIENT_FUNCTION_UNSUPPORTED_OPTION
-          message: tickets.ticket_delete has no option _next
-          text: "_next"
-        - type: CLIENT_FUNCTION_UNSUPPORTED_OPTION
-          message: tickets.ticket_delete has no option _unknown
-          text: "_unknown"
+        - {type: CLIENT_FUNCTION_INVALID_VALUE, message: _pages takes a positive number, text: "0"}
+        - {type: CLIENT_FUNCTION_UNSUPPORTED_OPTION, message: tickets.ticket_delete has no option _next, text: "_next"}
+        - {type: CLIENT_FUNCTION_UNSUPPORTED_OPTION, message: tickets.ticket_delete has no option _unknown, text: "_unknown"}
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_list
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"_pages\":0}}"
-        - statement: 1
-          namespace: tickets
-          function: ticket_delete
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":false,\"options\":{\"id\":1,\"_next\":\"x\",\"_unknown\":1}}"
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"_pages\":0}}"}
+        - {statement: 1, namespace: tickets, function: ticket_delete, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":false,\"options\":{\"id\":1,\"_next\":\"x\",\"_unknown\":1}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "0"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 1
-          text: "1"
-        - expression-idx: 3
-          type: literal/string
-          is-const: true
-          statement-id: 1
-          text: "'x'"
-        - expression-idx: 4
-          type: literal/integer
-          is-const: true
-          statement-id: 1
-          text: "1"
+        - {id: 0, type: literal/string, is-const: true, statement-id: 0, text: "'a'"}
+        - {id: 1, type: literal/integer, is-const: true, statement-id: 0, text: "0"}
+        - {id: 2, type: literal/integer, is-const: true, statement-id: 1, text: "1"}
+        - {id: 3, type: literal/string, is-const: true, statement-id: 1, text: "'x'"}
+        - {id: 4, type: literal/integer, is-const: true, statement-id: 1, text: "1"}
       constants:
-        - expression: 0
-          text: "'a'"
-        - expression: 1
-          text: "0"
-        - expression: 2
-          text: "1"
-        - expression: 3
-          text: "'x'"
-        - expression: 4
-          text: "1"
+        - {expression: 0, text: "'a'"}
+        - {expression: 1, text: "0"}
+        - {expression: 2, text: "1"}
+        - {expression: 3, text: "'x'"}
+        - {expression: 4, text: "1"}
 
   - name: call_map
     catalog:
@@ -997,65 +498,24 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":{\"first\":{\"id\":1},\"Second\":{\"id\":2,\"notify\":true}}}}"
-        - statement: 1
-          namespace: tickets
-          function: ticket_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":[{\"id\":{\"id\":1}}]}}"
+        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":{\"first\":{\"id\":1},\"Second\":{\"id\":2,\"notify\":true}}}}"}
+        - {statement: 1, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":[{\"id\":{\"id\":1}}]}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
-        - expression-idx: 1
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'b'"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 4
-          type: literal/string
-          is-const: true
-          statement-id: 1
-          text: "'a'"
-        - expression-idx: 5
-          type: literal/string
-          is-const: true
-          statement-id: 1
-          text: "'b'"
-        - expression-idx: 6
-          type: literal/integer
-          is-const: true
-          statement-id: 1
-          text: "1"
+        - {id: 0, type: literal/string, is-const: true, statement-id: 0, text: "'a'"}
+        - {id: 1, type: literal/string, is-const: true, statement-id: 0, text: "'b'"}
+        - {id: 2, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
+        - {id: 3, type: literal/integer, is-const: true, statement-id: 0, text: "2"}
+        - {id: 4, type: literal/string, is-const: true, statement-id: 1, text: "'a'"}
+        - {id: 5, type: literal/string, is-const: true, statement-id: 1, text: "'b'"}
+        - {id: 6, type: literal/integer, is-const: true, statement-id: 1, text: "1"}
       constants:
-        - expression: 0
-          text: "'a'"
-        - expression: 1
-          text: "'b'"
-        - expression: 2
-          text: "1"
-        - expression: 3
-          text: "2"
-        - expression: 4
-          text: "'a'"
-        - expression: 5
-          text: "'b'"
-        - expression: 6
-          text: "1"
+        - {expression: 0, text: "'a'"}
+        - {expression: 1, text: "'b'"}
+        - {expression: 2, text: "1"}
+        - {expression: 3, text: "2"}
+        - {expression: 4, text: "'a'"}
+        - {expression: 5, text: "'b'"}
+        - {expression: 6, text: "1"}
 
   - name: call_map_errors
     catalog:
@@ -1066,75 +526,28 @@ analyzer-snapshots:
         call tickets.ticket_create (project => 'a', title => 'b', owners => (first = (id = 1), first = (id = 2)));
       catalog-id: 1
       errors:
-        - type: CLIENT_FUNCTION_MISSING_OPTION
-          message: needs the attribute id
-          text: "(notify = true)"
-        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
-          message: 'no attribute notifi here, did you mean notify?'
-          text: "notifi"
-        - type: CLIENT_FUNCTION_DUPLICATE_OPTION
-          message: duplicate key first
-          text: "first"
+        - {type: CLIENT_FUNCTION_MISSING_OPTION, message: needs the attribute id, text: "(notify = true)"}
+        - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: 'no attribute notifi here, did you mean notify?', text: "notifi"}
+        - {type: CLIENT_FUNCTION_DUPLICATE_OPTION, message: duplicate key first, text: "first"}
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":{\"first\":{\"notify\":true},\"second\":{\"id\":2,\"notifi\":true}}}}"
-        - statement: 1
-          namespace: tickets
-          function: ticket_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":{\"first\":{\"id\":2}}}}"
+        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":{\"first\":{\"notify\":true},\"second\":{\"id\":2,\"notifi\":true}}}}"}
+        - {statement: 1, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":{\"first\":{\"id\":2}}}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a'"
-        - expression-idx: 1
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'b'"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
-        - expression-idx: 3
-          type: literal/string
-          is-const: true
-          statement-id: 1
-          text: "'a'"
-        - expression-idx: 4
-          type: literal/string
-          is-const: true
-          statement-id: 1
-          text: "'b'"
-        - expression-idx: 5
-          type: literal/integer
-          is-const: true
-          statement-id: 1
-          text: "1"
-        - expression-idx: 6
-          type: literal/integer
-          is-const: true
-          statement-id: 1
-          text: "2"
+        - {id: 0, type: literal/string, is-const: true, statement-id: 0, text: "'a'"}
+        - {id: 1, type: literal/string, is-const: true, statement-id: 0, text: "'b'"}
+        - {id: 2, type: literal/integer, is-const: true, statement-id: 0, text: "2"}
+        - {id: 3, type: literal/string, is-const: true, statement-id: 1, text: "'a'"}
+        - {id: 4, type: literal/string, is-const: true, statement-id: 1, text: "'b'"}
+        - {id: 5, type: literal/integer, is-const: true, statement-id: 1, text: "1"}
+        - {id: 6, type: literal/integer, is-const: true, statement-id: 1, text: "2"}
       constants:
-        - expression: 0
-          text: "'a'"
-        - expression: 1
-          text: "'b'"
-        - expression: 2
-          text: "2"
-        - expression: 3
-          text: "'a'"
-        - expression: 4
-          text: "'b'"
-        - expression: 5
-          text: "1"
-        - expression: 6
-          text: "2"
+        - {expression: 0, text: "'a'"}
+        - {expression: 1, text: "'b'"}
+        - {expression: 2, text: "2"}
+        - {expression: 3, text: "'a'"}
+        - {expression: 4, text: "'b'"}
+        - {expression: 5, text: "1"}
+        - {expression: 6, text: "2"}
 
   - name: call_quoted_namespace
     catalog:
@@ -1143,14 +556,9 @@ analyzer-snapshots:
       input: call "TICKETS".ticket_delete ();
       catalog-id: 1
       errors:
-        - type: CLIENT_FUNCTION_MISSING_OPTION
-          message: tickets.ticket_delete needs the option id
-          text: "call \"TICK.._delete ()"
+        - {type: CLIENT_FUNCTION_MISSING_OPTION, message: tickets.ticket_delete needs the option id, text: "call \"TICK.._delete ()"}
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_delete
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":false,\"options\":{}}"
+        - {statement: 0, namespace: tickets, function: ticket_delete, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":false,\"options\":{}}"}
 
   - name: call_pending
     catalog:
@@ -1163,55 +571,21 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: export_start
-          description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"effect\":\"write\",\"explain\":false,\"options\":{\"format\":\"csv\",\"_wait\":60}}"
-        - statement: 1
-          namespace: tickets
-          function: export_start
-          description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"effect\":\"write\",\"explain\":false,\"options\":{\"format\":\"csv\",\"_wait\":0}}"
-        - statement: 2
-          namespace: tickets
-          function: export_start
-          description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"effect\":\"write\",\"explain\":false,\"options\":{\"_poll\":\"/results/1\"}}"
+        - {statement: 0, namespace: tickets, function: export_start, description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"effect\":\"write\",\"explain\":false,\"options\":{\"format\":\"csv\",\"_wait\":60}}"}
+        - {statement: 1, namespace: tickets, function: export_start, description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"effect\":\"write\",\"explain\":false,\"options\":{\"format\":\"csv\",\"_wait\":0}}"}
+        - {statement: 2, namespace: tickets, function: export_start, description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"effect\":\"write\",\"explain\":false,\"options\":{\"_poll\":\"/results/1\"}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'csv'"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "60"
-        - expression-idx: 2
-          type: literal/string
-          is-const: true
-          statement-id: 1
-          text: "'csv'"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 1
-          text: "0"
-        - expression-idx: 4
-          type: literal/string
-          is-const: true
-          statement-id: 2
-          text: "'/results/1'"
+        - {id: 0, type: literal/string, is-const: true, statement-id: 0, text: "'csv'"}
+        - {id: 1, type: literal/integer, is-const: true, statement-id: 0, text: "60"}
+        - {id: 2, type: literal/string, is-const: true, statement-id: 1, text: "'csv'"}
+        - {id: 3, type: literal/integer, is-const: true, statement-id: 1, text: "0"}
+        - {id: 4, type: literal/string, is-const: true, statement-id: 2, text: "'/results/1'"}
       constants:
-        - expression: 0
-          text: "'csv'"
-        - expression: 1
-          text: "60"
-        - expression: 2
-          text: "'csv'"
-        - expression: 3
-          text: "0"
-        - expression: 4
-          text: "'/results/1'"
+        - {expression: 0, text: "'csv'"}
+        - {expression: 1, text: "60"}
+        - {expression: 2, text: "'csv'"}
+        - {expression: 3, text: "0"}
+        - {expression: 4, text: "'/results/1'"}
 
   - name: call_pending_errors
     catalog:
@@ -1220,40 +594,18 @@ analyzer-snapshots:
       input: call tickets.ticket_delete (id => 1, _wait => 60, _poll => 'x');
       catalog-id: 1
       errors:
-        - type: CLIENT_FUNCTION_UNSUPPORTED_OPTION
-          message: tickets.ticket_delete has no option _wait
-          text: "_wait"
-        - type: CLIENT_FUNCTION_UNSUPPORTED_OPTION
-          message: tickets.ticket_delete has no option _poll
-          text: "_poll"
+        - {type: CLIENT_FUNCTION_UNSUPPORTED_OPTION, message: tickets.ticket_delete has no option _wait, text: "_wait"}
+        - {type: CLIENT_FUNCTION_UNSUPPORTED_OPTION, message: tickets.ticket_delete has no option _poll, text: "_poll"}
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: ticket_delete
-          description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":false,\"options\":{\"id\":1,\"_wait\":60,\"_poll\":\"x\"}}"
+        - {statement: 0, namespace: tickets, function: ticket_delete, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":false,\"options\":{\"id\":1,\"_wait\":60,\"_poll\":\"x\"}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "60"
-        - expression-idx: 2
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'x'"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, text: "60"}
+        - {id: 2, type: literal/string, is-const: true, text: "'x'"}
       constants:
-        - expression: 0
-          text: "1"
-        - expression: 1
-          text: "60"
-        - expression: 2
-          text: "'x'"
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "60"}
+        - {expression: 2, text: "'x'"}
 
   - name: call_wait_errors
     catalog:
@@ -1262,30 +614,15 @@ analyzer-snapshots:
       input: call tickets.export_start (format => 'csv', _wait => -1);
       catalog-id: 1
       errors:
-        - type: CLIENT_FUNCTION_INVALID_VALUE
-          message: _wait takes a number of seconds
-          text: "-1"
+        - {type: CLIENT_FUNCTION_INVALID_VALUE, message: _wait takes a number of seconds, text: "-1"}
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: export_start
-          description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"effect\":\"write\",\"explain\":false,\"options\":{\"format\":\"csv\",\"_wait\":-1}}"
+        - {statement: 0, namespace: tickets, function: export_start, description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"effect\":\"write\",\"explain\":false,\"options\":{\"format\":\"csv\",\"_wait\":-1}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'csv'"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/string, is-const: true, text: "'csv'"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "'csv'"
-        - expression: 1
-          text: "1"
+        - {expression: 0, text: "'csv'"}
+        - {expression: 1, text: "1"}
 
   - name: call_union_tag
     catalog:
@@ -1295,33 +632,15 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: rule_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"target\":{\"kind\":\"EMAIL\",\"address\":\"a@b.c\",\"owner\":{\"id\":1}}}}"
+        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"target\":{\"kind\":\"EMAIL\",\"address\":\"a@b.c\",\"owner\":{\"id\":1}}}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'EMAIL'"
-        - expression-idx: 1
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'a@b.c'"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/string, is-const: true, text: "'EMAIL'"}
+        - {id: 1, type: literal/string, is-const: true, text: "'a@b.c'"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "'EMAIL'"
-        - expression: 1
-          text: "'a@b.c'"
-        - expression: 2
-          text: "1"
+        - {expression: 0, text: "'EMAIL'"}
+        - {expression: 1, text: "'a@b.c'"}
+        - {expression: 2, text: "1"}
 
   - name: call_union_tag_mismatch
     catalog:
@@ -1330,33 +649,16 @@ analyzer-snapshots:
       input: call tickets.rule_create (target => (kind = 'Email', queue = 'ops'));
       catalog-id: 1
       errors:
-        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
-          message: no attribute queue when kind is 'Email'
-          text: "queue"
-        - type: CLIENT_FUNCTION_MISSING_OPTION
-          message: needs the attribute address
-          text: "(kind = 'E..e = 'ops')"
+        - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: no attribute queue when kind is 'Email', text: "queue"}
+        - {type: CLIENT_FUNCTION_MISSING_OPTION, message: needs the attribute address, text: "(kind = 'E..e = 'ops')"}
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: rule_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"target\":{\"kind\":\"Email\",\"queue\":\"ops\"}}}"
+        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"target\":{\"kind\":\"Email\",\"queue\":\"ops\"}}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'Email'"
-        - expression-idx: 1
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'ops'"
+        - {id: 0, type: literal/string, is-const: true, text: "'Email'"}
+        - {id: 1, type: literal/string, is-const: true, text: "'ops'"}
       constants:
-        - expression: 0
-          text: "'Email'"
-        - expression: 1
-          text: "'ops'"
+        - {expression: 0, text: "'Email'"}
+        - {expression: 1, text: "'ops'"}
 
   - name: call_union_tag_parameter
     catalog:
@@ -1366,24 +668,13 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: rule_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"target\":{\"kind\":null,\"queue\":\"ops\"}},\"bindings\":[{\"pointer\":\"/target/kind\",\"param\":\"kind\"}]}"
+        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"target\":{\"kind\":null,\"queue\":\"ops\"}},\"bindings\":[{\"pointer\":\"/target/kind\",\"param\":\"kind\"}]}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'ops'"
+        - {id: 0, type: literal/string, is-const: true, text: "'ops'"}
       constants:
-        - expression: 0
-          text: "'ops'"
+        - {expression: 0, text: "'ops'"}
       parameters:
-        - kind: scalar
-          name: kind
-          statement-id: 0
-          text: ":kind"
+        - {kind: scalar, name: kind, text: ":kind"}
 
   - name: call_union_shape
     catalog:
@@ -1393,26 +684,13 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: rule_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"trigger\":{\"event\":\"created\",\"filter\":\"x\"}}}"
+        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"trigger\":{\"event\":\"created\",\"filter\":\"x\"}}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'created'"
-        - expression-idx: 1
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'x'"
+        - {id: 0, type: literal/string, is-const: true, text: "'created'"}
+        - {id: 1, type: literal/string, is-const: true, text: "'x'"}
       constants:
-        - expression: 0
-          text: "'created'"
-        - expression: 1
-          text: "'x'"
+        - {expression: 0, text: "'created'"}
+        - {expression: 1, text: "'x'"}
 
   - name: call_union_shape_conflict
     catalog:
@@ -1421,30 +699,15 @@ analyzer-snapshots:
       input: call tickets.rule_create (trigger => (event = 'created', cron = '* * * * *'));
       catalog-id: 1
       errors:
-        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
-          message: cron does not fit the attributes before it
-          text: "cron"
+        - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: cron does not fit the attributes before it, text: "cron"}
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: rule_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"trigger\":{\"event\":\"created\",\"cron\":\"* * * * *\"}}}"
+        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"trigger\":{\"event\":\"created\",\"cron\":\"* * * * *\"}}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'created'"
-        - expression-idx: 1
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'* * * * *'"
+        - {id: 0, type: literal/string, is-const: true, text: "'created'"}
+        - {id: 1, type: literal/string, is-const: true, text: "'* * * * *'"}
       constants:
-        - expression: 0
-          text: "'created'"
-        - expression: 1
-          text: "'* * * * *'"
+        - {expression: 0, text: "'created'"}
+        - {expression: 1, text: "'* * * * *'"}
 
   - name: call_union_unknown
     catalog:
@@ -1453,26 +716,14 @@ analyzer-snapshots:
       input: call tickets.rule_create (trigger => (evnt = 'created'));
       catalog-id: 1
       errors:
-        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
-          message: 'no attribute evnt here, did you mean event?'
-          text: "evnt"
-        - type: CLIENT_FUNCTION_MISSING_OPTION
-          message: 'needs one of the attributes cron, event'
-          text: "(evnt = 'created')"
+        - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: 'no attribute evnt here, did you mean event?', text: "evnt"}
+        - {type: CLIENT_FUNCTION_MISSING_OPTION, message: 'needs one of the attributes cron, event', text: "(evnt = 'created')"}
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: rule_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"trigger\":{\"evnt\":\"created\"}}}"
+        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"trigger\":{\"evnt\":\"created\"}}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'created'"
+        - {id: 0, type: literal/string, is-const: true, text: "'created'"}
       constants:
-        - expression: 0
-          text: "'created'"
+        - {expression: 0, text: "'created'"}
 
   - name: call_union_nested
     catalog:
@@ -1481,37 +732,15 @@ analyzer-snapshots:
       input: call tickets.rule_create (target => (kind = 'Queue', queue = 'ops', owner = (nope = 1)));
       catalog-id: 1
       errors:
-        - type: CLIENT_FUNCTION_UNKNOWN_OPTION
-          message: no attribute nope here
-          text: "nope"
-        - type: CLIENT_FUNCTION_MISSING_OPTION
-          message: needs the attribute id
-          text: "(nope = 1)"
+        - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: no attribute nope here, text: "nope"}
+        - {type: CLIENT_FUNCTION_MISSING_OPTION, message: needs the attribute id, text: "(nope = 1)"}
       client-function-calls:
-        - statement: 0
-          namespace: tickets
-          function: rule_create
-          description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"target\":{\"kind\":\"Queue\",\"queue\":\"ops\",\"owner\":{\"nope\":1}}}}"
+        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"target\":{\"kind\":\"Queue\",\"queue\":\"ops\",\"owner\":{\"nope\":1}}}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'Queue'"
-        - expression-idx: 1
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'ops'"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/string, is-const: true, text: "'Queue'"}
+        - {id: 1, type: literal/string, is-const: true, text: "'ops'"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "'Queue'"
-        - expression: 1
-          text: "'ops'"
-        - expression: 2
-          text: "1"
+        - {expression: 0, text: "'Queue'"}
+        - {expression: 1, text: "'ops'"}
+        - {expression: 2, text: "1"}

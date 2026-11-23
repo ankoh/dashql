@@ -18,10 +18,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "s_co"
+        - {id: 0, type: colref/unresolved, text: "s_co"}
     cursor:
       search:
         text: s_co
@@ -44,7 +41,7 @@ completion-snapshots:
           location-qualified: "s_co"
           objects:
             - type: column
-              id: "256.65536.4294967297.6"
+              id: "256.65536.1:1.6"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: supplier.s_comment
               qualified-idx: 1
@@ -57,7 +54,7 @@ completion-snapshots:
           location-qualified: "s_co"
           objects:
             - type: column
-              id: "256.65536.4294967298.4"
+              id: "256.65536.1:2.4"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: partsupp.ps_comment
               qualified-idx: 1
@@ -83,9 +80,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "p"
+        - {type: name/unresolved, text: "p"}
     cursor:
       search:
         text: from p
@@ -103,7 +98,7 @@ completion-snapshots:
           location-qualified: "p"
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: part
               qualified-idx: 0
@@ -117,7 +112,7 @@ completion-snapshots:
           location-qualified: "p"
           objects:
             - type: table
-              id: "256.65536.4294967298"
+              id: "256.65536.1:2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: partsupp
               qualified-idx: 0
@@ -149,15 +144,9 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967301"
-          statement-id: 0
-          text: "lineitem"
+        - {type: name/catalog, catalog-id: "256.65536.1:5", text: "lineitem"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "ke"
+        - {id: 0, type: colref/unresolved, text: "ke"}
     cursor:
       search:
         text: ke
@@ -175,7 +164,7 @@ completion-snapshots:
           location-qualified: "ke"
           objects:
             - type: column
-              id: "256.65536.4294967301.0"
+              id: "256.65536.1:5.0"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: lineitem.l_orderkey
               qualified-idx: 1
@@ -188,7 +177,7 @@ completion-snapshots:
           location-qualified: "ke"
           objects:
             - type: column
-              id: "256.65536.4294967301.1"
+              id: "256.65536.1:5.1"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: lineitem.l_partkey
               qualified-idx: 1
@@ -201,7 +190,7 @@ completion-snapshots:
           location-qualified: "ke"
           objects:
             - type: column
-              id: "256.65536.4294967301.2"
+              id: "256.65536.1:5.2"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: lineitem.l_suppkey
               qualified-idx: 1

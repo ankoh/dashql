@@ -12,15 +12,9 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "TableA"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "TableA"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "attr"
+        - {id: 0, type: colref/unresolved, text: "attr"}
     cursor:
       search:
         text: ' attr'
@@ -38,7 +32,7 @@ completion-snapshots:
           location-qualified: "attr"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: tablea.attr1
               qualified-idx: 1
@@ -56,7 +50,7 @@ completion-snapshots:
           location-qualified: "attr"
           objects:
             - type: column
-              id: "256.65536.4294967297.0"
+              id: "256.65536.1:1.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: tableb.attr2
               qualified-idx: 1

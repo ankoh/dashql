@@ -12,19 +12,10 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "\"Ambiguous..ttribute1\""
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "\"Ambiguous..ttribute2\""
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "\"Ambiguous..ttribute1\""}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "\"Ambiguous..ttribute2\""}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "attr"
+        - {id: 0, type: colref/unresolved, text: "attr"}
     cursor:
       search:
         text: ' attr'
@@ -42,14 +33,14 @@ completion-snapshots:
           location-qualified: "attr"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: '"AmbiguousAttribute1".attr1'
               qualified-idx: 1
               prefer-qualified: 1
               detail: "integer · AmbiguousAttribute1"
             - type: column
-              id: "256.65536.4294967297.0"
+              id: "256.65536.1:1.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: '"AmbiguousAttribute2".attr1'
               qualified-idx: 1
@@ -79,15 +70,9 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "\"Ambiguous..ttribute1\""
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "\"Ambiguous..ttribute1\""}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "attr"
+        - {id: 0, type: colref/unresolved, text: "attr"}
     cursor:
       search:
         text: ' attr'
@@ -110,14 +95,14 @@ completion-snapshots:
           location-qualified: "attr"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: '"AmbiguousAttribute1".attr1'
               qualified-idx: 1
               prefer-qualified: 0
               detail: "integer · AmbiguousAttribute1"
             - type: column
-              id: "256.65536.4294967297.0"
+              id: "256.65536.1:1.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"AmbiguousAttribute2".attr1'
               qualified-idx: 1
@@ -142,25 +127,15 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "schema0.\"A..ttribute1\""
-        - type: name/unresolved
-          statement-id: 0
-          text: "schema1.\"A..ttribute2\""
+        - {type: name/unresolved, text: "schema0.\"A..ttribute1\""}
+        - {type: name/unresolved, text: "schema1.\"A..ttribute2\""}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "attr"
+        - {id: 0, type: colref/unresolved, text: "attr"}
       inferred-tables:
         - name: schema0.AmbiguousAttribute1
           confidence: candidate
           columns:
-            - name: attr
-              confidence: candidate
-              candidates:
-                - schema1.AmbiguousAttribute2
+            - {name: attr, confidence: candidate, candidates: [schema1.AmbiguousAttribute2]}
     cursor:
       search:
         text: ' attr'
@@ -183,14 +158,14 @@ completion-snapshots:
           location-qualified: "attr"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: db0.schema0."AmbiguousCrossSchema".attr1
               qualified-idx: 3
               prefer-qualified: 0
               detail: "integer · AmbiguousCrossSchema"
             - type: column
-              id: "256.65537.4294967297.0"
+              id: "256.65537.1:1.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: db0.schema1."AmbiguousCrossSchema".attr1
               qualified-idx: 3
@@ -215,19 +190,10 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "db0.schema..ttribute1\""
-        - type: name/catalog
-          catalog-id: "257.65537.4294967297"
-          statement-id: 0
-          text: "db1.schema..ttribute2\""
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "db0.schema..ttribute1\""}
+        - {type: name/catalog, catalog-id: "257.65537.1:1", text: "db1.schema..ttribute2\""}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "attr"
+        - {id: 0, type: colref/unresolved, text: "attr"}
     cursor:
       search:
         text: ' attr'
@@ -245,14 +211,14 @@ completion-snapshots:
           location-qualified: "attr"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: db0.schema0."AmbiguousAttribute1".attr1
               qualified-idx: 3
               prefer-qualified: 1
               detail: "integer · AmbiguousAttribute1"
             - type: column
-              id: "257.65537.4294967297.0"
+              id: "257.65537.1:1.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: db1.schema0."AmbiguousAttribute2".attr1
               qualified-idx: 3
@@ -282,19 +248,10 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "\"Ambiguous..ribute1\" a"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "\"Ambiguous..ribute2\" b"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "\"Ambiguous..ribute1\" a"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "\"Ambiguous..ribute2\" b"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "attr"
+        - {id: 0, type: colref/unresolved, text: "attr"}
     cursor:
       search:
         text: ' attr'
@@ -312,14 +269,14 @@ completion-snapshots:
           location-qualified: "attr"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: a.attr1
               qualified-idx: 1
               prefer-qualified: 1
               detail: "integer · AmbiguousAttribute1"
             - type: column
-              id: "256.65536.4294967297.0"
+              id: "256.65536.1:1.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: b.attr1
               qualified-idx: 1
@@ -349,19 +306,10 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "\"Ambiguous..ribute1\" a"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "\"Ambiguous..ttribute2\""
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "\"Ambiguous..ribute1\" a"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "\"Ambiguous..ttribute2\""}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "attr"
+        - {id: 0, type: colref/unresolved, text: "attr"}
     cursor:
       search:
         text: ' attr'
@@ -379,14 +327,14 @@ completion-snapshots:
           location-qualified: "attr"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: a.attr1
               qualified-idx: 1
               prefer-qualified: 1
               detail: "integer · AmbiguousAttribute1"
             - type: column
-              id: "256.65536.4294967297.0"
+              id: "256.65536.1:1.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: '"AmbiguousAttribute2".attr1'
               qualified-idx: 1
@@ -414,9 +362,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo bar"
+        - {type: name/unresolved, text: "foo bar"}
     cursor:
       search:
         text: ' bar'
@@ -455,9 +401,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo.bar"
+        - {type: name/unresolved, text: "foo.bar"}
     cursor:
       search:
         text: ' limit'

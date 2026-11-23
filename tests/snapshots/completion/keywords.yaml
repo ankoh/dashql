@@ -247,9 +247,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "a xx"
+        - {type: name/unresolved, text: "a xx"}
     cursor:
       search:
         text: xx
@@ -285,9 +283,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "a w"
+        - {type: name/unresolved, text: "a w"}
     cursor:
       search:
         text: w
@@ -322,9 +318,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "a wh"
+        - {type: name/unresolved, text: "a wh"}
     cursor:
       search:
         text: wh
@@ -390,9 +384,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo gr"
+        - {type: name/unresolved, text: "foo gr"}
     cursor:
       search:
         text: gr
@@ -502,9 +494,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo o"
+        - {type: name/unresolved, text: "foo o"}
     cursor:
       search:
         text: foo o
@@ -572,8 +562,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          text: "foo"
+        - {type: name/unresolved, text: "foo"}
     cursor:
       search:
         text: order
@@ -612,10 +601,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "hyperdb_queries li"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "hyperdb_queries li"}
     cursor:
       search:
         text: ' li'

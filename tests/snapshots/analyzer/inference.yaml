@@ -6,55 +6,32 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo f"
-        - type: name/unresolved
-          statement-id: 0
-          text: "bar g"
+        - {type: name/unresolved, text: "foo f"}
+        - {type: name/unresolved, text: "bar g"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "f.x"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "f.y"
-        - expression-idx: 2
-          type: colref/unresolved
-          statement-id: 0
-          text: "g.z"
+        - {id: 0, type: colref/unresolved, text: "f.x"}
+        - {id: 1, type: colref/unresolved, text: "f.y"}
+        - {id: 2, type: colref/unresolved, text: "g.z"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: f
-              text: "foo f"
-            - type: unresolved
-              name: g
-              text: "bar g"
+            - {type: unresolved, name: f, text: "foo f"}
+            - {type: unresolved, name: g, text: "bar g"}
           columns:
-            - name: x
-              expression: 0
-            - name: y
-              expression: 1
-            - name: z
-              expression: 2
+            - {name: x, expression: 0}
+            - {name: y, expression: 1}
+            - {name: z, expression: 2}
           text: "select f.x..o f, bar g"
       inferred-tables:
         - name: foo
           confidence: confident
           columns:
-            - name: x
-              confidence: confident
-            - name: y
-              confidence: confident
+            - {name: x, confidence: confident}
+            - {name: y, confidence: confident}
         - name: bar
           confidence: confident
           columns:
-            - name: z
-              confidence: confident
+            - {name: z, confidence: confident}
 
   - name: alias_pinned_join
     script:
@@ -62,67 +39,36 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo f"
-        - type: name/unresolved
-          statement-id: 0
-          text: "bar g"
+        - {type: name/unresolved, text: "foo f"}
+        - {type: name/unresolved, text: "bar g"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "f.x"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "f.y"
-        - expression-idx: 2
-          type: colref/unresolved
-          statement-id: 0
-          text: "g.z"
-        - expression-idx: 3
-          type: colref/unresolved
-          statement-id: 0
-          text: "f.id"
-        - expression-idx: 4
-          type: colref/unresolved
-          statement-id: 0
-          text: "g.id"
+        - {id: 0, type: colref/unresolved, text: "f.x"}
+        - {id: 1, type: colref/unresolved, text: "f.y"}
+        - {id: 2, type: colref/unresolved, text: "g.z"}
+        - {id: 3, type: colref/unresolved, text: "f.id"}
+        - {id: 4, type: colref/unresolved, text: "g.id"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: f
-              text: "foo f"
-            - type: unresolved
-              name: g
-              text: "bar g"
+            - {type: unresolved, name: f, text: "foo f"}
+            - {type: unresolved, name: g, text: "bar g"}
           columns:
-            - name: x
-              expression: 0
-            - name: y
-              expression: 1
-            - name: z
-              expression: 2
+            - {name: x, expression: 0}
+            - {name: y, expression: 1}
+            - {name: z, expression: 2}
           text: "select f.x...id = g.id"
       inferred-tables:
         - name: foo
           confidence: confident
           columns:
-            - name: x
-              confidence: confident
-            - name: y
-              confidence: confident
-            - name: id
-              confidence: confident
+            - {name: x, confidence: confident}
+            - {name: y, confidence: confident}
+            - {name: id, confidence: confident}
         - name: bar
           confidence: confident
           columns:
-            - name: z
-              confidence: confident
-            - name: id
-              confidence: confident
+            - {name: z, confidence: confident}
+            - {name: id, confidence: confident}
 
   - name: single_table_unqualified
     script:
@@ -130,46 +76,27 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo"
+        - {type: name/unresolved, text: "foo"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "b"
-        - expression-idx: 2
-          type: colref/unresolved
-          statement-id: 0
-          text: "c"
+        - {id: 0, type: colref/unresolved, text: "a"}
+        - {id: 1, type: colref/unresolved, text: "b"}
+        - {id: 2, type: colref/unresolved, text: "c"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: foo
-              text: "foo"
+            - {type: unresolved, name: foo, text: "foo"}
           columns:
-            - name: a
-              expression: 0
-            - name: b
-              expression: 1
-            - name: c
-              expression: 2
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
+            - {name: c, expression: 2}
           text: "select a, ..c from foo"
       inferred-tables:
         - name: foo
           confidence: confident
           columns:
-            - name: a
-              confidence: confident
-            - name: b
-              confidence: confident
-            - name: c
-              confidence: confident
+            - {name: a, confidence: confident}
+            - {name: b, confidence: confident}
+            - {name: c, confidence: confident}
 
   - name: two_tables_unqualified_candidate
     script:
@@ -177,38 +104,23 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo f"
-        - type: name/unresolved
-          statement-id: 0
-          text: "bar g"
+        - {type: name/unresolved, text: "foo f"}
+        - {type: name/unresolved, text: "bar g"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "x"
+        - {id: 0, type: colref/unresolved, text: "x"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: f
-              text: "foo f"
-            - type: unresolved
-              name: g
-              text: "bar g"
+            - {type: unresolved, name: f, text: "foo f"}
+            - {type: unresolved, name: g, text: "bar g"}
           columns:
-            - name: x
-              expression: 0
+            - {name: x, expression: 0}
           text: "select x f..o f, bar g"
       inferred-tables:
         - name: foo
           confidence: candidate
           columns:
-            - name: x
-              confidence: candidate
-              candidates:
-                - bar
+            - {name: x, confidence: candidate, candidates: [bar]}
 
   - name: unqualified_resolved_by_qualified_peer
     script:
@@ -216,58 +128,30 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo f"
-        - type: name/unresolved
-          statement-id: 0
-          text: "bar g"
+        - {type: name/unresolved, text: "foo f"}
+        - {type: name/unresolved, text: "bar g"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "f.id"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "name"
-        - expression-idx: 2
-          type: colref/unresolved
-          statement-id: 0
-          text: "f.id"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/unresolved, text: "f.id"}
+        - {id: 1, type: colref/unresolved, text: "name"}
+        - {id: 2, type: colref/unresolved, text: "f.id"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 3
-          text: "1"
+        - {expression: 3, text: "1"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: f
-              text: "foo f"
-            - type: unresolved
-              name: g
-              text: "bar g"
+            - {type: unresolved, name: f, text: "foo f"}
+            - {type: unresolved, name: g, text: "bar g"}
           columns:
-            - name: id
-              expression: 0
-            - name: name
-              expression: 1
+            - {name: id, expression: 0}
+            - {name: name, expression: 1}
           text: "select f.i..e f.id = 1"
       inferred-tables:
         - name: foo
           confidence: confident
           columns:
-            - name: id
-              confidence: confident
-            - name: name
-              confidence: candidate
-              candidates:
-                - bar
+            - {name: id, confidence: confident}
+            - {name: name, confidence: candidate, candidates: [bar]}
 
   - name: cross_statement_merge
     script:
@@ -277,48 +161,30 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo f"
-        - type: name/unresolved
-          statement-id: 1
-          text: "foo g"
+        - {type: name/unresolved, statement-id: 0, text: "foo f"}
+        - {type: name/unresolved, statement-id: 1, text: "foo g"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "f.a"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 1
-          text: "g.b"
+        - {id: 0, type: colref/unresolved, statement-id: 0, text: "f.a"}
+        - {id: 1, type: colref/unresolved, statement-id: 1, text: "g.b"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: f
-              text: "foo f"
+            - {type: unresolved, name: f, text: "foo f"}
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select f.a..from foo f"
         - scope-id: 1
           sources:
-            - type: unresolved
-              name: g
-              text: "foo g"
+            - {type: unresolved, name: g, text: "foo g"}
           columns:
-            - name: b
-              expression: 1
+            - {name: b, expression: 1}
           text: "select g.b..from foo g"
       inferred-tables:
         - name: foo
           confidence: confident
           columns:
-            - name: a
-              confidence: confident
-            - name: b
-              confidence: confident
+            - {name: a, confidence: confident}
+            - {name: b, confidence: confident}
 
   - name: created_later_no_inference
     script:
@@ -327,38 +193,24 @@ analyzer-snapshots:
         create table foo(x int)
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: foo
           text: "create tab..foo(x int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: x
-              text: "x int"
+            - {catalog-id: "256.65536.1:0.0", name: x, text: "x int"}
       touched-relations:
-        - statement-id: 1
-          name: foo
+        - {statement-id: 1, name: foo}
       errors: []
       table-refs:
-        - type: name/internal
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "foo f"
+        - {type: name/internal, catalog-id: "256.65536.1:0", statement-id: 0, text: "foo f"}
       expressions:
-        - expression-idx: 0
-          type: colref/internal
-          catalog: "256.65536.4294967296.0"
-          source: "foo f"
-          statement-id: 0
-          text: "f.x"
+        - {id: 0, type: colref/internal, catalog: "256.65536.1:0.0", source: "foo f", statement-id: 0, text: "f.x"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: f
-              text: "foo f"
+            - {type: table, name: f, text: "foo f"}
           columns:
-            - name: x
-              expression: 0
+            - {name: x, expression: 0}
           text: "select f.x..from foo f"
 
   - name: cte_not_inferred
@@ -367,42 +219,24 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/cte
-          statement-id: 0
-          text: "cte c"
+        - {type: name/cte, text: "cte c"}
       expressions:
-        - expression-idx: 0
-          type: colref/local
-          scope: 0
-          column: 0
-          source: "cte c"
-          statement-id: 0
-          text: "c.x"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/local, scope: 0, column: 0, source: "cte c", text: "c.x"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 1
-          text: "1"
+        - {expression: 1, text: "1"}
       name-scopes:
         - scope-id: 0
           parent: 1
           parent-sources: none
           columns:
-            - name: x
-              expression: 1
+            - {name: x, expression: 1}
           text: "select 1 as x"
         - scope-id: 1
           sources:
-            - type: cte
-              name: c
-              scope: 0
-              text: "cte c"
+            - {type: cte, name: c, scope: 0, text: "cte c"}
           columns:
-            - name: x
-              expression: 0
+            - {name: x, expression: 0}
           text: "with cte a..from cte c"
 
   - name: self_join_distinct_aliases
@@ -411,91 +245,53 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo a"
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo b"
+        - {type: name/unresolved, text: "foo a"}
+        - {type: name/unresolved, text: "foo b"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "a.x"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "b.y"
-        - expression-idx: 2
-          type: colref/unresolved
-          statement-id: 0
-          text: "a.id"
-        - expression-idx: 3
-          type: colref/unresolved
-          statement-id: 0
-          text: "b.id"
+        - {id: 0, type: colref/unresolved, text: "a.x"}
+        - {id: 1, type: colref/unresolved, text: "b.y"}
+        - {id: 2, type: colref/unresolved, text: "a.id"}
+        - {id: 3, type: colref/unresolved, text: "b.id"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: a
-              text: "foo a"
-            - type: unresolved
-              name: b
-              text: "foo b"
+            - {type: unresolved, name: a, text: "foo a"}
+            - {type: unresolved, name: b, text: "foo b"}
           columns:
-            - name: x
-              expression: 0
-            - name: y
-              expression: 1
+            - {name: x, expression: 0}
+            - {name: y, expression: 1}
           text: "select a.x...id = b.id"
       inferred-tables:
         - name: foo
           confidence: confident
           columns:
-            - name: x
-              confidence: confident
-            - name: y
-              confidence: confident
-            - name: id
-              confidence: confident
+            - {name: x, confidence: confident}
+            - {name: y, confidence: confident}
+            - {name: id, confidence: confident}
 
   - name: duplicate_alias_two_unresolved
     script:
       input: select x from foo f, bar f
       catalog-id: 1
       errors:
-        - type: DUPLICATE_TABLE_ALIAS
-          message: duplicate table alias f
-          text: "bar f"
+        - {type: DUPLICATE_TABLE_ALIAS, message: duplicate table alias f, text: "bar f"}
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo f"
-        - type: name/unresolved
-          statement-id: 0
-          text: "bar f"
+        - {type: name/unresolved, text: "foo f"}
+        - {type: name/unresolved, text: "bar f"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "x"
+        - {id: 0, type: colref/unresolved, text: "x"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: f
-              text: "foo f"
+            - {type: unresolved, name: f, text: "foo f"}
           columns:
-            - name: x
-              expression: 0
+            - {name: x, expression: 0}
           text: "select x f..o f, bar f"
       inferred-tables:
         - name: foo
           confidence: confident
           columns:
-            - name: x
-              confidence: confident
+            - {name: x, confidence: confident}
 
   - name: cross_statement_candidate_then_confident
     script:
@@ -505,49 +301,28 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo f"
-        - type: name/unresolved
-          statement-id: 0
-          text: "bar g"
-        - type: name/unresolved
-          statement-id: 1
-          text: "foo f"
+        - {type: name/unresolved, statement-id: 0, text: "foo f"}
+        - {type: name/unresolved, statement-id: 0, text: "bar g"}
+        - {type: name/unresolved, statement-id: 1, text: "foo f"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "name"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 1
-          text: "f.name"
+        - {id: 0, type: colref/unresolved, statement-id: 0, text: "name"}
+        - {id: 1, type: colref/unresolved, statement-id: 1, text: "f.name"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: f
-              text: "foo f"
-            - type: unresolved
-              name: g
-              text: "bar g"
+            - {type: unresolved, name: f, text: "foo f"}
+            - {type: unresolved, name: g, text: "bar g"}
           columns:
-            - name: name
-              expression: 0
+            - {name: name, expression: 0}
           text: "select nam..o f, bar g"
         - scope-id: 1
           sources:
-            - type: unresolved
-              name: f
-              text: "foo f"
+            - {type: unresolved, name: f, text: "foo f"}
           columns:
-            - name: name
-              expression: 1
+            - {name: name, expression: 1}
           text: "select f.n..from foo f"
       inferred-tables:
         - name: foo
           confidence: confident
           columns:
-            - name: name
-              confidence: confident
+            - {name: name, confidence: confident}

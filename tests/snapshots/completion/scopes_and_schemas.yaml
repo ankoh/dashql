@@ -12,24 +12,11 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/cte
-          statement-id: 0
-          text: "c"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/cte, text: "c"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "ka"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/unresolved, text: "ka"}
     cursor:
       search:
         text: 'ka from'
@@ -80,21 +67,10 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "ka"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
+        - {id: 0, type: colref/unresolved, text: "ka"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
     cursor:
       search:
         text: 'ka from'
@@ -145,30 +121,12 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/cte
-          statement-id: 0
-          text: "c"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/cte, text: "c"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 2
-          type: colref/unresolved
-          statement-id: 0
-          text: "ka"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 2, type: colref/unresolved, text: "ka"}
     cursor:
       search:
         text: 'ka from'
@@ -215,21 +173,16 @@ completion-snapshots:
         select * from s1.t
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: tt
           text: "create tab..tt (a int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: a
-              text: "a int"
+            - {catalog-id: "256.65536.1:0.0", name: a, text: "a int"}
       touched-relations:
-        - statement-id: 0
-          name: s1.tt
+        - {statement-id: 0, name: s1.tt}
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 1
-          text: "s1.t"
+        - {type: name/unresolved, statement-id: 1, text: "s1.t"}
     cursor:
       search:
         text: 'from s1.t'
@@ -248,7 +201,7 @@ completion-snapshots:
           location-qualified: "s1.t"
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [DOT_RESOLUTION_TABLE,PREFIX_MATCH,SUBSTRING_MATCH]
               qualified: s1.tt
               qualified-idx: 1
@@ -269,9 +222,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "s1.t"
+        - {type: name/unresolved, text: "s1.t"}
     cursor:
       search:
         text: 's1.t'
@@ -290,7 +241,7 @@ completion-snapshots:
           location-qualified: "s1.t"
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [DOT_RESOLUTION_TABLE,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: s1.t1
               qualified-idx: 1
@@ -304,7 +255,7 @@ completion-snapshots:
           location-qualified: "s1.t"
           objects:
             - type: table
-              id: "256.65536.4294967297"
+              id: "256.65536.1:1"
               candidate-tags: [DOT_RESOLUTION_TABLE,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: s1.t2
               qualified-idx: 1
@@ -325,21 +276,16 @@ completion-snapshots:
         select * from s1.t
       catalog-id: 2
       tables:
-        - catalog-id: "256.65536.8589934592"
+        - catalog-id: "256.65536.2:0"
           name: t9
           text: "create tab..t9 (a int)"
           columns:
-            - catalog-id: "256.65536.8589934592.0"
-              name: a
-              text: "a int"
+            - {catalog-id: "256.65536.2:0.0", name: a, text: "a int"}
       touched-relations:
-        - statement-id: 0
-          name: s1.t9
+        - {statement-id: 0, name: s1.t9}
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 1
-          text: "s1.t"
+        - {type: name/unresolved, statement-id: 1, text: "s1.t"}
     cursor:
       search:
         text: 'from s1.t'
@@ -358,7 +304,7 @@ completion-snapshots:
           location-qualified: "s1.t"
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [DOT_RESOLUTION_TABLE,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: s1.t1
               qualified-idx: 1
@@ -372,7 +318,7 @@ completion-snapshots:
           location-qualified: "s1.t"
           objects:
             - type: table
-              id: "256.65536.4294967297"
+              id: "256.65536.1:1"
               candidate-tags: [DOT_RESOLUTION_TABLE,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: s1.t2
               qualified-idx: 1
@@ -386,7 +332,7 @@ completion-snapshots:
           location-qualified: "s1.t"
           objects:
             - type: table
-              id: "256.65536.8589934592"
+              id: "256.65536.2:0"
               candidate-tags: [DOT_RESOLUTION_TABLE,PREFIX_MATCH,SUBSTRING_MATCH]
               qualified: s1.t9
               qualified-idx: 1
@@ -407,9 +353,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "db.s"
+        - {type: name/unresolved, text: "db.s"}
     cursor:
       search:
         text: 'db.s'
@@ -440,21 +384,16 @@ completion-snapshots:
         select * from db.s
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: x
           text: "create tab...x (a int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: a
-              text: "a int"
+            - {catalog-id: "256.65536.1:0.0", name: a, text: "a int"}
       touched-relations:
-        - statement-id: 0
-          name: db.s9.x
+        - {statement-id: 0, name: db.s9.x}
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 1
-          text: "db.s"
+        - {type: name/unresolved, statement-id: 1, text: "db.s"}
     cursor:
       search:
         text: 'from db.s'

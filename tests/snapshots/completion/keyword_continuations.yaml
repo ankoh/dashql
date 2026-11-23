@@ -7,9 +7,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo gro"
+        - {type: name/unresolved, text: "foo gro"}
     cursor:
       search:
         text: gro
@@ -55,9 +53,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo ord"
+        - {type: name/unresolved, text: "foo ord"}
     cursor:
       search:
         text: ord
@@ -103,9 +99,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          text: "x"
+        - {id: 0, type: colref/unresolved, text: "x"}
     cursor:
       search:
         text: part
@@ -150,9 +144,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo inn"
+        - {type: name/unresolved, text: "foo inn"}
     cursor:
       search:
         text: inn
@@ -200,9 +192,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "foo lef"
+        - {type: name/unresolved, text: "foo lef"}
     cursor:
       search:
         text: lef
@@ -400,7 +390,7 @@ completion-snapshots:
           location-qualified: "fo"
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: foo
               qualified-idx: 0
@@ -478,10 +468,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "ba"
+        - {id: 0, type: colref/unresolved, text: "ba"}
     cursor:
       search:
         text: ba
@@ -504,7 +491,7 @@ completion-snapshots:
           location-qualified: "ba"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: foo.bar
               qualified-idx: 1

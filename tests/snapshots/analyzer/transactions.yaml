@@ -13,40 +13,27 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       transactions:
-        - begin: 0
-          end: 2
+        - {begin: 0, end: 2}
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 1
-          role: write
-          text: "items"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 1, role: write, text: "items"}
       inserts:
         - statement-id: 1
           target-ref: 0
           source: "values (1)"
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 1
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, statement-id: 1, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       name-scopes:
         - scope-id: 0
           parent: 1
           correlation-barrier: true
           columns:
-            - name: '?'
-              expression: 0
+            - {name: '?', expression: 0}
           text: "values (1)"
         - scope-id: 1
           sources:
-            - type: table
-              name: items
-              text: "items"
+            - {type: table, name: items, text: "items"}
           text: "insert int..values (1)"
 
   - name: transaction_aliases
@@ -60,25 +47,15 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       transactions:
-        - begin: 0
-          end: 1
-        - begin: 2
-          end: 3
-        - begin: 4
-          end: 5
-        - begin: 6
-          end: 7
-        - begin: 8
-          end: 9
+        - {begin: 0, end: 1}
+        - {begin: 2, end: 3}
+        - {begin: 4, end: 5}
+        - {begin: 6, end: 7}
+        - {begin: 8, end: 9}
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 9
-          text: "'batch'"
+        - {id: 0, type: literal/string, is-const: true, statement-id: 9, text: "'batch'"}
       constants:
-        - expression: 0
-          text: "'batch'"
+        - {expression: 0, text: "'batch'"}
 
   - name: transaction_prepared_standalone
     script:
@@ -88,21 +65,11 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/string
-          is-const: true
-          statement-id: 0
-          text: "'batch'"
-        - expression-idx: 1
-          type: literal/string
-          is-const: true
-          statement-id: 1
-          text: "'other'"
+        - {id: 0, type: literal/string, is-const: true, statement-id: 0, text: "'batch'"}
+        - {id: 1, type: literal/string, is-const: true, statement-id: 1, text: "'other'"}
       constants:
-        - expression: 0
-          text: "'batch'"
-        - expression: 1
-          text: "'other'"
+        - {expression: 0, text: "'batch'"}
+        - {expression: 1, text: "'other'"}
 
   - name: transaction_not_ended
     script:
@@ -111,25 +78,17 @@ analyzer-snapshots:
         select 1;
       catalog-id: 1
       errors:
-        - type: UNMATCHED_TRANSACTION_CONTROL
-          message: 'the transaction is not ended in this script, commit or roll it back'
-          text: "begin"
+        - {type: UNMATCHED_TRANSACTION_CONTROL, message: 'the transaction is not ended in this script, commit or roll it back', text: "begin"}
       transactions:
-        - begin: 0
+        - {begin: 0}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 1
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, statement-id: 1, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: '?'
-              expression: 0
+            - {name: '?', expression: 0}
           text: "select 1"
 
   - name: transaction_not_begun
@@ -141,36 +100,19 @@ analyzer-snapshots:
         prepare transaction 'batch';
       catalog-id: 1
       errors:
-        - type: UNMATCHED_TRANSACTION_CONTROL
-          message: 'no transaction to commit, begin it in this script'
-          text: "commit"
-        - type: UNMATCHED_TRANSACTION_CONTROL
-          message: 'no transaction to roll back, begin it in this script'
-          text: "rollback"
-        - type: UNMATCHED_TRANSACTION_CONTROL
-          message: 'no transaction to prepare, begin it in this script'
-          text: "prepare tr..on 'batch'"
+        - {type: UNMATCHED_TRANSACTION_CONTROL, message: 'no transaction to commit, begin it in this script', text: "commit"}
+        - {type: UNMATCHED_TRANSACTION_CONTROL, message: 'no transaction to roll back, begin it in this script', text: "rollback"}
+        - {type: UNMATCHED_TRANSACTION_CONTROL, message: 'no transaction to prepare, begin it in this script', text: "prepare tr..on 'batch'"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 1
-          type: literal/string
-          is-const: true
-          statement-id: 3
-          text: "'batch'"
+        - {id: 0, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
+        - {id: 1, type: literal/string, is-const: true, statement-id: 3, text: "'batch'"}
       constants:
-        - expression: 0
-          text: "1"
-        - expression: 1
-          text: "'batch'"
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "'batch'"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: '?'
-              expression: 0
+            - {name: '?', expression: 0}
           text: "select 1"
 
   - name: transaction_nested_begin
@@ -181,12 +123,9 @@ analyzer-snapshots:
         commit;
       catalog-id: 1
       errors:
-        - type: UNMATCHED_TRANSACTION_CONTROL
-          message: a transaction is already open in this script
-          text: "start transaction"
+        - {type: UNMATCHED_TRANSACTION_CONTROL, message: a transaction is already open in this script, text: "start transaction"}
       transactions:
-        - begin: 0
-          end: 2
+        - {begin: 0, end: 2}
 
   - name: transaction_savepoints
     script:
@@ -202,15 +141,10 @@ analyzer-snapshots:
         commit;
       catalog-id: 1
       errors:
-        - type: UNMATCHED_TRANSACTION_CONTROL
-          message: no savepoint b in this transaction
-          text: "release b"
-        - type: UNMATCHED_TRANSACTION_CONTROL
-          message: no savepoint A in this transaction
-          text: "release \"A\""
+        - {type: UNMATCHED_TRANSACTION_CONTROL, message: no savepoint b in this transaction, text: "release b"}
+        - {type: UNMATCHED_TRANSACTION_CONTROL, message: no savepoint A in this transaction, text: "release \"A\""}
       transactions:
-        - begin: 0
-          end: 8
+        - {begin: 0, end: 8}
 
   - name: transaction_savepoints_unmatched
     script:
@@ -224,21 +158,12 @@ analyzer-snapshots:
         rollback to a;
       catalog-id: 1
       errors:
-        - type: UNMATCHED_TRANSACTION_CONTROL
-          message: 'no transaction for the savepoint, begin it in this script'
-          text: "savepoint a"
-        - type: UNMATCHED_TRANSACTION_CONTROL
-          message: 'no transaction for the savepoint, begin it in this script'
-          text: "release a"
-        - type: UNMATCHED_TRANSACTION_CONTROL
-          message: no savepoint b in this transaction
-          text: "rollback to b"
-        - type: UNMATCHED_TRANSACTION_CONTROL
-          message: 'no transaction for the savepoint, begin it in this script'
-          text: "rollback to a"
+        - {type: UNMATCHED_TRANSACTION_CONTROL, message: 'no transaction for the savepoint, begin it in this script', text: "savepoint a"}
+        - {type: UNMATCHED_TRANSACTION_CONTROL, message: 'no transaction for the savepoint, begin it in this script', text: "release a"}
+        - {type: UNMATCHED_TRANSACTION_CONTROL, message: no savepoint b in this transaction, text: "rollback to b"}
+        - {type: UNMATCHED_TRANSACTION_CONTROL, message: 'no transaction for the savepoint, begin it in this script', text: "rollback to a"}
       transactions:
-        - begin: 2
-          end: 5
+        - {begin: 2, end: 5}
 
   - name: transaction_two_blocks
     script:
@@ -251,51 +176,30 @@ analyzer-snapshots:
         select 3;
       catalog-id: 1
       errors:
-        - type: UNMATCHED_TRANSACTION_CONTROL
-          message: 'the transaction is not ended in this script, commit or roll it back'
-          text: "begin"
+        - {type: UNMATCHED_TRANSACTION_CONTROL, message: 'the transaction is not ended in this script, commit or roll it back', text: "begin"}
       transactions:
-        - begin: 0
-          end: 2
-        - begin: 4
+        - {begin: 0, end: 2}
+        - {begin: 4}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 1
-          text: "1"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 3
-          text: "2"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 5
-          text: "3"
+        - {id: 0, type: literal/integer, is-const: true, statement-id: 1, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, statement-id: 3, text: "2"}
+        - {id: 2, type: literal/integer, is-const: true, statement-id: 5, text: "3"}
       constants:
-        - expression: 0
-          text: "1"
-        - expression: 1
-          text: "2"
-        - expression: 2
-          text: "3"
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "2"}
+        - {expression: 2, text: "3"}
       name-scopes:
         - scope-id: 0
           columns:
-            - name: '?'
-              expression: 0
+            - {name: '?', expression: 0}
           text: "select 1"
         - scope-id: 1
           columns:
-            - name: '?'
-              expression: 1
+            - {name: '?', expression: 1}
           text: "select 2"
         - scope-id: 2
           columns:
-            - name: '?'
-              expression: 2
+            - {name: '?', expression: 2}
           text: "select 3"
 
   - name: transaction_syntax_error
@@ -316,5 +220,4 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       transactions:
-        - begin: 1
-          end: 3
+        - {begin: 1, end: 3}

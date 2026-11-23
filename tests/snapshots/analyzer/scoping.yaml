@@ -10,34 +10,17 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "T"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "T"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "T"
-          statement-id: 0
-          text: "T.A"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "T"
-          statement-id: 0
-          text: "B"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "T", text: "T.A"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "T", text: "B"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: t
-              text: "T"
+            - {type: table, name: t, text: "T"}
           columns:
-            - name: a
-              expression: 0
-            - name: b
-              expression: 1
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
           text: "select T.A.., B from T"
 
   - name: case_quoted_names_keep_case
@@ -50,46 +33,21 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967298"
-          statement-id: 0
-          text: "\"Mixed\""
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "\"Mixed\""}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967298.0"
-          source: "\"Mixed\""
-          statement-id: 0
-          text: "\"Col\""
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "col"
-        - expression-idx: 2
-          type: colref/unresolved
-          statement-id: 0
-          text: "\"LOW\""
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967298.1"
-          source: "\"Mixed\""
-          statement-id: 0
-          text: "low"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:2.0", source: "\"Mixed\"", text: "\"Col\""}
+        - {id: 1, type: colref/unresolved, text: "col"}
+        - {id: 2, type: colref/unresolved, text: "\"LOW\""}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:2.1", source: "\"Mixed\"", text: "low"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: Mixed
-              text: "\"Mixed\""
+            - {type: table, name: Mixed, text: "\"Mixed\""}
           columns:
-            - name: Col
-              expression: 0
-            - name: col
-              expression: 1
-            - name: LOW
-              expression: 2
-            - name: low
-              expression: 3
+            - {name: Col, expression: 0}
+            - {name: col, expression: 1}
+            - {name: LOW, expression: 2}
+            - {name: low, expression: 3}
           text: "select \"Co..om \"Mixed\""
 
   - name: case_unquoted_does_not_match_quoted_table
@@ -102,30 +60,21 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "Mixed"
+        - {type: name/unresolved, text: "Mixed"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "low"
+        - {id: 0, type: colref/unresolved, text: "low"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: mixed
-              text: "Mixed"
+            - {type: unresolved, name: mixed, text: "Mixed"}
           columns:
-            - name: low
-              expression: 0
+            - {name: low, expression: 0}
           text: "select low..from Mixed"
       inferred-tables:
         - name: mixed
           confidence: confident
           columns:
-            - name: low
-              confidence: confident
+            - {name: low, confidence: confident}
 
   - name: case_quoted_output_alias
     catalog:
@@ -137,50 +86,26 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "(select a .. from t) q"
-          statement-id: 0
-          text: "q.\"K\""
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "q.k"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "(select a .. from t) q", text: "q.\"K\""}
+        - {id: 1, type: colref/unresolved, text: "q.k"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
       name-scopes:
         - scope-id: 0
           parent: 1
           parent-sources: none
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: K
-              expression: 2
+            - {name: K, expression: 2}
           text: "(select a ..K\" from t)"
         - scope-id: 1
           sources:
-            - type: subquery
-              name: q
-              scope: 0
-              text: "(select a .. from t) q"
+            - {type: subquery, name: q, scope: 0, text: "(select a .. from t) q"}
           columns:
-            - name: K
-              expression: 0
-            - name: k
-              expression: 1
+            - {name: K, expression: 0}
+            - {name: k, expression: 1}
           text: "select q.\".. from t) q"
 
   - name: case_quoted_cte_name
@@ -193,48 +118,26 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/cte
-          statement-id: 0
-          text: "\"C\""
-        - type: name/unresolved
-          statement-id: 0
-          text: "c"
+        - {type: name/cte, text: "\"C\""}
+        - {type: name/unresolved, text: "c"}
       expressions:
-        - expression-idx: 0
-          type: colref/local
-          scope: 0
-          column: 0
-          source: "\"C\""
-          statement-id: 0
-          text: "x"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/local, scope: 0, column: 0, source: "\"C\"", text: "x"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 1
-          text: "1"
+        - {expression: 1, text: "1"}
       name-scopes:
         - scope-id: 0
           parent: 1
           parent-sources: none
           columns:
-            - name: x
-              expression: 1
+            - {name: x, expression: 1}
           text: "select 1 as x"
         - scope-id: 1
           sources:
-            - type: cte
-              name: C
-              scope: 0
-              text: "\"C\""
-            - type: unresolved
-              name: c
-              text: "c"
+            - {type: cte, name: C, scope: 0, text: "\"C\""}
+            - {type: unresolved, name: c, text: "c"}
           columns:
-            - name: x
-              expression: 0
+            - {name: x, expression: 0}
           text: "with \"C\" a..rom \"C\", c"
 
   - name: case_quoted_schema_name
@@ -247,37 +150,23 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "\"S2\".k"
-        - type: name/catalog
-          catalog-id: "256.65537.4294967297"
-          statement-id: 0
-          text: "S1.K"
+        - {type: name/unresolved, text: "\"S2\".k"}
+        - {type: name/catalog, catalog-id: "256.65537.1:1", text: "S1.K"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "c"
+        - {id: 0, type: colref/unresolved, text: "c"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: k
-              text: "\"S2\".k"
-            - type: table
-              name: k
-              text: "S1.K"
+            - {type: unresolved, name: k, text: "\"S2\".k"}
+            - {type: table, name: k, text: "S1.K"}
           columns:
-            - name: c
-              expression: 0
+            - {name: c, expression: 0}
           text: "select c f..2\".k, S1.K"
       inferred-tables:
         - name: S2.k
           confidence: confident
           columns:
-            - name: c
-              confidence: confident
+            - {name: c, confidence: confident}
 
   - name: cte_shadows_catalog_table
     catalog:
@@ -289,53 +178,27 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
-        - type: name/cte
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/cte, text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "u"
-          statement-id: 0
-          text: "c"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "t"
-          statement-id: 0
-          text: "z"
-        - expression-idx: 2
-          type: colref/unresolved
-          statement-id: 0
-          text: "a"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "t", text: "z"}
+        - {id: 2, type: colref/unresolved, text: "a"}
       name-scopes:
         - scope-id: 0
           parent: 1
           parent-sources: none
           sources:
-            - type: table
-              name: u
-              text: "u"
+            - {type: table, name: u, text: "u"}
           columns:
-            - name: z
-              expression: 0
+            - {name: z, expression: 0}
           text: "select c a..s z from u"
         - scope-id: 1
           sources:
-            - type: cte
-              name: t
-              scope: 0
-              text: "t"
+            - {type: cte, name: t, scope: 0, text: "t"}
           columns:
-            - name: z
-              expression: 1
-            - name: a
-              expression: 2
+            - {name: z, expression: 1}
+            - {name: a, expression: 2}
           text: "with t as .., a from t"
 
   - name: cte_shadows_catalog_table_in_subquery
@@ -348,69 +211,35 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
-        - type: name/cte
-          statement-id: 0
-          text: "t"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/cte, text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "u"
-          statement-id: 0
-          text: "c"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "t"
-          statement-id: 0
-          text: "z"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "u"
-          statement-id: 0
-          text: "a"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "t", text: "z"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "a"}
       name-scopes:
         - scope-id: 0
           parent: 2
           parent-sources: none
           sources:
-            - type: table
-              name: u
-              text: "u"
+            - {type: table, name: u, text: "u"}
           columns:
-            - name: z
-              expression: 0
+            - {name: z, expression: 0}
           text: "select c a..s z from u"
         - scope-id: 1
           parent: 2
           sources:
-            - type: cte
-              name: t
-              scope: 0
-              text: "t"
+            - {type: cte, name: t, scope: 0, text: "t"}
           columns:
-            - name: z
-              expression: 1
+            - {name: z, expression: 1}
           text: "(select z from t)"
         - scope-id: 2
           sources:
-            - type: table
-              name: u
-              text: "u"
+            - {type: table, name: u, text: "u"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967297.0"
-            - name: c
-              table-column: "256.65536.4294967297.1"
+            - {name: a, table-column: "256.65536.1:1.0"}
+            - {name: c, table-column: "256.65536.1:1.1"}
           text: "with t as .. z from t)"
 
   - name: cte_forward_reference
@@ -423,67 +252,40 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "c2"
-        - type: name/cte
-          statement-id: 0
-          text: "c1"
+        - {type: name/unresolved, text: "c2"}
+        - {type: name/cte, text: "c1"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "z"
-        - expression-idx: 1
-          type: colref/local
-          scope: 0
-          column: 0
-          source: "c1"
-          statement-id: 0
-          text: "z"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/unresolved, text: "z"}
+        - {id: 1, type: colref/local, scope: 0, column: 0, source: "c1", text: "z"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 2
-          text: "1"
+        - {expression: 2, text: "1"}
       name-scopes:
         - scope-id: 0
           parent: 2
           parent-sources: none
           sources:
-            - type: unresolved
-              name: c2
-              text: "c2"
+            - {type: unresolved, name: c2, text: "c2"}
           columns:
-            - name: z
-              expression: 0
+            - {name: z, expression: 0}
           text: "select z from c2"
         - scope-id: 1
           parent: 2
           parent-sources: none
           columns:
-            - name: z
-              expression: 2
+            - {name: z, expression: 2}
           text: "select 1 as z"
         - scope-id: 2
           sources:
-            - type: cte
-              name: c1
-              scope: 0
-              text: "c1"
+            - {type: cte, name: c1, scope: 0, text: "c1"}
           columns:
-            - name: z
-              expression: 1
+            - {name: z, expression: 1}
           text: "with c1 as.. z from c1"
       inferred-tables:
         - name: c2
           confidence: confident
           columns:
-            - name: z
-              confidence: confident
+            - {name: z, confidence: confident}
 
   - name: cte_self_reference_without_recursive
     catalog:
@@ -495,79 +297,46 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "r"
-        - type: name/cte
-          statement-id: 0
-          text: "r"
+        - {type: name/unresolved, text: "r"}
+        - {type: name/cte, text: "r"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "n"
-        - expression-idx: 1
-          type: colref/local
-          scope: 2
-          column: 0
-          source: "r"
-          statement-id: 0
-          text: "n"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/unresolved, text: "n"}
+        - {id: 1, type: colref/local, scope: 2, column: 0, source: "r", text: "n"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 2
-          text: "1"
-        - expression: 3
-          text: "1"
+        - {expression: 2, text: "1"}
+        - {expression: 3, text: "1"}
       name-scopes:
         - scope-id: 0
           parent: 2
           columns:
-            - name: n
-              expression: 2
+            - {name: n, expression: 2}
           text: "select 1 as n"
         - scope-id: 1
           parent: 2
           sources:
-            - type: unresolved
-              name: r
-              text: "r"
+            - {type: unresolved, name: r, text: "r"}
           columns:
-            - name: '?'
-              computed: true
+            - {name: '?', computed: true}
           text: "select n + 1 from r"
         - scope-id: 2
           parent: 3
           parent-sources: none
           columns:
-            - name: n
-              expression: 2
+            - {name: n, expression: 2}
           text: "select 1 a..+ 1 from r"
         - scope-id: 3
           sources:
-            - type: cte
-              name: r
-              scope: 2
-              text: "r"
+            - {type: cte, name: r, scope: 2, text: "r"}
           columns:
-            - name: n
-              expression: 1
+            - {name: n, expression: 1}
           text: "with r as ..t n from r"
       inferred-tables:
         - name: r
           confidence: confident
           columns:
-            - name: n
-              confidence: confident
+            - {name: n, confidence: confident}
 
   - name: cte_nested_shadows_outer
     catalog:
@@ -579,86 +348,45 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
-        - type: name/cte
-          statement-id: 0
-          text: "k"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/cte, text: "k"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "(with k as.. from k) s"
-          statement-id: 0
-          text: "s.c"
-        - expression-idx: 2
-          type: colref/unresolved
-          statement-id: 0
-          text: "s.a"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "u"
-          statement-id: 0
-          text: "c"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "(with k as.. from k) s", text: "s.c"}
+        - {id: 2, type: colref/unresolved, text: "s.a"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
       name-scopes:
         - scope-id: 0
           parent: 3
           parent-sources: none
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select a from t"
         - scope-id: 1
           parent: 2
           parent-sources: none
           sources:
-            - type: table
-              name: u
-              text: "u"
+            - {type: table, name: u, text: "u"}
           columns:
-            - name: c
-              expression: 3
+            - {name: c, expression: 3}
           text: "select c from u"
         - scope-id: 2
           parent: 3
           parent-sources: none
           sources:
-            - type: cte
-              name: k
-              scope: 1
-              text: "k"
+            - {type: cte, name: k, scope: 1, text: "k"}
           columns:
-            - name: c
-              expression: 3
+            - {name: c, expression: 3}
           text: "(with k as.. * from k)"
         - scope-id: 3
           sources:
-            - type: subquery
-              name: s
-              scope: 2
-              text: "(with k as.. from k) s"
+            - {type: subquery, name: s, scope: 2, text: "(with k as.. from k) s"}
           columns:
-            - name: c
-              expression: 1
-            - name: a
-              expression: 2
+            - {name: c, expression: 1}
+            - {name: a, expression: 2}
           text: "with k as .. from k) s"
 
   - name: cte_recursive_with_catalog_join
@@ -671,118 +399,50 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/cte
-          statement-id: 0
-          text: "r"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/cte
-          statement-id: 0
-          text: "r"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/cte, text: "r"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/cte, text: "r"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "r"
-          statement-id: 0
-          text: "r.n"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "t.b"
-        - expression-idx: 4
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "t.a"
-        - expression-idx: 5
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "r"
-          statement-id: 0
-          text: "r.m"
-        - expression-idx: 6
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "r"
-          statement-id: 0
-          text: "n"
-        - expression-idx: 7
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "r"
-          statement-id: 0
-          text: "m"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "r", text: "r.n"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "t.b"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 5, type: colref/catalog, catalog: "256.65536.1:0.1", source: "r", text: "r.m"}
+        - {id: 6, type: colref/catalog, catalog: "256.65536.1:0.0", source: "r", text: "n"}
+        - {id: 7, type: colref/catalog, catalog: "256.65536.1:0.1", source: "r", text: "m"}
       name-scopes:
         - scope-id: 0
           parent: 2
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: a
-              expression: 0
-            - name: b
-              expression: 1
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
           text: "select a, b from t"
         - scope-id: 1
           parent: 2
           sources:
-            - type: cte
-              name: r
-              scope: 2
-              text: "r"
-            - type: table
-              name: t
-              text: "t"
+            - {type: cte, name: r, scope: 2, text: "r"}
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: n
-              expression: 2
-            - name: b
-              expression: 3
+            - {name: n, expression: 2}
+            - {name: b, expression: 3}
           text: "select r.n.. t.a = r.m"
         - scope-id: 2
           parent: 3
           parent-sources: none
           columns:
-            - name: a
-              expression: 0
-            - name: b
-              expression: 1
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
           text: "select a, .. t.a = r.m"
         - scope-id: 3
           sources:
-            - type: cte
-              name: r
-              scope: 2
-              text: "r"
+            - {type: cte, name: r, scope: 2, text: "r"}
           columns:
-            - name: n
-              expression: 6
-            - name: m
-              expression: 7
+            - {name: n, expression: 6}
+            - {name: m, expression: 7}
           text: "with recur.., m from r"
 
   - name: set_op_branches_do_not_share_tables
@@ -795,50 +455,29 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t x"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t x"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t x"
-          statement-id: 0
-          text: "x.a"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "x.c"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t x", text: "x.a"}
+        - {id: 1, type: colref/unresolved, text: "x.c"}
       name-scopes:
         - scope-id: 0
           parent: 2
           sources:
-            - type: table
-              name: x
-              text: "t x"
+            - {type: table, name: x, text: "t x"}
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select x.a from t x"
         - scope-id: 1
           parent: 2
           sources:
-            - type: table
-              name: u
-              text: "u"
+            - {type: table, name: u, text: "u"}
           columns:
-            - name: c
-              expression: 1
+            - {name: c, expression: 1}
           text: "select x.c from u"
         - scope-id: 2
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select x.a..x.c from u"
 
   - name: set_op_intersect_except
@@ -851,96 +490,52 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967298"
-          statement-id: 0
-          text: "v"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "v"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "(select a .. from v) q"
-          statement-id: 0
-          text: "q.a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "u"
-          statement-id: 0
-          text: "c"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967298.0"
-          source: "v"
-          statement-id: 0
-          text: "id"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "(select a .. from v) q", text: "q.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:2.0", source: "v", text: "id"}
       name-scopes:
         - scope-id: 0
           parent: 2
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: a
-              expression: 1
+            - {name: a, expression: 1}
           text: "select a from t"
         - scope-id: 1
           parent: 2
           sources:
-            - type: table
-              name: u
-              text: "u"
+            - {type: table, name: u, text: "u"}
           columns:
-            - name: c
-              expression: 2
+            - {name: c, expression: 2}
           text: "select c from u"
         - scope-id: 2
           parent: 4
           columns:
-            - name: a
-              expression: 1
+            - {name: a, expression: 1}
           text: "select a f..t c from u"
         - scope-id: 3
           parent: 4
           sources:
-            - type: table
-              name: v
-              text: "v"
+            - {type: table, name: v, text: "v"}
           columns:
-            - name: id
-              expression: 3
+            - {name: id, expression: 3}
           text: "select id from v"
         - scope-id: 4
           parent: 5
           parent-sources: none
           columns:
-            - name: a
-              expression: 1
+            - {name: a, expression: 1}
           text: "(select a ..id from v)"
         - scope-id: 5
           sources:
-            - type: subquery
-              name: q
-              scope: 4
-              text: "(select a .. from v) q"
+            - {type: subquery, name: q, scope: 4, text: "(select a .. from v) q"}
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select q.a.. from v) q"
 
   - name: set_op_order_by_right_name
@@ -953,56 +548,30 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "u"
-          statement-id: 0
-          text: "c"
-        - expression-idx: 2
-          type: colref/unresolved
-          statement-id: 0
-          text: "c"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+        - {id: 2, type: colref/unresolved, text: "c"}
       name-scopes:
         - scope-id: 0
           parent: 2
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select a from t"
         - scope-id: 1
           parent: 2
           sources:
-            - type: table
-              name: u
-              text: "u"
+            - {type: table, name: u, text: "u"}
           columns:
-            - name: c
-              expression: 1
+            - {name: c, expression: 1}
           text: "select c from u"
         - scope-id: 2
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select a f..order by c"
 
   - name: self_join_aliases
@@ -1015,65 +584,23 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t x"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t y"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t x"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t y"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t x"
-          statement-id: 0
-          text: "x.a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t y"
-          statement-id: 0
-          text: "y.b"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t x"
-          statement-id: 0
-          text: "x.a"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t y"
-          statement-id: 0
-          text: "y.b"
-        - expression-idx: 4
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t x"
-          statement-id: 0
-          text: "x.b"
-        - expression-idx: 5
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t y"
-          statement-id: 0
-          text: "y.a"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t x", text: "x.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t y", text: "y.b"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t x", text: "x.a"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t y", text: "y.b"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t x", text: "x.b"}
+        - {id: 5, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t y", text: "y.a"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: x
-              text: "t x"
-            - type: table
-              name: y
-              text: "t y"
+            - {type: table, name: x, text: "t x"}
+            - {type: table, name: y, text: "t y"}
           columns:
-            - name: a
-              expression: 0
-            - name: b
-              expression: 1
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
           text: "select x.a.. x.b > y.a"
 
   - name: self_join_one_alias_ambiguous_column
@@ -1085,63 +612,25 @@ analyzer-snapshots:
       input: select t.a, x.a, b from t join t x on t.a = x.b
       catalog-id: 2
       errors:
-        - type: COLUMN_REF_AMBIGUOUS
-          message: 'column reference is ambiguous, candidates: t.b, x.b'
-          text: "b"
+        - {type: COLUMN_REF_AMBIGUOUS, message: 'column reference is ambiguous, candidates: t.b, x.b', text: "b"}
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t x"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t x"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "t.a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t x"
-          statement-id: 0
-          text: "x.a"
-        - expression-idx: 2
-          type: colref/unresolved
-          statement-id: 0
-          text: "b"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "t.a"
-        - expression-idx: 4
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t x"
-          statement-id: 0
-          text: "x.b"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t x", text: "x.a"}
+        - {id: 2, type: colref/unresolved, text: "b"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t x", text: "x.b"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: t
-              text: "t"
-            - type: table
-              name: x
-              text: "t x"
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: x, text: "t x"}
           columns:
-            - name: a
-              expression: 0
-            - name: a
-              expression: 1
-            - name: b
-              expression: 2
+            - {name: a, expression: 0}
+            - {name: a, expression: 1}
+            - {name: b, expression: 2}
           text: "select t.a.. t.a = x.b"
 
   - name: join_on_unqualified_ambiguous
@@ -1153,55 +642,23 @@ analyzer-snapshots:
       input: select b, c from t join u on a = c
       catalog-id: 2
       errors:
-        - type: COLUMN_REF_AMBIGUOUS
-          message: 'column reference is ambiguous, candidates: t.a, u.a'
-          text: "a"
+        - {type: COLUMN_REF_AMBIGUOUS, message: 'column reference is ambiguous, candidates: t.a, u.a', text: "a"}
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "u"
-          statement-id: 0
-          text: "c"
-        - expression-idx: 2
-          type: colref/unresolved
-          statement-id: 0
-          text: "a"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "u"
-          statement-id: 0
-          text: "c"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+        - {id: 2, type: colref/unresolved, text: "a"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: t
-              text: "t"
-            - type: table
-              name: u
-              text: "u"
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
           columns:
-            - name: b
-              expression: 0
-            - name: c
-              expression: 1
+            - {name: b, expression: 0}
+            - {name: c, expression: 1}
           text: "select b, ..u on a = c"
 
   - name: join_natural_no_common_columns
@@ -1214,80 +671,34 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967298"
-          statement-id: 0
-          text: "v"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "v"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "(select * .., q, r, s)"
-          statement-id: 0
-          text: "p"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "(select * .., q, r, s)"
-          statement-id: 0
-          text: "q"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967298.0"
-          source: "(select * .., q, r, s)"
-          statement-id: 0
-          text: "r"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967298.1"
-          source: "(select * .., q, r, s)"
-          statement-id: 0
-          text: "s"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "(select * .., q, r, s)", text: "p"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "(select * .., q, r, s)", text: "q"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:2.0", source: "(select * .., q, r, s)", text: "r"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:2.1", source: "(select * .., q, r, s)", text: "s"}
       name-scopes:
         - scope-id: 0
           parent: 1
           parent-sources: none
           sources:
-            - type: table
-              name: t
-              text: "t"
-            - type: table
-              name: v
-              text: "v"
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: v, text: "v"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
-            - name: id
-              table-column: "256.65536.4294967298.0"
-            - name: x
-              table-column: "256.65536.4294967298.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+            - {name: id, table-column: "256.65536.1:2.0"}
+            - {name: x, table-column: "256.65536.1:2.1"}
           text: "(select * ..al join v)"
         - scope-id: 1
           sources:
-            - type: subquery
-              name: z
-              scope: 0
-              column-aliases:
-                - p
-                - q
-                - r
-                - s
-              text: "(select * .., q, r, s)"
+            - {type: subquery, name: z, scope: 0, column-aliases: [p,q,r,s], text: "(select * .., q, r, s)"}
           columns:
-            - name: p
-              expression: 0
-            - name: q
-              expression: 1
-            - name: r
-              expression: 2
-            - name: s
-              expression: 3
+            - {name: p, expression: 0}
+            - {name: q, expression: 1}
+            - {name: r, expression: 2}
+            - {name: s, expression: 3}
           text: "select p, .., q, r, s)"
 
   - name: join_using_two_columns
@@ -1300,58 +711,28 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t as t2"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t as t2"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "(select * ..)) z(p, q)"
-          statement-id: 0
-          text: "p"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "(select * ..)) z(p, q)"
-          statement-id: 0
-          text: "q"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "(select * ..)) z(p, q)", text: "p"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "(select * ..)) z(p, q)", text: "q"}
       name-scopes:
         - scope-id: 0
           parent: 1
           parent-sources: none
           sources:
-            - type: table
-              name: t
-              text: "t"
-            - type: table
-              name: t2
-              text: "t as t2"
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: t2, text: "t as t2"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
           text: "(select * ..ng (a, b))"
         - scope-id: 1
           sources:
-            - type: subquery
-              name: z
-              scope: 0
-              column-aliases:
-                - p
-                - q
-              text: "(select * ..)) z(p, q)"
+            - {type: subquery, name: z, scope: 0, column-aliases: [p,q], text: "(select * ..)) z(p, q)"}
           columns:
-            - name: p
-              expression: 0
-            - name: q
-              expression: 1
+            - {name: p, expression: 0}
+            - {name: q, expression: 1}
           text: "select p, ..)) z(p, q)"
 
   - name: join_full_outer_using
@@ -1364,49 +745,21 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "u"
-          statement-id: 0
-          text: "c"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: t
-              text: "t"
-            - type: table
-              name: u
-              text: "u"
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
           columns:
-            - name: a
-              expression: 0
-            - name: b
-              expression: 1
-            - name: c
-              expression: 2
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
+            - {name: c, expression: 2}
           text: "select a, .. using (a)"
 
   - name: join_lateral_on_true
@@ -1419,71 +772,30 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "t.a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "lateral (s..a = t.a) s"
-          statement-id: 0
-          text: "s.c"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "u"
-          statement-id: 0
-          text: "c"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "u"
-          statement-id: 0
-          text: "u.a"
-        - expression-idx: 4
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "t.a"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "lateral (s..a = t.a) s", text: "s.c"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
       name-scopes:
         - scope-id: 0
           parent: 1
           parent-sources: before
           sources:
-            - type: table
-              name: u
-              text: "u"
+            - {type: table, name: u, text: "u"}
           columns:
-            - name: c
-              expression: 2
+            - {name: c, expression: 2}
           text: "lateral"
         - scope-id: 1
           sources:
-            - type: table
-              name: t
-              text: "t"
-            - type: subquery
-              name: s
-              scope: 0
-              text: "lateral (s..a = t.a) s"
+            - {type: table, name: t, text: "t"}
+            - {type: subquery, name: s, scope: 0, text: "lateral (s..a = t.a) s"}
           columns:
-            - name: a
-              expression: 0
-            - name: c
-              expression: 1
+            - {name: a, expression: 0}
+            - {name: c, expression: 1}
           text: "select t.a.. s on true"
 
   - name: output_alias_in_where
@@ -1496,45 +808,21 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "k"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/unresolved, text: "k"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 2
-          text: "1"
-        - expression: 3
-          text: "1"
+        - {expression: 2, text: "1"}
+        - {expression: 3, text: "1"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: k
-              computed: true
+            - {name: k, computed: true}
           text: "select a +..here k > 1"
 
   - name: output_alias_in_having
@@ -1547,51 +835,22 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 2
-          type: colref/unresolved
-          statement-id: 0
-          text: "n"
-        - expression-idx: 3
-          type: function
-          name: count
-          statement-id: 0
-          text: "count(*)"
-        - expression-idx: 4
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 2, type: colref/unresolved, text: "n"}
+        - {id: 3, type: function, name: count, text: "count(*)"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 4
-          text: "1"
+        - {expression: 4, text: "1"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: a
-              expression: 0
-            - name: n
-              expression: 3
+            - {name: a, expression: 0}
+            - {name: n, expression: 3}
           text: "select a, ..ving n > 1"
 
   - name: output_alias_in_select_list
@@ -1604,47 +863,22 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "k"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/unresolved, text: "k"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
+        - {id: 3, type: literal/integer, is-const: true, text: "2"}
       constants:
-        - expression: 2
-          text: "1"
-        - expression: 3
-          text: "2"
+        - {expression: 2, text: "1"}
+        - {expression: 3, text: "2"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: k
-              computed: true
-            - name: '?'
-              computed: true
+            - {name: k, computed: true}
+            - {name: '?', computed: true}
           text: "select a +..* 2 from t"
 
   - name: unresolved_in_every_clause
@@ -1663,128 +897,43 @@ analyzer-snapshots:
         limit 1
       catalog-id: 2
       errors:
-        - type: COLUMN_REF_AMBIGUOUS
-          message: 'column reference is ambiguous, candidates: t.a, u.a'
-          text: "a"
+        - {type: COLUMN_REF_AMBIGUOUS, message: 'column reference is ambiguous, candidates: t.a, u.a', text: "a"}
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "n1"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "n2"
-        - expression-idx: 2
-          type: colref/unresolved
-          statement-id: 0
-          text: "n3"
-        - expression-idx: 3
-          type: colref/unresolved
-          statement-id: 0
-          text: "a"
-        - expression-idx: 4
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 5
-          type: colref/unresolved
-          statement-id: 0
-          text: "n4"
-        - expression-idx: 6
-          type: colref/unresolved
-          statement-id: 0
-          text: "n5"
-        - expression-idx: 7
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "t.a"
-        - expression-idx: 8
-          type: colref/unresolved
-          statement-id: 0
-          text: "u.n6"
-        - expression-idx: 9
-          type: colref/unresolved
-          statement-id: 0
-          text: "n7"
-        - expression-idx: 10
-          type: colref/unresolved
-          statement-id: 0
-          text: "n8"
-        - expression-idx: 11
-          type: colref/unresolved
-          statement-id: 0
-          text: "n9"
-        - expression-idx: 12
-          type: colref/unresolved
-          statement-id: 0
-          text: "n10"
-        - expression-idx: 13
-          type: function
-          name: f
-          statement-id: 0
-          text: "f(n1)"
-        - expression-idx: 14
-          type: function
-          name: sum
-          statement-id: 0
-          text: "sum(b) ove..der by n5)"
-        - expression-idx: 15
-          type: function
-          name: max
-          statement-id: 0
-          text: "max(n9)"
-        - expression-idx: 16
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "0"
-        - expression-idx: 17
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "0"
-        - expression-idx: 18
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/unresolved, text: "n1"}
+        - {id: 1, type: colref/unresolved, text: "n2"}
+        - {id: 2, type: colref/unresolved, text: "n3"}
+        - {id: 3, type: colref/unresolved, text: "a"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 5, type: colref/unresolved, text: "n4"}
+        - {id: 6, type: colref/unresolved, text: "n5"}
+        - {id: 7, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 8, type: colref/unresolved, text: "u.n6"}
+        - {id: 9, type: colref/unresolved, text: "n7"}
+        - {id: 10, type: colref/unresolved, text: "n8"}
+        - {id: 11, type: colref/unresolved, text: "n9"}
+        - {id: 12, type: colref/unresolved, text: "n10"}
+        - {id: 13, type: function, name: f, text: "f(n1)"}
+        - {id: 14, type: function, name: sum, text: "sum(b) ove..der by n5)"}
+        - {id: 15, type: function, name: max, text: "max(n9)"}
+        - {id: 16, type: literal/integer, is-const: true, text: "0"}
+        - {id: 17, type: literal/integer, is-const: true, text: "0"}
+        - {id: 18, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 16
-          text: "0"
-        - expression: 17
-          text: "0"
-        - expression: 18
-          text: "1"
+        - {expression: 16, text: "0"}
+        - {expression: 17, text: "0"}
+        - {expression: 18, text: "1"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: t
-              text: "t"
-            - type: table
-              name: u
-              text: "u"
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
           columns:
-            - name: '?'
-              expression: 13
-            - name: '?'
-              computed: true
-            - name: '?'
-              expression: 14
+            - {name: '?', expression: 13}
+            - {name: '?', computed: true}
+            - {name: '?', expression: 14}
           text: "select f(n..10\nlimit 1"
 
   - name: named_window_and_distinct_on
@@ -1797,68 +946,23 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 4
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 5
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 6
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 7
-          type: function
-          name: sum
-          statement-id: 0
-          text: "sum(b) over w"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 5, type: colref/catalog, catalog: "256.65536.1:0.0", text: "a"}
+        - {id: 6, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 7, type: function, name: sum, text: "sum(b) over w"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: a
-              expression: 1
-            - name: '?'
-              expression: 7
+            - {name: a, expression: 1}
+            - {name: '?', expression: 7}
           text: "select dis..er by a, b"
 
   - name: correlated_in_having
@@ -1871,68 +975,28 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "u"
-          statement-id: 0
-          text: "u.a"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "t.a"
-        - expression-idx: 4
-          type: function
-          name: count
-          statement-id: 0
-          text: "count(*)"
-        - expression-idx: 5
-          type: function
-          name: count
-          statement-id: 0
-          text: "count(*)"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 4, type: function, name: count, text: "count(*)"}
+        - {id: 5, type: function, name: count, text: "count(*)"}
       name-scopes:
         - scope-id: 0
           parent: 1
           sources:
-            - type: table
-              name: u
-              text: "u"
+            - {type: table, name: u, text: "u"}
           columns:
-            - name: '?'
-              expression: 4
+            - {name: '?', expression: 4}
           text: "(select co..u.a = t.a)"
         - scope-id: 1
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select a f..u.a = t.a)"
 
   - name: correlated_inner_column_wins
@@ -1945,52 +1009,25 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "u"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "u"
-          statement-id: 0
-          text: "c"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
       name-scopes:
         - scope-id: 0
           parent: 1
           sources:
-            - type: table
-              name: u
-              text: "u"
+            - {type: table, name: u, text: "u"}
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "(select a ..ere c = b)"
         - scope-id: 1
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: '?'
-              computed: true
+            - {name: '?', computed: true}
           text: "select (se.. b) from t"
 
   - name: schema_qualified_any_database
@@ -2003,26 +1040,15 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "257.65539.4294967299"
-          statement-id: 0
-          text: "s3.n"
+        - {type: name/catalog, catalog-id: "257.65539.1:3", text: "s3.n"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "257.65539.4294967299.0"
-          source: "s3.n"
-          statement-id: 0
-          text: "e"
+        - {id: 0, type: colref/catalog, catalog: "257.65539.1:3.0", source: "s3.n", text: "e"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: n
-              text: "s3.n"
+            - {type: table, name: n, text: "s3.n"}
           columns:
-            - name: e
-              expression: 0
+            - {name: e, expression: 0}
           text: "select e from s3.n"
 
   - name: unqualified_name_of_other_database
@@ -2035,26 +1061,15 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "257.65539.4294967299"
-          statement-id: 0
-          text: "n"
+        - {type: name/catalog, catalog-id: "257.65539.1:3", text: "n"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "257.65539.4294967299.0"
-          source: "n"
-          statement-id: 0
-          text: "e"
+        - {id: 0, type: colref/catalog, catalog: "257.65539.1:3.0", source: "n", text: "e"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: n
-              text: "n"
+            - {type: table, name: n, text: "n"}
           columns:
-            - name: e
-              expression: 0
+            - {name: e, expression: 0}
           text: "select e from n"
 
   - name: unqualified_name_in_two_schemas
@@ -2067,32 +1082,17 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65537.4294967297"
-          statement-id: 0
-          text: "k"
+        - {type: name/catalog, catalog-id: "256.65537.1:1", text: "k"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65537.4294967297.0"
-          source: "k"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 0
-          text: "c"
+        - {id: 0, type: colref/catalog, catalog: "256.65537.1:1.0", source: "k", text: "a"}
+        - {id: 1, type: colref/unresolved, text: "c"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: k
-              text: "k"
+            - {type: table, name: k, text: "k"}
           columns:
-            - name: a
-              expression: 0
-            - name: c
-              expression: 1
+            - {name: a, expression: 0}
+            - {name: c, expression: 1}
           text: "select a, c from k"
 
   - name: unknown_schema_and_database
@@ -2105,27 +1105,15 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "s9.k"
-        - type: name/unresolved
-          statement-id: 0
-          text: "db9.s1.k"
-        - type: name/unresolved
-          statement-id: 0
-          text: "db1.s1.k"
+        - {type: name/unresolved, text: "s9.k"}
+        - {type: name/unresolved, text: "db9.s1.k"}
+        - {type: name/unresolved, text: "db1.s1.k"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: k
-              text: "s9.k"
-            - type: unresolved
-              name: k
-              text: "db9.s1.k"
-            - type: unresolved
-              name: k
-              text: "db1.s1.k"
+            - {type: unresolved, name: k, text: "s9.k"}
+            - {type: unresolved, name: k, text: "db9.s1.k"}
+            - {type: unresolved, name: k, text: "db1.s1.k"}
           text: "select * f.., db1.s1.k"
 
   - name: script_table_shadows_catalog
@@ -2137,44 +1125,26 @@ analyzer-snapshots:
       input: create table t (z int); select z, a from t
       catalog-id: 2
       tables:
-        - catalog-id: "256.65536.8589934592"
+        - catalog-id: "256.65536.2:0"
           name: t
           text: "create tab.. t (z int)"
           columns:
-            - catalog-id: "256.65536.8589934592.0"
-              name: z
-              text: "z int"
+            - {catalog-id: "256.65536.2:0.0", name: z, text: "z int"}
       touched-relations:
-        - statement-id: 0
-          name: t
+        - {statement-id: 0, name: t}
       errors: []
       table-refs:
-        - type: name/internal
-          catalog-id: "256.65536.8589934592"
-          statement-id: 1
-          text: "t"
+        - {type: name/internal, catalog-id: "256.65536.2:0", statement-id: 1, text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/internal
-          catalog: "256.65536.8589934592.0"
-          source: "t"
-          statement-id: 1
-          text: "z"
-        - expression-idx: 1
-          type: colref/unresolved
-          statement-id: 1
-          text: "a"
+        - {id: 0, type: colref/internal, catalog: "256.65536.2:0.0", source: "t", statement-id: 1, text: "z"}
+        - {id: 1, type: colref/unresolved, statement-id: 1, text: "a"}
       name-scopes:
         - scope-id: 1
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: z
-              expression: 0
-            - name: a
-              expression: 1
+            - {name: z, expression: 0}
+            - {name: a, expression: 1}
           text: "select z, a from t"
 
   - name: select_into_read_later
@@ -2186,81 +1156,40 @@ analyzer-snapshots:
       input: select a, b + 1 as n into tt from t; select a, n from tt
       catalog-id: 2
       tables:
-        - catalog-id: "256.65536.8589934592"
+        - catalog-id: "256.65536.2:0"
           name: tt
           text: "tt"
           columns:
-            - catalog-id: "256.65536.8589934592.0"
-              name: a
-            - catalog-id: "256.65536.8589934592.1"
-              name: n
+            - {catalog-id: "256.65536.2:0.0", name: a}
+            - {catalog-id: "256.65536.2:0.1", name: n}
       touched-relations:
-        - statement-id: 0
-          name: tt
+        - {statement-id: 0, name: tt}
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/internal
-          catalog-id: "256.65536.8589934592"
-          statement-id: 1
-          text: "tt"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 0, text: "t"}
+        - {type: name/internal, catalog-id: "256.65536.2:0", statement-id: 1, text: "tt"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 2
-          type: colref/internal
-          catalog: "256.65536.8589934592.0"
-          source: "tt"
-          statement-id: 1
-          text: "a"
-        - expression-idx: 3
-          type: colref/internal
-          catalog: "256.65536.8589934592.1"
-          source: "tt"
-          statement-id: 1
-          text: "n"
-        - expression-idx: 4
-          type: literal/integer
-          is-const: true
-          text: "1"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", statement-id: 0, text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", statement-id: 0, text: "b"}
+        - {id: 2, type: colref/internal, catalog: "256.65536.2:0.0", source: "tt", statement-id: 1, text: "a"}
+        - {id: 3, type: colref/internal, catalog: "256.65536.2:0.1", source: "tt", statement-id: 1, text: "n"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 4
-          text: "1"
+        - {expression: 4, text: "1"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: a
-              expression: 0
-            - name: n
-              computed: true
+            - {name: a, expression: 0}
+            - {name: n, computed: true}
           text: "select a, .. tt from t"
         - scope-id: 1
           sources:
-            - type: table
-              name: tt
-              text: "tt"
+            - {type: table, name: tt, text: "tt"}
           columns:
-            - name: a
-              expression: 2
-            - name: n
-              expression: 3
+            - {name: a, expression: 2}
+            - {name: n, expression: 3}
           text: "select a, n from tt"
 
   - name: view_column_list_read_later
@@ -2272,80 +1201,39 @@ analyzer-snapshots:
       input: create view vw (p, q) as select a, b from t; select p, q, a from vw
       catalog-id: 2
       tables:
-        - catalog-id: "256.65536.8589934592"
+        - catalog-id: "256.65536.2:0"
           name: vw
           text: "create vie.., b from t"
           columns:
-            - catalog-id: "256.65536.8589934592.0"
-              name: p
-            - catalog-id: "256.65536.8589934592.1"
-              name: q
+            - {catalog-id: "256.65536.2:0.0", name: p}
+            - {catalog-id: "256.65536.2:0.1", name: q}
       touched-relations:
-        - statement-id: 0
-          name: vw
+        - {statement-id: 0, name: vw}
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/internal
-          catalog-id: "256.65536.8589934592"
-          statement-id: 1
-          text: "vw"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 0, text: "t"}
+        - {type: name/internal, catalog-id: "256.65536.2:0", statement-id: 1, text: "vw"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 2
-          type: colref/internal
-          catalog: "256.65536.8589934592.0"
-          source: "vw"
-          statement-id: 1
-          text: "p"
-        - expression-idx: 3
-          type: colref/internal
-          catalog: "256.65536.8589934592.1"
-          source: "vw"
-          statement-id: 1
-          text: "q"
-        - expression-idx: 4
-          type: colref/unresolved
-          statement-id: 1
-          text: "a"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", statement-id: 0, text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", statement-id: 0, text: "b"}
+        - {id: 2, type: colref/internal, catalog: "256.65536.2:0.0", source: "vw", statement-id: 1, text: "p"}
+        - {id: 3, type: colref/internal, catalog: "256.65536.2:0.1", source: "vw", statement-id: 1, text: "q"}
+        - {id: 4, type: colref/unresolved, statement-id: 1, text: "a"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: a
-              expression: 0
-            - name: b
-              expression: 1
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
           text: "select a, b from t"
         - scope-id: 1
           sources:
-            - type: table
-              name: vw
-              text: "vw"
+            - {type: table, name: vw, text: "vw"}
           columns:
-            - name: p
-              expression: 2
-            - name: q
-              expression: 3
-            - name: a
-              expression: 4
+            - {name: p, expression: 2}
+            - {name: q, expression: 3}
+            - {name: a, expression: 4}
           text: "select p, .. a from vw"
 
   - name: create_table_as_schema_qualified_read_later
@@ -2357,75 +1245,40 @@ analyzer-snapshots:
       input: create table s9.m as select a from t; select a from s9.m; select a from m
       catalog-id: 2
       tables:
-        - catalog-id: "256.65537.8589934592"
+        - catalog-id: "256.65537.2:0"
           name: m
           text: "create tab..t a from t"
           columns:
-            - catalog-id: "256.65537.8589934592.0"
-              name: a
+            - {catalog-id: "256.65537.2:0.0", name: a}
       touched-relations:
-        - statement-id: 0
-          name: s9.m
+        - {statement-id: 0, name: s9.m}
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/internal
-          catalog-id: "256.65537.8589934592"
-          statement-id: 1
-          text: "s9.m"
-        - type: name/internal
-          catalog-id: "256.65537.8589934592"
-          statement-id: 2
-          text: "m"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 0, text: "t"}
+        - {type: name/internal, catalog-id: "256.65537.2:0", statement-id: 1, text: "s9.m"}
+        - {type: name/internal, catalog-id: "256.65537.2:0", statement-id: 2, text: "m"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/internal
-          catalog: "256.65537.8589934592.0"
-          source: "s9.m"
-          statement-id: 1
-          text: "a"
-        - expression-idx: 2
-          type: colref/internal
-          catalog: "256.65537.8589934592.0"
-          source: "m"
-          statement-id: 2
-          text: "a"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", statement-id: 0, text: "a"}
+        - {id: 1, type: colref/internal, catalog: "256.65537.2:0.0", source: "s9.m", statement-id: 1, text: "a"}
+        - {id: 2, type: colref/internal, catalog: "256.65537.2:0.0", source: "m", statement-id: 2, text: "a"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select a from t"
         - scope-id: 1
           sources:
-            - type: table
-              name: m
-              text: "s9.m"
+            - {type: table, name: m, text: "s9.m"}
           columns:
-            - name: a
-              expression: 1
+            - {name: a, expression: 1}
           text: "select a from s9.m"
         - scope-id: 2
           sources:
-            - type: table
-              name: m
-              text: "m"
+            - {type: table, name: m, text: "m"}
           columns:
-            - name: a
-              expression: 2
+            - {name: a, expression: 2}
           text: "select a from m"
 
   - name: drop_catalog_table_then_read
@@ -2437,28 +1290,16 @@ analyzer-snapshots:
       input: drop table t; select a from t
       catalog-id: 2
       touched-relations:
-        - statement-id: 0
-          name: t
+        - {statement-id: 0, name: t}
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 1
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 1, text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 1
-          text: "a"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", statement-id: 1, text: "a"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select a from t"

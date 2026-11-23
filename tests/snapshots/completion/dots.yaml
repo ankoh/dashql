@@ -8,21 +8,16 @@ completion-snapshots:
         select * from dbname.schemaname.
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: foo
           text: "create tab..foo(a int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: a
-              text: "a int"
+            - {catalog-id: "256.65536.1:0.0", name: a, text: "a int"}
       touched-relations:
-        - statement-id: 0
-          name: dbname.schemaname.foo
+        - {statement-id: 0, name: dbname.schemaname.foo}
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 1
-          text: "dbname.schemaname."
+        - {type: name/unresolved, statement-id: 1, text: "dbname.schemaname."}
     cursor:
       search:
         text: from dbname.schemaname.
@@ -41,7 +36,7 @@ completion-snapshots:
           location-qualified: "dbname.schemaname."
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [DOT_RESOLUTION_TABLE]
               qualified: dbname.schemaname.foo
               qualified-idx: 2
@@ -58,27 +53,18 @@ completion-snapshots:
         select from dbname.schemaname.foo f where f.
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: foo
           text: "create tab..foo(a int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: a
-              text: "a int"
+            - {catalog-id: "256.65536.1:0.0", name: a, text: "a int"}
       touched-relations:
-        - statement-id: 0
-          name: dbname.schemaname.foo
+        - {statement-id: 0, name: dbname.schemaname.foo}
       errors: []
       table-refs:
-        - type: name/internal
-          catalog-id: "256.65536.4294967296"
-          statement-id: 1
-          text: "dbname.sch..name.foo f"
+        - {type: name/internal, catalog-id: "256.65536.1:0", statement-id: 1, text: "dbname.sch..name.foo f"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 1
-          text: "f."
+        - {id: 0, type: colref/unresolved, statement-id: 1, text: "f."}
     cursor:
       search:
         text: f.
@@ -97,7 +83,7 @@ completion-snapshots:
           location-qualified: "f."
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.a
               qualified-idx: 1
@@ -113,27 +99,18 @@ completion-snapshots:
         select from schemaname.foo f where f.
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: foo
           text: "create tab..foo(a int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: a
-              text: "a int"
+            - {catalog-id: "256.65536.1:0.0", name: a, text: "a int"}
       touched-relations:
-        - statement-id: 0
-          name: schemaname.foo
+        - {statement-id: 0, name: schemaname.foo}
       errors: []
       table-refs:
-        - type: name/internal
-          catalog-id: "256.65536.4294967296"
-          statement-id: 1
-          text: "schemaname.foo f"
+        - {type: name/internal, catalog-id: "256.65536.1:0", statement-id: 1, text: "schemaname.foo f"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 1
-          text: "f."
+        - {id: 0, type: colref/unresolved, statement-id: 1, text: "f."}
     cursor:
       search:
         text: f.
@@ -152,7 +129,7 @@ completion-snapshots:
           location-qualified: "f."
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.a
               qualified-idx: 1
@@ -168,27 +145,18 @@ completion-snapshots:
         select from foo f where f.
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: foo
           text: "create tab..foo(a int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: a
-              text: "a int"
+            - {catalog-id: "256.65536.1:0.0", name: a, text: "a int"}
       touched-relations:
-        - statement-id: 0
-          name: foo
+        - {statement-id: 0, name: foo}
       errors: []
       table-refs:
-        - type: name/internal
-          catalog-id: "256.65536.4294967296"
-          statement-id: 1
-          text: "foo f"
+        - {type: name/internal, catalog-id: "256.65536.1:0", statement-id: 1, text: "foo f"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 1
-          text: "f."
+        - {id: 0, type: colref/unresolved, statement-id: 1, text: "f."}
     cursor:
       search:
         text: f.
@@ -207,7 +175,7 @@ completion-snapshots:
           location-qualified: "f."
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.a
               qualified-idx: 1
@@ -224,48 +192,28 @@ completion-snapshots:
         select from foo alias where alias.
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: foo
           text: "create tab..nt, c int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: a
-              text: "a int"
-            - catalog-id: "256.65536.4294967296.1"
-              name: b
-              text: "b int"
-            - catalog-id: "256.65536.4294967296.2"
-              name: c
-              text: "c int"
-        - catalog-id: "256.65536.4294967297"
+            - {catalog-id: "256.65536.1:0.0", name: a, text: "a int"}
+            - {catalog-id: "256.65536.1:0.1", name: b, text: "b int"}
+            - {catalog-id: "256.65536.1:0.2", name: c, text: "c int"}
+        - catalog-id: "256.65536.1:1"
           name: bar
           text: "create tab..nt, f int)"
           columns:
-            - catalog-id: "256.65536.4294967297.0"
-              name: d
-              text: "d int"
-            - catalog-id: "256.65536.4294967297.1"
-              name: e
-              text: "e int"
-            - catalog-id: "256.65536.4294967297.2"
-              name: f
-              text: "f int"
+            - {catalog-id: "256.65536.1:1.0", name: d, text: "d int"}
+            - {catalog-id: "256.65536.1:1.1", name: e, text: "e int"}
+            - {catalog-id: "256.65536.1:1.2", name: f, text: "f int"}
       touched-relations:
-        - statement-id: 0
-          name: foo
-        - statement-id: 1
-          name: bar
+        - {statement-id: 0, name: foo}
+        - {statement-id: 1, name: bar}
       errors: []
       table-refs:
-        - type: name/internal
-          catalog-id: "256.65536.4294967296"
-          statement-id: 2
-          text: "foo alias"
+        - {type: name/internal, catalog-id: "256.65536.1:0", statement-id: 2, text: "foo alias"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 2
-          text: "alias."
+        - {id: 0, type: colref/unresolved, statement-id: 2, text: "alias."}
     cursor:
       search:
         text: alias.
@@ -284,7 +232,7 @@ completion-snapshots:
           location-qualified: "alias."
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: alias.a
               qualified-idx: 1
@@ -297,7 +245,7 @@ completion-snapshots:
           location-qualified: "alias."
           objects:
             - type: column
-              id: "256.65536.4294967296.1"
+              id: "256.65536.1:0.1"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: alias.b
               qualified-idx: 1
@@ -310,7 +258,7 @@ completion-snapshots:
           location-qualified: "alias."
           objects:
             - type: column
-              id: "256.65536.4294967296.2"
+              id: "256.65536.1:0.2"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: alias.c
               qualified-idx: 1
@@ -327,54 +275,29 @@ completion-snapshots:
         select from foo f, bar b where f.
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: foo
           text: "create tab..nt, c int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: a
-              text: "a int"
-            - catalog-id: "256.65536.4294967296.1"
-              name: b
-              text: "b int"
-            - catalog-id: "256.65536.4294967296.2"
-              name: c
-              text: "c int"
-        - catalog-id: "256.65536.4294967297"
+            - {catalog-id: "256.65536.1:0.0", name: a, text: "a int"}
+            - {catalog-id: "256.65536.1:0.1", name: b, text: "b int"}
+            - {catalog-id: "256.65536.1:0.2", name: c, text: "c int"}
+        - catalog-id: "256.65536.1:1"
           name: bar
           text: "create tab..nt, f int)"
           columns:
-            - catalog-id: "256.65536.4294967297.0"
-              name: d
-              text: "d int"
-            - catalog-id: "256.65536.4294967297.1"
-              name: e
-              text: "e int"
-            - catalog-id: "256.65536.4294967297.2"
-              name: f
-              text: "f int"
+            - {catalog-id: "256.65536.1:1.0", name: d, text: "d int"}
+            - {catalog-id: "256.65536.1:1.1", name: e, text: "e int"}
+            - {catalog-id: "256.65536.1:1.2", name: f, text: "f int"}
       touched-relations:
-        - statement-id: 0
-          name: foo
-        - statement-id: 1
-          name: bar
+        - {statement-id: 0, name: foo}
+        - {statement-id: 1, name: bar}
       errors: []
       table-refs:
-        - type: name/internal
-          catalog-id: "256.65536.4294967296"
-          statement-id: 2
-          text: "foo f"
-        - type: name/internal
-          catalog-id: "256.65536.4294967297"
-          statement-id: 2
-          text: "bar b"
+        - {type: name/internal, catalog-id: "256.65536.1:0", statement-id: 2, text: "foo f"}
+        - {type: name/internal, catalog-id: "256.65536.1:1", statement-id: 2, text: "bar b"}
       expressions:
-        - expression-idx: 0
-          type: colref/internal
-          catalog: "256.65536.4294967297.2"
-          source: "bar b"
-          statement-id: 2
-          text: "f."
+        - {id: 0, type: colref/internal, catalog: "256.65536.1:1.2", source: "bar b", statement-id: 2, text: "f."}
     cursor:
       search:
         text: f.
@@ -393,7 +316,7 @@ completion-snapshots:
           location-qualified: "f."
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.a
               qualified-idx: 1
@@ -406,7 +329,7 @@ completion-snapshots:
           location-qualified: "f."
           objects:
             - type: column
-              id: "256.65536.4294967296.1"
+              id: "256.65536.1:0.1"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.b
               qualified-idx: 1
@@ -419,7 +342,7 @@ completion-snapshots:
           location-qualified: "f."
           objects:
             - type: column
-              id: "256.65536.4294967296.2"
+              id: "256.65536.1:0.2"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.c
               qualified-idx: 1
@@ -436,54 +359,29 @@ completion-snapshots:
         select from foo f, bar b where b.
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: foo
           text: "create tab..nt, c int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: a
-              text: "a int"
-            - catalog-id: "256.65536.4294967296.1"
-              name: b
-              text: "b int"
-            - catalog-id: "256.65536.4294967296.2"
-              name: c
-              text: "c int"
-        - catalog-id: "256.65536.4294967297"
+            - {catalog-id: "256.65536.1:0.0", name: a, text: "a int"}
+            - {catalog-id: "256.65536.1:0.1", name: b, text: "b int"}
+            - {catalog-id: "256.65536.1:0.2", name: c, text: "c int"}
+        - catalog-id: "256.65536.1:1"
           name: bar
           text: "create tab..nt, f int)"
           columns:
-            - catalog-id: "256.65536.4294967297.0"
-              name: d
-              text: "d int"
-            - catalog-id: "256.65536.4294967297.1"
-              name: e
-              text: "e int"
-            - catalog-id: "256.65536.4294967297.2"
-              name: f
-              text: "f int"
+            - {catalog-id: "256.65536.1:1.0", name: d, text: "d int"}
+            - {catalog-id: "256.65536.1:1.1", name: e, text: "e int"}
+            - {catalog-id: "256.65536.1:1.2", name: f, text: "f int"}
       touched-relations:
-        - statement-id: 0
-          name: foo
-        - statement-id: 1
-          name: bar
+        - {statement-id: 0, name: foo}
+        - {statement-id: 1, name: bar}
       errors: []
       table-refs:
-        - type: name/internal
-          catalog-id: "256.65536.4294967296"
-          statement-id: 2
-          text: "foo f"
-        - type: name/internal
-          catalog-id: "256.65536.4294967297"
-          statement-id: 2
-          text: "bar b"
+        - {type: name/internal, catalog-id: "256.65536.1:0", statement-id: 2, text: "foo f"}
+        - {type: name/internal, catalog-id: "256.65536.1:1", statement-id: 2, text: "bar b"}
       expressions:
-        - expression-idx: 0
-          type: colref/internal
-          catalog: "256.65536.4294967296.1"
-          source: "foo f"
-          statement-id: 2
-          text: "b."
+        - {id: 0, type: colref/internal, catalog: "256.65536.1:0.1", source: "foo f", statement-id: 2, text: "b."}
     cursor:
       search:
         text: b.
@@ -502,7 +400,7 @@ completion-snapshots:
           location-qualified: "b."
           objects:
             - type: column
-              id: "256.65536.4294967297.0"
+              id: "256.65536.1:1.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: b.d
               qualified-idx: 1
@@ -515,7 +413,7 @@ completion-snapshots:
           location-qualified: "b."
           objects:
             - type: column
-              id: "256.65536.4294967297.1"
+              id: "256.65536.1:1.1"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: b.e
               qualified-idx: 1
@@ -528,7 +426,7 @@ completion-snapshots:
           location-qualified: "b."
           objects:
             - type: column
-              id: "256.65536.4294967297.2"
+              id: "256.65536.1:1.2"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: b.f
               qualified-idx: 1
@@ -544,39 +442,22 @@ completion-snapshots:
         select from foo f where f.
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: foo
           text: "create tab..nt, e int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: a
-              text: "a int"
-            - catalog-id: "256.65536.4294967296.1"
-              name: b
-              text: "b int"
-            - catalog-id: "256.65536.4294967296.2"
-              name: c
-              text: "c int"
-            - catalog-id: "256.65536.4294967296.3"
-              name: d
-              text: "d int"
-            - catalog-id: "256.65536.4294967296.4"
-              name: e
-              text: "e int"
+            - {catalog-id: "256.65536.1:0.0", name: a, text: "a int"}
+            - {catalog-id: "256.65536.1:0.1", name: b, text: "b int"}
+            - {catalog-id: "256.65536.1:0.2", name: c, text: "c int"}
+            - {catalog-id: "256.65536.1:0.3", name: d, text: "d int"}
+            - {catalog-id: "256.65536.1:0.4", name: e, text: "e int"}
       touched-relations:
-        - statement-id: 0
-          name: foo
+        - {statement-id: 0, name: foo}
       errors: []
       table-refs:
-        - type: name/internal
-          catalog-id: "256.65536.4294967296"
-          statement-id: 1
-          text: "foo f"
+        - {type: name/internal, catalog-id: "256.65536.1:0", statement-id: 1, text: "foo f"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 1
-          text: "f."
+        - {id: 0, type: colref/unresolved, statement-id: 1, text: "f."}
     cursor:
       search:
         text: f.
@@ -595,7 +476,7 @@ completion-snapshots:
           location-qualified: "f."
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.a
               qualified-idx: 1
@@ -608,7 +489,7 @@ completion-snapshots:
           location-qualified: "f."
           objects:
             - type: column
-              id: "256.65536.4294967296.1"
+              id: "256.65536.1:0.1"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.b
               qualified-idx: 1
@@ -621,7 +502,7 @@ completion-snapshots:
           location-qualified: "f."
           objects:
             - type: column
-              id: "256.65536.4294967296.2"
+              id: "256.65536.1:0.2"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.c
               qualified-idx: 1
@@ -637,30 +518,19 @@ completion-snapshots:
         select from foo f where f.ap
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: foo
           text: "create tab..juice int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: apple
-              text: "apple int"
-            - catalog-id: "256.65536.4294967296.1"
-              name: juice
-              text: "juice int"
+            - {catalog-id: "256.65536.1:0.0", name: apple, text: "apple int"}
+            - {catalog-id: "256.65536.1:0.1", name: juice, text: "juice int"}
       touched-relations:
-        - statement-id: 0
-          name: foo
+        - {statement-id: 0, name: foo}
       errors: []
       table-refs:
-        - type: name/internal
-          catalog-id: "256.65536.4294967296"
-          statement-id: 1
-          text: "foo f"
+        - {type: name/internal, catalog-id: "256.65536.1:0", statement-id: 1, text: "foo f"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 1
-          text: "f.ap"
+        - {id: 0, type: colref/unresolved, statement-id: 1, text: "f.ap"}
     cursor:
       search:
         text: f.ap
@@ -679,7 +549,7 @@ completion-snapshots:
           location-qualified: "f.ap"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN,PREFIX_MATCH,SUBSTRING_MATCH]
               qualified: f.apple
               qualified-idx: 1
@@ -692,7 +562,7 @@ completion-snapshots:
           location-qualified: "f.ap"
           objects:
             - type: column
-              id: "256.65536.4294967296.1"
+              id: "256.65536.1:0.1"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.juice
               qualified-idx: 1

@@ -1,6 +1,6 @@
 //! The completion snapshot encoder and the runner of completion snapshot cases.
 
-use super::{encode_location_text, plain, Map};
+use super::{encode_location_text, object_id_text, plain, Map};
 use crate::encode::analyzer::{encode_catalog_script, encode_script};
 use crate::ryml::Node;
 use dashql_buffers::analyzer::NameTag;
@@ -136,20 +136,20 @@ pub fn encode_completion(out: &mut Map, completion: &Completion) {
                         CandidateObjectRef::Table(loc) => {
                             let table = completion.table(loc).expect("table");
                             let (db, schema) = table.catalog_schema_id.unpack_schema_id();
-                            ("table", format!("{db}.{schema}.{}", table.table_id().pack()))
+                            ("table", format!("{db}.{schema}.{}", object_id_text(table.table_id())))
                         }
                         CandidateObjectRef::Column(loc) => {
                             let table = completion.table(loc.table).expect("table");
                             let (db, schema) = table.catalog_schema_id.unpack_schema_id();
                             let (table_id, column) =
                                 table.table_columns[loc.column as usize].object_id.unpack_table_column_id();
-                            ("column", format!("{db}.{schema}.{}.{column}", table_id.pack()))
+                            ("column", format!("{db}.{schema}.{}.{column}", object_id_text(table_id)))
                         }
                         CandidateObjectRef::Function(loc) => {
                             let function = &completion.entry_data(loc.entry).expect("entry").function_declarations
                                 [loc.index as usize];
                             let (db, schema) = function.catalog_schema_id.unpack_schema_id();
-                            ("function", format!("{db}.{schema}.{}", function.function_id().pack()))
+                            ("function", format!("{db}.{schema}.{}", object_id_text(function.function_id())))
                         }
                     };
                     o.plain("type", kind);

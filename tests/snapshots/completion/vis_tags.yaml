@@ -9,14 +9,9 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: '@v'
@@ -41,14 +36,9 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: '@e'
@@ -65,19 +55,11 @@ completion-snapshots:
         select 1
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'unknown @vis kind "ve", expected vegalite, markdown, kpi or table'
-          text: "ve"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'unknown @vis kind "ve", expected vegalite, markdown, kpi or table', text: "ve"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: 've'
@@ -102,19 +84,11 @@ completion-snapshots:
         select 1
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@board takes key=value args, not "h"'
-          text: "h"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@board takes key=value args, not "h"', text: "h"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       visualizations:
         - statement-id: 0
           source: "select 1"
@@ -149,25 +123,16 @@ completion-snapshots:
         create table t (a int)
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: t
           text: "create tab.. t (a int)"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: a
-              text: "a int"
+            - {catalog-id: "256.65536.1:0.0", name: a, text: "a int"}
       touched-relations:
-        - statement-id: 0
-          name: t
+        - {statement-id: 0, name: t}
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@flow takes key=value args, not "y"'
-          text: "y"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@flow needs y'
-          text: "flow"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@flow takes key=value args, not "y"', text: "y"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@flow needs y', text: "flow"}
     cursor:
       search:
         text: ' y '
@@ -191,19 +156,11 @@ completion-snapshots:
         select 1
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'invalid Vega-Lite JSON: EOF while parsing a string at line 1 column 5'
-          text: "}"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'invalid Vega-Lite JSON: EOF while parsing a string at line 1 column 5', text: "}"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: '"ma'
@@ -229,19 +186,11 @@ completion-snapshots:
         select 1
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'invalid Vega-Lite JSON: EOF while parsing a string at line 1 column 30'
-          text: "\""
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'invalid Vega-Lite JSON: EOF while parsing a string at line 1 column 30', text: "\""}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: '"encoding": {"'
@@ -276,14 +225,9 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       visualizations:
         - statement-id: 0
           source: "select 1"
@@ -328,34 +272,13 @@ completion-snapshots:
         select region, revenue as total_revenue, date from sales
       catalog-id: 2
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'unknown field "re", the statement has the columns date, region, total_revenue'
-          text: "\"re\""
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'unknown field "re", the statement has the columns date, region, total_revenue', text: "\"re\""}
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "sales"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "sales"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "sales"
-          statement-id: 0
-          text: "region"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "sales"
-          statement-id: 0
-          text: "revenue"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.2"
-          source: "sales"
-          statement-id: 0
-          text: "date"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "sales", text: "region"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "sales", text: "revenue"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.2", source: "sales", text: "date"}
       visualizations:
         - statement-id: 0
           source: "select reg..from sales"
@@ -394,19 +317,11 @@ completion-snapshots:
         select 1 as a
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'invalid Vega-Lite JSON: key must be a string at line 1 column 50'
-          text: "ty"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'invalid Vega-Lite JSON: key must be a string at line 1 column 50', text: "ty"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: ' ty'
@@ -436,14 +351,9 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       visualizations:
         - statement-id: 0
           source: "select 1 as a"
@@ -476,14 +386,9 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       visualizations:
         - statement-id: 0
           source: "select 1 as a"
@@ -525,19 +430,11 @@ completion-snapshots:
         select 1 as a
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'invalid Vega-Lite JSON: expected `:` at line 1 column 15'
-          text: "}}"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'invalid Vega-Lite JSON: expected `:` at line 1 column 15', text: "}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: '"op'
@@ -572,14 +469,9 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       visualizations:
         - statement-id: 0
           source: "select 1 as a"
@@ -622,14 +514,9 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       visualizations:
         - statement-id: 0
           source: "select 1 as a"
@@ -662,14 +549,9 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       visualizations:
         - statement-id: 0
           source: "select 1 as a"
@@ -711,19 +593,11 @@ completion-snapshots:
         select 1 as a
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'invalid Vega-Lite JSON: expected `:` at line 1 column 49'
-          text: "}}}}"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'invalid Vega-Lite JSON: expected `:` at line 1 column 49', text: "}}}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: '"ty'
@@ -748,14 +622,9 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       visualizations:
         - statement-id: 0
           source: "select 1 as a"
@@ -792,19 +661,11 @@ completion-snapshots:
         select 1 as a
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'invalid Vega-Lite JSON: expected `:` at line 1 column 48'
-          text: "}}}}"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'invalid Vega-Lite JSON: expected `:` at line 1 column 48', text: "}}}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: '"ti'
@@ -838,19 +699,11 @@ completion-snapshots:
         select 1 as a
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'invalid Vega-Lite JSON: expected `:` at line 1 column 54'
-          text: "}}}}"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'invalid Vega-Lite JSON: expected `:` at line 1 column 54', text: "}}}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: '"or'
@@ -884,19 +737,11 @@ completion-snapshots:
         select 1 as a
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'invalid Vega-Lite JSON: expected `:` at line 1 column 46'
-          text: "}]}}"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'invalid Vega-Lite JSON: expected `:` at line 1 column 46', text: "}]}}"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: '"ty'
@@ -926,21 +771,11 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, text: "2"}
       constants:
-        - expression: 0
-          text: "1"
-        - expression: 1
-          text: "2"
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "2"}
       visualizations:
         - statement-id: 0
           source: "select 1 a..as revenue"
@@ -981,23 +816,10 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "sales"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "sales"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "sales"
-          statement-id: 0
-          text: "region"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "sales"
-          statement-id: 0
-          text: "revenue"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "sales", text: "region"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "sales", text: "revenue"}
       visualizations:
         - statement-id: 0
           source: "select reg..from sales"
@@ -1035,14 +857,9 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: 're */'
@@ -1059,19 +876,11 @@ completion-snapshots:
         select 1 as a
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@vis kpi takes key=value args, not "d"'
-          text: "d"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis kpi takes key=value args, not "d"', text: "d"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       visualizations:
         - statement-id: 0
           source: "select 1 as a"
@@ -1108,28 +917,12 @@ completion-snapshots:
         select region, revenue from sales
       catalog-id: 2
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'unknown column "re", the statement has the columns region, revenue'
-          text: "value=re"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'unknown column "re", the statement has the columns region, revenue', text: "value=re"}
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "sales"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "sales"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "sales"
-          statement-id: 0
-          text: "region"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "sales"
-          statement-id: 0
-          text: "revenue"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "sales", text: "region"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "sales", text: "revenue"}
       visualizations:
         - statement-id: 0
           source: "select reg..from sales"
@@ -1168,26 +961,13 @@ completion-snapshots:
         select 1 as "Total Revenue", 2 as tax
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: '@vis kpi has an unterminated delimited identifier'
-          text: "\"To"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis kpi has an unterminated delimited identifier', text: "\"To"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, text: "2"}
       constants:
-        - expression: 0
-          text: "1"
-        - expression: 1
-          text: "2"
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "2"}
       visualizations:
         - statement-id: 0
           source: "select 1 a.., 2 as tax"
@@ -1220,19 +1000,11 @@ completion-snapshots:
         select 1 as a
       catalog-id: 1
       errors:
-        - type: INVALID_VIS_TAG
-          severity: WARNING
-          message: 'unknown @vis kpi delta "f", expected previous, first, none'
-          text: "delta=f"
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'unknown @vis kpi delta "f", expected previous, first, none', text: "delta=f"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
       visualizations:
         - statement-id: 0
           source: "select 1 as a"

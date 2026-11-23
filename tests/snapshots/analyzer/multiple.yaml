@@ -14,83 +14,39 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "B"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 1
-          text: "B"
-        - type: name/unresolved
-          statement-id: 1
-          text: "C"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 0, text: "A"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", statement-id: 0, text: "B"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", statement-id: 1, text: "B"}
+        - {type: name/unresolved, statement-id: 1, text: "C"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "A"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "A"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "B"
-          statement-id: 1
-          text: "d"
-        - expression-idx: 3
-          type: colref/unresolved
-          statement-id: 1
-          text: "c"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "A", statement-id: 0, text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "A", statement-id: 0, text: "b"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.0", source: "B", statement-id: 1, text: "d"}
+        - {id: 3, type: colref/unresolved, statement-id: 1, text: "c"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: a
-              text: "A"
-            - type: table
-              name: b
-              text: "B"
+            - {type: table, name: a, text: "A"}
+            - {type: table, name: b, text: "B"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
-            - name: d
-              table-column: "256.65536.4294967297.0"
-            - name: e
-              table-column: "256.65536.4294967297.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+            - {name: d, table-column: "256.65536.1:1.0"}
+            - {name: e, table-column: "256.65536.1:1.1"}
           text: "select * f..here a = b"
         - scope-id: 1
           sources:
-            - type: table
-              name: b
-              text: "B"
-            - type: unresolved
-              name: c
-              text: "C"
+            - {type: table, name: b, text: "B"}
+            - {type: unresolved, name: c, text: "C"}
           columns:
-            - name: d
-              table-column: "256.65536.4294967297.0"
-            - name: e
-              table-column: "256.65536.4294967297.1"
+            - {name: d, table-column: "256.65536.1:1.0"}
+            - {name: e, table-column: "256.65536.1:1.1"}
           text: "select * f..here d = c"
       inferred-tables:
         - name: c
           confidence: confident
           columns:
-            - name: c
-              confidence: confident
+            - {name: c, confidence: confident}
 
   - name: multi_recovery_0
     catalog:
@@ -107,80 +63,36 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "A"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "B"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 1
-          text: "B"
-        - type: name/unresolved
-          statement-id: 1
-          text: "C"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 0, text: "A"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", statement-id: 0, text: "B"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", statement-id: 1, text: "B"}
+        - {type: name/unresolved, statement-id: 1, text: "C"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "A"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "A"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "B"
-          statement-id: 1
-          text: "d"
-        - expression-idx: 3
-          type: colref/unresolved
-          statement-id: 1
-          text: "c"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "A", statement-id: 0, text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "A", statement-id: 0, text: "b"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.0", source: "B", statement-id: 1, text: "d"}
+        - {id: 3, type: colref/unresolved, statement-id: 1, text: "c"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: a
-              text: "A"
-            - type: table
-              name: b
-              text: "B"
+            - {type: table, name: a, text: "A"}
+            - {type: table, name: b, text: "B"}
           columns:
-            - name: a
-              table-column: "256.65536.4294967296.0"
-            - name: b
-              table-column: "256.65536.4294967296.1"
-            - name: d
-              table-column: "256.65536.4294967297.0"
-            - name: e
-              table-column: "256.65536.4294967297.1"
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+            - {name: d, table-column: "256.65536.1:1.0"}
+            - {name: e, table-column: "256.65536.1:1.1"}
           text: "select * f..here a = b"
         - scope-id: 1
           sources:
-            - type: table
-              name: b
-              text: "B"
-            - type: unresolved
-              name: c
-              text: "C"
+            - {type: table, name: b, text: "B"}
+            - {type: unresolved, name: c, text: "C"}
           columns:
-            - name: d
-              table-column: "256.65536.4294967297.0"
-            - name: e
-              table-column: "256.65536.4294967297.1"
+            - {name: d, table-column: "256.65536.1:1.0"}
+            - {name: e, table-column: "256.65536.1:1.1"}
           text: "select * f..here d = c"
       inferred-tables:
         - name: c
           confidence: confident
           columns:
-            - name: c
-              confidence: confident
+            - {name: c, confidence: confident}

@@ -18,38 +18,24 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "outer_source o"
+        - {type: name/unresolved, text: "outer_source o"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "o.outer_column"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/unresolved, text: "o.outer_column"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 1
-          text: "1"
+        - {expression: 1, text: "1"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: o
-              text: "outer_source o"
+            - {type: unresolved, name: o, text: "outer_source o"}
           columns:
-            - name: outer_column
-              expression: 0
+            - {name: outer_column, expression: 0}
           text: "WITH pg AS..\n     ) gt"
       inferred-tables:
         - name: outer_source
           confidence: confident
           columns:
-            - name: outer_column
-              confidence: confident
+            - {name: outer_column, confidence: confident}
 
   - name: syntax_only_graph_subquery
     script:
@@ -63,27 +49,18 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "outer_source"
+        - {type: name/unresolved, text: "outer_source"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "outer_column"
+        - {id: 0, type: colref/unresolved, text: "outer_column"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: unresolved
-              name: outer_source
-              text: "outer_source"
+            - {type: unresolved, name: outer_source, text: "outer_source"}
           columns:
-            - name: outer_column
-              expression: 0
+            - {name: outer_column, expression: 0}
           text: "WITH pg AS..ter_source"
       inferred-tables:
         - name: outer_source
           confidence: confident
           columns:
-            - name: outer_column
-              confidence: confident
+            - {name: outer_column, confidence: confident}

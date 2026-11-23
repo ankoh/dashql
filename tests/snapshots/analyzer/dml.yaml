@@ -10,56 +10,30 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          role: write
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
       inserts:
-        - statement-id: 0
-          target-ref: 1
+        - target-ref: 1
           source: "select a, c from u"
           columns:
-            - name: b
-              resolved: true
-            - name: a
-              resolved: true
+            - {name: b, resolved: true}
+            - {name: a, resolved: true}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "u"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "u"
-          statement-id: 0
-          text: "c"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
       name-scopes:
         - scope-id: 0
           parent: 1
           correlation-barrier: true
           sources:
-            - type: table
-              name: u
-              text: "u"
+            - {type: table, name: u, text: "u"}
           columns:
-            - name: a
-              expression: 0
-            - name: c
-              expression: 1
+            - {name: a, expression: 0}
+            - {name: c, expression: 1}
           text: "select a, c from u"
         - scope-id: 1
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           text: "insert int.., c from u"
 
   - name: insert_target_column_unknown
@@ -72,51 +46,30 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          role: write
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
       inserts:
-        - statement-id: 0
-          target-ref: 0
+        - target-ref: 0
           source: "values (1, 2)"
           columns:
-            - name: a
-              resolved: true
-            - name: z
-              resolved: false
+            - {name: a, resolved: true}
+            - {name: z, resolved: false}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "2"
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, text: "2"}
       constants:
-        - expression: 0
-          text: "1"
-        - expression: 1
-          text: "2"
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "2"}
       name-scopes:
         - scope-id: 0
           parent: 1
           correlation-barrier: true
           columns:
-            - name: '?'
-              expression: 0
-            - name: '?'
-              expression: 1
+            - {name: '?', expression: 0}
+            - {name: '?', expression: 1}
           text: "values (1, 2)"
         - scope-id: 1
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           text: "insert int..ues (1, 2)"
 
   - name: insert_target_columns_unresolved_table
@@ -129,55 +82,30 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/unresolved
-          statement-id: 0
-          role: write
-          text: "missing"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/unresolved, role: write, text: "missing"}
       inserts:
-        - statement-id: 0
-          target-ref: 1
+        - target-ref: 1
           source: "select a, b from t"
           columns:
-            - name: p
-              resolved: false
-            - name: q
-              resolved: false
+            - {name: p, resolved: false}
+            - {name: q, resolved: false}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
       name-scopes:
         - scope-id: 0
           parent: 1
           correlation-barrier: true
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: a
-              expression: 0
-            - name: b
-              expression: 1
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
           text: "select a, b from t"
         - scope-id: 1
           sources:
-            - type: unresolved
-              name: missing
-              text: "missing"
+            - {type: unresolved, name: missing, text: "missing"}
           text: "insert int.., b from t"
 
   - name: insert_source_does_not_see_target
@@ -190,41 +118,25 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          role: write
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
       inserts:
-        - statement-id: 0
-          target-ref: 1
+        - target-ref: 1
           source: "select b from u"
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "b"
+        - {id: 0, type: colref/unresolved, text: "b"}
       name-scopes:
         - scope-id: 0
           parent: 1
           correlation-barrier: true
           sources:
-            - type: table
-              name: u
-              text: "u"
+            - {type: table, name: u, text: "u"}
           columns:
-            - name: b
-              expression: 0
+            - {name: b, expression: 0}
           text: "select b from u"
         - scope-id: 1
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           text: "insert int..t b from u"
 
   - name: insert_default_values_returning
@@ -237,40 +149,21 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          role: write
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
       inserts:
-        - statement-id: 0
-          target-ref: 0
+        - target-ref: 0
           default-values: true
           returning: true
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t"
-          statement-id: 0
-          text: "b"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           columns:
-            - name: a
-              expression: 0
-            - name: b
-              expression: 1
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
           text: "insert int..rning a, b"
 
   - name: insert_with_cte_source
@@ -283,86 +176,43 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
-        - type: name/cte
-          statement-id: 0
-          text: "c"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          role: write
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/cte, text: "c"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
       inserts:
-        - statement-id: 0
-          target-ref: 2
+        - target-ref: 2
           source: "select a, c from c"
           columns:
-            - name: a
-              resolved: true
-            - name: b
-              resolved: true
+            - {name: a, resolved: true}
+            - {name: b, resolved: true}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "u"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "u"
-          statement-id: 0
-          text: "c"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "c"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "c"
-          statement-id: 0
-          text: "c"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.0", source: "c", text: "a"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:1.1", source: "c", text: "c"}
       name-scopes:
         - scope-id: 0
           parent: 2
           parent-sources: none
           correlation-barrier: true
           sources:
-            - type: table
-              name: u
-              text: "u"
+            - {type: table, name: u, text: "u"}
           columns:
-            - name: a
-              expression: 0
-            - name: c
-              expression: 1
+            - {name: a, expression: 0}
+            - {name: c, expression: 1}
           text: "select a, c from u"
         - scope-id: 1
           parent: 2
           correlation-barrier: true
           sources:
-            - type: cte
-              name: c
-              scope: 0
-              text: "c"
+            - {type: cte, name: c, scope: 0, text: "c"}
           columns:
-            - name: a
-              expression: 2
-            - name: c
-              expression: 3
+            - {name: a, expression: 2}
+            - {name: c, expression: 3}
           text: "select a, c from c"
         - scope-id: 2
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           text: "with c as .., c from c"
 
   - name: insert_into_script_table
@@ -374,71 +224,41 @@ analyzer-snapshots:
       input: create table z (k int, l text); insert into z (l, k) select c::text, a from u
       catalog-id: 2
       tables:
-        - catalog-id: "256.65536.8589934592"
+        - catalog-id: "256.65536.2:0"
           name: z
           text: "create tab..t, l text)"
           columns:
-            - catalog-id: "256.65536.8589934592.0"
-              name: k
-              text: "k int"
-            - catalog-id: "256.65536.8589934592.1"
-              name: l
-              text: "l text"
+            - {catalog-id: "256.65536.2:0.0", name: k, text: "k int"}
+            - {catalog-id: "256.65536.2:0.1", name: l, text: "l text"}
       touched-relations:
-        - statement-id: 0
-          name: z
+        - {statement-id: 0, name: z}
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 1
-          text: "u"
-        - type: name/internal
-          catalog-id: "256.65536.8589934592"
-          statement-id: 1
-          role: write
-          text: "z"
+        - {type: name/catalog, catalog-id: "256.65536.1:1", statement-id: 1, text: "u"}
+        - {type: name/internal, catalog-id: "256.65536.2:0", statement-id: 1, role: write, text: "z"}
       inserts:
         - statement-id: 1
           target-ref: 1
           source: "select c::.., a from u"
           columns:
-            - name: l
-              resolved: true
-            - name: k
-              resolved: true
+            - {name: l, resolved: true}
+            - {name: k, resolved: true}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "u"
-          statement-id: 1
-          text: "c"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "u"
-          statement-id: 1
-          text: "a"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", statement-id: 1, text: "c"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", statement-id: 1, text: "a"}
       name-scopes:
         - scope-id: 1
           parent: 2
           correlation-barrier: true
           sources:
-            - type: table
-              name: u
-              text: "u"
+            - {type: table, name: u, text: "u"}
           columns:
-            - name: '?'
-              computed: true
-            - name: a
-              expression: 1
+            - {name: '?', computed: true}
+            - {name: a, expression: 1}
           text: "select c::.., a from u"
         - scope-id: 2
           sources:
-            - type: table
-              name: z
-              text: "z"
+            - {type: table, name: z, text: "z"}
           text: "insert int.., a from u"
 
   - name: delete_using
@@ -451,51 +271,20 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          role: write
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "t.a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "u"
-          statement-id: 0
-          text: "u.a"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "u"
-          statement-id: 0
-          text: "c"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "0"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+        - {id: 3, type: literal/integer, is-const: true, text: "0"}
       constants:
-        - expression: 3
-          text: "0"
+        - {expression: 3, text: "0"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: u
-              text: "u"
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: u, text: "u"}
+            - {type: table, name: t, text: "t"}
           text: "delete fro.. and c > 0"
 
   - name: delete_correlated_exists
@@ -508,52 +297,25 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          role: write
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "u"
-          statement-id: 0
-          text: "u.a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "t.a"
-        - expression-idx: 2
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 2
-          text: "1"
+        - {expression: 2, text: "1"}
       name-scopes:
         - scope-id: 0
           parent: 1
           sources:
-            - type: table
-              name: u
-              text: "u"
+            - {type: table, name: u, text: "u"}
           columns:
-            - name: '?'
-              expression: 2
+            - {name: '?', expression: 2}
           text: "(select 1 ..u.a = t.a)"
         - scope-id: 1
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           text: "delete fro..u.a = t.a)"
 
   - name: delete_alias_returning
@@ -566,49 +328,21 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          role: write
-          text: "t as x"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t as x"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t as x"
-          statement-id: 0
-          text: "x.b"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t as x"
-          statement-id: 0
-          text: "x.a"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          source: "t as x"
-          statement-id: 0
-          text: "b"
-        - expression-idx: 3
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t as x", text: "x.b"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t as x", text: "x.a"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t as x", text: "b"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - expression: 3
-          text: "1"
+        - {expression: 3, text: "1"}
       name-scopes:
         - scope-id: 0
           sources:
-            - type: table
-              name: x
-              text: "t as x"
+            - {type: table, name: x, text: "t as x"}
           columns:
-            - name: a
-              expression: 1
-            - name: b
-              expression: 2
+            - {name: a, expression: 1}
+            - {name: b, expression: 2}
           text: "delete fro..ing x.a, b"
 
   - name: delete_with_cte
@@ -621,78 +355,35 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
-        - type: name/cte
-          statement-id: 0
-          text: "old"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          role: write
-          text: "t"
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/cte, text: "old"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
       expressions:
-        - expression-idx: 0
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "u"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967297.1"
-          source: "u"
-          statement-id: 0
-          text: "c"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967297.0"
-          source: "old"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 3
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          source: "t"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 4
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "0"
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.0", source: "old", text: "a"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 4, type: literal/integer, is-const: true, text: "0"}
       constants:
-        - expression: 4
-          text: "0"
+        - {expression: 4, text: "0"}
       name-scopes:
         - scope-id: 0
           parent: 2
           parent-sources: none
           correlation-barrier: true
           sources:
-            - type: table
-              name: u
-              text: "u"
+            - {type: table, name: u, text: "u"}
           columns:
-            - name: a
-              expression: 0
+            - {name: a, expression: 0}
           text: "select a f..here c < 0"
         - scope-id: 1
           parent: 2
           sources:
-            - type: cte
-              name: old
-              scope: 0
-              text: "old"
+            - {type: cte, name: old, scope: 0, text: "old"}
           columns:
-            - name: a
-              expression: 2
+            - {name: a, expression: 2}
           text: "(select a from old)"
         - scope-id: 2
           sources:
-            - type: table
-              name: t
-              text: "t"
+            - {type: table, name: t, text: "t"}
           text: "with old a.. from old)"

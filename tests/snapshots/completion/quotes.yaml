@@ -10,10 +10,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "region"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "region"}
     cursor:
       search:
         text: region
@@ -31,7 +28,7 @@ completion-snapshots:
           location-qualified: "region"
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
               qualified: region
               qualified-idx: 0
@@ -45,7 +42,7 @@ completion-snapshots:
           location-qualified: "region"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: region.r_regionkey
               qualified-idx: 1
@@ -79,10 +76,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "\"Region\""
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "\"Region\""}
     cursor:
       search:
         text: Region
@@ -100,7 +94,7 @@ completion-snapshots:
           location-qualified: "\"Region\""
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
               qualified: '"Region"'
               qualified-idx: 0
@@ -114,7 +108,7 @@ completion-snapshots:
           location-qualified: "\"Region\""
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: '"Region".r_regionkey'
               qualified-idx: 1

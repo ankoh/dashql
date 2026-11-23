@@ -17,10 +17,7 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "my"
+        - {id: 0, type: colref/unresolved, text: "my"}
     cursor:
       search:
         text: 'my'
@@ -43,7 +40,7 @@ completion-snapshots:
           location-qualified: "my"
           objects:
             - type: function
-              id: "256.65536.4294967300"
+              id: "256.65536.1:4"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: myagg
               qualified-idx: 0
@@ -56,7 +53,7 @@ completion-snapshots:
           location-qualified: "my"
           objects:
             - type: function
-              id: "256.65536.4294967301"
+              id: "256.65536.1:5"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: myany
               qualified-idx: 0
@@ -68,7 +65,7 @@ completion-snapshots:
           location-qualified: "my"
           objects:
             - type: function
-              id: "256.65536.4294967299"
+              id: "256.65536.1:3"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: mymax
               qualified-idx: 0
@@ -81,7 +78,7 @@ completion-snapshots:
           location-qualified: "my"
           objects:
             - type: function
-              id: "256.65536.4294967298"
+              id: "256.65536.1:2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: myproc
               qualified-idx: 0
@@ -94,14 +91,14 @@ completion-snapshots:
           location-qualified: "my"
           objects:
             - type: function
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: mysum
               qualified-idx: 0
               prefer-qualified: 0
               detail: "(x int, y text) → int"
             - type: function
-              id: "256.65536.4294967297"
+              id: "256.65536.1:1"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: mysum
               qualified-idx: 0
@@ -122,15 +119,9 @@ completion-snapshots:
       catalog-id: 2
       errors: []
       table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "mytable"
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "mytable"}
       expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "my"
+        - {id: 0, type: colref/unresolved, text: "my"}
     cursor:
       search:
         text: 'my'
@@ -148,7 +139,7 @@ completion-snapshots:
           location-qualified: "my"
           objects:
             - type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.1:0.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: mytable.mya
               qualified-idx: 1
@@ -161,7 +152,7 @@ completion-snapshots:
           location-qualified: "my"
           objects:
             - type: column
-              id: "256.65536.4294967296.1"
+              id: "256.65536.1:0.1"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: mytable.myb
               qualified-idx: 1
@@ -179,7 +170,7 @@ completion-snapshots:
           location-qualified: "my"
           objects:
             - type: column
-              id: "256.65536.4294967297.0"
+              id: "256.65536.1:1.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: myone.myc
               qualified-idx: 1
@@ -192,7 +183,7 @@ completion-snapshots:
           location-qualified: "my"
           objects:
             - type: table
-              id: "256.65536.4294967297"
+              id: "256.65536.1:1"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: myone
               qualified-idx: 0
@@ -206,7 +197,7 @@ completion-snapshots:
           location-qualified: "my"
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: mytable
               qualified-idx: 0
@@ -222,29 +213,20 @@ completion-snapshots:
         select * from my
       catalog-id: 1
       tables:
-        - catalog-id: "256.65536.4294967296"
+        - catalog-id: "256.65536.1:0"
           name: myview
           text: "create vie..ect 1 as a"
           columns:
-            - catalog-id: "256.65536.4294967296.0"
-              name: a
+            - {catalog-id: "256.65536.1:0.0", name: a}
       touched-relations:
-        - statement-id: 0
-          name: myview
+        - {statement-id: 0, name: myview}
       errors: []
       table-refs:
-        - type: name/unresolved
-          statement-id: 1
-          text: "my"
+        - {type: name/unresolved, statement-id: 1, text: "my"}
       expressions:
-        - expression-idx: 0
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
+        - {id: 0, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
       constants:
-        - expression: 0
-          text: "1"
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: 'from my'
@@ -262,7 +244,7 @@ completion-snapshots:
           location-qualified: "my"
           objects:
             - type: table
-              id: "256.65536.4294967296"
+              id: "256.65536.1:0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
               qualified: myview
               qualified-idx: 0
