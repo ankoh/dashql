@@ -303,6 +303,38 @@ completion-snapshots:
     completions:
       limit: 5
 
+  # A WHEN NOT MATCHED clause of MERGE doesn't qualify the columns of the target with its alias
+  - name: clause_merge_not_matched_target_alias_unqualified
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int, note text);
+    editor:
+      input: |-
+        merge into t as x using u on x.a = u.a when not matched and a then do nothing
+    cursor:
+      search:
+        text: 'and a'
+        index: 5
+    completions:
+      limit: 3
+
+  # Outside of an aliased join, the alias of the join qualifies the columns of the FROM items inside it
+  - name: clause_select_join_alias_qualifies_columns
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int); create table u (a int, c int);
+    editor:
+      input: |-
+        select a from (t join u on t.a = u.a) as j(x)
+    cursor:
+      search:
+        text: 'a from'
+        index: 1
+    completions:
+      limit: 3
+
   # The source alias completes its columns in a WHEN NOT MATCHED clause of MERGE
   - name: clause_merge_not_matched_source_alias
     catalog:

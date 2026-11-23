@@ -237,9 +237,9 @@ completion-snapshots:
             - type: column
               id: "256.65536.1:0.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: t.a
+              qualified: j.a
               qualified-idx: 1
-              prefer-qualified: 0
+              prefer-qualified: 1
               detail: "integer · t"
         - value: b
           name-tags: [COLUMN_NAME]
@@ -250,9 +250,9 @@ completion-snapshots:
             - type: column
               id: "256.65536.1:0.1"
               candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: t.b
+              qualified: j.b
               qualified-idx: 1
-              prefer-qualified: 0
+              prefer-qualified: 1
               detail: "integer · t"
         - value: c
           name-tags: [COLUMN_NAME]
@@ -263,9 +263,9 @@ completion-snapshots:
             - type: column
               id: "256.65536.1:1.1"
               candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: u.c
+              qualified: j.c
               qualified-idx: 1
-              prefer-qualified: 0
+              prefer-qualified: 1
               detail: "integer · u"
       text: "."
 
@@ -303,9 +303,9 @@ completion-snapshots:
             - type: column
               id: "256.65536.1:1.1"
               candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: u.c
+              qualified: j.c
               qualified-idx: 1
-              prefer-qualified: 0
+              prefer-qualified: 1
               detail: "integer · u"
         - value: x
           name-tags: [COLUMN_NAME]
@@ -316,9 +316,9 @@ completion-snapshots:
             - type: column
               id: "256.65536.1:0.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: t.a
+              qualified: j.x
               qualified-idx: 1
-              prefer-qualified: 0
+              prefer-qualified: 1
               detail: "integer · t"
         - value: y
           name-tags: [COLUMN_NAME]
@@ -329,9 +329,9 @@ completion-snapshots:
             - type: column
               id: "256.65536.1:0.1"
               candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: t.b
+              qualified: j.y
               qualified-idx: 1
-              prefer-qualified: 0
+              prefer-qualified: 1
               detail: "integer · t"
       text: "x"
 

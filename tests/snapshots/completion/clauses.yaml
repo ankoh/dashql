@@ -1154,6 +1154,126 @@ completion-snapshots:
       entries: []
       text: "n"
 
+  - name: clause_merge_not_matched_target_alias_unqualified
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int, note text);
+        errors: []
+    editor:
+      input: |-
+        merge into t as x using u on x.a = u.a when not matched and a then do nothing
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t as x"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t as x", text: "x.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "a"}
+    cursor:
+      search:
+        text: 'and a'
+        index: 5
+    completions:
+      limit: 3
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: a
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+          location: "a"
+          location-qualified: "a"
+          objects:
+            - type: column
+              id: "256.65536.1:1.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+              qualified: u.a
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · u"
+            - type: column
+              id: "256.65536.1:0.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
+              qualified: t.a
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+        - value: a
+          candidate-tags: [IDENTITY]
+          location: "a"
+          location-qualified: "a"
+          objects: []
+        - value: abort
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "a"
+          location-qualified: "a"
+          objects: []
+      text: "a"
+
+  - name: clause_select_join_alias_qualifies_columns
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select a from (t join u on t.a = u.a) as j(x)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+    cursor:
+      search:
+        text: 'a from'
+        index: 1
+    completions:
+      limit: 3
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: a
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+          location: "a"
+          location-qualified: "a"
+          objects:
+            - type: column
+              id: "256.65536.1:0.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+              qualified: j.x
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "integer · t"
+            - type: column
+              id: "256.65536.1:1.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+              qualified: j.a
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "integer · u"
+        - value: a
+          candidate-tags: [IDENTITY]
+          location: "a"
+          location-qualified: "a"
+          objects: []
+        - value: abort
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "a"
+          location-qualified: "a"
+          objects: []
+      text: "a"
+
   - name: clause_merge_not_matched_source_alias
     catalog:
       script:

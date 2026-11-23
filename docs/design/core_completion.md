@@ -240,7 +240,7 @@ After initial candidate collection, two promotion passes tag candidates with add
 
 1. **promote_tables_and_peers_for_unresolved_columns** — If the current statement has unresolved column references, tables containing those columns get `RESOLVING_TABLE` (+5). Sibling columns of unresolved ones get `UNRESOLVED_PEER` (+1).
 
-2. **promote_identifiers_in_scope** — Walks the cursor's naming scopes (innermost first) and tags the columns of resolved catalog tables and of resolved column references with `IN_NAME_SCOPE` (+10). It does not run between symbols. The scopes see the FROM items that name resolution gives the column refs at the cursor: a clause of the innermost scope can restrict them (`NameScope::visibility_at`), a `WHEN NOT MATCHED` clause of MERGE sees the source only and a `WHEN NOT MATCHED BY SOURCE` clause the target only, for the alias of a `a._` too.
+2. **promote_identifiers_in_scope** — Walks the cursor's naming scopes (innermost first) and tags the columns of resolved catalog tables and of resolved column references with `IN_NAME_SCOPE` (+10). It does not run between symbols. A resolved column ref promotes its column only if the cursor sees its FROM item. The scopes see the FROM items that name resolution gives the column refs at the cursor: a clause of the innermost scope can restrict them (`NameScope::visibility_at`), a `WHEN NOT MATCHED` clause of MERGE sees the source only and a `WHEN NOT MATCHED BY SOURCE` clause the target only, for the alias of a `a._` too.
 
 ## Scoring and ranking
 
@@ -254,6 +254,7 @@ Ties are broken lexicographically (case-insensitive, smaller name wins).
 
 `select_top_candidates()` extracts the top-k candidates from the scored heap.
 `qualify_top_candidates()` derives qualified names for the winners (e.g. `schema.table` instead of just `table`) when the catalog object prefers qualification.
+A column of a table ref that the cursor sees is qualified with the alias of the table ref. Outside of an aliased join, the alias of the join qualifies the columns of the FROM items inside it, `j.a` instead of `t.a`, with the name that the column aliases of the join give it. The table refs that the cursor doesn't see qualify nothing, the target of MERGE in a `WHEN NOT MATCHED` clause.
 
 ## Candidate info
 

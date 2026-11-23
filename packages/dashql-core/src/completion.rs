@@ -9,7 +9,7 @@
 #![allow(non_upper_case_globals)]
 
 use crate::analyzer::{
-    AnalyzedScript, ColumnResolution, ReferencedTable, ScopeColumnSource, ScopeId, ScopeJoin, ScopeSource,
+    is_within, AnalyzedScript, ColumnResolution, ReferencedTable, ScopeColumnSource, ScopeId, ScopeJoin, ScopeSource,
     SourceVisibility, TableRole,
 };
 use crate::catalog::*;
@@ -1330,10 +1330,13 @@ impl<'c, 'a> Completion<'c, 'a> {
                     promote(self, column.object_id);
                 }
             }
-            // Resolved column refs in scope
+            // Resolved column refs in scope, of the FROM items that the cursor sees
             for &expr in &scope.expressions {
                 let Some(column_ref) = analyzed.expression(expr).and_then(|e| e.column_ref()) else { continue };
                 let ColumnResolution::TableColumn(loc) = column_ref.resolved else { continue };
+                if column_ref.resolved_source.is_some_and(|source| !visibility.sees_node(source)) {
+                    continue;
+                }
                 // The location refers to the entries the script was analyzed against, which the catalog
                 // may have replaced since
                 let Some(column) = analyzed.table(loc.table).and_then(|t| t.table_columns.get(loc.column as usize))
@@ -1935,12 +1938,21 @@ impl<'c, 'a> Completion<'c, 'a> {
             }
         }
 
-        // Qualify column candidates with the aliases of the table refs in scope
+        // Qualify column candidates with the aliases of the table refs that the cursor sees, an aliased join qualifies
+        // the columns of the FROM items inside it with its alias
         let Some(analyzed) = self.analyzed() else { return };
-        for &scope_id in &self.cursor.name_scopes {
+        let ast = analyzed.parsed.nodes.as_slice();
+        // Without a node, the cursor is outside of every join
+        let node_id = self.cursor.ast_node_id.unwrap_or(u32::MAX);
+        for (scope_id, visibility) in Self::visible_scopes(analyzed, self.cursor) {
             let Some(scope) = analyzed.scope(scope_id) else { continue };
+            let hiding = scope.hiding_joins(ast, node_id);
             for &table_ref_id in &scope.table_references {
                 let Some(table_ref) = analyzed.table_ref(table_ref_id) else { continue };
+                if !visibility.sees_node(table_ref.ast_node_id) {
+                    continue;
+                }
+                let join = hiding.iter().find(|join| is_within(ast, table_ref.ast_node_id, join.ast_node_id));
                 let Some(resolved) = table_ref.inner.as_ref().and_then(|r| r.resolved_table.as_ref()) else { continue };
                 let mut has_match = false;
                 for &(table_id, co) in &columns_by_table {
@@ -1957,13 +1969,25 @@ impl<'c, 'a> Completion<'c, 'a> {
                     };
                     let column_name = column.column_name.text.clone();
                     let Some(object) = self.candidate_objects.get_mut(co) else { continue };
-                    match &table_ref.alias {
-                        Some((alias, _)) => {
+                    match (join, &table_ref.alias) {
+                        (Some(join), _) => {
+                            // The join names the column, its column aliases rename it
+                            let join_column = join
+                                .columns
+                                .iter()
+                                .find(|c| c.source == table_ref.ast_node_id && c.position == loc.column)
+                                .map(|c| c.column.column_name.text.clone())
+                                .filter(|name| !name.is_empty());
+                            object.qualified_name = vec![join.name.clone(), join_column.unwrap_or(column_name)];
+                            object.qualified_name_target_idx = 1;
+                            object.prefer_qualified = true;
+                        }
+                        (None, Some((alias, _))) => {
                             object.qualified_name = vec![alias.text.clone(), column_name];
                             object.qualified_name_target_idx = 1;
                             object.prefer_qualified = true;
                         }
-                        None => {
+                        (None, None) => {
                             let mut names = Self::qualified_table_name(&resolved.table_name);
                             names.push(column_name);
                             object.qualified_name_target_idx = names.len() - 1;
