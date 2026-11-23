@@ -24,8 +24,10 @@ import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_po
 import { ProgressBar } from '@akohn/dashql-react/components/progress_bar';
 import { relaunch } from '../../host/process.js';
 import { useLogger } from '../../host/logger_provider.js';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
 export const VERSION_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+const LOG_CTX = 'version_viewer';
 
 interface UpdateChannelProps {
     channel: ReleaseChannel;
@@ -35,8 +37,8 @@ interface UpdateChannelProps {
     releaseManifest: Result<ReleaseManifest | null> | null;
     updateManifest: Result<InstallableUpdate | null> | null;
     installationStatus: InstallationState | null;
-    /// Install an update from this channel. Also persists the channel as the active one.
-    onInstall: (channel: ReleaseChannel, update: InstallableUpdate) => void;
+    /// Install an update from this channel
+    onInstall: (update: InstallableUpdate) => void;
 }
 
 const UpdateChannel: React.FC<UpdateChannelProps> = (props: UpdateChannelProps) => {
@@ -66,7 +68,7 @@ const UpdateChannel: React.FC<UpdateChannelProps> = (props: UpdateChannelProps) 
                 } else if (props.updateManifest.value != null) {
                     // The upgrade is installable, render a button to trigger installation.
                     const installable = props.updateManifest.value;
-                    status = <Button size={ButtonSize.Small} onClick={() => props.onInstall(props.channel, installable)}>Install</Button>;
+                    status = <Button size={ButtonSize.Small} onClick={() => props.onInstall(installable)}>Install</Button>;
                 } else {
                     // The manifest advertises a newer version but no installable update was returned.
                     // update yet (e.g. the check is still in flight or failed). Surface it without an action.
@@ -75,13 +77,11 @@ const UpdateChannel: React.FC<UpdateChannelProps> = (props: UpdateChannelProps) 
             } else {
                 // Does the current installation refer to this channel?
                 if (props.installationStatus.channel == props.channel) {
-                    console.log(props.installationStatus);
                     // Do we know the total bytes already?
                     // Render a query_status bar then.
                     if (props.installationStatus.totalBytes != null && props.installationStatus.totalBytes > 0) {
                         if (props.installationStatus.statusCode == InstallationStatusCode.InProgress) {
                             const progress = props.installationStatus.loadedBytes / props.installationStatus.totalBytes;
-                            console.log(progress * 100);
                             status = <ProgressBar className={styles.update_channel_action_progress} progress={progress * 100} />;
                         } else {
                             status = (
@@ -145,20 +145,21 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
     }
 
     // Install an update. The app restarts on the new version afterwards, so the channel re-derives itself.
-    const onInstall = React.useCallback((_channel: ReleaseChannel, update: InstallableUpdate) => {
-        update.download().catch((e: unknown) => {
-            console.error(e);
+    // A failed download shows as the toast of the error.
+    const onInstall = React.useCallback((update: InstallableUpdate) => {
+        update.download().catch((error: unknown) => {
+            logger.error('Failed to download the update', { error: stringifyError(error) }, LOG_CTX);
         });
-    }, []);
+    }, [logger]);
 
     const onRelaunch = React.useCallback(() => {
         if (relaunching) {
             return;
         }
         setRelaunching(true);
-        relaunch(logger).catch((e: unknown) => {
+        relaunch(logger).catch((error: unknown) => {
             setRelaunching(false);
-            console.error(e);
+            logger.error('Failed to relaunch the app', { error: stringifyError(error) }, LOG_CTX);
         });
     }, [logger, relaunching]);
 

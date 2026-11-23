@@ -3,10 +3,12 @@ import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { LoggerProvider } from '../../host/logger_provider.js';
+import type { Logger } from '@akohn/dashql/platform/logger/logger';
+import { DASHQL_VERSION } from '../../globals.js';
+import { LoggerProvider, useLogger } from '../../host/logger_provider.js';
 import { ElectronVersionCheck } from '../../host/version/electron_version_check.js';
 import { useVersionCheck } from '../../host/version/version_check.js';
-import { WebVersionCheck } from '../../host/version/web_version_check.js';
+import { detectReleaseChannel, WebVersionCheck } from '../../host/version/web_version_check.js';
 import { VERSION_CHECK_INTERVAL_MS, VersionInfoOverlay } from './version_viewer.js';
 
 const manifest = {
@@ -23,6 +25,11 @@ function renderAnchor(props: object) {
     return <button {...props}>Version</button>;
 }
 
+function LoggerProbe(props: {onLogger: (logger: Logger) => void}) {
+    props.onLogger(useLogger());
+    return null;
+}
+
 function RefreshState(props: {onChange: (refreshing: boolean) => void}) {
     const state = useVersionCheck().refresh;
     const refreshing = state?.isRefreshing ?? false;
@@ -37,6 +44,7 @@ describe('VersionInfoOverlay', () => {
     let now: number;
     let fetchManifest: ReturnType<typeof vi.fn>;
     let isRefreshing: boolean;
+    let logger: Logger;
 
     beforeEach(() => {
         container = document.createElement('div');
@@ -63,6 +71,7 @@ describe('VersionInfoOverlay', () => {
                 <LoggerProvider>
                     <CheckProvider>
                         <>
+                            <LoggerProbe onLogger={next => { logger = next; }} />
                             <RefreshState onChange={refreshing => { isRefreshing = refreshing; }} />
                             <VersionInfoOverlay isOpen={open} onClose={() => {}} renderAnchor={renderAnchor} />
                         </>
@@ -158,5 +167,33 @@ describe('VersionInfoOverlay', () => {
         await render(true, true);
         expect(check).toHaveBeenCalledTimes(3);
         expect(fetchManifest).toHaveBeenCalledTimes(3 * perCheck);
+    });
+
+    it('logs an update that fails to download as an error', async () => {
+        const channel = detectReleaseChannel(DASHQL_VERSION);
+        const status: DashQLElectronUpdateStatus = {status: 'available', channel, version: '999.0.0'};
+        fetchManifest.mockImplementation(() => Promise.resolve(new Response(JSON.stringify({...manifest, version: '999.0.0'}))));
+        const download = vi.fn().mockRejectedValue(new Error('disk full'));
+        vi.stubGlobal('dashqlElectron', {
+            updates: {
+                check: vi.fn().mockResolvedValue(status),
+                getStatus: () => Promise.resolve(status),
+                onStatus: () => () => {},
+                download,
+            },
+        });
+
+        await render(true, true);
+        await settleRefresh();
+        const error = vi.spyOn(logger, 'error');
+        const install = () => Array.from(document.querySelectorAll('button')).find(candidate => candidate.textContent === 'Install');
+        await vi.waitFor(() => expect(install()).toBeDefined());
+        act(() => install()!.click());
+        await vi.waitFor(() => expect(error).toHaveBeenCalledWith(
+            'Failed to download the update',
+            {error: expect.stringContaining('disk full')},
+            'version_viewer',
+        ));
+        expect(download).toHaveBeenCalledTimes(1);
     });
 });
