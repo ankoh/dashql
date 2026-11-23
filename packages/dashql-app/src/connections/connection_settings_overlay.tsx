@@ -11,7 +11,7 @@ import { useConnectionDraft } from './connection_draft.js';
 import { useConnection } from '@akohn/dashql-react/hooks';
 import { connectionSaveSucceeded, failedWorkbookCopies, useConnectionSave, type ConnectionSaveResult } from './connection_persistence.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
-import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { HyperConnectorSettings } from './hyper_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { SalesforceConnectorSettings } from './salesforce_connection_settings.js';
@@ -24,8 +24,6 @@ interface Props {
     isOpen: boolean;
     onClose: () => void;
     anchorRef: React.RefObject<HTMLElement | null>;
-    headerTitle?: string;
-    onConnected?: (database: ConnectionState) => void;
     side?: AnchorSide;
     /// Renders the name of a workbook, the workbook id if absent
     renderWorkbookName?: (workbookId: string) => React.ReactNode;
@@ -38,18 +36,6 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
     const connecting = conn?.connectionHealth === ConnectionHealth.CONNECTING;
 
     const currentConnectorType = conn?.connectorType ?? ConnectorType.HYPER;
-
-    const completedDatabaseId = React.useRef<string | null>(null);
-    const { isOpen, onConnected } = props;
-    React.useEffect(() => {
-        if (!isOpen || conn?.connectionHealth !== ConnectionHealth.ONLINE || onConnected == null) return;
-        if (completedDatabaseId.current === conn.connectionId) return;
-        completedDatabaseId.current = conn.connectionId;
-        void onConnected(conn);
-    }, [conn, isOpen, onConnected]);
-    React.useEffect(() => {
-        if (!props.isOpen) completedDatabaseId.current = null;
-    }, [props.isOpen]);
 
     // Saving writes every workbook that references the connection, the overlay stays open until all
     // writes are done.

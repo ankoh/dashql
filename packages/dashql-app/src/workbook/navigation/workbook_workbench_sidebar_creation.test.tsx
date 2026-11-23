@@ -29,7 +29,7 @@ const state = {
     detachConnection: vi.fn<() => Promise<void>>(),
     deleteConnection: vi.fn<() => Promise<void>>(),
     local: null as ConnectionState | null,
-    overlayProps: null as { connectionId: string | null; headerTitle?: string; isOpen: boolean; onClose: () => void; onConnected?: (database: ConnectionState) => void } | null,
+    overlayProps: null as { connectionId: string | null; isOpen: boolean; onClose: () => void } | null,
     shareProps: null as { isOpen: boolean; workbookId?: string } | null,
     fileSaveProps: null as { isOpen: boolean; workbookScripts?: { workbookId: string }; fileName?: string } | null,
     connections: new Map<string, ConnectionState>(),
@@ -135,7 +135,7 @@ const dependencies = {
         : [state.workbookAttachedDatabases.main, ...state.workbookAttachedDatabases.attached],
     ConnectionSettingsOverlay: (props: typeof state.overlayProps) => {
         state.overlayProps = props;
-        return props?.isOpen ? <button onClick={() => props.onConnected?.(state.local!)}>Complete setup</button> : null;
+        return null;
     },
     useDeleteWorkbook: () => vi.fn(),
     useWorkbooks: workbookViews,
@@ -290,7 +290,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         expect(connectionRows()).toHaveLength(2);
     });
 
-    it('keeps ordinary settings open for an online database without a completion callback', () => {
+    it('opens the settings of an online database without leaving the workbook', () => {
         const main = {
             ...state.local!,
             connectionHealth: ConnectionHealth.ONLINE,
@@ -309,11 +309,6 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             (document.querySelector('[data-testid="connection-menu-item"][data-action="settings"]') as HTMLButtonElement).click();
         });
         expect(state.overlayProps).toMatchObject({ connectionId: main.connectionId, isOpen: true });
-        expect(state.overlayProps?.onConnected).toBeUndefined();
-        act(() => {
-            Array.from(container.querySelectorAll('button')).find(button => button.textContent === 'Complete setup')!.click();
-        });
-        expect(state.overlayProps?.isOpen).toBe(true);
         expect(state.navigate).not.toHaveBeenCalled();
     });
 
