@@ -248,6 +248,28 @@ analyzer-snapshots:
     script:
       input: select x from (t join u using (a)) as v, v
 
+  # The names inside an aliased join are not names of the scope, another FROM item can take them
+  - name: join_parenthesized_alias_inner_name_reused
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select t.b, j.c from (t join u on t.a = u.a) as j, t
+
+  - name: join_parenthesized_alias_inner_alias_reused
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select x.x from (t as x join u on true) as j, v as x
+
+  - name: join_parenthesized_alias_inner_duplicate
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select t.a from (t join t on true) as j, t
+
   # Outside of an aliased join, a FROM item inside it has no name: an invalid reference to a FROM-clause entry
   - name: join_parenthesized_alias_invalid_reference
     catalog:

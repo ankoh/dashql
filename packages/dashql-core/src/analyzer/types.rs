@@ -644,6 +644,33 @@ impl NameScope {
     pub fn is_hidden(ast: &[Node], source: &ScopeSource, joins: &[&ScopeJoin]) -> bool {
         joins.iter().any(|join| is_within(ast, source.ast_node_id, join.ast_node_id))
     }
+
+    /// The FROM items that match a name from an AST node: those that the node sees and that no aliased join hides from
+    /// it. Inside an aliased join, the FROM items of the join shadow those outside of it, which can take their names.
+    pub fn named_sources(
+        &self,
+        ast: &[Node],
+        node_id: u32,
+        visibility: SourceVisibility,
+        named: impl Fn(&ScopeSource) -> bool,
+    ) -> Vec<&ScopeSource> {
+        let hiding = self.hiding_joins(ast, node_id);
+        let mut sources: Vec<&ScopeSource> = self
+            .sources
+            .iter()
+            .filter(|s| visibility.sees(s) && !Self::is_hidden(ast, s, &hiding) && named(s))
+            .collect();
+        // The aliased joins around the node, the innermost first: a nested join precedes the outer one in the
+        // post-order AST
+        let mut around: Vec<&ScopeJoin> =
+            self.joins.iter().filter(|join| is_within(ast, node_id, join.ast_node_id)).collect();
+        around.sort_by_key(|join| join.ast_node_id);
+        let inside = |s: &ScopeSource, join: &ScopeJoin| is_within(ast, s.ast_node_id, join.ast_node_id);
+        if let Some(join) = around.into_iter().find(|join| sources.iter().any(|s| inside(s, join))) {
+            sources.retain(|s| inside(s, join));
+        }
+        sources
+    }
 }
 
 /// A candidate owner of an inference constraint

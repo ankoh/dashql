@@ -9,7 +9,7 @@
 #![allow(non_upper_case_globals)]
 
 use crate::analyzer::{
-    AnalyzedScript, ColumnResolution, NameScope, ReferencedTable, ScopeColumnSource, ScopeId, ScopeJoin, ScopeSource,
+    AnalyzedScript, ColumnResolution, ReferencedTable, ScopeColumnSource, ScopeId, ScopeJoin, ScopeSource,
     SourceVisibility, TableRole,
 };
 use crate::catalog::*;
@@ -1751,10 +1751,8 @@ impl<'c, 'a> Completion<'c, 'a> {
             if let Some(join) = hiding.iter().find(|join| &*join.name == name) {
                 return Some(QualifiedRelation::Join(join));
             }
-            let visible = |s: &&ScopeSource| {
-                visibility.sees(s) && !NameScope::is_hidden(ast, s, &hiding) && s.name.as_deref() == Some(name)
-            };
-            if let Some(source) = scope.sources.iter().find(visible) {
+            let named = scope.named_sources(ast, node_id, visibility, |s| s.name.as_deref() == Some(name));
+            if let Some(&source) = named.first() {
                 return Some(QualifiedRelation::Source(source));
             }
         }

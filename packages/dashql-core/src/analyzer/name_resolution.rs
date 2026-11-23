@@ -802,15 +802,21 @@ impl NameResolutionPass {
     }
 
     /// Add a FROM item to a scope, unless its name is taken. Tables without alias of different schemas share their
-    /// name, a column ref qualifies them with the schema.
+    /// name, a column ref qualifies them with the schema. An aliased join hides the names inside it, a FROM item
+    /// outside of it can take them.
     fn add_source(state: &mut AnalysisState, scope: ScopeId, source: ScopeSource) {
         let Some(s) = state.out.scope(scope) else { return };
+        let hides = |node_id: u32, other: &ScopeSource| {
+            NameScope::is_hidden(state.ast, other, &s.hiding_joins(state.ast, node_id))
+        };
         let collides = |other: &ScopeSource| {
             other.name == source.name
                 && match (&other.table_name, &source.table_name) {
                     (Some(l), Some(r)) => l.key() == r.key(),
                     _ => true,
                 }
+                && !hides(source.ast_node_id, other)
+                && !hides(other.ast_node_id, &source)
         };
         if let Some(name) = source.name.as_ref().filter(|_| s.sources.iter().any(collides)) {
             let message = format!("duplicate table alias {}", quote_identifier(name));
@@ -1221,9 +1227,9 @@ impl NameResolutionPass {
         expr: ExprId,
         target: ScopeId,
         visibility: SourceVisibility,
-        hiding: &[ScopeJoin],
     ) -> Option<Lookup> {
         let path = self.column_paths.get(&expr)?.clone();
+        let node_id = state.out.expression(expr)?.ast_node_id;
         let scope = state.out.scope(target)?;
         for qualifiers in (2..path.len().min(4)).rev() {
             let (Some(schema), Some(table), Some(column)) =
@@ -1238,13 +1244,8 @@ impl NameResolutionPass {
                     && database.is_none_or(|d| name.database_name.text == d.text)
             };
             let sources: Vec<ScopeSource> = scope
-                .sources
-                .iter()
-                .filter(|s| {
-                    visibility.sees(s)
-                        && !Self::is_hidden(state, s, hiding)
-                        && s.table_name.as_ref().is_some_and(names_table)
-                })
+                .named_sources(state.ast, node_id, visibility, |s| s.table_name.as_ref().is_some_and(names_table))
+                .into_iter()
                 .cloned()
                 .collect();
             if sources.is_empty() {
@@ -1277,15 +1278,16 @@ impl NameResolutionPass {
         let Some(column_ref) = expression.column_ref() else { return Lookup::Missing };
         let column_name = column_ref.column_name.column_name.text.clone();
         let alias = column_ref.column_name.table_alias.as_ref().map(|a| a.text.clone());
+        let node_id = expression.ast_node_id;
         // The aliased joins that the column ref is outside of stand for the FROM items inside them
         let hiding: Vec<ScopeJoin> = self
-            .hiding_joins(state, target, expression.ast_node_id)
+            .hiding_joins(state, target, node_id)
             .into_iter()
             .filter(|join| visibility.sees_node(join.ast_node_id))
             .collect();
 
         if let Some(alias) = alias {
-            if let Some(lookup) = self.try_resolve_table_qualified_column(state, expr, target, visibility, &hiding) {
+            if let Some(lookup) = self.try_resolve_table_qualified_column(state, expr, target, visibility) {
                 return lookup;
             }
             if let Some(join) = hiding.iter().find(|join| join.name == alias) {
@@ -1293,11 +1295,8 @@ impl NameResolutionPass {
             }
             let Some(scope) = state.out.scope(target) else { return Lookup::Missing };
             let sources: Vec<ScopeSource> = scope
-                .sources
-                .iter()
-                .filter(|s| {
-                    visibility.sees(s) && !Self::is_hidden(state, s, &hiding) && s.name.as_deref() == Some(&*alias)
-                })
+                .named_sources(state.ast, node_id, visibility, |s| s.name.as_deref() == Some(&*alias))
+                .into_iter()
                 .cloned()
                 .collect();
             return self.resolve_qualified_column(state, expr, &sources, &column_name);
@@ -1508,11 +1507,8 @@ impl NameResolutionPass {
         let mut visibility = SourceVisibility::All;
         loop {
             let s = state.out.scope(current)?;
-            let hiding = s.hiding_joins(state.ast, node_id);
-            let named = |x: &&ScopeSource| {
-                visibility.sees(x) && !NameScope::is_hidden(state.ast, x, &hiding) && x.name.as_deref() == Some(name)
-            };
-            if let Some(source) = s.sources.iter().find(named) {
+            let named = s.named_sources(state.ast, node_id, visibility, |x| x.name.as_deref() == Some(name));
+            if let Some(&source) = named.first() {
                 return Some(source);
             }
             let (Some(parent), false) = (s.parent_scope, s.column_correlation_barrier) else { return None };

@@ -1303,6 +1303,107 @@ analyzer-snapshots:
             - {name: x, expression: 0}
           text: "select x f..)) as v, v"
 
+  - name: join_parenthesized_alias_inner_name_reused
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select t.b, j.c from (t join u on t.a = u.a) as j, t
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "t.b"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "j.c"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
+            - {type: table, name: t, text: "t"}
+          joins:
+            - name: j
+              columns:
+                - {name: a, table-column: "256.65536.1:0.0"}
+                - {name: b, table-column: "256.65536.1:0.1"}
+                - {name: a, table-column: "256.65536.1:1.0"}
+                - {name: c, table-column: "256.65536.1:1.1"}
+              text: "(t join u .. u.a) as j"
+          columns:
+            - {name: b, expression: 0}
+            - {name: c, expression: 1}
+          text: "select t.b..a) as j, t"
+
+  - name: join_parenthesized_alias_inner_alias_reused
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select x.x from (t as x join u on true) as j, v as x
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t as x"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "v as x"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:2.1", source: "v as x", text: "x.x"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: x, text: "t as x"}
+            - {type: table, name: u, text: "u"}
+            - {type: table, name: x, text: "v as x"}
+          joins:
+            - name: j
+              columns:
+                - {name: a, table-column: "256.65536.1:0.0"}
+                - {name: b, table-column: "256.65536.1:0.1"}
+                - {name: a, table-column: "256.65536.1:1.0"}
+                - {name: c, table-column: "256.65536.1:1.1"}
+              text: "(t as x jo..true) as j"
+          columns:
+            - {name: x, expression: 0}
+          text: "select x.x.. j, v as x"
+
+  - name: join_parenthesized_alias_inner_duplicate
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select t.a from (t join t on true) as j, t
+      catalog-id: 2
+      errors:
+        - {type: DUPLICATE_TABLE_ALIAS, message: duplicate table alias t, text: "t"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: t, text: "t"}
+          joins:
+            - name: j
+              columns:
+                - {name: a, table-column: "256.65536.1:0.0"}
+                - {name: b, table-column: "256.65536.1:0.1"}
+              text: "(t join t ..true) as j"
+          columns:
+            - {name: a, expression: 0}
+          text: "select t.a..e) as j, t"
+
   - name: join_parenthesized_alias_invalid_reference
     catalog:
       script:

@@ -138,3 +138,17 @@ completion-snapshots:
         index: 2
     completions:
       limit: 5
+
+  # A FROM item outside of an aliased join can take a name of the join, inside of the join the name is the inner one
+  - name: dots_catalog_join_alias_condition_shadows_outer_name
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int);
+    editor:
+      input: select 1 from u as t, (t join u on t. = u.a) as j
+    cursor:
+      search:
+        text: t. =
+        index: 2
+    completions:
+      limit: 5

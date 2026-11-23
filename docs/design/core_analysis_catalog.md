@@ -326,7 +326,7 @@ The rules follow PostgreSQL and Hyper:
   twice is a `DUPLICATE_TABLE_ALIAS` (PostgreSQL's `duplicate_alias`), the first definition stays.
 - **FROM items without alias** are named by their table, but keyed by the qualified name:
   `from s1.k, s2.k` is legal, and `k.a` looks into both. The same table twice, or the same alias twice,
-  is a `DUPLICATE_TABLE_ALIAS`.
+  is a `DUPLICATE_TABLE_ALIAS`, unless an aliased join hides one of them.
 - **Qualified column refs** try the longest qualifier first: `db.s.t.c`, `s.t.c`, `t.c`. A qualifier
   that names a FROM item binds the ref to it, even if the item has no such column: the parent scopes
   aren't searched, the ref stays unresolved, and schema inference gives the column to that item.
@@ -359,7 +359,9 @@ The rules follow PostgreSQL and Hyper:
   FROM items inside it, `j.b` and an unqualified `b` read the columns of the join as `*` lists them, and the column
   aliases rename them. A `t.b` outside of the join is an `INVALID_FROM_CLAUSE_REFERENCE` (PostgreSQL's invalid reference
   to a FROM-clause entry) that names the alias of the join, its column is not inferred. An ambiguous column of the join, `j.a`
-  over `t join u on ...`, lists the columns inside the join as its candidates, `t.a, u.a`. A column ref inside the join, in its `ON`, sees the inner names. The FROM items stay the
+  over `t join u on ...`, lists the columns inside the join as its candidates, `t.a, u.a`. A column ref inside the join, in its `ON`, sees the inner names. A FROM item outside of the join can take a
+  name that the join hides, `(t join u on ...) as j, t`, inside of the join the inner `t` shadows it
+  (`NameScope::named_sources`). The FROM items stay the
   sources of the scope, a column of the join resolves to the column of its FROM item. The scope publishes the join as
   a `ScopeJoin` in `NameScope::joins` with the columns of the join and the FROM item of each, and
   `NameScope::hiding_joins` names the joins that hide their FROM items from an AST node, for completion.
