@@ -288,3 +288,39 @@ analyzer-snapshots:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
     script:
       input: insert into missing values (1, 2) on conflict (p) do update set q = excluded.r returning excluded.s
+
+  # A FROM item of UPDATE, DELETE and MERGE doesn't see the target, also with LATERAL, as in PostgreSQL
+  - name: update_from_function_target_invisible
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: update t set a = g from u, generate_series(u.c, t.b) as g
+
+  - name: update_from_lateral_target_invisible
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: update t set b = s.x from u, lateral (select x from v where v.id = u.c and v.x = t.a) s
+
+  - name: update_from_join_condition_target_invisible
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: update t set b = v.x from u join v on v.id = u.c and v.x = t.a where t.a = u.a
+
+  - name: delete_using_function_target_invisible
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: delete from missing m using generate_series(1, m.n) as g where m.k = g
+
+  - name: merge_using_function_target_invisible
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: merge into t using generate_series(1, t.b) g on true when matched then delete

@@ -343,7 +343,9 @@ The rules follow PostgreSQL and Hyper:
   table, a table and a CTE alike. A derived table has the columns of its own result targets, never those
   of an expression subquery.
 - **DML targets** are table references with the role `Write`: the target of INSERT, DELETE, UPDATE and MERGE. The
-  FROM items of UPDATE, the USING items of DELETE and the source of MERGE are read. The conditions, the values and
+  FROM items of UPDATE, the USING items of DELETE and the source of MERGE are read. They don't see the target, also
+  not laterally, as in PostgreSQL: neither the conditions of their joins (`SourceVisibility::Except` of the target)
+  nor a function in FROM and a lateral derived table among them (`BeforeExcept`). The conditions, the values and
   RETURNING of UPDATE, DELETE and MERGE see the target and the read relations; the source of INSERT sees no target.
   A `WHEN NOT MATCHED [BY TARGET]` clause of MERGE sees the source only, a `WHEN NOT MATCHED BY SOURCE` clause the
   target only, also from its subqueries (`SourceVisibility::Except` and `Only` of the target), `t.b` of the relation
@@ -373,7 +375,7 @@ The rules follow PostgreSQL and Hyper:
   `NameScope::hiding_joins` names the joins that hide their FROM items from an AST node, for completion.
 - **A function in FROM** is a FROM item named by its alias or its function, `ReferencedTable::Subquery` of a scope of
   its own at the table ref. The scope holds the column refs of the arguments and sees the FROM items before it, with or
-  without `LATERAL`, as in PostgreSQL. Its columns are computed: those of a column definition list, or one named by the
+  without `LATERAL`, as in PostgreSQL, in UPDATE, DELETE and MERGE without the target. Its columns are computed: those of a column definition list, or one named by the
   alias of a single function or by the function, more of them if the column aliases name more, then the ordinality.
 
 ### The snapshot of an analysis

@@ -643,6 +643,7 @@ fn visibility_name(visibility: SourceVisibility) -> Option<&'static str> {
         SourceVisibility::None => Some("none"),
         SourceVisibility::Only(_) => Some("only"),
         SourceVisibility::Except(_) => Some("except"),
+        SourceVisibility::BeforeExcept(..) => Some("before-except"),
     }
 }
 

@@ -1346,3 +1346,174 @@ analyzer-snapshots:
             - {name: r, confidence: confident}
             - {name: p, confidence: confident}
             - {name: q, confidence: confident}
+
+  - name: update_from_function_target_invisible
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: update t set a = g from u, generate_series(u.c, t.b) as g
+      catalog-id: 2
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table t, it cannot be referenced from this part of the query', text: "t.b"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      expressions:
+        - {id: 0, type: colref/local, scope: 0, column: 0, source: "generate_s.. t.b) as g", text: "g"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "u.c"}
+        - {id: 2, type: colref/unresolved, text: "t.b"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 4, type: function, name: generate_series, text: "generate_s..(u.c, t.b)"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: before-except
+          columns:
+            - {name: g, computed: true}
+          text: "generate_s.. t.b) as g"
+        - scope-id: 1
+          sources:
+            - {type: table, name: u, text: "u"}
+            - {type: subquery, name: g, scope: 0, text: "generate_s.. t.b) as g"}
+            - {type: table, name: t, text: "t"}
+          text: "update t s.. t.b) as g"
+
+  - name: update_from_lateral_target_invisible
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: update t set b = s.x from u, lateral (select x from v where v.id = u.c and v.x = t.a) s
+      catalog-id: 2
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table t, it cannot be referenced from this part of the query', text: "t.a"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "v"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:2.1", source: "lateral (s..x = t.a) s", text: "s.x"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:2.1", source: "v", text: "x"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:2.0", source: "v", text: "v.id"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "u.c"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:2.1", source: "v", text: "v.x"}
+        - {id: 5, type: colref/unresolved, text: "t.a"}
+        - {id: 6, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: before-except
+          sources:
+            - {type: table, name: v, text: "v"}
+          columns:
+            - {name: x, expression: 1}
+          text: "(select x ..v.x = t.a)"
+        - scope-id: 1
+          sources:
+            - {type: table, name: u, text: "u"}
+            - {type: subquery, name: s, scope: 0, text: "lateral (s..x = t.a) s"}
+            - {type: table, name: t, text: "t"}
+          text: "update t s..x = t.a) s"
+
+  - name: update_from_join_condition_target_invisible
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: update t set b = v.x from u join v on v.id = u.c and v.x = t.a where t.a = u.a
+      catalog-id: 2
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table t, it cannot be referenced from this part of the query', text: "t.a"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "v"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:2.1", source: "v", text: "v.x"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:2.0", source: "v", text: "v.id"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "u.c"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:2.1", source: "v", text: "v.x"}
+        - {id: 4, type: colref/unresolved, text: "t.a"}
+        - {id: 5, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 6, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+        - {id: 7, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: u, text: "u"}
+            - {type: table, name: v, text: "v"}
+            - {type: table, name: t, text: "t"}
+          text: "update t s.. t.a = u.a"
+
+  - name: delete_using_function_target_invisible
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: delete from missing m using generate_series(1, m.n) as g where m.k = g
+      catalog-id: 2
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table m, it cannot be referenced from this part of the query', text: "m.n"}
+      table-refs:
+        - {type: name/unresolved, role: write, text: "missing m"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "m.n"}
+        - {id: 1, type: colref/unresolved, text: "m.k"}
+        - {id: 2, type: colref/local, scope: 0, column: 0, source: "generate_s.. m.n) as g", text: "g"}
+        - {id: 3, type: function, name: generate_series, text: "generate_s..es(1, m.n)"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 4, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: before-except
+          columns:
+            - {name: g, computed: true}
+          text: "generate_s.. m.n) as g"
+        - scope-id: 1
+          sources:
+            - {type: subquery, name: g, scope: 0, text: "generate_s.. m.n) as g"}
+            - {type: unresolved, name: m, text: "missing m"}
+          text: "delete fro..re m.k = g"
+      inferred-tables:
+        - name: missing
+          confidence: confident
+          columns:
+            - {name: k, confidence: confident}
+
+  - name: merge_using_function_target_invisible
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: merge into t using generate_series(1, t.b) g on true when matched then delete
+      catalog-id: 2
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table t, it cannot be referenced from this part of the query', text: "t.b"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "t.b"}
+        - {id: 1, type: function, name: generate_series, text: "generate_s..es(1, t.b)"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 2, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: before-except
+          columns:
+            - {name: g, computed: true}
+          text: "generate_s..(1, t.b) g"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: subquery, name: g, scope: 0, text: "generate_s..(1, t.b) g"}
+          text: "merge into..hen delete"

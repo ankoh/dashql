@@ -2372,8 +2372,10 @@ impl NameResolutionPass {
             }
 
             NodeType::OBJECT_SQL_DELETE => {
-                let [target, recursive] =
-                    attrs!(state.children(node), [K::SQL_DELETE_TARGET, K::SQL_SELECT_WITH_RECURSIVE]);
+                let [target, using, recursive] = attrs!(
+                    state.children(node),
+                    [K::SQL_DELETE_TARGET, K::SQL_DELETE_USING, K::SQL_SELECT_WITH_RECURSIVE]
+                );
                 if let Some(target) = target {
                     let target_refs =
                         self.node_states.get(state.node_id(target) as usize).map(|s| s.table_references.as_slice());
@@ -2384,6 +2386,10 @@ impl NameResolutionPass {
                     }
                 }
                 self.merge_child_states(node_state, node);
+                if let (Some(target), Some(using)) = (target, using) {
+                    let (target, using) = (state.node_id(target), state.node_id(using));
+                    self.hide_target_from_reads(state, node_state, target, using);
+                }
                 let result_targets = std::mem::take(&mut node_state.result_targets);
                 let ctes = std::mem::take(&mut node_state.ctes);
                 let scope = self.create_scope(state, node_state, node_id);
@@ -2562,11 +2568,13 @@ impl NameResolutionPass {
         node_id: u32,
         node_state: &mut NodeState,
     ) {
-        let [update_target, merge_target, assignments, clauses, recursive] = attrs!(
+        let [update_target, merge_target, update_from, merge_source, assignments, clauses, recursive] = attrs!(
             state.children(node),
             [
                 K::SQL_UPDATE_TARGET,
                 K::SQL_MERGE_TARGET,
+                K::SQL_UPDATE_FROM,
+                K::SQL_MERGE_SOURCE,
                 K::SQL_UPDATE_ASSIGNMENTS,
                 K::SQL_MERGE_CLAUSES,
                 K::SQL_SELECT_WITH_RECURSIVE,
@@ -2582,6 +2590,10 @@ impl NameResolutionPass {
             }
         }
         self.merge_child_states(node_state, node);
+        if let (Some(target), Some(reads)) = (target, update_from.or(merge_source)) {
+            let reads = state.node_id(reads);
+            self.hide_target_from_reads(state, node_state, target, reads);
+        }
 
         // A WHEN NOT MATCHED [BY TARGET] clause of MERGE sees the source only, a WHEN NOT MATCHED BY SOURCE clause the
         // target only, as in PostgreSQL
@@ -2651,6 +2663,29 @@ impl NameResolutionPass {
         Self::attach_ctes(state, scope, ctes);
         // CTE definitions cannot correlate to the target or the read relations
         self.set_cte_correlation_barriers(state, scope);
+    }
+
+    /// The relations that UPDATE, DELETE and MERGE read, the FROM items of UPDATE, the USING items of DELETE and the
+    /// source of MERGE, don't see the target, also not laterally, as in PostgreSQL: neither the conditions of their
+    /// joins nor the scopes in them, a function in FROM and a lateral derived table see the FROM items before them
+    /// without the target.
+    fn hide_target_from_reads(&mut self, state: &mut AnalysisState, node_state: &NodeState, target: u32, reads: u32) {
+        for &expr in &node_state.column_references {
+            if state.out.expression(expr).is_some_and(|e| Self::is_within(state, e.ast_node_id, reads)) {
+                self.expression_visibility.insert(expr, SourceVisibility::Except(target));
+            }
+        }
+        for &child in &node_state.child_scopes {
+            let Some(s) = state.out.scope_mut(child) else { continue };
+            if !is_within(state.ast, s.ast_node_id, reads) {
+                continue;
+            }
+            s.parent_visibility = match s.parent_visibility {
+                SourceVisibility::All => SourceVisibility::Except(target),
+                SourceVisibility::Before(node_id) => SourceVisibility::BeforeExcept(node_id, target),
+                visibility => visibility,
+            };
+        }
     }
 
     /// ON CONFLICT of an INSERT: the columns of the conflict target and the SET targets of DO UPDATE are column refs that

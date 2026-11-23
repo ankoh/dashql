@@ -498,6 +498,9 @@ pub enum SourceVisibility {
     Only(u32),
     /// The FROM items except the one of a table ref node, a WHEN NOT MATCHED clause of MERGE sees no target
     Except(u32),
+    /// The FROM items before a table ref node except the one of another, a lateral FROM item of UPDATE, DELETE and
+    /// MERGE sees no target
+    BeforeExcept(u32, u32),
 }
 
 impl SourceVisibility {
@@ -513,6 +516,7 @@ impl SourceVisibility {
             SourceVisibility::None => false,
             SourceVisibility::Only(node_id) => ast_node_id == node_id,
             SourceVisibility::Except(node_id) => ast_node_id != node_id,
+            SourceVisibility::BeforeExcept(node_id, except) => ast_node_id < node_id && ast_node_id != except,
         }
     }
 }
