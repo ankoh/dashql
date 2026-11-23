@@ -101,3 +101,8 @@ formatter-snapshots:
       hyper:
         validation:
           setup: create table delete_target(id int);
+
+  - name: coverage_delete_where_current_of
+    input: DELETE FROM delete_target WHERE CURRENT OF target_cursor RETURNING id
+    dialects:
+      hyper:

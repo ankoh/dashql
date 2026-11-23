@@ -11,3 +11,17 @@ parser-snapshots:
   - name: create_or_replace_view_columns
     input: |
       create or replace temp view v (a, b) as select 1, 2
+  # Parse CREATE RECURSIVE VIEW
+  - name: create_recursive_view
+    input: |
+      create recursive view v (n) as select 1
+  # Parse CREATE VIEW with options
+  - name: create_view_with_options
+    input: |
+      create view v with (security_barrier = true, check_option = local) as select 1
+  # Parse CREATE VIEW with check options
+  - name: create_view_check_option
+    input: |
+      create view v as select 1 with check option;
+      create view v as select 1 with cascaded check option;
+      create or replace temporary view v as select 1 with local check option;

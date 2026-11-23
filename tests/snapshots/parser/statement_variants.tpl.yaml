@@ -76,3 +76,14 @@ parser-snapshots:
   - name: delete_table_param
     input: |
       delete from :target t where t.a = :a
+
+  # DELETE at the position of a cursor
+  - name: delete_where_current_of
+    input: |
+      delete from t where current of c returning a
+
+  # INSERT BULK
+  - name: insert_bulk
+    input: |
+      insert bulk into t (a, b) select a, b from u;
+      with x as (select 1) insert bulk into t select * from x;

@@ -39,4 +39,12 @@ impl<'a> Formatter<'a> {
         let policy = self.pretty_policy(FormattingJoinPolicy::BreakAllOrNone);
         self.space_join(&clauses, policy, false)
     }
+
+    /// `current of c`, the row of a cursor in `where current of c`
+    pub(super) fn format_current_of(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let [name] = attrs!(self.children(node), [K::SQL_CURRENT_OF_NAME]);
+        let Some(name) = name else { return self.format_unimplemented(node) };
+        f.concat(&[f.text("current of "), self.reg_or_placeholder(name)])
+    }
 }

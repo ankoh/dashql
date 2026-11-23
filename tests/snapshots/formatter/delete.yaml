@@ -310,3 +310,21 @@ formatter-snapshots:
         validation:
           setup: |-
             create table delete_target(id int);
+
+  - name: coverage_delete_where_current_of
+    input: |-
+      DELETE FROM delete_target WHERE CURRENT OF target_cursor RETURNING id
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              delete from delete_target where current of target_cursor returning id;
+          - mode: compact
+            expected: |-
+              delete from delete_target where current of target_cursor returning id;
+          - mode: pretty
+            expected: |-
+              delete from delete_target
+              where current of target_cursor
+              returning id;

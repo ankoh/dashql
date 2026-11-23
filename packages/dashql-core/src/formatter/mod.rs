@@ -636,6 +636,7 @@ impl<'a> Formatter<'a> {
             | K::SQL_CREATE_TABLE_ELEMENTS
             | K::SQL_CREATE_AS_COLUMNS
             | K::SQL_VIEW_COLUMNS
+            | K::SQL_VIEW_OPTIONS
             | K::SQL_CREATE_FUNCTION_OPTION_VALUE
             | K::SQL_SELECT_WINDOWS
             | K::SQL_SELECT_ROW_LOCKING
@@ -2810,6 +2811,7 @@ impl<'a> Formatter<'a> {
             NodeType::OBJECT_SQL_SELECT => self.format_select(node),
             NodeType::OBJECT_SQL_INSERT => self.format_insert(node),
             NodeType::OBJECT_SQL_DELETE => self.format_delete(node),
+            NodeType::OBJECT_SQL_CURRENT_OF => self.format_current_of(node),
             NodeType::OBJECT_SQL_CREATE => self.format_create(node),
             NodeType::OBJECT_SQL_CREATE_AS => self.format_create_as(node),
             NodeType::OBJECT_SQL_VIEW => self.format_view(node),

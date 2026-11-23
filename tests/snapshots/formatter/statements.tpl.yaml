@@ -222,3 +222,25 @@ formatter-snapshots:
     input: ATTACH LOCAL DATABASE local_source AS attached WITH (access_mode='readonly', encryption_key=DEFAULT)
     dialects:
       hyper:
+
+  - name: coverage_create_recursive_view
+    input: create recursive view numbers (n) as select 1
+    dialects:
+      hyper:
+
+  - name: coverage_create_view_with_options
+    input: create view result with (security_barrier = true, check_option = local) as select * from analytics.source
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 65
+
+  # `with cascaded check option` is written `with check option`, the default
+  - name: coverage_create_view_check_option
+    input: create view a as select x from t where x > 0 with check option; create view b as select x from t with cascaded check option; create or replace temporary view c as select x from t with local check option
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 40

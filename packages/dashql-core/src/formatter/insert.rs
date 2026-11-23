@@ -7,10 +7,11 @@ use dashql_parser::attrs;
 impl<'a> Formatter<'a> {
     pub(super) fn format_insert(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [target, columns, source, default_values, returning, with_ctes, with_recursive] = attrs!(
+        let [target, bulk, columns, source, default_values, returning, with_ctes, with_recursive] = attrs!(
             self.children(node),
             [
                 K::SQL_INSERT_TARGET,
+                K::SQL_INSERT_BULK,
                 K::SQL_INSERT_COLUMNS,
                 K::SQL_INSERT_SOURCE,
                 K::SQL_INSERT_DEFAULT_VALUES,
@@ -29,7 +30,8 @@ impl<'a> Formatter<'a> {
         }
 
         let mut clauses = Vec::new();
-        let mut header = f.concat(&[f.text("insert into "), target_reg]);
+        let keyword = if bulk.is_some() { "insert bulk into " } else { "insert into " };
+        let mut header = f.concat(&[f.text(keyword), target_reg]);
         if let Some(columns) = columns.filter(|c| c.node_type() == NodeType::ARRAY && c.children_count() > 0) {
             let columns_reg = self.reg(columns);
             if columns_reg == 0 {

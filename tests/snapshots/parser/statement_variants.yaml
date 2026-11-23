@@ -860,3 +860,228 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: delete_where_current_of
+    input: |-
+      delete from t where current of c returning a
+    expected:
+      statements:
+        - type: DELETE
+          ast-begin: 0
+          ast-size: 11
+          description:
+            text: "delete fro..eturning a"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_DELETE
+            text: "delete fro..eturning a"
+            children:
+              - key: SQL_DELETE_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+              - key: SQL_DELETE_WHERE
+                type: OBJECT_SQL_CURRENT_OF
+                text: "where current of c"
+                children:
+                  - key: SQL_CURRENT_OF_NAME
+                    type: NAME
+                    text: "c"
+              - key: SQL_DELETE_RETURNING
+                type: ARRAY
+                text: "a"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: NAME
+                                text: "a"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: insert_bulk
+    input: |-
+      insert bulk into t (a, b) select a, b from u;
+      with x as (select 1) insert bulk into t select * from x;
+    expected:
+      statements:
+        - type: INSERT
+          ast-begin: 0
+          ast-size: 22
+          description:
+            text: "insert bul.. b from u;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_INSERT
+            text: "insert bul.., b from u"
+            children:
+              - key: SQL_INSERT_COLUMNS
+                type: ARRAY
+                text: "(a, b)"
+                children:
+                  - type: NAME
+                    text: "a"
+                  - type: NAME
+                    text: "b"
+              - key: SQL_INSERT_SOURCE
+                type: OBJECT_SQL_SELECT
+                text: "select a, b from u"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "a, b"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "a"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "a"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "a"
+                                children:
+                                  - type: NAME
+                                    text: "a"
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "b"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "b"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "b"
+                                children:
+                                  - type: NAME
+                                    text: "b"
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "from u"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
+                        text: "u"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "u"
+                            children:
+                              - type: NAME
+                                text: "u"
+              - key: SQL_INSERT_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+              - key: SQL_INSERT_BULK
+                type: BOOL
+                value: 1
+        - type: INSERT
+          ast-begin: 22
+          ast-size: 20
+          description:
+            text: "with x as .. * from x;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_INSERT
+            text: "with x as ..t * from x"
+            children:
+              - key: SQL_SELECT_WITH_CTES
+                type: ARRAY
+                text: "x as (select 1)"
+                children:
+                  - type: OBJECT_SQL_CTE
+                    text: "x as (select 1)"
+                    children:
+                      - key: SQL_CTE_NAME
+                        type: NAME
+                        text: "x"
+                      - key: SQL_CTE_STATEMENT
+                        type: OBJECT_SQL_SELECT
+                        text: "select 1"
+                        children:
+                          - key: SQL_SELECT_TARGETS
+                            type: ARRAY
+                            text: "1"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "1"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "1"
+              - key: SQL_INSERT_SOURCE
+                type: OBJECT_SQL_SELECT
+                text: "select * from x"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "*"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "*"
+                        children:
+                          - key: SQL_RESULT_TARGET_STAR
+                            type: BOOL
+                            value: 1
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "from x"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
+                        text: "x"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "x"
+                            children:
+                              - type: NAME
+                                text: "x"
+              - key: SQL_INSERT_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+              - key: SQL_INSERT_BULK
+                type: BOOL
+                value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [45,46]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

@@ -167,9 +167,18 @@ impl<'a> Formatter<'a> {
 
     pub(super) fn format_view(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [name, columns, or_replace, temp, statement] = attrs!(
+        let [name, columns, or_replace, temp, recursive, options, statement, check_local] = attrs!(
             self.children(node),
-            [K::SQL_VIEW_NAME, K::SQL_VIEW_COLUMNS, K::SQL_VIEW_OR_REPLACE, K::SQL_VIEW_TEMP, K::SQL_VIEW_STATEMENT],
+            [
+                K::SQL_VIEW_NAME,
+                K::SQL_VIEW_COLUMNS,
+                K::SQL_VIEW_OR_REPLACE,
+                K::SQL_VIEW_TEMP,
+                K::SQL_VIEW_RECURSIVE,
+                K::SQL_VIEW_OPTIONS,
+                K::SQL_VIEW_STATEMENT,
+                K::SQL_VIEW_CHECK_LOCAL,
+            ],
         );
         let (Some(name), Some(statement)) = (name, statement) else { return self.format_unimplemented(node) };
 
@@ -181,14 +190,27 @@ impl<'a> Formatter<'a> {
             parts.push(self.reg(temp));
             parts.push(f.text(" "));
         }
+        if recursive.is_some() {
+            parts.push(f.text("recursive "));
+        }
         parts.push(f.text("view "));
         parts.push(self.reg(name));
         if let Some(columns) = columns.filter(|c| c.children_count() > 0) {
             parts.push(f.parenthesized(self.reg(columns)));
         }
+        if let Some(options) = options {
+            parts.push(f.text(" with "));
+            parts.push(f.parenthesized(self.reg_or_placeholder(options)));
+        }
         parts.push(f.text(" as"));
         let header = f.concat(&parts);
-        self.space_join(&[header, self.reg(statement)], FormattingJoinPolicy::BreakAllOrNone, false)
+        // `with check option` is `with cascaded check option`, the default
+        let check = match check_local {
+            Some(local) if super::is_true(Some(local)) => f.text("with local check option"),
+            Some(_) => f.text("with check option"),
+            None => f.empty(),
+        };
+        self.space_join(&[header, self.reg(statement), check], FormattingJoinPolicy::BreakAllOrNone, false)
     }
 
     /// `[mode] [name] type [not null] [default value]` of a function parameter or of a column of a returned table

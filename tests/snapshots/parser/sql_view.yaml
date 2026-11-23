@@ -150,3 +150,252 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: create_recursive_view
+    input: |-
+      create recursive view v (n) as select 1
+    expected:
+      statements:
+        - type: CREATE_VIEW
+          ast-begin: 0
+          ast-size: 10
+          description:
+            text: "create rec..s select 1"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_VIEW
+            text: "create rec..s select 1"
+            children:
+              - key: SQL_VIEW_RECURSIVE
+                type: BOOL
+                value: 1
+              - key: SQL_VIEW_NAME
+                type: ARRAY
+                text: "v"
+                children:
+                  - type: NAME
+                    text: "v"
+              - key: SQL_VIEW_COLUMNS
+                type: ARRAY
+                text: "(n)"
+                children:
+                  - type: NAME
+                    text: "n"
+              - key: SQL_VIEW_STATEMENT
+                type: OBJECT_SQL_SELECT
+                text: "select 1"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "1"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "1"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: LITERAL_INTEGER
+                            text: "1"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: create_view_with_options
+    input: |-
+      create view v with (security_barrier = true, check_option = local) as select 1
+    expected:
+      statements:
+        - type: CREATE_VIEW
+          ast-begin: 0
+          ast-size: 16
+          description:
+            text: "create vie..s select 1"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_VIEW
+            text: "create vie..s select 1"
+            children:
+              - key: SQL_VIEW_NAME
+                type: ARRAY
+                text: "v"
+                children:
+                  - type: NAME
+                    text: "v"
+              - key: SQL_VIEW_OPTIONS
+                type: ARRAY
+                text: "with (secu..n = local)"
+                children:
+                  - type: OBJECT_SQL_DEF_ARG
+                    text: "security_b..ier = true"
+                    children:
+                      - key: SQL_DEFINITION_ARG_KEY
+                        type: NAME
+                        text: "security_barrier"
+                      - key: SQL_DEFINITION_ARG_VALUE
+                        type: NAME
+                        text: "true"
+                  - type: OBJECT_SQL_DEF_ARG
+                    text: "check_opti..on = local"
+                    children:
+                      - key: SQL_DEFINITION_ARG_KEY
+                        type: NAME
+                        text: "check_option"
+                      - key: SQL_DEFINITION_ARG_VALUE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "local"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_GENERIC_TYPE
+                            text: "local"
+                            children:
+                              - key: SQL_GENERIC_TYPE_NAME
+                                type: NAME
+                                text: "local"
+              - key: SQL_VIEW_STATEMENT
+                type: OBJECT_SQL_SELECT
+                text: "select 1"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "1"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "1"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: LITERAL_INTEGER
+                            text: "1"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: create_view_check_option
+    input: |-
+      create view v as select 1 with check option;
+      create view v as select 1 with cascaded check option;
+      create or replace temporary view v as select 1 with local check option;
+    expected:
+      statements:
+        - type: CREATE_VIEW
+          ast-begin: 0
+          ast-size: 8
+          description:
+            text: "create vie..ck option;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_VIEW
+            text: "create vie..eck option"
+            children:
+              - key: SQL_VIEW_NAME
+                type: ARRAY
+                text: "v"
+                children:
+                  - type: NAME
+                    text: "v"
+              - key: SQL_VIEW_STATEMENT
+                type: OBJECT_SQL_SELECT
+                text: "select 1"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "1"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "1"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: LITERAL_INTEGER
+                            text: "1"
+              - key: SQL_VIEW_CHECK_LOCAL
+                type: BOOL
+                value: 0
+        - type: CREATE_VIEW
+          ast-begin: 8
+          ast-size: 8
+          description:
+            text: "create vie..ck option;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_VIEW
+            text: "create vie..eck option"
+            children:
+              - key: SQL_VIEW_NAME
+                type: ARRAY
+                text: "v"
+                children:
+                  - type: NAME
+                    text: "v"
+              - key: SQL_VIEW_STATEMENT
+                type: OBJECT_SQL_SELECT
+                text: "select 1"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "1"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "1"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: LITERAL_INTEGER
+                            text: "1"
+              - key: SQL_VIEW_CHECK_LOCAL
+                type: BOOL
+                value: 0
+        - type: CREATE_VIEW
+          ast-begin: 16
+          ast-size: 10
+          description:
+            text: "create or ..ck option;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_VIEW
+            text: "create or ..eck option"
+            children:
+              - key: SQL_VIEW_OR_REPLACE
+                type: BOOL
+                value: 1
+              - key: SQL_VIEW_TEMP
+                type: ENUM_SQL_TEMP_TYPE
+                value: LOCAL
+              - key: SQL_VIEW_NAME
+                type: ARRAY
+                text: "v"
+                children:
+                  - type: NAME
+                    text: "v"
+              - key: SQL_VIEW_STATEMENT
+                type: OBJECT_SQL_SELECT
+                text: "select 1"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "1"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "1"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: LITERAL_INTEGER
+                            text: "1"
+              - key: SQL_VIEW_CHECK_LOCAL
+                type: BOOL
+                value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [44,45]
+        - text: [98,99]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
