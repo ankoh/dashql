@@ -339,6 +339,24 @@ describe('WorkbookImportProvider', () => {
             expect(reload).not.toHaveBeenCalled();
         });
 
+        it('ignores a second import while the question is open', async () => {
+            knowTrinoConnection();
+            await renderProvider();
+            const warn = vi.spyOn(api.logger, 'warn');
+            let first!: Promise<string | null>;
+            await act(async () => { first = importBundle(trinoSession(), CENTERED); });
+            await vi.waitFor(() => expect(connectionQuestionIsOpen()).toBe(true));
+            let second: string | null = 'pending';
+            await act(async () => { second = await importBundle(trinoSession(), CENTERED); });
+            expect(second).toBeNull();
+            expect(warn).toHaveBeenCalledWith(expect.stringContaining('pending'), {}, 'workbook_import');
+            // The question of the first import stays and answers it
+            expect(connectionQuestionIsOpen()).toBe(true);
+            await click(buttonWithText('Import'));
+            expect(await first).toBe(WORKBOOK_ID);
+            await vi.waitFor(() => expect(connectionQuestionIsOpen()).toBe(false));
+        });
+
         it('skips a stored connection of an unknown connector like the restoration does', async () => {
             // A tab of an older version may write the former key after the migration
             registry.connections = [

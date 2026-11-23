@@ -204,16 +204,27 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
             ({ preview, connections, unasked, conflict: importConflictOf(preview) });
         // A preview asks nothing, the import of the preview asks
         if (options.connections === 'preview' || questions.length === 0) return prepared({}, questions.length > 0);
+        // Like the question for a registered workbook, a second import while the question is open is cancelled
+        let asked: ConnectionDialogState | null = null;
         const chosen = await new Promise<Map<string, core.ImportChoice> | null>(resolve => {
-            setConnectionDialog({ workbookName: importedWorkbookName(preview), questions, resolve });
+            const next: ConnectionDialogState = { workbookName: importedWorkbookName(preview), questions, resolve };
+            setConnectionDialog(current => {
+                if (current != null && current !== next) {
+                    resolve(null);
+                    logger.warn('ignored workbook import while another connection decision is pending', {}, 'workbook_import');
+                    return current;
+                }
+                asked = next;
+                return next;
+            });
         });
-        setConnectionDialog(null);
+        setConnectionDialog(current => current === asked ? null : current);
         if (chosen == null) {
             dropImport(preview);
             return null;
         }
         return prepared(Object.fromEntries(chosen), false);
-    }, [dropImport]);
+    }, [dropImport, logger]);
 
     /// Cancel the queries of a workbook before a replacement. The runtime holds the writes while it imports.
     const stopWorkbookWork = React.useCallback(async (workbookId: string) => {
