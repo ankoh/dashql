@@ -183,20 +183,8 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const cancelSetup = connectionSetup.cancel;
     const resetSetup = connectionSetup.reset;
 
-    // Get the action button
     // Saving writes the settings into every workbook that uses the connection
-    let freezeInput = saving;
-    switch (connectionState?.connectionHealth) {
-        case ConnectionHealth.NOT_STARTED:
-        case ConnectionHealth.CANCELLED:
-        case ConnectionHealth.FAILED:
-            break;
-        case ConnectionHealth.CONNECTING:
-            freezeInput = true;
-            break;
-        case ConnectionHealth.ONLINE:
-            break;
-    }
+    const freezeInput = saving || connectionState?.connectionHealth === ConnectionHealth.CONNECTING;
 
     return (
         <div className={style.layout}>

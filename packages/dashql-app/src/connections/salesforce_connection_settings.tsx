@@ -393,18 +393,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const resetSetup = connectionSetup.reset;
 
     // Saving writes the settings into every workbook that uses the connection
-    let freezeInput = saving;
-    switch (connectionState?.connectionHealth) {
-        case ConnectionHealth.NOT_STARTED:
-        case ConnectionHealth.FAILED:
-        case ConnectionHealth.CANCELLED:
-            break;
-        case ConnectionHealth.CONNECTING:
-            freezeInput = true;
-            break;
-        case ConnectionHealth.ONLINE:
-            break;
-    }
+    const freezeInput = saving || connectionState?.connectionHealth === ConnectionHealth.CONNECTING;
 
     // The view summarizes the tokens, the page asks the runtime for them while it shows them. The tokens are opaque
     // JSON of the runtime.
@@ -412,12 +401,10 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const oauthState = salesforceConnection?.connector.kind === 'salesforce' ? salesforceConnection.connector.oauthState : null;
     const coreSummary = oauthState?.coreAccessToken ?? null;
     const dcSummary = oauthState?.dataCloudAccessToken ?? null;
-    const summaries = JSON.stringify([coreSummary, dcSummary]);
     // The summaries change with the tokens
     const secrets = React.useMemo(() => {
-        const [core, dc] = JSON.parse(summaries) as [unknown, unknown];
-        return props.connectionId != null && (core != null || dc != null) ? runtime?.revealConnectionSecrets(props.connectionId) ?? null : null;
-    }, [runtime, props.connectionId, summaries]);
+        return props.connectionId != null && (coreSummary != null || dcSummary != null) ? runtime?.revealConnectionSecrets(props.connectionId) ?? null : null;
+    }, [runtime, props.connectionId, coreSummary, dcSummary]);
     const coreAccessToken = secrets?.coreAccessToken == null ? null : JSON.parse(secrets.coreAccessToken);
     const dcAccessToken = secrets?.dataCloudAccessToken == null ? null : JSON.parse(secrets.dataCloudAccessToken);
 
