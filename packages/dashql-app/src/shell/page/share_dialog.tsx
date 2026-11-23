@@ -17,6 +17,7 @@ import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { AlertIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { CopyToClipboardButton } from '@akohn/dashql-react/components/clipboard';
 import { buildShareUrl, encodeShareScript } from './shell_share.js';
+import { usePendingRequest } from '../../utils/use_pending_request.js';
 import * as styles from './share_dialog.module.css';
 
 const IGNORE_OUTSIDE_CLICK = () => {};
@@ -26,12 +27,6 @@ const SHARE_URL_DELAY_MS = 150;
 interface ShareResources {
     core: dashql.DashQL;
     catalog: dashql.DashQLCatalog;
-}
-
-interface PendingRequest {
-    resolve: () => void;
-    signal?: AbortSignal;
-    onAbort?: () => void;
 }
 
 export interface ShareDialogController {
@@ -44,54 +39,16 @@ export interface ShareDialogHookResult {
 }
 
 export function useShareDialog(): ShareDialogHookResult {
-    const [resources, setResources] = React.useState<ShareResources | null>(null);
-    const pendingRequestRef = React.useRef<PendingRequest | null>(null);
+    const { pending, request, dismiss } = usePendingRequest<ShareResources, void>('share', undefined);
     /// The script of the last dialog, reopening the dialog continues with it
     const scriptRef = React.useRef('');
-
-    const dismiss = React.useCallback(() => {
-        const pending = pendingRequestRef.current;
-        pendingRequestRef.current = null;
-        if (pending?.signal != null && pending.onAbort != null) {
-            pending.signal.removeEventListener('abort', pending.onAbort);
-        }
-        setResources(null);
-        pending?.resolve();
-    }, []);
-
-    const request = React.useCallback((
-        core: dashql.DashQL,
-        catalog: dashql.DashQLCatalog,
-        signal?: AbortSignal,
-    ) => {
-        if (pendingRequestRef.current != null) {
-            return Promise.reject(new Error('A share request is already pending.'));
-        }
-        if (signal?.aborted) return Promise.resolve();
-
-        setResources({ core, catalog });
-        return new Promise<void>(resolve => {
-            const pending: PendingRequest = { resolve, signal };
-            pending.onAbort = dismiss;
-            pendingRequestRef.current = pending;
-            signal?.addEventListener('abort', pending.onAbort, { once: true });
-        });
-    }, [dismiss]);
-
-    React.useEffect(() => () => {
-        const pending = pendingRequestRef.current;
-        pendingRequestRef.current = null;
-        if (pending?.signal != null && pending.onAbort != null) {
-            pending.signal.removeEventListener('abort', pending.onAbort);
-        }
-        pending?.resolve();
-    }, []);
-
-    const controller = React.useMemo<ShareDialogController>(() => ({ request }), [request]);
+    const controller = React.useMemo<ShareDialogController>(() => ({
+        request: (core, catalog, signal) => request({ core, catalog }, signal),
+    }), [request]);
     return {
         controller,
-        dialog: resources == null ? null : (
-            <ShareDialog core={resources.core} catalog={resources.catalog} scriptRef={scriptRef} onClose={dismiss} />
+        dialog: pending == null ? null : (
+            <ShareDialog core={pending.args.core} catalog={pending.args.catalog} scriptRef={scriptRef} onClose={dismiss} />
         ),
     };
 }

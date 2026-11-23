@@ -17,6 +17,7 @@ import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
 import { AlertIcon, ScreenFullIcon, ScreenNormalIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { CopyToClipboardButton } from '@akohn/dashql-react/components/clipboard';
+import { usePendingRequest } from '../../utils/use_pending_request.js';
 import * as styles from './plan_dialog.module.css';
 
 const IGNORE_OUTSIDE_CLICK = () => {};
@@ -31,12 +32,6 @@ const enum PlanMode {
 
 interface PlanResources {
     core: dashql.DashQL;
-}
-
-interface PendingRequest {
-    resolve: () => void;
-    signal?: AbortSignal;
-    onAbort?: () => void;
 }
 
 export interface PlanDialogController {
@@ -64,50 +59,16 @@ export function usePlanDialog(
     appEvents: PlanDialogEvents,
     dependencies: PlanDialogDependencies = DEFAULT_DEPENDENCIES,
 ): PlanDialogHookResult {
-    const [resources, setResources] = React.useState<PlanResources | null>(null);
-    const pendingRequestRef = React.useRef<PendingRequest | null>(null);
-
-    const dismiss = React.useCallback(() => {
-        const pending = pendingRequestRef.current;
-        pendingRequestRef.current = null;
-        if (pending?.signal != null && pending.onAbort != null) {
-            pending.signal.removeEventListener('abort', pending.onAbort);
-        }
-        setResources(null);
-        pending?.resolve();
-    }, []);
-
-    const request = React.useCallback((core: dashql.DashQL, signal?: AbortSignal) => {
-        if (pendingRequestRef.current != null) {
-            return Promise.reject(new Error('A query plan request is already pending.'));
-        }
-        if (signal?.aborted) return Promise.resolve();
-
-        setResources({ core });
-        return new Promise<void>(resolve => {
-            const pending: PendingRequest = { resolve, signal };
-            pending.onAbort = dismiss;
-            pendingRequestRef.current = pending;
-            signal?.addEventListener('abort', pending.onAbort, { once: true });
-        });
-    }, [dismiss]);
-
-    React.useEffect(() => () => {
-        const pending = pendingRequestRef.current;
-        pendingRequestRef.current = null;
-        if (pending?.signal != null && pending.onAbort != null) {
-            pending.signal.removeEventListener('abort', pending.onAbort);
-        }
-        pending?.resolve();
-    }, []);
-
-    const controller = React.useMemo<PlanDialogController>(() => ({ request }), [request]);
+    const { pending, request, dismiss } = usePendingRequest<PlanResources, void>('query plan', undefined);
+    const controller = React.useMemo<PlanDialogController>(() => ({
+        request: (core, signal) => request({ core }, signal),
+    }), [request]);
     return {
         controller,
-        dialog: resources == null ? null : (
+        dialog: pending == null ? null : (
             <PlanDialog
                 appEvents={appEvents}
-                core={resources.core}
+                core={pending.args.core}
                 dependencies={dependencies}
                 onClose={dismiss}
             />

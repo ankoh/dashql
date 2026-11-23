@@ -5,14 +5,9 @@ import { SnippetBrowser } from './snippets_overlay.js';
 import type { SnippetRegistry } from './snippet_registry.js';
 import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
 import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
+import { usePendingRequest } from '../../utils/use_pending_request.js';
 
 const IGNORE_OUTSIDE_CLICK = () => {};
-
-interface PendingRequest {
-    resolve: (text: string | null) => void;
-    signal?: AbortSignal;
-    onAbort?: () => void;
-}
 
 export interface SnippetsDialogController {
     /// Browse the snippets, resolves with the text of the used snippet or null if the dialog was closed
@@ -26,48 +21,15 @@ export interface SnippetsDialogHookResult {
 
 /// The snippet browser of the script cards as a dialog of the shell, listing the snippets of the connector
 export function useSnippetsDialog(connectorType: ConnectorType, registry?: SnippetRegistry): SnippetsDialogHookResult {
-    const [open, setOpen] = React.useState(false);
-    const pendingRequestRef = React.useRef<PendingRequest | null>(null);
-
-    const finish = React.useCallback((text: string | null) => {
-        const pending = pendingRequestRef.current;
-        pendingRequestRef.current = null;
-        if (pending?.signal != null && pending.onAbort != null) {
-            pending.signal.removeEventListener('abort', pending.onAbort);
-        }
-        setOpen(false);
-        pending?.resolve(text);
-    }, []);
-    const dismiss = React.useCallback(() => finish(null), [finish]);
-
-    const request = React.useCallback((signal?: AbortSignal) => {
-        if (pendingRequestRef.current != null) {
-            return Promise.reject(new Error('A snippets request is already pending.'));
-        }
-        if (signal?.aborted) return Promise.resolve(null);
-
-        setOpen(true);
-        return new Promise<string | null>(resolve => {
-            const pending: PendingRequest = { resolve, signal };
-            pending.onAbort = dismiss;
-            pendingRequestRef.current = pending;
-            signal?.addEventListener('abort', pending.onAbort, { once: true });
-        });
-    }, [dismiss]);
-
-    React.useEffect(() => () => {
-        const pending = pendingRequestRef.current;
-        pendingRequestRef.current = null;
-        if (pending?.signal != null && pending.onAbort != null) {
-            pending.signal.removeEventListener('abort', pending.onAbort);
-        }
-        pending?.resolve(null);
-    }, []);
-
-    const controller = React.useMemo<SnippetsDialogController>(() => ({ request }), [request]);
+    const { pending, request, resolve, dismiss } = usePendingRequest<void, string | null>('snippets', null);
+    const controller = React.useMemo<SnippetsDialogController>(() => ({
+        request: signal => request(undefined, signal),
+    }), [request]);
     return {
         controller,
-        dialog: open ? <SnippetsDialog connectorType={connectorType} registry={registry} onApply={finish} onClose={dismiss} /> : null,
+        dialog: pending == null
+            ? null
+            : <SnippetsDialog connectorType={connectorType} registry={registry} onApply={resolve} onClose={dismiss} />,
     };
 }
 

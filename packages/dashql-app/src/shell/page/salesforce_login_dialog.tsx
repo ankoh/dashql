@@ -9,6 +9,7 @@ import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_
 import { SalesforceConnectionSettingsPage } from '../../connections/salesforce_connection_settings.js';
 import { collectSalesforceAuthInfo } from '@akohn/dashql/platform/connections/salesforce/salesforce_api_client';
 import type { SalesforceLoginHistoryEntry } from './salesforce_login_history.js';
+import { usePendingRequest } from '../../utils/use_pending_request.js';
 import * as styles from './salesforce_login_dialog.module.css';
 
 import symbols from '@akohn/dashql-svg-symbols';
@@ -49,12 +50,10 @@ export interface SalesforceLoginDialogOptions {
     deleteHistoryEntry?: (organizationId: string) => Promise<SalesforceLoginHistoryEntry[]>;
 }
 
-interface PendingRequest {
-    resolve: (values: SalesforceLoginFormValues | null) => void;
-    signal?: AbortSignal;
-    onAbort?: () => void;
-    abortController: AbortController;
-    submitted: boolean;
+/// The login of the open dialog, closing the dialog or aborting the command that opened it cancels it
+interface DialogLogin {
+    abort: AbortController;
+    detach: () => void;
 }
 
 interface DialogState extends SalesforceLoginDialogProgress {
@@ -79,77 +78,51 @@ export function useSalesforceLoginDialog(
         status: 'Disconnected',
         indicator: IndicatorStatus.None,
     });
-    const pendingRequestRef = React.useRef<PendingRequest | null>(null);
+    // The form waits for a submit, a failed login asks for it again while the dialog stays open
+    const { dismiss: dismissForm, request: requestForm, resolve: resolveForm } =
+        usePendingRequest<void, SalesforceLoginFormValues | null>('Salesforce login', null);
+    const loginRef = React.useRef<DialogLogin | null>(null);
     const openOAuthPopup = options.openOAuthPopup ?? defaultOpenOAuthPopup;
 
-    const dismiss = React.useCallback(() => {
-        const pending = pendingRequestRef.current;
-        if (pending != null) {
-            pending.abortController.abort();
-            pendingRequestRef.current = null;
-            if (pending.signal != null && pending.onAbort != null) {
-                pending.signal.removeEventListener('abort', pending.onAbort);
-            }
-            if (!pending.submitted) pending.resolve(null);
-        }
+    /// Close the dialog, `cancel` aborts its login
+    const close = React.useCallback((cancel: boolean) => {
+        const login = loginRef.current;
+        loginRef.current = null;
+        login?.detach();
+        if (cancel) login?.abort.abort();
+        dismissForm();
         setIsOpen(false);
-    }, []);
+    }, [dismissForm]);
+    const dismiss = React.useCallback(() => close(true), [close]);
 
     const submit = React.useCallback((values: SalesforceLoginFormValues) => {
-        const pending = pendingRequestRef.current;
-        if (pending == null || pending.submitted) return;
-        pending.submitted = true;
+        if (!resolveForm(values)) return;
         setDialogState({
             phase: 'running',
             status: 'Starting authorization',
             indicator: IndicatorStatus.Running,
             login: values.loginHint,
         });
-        pending.resolve(values);
-    }, []);
+    }, [resolveForm]);
 
     const request = React.useCallback((signal?: AbortSignal) => {
-        const existing = pendingRequestRef.current;
-        if (existing != null && !existing.submitted) {
-            return Promise.reject(new Error('A Salesforce login request is already pending.'));
-        }
         if (signal?.aborted) {
             dismiss();
             return Promise.resolve(null);
         }
-
-        if (existing != null) {
-            existing.submitted = false;
-            return new Promise<SalesforceLoginFormValues | null>(resolve => {
-                existing.resolve = resolve;
-            });
-        }
-
-        setDialogState({ phase: 'form', status: 'Disconnected', indicator: IndicatorStatus.None });
-        setIsOpen(true);
-        return new Promise<SalesforceLoginFormValues | null>(resolve => {
-            const pending: PendingRequest = {
-                resolve,
-                signal,
-                abortController: new AbortController(),
-                submitted: false,
+        if (loginRef.current == null) {
+            signal?.addEventListener('abort', dismiss, { once: true });
+            loginRef.current = {
+                abort: new AbortController(),
+                detach: () => signal?.removeEventListener('abort', dismiss),
             };
-            pending.onAbort = dismiss;
-            pendingRequestRef.current = pending;
-            signal?.addEventListener('abort', pending.onAbort, { once: true });
-        });
-    }, [dismiss]);
-
-    React.useEffect(() => () => {
-        const pending = pendingRequestRef.current;
-        if (pending == null) return;
-        pending.abortController.abort();
-        pendingRequestRef.current = null;
-        if (pending.signal != null && pending.onAbort != null) {
-            pending.signal.removeEventListener('abort', pending.onAbort);
+            setDialogState({ phase: 'form', status: 'Disconnected', indicator: IndicatorStatus.None });
+            setIsOpen(true);
         }
-        if (!pending.submitted) pending.resolve(null);
-    }, []);
+        return requestForm();
+    }, [dismiss, requestForm]);
+
+    React.useEffect(() => () => close(true), [close]);
 
     const update = React.useCallback((progress: SalesforceLoginDialogProgress) => {
         setDialogState(state => ({
@@ -160,19 +133,14 @@ export function useSalesforceLoginDialog(
         }));
     }, []);
     const succeed = React.useCallback((message: string) => {
-        const pending = pendingRequestRef.current;
-        pendingRequestRef.current = null;
-        if (pending?.signal != null && pending.onAbort != null) {
-            pending.signal.removeEventListener('abort', pending.onAbort);
-        }
         setDialogState(state => ({
             ...state,
             phase: 'succeeded',
             status: message,
             indicator: IndicatorStatus.Succeeded,
         }));
-        setIsOpen(false);
-    }, []);
+        close(false);
+    }, [close]);
     const fail = React.useCallback((message: string) => {
         setDialogState(state => ({
             ...state,
@@ -193,7 +161,7 @@ export function useSalesforceLoginDialog(
                 openOAuthPopup={openOAuthPopup}
                 nativeOAuth={options.nativeOAuth ?? false}
                 state={dialogState}
-                abortSignal={pendingRequestRef.current?.abortController.signal}
+                abortSignal={loginRef.current?.abort.signal}
                 loadHistory={options.loadHistory}
                 deleteHistoryEntry={options.deleteHistoryEntry}
                 onCancel={dismiss}

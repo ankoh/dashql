@@ -20,6 +20,7 @@ import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
 import { AlertIcon, ScreenFullIcon, ScreenNormalIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { CopyToClipboardButton } from '@akohn/dashql-react/components/clipboard';
+import { usePendingRequest } from '../../utils/use_pending_request.js';
 import * as styles from './format_dialog.module.css';
 
 const IGNORE_OUTSIDE_CLICK = () => {};
@@ -41,12 +42,6 @@ interface FormatResources {
     catalog: dashql.DashQLCatalog;
 }
 
-interface PendingRequest {
-    resolve: () => void;
-    signal?: AbortSignal;
-    onAbort?: () => void;
-}
-
 export interface FormatDialogController {
     request(core: dashql.DashQL, catalog: dashql.DashQLCatalog, signal?: AbortSignal): Promise<void>;
 }
@@ -57,52 +52,14 @@ export interface FormatDialogHookResult {
 }
 
 export function useFormatDialog(): FormatDialogHookResult {
-    const [resources, setResources] = React.useState<FormatResources | null>(null);
-    const pendingRequestRef = React.useRef<PendingRequest | null>(null);
-
-    const dismiss = React.useCallback(() => {
-        const pending = pendingRequestRef.current;
-        pendingRequestRef.current = null;
-        if (pending?.signal != null && pending.onAbort != null) {
-            pending.signal.removeEventListener('abort', pending.onAbort);
-        }
-        setResources(null);
-        pending?.resolve();
-    }, []);
-
-    const request = React.useCallback((
-        core: dashql.DashQL,
-        catalog: dashql.DashQLCatalog,
-        signal?: AbortSignal,
-    ) => {
-        if (pendingRequestRef.current != null) {
-            return Promise.reject(new Error('A SQL formatter request is already pending.'));
-        }
-        if (signal?.aborted) return Promise.resolve();
-
-        setResources({ core, catalog });
-        return new Promise<void>(resolve => {
-            const pending: PendingRequest = { resolve, signal };
-            pending.onAbort = dismiss;
-            pendingRequestRef.current = pending;
-            signal?.addEventListener('abort', pending.onAbort, { once: true });
-        });
-    }, [dismiss]);
-
-    React.useEffect(() => () => {
-        const pending = pendingRequestRef.current;
-        pendingRequestRef.current = null;
-        if (pending?.signal != null && pending.onAbort != null) {
-            pending.signal.removeEventListener('abort', pending.onAbort);
-        }
-        pending?.resolve();
-    }, []);
-
-    const controller = React.useMemo<FormatDialogController>(() => ({ request }), [request]);
+    const { pending, request, dismiss } = usePendingRequest<FormatResources, void>('SQL formatter', undefined);
+    const controller = React.useMemo<FormatDialogController>(() => ({
+        request: (core, catalog, signal) => request({ core, catalog }, signal),
+    }), [request]);
     return {
         controller,
-        dialog: resources == null ? null : (
-            <FormatDialog core={resources.core} catalog={resources.catalog} onClose={dismiss} />
+        dialog: pending == null ? null : (
+            <FormatDialog core={pending.args.core} catalog={pending.args.catalog} onClose={dismiss} />
         ),
     };
 }
