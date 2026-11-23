@@ -67,7 +67,8 @@ After the redirect arrives:
 10. Decode the exchanged Data Cloud JWT. The connection speaks Hyper over HTTP (`V3_HTTP`) to the exchange
     response's `instance_url`; every request carries the Data Cloud JWT unchanged as bearer token and its
     `audienceTenantId` as `audience`. The Database.com connector additionally attaches `hyper.cloud:{databaseName}`
-    as `lakehouse` (`hyper_cloud_attached_database` of `catalog_loader/hyper.rs` in the core runtime). Read the selected dataspace from
+    as `lakehouse` (`hyper_cloud_attached_database` of `catalog_loader/hyper.rs` in the core runtime) and sets the
+    query setting `read_after_write_data_consistency` to `on`, so a query sees the writes before it. Read the selected dataspace from
     `customAttributes.data.dataspace` (or the flat `customAttributes.dataspace`), falling back to
     `default`. Keep the Core token and its `instance_url` for Core REST user info and metadata;
     metadata requests use the dataspace from the Data Cloud token.

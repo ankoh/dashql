@@ -30,6 +30,9 @@ pub const TOKEN_REFRESH_MARGIN_MS: f64 = 60.0 * 1000.0;
 /// How long a refresh of the tokens may take, a refresh that takes longer fails
 pub const TOKEN_REFRESH_TIMEOUT_MS: f64 = 30.0 * 1000.0;
 
+/// The query setting that makes a query of Database.com see the writes before it, sent as `on`
+pub const READ_AFTER_WRITE_DATA_CONSISTENCY: &str = "read_after_write_data_consistency";
+
 /// The outcome of a refresh as the waiting callers see it, the message of a failure
 pub type RefreshOutcome = Result<(), String>;
 
@@ -62,21 +65,24 @@ enum TokenCheck {
 
 impl SharedSalesforceChannel {
     /// The channel of a connection with the tokens of its login: the Hyper of the Data Cloud tenant, the Hyper Cloud
-    /// database of a Database.com connection
+    /// database of a Database.com connection. Database.com reads its own writes: every query sets
+    /// `read_after_write_data_consistency`.
     pub fn new(
         connector: ConnectorType,
         params: &SalesforceConnectionParams,
         tokens: SalesforceTokens,
     ) -> Result<Self, String> {
-        let attached_databases = if connector == ConnectorType::Dbcom {
-            vec![AttachedDatabase {
+        let context = if connector == ConnectorType::Dbcom {
+            let attached_databases = vec![AttachedDatabase {
                 path: format!("hyper.cloud:{}", params.hyper_cloud_database()),
                 alias: Some(SALESFORCE_CATALOG_DATABASE.to_string()),
-            }]
+            }];
+            let mut query_parameters = serde_json::Map::new();
+            query_parameters.insert(READ_AFTER_WRITE_DATA_CONSISTENCY.to_string(), Value::String("on".to_string()));
+            HyperChannelContext { attached_databases, query_parameters, ..Default::default() }
         } else {
-            Vec::new()
+            HyperChannelContext::default()
         };
-        let context = HyperChannelContext { attached_databases, ..Default::default() };
         let mut endpoint = serde_json::Map::new();
         endpoint.insert("endpoint".to_string(), Value::String(tokens.data_cloud.instance_url.clone()));
         let hyper = HyperHttpChannel::connect(&endpoint, context, None).map_err(|error| error.message())?;

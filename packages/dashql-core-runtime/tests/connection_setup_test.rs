@@ -786,6 +786,8 @@ fn salesforce_logs_in_and_hands_the_hyper_channel_with_the_tokens_to_the_connect
     assert_eq!(channel.tokens().core.access_token, "core-token");
     let hyper = channel.hyper();
     assert_eq!(hyper.context().attached_databases.len(), 1, "Database.com attaches its Hyper Cloud database");
+    let settings = hyper.query_request("select 1").settings.map(Value::Object);
+    assert_eq!(settings, Some(json!({ "read_after_write_data_consistency": "on" })), "Database.com reads its writes");
     assert_eq!(hyper.client().endpoint().origin(), "https://tenant.c360a.salesforce.com");
     let auth = channel.auth();
     assert!(auth.get("authorization").is_some_and(|value| value.starts_with("Bearer eyJ")));
