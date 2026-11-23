@@ -88,6 +88,10 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     // The shell names its connection like the workbench does, e.g. "Hyper #2 Http Shell" with the prompt "hyper#2> "
     const shellName = connection == null ? 'Shell' : `${(label ?? connection.label).text} Shell`;
     const prompt = `${connectorName.toLowerCase()}${ordinal == null ? '' : `#${ordinal}`}> `;
+    // The names go into the greeter of the terminal and the prompt of the next shell. A new name doesn't replace the
+    // shell, that would abort its running query and drop its queued prompts.
+    const namesRef = React.useRef({ workbookName, shellName, prompt });
+    namesRef.current = { workbookName, shellName, prompt };
     const { controller: snippetsDialog, dialog: snippetsBrowserDialog } = useSnippetsDialog(
         connection?.connectorType ?? ConnectorType.HYPER,
     );
@@ -161,6 +165,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
                     nextShell.destroy();
                     return;
                 }
+                const { workbookName, shellName, prompt } = namesRef.current;
                 let controller: BrowserShellController;
                 try {
                     controller = await embedDashQLShell({
@@ -184,7 +189,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
                 }
                 controllerRef.current = controller;
             } else {
-                controllerRef.current.replaceShell(nextShell, prompt);
+                controllerRef.current.replaceShell(nextShell, namesRef.current.prompt);
             }
             const previous = shellRef.current;
             shellRef.current = nextShell;
@@ -201,7 +206,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
         return () => {
             cancelled = true;
         };
-    }, [shellConnectionId, workbookId, catalog, prompt, workbookName, shellName, setMode, snippetsDialog, mountsFiles, filesCommand, releaseResult, showResultQuery, reopenResultQuery, logger]);
+    }, [shellConnectionId, workbookId, catalog, setMode, snippetsDialog, mountsFiles, filesCommand, releaseResult, showResultQuery, reopenResultQuery, logger]);
 
     React.useEffect(() => {
         if (active) controllerRef.current?.focus();

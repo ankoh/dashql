@@ -643,12 +643,12 @@ describe('WorkbookShellPage', () => {
         });
 
         it('keeps the history when the shell is replaced', async () => {
-            await open();
+            await open([createConnection(MAIN), createConnection(OTHER)]);
             run('select 42 as answer;');
             await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
             await vi.waitFor(() => expect(screen()).toContain('1 row'), WAIT);
 
-            render({ ordinal: 1 });
+            render({ connectionId: OTHER });
             await vi.waitFor(() => expect(created).toHaveLength(2), WAIT);
             await vi.waitFor(() => expect(destroyed.has(created[0])).toBe(true), WAIT);
             expect(destroyed.has(created[1])).toBe(false);
@@ -659,18 +659,35 @@ describe('WorkbookShellPage', () => {
             await vi.waitFor(() => expect(screen()).toContain('select 42 as answer'), WAIT);
         });
 
-        it('takes the prompt of a new ordinal', async () => {
-            const connection = createConnection(MAIN);
-            await open([connection]);
+        it('keeps the shell and its running query when the names change', async () => {
+            let finish = (_table: arrow.Table) => { };
+            execute.mockImplementationOnce(() => [nextQueryId++, new Promise<arrow.Table>(resolve => { finish = resolve; })]);
+            await open();
+            run('select 42 as answer;');
+            await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
+
+            render({ workbookName: 'Renamed workbook', ordinal: 1 });
+            await new Promise(resolve => setTimeout(resolve, 200));
+            expect(created).toHaveLength(1);
+            expect(destroyed.has(created[0])).toBe(false);
+
+            finish(tableFromArrays({ answer: [42] }));
+            await vi.waitFor(() => expect(screen()).toContain('1 row'), WAIT);
+            expect(cancel).not.toHaveBeenCalled();
+        });
+
+        it('takes the prompt of a new ordinal with the next shell', async () => {
+            await open([createConnection(MAIN), createConnection(OTHER)]);
             render({ ordinal: 1 });
+            render({ connectionId: OTHER, ordinal: 1 });
             await vi.waitFor(() => expect(created).toHaveLength(2), WAIT);
             await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
             await vi.waitFor(() => expect(screen()).toContain('hyper#1> '), WAIT);
         });
 
         it('destroys a shell that is out of date when it finishes loading', async () => {
-            await open();
-            render({ ordinal: 1 });
+            await open([createConnection(MAIN), createConnection(OTHER)]);
+            render({ connectionId: OTHER, ordinal: 1 });
             render({ ordinal: 3 });
             await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
             await vi.waitFor(() => expect(created.length).toBeGreaterThanOrEqual(2), WAIT);
@@ -690,9 +707,9 @@ describe('WorkbookShellPage', () => {
         }
 
         it('shows one terminal when the inputs change while the terminal opens', async () => {
-            await whileTerminalOpens(() => render({ ordinal: 1 }));
+            await whileTerminalOpens(() => render({ connectionId: OTHER, ordinal: 1 }));
             render();
-            await act(async () => api.setConnections([createConnection(MAIN)]));
+            await act(async () => api.setConnections([createConnection(MAIN), createConnection(OTHER)]));
             await vi.waitFor(() => expect(created.length).toBeGreaterThanOrEqual(2), WAIT);
             await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
             await new Promise(resolve => setTimeout(resolve, 200));
@@ -721,9 +738,9 @@ describe('WorkbookShellPage', () => {
         });
 
         it('prints a shell that failed to load into the terminal it keeps', async () => {
-            await open();
+            await open([createConnection(MAIN), createConnection(OTHER)]);
             vi.mocked(DashQLShell.create).mockRejectedValueOnce(new Error('shell is broken'));
-            render({ ordinal: 1 });
+            render({ connectionId: OTHER });
             await vi.waitFor(() => expect(screen()).toContain('Failed to load shell: shell is broken'), WAIT);
             expect(status()).toContain('shell is broken');
             // The shell that is there still runs queries
