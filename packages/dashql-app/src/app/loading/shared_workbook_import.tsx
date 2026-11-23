@@ -156,10 +156,7 @@ export function useSharedWorkbookImport(
 
     // Effect Events are non-reactive. Depending on handleSetupEvent would resubscribe after every
     // render even though it always reads the latest callback state.
-    React.useEffect(() => {
-        appEvents.subscribeSetupEvents(handleSetupEvent);
-        return () => appEvents.unsubscribeSetupEvents(handleSetupEvent);
-    }, [appEvents]);
+    React.useEffect(() => appEvents.subscribeSetupEvents(handleSetupEvent), [appEvents]);
 
     const cancelRemoteLoad = React.useCallback(() => {
         remoteAbortRef.current?.abort();

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { workbookOnConnection } from './hyper_links.js';
-import { WebPlatformEventListener } from '../host/events/web_event_listener.js';
+import { PlatformEventListener } from '../host/events/event_listener.js';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { BASE64URL_CODEC } from '@akohn/dashql/platform/utils/base64';
 
@@ -31,7 +31,7 @@ describe('the workbook that a link opens', () => {
 
 describe('Hyper links of the platform', () => {
     /// A listener that receives links like the native app does
-    class LinkListener extends WebPlatformEventListener {
+    class LinkListener extends PlatformEventListener {
         receive(endpoint: string, token: string) {
             this.dispatchHyperLink({ endpoint, token });
         }

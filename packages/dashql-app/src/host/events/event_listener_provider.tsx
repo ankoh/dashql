@@ -5,9 +5,6 @@ import { useLocation } from 'react-router-dom';
 import { PlatformEventListener, EVENT_QUERY_PARAMETER, WORKBOOK_QUERY_PARAMETER, readWorkbookUrlParameter } from './event_listener.js';
 import { ZIP_QUERY_PARAMETER } from '../../workbook/persistence/workbook_link.js';
 import { LEGACY_WORKBOOK_QUERY_PARAMETERS } from './legacy_links.js';
-import { WebPlatformEventListener } from './web_event_listener.js';
-import { ElectronPlatformEventListener } from './electron_event_listener.js';
-import { AppHost, getAppHost } from '@akohn/dashql-react/dom/app_host';
 import { useLogger } from '../logger_provider.js';
 
 const LISTENER_CTX = React.createContext<PlatformEventListener | null>(null);
@@ -24,14 +21,8 @@ export const PlatformEventListenerProvider: React.FC<Props> = (props: Props) => 
     // document URL, so read them from window.location in both browser and packaged-app modes.
     const documentSearch = globalThis.location.search;
 
-    // Construct the event listener
-    const listener = React.useMemo<PlatformEventListener>(() => {
-        const host = getAppHost();
-        const l = host === AppHost.ELECTRON
-            ? new ElectronPlatformEventListener(logger)
-            : new WebPlatformEventListener(logger);
-        return l;
-    }, [logger]);
+    // Construct the event listener, the desktop app hands it its deep links
+    const listener = React.useMemo(() => new PlatformEventListener(logger, globalThis.dashqlElectron ?? null), [logger]);
 
     React.useEffect(() => {
         void listener.setup();

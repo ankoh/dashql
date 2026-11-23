@@ -122,7 +122,7 @@ dashql.app                Salesforce               dashql.app/oauth.html
    Salesforce, the same-origin channel works regardless. If `window.opener` is still there, it also gets
    `postMessage({ kind: 'dashql:app_event', data: eventBase64 }, window.location.origin)`. The popup then
    closes itself.
-5. `WebPlatformEventListener` receives the channel message, or a `message` event with that envelope from
+5. `PlatformEventListener` receives the channel message, or a `message` event with that envelope from
    its own origin (`processMessageEvent`), and passes it through `readAppEvent → dispatchAppEvent →
    dispatchOAuthRedirect`, which resolves `waitForOAuthRedirect`.
 6. If neither arrives, the page shows the event data with a copy button; pasting it into the app delivers
@@ -177,7 +177,7 @@ Native app (Electron)     Salesforce            System browser            OS dee
 6. After a 2-second delay, `triggerFlow` calls `window.open("dashql://localhost?data=eventBase64", '_self')`.
    - The OS routes the `dashql://` deep link to the registered Electron app.
    - An "Open in App" button lets the user retry until the code expires, a copy button copies the link.
-7. `ElectronPlatformEventListener` receives the deep link through the preload bridge, calls `readAppEvent → dispatchAppEvent → dispatchOAuthRedirect`, resolving `waitForOAuthRedirect`.
+7. `PlatformEventListener` receives the deep link through the preload bridge that the desktop app hands it, calls `readAppEvent → dispatchAppEvent → dispatchOAuthRedirect`, resolving `waitForOAuthRedirect`.
    - On cold start, Electron queues command-line and `open-url` deep links until the renderer requests them.
 
 ### Debug mode
@@ -225,6 +225,6 @@ redirects whose `flowId` is not the one it waits for.
 | URL opened via | `window.open` (popup) | `window.open` (popup) | `openExternal` (system browser) |
 | Redirect page | `dashql.app/oauth.html` | `dashql.app/oauth.html`, forwarded to `localhost/oauth.html` | `dashql.app/oauth.html` |
 | Code returned via | `BroadcastChannel`, `window.opener.postMessage` fallback | `BroadcastChannel`, `window.opener.postMessage` fallback | `dashql://` deep link |
-| Event received by | `WebPlatformEventListener` | `WebPlatformEventListener` | `ElectronPlatformEventListener` |
+| Event received by | `PlatformEventListener` | `PlatformEventListener` | `PlatformEventListener`, from the deep links of its bridge |
 | Manual fallback | Paste event data into app | Paste event data into app | Paste deep link into app (debug mode) |
 | `redirect_uri` | `auth.oauthRedirect` | `auth.oauthRedirect` | `auth.oauthRedirect` |

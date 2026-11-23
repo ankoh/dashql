@@ -1,17 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { SETUP_WORKBOOK, SETUP_WORKBOOK_URL, type SetupEventVariant } from './event.js';
-import { parseClipboardSetup, PlatformEventListener, readWorkbookUrlParameter } from './event_listener.js';
+import { APP_EVENT_POST_MESSAGE_KIND, SETUP_WORKBOOK, SETUP_WORKBOOK_URL, type SetupEventVariant } from './event.js';
+import { parseClipboardSetup, PlatformEventListener, readWorkbookUrlParameter, type DeepLinkBridge } from './event_listener.js';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { encodeWorkbookAppEvent } from '../../tests/mocks/app_events.js';
-
-class TestPlatformEventListener extends PlatformEventListener {
-    public starts = 0;
-    public stops = 0;
-
-    protected async listenForAppEvents(): Promise<void> { this.starts += 1; }
-    protected stopListeningForAppEvents(): void { this.stops += 1; }
-}
 
 describe('PlatformEventListener clipboard events', () => {
     function paste(text: string) {
@@ -53,7 +45,7 @@ describe('PlatformEventListener clipboard events', () => {
     });
 
     it('dispatches a workbook setup event from a pasted app URL', async () => {
-        const listener = new TestPlatformEventListener(new TestLogger());
+        const listener = new PlatformEventListener(new TestLogger());
         const setupEvents: SetupEventVariant[] = [];
         listener.subscribeSetupEvents(event => setupEvents.push(event));
         await listener.setup();
@@ -72,7 +64,7 @@ describe('PlatformEventListener clipboard events', () => {
     });
 
     it('dispatches the workbook ZIP of a pasted link that carries it in the zip parameter', async () => {
-        const listener = new TestPlatformEventListener(new TestLogger());
+        const listener = new PlatformEventListener(new TestLogger());
         const setupEvents: SetupEventVariant[] = [];
         listener.subscribeSetupEvents(event => setupEvents.push(event));
         await listener.setup();
@@ -86,10 +78,10 @@ describe('PlatformEventListener clipboard events', () => {
     });
 
     it('dispatches unhandled pasted text to fallback subscribers without trimming it', async () => {
-        const listener = new TestPlatformEventListener(new TestLogger());
+        const listener = new PlatformEventListener(new TestLogger());
         const fallbackPastes: string[] = [];
         const handler = (text: string) => fallbackPastes.push(text);
-        listener.subscribeFallbackPasteEvents(handler);
+        const unsubscribe = listener.subscribeFallbackPasteEvents(handler);
         await listener.setup();
 
         const { preventDefault, stopPropagation } = paste('  query plan\n');
@@ -98,21 +90,40 @@ describe('PlatformEventListener clipboard events', () => {
         expect(preventDefault).toHaveBeenCalledOnce();
         expect(stopPropagation).toHaveBeenCalledOnce();
 
-        listener.unsubscribeFallbackPasteEvents(handler);
+        unsubscribe();
         paste('ignored');
         expect(fallbackPastes).toHaveLength(1);
         listener.dispose();
     });
 
     it('sets up global listeners once and removes them on dispose', async () => {
-        const listener = new TestPlatformEventListener(new TestLogger());
+        const add = vi.spyOn(document, 'addEventListener');
+        const remove = vi.spyOn(document, 'removeEventListener');
+        const listener = new PlatformEventListener(new TestLogger());
         await listener.setup();
         await listener.setup();
-        expect(listener.starts).toBe(1);
+        expect(add.mock.calls.filter(([type]) => type === 'paste')).toHaveLength(1);
 
         listener.dispose();
         listener.dispose();
-        expect(listener.stops).toBe(1);
+        expect(remove.mock.calls.filter(([type]) => type === 'paste')).toHaveLength(1);
+        add.mockRestore();
+        remove.mockRestore();
+    });
+
+    it('delivers a setup event that arrived before the subscriber and stops after the unsubscribe', () => {
+        const listener = new PlatformEventListener(new TestLogger());
+        listener.dispatchWorkbookUrl('https://example.com/a.json');
+        const setupEvents: SetupEventVariant[] = [];
+        const unsubscribe = listener.subscribeSetupEvents(event => setupEvents.push(event));
+        expect(setupEvents).toEqual([{ type: SETUP_WORKBOOK_URL, value: 'https://example.com/a.json' }]);
+
+        unsubscribe();
+        listener.dispatchWorkbookUrl('https://example.com/b.json');
+        expect(setupEvents).toHaveLength(1);
+        // The queued event goes to the next subscriber
+        listener.subscribeSetupEvents(event => setupEvents.push(event));
+        expect(setupEvents[1]).toEqual({ type: SETUP_WORKBOOK_URL, value: 'https://example.com/b.json' });
     });
 });
 
@@ -125,7 +136,7 @@ describe('PlatformEventListener links of older versions', () => {
     });
 
     it('dispatches the workbook ZIP of an app event that embeds it as notebook', () => {
-        const listener = new TestPlatformEventListener(new TestLogger());
+        const listener = new PlatformEventListener(new TestLogger());
         const setupEvents: SetupEventVariant[] = [];
         listener.subscribeSetupEvents(event => setupEvents.push(event));
 
@@ -142,7 +153,7 @@ describe('PlatformEventListener OAuth redirects', () => {
     const redirect = (code: string) => ({ oauthRedirect: { code, state: {} } }) as unknown as Parameters<PlatformEventListener['dispatchAppEvent']>[0];
 
     it('resolves the accepted redirect of an app event', async () => {
-        const listener = new TestPlatformEventListener(new TestLogger());
+        const listener = new PlatformEventListener(new TestLogger());
         const waiting = listener.waitForOAuthRedirect(new AbortController().signal, data => data.code === 'mine');
         listener.dispatchAppEvent(redirect('other'));
         listener.dispatchAppEvent(redirect('mine'));
@@ -150,13 +161,13 @@ describe('PlatformEventListener OAuth redirects', () => {
     });
 
     it('rejects a second listener', async () => {
-        const listener = new TestPlatformEventListener(new TestLogger());
+        const listener = new PlatformEventListener(new TestLogger());
         void listener.waitForOAuthRedirect(new AbortController().signal);
         await expect(listener.waitForOAuthRedirect(new AbortController().signal)).rejects.toThrow('duplicate oauth listener');
     });
 
     it('rejects an aborted wait and accepts a new listener afterwards', async () => {
-        const listener = new TestPlatformEventListener(new TestLogger());
+        const listener = new PlatformEventListener(new TestLogger());
         const abort = new AbortController();
         const waiting = listener.waitForOAuthRedirect(abort.signal);
         abort.abort();
@@ -168,7 +179,7 @@ describe('PlatformEventListener OAuth redirects', () => {
     });
 
     it('rejects a wait on an aborted signal without registering it', async () => {
-        const listener = new TestPlatformEventListener(new TestLogger());
+        const listener = new PlatformEventListener(new TestLogger());
         const abort = new AbortController();
         abort.abort();
         await expect(listener.waitForOAuthRedirect(abort.signal)).rejects.toMatchObject({ name: 'AbortError' });
@@ -179,3 +190,65 @@ describe('PlatformEventListener OAuth redirects', () => {
     });
 });
 
+
+describe('PlatformEventListener messages', () => {
+    let listener: PlatformEventListener | null = null;
+    afterEach(() => {
+        listener?.dispose();
+        listener = null;
+    });
+
+    it('dispatches the app events that the window of the app posts', async () => {
+        listener = new PlatformEventListener(new TestLogger());
+        const events: SetupEventVariant[] = [];
+        listener.subscribeSetupEvents(event => events.push(event));
+        await listener.setup();
+        const zip = new Uint8Array([80, 75, 3, 4]);
+        const message = (data: unknown, origin = window.location.origin) => window.dispatchEvent(new MessageEvent('message', { data, origin }));
+
+        message({ kind: 'devtools', data: 'x' });
+        message({ kind: APP_EVENT_POST_MESSAGE_KIND, data: encodeWorkbookAppEvent(zip) }, 'https://evil.example');
+        expect(events).toEqual([]);
+        message({ kind: APP_EVENT_POST_MESSAGE_KIND, data: encodeWorkbookAppEvent(zip) });
+        expect(events).toEqual([{ type: SETUP_WORKBOOK, value: zip }]);
+    });
+});
+
+describe('PlatformEventListener deep links', () => {
+    type DeepLink = { type: 'event' | 'workbook' | 'zip'; value: string };
+    let listener: PlatformEventListener | null = null;
+    afterEach(() => {
+        listener?.dispose();
+        listener = null;
+    });
+
+    /// A bridge that hands out the initial deep links and records the deep link subscription
+    function deepLinks(initial: DeepLink[]) {
+        const bridge = {
+            listener: null as ((link: DeepLink) => void) | null,
+            unsubscribe: vi.fn(),
+            getInitialDeepLinks: async () => initial,
+            onDeepLink: (listener: (link: DeepLink) => void) => {
+                bridge.listener = listener;
+                return bridge.unsubscribe;
+            },
+        };
+        return bridge;
+    }
+
+    it('dispatches the initial and later deep links and unsubscribes on dispose', async () => {
+        const bridge = deepLinks([{ type: 'workbook', value: 'https://dashql.app/?workbook=abc' }]);
+        listener = new PlatformEventListener(new TestLogger(), bridge satisfies DeepLinkBridge);
+        const events: SetupEventVariant[] = [];
+        listener.subscribeSetupEvents(event => events.push(event));
+        await listener.setup();
+        expect(events).toEqual([{ type: SETUP_WORKBOOK_URL, value: 'https://dashql.app/?workbook=abc' }]);
+
+        const zip = new Uint8Array([80, 75, 3, 4]);
+        bridge.listener!({ type: 'event', value: encodeWorkbookAppEvent(zip) });
+        expect(events[1]).toEqual({ type: SETUP_WORKBOOK, value: zip });
+
+        listener.dispose();
+        expect(bridge.unsubscribe).toHaveBeenCalledOnce();
+    });
+});

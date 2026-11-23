@@ -48,7 +48,7 @@ export interface PlanDialogHookResult {
     dialog: React.ReactElement | null;
 }
 
-type PlanDialogEvents = Pick<PlatformEventListener, 'subscribeFallbackPasteEvents' | 'unsubscribeFallbackPasteEvents'>;
+type PlanDialogEvents = Pick<PlatformEventListener, 'subscribeFallbackPasteEvents'>;
 
 export interface PlanDialogDependencies {
     createProfileLayoutConfig: typeof createProfileLayoutConfig;
@@ -231,8 +231,7 @@ function PlanDialog(props: PlanDialogProps) {
             flushValidation();
             if (rawTextIsValidRef.current) setMode(PlanMode.Viewer);
         };
-        props.appEvents.subscribeFallbackPasteEvents(handleFallbackPaste);
-        return () => props.appEvents.unsubscribeFallbackPasteEvents(handleFallbackPaste);
+        return props.appEvents.subscribeFallbackPasteEvents(handleFallbackPaste);
     }, [props.appEvents, flushValidation]);
 
     const selectMode = React.useCallback((nextMode: PlanMode) => {

@@ -3,7 +3,7 @@ import * as app_event from '@akohn/dashql-jsonschema/app_event.js';
 import { BASE64URL_CODEC } from '@akohn/dashql/platform/utils/base64';
 import { LEGACY_WORKBOOK_QUERY_PARAMETERS, migrateAppEventData } from './legacy_links.js';
 import { Logger } from '@akohn/dashql/platform/logger/logger';
-import { SETUP_WORKBOOK, SETUP_WORKBOOK_URL, SetupEventVariant } from './event.js';
+import { OAUTH_BROADCAST_CHANNEL, SETUP_WORKBOOK, SETUP_WORKBOOK_URL, SetupEventVariant, isAppEventPostMessage } from './event.js';
 import { ZIP_QUERY_PARAMETER } from '../../workbook/persistence/workbook_link.js';
 
 const LOG_CTX = "event_listener";
@@ -71,9 +71,16 @@ interface OAuthSubscriber {
     accepts: (data: app_event.OAuthRedirectData) => boolean;
 }
 
-export abstract class PlatformEventListener {
+/// The deep links of the desktop app, from the bridge of its preload script
+export type DeepLinkBridge = Pick<DashQLElectronBridge, 'getInitialDeepLinks' | 'onDeepLink'>;
+
+/// The events that reach the app from outside: app events posted by its windows or sent over the OAuth broadcast channel,
+/// pasted links, and the deep links of the desktop app
+export class PlatformEventListener {
     /// The logger
     protected logger: Logger;
+    /// The deep links of the desktop app, null in the browser
+    private readonly deepLinks: DeepLinkBridge | null;
 
     /// The oauth subscriber.
     /// There can only be a single OAuth subscriber at a single point in time.
@@ -82,51 +89,86 @@ export abstract class PlatformEventListener {
     /// There can only be a single navigation subscribe at a single point in time
     private setupSubscriber: ((data: SetupEventVariant) => void) | null = null;
     /// The queued workbook setup (if any)
-    private queuedSetupEvent: SetupEventVariant | null;
-    /// The clipboard subscriber
-    private clipboardEventHandler: (e: ClipboardEvent) => void;
-    /// Whether global event listeners are installed
-    private isSetup: boolean;
+    private queuedSetupEvent: SetupEventVariant | null = null;
     /// Subscribers for pasted text not handled as an app event
-    private fallbackPasteSubscribers: Set<(text: string) => void>;
+    private readonly fallbackPasteSubscribers = new Set<(text: string) => void>();
     /// The subscriber for Hyper links
     private hyperLinkSubscriber: ((target: HyperLinkEvent) => void) | null = null;
     /// The latest Hyper link that arrived without a subscriber
     private queuedHyperLink: HyperLinkEvent | null = null;
+    /// Removes the global listeners, null while they are not installed
+    private removeListeners: (() => void) | null = null;
 
     /// Constructor
-    constructor(logger: Logger) {
+    constructor(logger: Logger, deepLinks: DeepLinkBridge | null = null) {
         this.logger = logger;
-        this.oAuthSubscriber = null;
-        this.setupSubscriber = null;
-        this.queuedSetupEvent = null;
-        this.clipboardEventHandler = this.processClipboardEvent.bind(this);
-        this.fallbackPasteSubscribers = new Set();
-        this.isSetup = false;
+        this.deepLinks = deepLinks;
     }
 
-    /// Method to setup the listener
+    /// Install the global listeners, once
     public async setup(): Promise<void> {
-        if (this.isSetup) return;
-        this.isSetup = true;
-        await this.listenForAppEvents();
-        this.listenForClipboardEvents();
+        if (this.removeListeners != null) return;
+        const onWindowMessage = (event: MessageEvent) => this.processMessageEvent(event);
+        const onPaste = (event: ClipboardEvent) => this.processClipboardEvent(event);
+        const oauthBroadcastChannel = new BroadcastChannel(OAUTH_BROADCAST_CHANNEL);
+        oauthBroadcastChannel.onmessage = (event: MessageEvent) => {
+            const data = this.readAppEvent(event.data, `broadcast channel`);
+            if (data != null) this.dispatchAppEvent(data);
+        };
+        window.addEventListener("message", onWindowMessage);
+        // Use capture phase on document so we see paste events even when an input field
+        // has focus (inputs otherwise consume the event before it reaches window).
+        this.logger.info("Subscribing to clipboard events", {}, LOG_CTX);
+        document.addEventListener("paste", onPaste, true);
+        const unsubscribeDeepLinks = this.deepLinks?.onDeepLink(link => this.dispatchDeepLink(link, "Electron deep link")) ?? null;
+        this.removeListeners = () => {
+            oauthBroadcastChannel.close();
+            window.removeEventListener("message", onWindowMessage);
+            document.removeEventListener("paste", onPaste, true);
+            unsubscribeDeepLinks?.();
+        };
+        for (const link of await this.deepLinks?.getInitialDeepLinks() ?? []) {
+            this.dispatchDeepLink(link, "initial Electron deep link");
+        }
     }
-    /// Remove global event listeners
+    /// Remove the global listeners
     public dispose(): void {
-        if (!this.isSetup) return;
-        this.isSetup = false;
-        document.removeEventListener("paste", this.clipboardEventHandler, true);
-        this.stopListeningForAppEvents();
+        this.removeListeners?.();
+        this.removeListeners = null;
         this.fallbackPasteSubscribers.clear();
     }
 
-    /// Method to setup the listener for app events
-    protected abstract listenForAppEvents(): Promise<void>;
-    /// Method to remove app event listeners
-    protected abstract stopListeningForAppEvents(): void;
+    /// Received a message posted to the window
+    private processMessageEvent(event: MessageEvent) {
+        // The global "message" listener also receives unrelated traffic (devtools
+        // bridges, browser extensions, etc.). Only act on our own envelope.
+        if (!isAppEventPostMessage(event.data)) {
+            return;
+        }
+        if (event.origin !== window.location.origin) {
+            return;
+        }
+        const data = this.readAppEvent(event.data.data, `event message`);
+        if (data != null) {
+            event.stopPropagation();
+            event.preventDefault();
+            this.dispatchAppEvent(data);
+        }
+    }
 
-    /// Called by subclasses when receiving an app event
+    /// Received a deep link of the desktop app
+    private dispatchDeepLink(link: { type: "event" | "workbook" | "zip"; value: string }, source: string) {
+        if (link.type === "workbook") {
+            this.dispatchWorkbookUrl(link.value);
+        } else if (link.type === "zip") {
+            this.dispatchWorkbookZip(link.value);
+        } else {
+            const event = this.readAppEvent(link.value, source);
+            if (event !== null) this.dispatchAppEvent(event);
+        }
+    }
+
+    /// Received an app event
     public dispatchAppEvent(event: app_event.AppEventData) {
         if ('oauthRedirect' in event) {
             this.dispatchOAuthRedirect(event.oauthRedirect);
@@ -168,7 +210,7 @@ export abstract class PlatformEventListener {
         }
     }
 
-    /// Subscribe to Hyper links, a link that arrived before is delivered right away
+    /// Subscribe to Hyper links, a link that arrived before is delivered right away. Returns the unsubscribe.
     public subscribeHyperLinks(handler: (target: HyperLinkEvent) => void): () => void {
         this.hyperLinkSubscriber = handler;
         const queued = this.queuedHyperLink;
@@ -243,11 +285,12 @@ export abstract class PlatformEventListener {
         }
     }
 
-    /// Subscribe navigation events
-    public subscribeSetupEvents(handler: (data: SetupEventVariant) => void): void {
+    /// Subscribe to workbook setup events, an event that arrived before is delivered right away. Returns the
+    /// unsubscribe.
+    public subscribeSetupEvents(handler: (data: SetupEventVariant) => void): () => void {
         if (this.setupSubscriber) {
             this.logger.warn("Tried to register more than one workbook setup subscriber", {}, LOG_CTX);
-            return;
+            return () => { };
         }
         this.logger.info("Subscribing to workbook setup events", {}, LOG_CTX);
         this.setupSubscriber = handler;
@@ -259,31 +302,15 @@ export abstract class PlatformEventListener {
             this.logger.info("Dispatching buffered workbook setup event", {}, LOG_CTX);
             this.setupSubscriber(setup);
         }
-    }
-    /// Unsubscribe from workbook setup events
-    public unsubscribeSetupEvents(handler: (data: SetupEventVariant) => void): void {
-        if (this.setupSubscriber != handler) {
-            this.logger.warn("Tried to unregister a workbook setup subscriber that is not registered", {}, LOG_CTX);
-        } else {
-            this.setupSubscriber = null;
-        }
+        return () => {
+            if (this.setupSubscriber === handler) this.setupSubscriber = null;
+        };
     }
 
-    /// Subscribe to pasted text that is not recognized as an app event
-    public subscribeFallbackPasteEvents(handler: (text: string) => void): void {
+    /// Subscribe to pasted text that is not recognized as an app event. Returns the unsubscribe.
+    public subscribeFallbackPasteEvents(handler: (text: string) => void): () => void {
         this.fallbackPasteSubscribers.add(handler);
-    }
-    /// Unsubscribe from fallback paste events
-    public unsubscribeFallbackPasteEvents(handler: (text: string) => void): void {
-        this.fallbackPasteSubscribers.delete(handler);
-    }
-
-    /// Method to listen for pasted dashql links
-    private listenForClipboardEvents() {
-        this.logger.info("Subscribing to clipboard events", {}, LOG_CTX);
-        // Use capture phase on document so we see paste events even when an input field
-        // has focus (inputs otherwise consume the event before it reaches window).
-        document.addEventListener("paste", this.clipboardEventHandler, true);
+        return () => { this.fallbackPasteSubscribers.delete(handler); };
     }
 
     /// Helper to unpack app link data

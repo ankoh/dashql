@@ -88,12 +88,14 @@ describe('query plan dialog', () => {
     let controller: PlanDialogController;
     let mounted: boolean;
     let fallbackPasteHandler: ((text: string) => void) | null;
+    const unsubscribeFallbackPastes = vi.fn();
     const appEvents = {
         subscribeFallbackPasteEvents: vi.fn((handler: (text: string) => void) => {
             fallbackPasteHandler = handler;
-        }),
-        unsubscribeFallbackPasteEvents: vi.fn((handler: (text: string) => void) => {
-            if (fallbackPasteHandler === handler) fallbackPasteHandler = null;
+            return () => {
+                unsubscribeFallbackPastes();
+                if (fallbackPasteHandler === handler) fallbackPasteHandler = null;
+            };
         }),
     };
 
@@ -206,7 +208,7 @@ describe('query plan dialog', () => {
 
         act(() => closeButton().click());
         await result;
-        expect(appEvents.unsubscribeFallbackPasteEvents).toHaveBeenCalledOnce();
+        expect(unsubscribeFallbackPastes).toHaveBeenCalledOnce();
     });
 
     it('disables Viewer for malformed and operator-free plans, then recovers', async () => {
