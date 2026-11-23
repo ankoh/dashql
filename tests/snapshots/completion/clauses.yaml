@@ -1131,7 +1131,8 @@ completion-snapshots:
       input: |-
         merge into t using u on t.a = u.a when not matched then insert (a) values (t.n)
       catalog-id: 2
-      errors: []
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table t, it cannot be referenced from this part of the query', text: "t.n"}
       table-refs:
         - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
         - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}

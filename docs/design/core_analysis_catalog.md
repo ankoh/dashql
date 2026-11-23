@@ -329,7 +329,11 @@ The rules follow PostgreSQL and Hyper:
   is a `DUPLICATE_TABLE_ALIAS`, unless an aliased join hides one of them.
 - **Qualified column refs** try the longest qualifier first: `db.s.t.c`, `s.t.c`, `t.c`. A qualifier
   that names a FROM item binds the ref to it, even if the item has no such column: the parent scopes
-  aren't searched, the ref stays unresolved, and schema inference gives the column to that item.
+  aren't searched, the ref stays unresolved, and schema inference gives the column to that item. A qualifier that
+  names a FROM item that the column ref doesn't see, of a clause that restricts them or after a lateral FROM item, is
+  an `INVALID_FROM_CLAUSE_REFERENCE` (PostgreSQL's invalid reference to a FROM-clause entry), its column is not
+  inferred. A derived table without `LATERAL` and a CTE see no FROM items of their parent, a qualifier of one stays
+  unresolved without an error.
 - **Script tables** resolve to the last declaration of the name before the referencing statement. An
   `ALTER` declares a new version, see `catalog_updates.md`. A statement before all declarations of the name, also the
   declaring statement itself, reads the table of the catalog, or an unresolved one.
@@ -342,7 +346,8 @@ The rules follow PostgreSQL and Hyper:
   FROM items of UPDATE, the USING items of DELETE and the source of MERGE are read. The conditions, the values and
   RETURNING of UPDATE, DELETE and MERGE see the target and the read relations; the source of INSERT sees no target.
   A `WHEN NOT MATCHED [BY TARGET]` clause of MERGE sees the source only, a `WHEN NOT MATCHED BY SOURCE` clause the
-  target only, also from its subqueries (`SourceVisibility::Except` and `Only` of the target). The scope publishes
+  target only, also from its subqueries (`SourceVisibility::Except` and `Only` of the target), `t.b` of the relation
+  that a clause doesn't see is an invalid reference to a FROM-clause entry. The scope publishes
   these clauses in `NameScope::clauses`, `NameScope::visibility_at` names what a node in them sees, for completion.
   The columns that UPDATE and MERGE write, the SET targets and the INSERT columns of MERGE, are column refs that bind
   to the target only, also when a read relation has a column of the same name; the column of a target that the
@@ -351,14 +356,15 @@ The rules follow PostgreSQL and Hyper:
   columns of UPDATE. `DO UPDATE` adds `excluded`, the row proposed for insertion, as a FROM item of the INSERT scope
   with the table of the target (its AST node is the `OBJECT_SQL_INSERT_ON_CONFLICT`), and only the values and the
   condition of `DO UPDATE` and their subqueries see it (`SourceVisibility::Except` of the others): an unqualified
-  column of both is ambiguous there, as in PostgreSQL, RETURNING and the index predicate don't see `excluded`, and
-  `RETURNING *` lists the columns of the target.
+  column of both is ambiguous there, as in PostgreSQL, RETURNING and the index predicate don't see `excluded`,
+  `excluded.a` and `excluded.*` are invalid references there, and `RETURNING *` lists the columns of the target.
 - **`*` over a join** lists the `USING` and `NATURAL` columns once, first, then the other columns of
   the left and the right side.
 - **An aliased join**, `(t join u using (a)) as j`, names the join: outside of it, the alias hides the names of the
   FROM items inside it, `j.b` and an unqualified `b` read the columns of the join as `*` lists them, and the column
-  aliases rename them. A `t.b` outside of the join is an `INVALID_FROM_CLAUSE_REFERENCE` (PostgreSQL's invalid reference
-  to a FROM-clause entry) that names the alias of the join, its column is not inferred. An ambiguous column of the join, `j.a`
+  aliases rename them. A `t.b` and a `t.*` outside of the join are an `INVALID_FROM_CLAUSE_REFERENCE` (PostgreSQL's invalid
+  reference to a FROM-clause entry) that names the alias of the join, as is the alias of an aliased join nested in it,
+  its column is not inferred. An ambiguous column of the join, `j.a`
   over `t join u on ...`, lists the columns inside the join as its candidates, `t.a, u.a`. A column ref inside the join, in its `ON`, sees the inner names. A FROM item outside of the join can take a
   name that the join hides, `(t join u on ...) as j, t`, inside of the join the inner `t` shadows it
   (`NameScope::named_sources`). The FROM items stay the

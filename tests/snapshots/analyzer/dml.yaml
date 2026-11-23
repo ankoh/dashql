@@ -362,7 +362,10 @@ analyzer-snapshots:
     script:
       input: insert into t values (1, 2) on conflict (a) where excluded.a > 0 do update set (a, b) = (select excluded.a, u.c from u) returning *, excluded.b, (select excluded.a)
       catalog-id: 2
-      errors: []
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table excluded, it cannot be referenced from this part of the query', text: "excluded.a"}
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table excluded, it cannot be referenced from this part of the query', text: "excluded.b"}
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table excluded, it cannot be referenced from this part of the query', text: "excluded.a"}
       table-refs:
         - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
         - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
@@ -1198,3 +1201,148 @@ analyzer-snapshots:
           columns:
             - {name: k, confidence: confident}
             - {name: n, confidence: confident}
+
+  - name: merge_not_matched_clause_invisible_qualifier
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: |-
+        merge into t using u on t.a = u.a
+        when not matched then insert (a) values (t.b)
+        when not matched by source and u.c > 0 and exists (select 1 from v where v.id = u.a) then delete
+      catalog-id: 2
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table t, it cannot be referenced from this part of the query', text: "t.b"}
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table u, it cannot be referenced from this part of the query', text: "u.c"}
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table u, it cannot be referenced from this part of the query', text: "u.a"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "v"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+        - {id: 2, type: colref/unresolved, text: "t.b"}
+        - {id: 3, type: colref/unresolved, text: "u.c"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:2.0", source: "v", text: "v.id"}
+        - {id: 5, type: colref/unresolved, text: "u.a"}
+        - {id: 6, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 7, type: literal/integer, is-const: true, text: "0"}
+        - {id: 8, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 7, text: "0"}
+        - {expression: 8, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: only
+          sources:
+            - {type: table, name: v, text: "v"}
+          columns:
+            - {name: '?', expression: 8}
+          text: "(select 1 ...id = u.a)"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
+          clauses:
+            - {sources: except, text: "when not m..lues (t.b)"}
+            - {sources: only, text: "when not m..hen delete"}
+          text: "merge into..hen delete"
+
+  - name: merge_not_matched_clause_invisible_qualifier_inference
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: |-
+        merge into missing m using other o on m.k = o.k
+        when not matched then insert (k) values (m.extra)
+        when not matched by source and o.z > 0 then delete
+      catalog-id: 2
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table m, it cannot be referenced from this part of the query', text: "m.extra"}
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table o, it cannot be referenced from this part of the query', text: "o.z"}
+      table-refs:
+        - {type: name/unresolved, role: write, text: "missing m"}
+        - {type: name/unresolved, text: "other o"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "m.k"}
+        - {id: 1, type: colref/unresolved, text: "o.k"}
+        - {id: 2, type: colref/unresolved, text: "m.extra"}
+        - {id: 3, type: colref/unresolved, text: "o.z"}
+        - {id: 4, type: colref/unresolved, text: "k"}
+        - {id: 5, type: literal/integer, is-const: true, text: "0"}
+      constants:
+        - {expression: 5, text: "0"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: unresolved, name: m, text: "missing m"}
+            - {type: unresolved, name: o, text: "other o"}
+          clauses:
+            - {sources: except, text: "when not m.. (m.extra)"}
+            - {sources: only, text: "when not m..hen delete"}
+          text: "merge into..hen delete"
+      inferred-tables:
+        - name: missing
+          confidence: confident
+          columns:
+            - {name: k, confidence: confident}
+        - name: other
+          confidence: confident
+          columns:
+            - {name: k, confidence: confident}
+
+  - name: insert_on_conflict_returning_excluded_inference
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: insert into missing values (1, 2) on conflict (p) do update set q = excluded.r returning excluded.s
+      catalog-id: 2
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table excluded, it cannot be referenced from this part of the query', text: "excluded.s"}
+      table-refs:
+        - {type: name/unresolved, role: write, text: "missing"}
+      inserts:
+        - target-ref: 0
+          source: "values (1, 2)"
+          returning: true
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "excluded.r"}
+        - {id: 1, type: colref/unresolved, text: "excluded.s"}
+        - {id: 2, type: colref/unresolved, text: "p"}
+        - {id: 3, type: colref/unresolved, text: "q"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+        - {id: 5, type: literal/integer, is-const: true, text: "2"}
+      constants:
+        - {expression: 4, text: "1"}
+        - {expression: 5, text: "2"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: except
+          correlation-barrier: true
+          columns:
+            - {name: '?', expression: 4}
+            - {name: '?', expression: 5}
+          text: "values (1, 2)"
+        - scope-id: 1
+          sources:
+            - {type: unresolved, name: missing, text: "missing"}
+            - {type: unresolved, name: excluded, text: "on conflic..excluded.r"}
+          columns:
+            - {name: s, expression: 1}
+          text: "insert int..excluded.s"
+      inferred-tables:
+        - name: missing
+          confidence: confident
+          columns:
+            - {name: r, confidence: confident}
+            - {name: p, confidence: confident}
+            - {name: q, confidence: confident}

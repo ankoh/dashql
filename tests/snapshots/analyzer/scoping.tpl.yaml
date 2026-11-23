@@ -278,6 +278,21 @@ analyzer-snapshots:
     script:
       input: select t.b, (select u.c) from (t join u using (a)) as j where j.a > 0
 
+  # An aliased join inside another one is hidden by the outer alias, as are the FROM items inside it
+  - name: join_parenthesized_alias_invalid_reference_nested
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select k.a, t.b, j.x from ((t join u on true) as k join v on true) as j
+
+  - name: join_parenthesized_alias_invalid_reference_star
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select t.*, j.* from (t join u on true) j
+
   # A hidden FROM item of a table that the catalog doesn't know gets no inferred column
   - name: join_parenthesized_alias_invalid_reference_unresolved
     catalog:

@@ -860,7 +860,8 @@ analyzer-snapshots:
     script:
       input: select * from lateral (select t.a as k) s, t
       catalog-id: 2
-      errors: []
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table t, it cannot be referenced from this part of the query', text: "t.a"}
       table-refs:
         - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:

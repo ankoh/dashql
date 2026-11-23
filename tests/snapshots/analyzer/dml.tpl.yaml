@@ -258,3 +258,33 @@ analyzer-snapshots:
         merge into missing m using other o on m.k = o.k
         when not matched then insert (k, l) values (o.k, n)
         when not matched by source and z > 0 then delete
+
+  # A qualifier that names the relation that a WHEN NOT MATCHED clause doesn't see is an invalid reference, its column
+  # is not inferred
+  - name: merge_not_matched_clause_invisible_qualifier
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: |-
+        merge into t using u on t.a = u.a
+        when not matched then insert (a) values (t.b)
+        when not matched by source and u.c > 0 and exists (select 1 from v where v.id = u.a) then delete
+
+  - name: merge_not_matched_clause_invisible_qualifier_inference
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: |-
+        merge into missing m using other o on m.k = o.k
+        when not matched then insert (k) values (m.extra)
+        when not matched by source and o.z > 0 then delete
+
+  # RETURNING doesn't see the excluded row of ON CONFLICT
+  - name: insert_on_conflict_returning_excluded_inference
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: insert into missing values (1, 2) on conflict (p) do update set q = excluded.r returning excluded.s

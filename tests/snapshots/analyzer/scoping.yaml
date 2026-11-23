@@ -1447,6 +1447,87 @@ analyzer-snapshots:
             - {name: '?', computed: true}
           text: "select t.b..re j.a > 0"
 
+  - name: join_parenthesized_alias_invalid_reference_nested
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select k.a, t.b, j.x from ((t join u on true) as k join v on true) as j
+      catalog-id: 2
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table k, use the alias j of its join', text: "k.a"}
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table t, use the alias j of its join', text: "t.b"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "v"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "k.a"}
+        - {id: 1, type: colref/unresolved, text: "t.b"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:2.1", source: "v", text: "j.x"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
+            - {type: table, name: v, text: "v"}
+          joins:
+            - name: j
+              columns:
+                - {name: a, table-column: "256.65536.1:0.0"}
+                - {name: b, table-column: "256.65536.1:0.1"}
+                - {name: a, table-column: "256.65536.1:1.0"}
+                - {name: c, table-column: "256.65536.1:1.1"}
+                - {name: id, table-column: "256.65536.1:2.0"}
+                - {name: x, table-column: "256.65536.1:2.1"}
+              text: "((t join u..true) as j"
+            - name: k
+              columns:
+                - {name: a, table-column: "256.65536.1:0.0"}
+                - {name: b, table-column: "256.65536.1:0.1"}
+                - {name: a, table-column: "256.65536.1:1.0"}
+                - {name: c, table-column: "256.65536.1:1.1"}
+              text: "(t join u ..true) as k"
+          columns:
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
+            - {name: x, expression: 2}
+          text: "select k.a..true) as j"
+
+  - name: join_parenthesized_alias_invalid_reference_star
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select t.*, j.* from (t join u on true) j
+      catalog-id: 2
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table t, use the alias j of its join', text: "t.*"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
+          joins:
+            - name: j
+              columns:
+                - {name: a, table-column: "256.65536.1:0.0"}
+                - {name: b, table-column: "256.65536.1:0.1"}
+                - {name: a, table-column: "256.65536.1:1.0"}
+                - {name: c, table-column: "256.65536.1:1.1"}
+              text: "(t join u ..on true) j"
+          columns:
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+            - {name: a, table-column: "256.65536.1:1.0"}
+            - {name: c, table-column: "256.65536.1:1.1"}
+          text: "select t.*..on true) j"
+
   - name: join_parenthesized_alias_invalid_reference_unresolved
     catalog:
       script:

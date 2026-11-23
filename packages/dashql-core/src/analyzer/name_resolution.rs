@@ -1495,16 +1495,16 @@ impl NameResolutionPass {
         }
     }
 
-    /// Look up a FROM item by name in a scope and in the parent scopes it sees, from an AST node. An aliased join hides
-    /// the names of the FROM items inside it.
+    /// Look up a FROM item by name in a scope and in the parent scopes it sees, from an AST node that sees some FROM
+    /// items of its own scope. An aliased join hides the names of the FROM items inside it.
     fn lookup_source_in_scope_chain<'s>(
         state: &'s AnalysisState,
         scope: ScopeId,
         name: &str,
         node_id: u32,
+        mut visibility: SourceVisibility,
     ) -> Option<&'s ScopeSource> {
         let mut current = scope;
-        let mut visibility = SourceVisibility::All;
         loop {
             let s = state.out.scope(current)?;
             let named = s.named_sources(state.ast, node_id, visibility, |x| x.name.as_deref() == Some(name));
@@ -1517,18 +1517,43 @@ impl NameResolutionPass {
         }
     }
 
-    /// The alias of the join that hides a FROM item with a name from an AST node, in a scope and in the parent scopes
-    /// it sees
-    fn lookup_hiding_join(state: &AnalysisState, scope: ScopeId, name: &str, node_id: u32) -> Option<Arc<str>> {
+    /// The message of an invalid reference to a FROM item that a qualifier names, but that an AST node doesn't see,
+    /// in a scope and in the parent scopes it sees, as in PostgreSQL. An aliased join hides the FROM items and the
+    /// aliased joins inside it, the alias names them. A clause, a lateral FROM item and a FROM item of UPDATE, DELETE
+    /// and MERGE see only some FROM items. A derived table without LATERAL and a CTE see none of their parent scope, a
+    /// qualifier of them is no invalid reference.
+    fn invalid_from_clause_reference(
+        state: &AnalysisState,
+        scope: ScopeId,
+        name: &str,
+        node_id: u32,
+        mut visibility: SourceVisibility,
+    ) -> Option<String> {
+        let table = quote_identifier(name);
         let mut current = scope;
-        let mut visibility = SourceVisibility::All;
         loop {
             let s = state.out.scope(current)?;
             let hiding = s.hiding_joins(state.ast, node_id);
-            for source in s.sources.iter().filter(|x| visibility.sees(x) && x.name.as_deref() == Some(name)) {
-                let join = hiding.iter().find(|join| Self::is_within(state, source.ast_node_id, join.ast_node_id));
-                if let Some(join) = join.filter(|join| visibility.sees_node(join.ast_node_id)) {
-                    return Some(join.name.clone());
+            let sources = s.sources.iter().filter(|x| x.name.as_deref() == Some(name)).map(|x| x.ast_node_id);
+            let joins = s.joins.iter().filter(|join| &*join.name == name).map(|join| join.ast_node_id);
+            for item in sources.chain(joins) {
+                let join = hiding
+                    .iter()
+                    .find(|join| join.ast_node_id != item && Self::is_within(state, item, join.ast_node_id));
+                match join {
+                    Some(join) if visibility.sees_node(join.ast_node_id) => {
+                        let alias = quote_identifier(&join.name);
+                        return Some(format!(
+                            "invalid reference to FROM-clause entry for table {table}, use the alias {alias} of its join"
+                        ));
+                    }
+                    _ if visibility != SourceVisibility::None && !visibility.sees_node(item) => {
+                        return Some(format!(
+                            "invalid reference to FROM-clause entry for table {table}, it cannot be referenced from this \
+                             part of the query"
+                        ));
+                    }
+                    _ => {}
                 }
             }
             let (Some(parent), false) = (s.parent_scope, s.column_correlation_barrier) else { return None };
@@ -1550,7 +1575,8 @@ impl NameResolutionPass {
             let node_id = expression.ast_node_id;
             let Some(column_ref) = expression.column_ref() else { continue };
             let Some(qualifier) = column_ref.column_name.table_alias.clone() else { continue };
-            if Self::lookup_source_in_scope_chain(state, scope, &qualifier.text, node_id).is_some() {
+            let visibility = self.visibility(expr);
+            if Self::lookup_source_in_scope_chain(state, scope, &qualifier.text, node_id, visibility).is_some() {
                 continue;
             }
             // In p.x, p is not a table in scope but may be a row-typed column with a field x
@@ -1570,13 +1596,11 @@ impl NameResolutionPass {
             if let Some(column_ref) = state.out.expression_mut(expr).and_then(Expression::column_ref_mut) {
                 column_ref.column_name = qualified;
             }
-            // The qualifier names a FROM item inside an aliased join, as in PostgreSQL the column ref is an error
-            if let Some(join) = Self::lookup_hiding_join(state, scope, &qualifier.text, node_id) {
-                let message = format!(
-                    "invalid reference to FROM-clause entry for table {}, use the alias {} of its join",
-                    quote_identifier(&qualifier.text),
-                    quote_identifier(&join)
-                );
+            // The qualifier names a FROM item that the column ref doesn't see, as in PostgreSQL the column ref is an
+            // error and its column is not inferred
+            if let Some(message) =
+                Self::invalid_from_clause_reference(state, scope, &qualifier.text, node_id, visibility)
+            {
                 state.add_error(
                     AnalyzerErrorType::INVALID_FROM_CLAUSE_REFERENCE,
                     AnalyzerErrorSeverity::ERROR,
@@ -1629,10 +1653,14 @@ impl NameResolutionPass {
                 }
                 // Alias-qualified, the owner is pinned to whatever the alias refers to
                 Some(alias) => {
-                    let Some(ReferencedTable::Unresolved(rel)) =
-                        Self::lookup_source_in_scope_chain(state, scope, &alias.text, expression.ast_node_id)
-                            .map(|s| &s.table)
-                    else {
+                    let Some(ReferencedTable::Unresolved(rel)) = Self::lookup_source_in_scope_chain(
+                        state,
+                        scope,
+                        &alias.text,
+                        expression.ast_node_id,
+                        self.visibility(expr),
+                    )
+                    .map(|s| &s.table) else {
                         continue;
                     };
                     InferenceConstraint {
@@ -1839,21 +1867,35 @@ impl NameResolutionPass {
         }
         let Some(s) = state.out.scope_mut(scope) else { return };
         let mut result_targets = std::mem::take(&mut s.result_targets);
+        // The star qualifiers that name a FROM item that they don't see
+        let mut invalid = Vec::new();
         for rt in result_targets.iter_mut() {
             if rt.is_star {
                 // Forward the columns of all FROM items, or of the qualified one
                 let Some(s) = state.out.scope(scope) else { continue };
                 match &rt.star_qualifier {
                     Some(q) => {
-                        // An aliased join names the FROM items inside it
-                        let hiding = self.hiding_joins(state, scope, rt.ast_node_id);
-                        let named = |source: &&ScopeSource| {
-                            source.name.as_deref() == Some(q.text()) && !Self::is_hidden(state, source, &hiding)
+                        // An aliased join names the FROM items inside it, RETURNING doesn't see the excluded row of
+                        // ON CONFLICT
+                        let visibility = match self.insert_excluded.get(&scope) {
+                            Some(&(excluded, _)) => SourceVisibility::Except(excluded),
+                            None => SourceVisibility::All,
                         };
-                        for source in s.sources.iter().filter(named) {
+                        let named = s.named_sources(state.ast, rt.ast_node_id, visibility, |x| {
+                            x.name.as_deref() == Some(q.text())
+                        });
+                        let hiding = self.hiding_joins(state, scope, rt.ast_node_id);
+                        let joins: Vec<&ScopeJoin> = hiding.iter().filter(|join| &*join.name == q.text()).collect();
+                        if named.is_empty() && joins.is_empty() {
+                            invalid.extend(
+                                Self::invalid_from_clause_reference(state, scope, q.text(), rt.ast_node_id, visibility)
+                                    .map(|message| (rt.ast_node_id, message)),
+                            );
+                        }
+                        for source in named {
                             columns.extend(Self::source_columns(state, source));
                         }
-                        for join in hiding.iter().filter(|join| &*join.name == q.text()) {
+                        for join in joins {
                             columns.extend(self.join_alias_columns(state, s, join).into_iter().map(|c| c.column));
                         }
                     }
@@ -1877,6 +1919,14 @@ impl NameResolutionPass {
                     None => ScopeColumnSource::Computed,
                 },
             });
+        }
+        for (node_id, message) in invalid {
+            state.add_error(
+                AnalyzerErrorType::INVALID_FROM_CLAUSE_REFERENCE,
+                AnalyzerErrorSeverity::ERROR,
+                node_id,
+                message,
+            );
         }
         let Some(s) = state.out.scope_mut(scope) else { return };
         s.result_targets = result_targets;
