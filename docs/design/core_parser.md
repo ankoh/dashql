@@ -487,5 +487,7 @@ TypeScript code reads the tree through the generated FlatBuffers readers.
    `proto/fb/dashql/parsed_script.fbs`, the Rust and TypeScript consumers, and update the snapshots
    (`bazel run //tests/snapshots:update`) in the same change.
 4. **Script signatures may change.** `RESULT_KEY_NAMESPACE`
-   (`packages/dashql-core-runtime/src/workbook_run/result_key.rs`) versions the signature encoding, but signatures
-   are not required to stay stable across versions, and no test pins them.
+   (`packages/dashql-core-runtime/src/workbook_run/result_key.rs`) versions the signature encoding, signatures are
+   not required to stay stable across versions. A change that moves the ordinals of `NodeType`, e.g. a value inserted
+   before the end, changes the signatures in the planner snapshots and fails `keys_are_pinned` of `result_key.rs`:
+   bump the namespace with it, an older version could otherwise read the result of another query under the same key.

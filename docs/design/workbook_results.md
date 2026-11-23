@@ -86,7 +86,7 @@ or removed.
 Each result is named after a lowercase SHA-256 digest of the signature of its script:
 
 ```
-SHA-256("dashql-result-v4\n" + AST signature
+SHA-256("dashql-result-v5\n" + AST signature
         + ":name=value" per bound input + "attachment file=stamp" per attachment
         + "<key> <file>" per referenced script)
 ```

@@ -18,7 +18,7 @@ use dashql_parser::parser::ParsedScript;
 use crate::executor::StoredFile;
 
 /// The namespace of the keys, a new one is a new key of every script
-const RESULT_KEY_NAMESPACE: &str = "dashql-result-v4";
+const RESULT_KEY_NAMESPACE: &str = "dashql-result-v5";
 
 /// The key of a stored result that matches no script, e.g. of an imported result: the result shows and stands in for
 /// a script whose connection can't run, a run on its connection computes it anew
@@ -362,6 +362,20 @@ mod tests {
         assert_eq!(key, result_key("signature"));
         assert_ne!(key, result_key("signature\n:min=1"));
         assert_ne!(key, UNMATCHED_RESULT_KEY);
+    }
+
+    #[test]
+    fn keys_are_pinned() {
+        // The key of a script with names, literals, operators, enums and objects. It changes with the namespace, the
+        // encoding of the signatures and the ordinals of `NodeType` (proto/fb/dashql/parsed_script.fbs): a value inserted
+        // before the end shifts them. A file of another version could then match another query, so a new key needs a
+        // new RESULT_KEY_NAMESPACE with it.
+        let text = "select a, count(*) from t where b = 'x' and c > 1.5 group by a order by a desc nulls last limit 10";
+        assert_eq!(
+            result_key(&signature(text)),
+            "545b31c5ee68889b128230d3fbb3b02c8365a0e0d9f990a35d8d4718a534ef9b",
+            "bump RESULT_KEY_NAMESPACE with a new key"
+        );
     }
 
     #[test]
