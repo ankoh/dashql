@@ -1,0 +1,105 @@
+formatter-snapshots:
+
+  # Statements are separated by one blank line, however many the input has
+  - name: script_blank_lines_normalized
+    input: |-
+      select 1;select 2;
+
+
+
+      select 3;
+      select 4
+    dialects:
+      hyper:
+        validation:
+          setup: ""
+
+  # Whitespace and empty statements at the end of a script
+  - name: script_trailing_semicolons_and_whitespace
+    input: "select 1;   \n\n;;  \n\t\n"
+    dialects:
+      hyper:
+
+  # Statements of different kinds in one script
+  - name: script_mixed_statements
+    input: create temp table t(a int, b text); insert into t values (1, 'x'), (2, 'y'); select a, b from t where a > 1 order by a; drop table t
+    dialects:
+      hyper:
+        formatted:
+          - mode: pretty
+            width: 40
+        validation:
+          setup: ""
+
+  # Comments between keywords and inside an expression follow the statement, a line comment cannot end up in front of
+  # code on its line
+  - name: comment_between_keywords
+    input: |-
+      select /* targets */ a, -- the first column
+        b + /* plus */ c from /* source */ t where a /* compared */ = 1
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int, b int, c int);
+
+  # A line comment as the last text of the script, without a semicolon
+  - name: comment_trailing_last_statement_no_semicolon
+    input: |-
+      select 1 -- the answer
+    dialects:
+      hyper:
+        validation:
+          setup: ""
+
+  # Comments after the last statement follow it directly, the blank line before them goes
+  - name: comment_trailing_after_last_statement
+    input: |-
+      select 1;
+
+      /* end of the script */
+      -- really the end
+    dialects:
+      hyper:
+        validation:
+          setup: ""
+
+  # A comment inside a CTE body
+  - name: comment_inside_cte
+    input: |-
+      with base as (
+        -- only the positive amounts
+        select a from t where a > 0 /* strictly */
+      )
+      select * from base
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int);
+
+  # A comment before a statement that is broken in pretty mode keeps its distance to the statement
+  - name: comment_before_pretty_statement
+    input: |-
+      select 1;
+
+      -- Orders of a customer
+      select id, amount from orders where customer_id = 1 order by id
+    dialects:
+      hyper:
+        validation:
+          setup: create table orders(id int, amount int, customer_id int);
+
+  # The pretty output of comment_between_keywords formats to itself, the comments stay after the last statement
+  - name: comment_between_keywords_idempotent
+    input: |-
+      select a, b + c
+      from t
+      where a = 1;
+      /* targets */
+      -- the first column
+      /* plus */
+      /* source */
+      /* compared */
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int, b int, c int);

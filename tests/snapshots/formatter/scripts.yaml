@@ -1,0 +1,287 @@
+formatter-snapshots:
+
+  - name: script_blank_lines_normalized
+    input: |-
+      select 1;select 2;
+
+
+
+      select 3;
+      select 4
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+
+              select 2;
+
+              select 3;
+
+              select 4;
+          - mode: compact
+            expected: |-
+              select 1;
+
+              select 2;
+
+              select 3;
+
+              select 4;
+          - mode: pretty
+            expected: |-
+              select 1;
+
+              select 2;
+
+              select 3;
+
+              select 4;
+        validation:
+          setup: |-
+
+  - name: script_trailing_semicolons_and_whitespace
+    input: |-
+      select 1;
+
+      ;;
+      	
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+          - mode: compact
+            expected: |-
+              select 1;
+          - mode: pretty
+            expected: |-
+              select 1;
+
+  - name: script_mixed_statements
+    input: |-
+      create temp table t(a int, b text); insert into t values (1, 'x'), (2, 'y'); select a, b from t where a > 1 order by a; drop table t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create temporary table t (a integer, b text);
+
+              insert into t values (1, 'x'), (2, 'y');
+
+              select a, b from t where a > 1 order by a;
+
+              drop table t;
+          - mode: compact
+            expected: |-
+              create temporary table t (a integer, b text);
+
+              insert into t values (1, 'x'), (2, 'y');
+
+              select a, b from t where a > 1 order by a;
+
+              drop table t;
+          - mode: pretty
+            width: 40
+            expected: |-
+              create temporary table t (
+                a integer, b text
+              );
+
+              insert into t
+              values
+                (1, 'x'),
+                (2, 'y');
+
+              select a, b
+              from t
+              where a > 1
+              order by a;
+
+              drop table t;
+        validation:
+          setup: |-
+
+  - name: comment_between_keywords
+    input: |-
+      select /* targets */ a, -- the first column
+        b + /* plus */ c from /* source */ t where a /* compared */ = 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a, b + c from t where a = 1;
+          - mode: compact
+            expected: |-
+              select a, b + c from t where a = 1;
+              /* targets */
+              -- the first column
+              /* plus */
+              /* source */
+              /* compared */
+          - mode: pretty
+            expected: |-
+              select a, b + c
+              from t
+              where a = 1;
+              /* targets */
+              -- the first column
+              /* plus */
+              /* source */
+              /* compared */
+        validation:
+          setup: |-
+            create table t(a int, b int, c int);
+
+  - name: comment_trailing_last_statement_no_semicolon
+    input: |-
+      select 1 -- the answer
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+          - mode: compact
+            expected: |-
+              select 1;
+              -- the answer
+          - mode: pretty
+            expected: |-
+              select 1;
+              -- the answer
+        validation:
+          setup: |-
+
+  - name: comment_trailing_after_last_statement
+    input: |-
+      select 1;
+
+      /* end of the script */
+      -- really the end
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+          - mode: compact
+            expected: |-
+              select 1;
+              /* end of the script */
+              -- really the end
+          - mode: pretty
+            expected: |-
+              select 1;
+              /* end of the script */
+              -- really the end
+        validation:
+          setup: |-
+
+  - name: comment_inside_cte
+    input: |-
+      with base as (
+        -- only the positive amounts
+        select a from t where a > 0 /* strictly */
+      )
+      select * from base
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              with base as (select a from t where a > 0) select * from base;
+          - mode: compact
+            expected: |-
+              with base as (select a from t where a > 0) select * from base;
+              -- only the positive amounts
+              /* strictly */
+          - mode: pretty
+            expected: |-
+              with base as (
+                select a
+                from t
+                where a > 0
+              )
+              select *
+              from base;
+              -- only the positive amounts
+              /* strictly */
+        validation:
+          setup: |-
+            create table t(a int);
+
+  - name: comment_before_pretty_statement
+    input: |-
+      select 1;
+
+      -- Orders of a customer
+      select id, amount from orders where customer_id = 1 order by id
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+
+              select id, amount from orders where customer_id = 1 order by id;
+          - mode: compact
+            expected: |-
+              select 1;
+
+              -- Orders of a customer
+              select id, amount from orders where customer_id = 1 order by id;
+          - mode: pretty
+            expected: |-
+              select 1;
+
+              -- Orders of a customer
+              select id, amount
+              from orders
+              where customer_id = 1
+              order by id;
+        validation:
+          setup: |-
+            create table orders(id int, amount int, customer_id int);
+
+  - name: comment_between_keywords_idempotent
+    input: |-
+      select a, b + c
+      from t
+      where a = 1;
+      /* targets */
+      -- the first column
+      /* plus */
+      /* source */
+      /* compared */
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a, b + c from t where a = 1;
+          - mode: compact
+            expected: |-
+              select a, b + c from t where a = 1;
+              /* targets */
+              -- the first column
+              /* plus */
+              /* source */
+              /* compared */
+          - mode: pretty
+            expected: |-
+              select a, b + c
+              from t
+              where a = 1;
+              /* targets */
+              -- the first column
+              /* plus */
+              /* source */
+              /* compared */
+        validation:
+          setup: |-
+            create table t(a int, b int, c int);

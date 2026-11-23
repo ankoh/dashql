@@ -17,3 +17,23 @@ formatter-snapshots:
     dialects:
       trino:
       hyper:
+
+  # Trino reads the time zone of a timestamp or time literal from its text, the zoned type names lose their zone
+  - name: trino_zoned_time_literals
+    input: select timestamp with time zone '2024-01-01 10:00:00 UTC', time with time zone '10:00:00+01:00', timestamp '2024-01-01 10:00:00'
+    dialects:
+      trino:
+      hyper:
+
+  - name: trino_zoned_time_literal_type_names
+    input: select timestamptz '2024-01-01 10:00:00+01', timetz '10:00:00+01'
+    dialects:
+      trino:
+      hyper:
+
+  # Trino has no bounded array types, Hyper keeps the bound
+  - name: trino_bounded_array_cast
+    input: select cast(payload as integer[3]) from events
+    dialects:
+      trino:
+      hyper:

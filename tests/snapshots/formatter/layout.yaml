@@ -1,0 +1,934 @@
+formatter-snapshots:
+
+  - name: width_fits_with_buffer
+    input: |-
+      select first_col, second_col from tbl
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select first_col, second_col from tbl;
+          - mode: compact
+            width: 39
+            expected: |-
+              select first_col, second_col from tbl;
+          - mode: pretty
+            expected: |-
+              select first_col, second_col
+              from tbl;
+        validation:
+          setup: |-
+            create table tbl(first_col int, second_col int);
+
+  - name: width_exact_line
+    input: |-
+      select first_col, second_col from tbl
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select first_col, second_col from tbl;
+          - mode: compact
+            width: 38
+            expected: |-
+              select first_col, second_col
+              from tbl;
+          - mode: pretty
+            expected: |-
+              select first_col, second_col
+              from tbl;
+        validation:
+          setup: |-
+            create table tbl(first_col int, second_col int);
+
+  - name: width_one_over
+    input: |-
+      select first_col, second_col from tbl
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select first_col, second_col from tbl;
+          - mode: compact
+            width: 37
+            expected: |-
+              select first_col, second_col
+              from tbl;
+          - mode: pretty
+            expected: |-
+              select first_col, second_col
+              from tbl;
+        validation:
+          setup: |-
+            create table tbl(first_col int, second_col int);
+
+  - name: width_call_arguments_fit
+    input: |-
+      select f(argument_one, argument_two, argument_three) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select f(argument_one, argument_two, argument_three) from t;
+          - mode: compact
+            width: 61
+            expected: |-
+              select f(argument_one, argument_two, argument_three) from t;
+          - mode: pretty
+            width: 55
+            expected: |-
+              select f(argument_one, argument_two, argument_three)
+              from t;
+
+  - name: width_call_arguments_one_over
+    input: |-
+      select f(argument_one, argument_two, argument_three) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select f(argument_one, argument_two, argument_three) from t;
+          - mode: compact
+            width: 60
+            expected: |-
+              select f(argument_one, argument_two, argument_three)
+              from t;
+          - mode: pretty
+            width: 54
+            expected: |-
+              select f(argument_one, argument_two, argument_three)
+              from t;
+
+  - name: width_narrower_than_words
+    input: |-
+      select 'a string literal that is longer than the width' as long_alias_name, "Quoted Identifier Longer Than Width" from some_schema.some_table_name where some_column = 'another long literal value'
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 'a string literal that is longer than the width' as long_alias_name, "Quoted Identifier Longer Than Width" from some_schema.some_table_name where some_column = 'another long literal value';
+          - mode: compact
+            width: 10
+            expected: |-
+              select 'a string literal that is longer than the width' as long_alias_name,
+                "Quoted Identifier Longer Than Width"
+              from some_schema
+                .some_table_name
+              where some_column =
+                'another long literal value';
+          - mode: pretty
+            width: 10
+            expected: |-
+              select 'a string literal that is longer than the width' as long_alias_name,
+                "Quoted Identifier Longer Than Width"
+              from some_schema
+                .some_table_name
+              where some_column =
+                'another long literal value';
+
+  - name: width_one
+    input: |-
+      select a + b, f(c, d) from t where a = 1 and b in (1, 2)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a + b, f(c, d) from t where a = 1 and b in (1, 2);
+          - mode: compact
+            width: 1
+            expected: |-
+              select a +
+                  b,
+                f(
+                  c,
+                    d
+                )
+              from t
+              where a =
+                  1
+                and b in (
+                  1,
+                    2
+                );
+          - mode: pretty
+            width: 1
+            expected: |-
+              select a +
+                  b,
+                f(
+                  c,
+                    d
+                )
+              from t
+              where a =
+                  1
+                and b in (
+                  1,
+                    2
+                );
+
+  - name: nested_subqueries_three_levels
+    input: |-
+      select o.id, (select max(p.amount) from payments p where p.order_id = o.id and p.amount > (select avg(amount) from payments where status = 'ok')) as top_payment
+      from (select id, customer_id from orders where customer_id in (select id from customers where region in (select region from regions where active))) o
+      where exists (select 1 from shipments s where s.order_id = o.id and s.carrier_id = any (select id from carriers where rating > (select avg(rating) from carriers)))
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select o.id, (select max(p.amount) from payments p where p.order_id = o.id and p.amount > (select avg(amount) from payments where status = 'ok')) as top_payment from (select id, customer_id from orders where customer_id in (select id from customers where region in (select region from regions where active))) o where exists (select 1 from shipments s where s.order_id = o.id and s.carrier_id = any (select id from carriers where rating > (select avg(rating) from carriers)));
+          - mode: compact
+            width: 80
+            expected: |-
+              select o.id,
+                (
+                  select max(p.amount)
+                  from payments p
+                  where p.order_id = o.id
+                    and p.amount > (select avg(amount) from payments where status = 'ok')
+                ) as top_payment
+              from (
+                select id, customer_id
+                from orders
+                where customer_id in (
+                  select id
+                  from customers
+                  where region in (select region from regions where active)
+                )
+              ) o
+              where exists (
+                select 1
+                from shipments s
+                where s.order_id = o.id
+                  and s.carrier_id = any (
+                    select id
+                    from carriers
+                    where rating > (select avg(rating) from carriers)
+                  )
+              );
+          - mode: pretty
+            width: 80
+            expected: |-
+              select o.id,
+                (
+                  select max(p.amount)
+                  from payments p
+                  where p.order_id = o.id
+                    and p.amount > (
+                        select avg(amount)
+                        from payments
+                        where status = 'ok'
+                      )
+                ) as top_payment
+              from (
+                select id, customer_id
+                from orders
+                where customer_id in (
+                  select id
+                  from customers
+                  where region in (
+                    select region
+                    from regions
+                    where active
+                  )
+                )
+              ) o
+              where exists (
+                select 1
+                from shipments s
+                where s.order_id = o.id
+                  and s.carrier_id = any (
+                    select id
+                    from carriers
+                    where rating > (
+                        select avg(rating)
+                        from carriers
+                      )
+                  )
+              );
+        validation:
+          setup: |-
+            create table payments(order_id int, amount int, status text);
+            create table orders(id int, customer_id int);
+            create table customers(id int, region text);
+            create table regions(region text, active bool);
+            create table shipments(order_id int, carrier_id int);
+            create table carriers(id int, rating int);
+
+  - name: nested_case_expressions
+    input: |-
+      select case when status = 'open' then case when priority > 2 then 'urgent' when priority > 1 then 'normal' else 'low' end
+      when status = 'closed' then coalesce(case resolution when 'fixed' then 'done' when 'wontfix' then 'rejected' end, 'unknown')
+      else case when assignee is null then 'unassigned' else 'waiting' end end as state from tickets
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select case when status = 'open' then case when priority > 2 then 'urgent' when priority > 1 then 'normal' else 'low' end when status = 'closed' then coalesce(case resolution when 'fixed' then 'done' when 'wontfix' then 'rejected' end, 'unknown') else case when assignee is null then 'unassigned' else 'waiting' end end as state from tickets;
+          - mode: compact
+            width: 80
+            expected: |-
+              select case
+                when status = 'open' then case when priority > 2 then 'urgent'
+                  when priority > 1 then 'normal' else 'low' end
+                when status = 'closed' then coalesce(
+                  case resolution when 'fixed' then 'done' when 'wontfix' then 'rejected'
+                      end, 'unknown'
+                ) else case when assignee is null then 'unassigned' else 'waiting' end
+                end as state
+              from tickets;
+          - mode: pretty
+            width: 60
+            expected: |-
+              select case
+                when status = 'open' then case
+                  when priority > 2 then 'urgent'
+                  when priority > 1 then 'normal'
+                  else 'low'
+                end
+                when status = 'closed' then coalesce(
+                  case resolution
+                      when 'fixed' then 'done'
+                      when 'wontfix' then 'rejected'
+                    end, 'unknown'
+                )
+                else case
+                  when assignee is null then 'unassigned'
+                  else 'waiting'
+                end
+              end as state
+              from tickets;
+        validation:
+          setup: |-
+            create table tickets(status text, priority int, resolution text, assignee text);
+
+  - name: case_in_condition_and_arithmetic
+    input: |-
+      select sum(case when kind = 'credit' then amount else -amount end) * 100 / nullif(count(*), 0) from ledger where case when kind = 'credit' then amount > 0 else true end group by account
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select sum(case when kind = 'credit' then amount else -amount end) * 100 / nullif(count(*), 0) from ledger where case when kind = 'credit' then amount > 0 else true end group by account;
+          - mode: compact
+            width: 70
+            expected: |-
+              select sum(case when kind = 'credit' then amount else -amount end) *
+                  100 / nullif(count(*), 0)
+              from ledger
+              where case when kind = 'credit' then amount > 0 else true end
+              group by account;
+          - mode: pretty
+            width: 70
+            expected: |-
+              select sum(
+                    case
+                      when kind = 'credit' then amount
+                      else -amount
+                    end
+                  ) * 100 / nullif(count(*), 0)
+              from ledger
+              where case
+                when kind = 'credit' then amount > 0
+                else true
+              end
+              group by account;
+        validation:
+          setup: |-
+            create table ledger(account int, kind text, amount int);
+
+  - name: long_not_in_list_strings
+    input: |-
+      select name from products where category not in ('electronics', 'household appliances', 'garden furniture', 'sporting goods', 'office supplies') and price > 10
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select name from products where category not in ('electronics', 'household appliances', 'garden furniture', 'sporting goods', 'office supplies') and price > 10;
+          - mode: compact
+            width: 60
+            expected: |-
+              select name
+              from products
+              where category not in (
+                  'electronics', 'household appliances',
+                    'garden furniture', 'sporting goods',
+                    'office supplies'
+                ) and price > 10;
+          - mode: pretty
+            width: 60
+            expected: |-
+              select name
+              from products
+              where category not in (
+                  'electronics',
+                    'household appliances',
+                    'garden furniture',
+                    'sporting goods',
+                    'office supplies'
+                )
+                and price > 10;
+        validation:
+          setup: |-
+            create table products(name text, category text, price int);
+
+  - name: cte_chain
+    input: |-
+      with base(id, amount) as (select id, amount from payments where amount > 0),
+      daily(id, total) as (select id, sum(amount) from base group by id),
+      ranked as (select id, total, rank() over (order by total desc) as r from daily),
+      top as (select * from ranked where r <= 10)
+      select * from top order by r
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              with base (id, amount) as (select id, amount from payments where amount > 0), daily (id, total) as (select id, sum(amount) from base group by id), ranked as (select id, total, rank() over (order by total desc) as r from daily), top as (select * from ranked where r <= 10) select * from top order by r;
+          - mode: compact
+            width: 80
+            expected: |-
+              with base (id, amount) as (
+                select id, amount from payments where amount > 0
+              ), daily (id, total) as (
+                select id, sum(amount) from base group by id
+              ), ranked as (
+                select id, total, rank() over (order by total desc) as r from daily
+              ), top as (select * from ranked where r <= 10)
+              select * from top order by r;
+          - mode: pretty
+            width: 80
+            expected: |-
+              with base (id, amount) as (
+                select id, amount
+                from payments
+                where amount > 0
+              ), daily (id, total) as (
+                select id, sum(amount)
+                from base
+                group by id
+              ), ranked as (
+                select id, total, rank() over (order by total desc) as r
+                from daily
+              ), top as (
+                select *
+                from ranked
+                where r <= 10
+              )
+              select *
+              from top
+              order by r;
+        validation:
+          setup: |-
+            create table payments(id int, amount int);
+
+  - name: cte_recursive_column_list
+    input: |-
+      with recursive numbers(n, total) as (select 1, 1 union all select n + 1, total + n + 1 from numbers where n < 10) select n, total from numbers order by n desc limit 3
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              with recursive numbers (n, total) as (select 1, 1 union all select n + 1, total + n + 1 from numbers where n < 10) select n, total from numbers order by n desc limit 3;
+          - mode: compact
+            width: 60
+            expected: |-
+              with recursive numbers (n, total) as (
+                select 1, 1
+                union all
+                select n + 1, total + n + 1 from numbers where n < 10
+              )
+              select n, total from numbers order by n desc limit 3;
+          - mode: pretty
+            width: 60
+            expected: |-
+              with recursive numbers (n, total) as (
+                select 1, 1
+                union all
+                select n + 1, total + n + 1
+                from numbers
+                where n < 10
+              )
+              select n, total
+              from numbers
+              order by n desc
+              limit 3;
+        validation:
+          setup: |-
+
+  - name: cte_in_subquery
+    input: |-
+      select * from (with inner_cte as (select 1 as x) select x from inner_cte) s where s.x in (with other as (select 1 as y) select y from other)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from (with inner_cte as (select 1 as x) select x from inner_cte) s where s.x in (with other as (select 1 as y) select y from other);
+          - mode: compact
+            expected: |-
+              select *
+              from (with inner_cte as (select 1 as x) select x from inner_cte) s
+              where s.x in (with other as (select 1 as y) select y from other);
+          - mode: pretty
+            width: 60
+            expected: |-
+              select *
+              from (
+                with inner_cte as (
+                  select 1 as x
+                )
+                select x
+                from inner_cte
+              ) s
+              where s.x in (
+                with other as (
+                  select 1 as y
+                )
+                select y
+                from other
+              );
+        validation:
+          setup: |-
+
+  - name: set_operation_long_order_limit
+    input: |-
+      select customer_id, amount from online_orders where amount > 100 union all select customer_id, amount from store_orders where amount > 100 except select customer_id, amount from refunds order by amount desc, customer_id limit 10 offset 5
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select customer_id, amount from online_orders where amount > 100 union all select customer_id, amount from store_orders where amount > 100 except select customer_id, amount from refunds order by amount desc, customer_id limit 10 offset 5;
+          - mode: compact
+            width: 80
+            expected: |-
+              select customer_id, amount from online_orders where amount > 100
+              union all
+              select customer_id, amount from store_orders where amount > 100
+              except
+              select customer_id, amount from refunds
+              order by amount desc, customer_id
+              limit 10
+              offset 5;
+          - mode: pretty
+            width: 80
+            expected: |-
+              select customer_id, amount
+              from online_orders
+              where amount > 100
+              union all
+              select customer_id, amount
+              from store_orders
+              where amount > 100
+              except
+              select customer_id, amount
+              from refunds
+              order by amount desc, customer_id
+              limit 10
+              offset 5;
+        validation:
+          setup: |-
+            create table online_orders(customer_id int, amount int);
+            create table store_orders(customer_id int, amount int);
+            create table refunds(customer_id int, amount int);
+
+  - name: set_operation_in_cte_and_subquery
+    input: |-
+      with ids as (select id from a union select id from b) select * from c where id in (select id from ids intersect select id from d)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              with ids as (select id from a union select id from b) select * from c where id in (select id from ids intersect select id from d);
+          - mode: compact
+            expected: |-
+              with ids as (select id from a union select id from b)
+              select * from c where id in (select id from ids intersect select id from d);
+          - mode: pretty
+            width: 60
+            expected: |-
+              with ids as (
+                select id
+                from a
+                union
+                select id
+                from b
+              )
+              select *
+              from c
+              where id in (
+                select id
+                from ids
+                intersect
+                select id
+                from d
+              );
+        validation:
+          setup: |-
+            create table a(id int);
+            create table b(id int);
+            create table c(id int);
+            create table d(id int);
+
+  - name: having_clause
+    input: |-
+      select category, count(*) from products group by category having count(*) > 1 and sum(price) < 1000 order by 2 desc; select count(*) from products having count(*) > 0
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select category, count(*) from products group by category having count(*) > 1 and sum(price) < 1000 order by 2 desc;
+
+              select count(*) from products having count(*) > 0;
+          - mode: compact
+            expected: |-
+              select category, count(*) from products group by category having count(*) > 1 and sum(price) < 1000 order by 2 desc;
+
+              select count(*) from products having count(*) > 0;
+          - mode: pretty
+            expected: |-
+              select category, count(*)
+              from products
+              group by category
+              having count(*) > 1 and sum(price) < 1000
+              order by 2 desc;
+
+              select count(*)
+              from products
+              having count(*) > 0;
+        validation:
+          setup: |-
+            create table products(category text, price int);
+
+  - name: window_clause_long
+    input: |-
+      select sum(amount) over running, avg(amount) over moving, rank() over by_amount from payments window running as (partition by customer_id order by paid_at), moving as (running rows between 3 preceding and current row), by_amount as (order by amount desc)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select sum(amount) over running, avg(amount) over moving, rank() over by_amount from payments window running as (partition by customer_id order by paid_at), moving as (running rows between 3 preceding and current row), by_amount as (order by amount desc);
+          - mode: compact
+            width: 80
+            expected: |-
+              select sum(amount) over running, avg(amount) over moving,
+                rank() over by_amount
+              from payments
+              window running as (partition by customer_id order by paid_at),
+                moving as (running rows between 3 preceding and current row),
+                by_amount as (order by amount desc);
+          - mode: pretty
+            width: 80
+            expected: |-
+              select sum(amount) over running,
+                avg(amount) over moving,
+                rank() over by_amount
+              from payments
+              window running as (partition by customer_id order by paid_at),
+                moving as (running rows between 3 preceding and current row),
+                by_amount as (order by amount desc);
+        validation:
+          setup: |-
+            create table payments(customer_id int, paid_at date, amount int);
+
+  - name: values_statement
+    input: |-
+      values (1, 'one'), (2, 'two'), (3, 'three') order by 1 desc limit 2
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              values (1, 'one'), (2, 'two'), (3, 'three') order by 1 desc limit 2;
+          - mode: compact
+            expected: |-
+              values (1, 'one'), (2, 'two'), (3, 'three') order by 1 desc limit 2;
+          - mode: pretty
+            expected: |-
+              values
+                (1, 'one'),
+                (2, 'two'),
+                (3, 'three')
+              order by 1 desc
+              limit 2;
+        validation:
+          setup: |-
+
+  - name: values_long
+    input: |-
+      select * from (values (1, 'alpha', true), (2, 'beta', false), (3, 'gamma', true), (4, 'delta', false), (5, 'epsilon', true)) as v(id, name, flag)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from (values (1, 'alpha', true), (2, 'beta', false), (3, 'gamma', true), (4, 'delta', false), (5, 'epsilon', true)) v(id, name, flag);
+          - mode: compact
+            width: 60
+            expected: |-
+              select *
+              from (
+                values (1, 'alpha', true), (2, 'beta', false), (
+                    3, 'gamma', true
+                  ), (4, 'delta', false), (5, 'epsilon', true)
+              ) v(id, name, flag);
+          - mode: pretty
+            width: 60
+            expected: |-
+              select *
+              from (
+                values
+                  (1, 'alpha', true),
+                  (2, 'beta', false),
+                  (3, 'gamma', true),
+                  (4, 'delta', false),
+                  (5, 'epsilon', true)
+              ) v(id, name, flag);
+        validation:
+          setup: |-
+
+  - name: mixed_case_keywords
+    input: |-
+      SeLeCt Region, "MixedCase", COUNT(*) AS Total FrOm Sales WHERE Region In ('North', 'SOUTH') AND "MixedCase" Is NoT NuLl GROUP By Region, "MixedCase" ORDER BY Total DESC NULLS LAST
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select Region, "MixedCase", COUNT(*) as Total from Sales where Region in ('North', 'SOUTH') and "MixedCase" is not null group by Region, "MixedCase" order by Total desc nulls last;
+          - mode: compact
+            expected: |-
+              select Region, "MixedCase", COUNT(*) as Total
+              from Sales
+              where Region in ('North', 'SOUTH') and "MixedCase" is not null
+              group by Region, "MixedCase"
+              order by Total desc nulls last;
+          - mode: pretty
+            expected: |-
+              select Region, "MixedCase", COUNT(*) as Total
+              from Sales
+              where Region in ('North', 'SOUTH') and "MixedCase" is not null
+              group by Region, "MixedCase"
+              order by Total desc nulls last;
+        validation:
+          setup: |-
+            create table sales(region text, "MixedCase" int);
+
+  - name: idempotent_nested_subqueries_pretty
+    input: |-
+      select o.id,
+        (
+          select max(p.amount)
+          from payments p
+          where p.order_id = o.id
+            and p.amount > (
+                select avg(amount)
+                from payments
+                where status = 'ok'
+              )
+        ) as top_payment
+      from (
+        select id, customer_id
+        from orders
+        where customer_id in (
+          select id
+          from customers
+          where region in (
+            select region
+            from regions
+            where active
+          )
+        )
+      ) o
+      where exists (
+        select 1
+        from shipments s
+        where s.order_id = o.id
+          and s.carrier_id = any (
+            select id
+            from carriers
+            where rating > (
+                select avg(rating)
+                from carriers
+              )
+          )
+      );
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select o.id, (select max(p.amount) from payments p where p.order_id = o.id and p.amount > (select avg(amount) from payments where status = 'ok')) as top_payment from (select id, customer_id from orders where customer_id in (select id from customers where region in (select region from regions where active))) o where exists (select 1 from shipments s where s.order_id = o.id and s.carrier_id = any (select id from carriers where rating > (select avg(rating) from carriers)));
+          - mode: compact
+            expected: |-
+              select o.id,
+                (
+                  select max(p.amount)
+                  from payments p
+                  where p.order_id = o.id and p.amount > (select avg(amount) from payments where status = 'ok')
+                ) as top_payment
+              from (
+                select id, customer_id
+                from orders
+                where customer_id in (select id from customers where region in (select region from regions where active))
+              ) o
+              where exists (
+                select 1
+                from shipments s
+                where s.order_id = o.id
+                  and s.carrier_id = any (select id from carriers where rating > (select avg(rating) from carriers))
+              );
+          - mode: pretty
+            width: 80
+            expected: |-
+              select o.id,
+                (
+                  select max(p.amount)
+                  from payments p
+                  where p.order_id = o.id
+                    and p.amount > (
+                        select avg(amount)
+                        from payments
+                        where status = 'ok'
+                      )
+                ) as top_payment
+              from (
+                select id, customer_id
+                from orders
+                where customer_id in (
+                  select id
+                  from customers
+                  where region in (
+                    select region
+                    from regions
+                    where active
+                  )
+                )
+              ) o
+              where exists (
+                select 1
+                from shipments s
+                where s.order_id = o.id
+                  and s.carrier_id = any (
+                    select id
+                    from carriers
+                    where rating > (
+                        select avg(rating)
+                        from carriers
+                      )
+                  )
+              );
+        validation:
+          setup: |-
+            create table payments(order_id int, amount int, status text);
+            create table orders(id int, customer_id int);
+            create table customers(id int, region text);
+            create table regions(region text, active bool);
+            create table shipments(order_id int, carrier_id int);
+            create table carriers(id int, rating int);
+
+  - name: idempotent_nested_case_compact
+    input: |-
+      select case
+        when status = 'open' then case when priority > 2 then 'urgent'
+          when priority > 1 then 'normal' else 'low' end
+        when status = 'closed' then coalesce(
+          case resolution when 'fixed' then 'done' when 'wontfix' then 'rejected'
+              end, 'unknown'
+        ) else case when assignee is null then 'unassigned' else 'waiting' end
+        end as state
+      from tickets;
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select case when status = 'open' then case when priority > 2 then 'urgent' when priority > 1 then 'normal' else 'low' end when status = 'closed' then coalesce(case resolution when 'fixed' then 'done' when 'wontfix' then 'rejected' end, 'unknown') else case when assignee is null then 'unassigned' else 'waiting' end end as state from tickets;
+          - mode: compact
+            width: 80
+            expected: |-
+              select case
+                when status = 'open' then case when priority > 2 then 'urgent'
+                  when priority > 1 then 'normal' else 'low' end
+                when status = 'closed' then coalesce(
+                  case resolution when 'fixed' then 'done' when 'wontfix' then 'rejected'
+                      end, 'unknown'
+                ) else case when assignee is null then 'unassigned' else 'waiting' end
+                end as state
+              from tickets;
+          - mode: pretty
+            expected: |-
+              select case
+                when status = 'open' then case
+                  when priority > 2 then 'urgent'
+                  when priority > 1 then 'normal'
+                  else 'low'
+                end
+                when status = 'closed' then coalesce(
+                  case resolution
+                      when 'fixed' then 'done'
+                      when 'wontfix' then 'rejected'
+                    end, 'unknown'
+                )
+                else case
+                  when assignee is null then 'unassigned'
+                  else 'waiting'
+                end
+              end as state
+              from tickets;
+        validation:
+          setup: |-
+            create table tickets(status text, priority int, resolution text, assignee text);
+
+  - name: idempotent_values_long_compact
+    input: |-
+      select *
+      from (
+        values (1, 'alpha', true), (2, 'beta', false), (
+            3, 'gamma', true
+          ), (4, 'delta', false), (5, 'epsilon', true)
+      ) v(id, name, flag);
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from (values (1, 'alpha', true), (2, 'beta', false), (3, 'gamma', true), (4, 'delta', false), (5, 'epsilon', true)) v(id, name, flag);
+          - mode: compact
+            width: 60
+            expected: |-
+              select *
+              from (
+                values (1, 'alpha', true), (2, 'beta', false), (
+                    3, 'gamma', true
+                  ), (4, 'delta', false), (5, 'epsilon', true)
+              ) v(id, name, flag);
+          - mode: pretty
+            expected: |-
+              select *
+              from (
+                values
+                  (1, 'alpha', true),
+                  (2, 'beta', false),
+                  (3, 'gamma', true),
+                  (4, 'delta', false),
+                  (5, 'epsilon', true)
+              ) v(id, name, flag);
+        validation:
+          setup: |-

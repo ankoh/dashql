@@ -86,3 +86,89 @@ formatter-snapshots:
             expected: |-
               select cast(payload as integer[])
               from events;
+
+  - name: trino_zoned_time_literals
+    input: |-
+      select timestamp with time zone '2024-01-01 10:00:00 UTC', time with time zone '10:00:00+01:00', timestamp '2024-01-01 10:00:00'
+    dialects:
+      trino:
+        formatted:
+          - mode: inline
+            expected: |-
+              select timestamp '2024-01-01 10:00:00 UTC', time '10:00:00+01:00', timestamp '2024-01-01 10:00:00';
+          - mode: compact
+            expected: |-
+              select timestamp '2024-01-01 10:00:00 UTC', time '10:00:00+01:00', timestamp '2024-01-01 10:00:00';
+          - mode: pretty
+            expected: |-
+              select timestamp '2024-01-01 10:00:00 UTC', time '10:00:00+01:00', timestamp '2024-01-01 10:00:00';
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select timestamp with time zone '2024-01-01 10:00:00 UTC', time with time zone '10:00:00+01:00', timestamp '2024-01-01 10:00:00';
+          - mode: compact
+            expected: |-
+              select timestamp with time zone '2024-01-01 10:00:00 UTC', time with time zone '10:00:00+01:00',
+                timestamp '2024-01-01 10:00:00';
+          - mode: pretty
+            expected: |-
+              select timestamp with time zone '2024-01-01 10:00:00 UTC',
+                time with time zone '10:00:00+01:00',
+                timestamp '2024-01-01 10:00:00';
+
+  - name: trino_zoned_time_literal_type_names
+    input: |-
+      select timestamptz '2024-01-01 10:00:00+01', timetz '10:00:00+01'
+    dialects:
+      trino:
+        formatted:
+          - mode: inline
+            expected: |-
+              select timestamp '2024-01-01 10:00:00+01', time '10:00:00+01';
+          - mode: compact
+            expected: |-
+              select timestamp '2024-01-01 10:00:00+01', time '10:00:00+01';
+          - mode: pretty
+            expected: |-
+              select timestamp '2024-01-01 10:00:00+01', time '10:00:00+01';
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select timestamptz '2024-01-01 10:00:00+01', timetz '10:00:00+01';
+          - mode: compact
+            expected: |-
+              select timestamptz '2024-01-01 10:00:00+01', timetz '10:00:00+01';
+          - mode: pretty
+            expected: |-
+              select timestamptz '2024-01-01 10:00:00+01', timetz '10:00:00+01';
+
+  - name: trino_bounded_array_cast
+    input: |-
+      select cast(payload as integer[3]) from events
+    dialects:
+      trino:
+        formatted:
+          - mode: inline
+            expected: |-
+              select cast(payload as '<OBJECT_SQL_TYPENAME>') from events;
+          - mode: compact
+            expected: |-
+              select cast(payload as '<OBJECT_SQL_TYPENAME>') from events;
+          - mode: pretty
+            expected: |-
+              select cast(payload as '<OBJECT_SQL_TYPENAME>')
+              from events;
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select cast(payload as integer[3]) from events;
+          - mode: compact
+            expected: |-
+              select cast(payload as integer[3]) from events;
+          - mode: pretty
+            expected: |-
+              select cast(payload as integer[3])
+              from events;
