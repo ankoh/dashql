@@ -184,13 +184,16 @@ first runs.
 The connection picker of the prompt becomes, in AI, a menu `2 / 4 connections` (`agent/agent_connections_picker.tsx`):
 the list of connections of the connection picker with a checkbox as the trailing visual of each, the clouds in a group
 of their own after the other connections. Only the connections that the shown workbooks and the copies of the session
-use are allowed until the user ticks or unticks one: every connection of the tab would confuse the agent, the user ticks
-the others when the agent needs them. A cloud keeps the published workbooks, a workbook doesn't use it. The tab keeps what the user
+use, and the embedded Hyper, are allowed until the user ticks or unticks one: every connection of the tab would confuse
+the agent, the user ticks the others when the agent needs them. The guide asks the agent to post-process the results of
+remote scripts on the embedded Hyper, so it is allowed also when no script of the workbook runs on it: it is local and
+costs nothing (`defaultAgentConnectionIds`). A cloud keeps the published workbooks, a workbook doesn't use it. The tab keeps what the user
 ticked and unticked per target in the storage of the tab. Once the server answers and after every change, the page
-sends the allowed connections with their labels (`PUT /v1/connections/<token>`), the server writes them into the
+sends the allowed connections with their labels (`PUT /v1/connections/<token>`), the embedded Hyper marked with
+`embedded: true`, the server writes them into the
 session of the workspace file, `connections` in `.dashql/dashql-workspace.json`. A run in the tab takes only the allowed connections,
-the tab decides. `dashql describe` and `dashql catalog` tell the agent which connections it may use. The file is
-guidance for the agent, not a boundary: the tab decides.
+the tab decides. `dashql describe` and `dashql catalog` tell the agent which connections it may use, `describe` marks the
+embedded Hyper so the agent knows its id. The file is guidance for the agent, not a boundary: the tab decides.
 
 **Logins stay in the tab.** The tab logs in as it does for its own runs, a run of the agent in the tab uses its
 connections as they are. No token or password reaches `dashql connect` or a process of the agent.

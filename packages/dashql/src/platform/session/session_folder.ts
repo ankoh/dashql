@@ -21,6 +21,8 @@ export interface SessionConnection {
     connectionId: string;
     /// The label of the connection in the tab
     name: string;
+    /// Is it the embedded Hyper, which post-processes the results of the other connections? Only set when true.
+    embedded?: true;
 }
 
 /// The connections that the agent may use, as the tab sends them to the server of the session
@@ -31,10 +33,12 @@ export interface SessionConnections {
 /// The connections of a list, null if it is no list
 function sessionConnectionsOf(value: unknown): SessionConnection[] | null {
     if (!Array.isArray(value)) return null;
-    return value.flatMap((connection: { connectionId?: unknown; name?: unknown }) =>
-        typeof connection?.connectionId === 'string' && connection.connectionId.length > 0
-            ? [{ connectionId: connection.connectionId, name: typeof connection.name === 'string' ? connection.name : connection.connectionId }]
-            : []);
+    return value.flatMap((connection: { connectionId?: unknown; name?: unknown; embedded?: unknown }) => {
+        if (typeof connection?.connectionId !== 'string' || connection.connectionId.length === 0) return [];
+        const parsed: SessionConnection = { connectionId: connection.connectionId, name: typeof connection.name === 'string' ? connection.name : connection.connectionId };
+        if (connection.embedded === true) parsed.embedded = true;
+        return [parsed];
+    });
 }
 
 /// The connections of a text that the tab sent, null if it holds none

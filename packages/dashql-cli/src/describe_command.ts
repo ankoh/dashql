@@ -75,8 +75,10 @@ Scripts:
   Keep such a remote script cheap rather than minimal: filter and aggregate it to the grain that the question needs,
   e.g. daily totals per region instead of a single number, below about 100k rows, and rank, pivot, join and slice it
   in scripts on the embedded Hyper. A follow-up question is then often another script on the embedded Hyper over the
-  same remote script. The other way round does not work: a remote connection cannot read scripts of other
-  connections.
+  same remote script: its run reads the stored result of the remote script without querying the remote connection
+  again, so follow-ups and chart changes cost nothing remote. The other way round does not work: a remote connection
+  cannot read scripts of other connections. The connections of the session mark the embedded Hyper with its id, the
+  tab lets you use it also when no script of the workbook runs on it yet.
 - :name where a value goes, where amount > :min, is a scalar parameter. The workbook holds its value, the user sets
   it in DashQL and the scripts that use it run again. Give a new scalar parameter its value with a @param tag in the
   comment above the query, @param :min = 10, a SQL literal such as 'west', date '2024-01-01' or interval '3' day. A
@@ -236,7 +238,7 @@ export function describeSessionConnections(workspace: string): string | null {
     if (allowed.connections.length === 0) {
         return 'Connections: the tab of DashQL lets you use none, dashql run runs no script. The user can allow them in the prompt.';
     }
-    const lines = allowed.connections.map(connection => `  ${connection.name} (${connection.connectionId})`);
+    const lines = allowed.connections.map(connection => `  ${connection.name} (${connection.connectionId})${connection.embedded === true ? ', the embedded Hyper' : ''}`);
     return `Connections that the tab of DashQL lets you use, dashql run refuses the others:
 ${lines.join('\n')}`;
 }

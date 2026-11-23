@@ -28,6 +28,9 @@ describe('the folder of a session', () => {
     it('reads the connections that the agent may use', () => {
         expect(parseSessionConnections('{"connections":[{"connectionId":"c1","name":"Trino"},{"connectionId":"c2"},{"name":"x"}]}'))
             .toEqual({ connections: [{ connectionId: 'c1', name: 'Trino' }, { connectionId: 'c2', name: 'c2' }] });
+        // The embedded Hyper is marked, anything but true is no mark
+        expect(parseSessionConnections('{"connections":[{"connectionId":"h","name":"Hyper","embedded":true},{"connectionId":"c1","embedded":"yes"}]}'))
+            .toEqual({ connections: [{ connectionId: 'h', name: 'Hyper', embedded: true }, { connectionId: 'c1', name: 'c1' }] });
         expect(parseSessionConnections('{}')).toBeNull();
         expect(parseSessionConnections('not json')).toBeNull();
     });

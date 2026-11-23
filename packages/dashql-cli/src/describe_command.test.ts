@@ -71,11 +71,11 @@ describe('dashql describe', () => {
             const workspace = testWorkspace([['.dashql/dashql-workspace.json', JSON.stringify({ formatVersion: 1, session })]]);
             return (await describeIn(workspace, ['--workspace', ws(workspace)])).stdout;
         };
-        const allowed = { connections: [{ connectionId: 'c1', name: 'Trino prod' }, { connectionId: 'hyper', name: 'Hyper' }] };
+        const allowed = { connections: [{ connectionId: 'c1', name: 'Trino prod' }, { connectionId: 'hyper', name: 'Hyper', embedded: true }] };
         expect((await describeWith(JSON.stringify(allowed))).endsWith(`
 Connections that the tab of DashQL lets you use, dashql run refuses the others:
   Trino prod (c1)
-  Hyper (hyper)
+  Hyper (hyper), the embedded Hyper
 `)).toBe(true);
         expect(await describeWith('{"connections":[]}')).toContain('Connections: the tab of DashQL lets you use none');
         // Before the tab told them, and without a session, nothing is said about them
