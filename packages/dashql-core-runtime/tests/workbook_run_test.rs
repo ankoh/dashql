@@ -751,6 +751,98 @@ fn execute_all_calls_the_client_functions_that_a_shown_workbook_leaves_out() {
     assert!(statements[0].request.client_function_call.is_some());
 }
 
+/// The scripts whose stored results the last runs read
+fn reads(s: &Setup) -> Vec<String> {
+    s.state
+        .borrow()
+        .statements
+        .iter()
+        .filter_map(|statement| match &statement.request.result {
+            StatementResult::Read { script, .. } => Some(script.clone()),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn a_shown_workbook_whose_run_fails_shows_the_stored_results_of_the_scripts_it_did_not_finish() {
+    let local = connection("local", true);
+    let workbook =
+        workbook(&[("a.sql", "select 1", &local), ("b.sql", "select 2", &local), ("c.sql", "select 3", &local)]);
+    let s = setup(false, Some("/mnt/cache"), 1);
+    for script in ["a.sql", "b.sql", "c.sql"] {
+        // Results of earlier texts, the scripts run
+        s.state.borrow_mut().stored.insert(script.into(), "earlier".into());
+    }
+    let (_handle, result) = s.start(&workbook, RunOptions { local: true, ..workbook_run() });
+    s.end("select 1", Ok(true));
+    s.end("select 2", Err(StatementFailure::new("boom")));
+    let result = result.borrow_mut().take().expect("the run ended");
+    assert_eq!(result.failure.map(|failure| failure.message), Some("boom".to_string()));
+    // a shows its new result and b its error, c never ran and shows its stored result
+    assert_eq!(reads(&s), vec!["c.sql"]);
+    let workbook = workbook.borrow();
+    let c = workbook.script_by_file("c.sql").unwrap();
+    assert!(c.latest_result_query_id().is_some());
+    // The run released every file that it retained
+    let calls = s.calls();
+    let retained = calls.iter().filter(|call| call.starts_with("retain ")).count();
+    let released = calls.iter().filter(|call| call.starts_with("release ")).count();
+    assert!(retained > 0 && released >= retained, "{calls:?}");
+}
+
+#[test]
+fn a_shown_workbook_that_is_stopped_shows_the_stored_results_of_the_scripts_it_did_not_finish() {
+    let local = connection("local", true);
+    let workbook = workbook(&[("a.sql", "select 1", &local), ("b.sql", "select 2", &local)]);
+    let s = setup(false, Some("/mnt/cache"), 1);
+    for script in ["a.sql", "b.sql"] {
+        s.state.borrow_mut().stored.insert(script.into(), "earlier".into());
+    }
+    let (handle, result) = s.start(&workbook, RunOptions { local: true, ..workbook_run() });
+    assert_eq!(s.texts(), vec!["select 1"]);
+    handle.cancel();
+    s.executor.run_until_stalled();
+    let result = result.borrow_mut().take().expect("the run ended");
+    assert_eq!(result.failure.map(|failure| failure.kind), Some(RunFailureKind::Cancelled));
+    // The stopped script and the one that never started show their stored results
+    assert_eq!(reads(&s), vec!["a.sql", "b.sql"]);
+    assert_eq!(s.last_state().phase, RunPhase::Cancelled);
+}
+
+#[test]
+fn a_shown_workbook_whose_read_of_a_stored_result_fails_shows_the_stored_results_of_the_other_scripts() {
+    let local = connection("local", true);
+    let workbook = workbook(&[("manual.sql", "/* @manual */\nselect 1", &local), ("auto.sql", "select 2", &local)]);
+    let s = setup(true, Some("/mnt/cache"), 1);
+    {
+        let mut state = s.state.borrow_mut();
+        state.stored.insert("manual.sql".into(), "earlier".into());
+        state.stored.insert("auto.sql".into(), "earlier".into());
+        // The file of the manual script is broken, its read fails before auto runs
+        state.failing.push("select 1".into());
+    }
+    let result = s.run(&workbook, RunOptions { local: true, ..workbook_run() });
+    let failure = result.failure.expect("a failure");
+    assert!(failure.message.ends_with("select 1 failed"), "{}", failure.message);
+    // The manual script shows its error and is read once, auto shows its stored result
+    assert_eq!(reads(&s), vec!["manual.sql", "auto.sql"]);
+}
+
+#[test]
+fn execute_all_that_fails_reads_no_stored_results() {
+    let local = connection("local", true);
+    let workbook = workbook(&[("a.sql", "select 1", &local), ("b.sql", "select 2", &local)]);
+    let s = setup(false, Some("/mnt/cache"), 1);
+    for script in ["a.sql", "b.sql"] {
+        s.state.borrow_mut().stored.insert(script.into(), "earlier".into());
+    }
+    let (_handle, result) = s.start(&workbook, workbook_run());
+    s.end("select 1", Err(StatementFailure::new("boom")));
+    assert!(result.borrow_mut().take().expect("the run ended").failure.is_some());
+    assert!(reads(&s).is_empty());
+}
+
 #[test]
 fn materializes_a_script_of_another_connection_before_the_scan() {
     let (local, remote) = (connection("local", true), connection("remote", false));

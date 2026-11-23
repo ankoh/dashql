@@ -199,6 +199,11 @@ query on the remote backends. An imported workbook shows its imported results th
   whose visualization doesn't decode. The scripts that follow them in the plan don't run either.
 - A script that doesn't run and shows no result yet reads its stored result whatever its key, also one that isn't
   cacheable or that follows a script that doesn't run. A script without a stored result shows nothing.
+- A run that fails or is stopped, e.g. by an error of a script, Stop or an embedded Hyper that drops, shows the stored
+  results of the scripts that it didn't finish once its statements settled (`read_unfinished` of
+  `workbook_run/engine.rs`): a script that failed shows its error, one that ran to its end its new result, every other
+  script without a result reads its stored file. The reads after a Stop run to their end. A workbook is shown once,
+  the next show doesn't run it again.
 
 The plan is tolerant (`PlanScope::Tolerant`, `planner.md`), so a script that can't be planned, e.g. one without a
 current analysis, is left out and leaves the others alone. Each read is a query of the connection of the script that

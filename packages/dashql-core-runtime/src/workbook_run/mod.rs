@@ -307,8 +307,9 @@ pub struct RunOptions {
     pub refresh: bool,
     /// Show the workbook: run only on the connections that the host can run, the embedded Hyper, and call no client
     /// function. The plan is tolerant, a script that can't be planned leaves the others alone. A script that doesn't
-    /// run reads its stored result whatever its key if it shows no result yet, and is no skip that needs a connection.
-    /// A workbook that is shown for the first time runs so (docs/design/workbook_results.md).
+    /// run reads its stored result whatever its key if it shows no result yet, and is no skip that needs a connection,
+    /// so does a script that the run didn't finish once it failed or stopped. A workbook that is shown for the first
+    /// time runs so (docs/design/workbook_results.md).
     pub local: bool,
     /// Report the state of the run to the host
     pub reports_state: bool,

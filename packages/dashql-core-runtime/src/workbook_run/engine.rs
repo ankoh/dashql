@@ -179,6 +179,11 @@ struct Run<H: RunHost> {
     transient: RefCell<Vec<String>>,
     /// The schedule of the plan that runs
     schedule: RefCell<Option<Schedule>>,
+    /// The first plan of a run of a shown workbook: a run that fails or stops reads the stored results of the scripts
+    /// that it didn't finish over it
+    shown: RefCell<Option<ExecutionGraphT>>,
+    /// The scripts that ran to their end or failed, also in a read of their stored results. A stopped script is none.
+    finished: RefCell<BTreeSet<u32>>,
 }
 
 /// A run that started. Dropping the handle doesn't stop the run.
@@ -238,6 +243,8 @@ pub fn start_run<H: RunHost>(
         kept: RefCell::new(Vec::new()),
         transient: RefCell::new(Vec::new()),
         schedule: RefCell::new(None),
+        shown: RefCell::new(None),
+        finished: RefCell::new(BTreeSet::new()),
     });
     let handle = RunHandle { run: run.clone() };
     (handle, async move { run.execute().await })
@@ -717,9 +724,28 @@ impl<H: RunHost> Run<H> {
         if result.is_err() {
             self.cancel_active();
             self.settle().await;
+            self.read_unfinished().await;
         }
         self.release_files().await;
         result
+    }
+
+    /// A run of a shown workbook that failed or stopped shows the stored results of the scripts that it didn't finish: a
+    /// script that failed shows its error and one that ran to its end its result, every other script reads its stored
+    /// result if it shows none yet. The reads after a Stop run to their end, a Stop during the reads after a failure
+    /// stops them.
+    async fn read_unfinished(self: &Rc<Self>) {
+        let Some(graph) = self.shown.borrow_mut().take() else { return };
+        let finished = self.finished.borrow().clone();
+        let scripts: Vec<u32> = (0..self.files.len() as u32).filter(|script| !finished.contains(script)).collect();
+        let stoppable = !self.control.cancelled.get();
+        if let Err(failure) = self.read_stored(&graph, &scripts, stoppable).await {
+            self.log(
+                LogLevel::Info,
+                "Reading the stored results of the scripts that the run didn't finish stopped",
+                vec![detail("workbookId", self.workbook_id.clone()), detail("error", failure.message)],
+            );
+        }
     }
 
     /// Pin a file below the mount prefix until the run released its files
@@ -804,6 +830,9 @@ impl<H: RunHost> Run<H> {
         let mount_prefix = host.mount_prefix().unwrap_or_else(|| unique_mount_prefix(host.now()));
         // The plan of the targets checks the workbook and gives the result keys
         let mut graph = self.plan(targets.as_deref(), &[], &[], &mount_prefix)?;
+        if self.options.local {
+            *self.shown.borrow_mut() = Some(graph.clone());
+        }
         // A run of a shown workbook calls no client function and holds back the scripts that run only on request and
         // those whose visualizations don't decode: its tolerant plan has them all
         let mut held_back: BTreeMap<u32, &'static str> = BTreeMap::new();
@@ -1007,7 +1036,7 @@ impl<H: RunHost> Run<H> {
             }
             // A script that a run of a shown workbook leaves out shows its stored result
             if local {
-                self.read_stored(&graph, &skipped).await?;
+                self.read_stored(&graph, &skipped, true).await?;
             }
         }
         let context = self.plan_context(graph, connection_ids, keys, names, materialized, skip)?;
@@ -1016,8 +1045,14 @@ impl<H: RunHost> Run<H> {
 
     /// Read the stored results of scripts that don't run and show no result yet, whatever their keys, in feed order: a
     /// run of a shown workbook shows what it doesn't run. A script reads the file of its result node, one whose
-    /// visualization doesn't decode reads nothing. Like a reused result, a read is no output of the run.
-    async fn read_stored(self: &Rc<Self>, graph: &ExecutionGraphT, scripts: &[u32]) -> Result<(), RunFailure> {
+    /// visualization doesn't decode reads nothing. Like a reused result, a read is no output of the run. Reads that
+    /// aren't `stoppable` go on after the run was cancelled.
+    async fn read_stored(
+        self: &Rc<Self>,
+        graph: &ExecutionGraphT,
+        scripts: &[u32],
+        stoppable: bool,
+    ) -> Result<(), RunFailure> {
         if !self.host.has_results() {
             return Ok(());
         }
@@ -1041,10 +1076,16 @@ impl<H: RunHost> Run<H> {
             if let Some(retained) = &retained {
                 self.kept.borrow_mut().push(retained.id);
             }
-            self.check_cancelled()?;
+            if stoppable {
+                self.check_cancelled()?;
+            }
             let Some(retained) = retained else { continue };
             self.serve_cached(graph, script, node, &retained.file, &statements, &visualizations).await?;
-            self.cooperate().await?;
+            if stoppable {
+                self.cooperate().await?;
+            } else {
+                self.host.cooperate().await;
+            }
         }
         Ok(())
     }
@@ -1096,6 +1137,7 @@ impl<H: RunHost> Run<H> {
             Ok(has_result) => has_result,
             Err(failure) if !failure.cache_miss => {
                 // The script shows the error of the query
+                self.finished.borrow_mut().insert(script);
                 self.apply(WorkbookAction::RegisterQuery { key: script_key, query_id: query_id as u32 })?;
                 return Err(RunFailure::from_statement(failure));
             }
@@ -1397,6 +1439,9 @@ impl<H: RunHost> Run<H> {
     /// Report the end of a script once
     fn end_script(&self, script: u32, event: ScriptEvent) {
         let first = self.with_schedule(|schedule| schedule.ended.insert(script)).unwrap_or(false);
+        if first && matches!(event, ScriptEvent::Done { .. } | ScriptEvent::Failed { .. }) {
+            self.finished.borrow_mut().insert(script);
+        }
         if first {
             self.host.script_event(&self.file(script), &event);
         }
