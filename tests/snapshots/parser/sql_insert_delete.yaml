@@ -588,3 +588,451 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: insert_on_conflict_do_nothing
+    input: |-
+      insert into t values (1, 2) on conflict do nothing
+    expected:
+      statements:
+        - type: INSERT
+          ast-begin: 0
+          ast-size: 11
+          description:
+            text: "insert int..do nothing"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_INSERT
+            text: "insert int..do nothing"
+            children:
+              - key: SQL_INSERT_SOURCE
+                type: OBJECT_SQL_SELECT
+                text: "values (1, 2)"
+                children:
+                  - key: SQL_SELECT_VALUES
+                    type: ARRAY
+                    text: "values (1, 2)"
+                    children:
+                      - type: ARRAY
+                        text: "1, 2"
+                        children:
+                          - type: LITERAL_INTEGER
+                            text: "1"
+                          - type: LITERAL_INTEGER
+                            text: "2"
+              - key: SQL_INSERT_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+              - key: SQL_INSERT_ON_CONFLICT
+                type: OBJECT_SQL_INSERT_ON_CONFLICT
+                text: "on conflic..do nothing"
+                children:
+                  - key: SQL_INSERT_ON_CONFLICT_ACTION
+                    type: ENUM_SQL_INSERT_CONFLICT_ACTION
+                    value: DO_NOTHING
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: insert_on_conflict_do_update
+    input: |-
+      insert into t (a, b) values (1, 2)
+      on conflict (a, b collate "C" desc) where a > 0
+      do update set b = excluded.b + t.b, (c, d) = (excluded.c, 1) where t.b < excluded.b
+      returning *
+    expected:
+      statements:
+        - type: INSERT
+          ast-begin: 0
+          ast-size: 68
+          description:
+            text: "insert int..eturning *"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_INSERT
+            text: "insert int..eturning *"
+            children:
+              - key: SQL_INSERT_COLUMNS
+                type: ARRAY
+                text: "(a, b)"
+                children:
+                  - type: NAME
+                    text: "a"
+                  - type: NAME
+                    text: "b"
+              - key: SQL_INSERT_SOURCE
+                type: OBJECT_SQL_SELECT
+                text: "values (1, 2)"
+                children:
+                  - key: SQL_SELECT_VALUES
+                    type: ARRAY
+                    text: "values (1, 2)"
+                    children:
+                      - type: ARRAY
+                        text: "1, 2"
+                        children:
+                          - type: LITERAL_INTEGER
+                            text: "1"
+                          - type: LITERAL_INTEGER
+                            text: "2"
+              - key: SQL_INSERT_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+              - key: SQL_INSERT_ON_CONFLICT
+                type: OBJECT_SQL_INSERT_ON_CONFLICT
+                text: "on conflic..excluded.b"
+                children:
+                  - key: SQL_INSERT_ON_CONFLICT_TARGET
+                    type: ARRAY
+                    text: "(a, b coll.. \"C\" desc)"
+                    children:
+                      - type: OBJECT_SQL_INDEX_ELEMENT
+                        text: "a"
+                        children:
+                          - key: SQL_INDEX_ELEMENT_NAME
+                            type: NAME
+                            text: "a"
+                      - type: OBJECT_SQL_INDEX_ELEMENT
+                        text: "b collate \"C\" desc"
+                        children:
+                          - key: SQL_INDEX_ELEMENT_NAME
+                            type: NAME
+                            text: "b"
+                          - key: SQL_INDEX_ELEMENT_COLLATION
+                            type: ARRAY
+                            text: "collate \"C\""
+                            children:
+                              - type: NAME
+                                text: "\"C\""
+                          - key: SQL_INDEX_ELEMENT_DIRECTION
+                            type: ENUM_SQL_ORDER_DIRECTION
+                            value: DESCENDING
+                  - key: SQL_INSERT_ON_CONFLICT_TARGET_WHERE
+                    type: OBJECT_SQL_NARY_EXPRESSION
+                    text: "a > 0"
+                    children:
+                      - key: SQL_EXPRESSION_OPERATOR
+                        type: ENUM_SQL_EXPRESSION_OPERATOR
+                        value: GREATER_THAN
+                      - key: SQL_EXPRESSION_ARGS
+                        type: ARRAY
+                        text: "a > 0"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_REF
+                            text: "a"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "a"
+                                children:
+                                  - type: NAME
+                                    text: "a"
+                          - type: LITERAL_INTEGER
+                            text: "0"
+                  - key: SQL_INSERT_ON_CONFLICT_ACTION
+                    type: ENUM_SQL_INSERT_CONFLICT_ACTION
+                    value: DO_UPDATE
+                  - key: SQL_INSERT_ON_CONFLICT_ASSIGNMENTS
+                    type: ARRAY
+                    text: "b = exclud..uded.c, 1)"
+                    children:
+                      - type: OBJECT_SQL_ASSIGNMENT
+                        text: "b = exclud..ed.b + t.b"
+                        children:
+                          - key: SQL_ASSIGNMENT_COLUMNS
+                            type: NAME
+                            text: "b"
+                          - key: SQL_ASSIGNMENT_VALUE
+                            type: OBJECT_SQL_NARY_EXPRESSION
+                            text: "excluded.b + t.b"
+                            children:
+                              - key: SQL_EXPRESSION_OPERATOR
+                                type: ENUM_SQL_EXPRESSION_OPERATOR
+                                value: PLUS
+                              - key: SQL_EXPRESSION_ARGS
+                                type: ARRAY
+                                text: "excluded.b + t.b"
+                                children:
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "excluded.b"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "excluded.b"
+                                        children:
+                                          - type: NAME
+                                            text: "excluded"
+                                          - type: NAME
+                                            text: "b"
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "t.b"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "t.b"
+                                        children:
+                                          - type: NAME
+                                            text: "t"
+                                          - type: NAME
+                                            text: "b"
+                      - type: OBJECT_SQL_ASSIGNMENT
+                        text: "(c, d) = (..uded.c, 1)"
+                        children:
+                          - key: SQL_ASSIGNMENT_MULTIPLE
+                            type: BOOL
+                            value: 1
+                          - key: SQL_ASSIGNMENT_COLUMNS
+                            type: ARRAY
+                            text: "c, d"
+                            children:
+                              - type: NAME
+                                text: "c"
+                              - type: NAME
+                                text: "d"
+                          - key: SQL_ASSIGNMENT_VALUE
+                            type: ARRAY
+                            text: "(excluded.c, 1)"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "excluded.c"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "excluded.c"
+                                    children:
+                                      - type: NAME
+                                        text: "excluded"
+                                      - type: NAME
+                                        text: "c"
+                              - type: LITERAL_INTEGER
+                                text: "1"
+                  - key: SQL_INSERT_ON_CONFLICT_WHERE
+                    type: OBJECT_SQL_NARY_EXPRESSION
+                    text: "t.b < excluded.b"
+                    children:
+                      - key: SQL_EXPRESSION_OPERATOR
+                        type: ENUM_SQL_EXPRESSION_OPERATOR
+                        value: LESS_THAN
+                      - key: SQL_EXPRESSION_ARGS
+                        type: ARRAY
+                        text: "t.b < excluded.b"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_REF
+                            text: "t.b"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "t.b"
+                                children:
+                                  - type: NAME
+                                    text: "t"
+                                  - type: NAME
+                                    text: "b"
+                          - type: OBJECT_SQL_COLUMN_REF
+                            text: "excluded.b"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "excluded.b"
+                                children:
+                                  - type: NAME
+                                    text: "excluded"
+                                  - type: NAME
+                                    text: "b"
+              - key: SQL_INSERT_RETURNING
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [34,35]
+        - text: [82,83]
+        - text: [166,167]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: insert_on_conflict_on_constraint
+    input: |-
+      with src as (select 1 as a) insert into t select a from src join u on src.a = u.a on conflict on constraint t_pkey do nothing
+    expected:
+      statements:
+        - type: INSERT
+          ast-begin: 0
+          ast-size: 43
+          description:
+            text: "with src a..do nothing"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_INSERT
+            text: "with src a..do nothing"
+            children:
+              - key: SQL_SELECT_WITH_CTES
+                type: ARRAY
+                text: "src as (se..ct 1 as a)"
+                children:
+                  - type: OBJECT_SQL_CTE
+                    text: "src as (se..ct 1 as a)"
+                    children:
+                      - key: SQL_CTE_NAME
+                        type: NAME
+                        text: "src"
+                      - key: SQL_CTE_STATEMENT
+                        type: OBJECT_SQL_SELECT
+                        text: "select 1 as a"
+                        children:
+                          - key: SQL_SELECT_TARGETS
+                            type: ARRAY
+                            text: "1 as a"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "1 as a"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "1"
+                                  - key: SQL_RESULT_TARGET_NAME
+                                    type: NAME
+                                    text: "a"
+              - key: SQL_INSERT_SOURCE
+                type: OBJECT_SQL_SELECT
+                text: "select a f..rc.a = u.a"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "a"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "a"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "a"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "a"
+                                children:
+                                  - type: NAME
+                                    text: "a"
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "from src j..rc.a = u.a"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
+                        text: "src join u..rc.a = u.a"
+                        children:
+                          - key: SQL_TABLEREF_TABLE
+                            type: OBJECT_SQL_JOINED_TABLE
+                            text: "src join u..rc.a = u.a"
+                            children:
+                              - key: SQL_JOIN_ON
+                                type: OBJECT_SQL_NARY_EXPRESSION
+                                text: "src.a = u.a"
+                                children:
+                                  - key: SQL_EXPRESSION_OPERATOR
+                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                    value: EQUAL
+                                  - key: SQL_EXPRESSION_ARGS
+                                    type: ARRAY
+                                    text: "src.a = u.a"
+                                    children:
+                                      - type: OBJECT_SQL_COLUMN_REF
+                                        text: "src.a"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "src.a"
+                                            children:
+                                              - type: NAME
+                                                text: "src"
+                                              - type: NAME
+                                                text: "a"
+                                      - type: OBJECT_SQL_COLUMN_REF
+                                        text: "u.a"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "u.a"
+                                            children:
+                                              - type: NAME
+                                                text: "u"
+                                              - type: NAME
+                                                text: "a"
+                              - key: SQL_JOIN_TYPE
+                                type: ENUM_SQL_JOIN_TYPE
+                                value: INNER
+                              - key: SQL_JOIN_INPUT
+                                type: ARRAY
+                                text: "src join u..rc.a = u.a"
+                                children:
+                                  - type: OBJECT_SQL_TABLEREF
+                                    text: "src"
+                                    children:
+                                      - key: SQL_TABLEREF_NAME
+                                        type: ARRAY
+                                        text: "src"
+                                        children:
+                                          - type: NAME
+                                            text: "src"
+                                  - type: OBJECT_SQL_TABLEREF
+                                    text: "u"
+                                    children:
+                                      - key: SQL_TABLEREF_NAME
+                                        type: ARRAY
+                                        text: "u"
+                                        children:
+                                          - type: NAME
+                                            text: "u"
+              - key: SQL_INSERT_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+              - key: SQL_INSERT_ON_CONFLICT
+                type: OBJECT_SQL_INSERT_ON_CONFLICT
+                text: "on conflic..do nothing"
+                children:
+                  - key: SQL_INSERT_ON_CONFLICT_CONSTRAINT
+                    type: NAME
+                    text: "t_pkey"
+                  - key: SQL_INSERT_ON_CONFLICT_ACTION
+                    type: ENUM_SQL_INSERT_CONFLICT_ACTION
+                    value: DO_NOTHING
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

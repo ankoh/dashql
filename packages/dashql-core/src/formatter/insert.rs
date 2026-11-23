@@ -1,13 +1,13 @@
 //! INSERT statements.
 
-use super::{FmtReg, Formatter, FormattingJoinPolicy, K};
-use dashql_buffers::parser::{Node, NodeType};
+use super::{is_true, value_u8, FmtReg, Formatter, FormattingJoinPolicy, K};
+use dashql_buffers::parser::{InsertConflictAction, Node, NodeType};
 use dashql_parser::attrs;
 
 impl<'a> Formatter<'a> {
     pub(super) fn format_insert(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [target, bulk, columns, source, default_values, returning, with_ctes, with_recursive] = attrs!(
+        let [target, bulk, columns, source, default_values, on_conflict, returning, with_ctes, with_recursive] = attrs!(
             self.children(node),
             [
                 K::SQL_INSERT_TARGET,
@@ -15,6 +15,7 @@ impl<'a> Formatter<'a> {
                 K::SQL_INSERT_COLUMNS,
                 K::SQL_INSERT_SOURCE,
                 K::SQL_INSERT_DEFAULT_VALUES,
+                K::SQL_INSERT_ON_CONFLICT,
                 K::SQL_INSERT_RETURNING,
                 K::SQL_SELECT_WITH_CTES,
                 K::SQL_SELECT_WITH_RECURSIVE,
@@ -50,6 +51,9 @@ impl<'a> Formatter<'a> {
         } else {
             clauses.push(f.text("default values"));
         }
+        if let Some(on_conflict) = on_conflict {
+            clauses.push(self.reg_or_placeholder(on_conflict));
+        }
 
         if let Some(returning) = returning.filter(|r| r.node_type() == NodeType::ARRAY && r.children_count() > 0) {
             let returning_reg = self.reg(returning);
@@ -71,5 +75,98 @@ impl<'a> Formatter<'a> {
             query = self.space_join(&[with_clause, query], policy, false);
         }
         query
+    }
+
+    /// `on conflict [(columns) [where predicate] | on constraint name] do nothing | do update set ... [where ...]`
+    pub(super) fn format_insert_on_conflict(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let [target, target_where, constraint, action, assignments, where_clause] = attrs!(
+            self.children(node),
+            [
+                K::SQL_INSERT_ON_CONFLICT_TARGET,
+                K::SQL_INSERT_ON_CONFLICT_TARGET_WHERE,
+                K::SQL_INSERT_ON_CONFLICT_CONSTRAINT,
+                K::SQL_INSERT_ON_CONFLICT_ACTION,
+                K::SQL_INSERT_ON_CONFLICT_ASSIGNMENTS,
+                K::SQL_INSERT_ON_CONFLICT_WHERE,
+            ],
+        );
+        let Some(action) = action.filter(|a| a.node_type() == NodeType::ENUM_SQL_INSERT_CONFLICT_ACTION) else {
+            return self.format_unimplemented(node);
+        };
+        let mut head = vec![f.text("on conflict")];
+        if let Some(target) = target {
+            head.push(f.parenthesized(self.reg_or_placeholder(target)));
+        }
+        if let Some(target_where) = target_where {
+            head.push(f.concat(&[f.text("where "), self.reg_or_placeholder(target_where)]));
+        }
+        if let Some(constraint) = constraint {
+            head.push(f.concat(&[f.text("on constraint "), self.reg_or_placeholder(constraint)]));
+        }
+        let head = self.space_join(&head, FormattingJoinPolicy::BreakOnOverflow, true);
+        match (InsertConflictAction(value_u8(action)), assignments) {
+            (InsertConflictAction::DO_NOTHING, None) if where_clause.is_none() => {
+                self.space_join(&[head, f.text("do nothing")], FormattingJoinPolicy::BreakOnOverflow, true)
+            }
+            (InsertConflictAction::DO_UPDATE, Some(assignments)) => {
+                let mut clauses =
+                    vec![head, f.concat(&[f.text("do update set "), self.reg_or_placeholder(assignments)])];
+                if let Some(where_clause) = where_clause {
+                    clauses.push(f.concat(&[f.text("where "), self.reg_or_placeholder(where_clause)]));
+                }
+                self.space_join(&clauses, self.pretty_policy(FormattingJoinPolicy::BreakAllOrNone), false)
+            }
+            _ => self.format_unimplemented(node),
+        }
+    }
+
+    /// `column = value` or `(column, ...) = (value, ...)`, an assignment of DO UPDATE SET
+    pub(super) fn format_assignment(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let [multiple, columns, value] = attrs!(
+            self.children(node),
+            [K::SQL_ASSIGNMENT_MULTIPLE, K::SQL_ASSIGNMENT_COLUMNS, K::SQL_ASSIGNMENT_VALUE]
+        );
+        let (Some(columns), Some(value)) = (columns, value) else { return self.format_unimplemented(node) };
+        let columns_reg = self.reg_or_placeholder(columns);
+        let value_reg = self.reg_or_placeholder(value);
+        if !is_true(multiple) {
+            return f.concat(&[columns_reg, f.text(" = "), value_reg]);
+        }
+        f.concat(&[f.parenthesized(columns_reg), f.text(" = "), f.parenthesized(value_reg)])
+    }
+
+    /// `column [collate c] [opclass] [asc | desc] [nulls first | last]`, a column of a conflict target
+    pub(super) fn format_index_element(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let [name, collation, opclass, direction, null_rule] = attrs!(
+            self.children(node),
+            [
+                K::SQL_INDEX_ELEMENT_NAME,
+                K::SQL_INDEX_ELEMENT_COLLATION,
+                K::SQL_INDEX_ELEMENT_OPCLASS,
+                K::SQL_INDEX_ELEMENT_DIRECTION,
+                K::SQL_INDEX_ELEMENT_NULL_RULE,
+            ],
+        );
+        let Some(name) = name else { return self.format_unimplemented(node) };
+        let mut parts = vec![self.reg_or_placeholder(name)];
+        if let Some(collation) = collation {
+            parts.push(f.concat(&[f.text("collate "), self.reg_or_placeholder(collation)]));
+        }
+        for part in [opclass, direction, null_rule].into_iter().flatten() {
+            parts.push(self.reg_or_placeholder(part));
+        }
+        self.space_join(&parts, FormattingJoinPolicy::BreakAllOrNone, true)
+    }
+
+    /// Is a DEFAULT expression the value of an assignment of DO UPDATE SET?
+    pub(super) fn is_assignment_value(&self, node: &Node) -> bool {
+        let parent = self.ast.get(node.parent() as usize);
+        node.attribute_key() == K::SQL_ASSIGNMENT_VALUE
+            || (node.attribute_key() == K::NONE
+                && parent
+                    .is_some_and(|p| p.node_type() == NodeType::ARRAY && p.attribute_key() == K::SQL_ASSIGNMENT_VALUE))
     }
 }

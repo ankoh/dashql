@@ -35,6 +35,13 @@ only repeats the node type (`GRANT`) is not stored. Where the commands share syn
 rules and enums: `NumericType` for the type of a sequence, `IntervalType` for intervals, `OrderDirection` and
 `OrderNullRule` for index elements.
 
+`INSERT ... ON CONFLICT` is an `OBJECT_SQL_INSERT_ON_CONFLICT` under `SQL_INSERT_ON_CONFLICT`: the conflict target
+as index elements (`SQL_INSERT_ON_CONFLICT_TARGET`, the `OBJECT_SQL_INDEX_ELEMENT`s of CREATE INDEX) with the index
+predicate (`SQL_INSERT_ON_CONFLICT_TARGET_WHERE`) or a constraint name (`SQL_INSERT_ON_CONFLICT_CONSTRAINT`), the
+action (`SQL_INSERT_ON_CONFLICT_ACTION`, an `InsertConflictAction`: `DO_NOTHING`, `DO_UPDATE`), and for `DO UPDATE`
+the `OBJECT_SQL_ASSIGNMENT`s of UPDATE (`SQL_INSERT_ON_CONFLICT_ASSIGNMENTS`) and the condition
+(`SQL_INSERT_ON_CONFLICT_WHERE`). Hyper doesn't run it.
+
 `SET a.b = v` with a single value is an `OBJECT_EXT_SET` with its key path and value, every other SET form
 an `OBJECT_SQL_SET` with its parameter (`SQL_SET_PARAMETER`, a `SessionParameter`) or variable (`SQL_SET_NAME`)
 and its values (`SQL_SET_ARGS`), both with `SQL_SET_LOCAL` for `SET LOCAL` (`ctx.set`, `ext_set.y`). `SET

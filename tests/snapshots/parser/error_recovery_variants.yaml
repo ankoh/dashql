@@ -1663,3 +1663,44 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: recovery_insert_on_conflict
+    input: |-
+      insert into t values (1) on conflict (a) do;
+      insert into t values (1) on conflict do update set;
+      select 2
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 7
+          ast-size: 9
+          description:
+            text: "select 2"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 2"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "2"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "2"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "2"
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected SEMICOLON, expecting NOTHING or UPDATE'
+          text: ";"
+        - message: 'syntax error, unexpected SEMICOLON'
+          text: ";"
+      line-breaks:
+        - text: [44,45]
+        - text: [96,97]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

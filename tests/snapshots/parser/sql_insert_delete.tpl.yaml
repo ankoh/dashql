@@ -21,3 +21,18 @@ parser-snapshots:
       with d as (delete from t where a < 0 returning a),
            i as (insert into u select a from d returning a)
       select count(*) from i
+  # INSERT ... ON CONFLICT DO NOTHING without a conflict target
+  - name: insert_on_conflict_do_nothing
+    input: |
+      insert into t values (1, 2) on conflict do nothing
+  # ON CONFLICT with index columns, an index predicate and DO UPDATE with a condition
+  - name: insert_on_conflict_do_update
+    input: |
+      insert into t (a, b) values (1, 2)
+      on conflict (a, b collate "C" desc) where a > 0
+      do update set b = excluded.b + t.b, (c, d) = (excluded.c, 1) where t.b < excluded.b
+      returning *
+  # ON CONFLICT with a constraint after a SELECT source and a WITH clause
+  - name: insert_on_conflict_on_constraint
+    input: |
+      with src as (select 1 as a) insert into t select a from src join u on src.a = u.a on conflict on constraint t_pkey do nothing

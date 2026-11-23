@@ -347,6 +347,12 @@ The rules follow PostgreSQL and Hyper:
   The columns that UPDATE and MERGE write, the SET targets and the INSERT columns of MERGE, are column refs that bind
   to the target only, also when a read relation has a column of the same name; the column of a target that the
   catalog doesn't know is inferred for it. The explicit columns of INSERT bind to its target after resolution.
+  `ON CONFLICT` of INSERT binds the columns of its conflict target and the SET targets of `DO UPDATE` like the written
+  columns of UPDATE. `DO UPDATE` adds `excluded`, the row proposed for insertion, as a FROM item of the INSERT scope
+  with the table of the target (its AST node is the `OBJECT_SQL_INSERT_ON_CONFLICT`), and only the values and the
+  condition of `DO UPDATE` and their subqueries see it (`SourceVisibility::Except` of the others): an unqualified
+  column of both is ambiguous there, as in PostgreSQL, RETURNING and the index predicate don't see `excluded`, and
+  `RETURNING *` lists the columns of the target.
 - **`*` over a join** lists the `USING` and `NATURAL` columns once, first, then the other columns of
   the left and the right side.
 - **An aliased join**, `(t join u using (a)) as j`, names the join: outside of it, the alias hides the names of the

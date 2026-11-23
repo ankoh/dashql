@@ -492,6 +492,12 @@ enum JsonWrapper: uint8 {
     UNCONDITIONAL,
 }
 
+/// The action of INSERT ... ON CONFLICT
+enum InsertConflictAction: uint8 {
+    DO_NOTHING,
+    DO_UPDATE,
+}
+
 enum MergeAction: uint8 {
     UPDATE,
     DELETE,

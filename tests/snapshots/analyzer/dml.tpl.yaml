@@ -52,6 +52,46 @@ analyzer-snapshots:
     script:
       input: create table z (k int, l text); insert into z (l, k) select c::text, a from u
 
+  # ON CONFLICT: the conflict target and the SET targets bind to the target, DO UPDATE sees excluded
+  - name: insert_on_conflict_do_update
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: insert into t (a, b) select a, c from u on conflict (a) where b > 0 do update set b = excluded.b + t.b where t.b < excluded.b returning a
+
+  # An unqualified column of DO UPDATE is ambiguous between the target and excluded, as in PostgreSQL
+  - name: insert_on_conflict_ambiguous_column
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: insert into t values (1, 2) on conflict (a) do update set b = b + 1
+
+  # RETURNING, the index predicate and their subqueries don't see excluded, RETURNING * has the target columns
+  - name: insert_on_conflict_excluded_visibility
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: insert into t values (1, 2) on conflict (a) where excluded.a > 0 do update set (a, b) = (select excluded.a, u.c from u) returning *, excluded.b, (select excluded.a)
+
+  # Unknown columns of the conflict target and the SET targets, DO NOTHING
+  - name: insert_on_conflict_unknown_columns
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: insert into t values (1, 2) on conflict (z) do nothing; insert into t values (1, 2) on conflict on constraint t_pkey do update set z = excluded.z
+
+  # The columns of an unknown target are inferred, also through excluded
+  - name: insert_on_conflict_unresolved_target
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: insert into missing values (1, 2) on conflict (p) do update set q = excluded.r
+
   # DELETE with USING, correlated subqueries, RETURNING and a CTE
   - name: delete_using
     catalog:

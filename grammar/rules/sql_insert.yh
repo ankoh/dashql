@@ -3,3 +3,5 @@
 %type<NodeList> sql_insert_rest;
 %type<Node> sql_insert_returning_clause;
 %type<Node> sql_insert_bulk;
+%type<Node> sql_insert_on_conflict;
+%type<NodeList> sql_insert_conflict_target;

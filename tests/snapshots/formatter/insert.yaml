@@ -242,3 +242,148 @@ formatter-snapshots:
           setup: |-
             create table insert_target(id int, label text);
             create table insert_source(id int, label text);
+
+  - name: coverage_insert_on_conflict_do_nothing
+    input: |-
+      INSERT INTO insert_target VALUES(1,'one') ON CONFLICT DO NOTHING
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              insert into insert_target values (1, 'one') on conflict do nothing;
+          - mode: compact
+            expected: |-
+              insert into insert_target values (1, 'one') on conflict do nothing;
+          - mode: pretty
+            expected: |-
+              insert into insert_target
+              values
+                (1, 'one')
+              on conflict do nothing;
+
+  - name: coverage_insert_on_conflict_target_do_nothing
+    input: |-
+      INSERT INTO insert_target(id,label) SELECT id,label FROM insert_source ON CONFLICT(id) DO NOTHING
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              insert into insert_target(id, label) select id, label from insert_source on conflict (id) do nothing;
+          - mode: compact
+            expected: |-
+              insert into insert_target(id, label) select id, label from insert_source on conflict (id) do nothing;
+          - mode: pretty
+            expected: |-
+              insert into insert_target(id, label)
+              select id, label
+              from insert_source
+              on conflict (id) do nothing;
+
+  - name: coverage_insert_on_conflict_do_update
+    input: |-
+      INSERT INTO insert_target(id,label) VALUES(1,'one') ON CONFLICT(id) DO UPDATE SET label=excluded.label||insert_target.label WHERE insert_target.label<>excluded.label RETURNING id
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              insert into insert_target(id, label) values (1, 'one') on conflict (id) do update set label = excluded.label || insert_target.label where insert_target.label <> excluded.label returning id;
+          - mode: compact
+            expected: |-
+              insert into insert_target(id, label)
+              values (1, 'one')
+              on conflict (id)
+              do update set label = excluded.label || insert_target.label
+              where insert_target.label <> excluded.label
+              returning id;
+          - mode: pretty
+            expected: |-
+              insert into insert_target(id, label)
+              values
+                (1, 'one')
+              on conflict (id)
+              do update set label = excluded.label || insert_target.label
+              where insert_target.label <> excluded.label
+              returning id;
+
+  - name: coverage_insert_on_conflict_index_predicate
+    input: |-
+      INSERT INTO insert_target(id,label) VALUES(1,'one') ON CONFLICT(id COLLATE "C" DESC NULLS LAST,label text_pattern_ops) WHERE id>0 DO UPDATE SET(id,label)=(excluded.id,DEFAULT),label=(SELECT max(label) FROM insert_source)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              insert into insert_target(id, label) values (1, 'one') on conflict (id collate "C" desc nulls last, label text_pattern_ops) where id > 0 do update set (id, label) = (excluded.id, default), label = (select max(label) from insert_source);
+          - mode: compact
+            expected: |-
+              insert into insert_target(id, label)
+              values (1, 'one')
+              on conflict (id collate "C" desc nulls last, label text_pattern_ops) where id > 0
+              do update set (id, label) = (excluded.id, default), label = (select max(label) from insert_source);
+          - mode: pretty
+            expected: |-
+              insert into insert_target(id, label)
+              values
+                (1, 'one')
+              on conflict (id collate "C" desc nulls last, label text_pattern_ops) where id > 0
+              do update set (id, label) = (excluded.id, default),
+                label = (
+                  select max(label)
+                  from insert_source
+                );
+
+  - name: coverage_insert_on_conflict_on_constraint
+    input: |-
+      WITH source AS(SELECT 1 AS id) INSERT INTO insert_target(id) SELECT id FROM source ON CONFLICT ON CONSTRAINT insert_target_pkey DO NOTHING
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              with source as (select 1 as id) insert into insert_target(id) select id from source on conflict on constraint insert_target_pkey do nothing;
+          - mode: compact
+            expected: |-
+              with source as (select 1 as id)
+              insert into insert_target(id) select id from source on conflict on constraint insert_target_pkey do nothing;
+          - mode: pretty
+            expected: |-
+              with source as (
+                select 1 as id
+              )
+              insert into insert_target(id)
+              select id
+              from source
+              on conflict on constraint insert_target_pkey do nothing;
+
+  - name: insert_on_conflict_narrow
+    input: |-
+      INSERT INTO insert_target(id,label,amount) VALUES(1,'one',10) ON CONFLICT(id,label) DO UPDATE SET amount=insert_target.amount+excluded.amount,label=excluded.label WHERE insert_target.amount<excluded.amount
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              insert into insert_target(id, label, amount) values (1, 'one', 10) on conflict (id, label) do update set amount = insert_target.amount + excluded.amount, label = excluded.label where insert_target.amount < excluded.amount;
+          - mode: compact
+            width: 60
+            expected: |-
+              insert into insert_target(id, label, amount)
+              values (1, 'one', 10)
+              on conflict (id, label)
+              do update set amount = insert_target.amount +
+                  excluded.amount, label = excluded.label
+              where insert_target.amount < excluded.amount;
+          - mode: pretty
+            width: 60
+            expected: |-
+              insert into insert_target(id, label, amount)
+              values
+                (1, 'one', 10)
+              on conflict (id, label)
+              do update set amount = insert_target.amount +
+                  excluded.amount,
+                label = excluded.label
+              where insert_target.amount < excluded.amount;

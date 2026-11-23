@@ -84,3 +84,39 @@ formatter-snapshots:
           setup: |-
             create table insert_target(id int, label text);
             create table insert_source(id int, label text);
+
+  # Hyper doesn't support ON CONFLICT, the cases have no validation
+  - name: coverage_insert_on_conflict_do_nothing
+    input: INSERT INTO insert_target VALUES(1,'one') ON CONFLICT DO NOTHING
+    dialects:
+      hyper: {}
+
+  - name: coverage_insert_on_conflict_target_do_nothing
+    input: INSERT INTO insert_target(id,label) SELECT id,label FROM insert_source ON CONFLICT(id) DO NOTHING
+    dialects:
+      hyper: {}
+
+  - name: coverage_insert_on_conflict_do_update
+    input: INSERT INTO insert_target(id,label) VALUES(1,'one') ON CONFLICT(id) DO UPDATE SET label=excluded.label||insert_target.label WHERE insert_target.label<>excluded.label RETURNING id
+    dialects:
+      hyper: {}
+
+  - name: coverage_insert_on_conflict_index_predicate
+    input: INSERT INTO insert_target(id,label) VALUES(1,'one') ON CONFLICT(id COLLATE "C" DESC NULLS LAST,label text_pattern_ops) WHERE id>0 DO UPDATE SET(id,label)=(excluded.id,DEFAULT),label=(SELECT max(label) FROM insert_source)
+    dialects:
+      hyper: {}
+
+  - name: coverage_insert_on_conflict_on_constraint
+    input: WITH source AS(SELECT 1 AS id) INSERT INTO insert_target(id) SELECT id FROM source ON CONFLICT ON CONSTRAINT insert_target_pkey DO NOTHING
+    dialects:
+      hyper: {}
+
+  - name: insert_on_conflict_narrow
+    input: INSERT INTO insert_target(id,label,amount) VALUES(1,'one',10) ON CONFLICT(id,label) DO UPDATE SET amount=insert_target.amount+excluded.amount,label=excluded.label WHERE insert_target.amount<excluded.amount
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 60
+          - mode: pretty
+            width: 60

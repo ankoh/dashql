@@ -7,13 +7,13 @@ pub use dashql_buffers::parser::{
     AConstType, AlterRoleAction, AttributeKey, CharacterType, ColumnConstraint, CombineModifier, CombineOperation,
     ConstraintAttribute, CopyDirection, CopyOption, CursorOption, DatabaseCopyDirection, DatabaseLocality,
     DatabaseOption, DefinitionType, DropBehavior, DropObjectType, ExpressionOperator, ExtractTarget, FetchDirection,
-    FunctionOption, FunctionParameterMode, GrantTargetType, GroupByItemType, IntervalType, JoinType, JsonBehavior,
-    JsonWrapper, KeyActionCommand, KeyActionTrigger, KeyMatch, KnownFunction, MergeAction, MergeMatch, Node, NodeType,
-    NumericType, OnCommitOption, OrderDirection, OrderNullRule, Privilege, RenameObjectType, RoleOption, RoleType,
-    RowLockingBlockBehavior, RowLockingStrength, SampleCountUnit, SequenceOption, SessionParameter, StreamType,
-    SubqueryQuantifier, SymbolSpan, TableConstraint, TableLikeOption, TempType, TransactionCommand,
-    TransactionIsolationLevel, TrimDirection, WindowBoundDirection, WindowBoundMode, WindowExclusionMode,
-    WindowRangeMode, ZoneValueType,
+    FunctionOption, FunctionParameterMode, GrantTargetType, GroupByItemType, InsertConflictAction, IntervalType,
+    JoinType, JsonBehavior, JsonWrapper, KeyActionCommand, KeyActionTrigger, KeyMatch, KnownFunction, MergeAction,
+    MergeMatch, Node, NodeType, NumericType, OnCommitOption, OrderDirection, OrderNullRule, Privilege,
+    RenameObjectType, RoleOption, RoleType, RowLockingBlockBehavior, RowLockingStrength, SampleCountUnit,
+    SequenceOption, SessionParameter, StreamType, SubqueryQuantifier, SymbolSpan, TableConstraint, TableLikeOption,
+    TempType, TransactionCommand, TransactionIsolationLevel, TrimDirection, WindowBoundDirection, WindowBoundMode,
+    WindowExclusionMode, WindowRangeMode, ZoneValueType,
 };
 
 /// Attribute keys, as the grammar actions call them
@@ -147,6 +147,7 @@ enum_node_types! {
     FunctionParameterMode => ENUM_SQL_FUNCTION_PARAMETER_MODE,
     GrantTargetType => ENUM_SQL_GRANT_TARGET_TYPE,
     GroupByItemType => ENUM_SQL_GROUP_BY_ITEM_TYPE,
+    InsertConflictAction => ENUM_SQL_INSERT_CONFLICT_ACTION,
     IntervalType => ENUM_SQL_INTERVAL_TYPE,
     JoinType => ENUM_SQL_JOIN_TYPE,
     JsonBehavior => ENUM_SQL_JSON_BEHAVIOR,

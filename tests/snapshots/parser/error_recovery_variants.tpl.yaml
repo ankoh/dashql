@@ -201,3 +201,10 @@ parser-snapshots:
       select f(1;
       insert into t values (1;
       select 2
+
+  # A broken ON CONFLICT clause
+  - name: recovery_insert_on_conflict
+    input: |-
+      insert into t values (1) on conflict (a) do;
+      insert into t values (1) on conflict do update set;
+      select 2

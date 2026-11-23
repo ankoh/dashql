@@ -261,6 +261,269 @@ analyzer-snapshots:
             - {type: table, name: z, text: "z"}
           text: "insert int.., a from u"
 
+  - name: insert_on_conflict_do_update
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: insert into t (a, b) select a, c from u on conflict (a) where b > 0 do update set b = excluded.b + t.b where t.b < excluded.b returning a
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      inserts:
+        - target-ref: 1
+          source: "select a, c from u"
+          returning: true
+          columns:
+            - {name: a, resolved: true}
+            - {name: b, resolved: true}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.1", source: "on conflic..excluded.b", text: "excluded.b"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "t.b"}
+        - {id: 5, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "t.b"}
+        - {id: 6, type: colref/catalog, catalog: "256.65536.1:0.1", source: "on conflic..excluded.b", text: "excluded.b"}
+        - {id: 7, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 8, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 9, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 10, type: literal/integer, is-const: true, text: "0"}
+      constants:
+        - {expression: 10, text: "0"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: except
+          correlation-barrier: true
+          sources:
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: a, expression: 0}
+            - {name: c, expression: 1}
+          text: "select a, c from u"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: excluded, text: "on conflic..excluded.b"}
+          columns:
+            - {name: a, expression: 7}
+          text: "insert int..eturning a"
+
+  - name: insert_on_conflict_ambiguous_column
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: insert into t values (1, 2) on conflict (a) do update set b = b + 1
+      catalog-id: 2
+      errors:
+        - {type: COLUMN_REF_AMBIGUOUS, message: 'column reference is ambiguous, candidates: t.b, excluded.b', text: "b"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      inserts:
+        - target-ref: 0
+          source: "values (1, 2)"
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "b"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
+        - {id: 4, type: literal/integer, is-const: true, text: "2"}
+        - {id: 5, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 3, text: "1"}
+        - {expression: 4, text: "2"}
+        - {expression: 5, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: except
+          correlation-barrier: true
+          columns:
+            - {name: '?', expression: 3}
+            - {name: '?', expression: 4}
+          text: "values (1, 2)"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: excluded, text: "on conflic.. b = b + 1"}
+          text: "insert int.. b = b + 1"
+
+  - name: insert_on_conflict_excluded_visibility
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: insert into t values (1, 2) on conflict (a) where excluded.a > 0 do update set (a, b) = (select excluded.a, u.c from u) returning *, excluded.b, (select excluded.a)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      inserts:
+        - target-ref: 1
+          source: "values (1, 2)"
+          returning: true
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "excluded.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "on conflic...c from u)", text: "excluded.a"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "u.c"}
+        - {id: 3, type: colref/unresolved, text: "excluded.b"}
+        - {id: 4, type: colref/unresolved, text: "excluded.a"}
+        - {id: 5, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 6, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 7, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 8, type: literal/integer, is-const: true, text: "1"}
+        - {id: 9, type: literal/integer, is-const: true, text: "2"}
+        - {id: 10, type: literal/integer, is-const: true, text: "0"}
+      constants:
+        - {expression: 8, text: "1"}
+        - {expression: 9, text: "2"}
+        - {expression: 10, text: "0"}
+      name-scopes:
+        - scope-id: 0
+          parent: 3
+          sources:
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: a, expression: 1}
+            - {name: c, expression: 2}
+          text: "(select ex...c from u)"
+        - scope-id: 1
+          parent: 3
+          parent-sources: except
+          columns:
+            - {name: a, expression: 4}
+          text: "(select excluded.a)"
+        - scope-id: 2
+          parent: 3
+          parent-sources: except
+          correlation-barrier: true
+          columns:
+            - {name: '?', expression: 8}
+            - {name: '?', expression: 9}
+          text: "values (1, 2)"
+        - scope-id: 3
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: excluded, text: "on conflic...c from u)"}
+          columns:
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+            - {name: b, expression: 3}
+            - {name: '?', computed: true}
+          text: "insert int..xcluded.a)"
+
+  - name: insert_on_conflict_unknown_columns
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: insert into t values (1, 2) on conflict (z) do nothing; insert into t values (1, 2) on conflict on constraint t_pkey do update set z = excluded.z
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 0, role: write, text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 1, role: write, text: "t"}
+      inserts:
+        - statement-id: 0
+          target-ref: 0
+          source: "values (1, 2)"
+        - statement-id: 1
+          target-ref: 1
+          source: "values (1, 2)"
+      expressions:
+        - {id: 0, type: colref/unresolved, statement-id: 0, text: "z"}
+        - {id: 1, type: colref/unresolved, statement-id: 1, text: "excluded.z"}
+        - {id: 2, type: colref/unresolved, statement-id: 1, text: "z"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
+        - {id: 4, type: literal/integer, is-const: true, text: "2"}
+        - {id: 5, type: literal/integer, is-const: true, statement-id: 1, text: "1"}
+        - {id: 6, type: literal/integer, is-const: true, statement-id: 1, text: "2"}
+      constants:
+        - {expression: 3, text: "1"}
+        - {expression: 4, text: "2"}
+        - {expression: 5, text: "1"}
+        - {expression: 6, text: "2"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: except
+          correlation-barrier: true
+          columns:
+            - {name: '?', expression: 3}
+            - {name: '?', expression: 4}
+          text: "values (1, 2)"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+          text: "insert int..do nothing"
+        - scope-id: 2
+          parent: 3
+          parent-sources: except
+          correlation-barrier: true
+          columns:
+            - {name: '?', expression: 5}
+            - {name: '?', expression: 6}
+          text: "values (1, 2)"
+        - scope-id: 3
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: excluded, text: "on conflic..excluded.z"}
+          text: "insert int..excluded.z"
+
+  - name: insert_on_conflict_unresolved_target
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: insert into missing values (1, 2) on conflict (p) do update set q = excluded.r
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/unresolved, role: write, text: "missing"}
+      inserts:
+        - target-ref: 0
+          source: "values (1, 2)"
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "excluded.r"}
+        - {id: 1, type: colref/unresolved, text: "p"}
+        - {id: 2, type: colref/unresolved, text: "q"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
+        - {id: 4, type: literal/integer, is-const: true, text: "2"}
+      constants:
+        - {expression: 3, text: "1"}
+        - {expression: 4, text: "2"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: except
+          correlation-barrier: true
+          columns:
+            - {name: '?', expression: 3}
+            - {name: '?', expression: 4}
+          text: "values (1, 2)"
+        - scope-id: 1
+          sources:
+            - {type: unresolved, name: missing, text: "missing"}
+            - {type: unresolved, name: excluded, text: "on conflic..excluded.r"}
+          text: "insert int..excluded.r"
+      inferred-tables:
+        - name: missing
+          confidence: confident
+          columns:
+            - {name: r, confidence: confident}
+            - {name: p, confidence: confident}
+            - {name: q, confidence: confident}
+
   - name: delete_using
     catalog:
       script:

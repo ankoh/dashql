@@ -35,6 +35,7 @@ pub fn enum_text(node: &Node) -> &'static str {
         NodeType::ENUM_SQL_FUNCTION_PARAMETER_MODE => by_index!(FunctionParameterMode),
         NodeType::ENUM_SQL_GRANT_TARGET_TYPE => by_index!(GrantTargetType),
         NodeType::ENUM_SQL_GROUP_BY_ITEM_TYPE => by_index!(GroupByItemType),
+        NodeType::ENUM_SQL_INSERT_CONFLICT_ACTION => by_index!(InsertConflictAction),
         NodeType::ENUM_SQL_INTERVAL_TYPE => by_index!(IntervalType),
         NodeType::ENUM_SQL_JSON_BEHAVIOR => by_index!(JsonBehavior),
         NodeType::ENUM_SQL_JSON_WRAPPER => by_index!(JsonWrapper),

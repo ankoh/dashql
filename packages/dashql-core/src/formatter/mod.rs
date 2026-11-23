@@ -648,6 +648,10 @@ impl<'a> Formatter<'a> {
             | K::SQL_ATTACH_DATABASE_OPTIONS
             | K::SQL_INSERT_COLUMNS
             | K::SQL_INSERT_RETURNING
+            | K::SQL_INSERT_ON_CONFLICT_TARGET
+            | K::SQL_INSERT_ON_CONFLICT_ASSIGNMENTS
+            | K::SQL_ASSIGNMENT_COLUMNS
+            | K::SQL_ASSIGNMENT_VALUE
             | K::SQL_DELETE_USING
             | K::SQL_DELETE_RETURNING
             | K::SQL_CTE_COLUMNS
@@ -732,6 +736,8 @@ impl<'a> Formatter<'a> {
             | K::SQL_TABLE_LIKE_TABLE
             | K::SQL_COLUMN_REF_PATH
             | K::SQL_COLUMN_DEF_COLLATE
+            | K::SQL_INDEX_ELEMENT_COLLATION
+            | K::SQL_INDEX_ELEMENT_OPCLASS
             | K::SQL_CREATE_AS_NAME
             | K::SQL_VIEW_NAME
             | K::SQL_CREATE_FUNCTION_NAME
@@ -2707,7 +2713,7 @@ impl<'a> Formatter<'a> {
             if op_node.node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR
                 && ExpressionOperator(value_u8(op_node)) == ExpressionOperator::DEFAULT
             {
-                if !self.is_in_insert_values(node) {
+                if !self.is_in_insert_values(node) && !self.is_assignment_value(node) {
                     return self.format_unimplemented(node);
                 }
                 return self.reg(op_node);
@@ -2814,6 +2820,10 @@ impl<'a> Formatter<'a> {
             NodeType::ARRAY => self.format_array(node),
             NodeType::OBJECT_SQL_SELECT => self.format_select(node),
             NodeType::OBJECT_SQL_INSERT => self.format_insert(node),
+            NodeType::OBJECT_SQL_INSERT_ON_CONFLICT => self.format_insert_on_conflict(node),
+            NodeType::ENUM_SQL_INSERT_CONFLICT_ACTION => f.empty(),
+            NodeType::OBJECT_SQL_ASSIGNMENT => self.format_assignment(node),
+            NodeType::OBJECT_SQL_INDEX_ELEMENT => self.format_index_element(node),
             NodeType::OBJECT_SQL_DELETE => self.format_delete(node),
             NodeType::OBJECT_SQL_CURRENT_OF => self.format_current_of(node),
             NodeType::OBJECT_SQL_CREATE => self.format_create(node),

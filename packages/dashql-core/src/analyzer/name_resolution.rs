@@ -198,6 +198,8 @@ pub(super) struct NameResolutionPass {
     assignment_targets: HashMap<ExprId, u32>,
     /// The column refs that see only some FROM items of their scope, those of the WHEN NOT MATCHED clauses of MERGE
     expression_visibility: HashMap<ExprId, SourceVisibility>,
+    /// The `excluded` rows of the INSERT scopes with ON CONFLICT DO UPDATE: the ON CONFLICT node and the target
+    insert_excluded: HashMap<ScopeId, (u32, u32)>,
 }
 
 impl NameResolutionPass {
@@ -219,6 +221,7 @@ impl NameResolutionPass {
             column_paths: HashMap::default(),
             assignment_targets: HashMap::default(),
             expression_visibility: HashMap::default(),
+            insert_excluded: HashMap::default(),
         }
     }
 
@@ -1715,7 +1718,11 @@ impl NameResolutionPass {
     /// The columns of an unqualified star: the columns of the FROM items in FROM order, a join with USING or NATURAL
     /// has its join columns once, before the other columns of its inputs
     fn star_columns(&self, state: &AnalysisState, scope: &NameScope) -> Vec<ScopeColumn> {
-        let flat = || scope.sources.iter().flat_map(|source| Self::source_columns(state, source)).collect();
+        // The `excluded` row of ON CONFLICT is no FROM item
+        let flat = || {
+            let sources = scope.sources.iter().filter(|s| !Self::is_insert_excluded(state, s));
+            sources.flat_map(|source| Self::source_columns(state, source)).collect()
+        };
         let Some(node) = state.node(scope.ast_node_id) else { return flat() };
         let [from] = attrs!(state.children(node), [K::SQL_SELECT_FROM]);
         let Some(from) = from.filter(|n| n.node_type() == NodeType::ARRAY) else { return flat() };
@@ -1974,6 +1981,7 @@ impl NameResolutionPass {
             } else {
                 dfs.pop();
                 Self::resolve_table_refs_in_scope(state, scope);
+                self.add_insert_excluded(state, scope);
                 self.check_join_alias_names(state, scope);
                 self.populate_output_columns(state, scope);
                 self.resolve_column_refs_locally(state, scope);
@@ -2240,13 +2248,14 @@ impl NameResolutionPass {
             }
 
             NodeType::OBJECT_SQL_INSERT => {
-                let [target, columns, source, default_values, returning, recursive] = attrs!(
+                let [target, columns, source, default_values, on_conflict, returning, recursive] = attrs!(
                     state.children(node),
                     [
                         K::SQL_INSERT_TARGET,
                         K::SQL_INSERT_COLUMNS,
                         K::SQL_INSERT_SOURCE,
                         K::SQL_INSERT_DEFAULT_VALUES,
+                        K::SQL_INSERT_ON_CONFLICT,
                         K::SQL_INSERT_RETURNING,
                         K::SQL_SELECT_WITH_RECURSIVE,
                     ]
@@ -2262,12 +2271,23 @@ impl NameResolutionPass {
                 }
 
                 self.merge_child_states(node_state, node);
+                let on_conflict = on_conflict.filter(|n| n.node_type() == NodeType::OBJECT_SQL_INSERT_ON_CONFLICT);
+                let target_node = target.map(|t| state.node_id(t));
+                let excluded = match (on_conflict, target_node) {
+                    (Some(on_conflict), Some(target)) => {
+                        self.visit_insert_on_conflict(state, node_state, on_conflict, target)
+                    }
+                    _ => None,
+                };
                 let result_targets = std::mem::take(&mut node_state.result_targets);
                 let ctes = std::mem::take(&mut node_state.ctes);
                 let scope = self.create_scope(state, node_state, node_id);
                 if let Some(s) = state.out.scope_mut(scope) {
                     s.result_targets.extend(result_targets);
                     s.ctes_recursive = recursive.is_some();
+                }
+                if let (Some(excluded), Some(target)) = (excluded, target_node) {
+                    self.insert_excluded.insert(scope, (excluded, target));
                 }
                 Self::attach_ctes(state, scope, ctes);
                 if let Some(source) = source {
@@ -2585,6 +2605,85 @@ impl NameResolutionPass {
         Self::attach_ctes(state, scope, ctes);
         // CTE definitions cannot correlate to the target or the read relations
         self.set_cte_correlation_barriers(state, scope);
+    }
+
+    /// ON CONFLICT of an INSERT: the columns of the conflict target and the SET targets of DO UPDATE are column refs that
+    /// bind to the target only. The values and the condition of DO UPDATE also see the row proposed for insertion,
+    /// `excluded` with the columns of the target, as in PostgreSQL, the other column refs of the INSERT don't. Returns
+    /// the ON CONFLICT node for a DO UPDATE, the AST node of its `excluded` row.
+    fn visit_insert_on_conflict(
+        &mut self,
+        state: &mut AnalysisState,
+        node_state: &mut NodeState,
+        on_conflict: &Node,
+        target: u32,
+    ) -> Option<u32> {
+        let [conflict_target, assignments, where_clause] = attrs!(
+            state.children(on_conflict),
+            [K::SQL_INSERT_ON_CONFLICT_TARGET, K::SQL_INSERT_ON_CONFLICT_ASSIGNMENTS, K::SQL_INSERT_ON_CONFLICT_WHERE,]
+        );
+        // The column refs of DO UPDATE see `excluded`, the others of the INSERT don't
+        let on_conflict_id = state.node_id(on_conflict);
+        let update: Vec<u32> = [assignments, where_clause].into_iter().flatten().map(|n| state.node_id(n)).collect();
+        let sees_excluded = |state: &AnalysisState, node: u32| update.iter().any(|&u| Self::is_within(state, node, u));
+        for &expr in &node_state.column_references {
+            let Some(e) = state.out.expression(expr) else { continue };
+            if !sees_excluded(state, e.ast_node_id) {
+                self.expression_visibility.insert(expr, SourceVisibility::Except(on_conflict_id));
+            }
+        }
+        for &child in &node_state.child_scopes {
+            let Some(s) = state.out.scope(child) else { continue };
+            if !sees_excluded(state, s.ast_node_id) {
+                if let Some(s) = state.out.scope_mut(child) {
+                    s.parent_visibility = SourceVisibility::Except(on_conflict_id);
+                }
+            }
+        }
+
+        let mut columns: Vec<&Node> = Vec::new();
+        let elements = conflict_target.filter(|t| t.node_type() == NodeType::ARRAY).map(|t| state.children(t));
+        for element in elements.unwrap_or_default() {
+            let [name] = attrs!(state.children(element), [K::SQL_INDEX_ELEMENT_NAME]);
+            columns.extend(name.filter(|_| element.node_type() == NodeType::OBJECT_SQL_INDEX_ELEMENT));
+        }
+        let assignment_list = assignments.filter(|a| a.node_type() == NodeType::ARRAY).map(|a| state.children(a));
+        for assignment in assignment_list.unwrap_or_default() {
+            if assignment.node_type() != NodeType::OBJECT_SQL_ASSIGNMENT {
+                continue;
+            }
+            // One column, or a list of columns that a row assigns
+            match attrs!(state.children(assignment), [K::SQL_ASSIGNMENT_COLUMNS]) {
+                [Some(list)] if list.node_type() == NodeType::ARRAY => columns.extend(state.children(list)),
+                [Some(column)] => columns.push(column),
+                [None] => {}
+            }
+        }
+        for column in columns.into_iter().filter(|c| c.node_type() == NodeType::NAME) {
+            self.add_written_column(state, node_state, column, target);
+        }
+        assignments.map(|_| on_conflict_id)
+    }
+
+    /// Add the `excluded` row of ON CONFLICT DO UPDATE to the scope of an INSERT, a FROM item with the table of the
+    /// target. The target was resolved with the other table refs of the scope.
+    fn add_insert_excluded(&self, state: &mut AnalysisState, scope: ScopeId) {
+        let Some(&(excluded, target)) = self.insert_excluded.get(&scope) else { return };
+        let target = state.out.scope(scope).and_then(|s| s.sources.iter().find(|s| s.ast_node_id == target));
+        let Some(target) = target.cloned() else { return };
+        let source = ScopeSource {
+            ast_node_id: excluded,
+            name: Some(Arc::from("excluded")),
+            column_aliases: Vec::new(),
+            table: target.table,
+            table_name: None,
+        };
+        Self::add_source(state, scope, source);
+    }
+
+    /// Is a FROM item the `excluded` row of ON CONFLICT?
+    fn is_insert_excluded(state: &AnalysisState, source: &ScopeSource) -> bool {
+        state.node(source.ast_node_id).is_some_and(|n| n.node_type() == NodeType::OBJECT_SQL_INSERT_ON_CONFLICT)
     }
 
     /// A column that UPDATE or MERGE writes, a column ref of its scope that binds to the target
