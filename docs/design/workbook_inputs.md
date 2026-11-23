@@ -95,7 +95,10 @@ scripts that use one of the inputs and every script downstream of them by an inl
 scripts that run only on request (`@manual`, `DataflowScript.manual`); the scripts downstream of them are targets. The targets
 run with what they read, the scripts they scan are served from their stored results when their keys are reusable.
 A change that no script reads runs nothing. A run that holds the workbook stops, the run of the change starts once the
-workbook is free, with the inputs of every change since.
+workbook is free, with the inputs of every change since. The `run` slice of the workbook names the inputs whose change
+waits (`pendingInputs`) and those whose change waits or runs (`busyInputs`, the inputs of the run that holds the
+workbook and the pending ones): every control of an input, in the strip, the overlay and the dataflow, shows it busy
+from the change until the run that applies it ended.
 
 ## The App
 

@@ -274,6 +274,7 @@ impl Runs {
                 handle: Rc::new(handle),
                 connections: embedded.clone(),
                 online: embedded,
+                inputs: Vec::new(),
             });
         });
         let runs = self.clone();

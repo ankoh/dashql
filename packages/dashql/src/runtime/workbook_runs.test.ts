@@ -381,14 +381,34 @@ describe('the runs of workbooks of the runtime', () => {
         expect(current.state).toBeNull();
         expect((await current.start({ inputs: ['min'] })).outcome.refused).toBe('the change of inputs waits for the workbook');
         runtime!.flush();
-        expect(runtime!.store.get('run', f.workbookId)?.pendingInputs).toEqual(['min']);
+        expect(runtime!.store.get('run', f.workbookId)).toMatchObject({ pendingInputs: ['min'], busyInputs: ['min'] });
         expect(current.state).toBeNull();
         await finishTestSetup(runtime!, f.database.connectionId, ConnectionHealth.ONLINE);
         await vi.waitFor(() => {
             runtime!.flush();
             expect(current.state?.phase).toBe('succeeded');
         });
-        expect(runtime!.store.get('run', f.workbookId)?.pendingInputs).toEqual([]);
+        expect(runtime!.store.get('run', f.workbookId)).toMatchObject({ pendingInputs: [], busyInputs: [] });
+    });
+
+    it('keeps an input busy from the run that its change stops until the run that applies it ended', async () => {
+        await openWorkbook();
+        await start();
+        const f = fixtures[0];
+        const view = () => {
+            runtime!.flush();
+            return runtime!.store.get('run', f.workbookId);
+        };
+        expect(view()?.busyInputs).toEqual([]);
+        // The change stops the run that holds the workbook and waits for it
+        expect((await current.start({ inputs: ['min'] })).outcome.refused).toBe('the change of inputs waits for the workbook');
+        await settle();
+        expect(view()).toMatchObject({ pendingInputs: ['min'], busyInputs: ['min'], state: { phase: 'stopping' } });
+        // Once the stopped run drained, the change runs, no script reads the input
+        f.execution.resolve();
+        f.cancellation.resolve();
+        await vi.waitFor(() => expect(view()?.held).toBeNull());
+        expect(view()).toMatchObject({ pendingInputs: [], busyInputs: [], state: { phase: 'succeeded' } });
     });
 
     it('stops a run once a connection that it runs statements on drops', async () => {

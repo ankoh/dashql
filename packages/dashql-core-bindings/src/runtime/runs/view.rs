@@ -135,6 +135,9 @@ pub struct WorkbookRunView {
     pub state: Option<WorkbookRunState>,
     /// The inputs whose change waits for the workbook
     pub pending_inputs: Vec<String>,
+    /// The inputs whose change runs or waits for the workbook: the inputs of the run that holds the workbook and the
+    /// pending ones. A control of an input shows that it is busy until the run that applies it ended.
+    pub busy_inputs: Vec<String>,
 }
 
 /// Why a run failed

@@ -78,6 +78,8 @@ struct HeldRun {
     connections: Vec<String>,
     /// The connections that were online when the run of the workbook started, it stops when one of them drops
     online: Vec<String>,
+    /// The inputs whose change the run applies, empty for a run of the whole workbook or of a script
+    inputs: Vec<String>,
 }
 
 /// A change of inputs that waits for the workbook
@@ -447,6 +449,7 @@ impl Runs {
         );
         let host = self.host(&scope, workbook_id, can_run, listener);
         let number = host.number;
+        let held_inputs = inputs.clone().unwrap_or_default();
         let run_options = RunOptions {
             run: PlanRun::Workbook,
             targets: options.targets,
@@ -459,8 +462,14 @@ impl Runs {
         let (handle, run) = start_run(Rc::new(host), scope.workbook.clone(), run_options);
         let connections = scope.connections.clone();
         self.update(workbook_id, |entry| {
-            entry.held =
-                Some(HeldRun { kind: WorkbookRunKind::Workbook, number, handle: Rc::new(handle), connections, online });
+            entry.held = Some(HeldRun {
+                kind: WorkbookRunKind::Workbook,
+                number,
+                handle: Rc::new(handle),
+                connections,
+                online,
+                inputs: held_inputs,
+            });
         });
         let runs = self.clone();
         let workbook_id = workbook_id.to_string();
@@ -561,6 +570,7 @@ impl Runs {
                 handle: Rc::new(handle),
                 connections: Vec::new(),
                 online: Vec::new(),
+                inputs: Vec::new(),
             });
         });
         let runs = self.clone();
@@ -818,11 +828,21 @@ impl Runs {
     pub fn view(&self, workbook_id: &str) -> Read<WorkbookRunView> {
         let Ok(entries) = self.entries.try_borrow() else { return Read::Busy };
         let Some(entry) = entries.iter().find(|entry| entry.workbook_id == workbook_id) else { return Read::Gone };
+        let pending_inputs = entry.pending.as_ref().map(|pending| pending.inputs.clone()).unwrap_or_default();
+        // A change of inputs that waits stops the run that holds the workbook and runs next, its inputs are busy until
+        // that run ended
+        let mut busy_inputs = entry.held.as_ref().map(|held| held.inputs.clone()).unwrap_or_default();
+        for input in &pending_inputs {
+            if !busy_inputs.contains(input) {
+                busy_inputs.push(input.clone());
+            }
+        }
         Read::Value(WorkbookRunView {
             workbook_id: entry.workbook_id.clone(),
             held: entry.held.as_ref().map(|held| held.kind),
             state: entry.state.clone(),
-            pending_inputs: entry.pending.as_ref().map(|pending| pending.inputs.clone()).unwrap_or_default(),
+            pending_inputs,
+            busy_inputs,
         })
     }
 
