@@ -1,12 +1,13 @@
 //! Identify constant expressions.
 //!
-//! Literals, constant interval casts, binary expressions and comparisons over constants, and
+//! Literals, constant interval casts, negations, binary expressions and comparisons over constants, and
 //! function calls without modifiers, FILTER and ORDER BY over constants are constant. Finish stores the roots of the
-//! constant expression trees.
+//! constant expression trees, the constant expressions that are no operand of another one.
 
 use super::state::{literal_type, AnalysisState};
 use super::types::*;
-use dashql_buffers::algebra::{BinaryExpressionFunction, ComparisonFunction};
+use crate::hash::HashSet;
+use dashql_buffers::algebra::{BinaryExpressionFunction, ComparisonFunction, UnaryFunction};
 use dashql_buffers::analyzer::SemanticNodeMarkerType;
 use dashql_buffers::parser::{AttributeKey as K, ExpressionOperator as Op, IntervalType as IntervalTypeEnum, NodeType};
 use dashql_parser::attrs;
@@ -93,7 +94,11 @@ impl ConstantPropagationPass {
                     let Some(value) = value else { continue };
                     let Some(value_expr) = Self::constant_of(state, state.node_id(value)) else { continue };
                     let mut cast = ConstIntervalCast { value_expression_id: value_expr, interval: None };
-                    if let Some(interval) = interval {
+                    // interval(3) '4' has the precision without an interval type
+                    if let Some(precision) = interval.filter(|i| i.node_type() != NodeType::OBJECT_SQL_INTERVAL_TYPE) {
+                        let precision_expression = state.expression_of(state.node_id(precision)).map(|e| e as i32);
+                        cast.interval = Some(IntervalType { interval_type: IntervalTypeEnum(0), precision_expression });
+                    } else if let Some(interval) = interval {
                         let [type_attr, precision] =
                             attrs!(state.children(interval), [K::SQL_INTERVAL_TYPE, K::SQL_INTERVAL_PRECISION]);
                         let interval_type =
@@ -129,8 +134,17 @@ impl ConstantPropagationPass {
                     if const_args.len() != args.len() {
                         continue;
                     }
-                    let [left_expression_id, right_expression_id] = *const_args.as_slice() else { continue };
                     let op = Op(op_node.children_begin_or_value() as _);
+                    // -1, -(2 + 3)
+                    if let ([input_expression_id], Op::NEGATE) = (const_args.as_slice(), op) {
+                        let inner = ExpressionInner::UnaryExpression(UnaryExpression {
+                            func: UnaryFunction::NEGATE,
+                            input_expression_id: *input_expression_id,
+                        });
+                        self.add_constant(state, node_id, inner, SemanticNodeMarkerType::CONSTANT_EXPRESSION);
+                        continue;
+                    }
+                    let [left_expression_id, right_expression_id] = *const_args.as_slice() else { continue };
                     let inner = match op {
                         Op::PLUS | Op::MINUS | Op::MULTIPLY | Op::DIVIDE | Op::MODULUS | Op::XOR | Op::AND | Op::OR => {
                             ExpressionInner::BinaryExpression(BinaryExpression {
@@ -210,14 +224,40 @@ impl ConstantPropagationPass {
     }
 
     pub fn finish(&mut self, state: &mut AnalysisState) {
+        // The operands of constant expressions are no roots
+        let mut operands: HashSet<ExprId> = HashSet::default();
         for &expr_id in &self.constants {
-            let Some(node_id) = state.out.expression(expr_id).map(|e| e.ast_node_id) else { continue };
-            let Some(node) = state.node(node_id) else { continue };
-            // Only store the roots of constant expression trees
-            let parent = state.expression_of(node.parent()).and_then(|p| state.out.expression(p));
-            if parent.is_some_and(|p| p.is_constant_expression) {
+            let Some(expr) = state.out.expression(expr_id) else { continue };
+            match &expr.inner {
+                ExpressionInner::UnaryExpression(u) => {
+                    operands.insert(u.input_expression_id);
+                }
+                ExpressionInner::BinaryExpression(b) => {
+                    operands.extend([b.left_expression_id, b.right_expression_id]);
+                }
+                ExpressionInner::Comparison(c) => {
+                    operands.extend([c.left_expression_id, c.right_expression_id]);
+                }
+                ExpressionInner::ConstIntervalCast(c) => {
+                    operands.insert(c.value_expression_id);
+                    let precision = c.interval.as_ref().and_then(|i| i.precision_expression);
+                    operands.extend(precision.map(|p| p as ExprId));
+                }
+                ExpressionInner::FunctionCall(call) => {
+                    if let FunctionArguments::Generic { begin, count } = call.arguments {
+                        let args = state.out.function_arguments.get(begin as usize..(begin + count) as usize);
+                        operands.extend(args.unwrap_or_default().iter().filter_map(|a| a.expression_id));
+                    }
+                }
+                ExpressionInner::None | ExpressionInner::ColumnRef(_) | ExpressionInner::Literal(_) => {}
+            }
+        }
+        for &expr_id in &self.constants {
+            if operands.contains(&expr_id) {
                 continue;
             }
+            let Some(node_id) = state.out.expression(expr_id).map(|e| e.ast_node_id) else { continue };
+            let Some(node) = state.node(node_id) else { continue };
             // If object, mark as constant expression root
             if node.node_type().0 >= NodeType::OBJECT_KEYS_.0 {
                 state.mark(node_id, SemanticNodeMarkerType::CONSTANT_EXPRESSION_ROOT);

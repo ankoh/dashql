@@ -10,7 +10,7 @@ use crate::analyzer::*;
 use crate::catalog::*;
 use dashql_buffers::algebra::{
     BinaryExpressionT, ColumnRefExpressionT, ComparisonT, ConstIntervalCastT, ExpressionSubTypeT, ExpressionT,
-    FunctionCallExpressionT, LiteralT, ResolvedColumnT,
+    FunctionCallExpressionT, LiteralT, ResolvedColumnT, UnaryExpressionT,
 };
 use dashql_buffers::analyzer::{
     AnalyzedScriptT, AnalyzerErrorT, ClientFunctionCallT, ClientFunctionEffect as PackedClientFunctionEffect,
@@ -506,6 +506,12 @@ fn pack_expression(script: &AnalyzedScript, expr: &Expression) -> ExpressionT {
             left_child: c.left_expression_id,
             right_child: c.right_expression_id,
         }))),
+        ExpressionInner::UnaryExpression(u) => {
+            ExpressionSubTypeT::UnaryExpression(Box::new(build!(UnaryExpressionT {
+                func: u.func,
+                input: u.input_expression_id,
+            })))
+        }
         ExpressionInner::BinaryExpression(b) => {
             ExpressionSubTypeT::BinaryExpression(Box::new(build!(BinaryExpressionT {
                 func: b.func,

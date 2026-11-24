@@ -252,7 +252,7 @@ built after the scan:
 |---|---|---|
 | 1 | Name resolution (`name_resolution.rs`) | Scopes, table and column references, declarations, inferred schemas |
 | 2 | Function calls (`function_calls.rs`) | Function call expressions and their arguments |
-| 3 | Constant propagation (`constants.rs`) | Constant expression roots |
+| 3 | Constant propagation (`constants.rs`) | Constant expression roots, the constants that are no operand of another constant (`-1` is one) |
 | 4 | Parameters (`parameters.rs`) | `parameters`, sorted by their position in the text, a scalar parameter with the structured type of its cast (`sql_types.rs`) |
 | - | Visualizations (`vis_tags.rs`, after the scan) | `VisualizationSpec`s of the `@vis` tags of queries, `flow` of the first `@flow` tag |
 | - | Inputs (`param_tags.rs`, after the scan) | `inputs`, the first `@param :name = <literal>` tag of every name, the literal read by `sql_literal` (see `workbook_inputs.md`) |

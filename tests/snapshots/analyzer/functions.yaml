@@ -42,7 +42,6 @@ analyzer-snapshots:
         - {id: 3, type: constcast/interval, is-const: true, text: "interval '30 days'"}
         - {id: 4, type: binary, op: MINUS, arg-left: 1, arg-right: 3, is-const: true, text: "current_ti.. '30 days'"}
       constants:
-        - {expression: 3, text: "interval '30 days'"}
         - {expression: 4, text: "current_ti.. '30 days'"}
       name-scopes:
         - scope-id: 0
@@ -69,7 +68,6 @@ analyzer-snapshots:
         - {id: 3, type: constcast/interval, is-const: true, text: "interval '30 days'"}
         - {id: 4, type: binary, op: MINUS, arg-left: 1, arg-right: 3, is-const: true, text: "current_ti.. '30 days'"}
       constants:
-        - {expression: 3, text: "interval '30 days'"}
         - {expression: 4, text: "current_ti.. '30 days'"}
       name-scopes:
         - scope-id: 0

@@ -17,11 +17,8 @@ analyzer-snapshots:
         - {id: 8, type: comparison, op: EQUAL, arg-left: 6, arg-right: 7, is-const: true, text: "1 = 1"}
       constants:
         - {expression: 3, text: "1"}
-        - {expression: 4, text: "1"}
         - {expression: 1, text: "sum(1)"}
         - {expression: 5, text: "2"}
-        - {expression: 6, text: "1"}
-        - {expression: 7, text: "1"}
         - {expression: 8, text: "1 = 1"}
       name-scopes:
         - scope-id: 0
@@ -48,8 +45,6 @@ analyzer-snapshots:
         - {expression: 2, text: "'a'"}
         - {expression: 3, text: "','"}
         - {expression: 4, text: "1"}
-        - {expression: 5, text: "'a'"}
-        - {expression: 6, text: "','"}
         - {expression: 1, text: "string_agg..('a', ',')"}
       name-scopes:
         - scope-id: 0
@@ -64,21 +59,18 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       expressions:
-        - {id: 0, type: function, name: abs, text: "abs(-1)"}
+        - {id: 0, type: function, name: abs, is-const: true, text: "abs(-1)"}
         - {id: 1, type: function, known-function: COALESCE, is-const: true, text: "coalesce(1, 2)"}
         - {id: 2, type: function, name: greatest, is-const: true, text: "greatest(1, 2)"}
         - {id: 3, type: literal/integer, is-const: true, text: "1"}
-        - {id: 4, type: literal/integer, is-const: true, text: "1"}
-        - {id: 5, type: literal/integer, is-const: true, text: "2"}
-        - {id: 6, type: literal/integer, is-const: true, text: "1"}
-        - {id: 7, type: literal/integer, is-const: true, text: "2"}
+        - {id: 4, type: unary, op: NEGATE, arg: 3, is-const: true, text: "-1"}
+        - {id: 5, type: literal/integer, is-const: true, text: "1"}
+        - {id: 6, type: literal/integer, is-const: true, text: "2"}
+        - {id: 7, type: literal/integer, is-const: true, text: "1"}
+        - {id: 8, type: literal/integer, is-const: true, text: "2"}
       constants:
-        - {expression: 3, text: "1"}
-        - {expression: 4, text: "1"}
-        - {expression: 5, text: "2"}
+        - {expression: 0, text: "abs(-1)"}
         - {expression: 1, text: "coalesce(1, 2)"}
-        - {expression: 6, text: "1"}
-        - {expression: 7, text: "2"}
         - {expression: 2, text: "greatest(1, 2)"}
       name-scopes:
         - scope-id: 0

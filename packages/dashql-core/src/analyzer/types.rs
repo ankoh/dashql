@@ -4,7 +4,7 @@
 
 use crate::catalog::*;
 use crate::hash::HashMap;
-use dashql_buffers::algebra::{BinaryExpressionFunction, ComparisonFunction, LiteralType};
+use dashql_buffers::algebra::{BinaryExpressionFunction, ComparisonFunction, LiteralType, UnaryFunction};
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
 use dashql_buffers::parser::{IntervalType as IntervalTypeEnum, KnownFunction, Node, SymbolSpan};
 use dashql_parser::span::TextSpan;
@@ -254,6 +254,15 @@ pub struct Comparison {
     pub right_expression_id: u32,
 }
 
+/// A unary expression
+#[derive(Clone, Copy, Debug)]
+pub struct UnaryExpression {
+    /// The unary function
+    pub func: UnaryFunction,
+    /// The expression id of the input
+    pub input_expression_id: u32,
+}
+
 /// A binary expression
 #[derive(Clone, Copy, Debug)]
 pub struct BinaryExpression {
@@ -337,6 +346,7 @@ pub enum ExpressionInner {
     ColumnRef(ColumnRef),
     Literal(Literal),
     Comparison(Comparison),
+    UnaryExpression(UnaryExpression),
     BinaryExpression(BinaryExpression),
     FunctionCall(FunctionCall),
     ConstIntervalCast(ConstIntervalCast),

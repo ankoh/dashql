@@ -370,6 +370,8 @@ completion-snapshots:
       errors: []
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'a'"}
+      constants:
+        - {expression: 0, text: "'a'"}
     cursor:
       search:
         text: "'a',"
@@ -634,6 +636,8 @@ completion-snapshots:
       errors: []
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'a'"}
+      constants:
+        - {expression: 0, text: "'a'"}
     cursor:
       search:
         text: "= [("
@@ -686,6 +690,8 @@ completion-snapshots:
       errors: []
       expressions:
         - {id: 0, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 0, text: "1"}
     cursor:
       search:
         text: "1,"
@@ -898,6 +904,8 @@ completion-snapshots:
       errors: []
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'csv'"}
+      constants:
+        - {expression: 0, text: "'csv'"}
     cursor:
       search:
         text: ", _"
@@ -973,6 +981,8 @@ completion-snapshots:
       errors: []
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'x'"}
+      constants:
+        - {expression: 0, text: "'x'"}
     cursor:
       search:
         text: "'x',"
@@ -1000,6 +1010,8 @@ completion-snapshots:
       errors: []
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'queue'"}
+      constants:
+        - {expression: 0, text: "'queue'"}
     cursor:
       search:
         text: "'queue',"

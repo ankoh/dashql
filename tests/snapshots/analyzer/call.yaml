@@ -76,19 +76,21 @@ analyzer-snapshots:
         - {id: 3, type: literal/float, is-const: true, text: "1.5"}
         - {id: 4, type: literal/integer, is-const: true, text: "2"}
         - {id: 5, type: literal/integer, is-const: true, text: "1"}
-        - {id: 6, type: literal/null, is-const: true, text: "null"}
-        - {id: 7, type: literal/string, is-const: true, text: "'x'"}
-        - {id: 8, type: literal/integer, is-const: true, text: "42"}
+        - {id: 6, type: unary, op: NEGATE, arg: 2, is-const: true, text: "-2"}
+        - {id: 7, type: unary, op: NEGATE, arg: 3, is-const: true, text: "-1.5"}
+        - {id: 8, type: literal/null, is-const: true, text: "null"}
+        - {id: 9, type: literal/string, is-const: true, text: "'x'"}
+        - {id: 10, type: literal/integer, is-const: true, text: "42"}
       constants:
         - {expression: 0, text: "'it''s'"}
         - {expression: 1, text: "$$raw ' text$$"}
-        - {expression: 2, text: "2"}
-        - {expression: 3, text: "1.5"}
         - {expression: 4, text: "2"}
         - {expression: 5, text: "1"}
-        - {expression: 6, text: "null"}
-        - {expression: 7, text: "'x'"}
-        - {expression: 8, text: "42"}
+        - {expression: 6, text: "-2"}
+        - {expression: 7, text: "-1.5"}
+        - {expression: 8, text: "null"}
+        - {expression: 9, text: "'x'"}
+        - {expression: 10, text: "42"}
 
   - name: call_embedded_sql
     catalog:
@@ -620,9 +622,10 @@ analyzer-snapshots:
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'csv'"}
         - {id: 1, type: literal/integer, is-const: true, text: "1"}
+        - {id: 2, type: unary, op: NEGATE, arg: 1, is-const: true, text: "-1"}
       constants:
         - {expression: 0, text: "'csv'"}
-        - {expression: 1, text: "1"}
+        - {expression: 2, text: "-1"}
 
   - name: call_union_tag
     catalog:

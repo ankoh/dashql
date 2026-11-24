@@ -25,23 +25,11 @@ analyzer-snapshots:
         - {id: 16, type: literal/integer, is-const: true, text: "2"}
         - {id: 17, type: binary, op: XOR, arg-left: 15, arg-right: 16, is-const: true, text: "5 ^ 2"}
       constants:
-        - {expression: 0, text: "1"}
-        - {expression: 1, text: "2"}
         - {expression: 2, text: "1 + 2"}
-        - {expression: 3, text: "3"}
-        - {expression: 4, text: "1"}
         - {expression: 5, text: "3 - 1"}
-        - {expression: 6, text: "2"}
-        - {expression: 7, text: "3"}
         - {expression: 8, text: "2 * 3"}
-        - {expression: 9, text: "6"}
-        - {expression: 10, text: "2"}
         - {expression: 11, text: "6 / 2"}
-        - {expression: 12, text: "7"}
-        - {expression: 13, text: "3"}
         - {expression: 14, text: "7 % 3"}
-        - {expression: 15, text: "5"}
-        - {expression: 16, text: "2"}
         - {expression: 17, text: "5 ^ 2"}
       name-scopes:
         - scope-id: 0
@@ -79,23 +67,11 @@ analyzer-snapshots:
         - {id: 16, type: literal/integer, is-const: true, text: "2"}
         - {id: 17, type: comparison, op: GREATER_EQUAL, arg-left: 15, arg-right: 16, is-const: true, text: "3 >= 2"}
       constants:
-        - {expression: 0, text: "1"}
-        - {expression: 1, text: "1"}
         - {expression: 2, text: "1 = 1"}
-        - {expression: 3, text: "1"}
-        - {expression: 4, text: "2"}
         - {expression: 5, text: "1 <> 2"}
-        - {expression: 6, text: "1"}
-        - {expression: 7, text: "2"}
         - {expression: 8, text: "1 < 2"}
-        - {expression: 9, text: "1"}
-        - {expression: 10, text: "2"}
         - {expression: 11, text: "1 <= 2"}
-        - {expression: 12, text: "3"}
-        - {expression: 13, text: "2"}
         - {expression: 14, text: "3 > 2"}
-        - {expression: 15, text: "3"}
-        - {expression: 16, text: "2"}
         - {expression: 17, text: "3 >= 2"}
       name-scopes:
         - scope-id: 0
@@ -134,12 +110,8 @@ analyzer-snapshots:
         - {id: 10, type: binary, op: PLUS, arg-left: 8, arg-right: 9, is-const: true, text: "5 + 5"}
       constants:
         - {expression: 3, text: "1"}
-        - {expression: 4, text: "2"}
-        - {expression: 5, text: "3"}
         - {expression: 6, text: "2 * 3"}
         - {expression: 7, text: "2"}
-        - {expression: 8, text: "5"}
-        - {expression: 9, text: "5"}
         - {expression: 10, text: "5 + 5"}
       name-scopes:
         - scope-id: 0
@@ -158,34 +130,28 @@ analyzer-snapshots:
       errors: []
       expressions:
         - {id: 0, type: literal/integer, is-const: true, text: "1"}
-        - {id: 1, type: literal/integer, is-const: true, text: "2"}
-        - {id: 2, type: literal/integer, is-const: true, text: "3"}
-        - {id: 3, type: binary, op: PLUS, arg-left: 1, arg-right: 2, is-const: true, text: "2 + 3"}
-        - {id: 4, type: literal/integer, is-const: true, text: "1"}
-        - {id: 5, type: literal/integer, is-const: true, text: "2"}
-        - {id: 6, type: literal/integer, is-const: true, text: "3"}
-        - {id: 7, type: literal/integer, is-const: true, text: "4"}
-        - {id: 8, type: binary, op: PLUS, arg-left: 4, arg-right: 5, is-const: true, text: "1 + 2"}
-        - {id: 9, type: binary, op: PLUS, arg-left: 6, arg-right: 7, is-const: true, text: "3 + 4"}
-        - {id: 10, type: binary, op: MULTIPLY, arg-left: 8, arg-right: 9, is-const: true, text: "(1 + 2) * (3 + 4)"}
+        - {id: 1, type: unary, op: NEGATE, arg: 0, is-const: true, text: "-1"}
+        - {id: 2, type: literal/integer, is-const: true, text: "2"}
+        - {id: 3, type: literal/integer, is-const: true, text: "3"}
+        - {id: 4, type: binary, op: PLUS, arg-left: 2, arg-right: 3, is-const: true, text: "2 + 3"}
+        - {id: 5, type: unary, op: NEGATE, arg: 4, is-const: true, text: "-(2 + 3)"}
+        - {id: 6, type: literal/integer, is-const: true, text: "1"}
+        - {id: 7, type: literal/integer, is-const: true, text: "2"}
+        - {id: 8, type: literal/integer, is-const: true, text: "3"}
+        - {id: 9, type: literal/integer, is-const: true, text: "4"}
+        - {id: 10, type: binary, op: PLUS, arg-left: 6, arg-right: 7, is-const: true, text: "1 + 2"}
+        - {id: 11, type: binary, op: PLUS, arg-left: 8, arg-right: 9, is-const: true, text: "3 + 4"}
+        - {id: 12, type: binary, op: MULTIPLY, arg-left: 10, arg-right: 11, is-const: true, text: "(1 + 2) * (3 + 4)"}
       constants:
-        - {expression: 0, text: "1"}
-        - {expression: 1, text: "2"}
-        - {expression: 2, text: "3"}
-        - {expression: 3, text: "2 + 3"}
-        - {expression: 4, text: "1"}
-        - {expression: 5, text: "2"}
-        - {expression: 6, text: "3"}
-        - {expression: 7, text: "4"}
-        - {expression: 8, text: "1 + 2"}
-        - {expression: 9, text: "3 + 4"}
-        - {expression: 10, text: "(1 + 2) * (3 + 4)"}
+        - {expression: 1, text: "-1"}
+        - {expression: 5, text: "-(2 + 3)"}
+        - {expression: 12, text: "(1 + 2) * (3 + 4)"}
       name-scopes:
         - scope-id: 0
           columns:
-            - {name: '?', computed: true}
-            - {name: '?', computed: true}
-            - {name: '?', expression: 10}
+            - {name: '?', expression: 1}
+            - {name: '?', expression: 5}
+            - {name: '?', expression: 12}
           text: "select -1,.. * (3 + 4)"
 
   - name: const_interval_precision
@@ -205,6 +171,8 @@ analyzer-snapshots:
       constants:
         - {expression: 1, text: "interval '1' day"}
         - {expression: 3, text: "interval '..ay to hour"}
+        - {expression: 4, text: "'4'"}
+        - {expression: 5, text: "3"}
         - {expression: 7, text: "interval '..r to month"}
       name-scopes:
         - scope-id: 0
@@ -239,13 +207,8 @@ analyzer-snapshots:
         - {id: 9, type: literal/integer, is-const: true, text: "1"}
         - {id: 10, type: literal/integer, is-const: true, text: "2"}
       constants:
-        - {expression: 7, text: "'a'"}
         - {expression: 2, text: "upper('a')"}
-        - {expression: 8, text: "'b'"}
-        - {expression: 3, text: "upper('b')"}
         - {expression: 4, text: "lower(upper('b'))"}
-        - {expression: 9, text: "1"}
-        - {expression: 10, text: "2"}
         - {expression: 6, text: "coalesce(1, 2)"}
       name-scopes:
         - scope-id: 0
@@ -307,11 +270,7 @@ analyzer-snapshots:
         - {id: 4, type: literal/integer, is-const: true, text: "1"}
         - {id: 5, type: literal/integer, is-const: true, text: "2"}
       constants:
-        - {expression: 2, text: "1"}
-        - {expression: 3, text: "'x'"}
         - {expression: 0, text: "f(a => 1, b => 'x')"}
-        - {expression: 4, text: "1"}
-        - {expression: 5, text: "2"}
         - {expression: 1, text: "g(1, name => 2)"}
       name-scopes:
         - scope-id: 0
@@ -332,9 +291,7 @@ analyzer-snapshots:
         - {id: 3, type: literal/string, is-const: true, text: "'a'"}
         - {id: 4, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - {expression: 3, text: "'a'"}
         - {expression: 0, text: "pg_catalog..ength('a')"}
-        - {expression: 4, text: "1"}
         - {expression: 1, text: "db.sch.f(1)"}
       name-scopes:
         - scope-id: 0
@@ -389,11 +346,7 @@ analyzer-snapshots:
         - {expression: 19, text: "'abc'"}
         - {expression: 20, text: "'x'"}
         - {expression: 21, text: "2"}
-        - {expression: 22, text: "1"}
-        - {expression: 23, text: "2"}
         - {expression: 5, text: "nullif(1, 2)"}
-        - {expression: 24, text: "1"}
-        - {expression: 25, text: "2"}
         - {expression: 6, text: "coalesce(1, 2)"}
         - {expression: 26, text: "1"}
       name-scopes:
@@ -498,7 +451,6 @@ analyzer-snapshots:
         - {id: 1, type: function, name: g, is-const: true, text: "g(1, )"}
         - {id: 2, type: literal/integer, is-const: true, text: "1"}
       constants:
-        - {expression: 2, text: "1"}
         - {expression: 1, text: "g(1, )"}
       name-scopes:
         - scope-id: 0
@@ -551,22 +503,8 @@ analyzer-snapshots:
         - {id: 15, type: literal/integer, is-const: true, text: "1"}
         - {id: 16, type: comparison, op: EQUAL, arg-left: 14, arg-right: 15, is-const: true, text: "1 = 1"}
       constants:
-        - {expression: 0, text: "1"}
-        - {expression: 1, text: "1"}
-        - {expression: 2, text: "2"}
-        - {expression: 3, text: "3"}
-        - {expression: 4, text: "1 = 1"}
-        - {expression: 5, text: "2 < 3"}
         - {expression: 6, text: "1 = 1 and 2 < 3"}
-        - {expression: 7, text: "1"}
-        - {expression: 8, text: "1"}
-        - {expression: 9, text: "2"}
-        - {expression: 10, text: "2"}
-        - {expression: 11, text: "1 = 1"}
-        - {expression: 12, text: "2 = 2"}
         - {expression: 13, text: "1 = 1 or 2 = 2"}
-        - {expression: 14, text: "1"}
-        - {expression: 15, text: "1"}
         - {expression: 16, text: "1 = 1"}
       name-scopes:
         - scope-id: 0
@@ -610,8 +548,6 @@ analyzer-snapshots:
         - {expression: 8, text: "1"}
         - {expression: 9, text: "2"}
         - {expression: 10, text: "1"}
-        - {expression: 11, text: "1"}
-        - {expression: 12, text: "1"}
         - {expression: 13, text: "1 = 1"}
         - {expression: 14, text: "2"}
         - {expression: 15, text: "1"}
@@ -675,11 +611,8 @@ analyzer-snapshots:
         - {id: 7, type: literal/integer, is-const: true, text: "2"}
       constants:
         - {expression: 4, text: "'1'"}
-        - {expression: 5, text: "'a'"}
         - {expression: 1, text: "collation for ('a')"}
-        - {expression: 6, text: "3"}
         - {expression: 2, text: "current_time(3)"}
-        - {expression: 7, text: "2"}
         - {expression: 3, text: "localtimestamp(2)"}
       name-scopes:
         - scope-id: 0

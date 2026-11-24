@@ -38,6 +38,7 @@ table ConstIntervalCast {
 enum UnaryFunction: uint8 {
     UNKNOWN = 0,
     NOT = 1,
+    NEGATE = 2,
 }
 
 table UnaryExpression {

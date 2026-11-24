@@ -609,10 +609,6 @@ analyzer-snapshots:
       constants:
         - {expression: 7, text: "'1994-01-01'"}
         - {expression: 8, text: "'1995-01-01'"}
-        - {expression: 9, text: "0.06"}
-        - {expression: 10, text: "0.01"}
-        - {expression: 11, text: "0.06"}
-        - {expression: 12, text: "0.01"}
         - {expression: 13, text: "0.06 - 0.01"}
         - {expression: 14, text: "0.06 + 0.01"}
         - {expression: 15, text: "24"}
@@ -1915,8 +1911,6 @@ analyzer-snapshots:
         - {expression: 34, text: "'SM PACK'"}
         - {expression: 35, text: "'SM PKG'"}
         - {expression: 36, text: "1"}
-        - {expression: 37, text: "1"}
-        - {expression: 38, text: "10"}
         - {expression: 39, text: "1 + 10"}
         - {expression: 40, text: "1"}
         - {expression: 41, text: "5"}
@@ -1929,8 +1923,6 @@ analyzer-snapshots:
         - {expression: 48, text: "'MED PKG'"}
         - {expression: 49, text: "'MED PACK'"}
         - {expression: 50, text: "10"}
-        - {expression: 51, text: "10"}
-        - {expression: 52, text: "10"}
         - {expression: 53, text: "10 + 10"}
         - {expression: 54, text: "1"}
         - {expression: 55, text: "10"}
@@ -1943,8 +1935,6 @@ analyzer-snapshots:
         - {expression: 62, text: "'LG PACK'"}
         - {expression: 63, text: "'LG PKG'"}
         - {expression: 64, text: "20"}
-        - {expression: 65, text: "20"}
-        - {expression: 66, text: "10"}
         - {expression: 67, text: "20 + 10"}
         - {expression: 68, text: "1"}
         - {expression: 69, text: "15"}

@@ -51,7 +51,6 @@ analyzer-snapshots:
         - {expression: 17, text: "'a360/prod3/foo'"}
         - {expression: 18, text: "'a360/prod/bar'"}
         - {expression: 19, text: "'%raw_sql%'"}
-        - {expression: 21, text: "interval '30' day"}
         - {expression: 22, text: "current_ti..l '30' day"}
       name-scopes:
         - scope-id: 0

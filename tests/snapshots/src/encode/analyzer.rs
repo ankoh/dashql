@@ -345,6 +345,11 @@ pub fn encode_script(script: &AnalyzedScript, scope_catalog: ScopeCatalog) -> No
                         m.int("arg-left", cmp.left_expression_id as i64);
                         m.int("arg-right", cmp.right_expression_id as i64);
                     }
+                    ExpressionInner::UnaryExpression(unary) => {
+                        m.plain("type", "unary");
+                        m.plain("op", unary.func.variant_name().unwrap_or(""));
+                        m.int("arg", unary.input_expression_id as i64);
+                    }
                     ExpressionInner::BinaryExpression(binary) => {
                         m.plain("type", "binary");
                         m.plain("op", binary.func.variant_name().unwrap_or(""));
