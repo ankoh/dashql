@@ -26,8 +26,36 @@ const MAX_REDUCTIONS_WITHOUT_SHIFT: usize = 128;
 pub struct PrefixSnapshot {
     /// The states, bottom to top
     pub state_stack: Vec<StateId>,
+    /// The state stacks after the other tokens of the keyword before the cursor. The scanner picks the lookahead token
+    /// of a keyword by the token after it, which is the one at the cursor: `where a not |` reads NOT, but what is
+    /// typed at the cursor can make it NOT_LA (`not between`).
+    pub alternatives: Vec<Vec<StateId>>,
     /// Did the prefix parse reach the cursor without failing or accepting first?
     pub reached_target: bool,
+}
+
+impl PrefixSnapshot {
+    /// The state stack that takes a token at the cursor, the regular one unless only an alternative does
+    pub fn stack_for(&self, token: SymbolKind) -> &[StateId] {
+        let mut scratch = Vec::new();
+        if self.alternatives.is_empty() || lac_check(&self.state_stack, token, &mut scratch) {
+            return &self.state_stack;
+        }
+        self.alternatives
+            .iter()
+            .find(|states| lac_check(states, token, &mut scratch))
+            .map_or(&self.state_stack, |states| states.as_slice())
+    }
+}
+
+/// A keyword with its lookahead tokens, or the symbol alone
+fn token_variants(kind: SymbolKind) -> Vec<SymbolKind> {
+    let base = Keyword::of_lookahead_token(kind).unwrap_or(kind);
+    let tokens = Keyword::lookahead_tokens(base);
+    if tokens.is_empty() {
+        return vec![kind];
+    }
+    std::iter::once(base).chain(tokens.iter().copied()).collect()
 }
 
 /// The expected symbols at the cursor and the snapshot they were computed from
@@ -267,15 +295,43 @@ impl Policy for PrefixCapture<'_> {
     }
 }
 
-/// Parse until the cursor token and collect the expected symbols there
-pub fn parse_until_with_snapshot(symbols: &[Symbol], target: u32) -> ExpectedAtCursor {
-    let mut out = ExpectedAtCursor::default();
+/// The state stack when a token would be read
+fn capture_prefix(symbols: &[Symbol], target: u32) -> PrefixSnapshot {
+    let mut prefix = PrefixSnapshot::default();
     let mut states = vec![0];
     let mut tokens = Tokens { symbols, next_index: 0 };
-    drive(&mut PrefixCapture { target, out: &mut out.prefix }, &mut states, &mut tokens);
-    if out.prefix.reached_target && !out.prefix.state_stack.is_empty() {
-        out.expected = collect_expected_symbols(&out.prefix.state_stack);
+    drive(&mut PrefixCapture { target, out: &mut prefix }, &mut states, &mut tokens);
+    prefix
+}
+
+/// Parse until the cursor token and collect the expected symbols there. A keyword right before the cursor counts
+/// with each of its lookahead tokens that fits, the token at the cursor decides which one the scanner reads.
+pub fn parse_until_with_snapshot(symbols: &[Symbol], target: u32) -> ExpectedAtCursor {
+    let mut out = ExpectedAtCursor { prefix: capture_prefix(symbols, target), ..Default::default() };
+    if !out.prefix.reached_target || out.prefix.state_stack.is_empty() {
+        return out;
     }
+    let previous = target.checked_sub(1).and_then(|i| symbols.get(i as usize)).map(|s| s.kind);
+    if let Some(variants) = previous.map(token_variants).filter(|variants| variants.len() > 1) {
+        let before = capture_prefix(symbols, target - 1);
+        if before.reached_target {
+            for variant in variants {
+                let mut states = before.state_stack.clone();
+                if feed(&mut states, variant)
+                    && states != out.prefix.state_stack
+                    && !out.prefix.alternatives.contains(&states)
+                {
+                    out.prefix.alternatives.push(states);
+                }
+            }
+        }
+    }
+    out.expected = collect_expected_symbols(&out.prefix.state_stack);
+    for states in &out.prefix.alternatives {
+        out.expected.extend(collect_expected_symbols(states));
+    }
+    out.expected.sort_unstable();
+    out.expected.dedup();
     out
 }
 
@@ -284,7 +340,7 @@ pub fn parse_until_with_snapshot(symbols: &[Symbol], target: u32) -> ExpectedAtC
 /// its own, like SET in `update t set` (an alias or the SET clause), is no name only.
 #[allow(non_upper_case_globals)]
 pub fn takes_keyword_only_as_name(prefix: &PrefixSnapshot, keyword: SymbolKind) -> bool {
-    let mut states = prefix.state_stack.clone();
+    let mut states = prefix.stack_for(keyword).to_vec();
     if !prefix.reached_target || states.is_empty() || !feed(&mut states, keyword) {
         return false;
     }
@@ -363,6 +419,39 @@ pub fn parse_until_after(symbols: &[Symbol], target: u32, feed: SymbolKind) -> V
     policy.expected
 }
 
+/// The expected symbols after a keyword fed at the cursor, after the keyword and each of its lookahead tokens that
+/// fits there: NOT continues with NULL, and as NOT_LA with BETWEEN, IN, LIKE, ILIKE and SIMILAR. The prefix snapshot
+/// gives the state stack, the one of a lookahead token of the keyword before the cursor if only that one takes it.
+pub fn expected_after_keyword(
+    symbols: &[Symbol],
+    target: u32,
+    prefix: &PrefixSnapshot,
+    keyword: SymbolKind,
+) -> Vec<SymbolKind> {
+    let mut scratch = Vec::new();
+    let mut out = Vec::new();
+    for variant in token_variants(keyword) {
+        let fits_prefix = prefix.reached_target && lac_check(&prefix.state_stack, variant, &mut scratch);
+        if variant == keyword && (fits_prefix || !prefix.reached_target) {
+            // The regular stack takes the keyword
+            out.extend(parse_until_after(symbols, target, variant));
+            continue;
+        }
+        if !prefix.reached_target {
+            continue;
+        }
+        let mut states = prefix.stack_for(variant).to_vec();
+        if feed(&mut states, variant) {
+            out.extend(collect_expected_symbols(&states));
+        } else if variant == keyword {
+            out.extend(parse_until_after(symbols, target, variant));
+        }
+    }
+    out.sort_unstable();
+    out.dedup();
+    out
+}
+
 /// Feed symbols at the cursor and count the real tokens that shift after them
 struct SuffixProbePolicy<'a> {
     /// The symbols fed at the cursor
@@ -425,13 +514,32 @@ pub fn probe_suffix_sequence(
     feed: &[SymbolKind],
     replace_target: bool,
 ) -> SuffixProbe {
-    if !prefix.reached_target || feed.is_empty() {
+    let Some(&first) = feed.first() else { return SuffixProbe::default() };
+    if !prefix.reached_target {
         return SuffixProbe::default();
     }
-    let mut states = prefix.state_stack.clone();
+    let mut states = prefix.stack_for(first).to_vec();
     if states.is_empty() {
         return SuffixProbe::default();
     }
+    // A keyword followed by another fed symbol is the lookahead token that the scanner reads before it
+    let mut feed = feed.to_vec();
+    if let (Some(&next), variants) = (feed.get(1), token_variants(first)) {
+        let mut scratch = Vec::new();
+        let fits = |variant: SymbolKind, scratch: &mut Vec<StateId>| {
+            let mut after = prefix.stack_for(variant).to_vec();
+            super::driver::feed(&mut after, variant) && lac_check(&after, next, scratch)
+        };
+        if variants.len() > 1 && !fits(first, &mut scratch) {
+            if let Some(variant) = variants.into_iter().find(|&variant| fits(variant, &mut scratch)) {
+                states = prefix.stack_for(variant).to_vec();
+                if let Some(slot) = feed.first_mut() {
+                    *slot = variant;
+                }
+            }
+        }
+    }
+    let feed = feed.as_slice();
     // Advance the tokens to the target
     let next_index = target.min(symbols.len() as u32);
     let mut tokens = Tokens { symbols, next_index };

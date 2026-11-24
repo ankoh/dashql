@@ -2216,7 +2216,8 @@ impl<'c, 'a> Completion<'c, 'a> {
         for candidate in self.top_candidates.iter_mut() {
             match candidate.keyword_symbol {
                 Some(keyword) => {
-                    let expected = probe::parse_until_after(symbols, target_id, keyword);
+                    // The keyword with each of its lookahead tokens, NOT continues with NULL and as NOT_LA with BETWEEN
+                    let expected = probe::expected_after_keyword(symbols, target_id, prefix, keyword);
                     let Some(continuation) = find_continuation(&expected) else { continue };
                     if !fits_suffix(keyword, continuation) {
                         continue;

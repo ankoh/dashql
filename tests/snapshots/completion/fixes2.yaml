@@ -160,3 +160,165 @@ completion-snapshots:
           location-qualified: "c"
           objects: []
       text: "c"
+
+  - name: fix_not_after_expression
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: "select * from t where a not "
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+    cursor:
+      search:
+        text: 'not '
+        index: 4
+    completions:
+      limit: 10
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_SELECT
+      relative: AFTER_SYMBOL
+      entries:
+        - value: like
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - value: between
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - value: glob
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - value: ilike
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - value: in
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - value: null
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - value: similar
+          keyword-continuation: to
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          location-qualified: ""
+          objects: []
+      text: "not"
+
+  - name: fix_not_typed_after_expression
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select * from t where a no
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+    cursor:
+      search:
+        text: 'a no'
+        index: 4
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_SELECT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: not
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "no"
+          location-qualified: "no"
+          objects: []
+        - value: notnull
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "no"
+          location-qualified: "no"
+          objects: []
+        - value: and
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
+          location: "no"
+          location-qualified: "no"
+          objects: []
+        - value: group
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
+          location: "no"
+          location-qualified: "no"
+          objects: []
+        - value: order
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
+          location: "no"
+          location-qualified: "no"
+          objects: []
+      text: "no"
+
+  - name: fix_not_between_typed
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select * from t where a not bet
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+    cursor:
+      search:
+        text: 'bet'
+        index: 3
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_SELECT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: between
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "bet"
+          location-qualified: "bet"
+          objects: []
+        - value: like
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "bet"
+          location-qualified: "bet"
+          objects: []
+        - value: glob
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
+          location: "bet"
+          location-qualified: "bet"
+          objects: []
+        - value: ilike
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
+          location: "bet"
+          location-qualified: "bet"
+          objects: []
+        - value: in
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
+          location: "bet"
+          location-qualified: "bet"
+          objects: []
+      text: "bet"

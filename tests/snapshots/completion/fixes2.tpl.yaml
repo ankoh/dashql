@@ -46,3 +46,50 @@ completion-snapshots:
         index: 3
     completions:
       limit: 5
+
+  # The continuations of NOT after an expression, NULL and the NOT_LA forms
+  - name: fix_not_after_expression
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: "select * from t where a not "
+    cursor:
+      search:
+        text: 'not '
+        index: 4
+    completions:
+      limit: 10
+
+  # NOT typed partially after an expression
+  - name: fix_not_typed_after_expression
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t where a no
+    cursor:
+      search:
+        text: 'a no'
+        index: 4
+    completions:
+      limit: 5
+
+  # A NOT_LA form typed after NOT
+  - name: fix_not_between_typed
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t where a not bet
+    cursor:
+      search:
+        text: 'bet'
+        index: 3
+    completions:
+      limit: 5
