@@ -337,6 +337,10 @@ The rules follow PostgreSQL and Hyper:
 - **Join conditions** see the FROM items inside their join only, also from their subqueries
   (`SourceVisibility::Within` of the join, published in `NameScope::clauses`): `t join u on u.a = v.id, v` and
   `v, t join u on u.a = v.id` are an `INVALID_FROM_CLAUSE_REFERENCE`, as in PostgreSQL.
+- **Output names in ORDER BY and GROUP BY**: a name of several output columns is a `COLUMN_REF_AMBIGUOUS` (PostgreSQL's
+  `ORDER BY "a" is ambiguous`) if they read different values: `select a, b as a from t order by a`, but not
+  `select a, t.a from t order by a`. Column refs are the same through the same column of the same FROM item, other
+  expressions if their texts are. The column ref stays unresolved.
 - **Script tables** resolve to the last declaration of the name before the referencing statement. An
   `ALTER` declares a new version, see `catalog_updates.md`. A statement before all declarations of the name, also the
   declaring statement itself, reads the table of the catalog, or an unresolved one.

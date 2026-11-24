@@ -1435,6 +1435,67 @@ impl NameResolutionPass {
         }
     }
 
+    /// Do two output columns of one name read the same value? PostgreSQL compares their expressions: `select a, t.a`
+    /// reads one column twice, `select a, b as a` two columns. Columns read through the same FROM item are the same,
+    /// other expressions are the same if their texts are.
+    fn same_output_value(state: &AnalysisState, left: &ScopeColumn, right: &ScopeColumn) -> bool {
+        let column = |c: &ScopeColumn| match c.source {
+            ScopeColumnSource::TableColumn(loc) => Some((ColumnResolution::TableColumn(loc), None)),
+            ScopeColumnSource::Expression(expr) => state
+                .out
+                .expression(expr)
+                .and_then(Expression::column_ref)
+                .filter(|c| c.resolved.is_resolved())
+                .map(|c| (c.resolved, c.resolved_source)),
+            ScopeColumnSource::Computed => None,
+        };
+        if let (Some((l, l_source)), Some((r, r_source))) = (column(left), column(right)) {
+            return l == r && (l_source.is_none() || r_source.is_none() || l_source == r_source);
+        }
+        let text = |c: &ScopeColumn| match c.source {
+            ScopeColumnSource::Expression(expr) => {
+                state.out.expression(expr).and_then(|e| e.location).map(|location| state.text_at(location))
+            }
+            _ => None,
+        };
+        text(left).is_some_and(|l| Some(l) == text(right))
+    }
+
+    /// Report a name in ORDER BY or GROUP BY that names output columns of different values, as in PostgreSQL:
+    /// `select a, b as a from t order by a` is ambiguous. The column ref stays unresolved.
+    fn check_ambiguous_output_names(&mut self, state: &mut AnalysisState, scope: ScopeId) {
+        let Some(s) = state.out.scope(scope) else { return };
+        let mut ambiguous = Vec::new();
+        for &expr in &s.expressions {
+            let Some(column_ref) = state.out.expression(expr).and_then(Expression::column_ref) else { continue };
+            let ColumnResolution::ScopeColumn { scope: target, column } = column_ref.resolved else { continue };
+            let Some(first) = s.output_columns.get(column as usize).filter(|_| target == scope) else { continue };
+            let name = &first.column_name.text;
+            let mut others = s
+                .output_columns
+                .iter()
+                .enumerate()
+                .filter(|&(i, c)| i != column as usize && &c.column_name.text == name);
+            if others.any(|(_, c)| !Self::same_output_value(state, first, c)) {
+                ambiguous.push((expr, name.clone()));
+            }
+        }
+        for (expr, name) in ambiguous {
+            let clause = match Self::output_names(state, expr) {
+                OutputNames::Fallback => "GROUP BY",
+                _ => "ORDER BY",
+            };
+            let Some(expression) = state.out.expression_mut(expr) else { continue };
+            let node_id = expression.ast_node_id;
+            if let Some(column_ref) = expression.column_ref_mut() {
+                column_ref.resolved = ColumnResolution::Unresolved;
+            }
+            let message = format!("{clause} {} is ambiguous", quote_identifier(&name));
+            state.add_error(AnalyzerErrorType::COLUMN_REF_AMBIGUOUS, AnalyzerErrorSeverity::ERROR, node_id, message);
+            self.finished_column_refs.insert(expr, FinishedColumnRef::Ambiguous);
+        }
+    }
+
     /// Resolve column refs by walking up the parent scopes
     fn resolve_column_refs_from_parents(&mut self, state: &mut AnalysisState, scope: ScopeId) {
         let Some(exprs) = state.out.scope(scope).map(|s| s.expressions.clone()) else { return };
@@ -2037,6 +2098,7 @@ impl NameResolutionPass {
                 self.check_join_alias_names(state, scope);
                 self.populate_output_columns(state, scope);
                 self.resolve_column_refs_locally(state, scope);
+                self.check_ambiguous_output_names(state, scope);
             }
         }
 

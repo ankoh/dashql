@@ -584,3 +584,25 @@ analyzer-snapshots:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
     script:
       input: create table x3 as (select a from t)
+
+  # Output columns of one name and different values make the name ambiguous in ORDER BY and GROUP BY
+  - name: order_by_ambiguous_output
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select a, b as a from t order by a
+
+  - name: order_by_duplicate_output_same_column
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select a, t.a from t order by a
+
+  - name: group_by_ambiguous_output
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select b as n, b + 1 as n from t group by n
