@@ -257,11 +257,11 @@ impl<'a> ScriptDiff<'a> {
     /// Do two nodes of the same type match without looking at their children?
     fn leaf_match(&self, s: &Node, t: &Node) -> Option<bool> {
         Some(match s.node_type() {
-            NodeType::NONE => true,
+            // NULL has one value, whatever its case
+            NodeType::NONE | NodeType::LITERAL_NULL => true,
             NodeType::BOOL => s.children_begin_or_value() == t.children_begin_or_value(),
             NodeType::NAME => name_text(self.source, s) == name_text(self.target, t),
             NodeType::OPERATOR
-            | NodeType::LITERAL_NULL
             | NodeType::LITERAL_INTEGER
             | NodeType::LITERAL_FLOAT
             | NodeType::LITERAL_STRING

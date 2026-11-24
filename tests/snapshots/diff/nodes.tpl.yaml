@@ -15,6 +15,14 @@ diff-snapshots:
     target: |
       select a, b, c, d, e, f from t where x = TRUE;
 
+  # NULL in another case is the same value: KEEP
+  - name: null_literal_case
+    source: |
+      select a, b, c, d, e, f from t where x = null;
+
+    target: |
+      select a, b, c, d, e, f from t where x = NULL;
+
   # An interval literal with its keywords in another case: KEEP
   - name: interval_literal_case
     source: |

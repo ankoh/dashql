@@ -24,6 +24,18 @@ diff-snapshots:
           target-statement: 0
           target-span: "select a, ..e x = TRUE"
 
+  - name: null_literal_case
+    source: |-
+      select a, b, c, d, e, f from t where x = null;
+    target: |-
+      select a, b, c, d, e, f from t where x = NULL;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a, ..e x = NULL"
+
   - name: interval_literal_case
     source: |-
       select a, b, c, d, e, f from t where x > interval '1' day;
