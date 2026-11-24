@@ -93,6 +93,20 @@ describe('usePendingRequest', () => {
         expect(handle.pending).toBeNull();
     });
 
+    it('keeps the request pending when a render brings a new dismissed result', async () => {
+        let objectHandle!: PendingRequest<string, { dismissed: boolean }>;
+        const ObjectHarness = () => {
+            objectHandle = usePendingRequest<string, { dismissed: boolean }>('object', { dismissed: true });
+            return <div>{objectHandle.pending?.args ?? ''}</div>;
+        };
+        act(() => root.render(<ObjectHarness />));
+        let result!: Promise<{ dismissed: boolean }>;
+        act(() => { result = objectHandle.request('first'); });
+        expect(shown()).toBe('first');
+        act(() => { objectHandle.resolve({ dismissed: false }); });
+        await expect(result).resolves.toEqual({ dismissed: false });
+    });
+
     it('dismisses the pending request on unmount', async () => {
         const result = request('first');
         act(() => root.unmount());

@@ -47,7 +47,9 @@ export function usePendingRequest<Args, Result>(name: string, dismissed: Result)
         });
     }, [dismiss, dismissed, name]);
 
-    React.useEffect(() => () => dismiss(), [dismiss]);
+    // Only the unmount dismisses, a new dismissed result of a render must not
+    const dismissOnUnmount = React.useEffectEvent(() => dismiss());
+    React.useEffect(() => () => dismissOnUnmount(), []);
 
     return React.useMemo(() => ({ pending, request, resolve, dismiss }), [dismiss, pending, request, resolve]);
 }
