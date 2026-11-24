@@ -321,3 +321,14 @@ planner-snapshots:
         input: |
           create table u (a int, foreign key (a) references t (a));
           create table v (a int references t (a));
+
+  # TRUNCATE writes the relation that it names, it is an unsupported statement and a barrier
+  - name: TruncateWritesItsRelation
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: s
+        input: |
+          select * from t;
+          truncate t;
+          select * from t;

@@ -2406,6 +2406,23 @@ impl NameResolutionPass {
                 self.visit_update_or_merge(state, node, node_id, node_state);
             }
 
+            // TRUNCATE writes the relations that it names, its scope resolves them
+            NodeType::OBJECT_SQL_TRUNCATE => {
+                // The array of the relations holds the table refs of its elements
+                let [relations] = attrs!(state.children(node), [K::SQL_TRUNCATE_RELATIONS]);
+                if let Some(relations) = relations {
+                    let refs =
+                        self.node_states.get(state.node_id(relations) as usize).map(|s| s.table_references.as_slice());
+                    for &table_ref in refs.unwrap_or_default() {
+                        if let Some(table_ref) = state.out.table_ref_mut(table_ref) {
+                            table_ref.role = TableRole::Write;
+                        }
+                    }
+                }
+                self.merge_child_states(node_state, node);
+                self.create_scope(state, node_state, node_id);
+            }
+
             NodeType::OBJECT_SQL_JOINED_TABLE => {
                 self.merge_child_states(node_state, node);
                 let [join_type, using] = attrs!(state.children(node), [K::SQL_JOIN_TYPE, K::SQL_JOIN_USING]);
