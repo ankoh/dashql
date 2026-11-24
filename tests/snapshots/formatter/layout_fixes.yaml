@@ -96,6 +96,54 @@ formatter-snapshots:
                 drop column second_column cascade,
                 alter column third_column set data type bigint using third_column::bigint;
 
+  - name: drop_names_on_indented_list
+    input: |-
+      drop table if exists some_schema.first_table, some_schema.second_table, some_schema.third_table cascade
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              drop table if exists some_schema.first_table, some_schema.second_table, some_schema.third_table cascade;
+          - mode: compact
+            width: 40
+            expected: |-
+              drop table if exists
+                some_schema.first_table,
+                some_schema.second_table,
+                some_schema.third_table
+                cascade;
+          - mode: pretty
+            width: 40
+            expected: |-
+              drop table if exists
+                some_schema.first_table,
+                some_schema.second_table,
+                some_schema.third_table
+                cascade;
+        validation:
+          setup: |-
+            create schema some_schema;
+
+  - name: drop_names_on_indented_list_wide
+    input: |-
+      drop table if exists some_schema.first_table, some_schema.second_table, some_schema.third_table cascade
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              drop table if exists some_schema.first_table, some_schema.second_table, some_schema.third_table cascade;
+          - mode: compact
+            expected: |-
+              drop table if exists some_schema.first_table, some_schema.second_table, some_schema.third_table cascade;
+          - mode: pretty
+            expected: |-
+              drop table if exists some_schema.first_table, some_schema.second_table, some_schema.third_table cascade;
+        validation:
+          setup: |-
+            create schema some_schema;
+
   - name: list_in_broken_parentheses_aligned
     input: |-
       select name from products where category in ('electronics', 'household appliances', 'garden furniture', 'sporting goods') and price > 10
@@ -155,3 +203,112 @@ formatter-snapshots:
                 third_argument_value, fourth_argument_value
               )
               from t;
+
+  - name: qualified_name_breaks_last
+    input: |-
+      grant select, insert, update on table some_schema.some_table to some_user, other_user
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              grant select, insert, update on table some_schema.some_table to some_user, other_user;
+          - mode: compact
+            width: 40
+            expected: |-
+              grant select, insert, update
+                on table some_schema.some_table
+                to some_user, other_user;
+          - mode: pretty
+            width: 40
+            expected: |-
+              grant select, insert, update
+                on table some_schema.some_table
+                to some_user, other_user;
+
+  - name: qualified_name_longer_than_line
+    input: |-
+      select * from some_database_name.some_schema_name.some_table_name
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from some_database_name.some_schema_name.some_table_name;
+          - mode: compact
+            width: 30
+            expected: |-
+              select *
+              from some_database_name
+                .some_schema_name
+                .some_table_name;
+          - mode: pretty
+            width: 30
+            expected: |-
+              select *
+              from some_database_name
+                .some_schema_name
+                .some_table_name;
+
+  - name: truncate_relations_on_indented_list
+    input: |-
+      truncate some_schema.first_table_name, some_schema.second_table_name restart identity cascade
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              truncate some_schema.first_table_name, some_schema.second_table_name restart identity cascade;
+          - mode: compact
+            width: 40
+            expected: |-
+              truncate
+                some_schema.first_table_name,
+                some_schema.second_table_name
+                restart identity
+                cascade;
+          - mode: pretty
+            width: 40
+            expected: |-
+              truncate
+                some_schema.first_table_name,
+                some_schema.second_table_name
+                restart identity
+                cascade;
+
+  - name: drop_objects_on_indented_list
+    input: |-
+      drop materialized view some_schema.some_view_name, some_schema.other_view_name; drop function if exists some_schema.some_function_name(integer, text) cascade
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              drop materialized view some_schema.some_view_name, some_schema.other_view_name;
+
+              drop function if exists some_schema.some_function_name(integer, text) cascade;
+          - mode: compact
+            width: 40
+            expected: |-
+              drop materialized view
+                some_schema.some_view_name,
+                some_schema.other_view_name;
+
+              drop function if exists
+                some_schema.some_function_name(
+                  integer, text
+                )
+                cascade;
+          - mode: pretty
+            width: 40
+            expected: |-
+              drop materialized view
+                some_schema.some_view_name,
+                some_schema.other_view_name;
+
+              drop function if exists
+                some_schema.some_function_name(
+                  integer,
+                  text
+                )
+                cascade;

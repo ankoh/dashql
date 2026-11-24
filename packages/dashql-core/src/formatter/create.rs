@@ -415,24 +415,23 @@ impl<'a> Formatter<'a> {
             [K::SQL_DROP_NAME, K::SQL_DROP_IF_EXISTS, K::SQL_DROP_MORE_NAMES, K::SQL_DROP_CASCADE]
         );
         let Some(name) = name else { return self.format_unimplemented(node) };
-        let object = if table { "table " } else { "view " };
-        let if_exists_reg = if if_exists.is_some() { f.text("if exists ") } else { f.empty() };
-        f.concat(&[
-            f.text("drop "),
-            f.text(object),
-            if_exists_reg,
+        let object = if table { "drop table" } else { "drop view" };
+        let if_exists_reg = if if_exists.is_some() { f.text(" if exists") } else { f.empty() };
+        self.format_command_clauses(&[
+            f.concat(&[f.text(object), if_exists_reg]),
             self.format_drop_names(name, more_names),
-            self.format_drop_behavior(cascade),
+            self.format_drop_behavior_clause(cascade),
         ])
     }
 
-    /// The names of DROP TABLE, DROP VIEW and DROP SCHEMA: the first name and the more names after it
+    /// The names of DROP TABLE, DROP VIEW and DROP SCHEMA: the first name and the more names after it, a clause of
+    /// its own that starts its line when the command breaks
     fn format_drop_names(&self, name: &'a Node, more_names: Option<&'a Node>) -> FmtReg {
         match more_names {
             Some(more_names) => {
                 let mut names = vec![self.reg_or_placeholder(name)];
                 names.extend(self.children(more_names).iter().map(|n| self.reg_or_placeholder(n)));
-                self.comma_join_on_overflow(&names, true)
+                self.comma_join_on_overflow(&names, false)
             }
             None => self.reg_or_placeholder(name),
         }
@@ -474,12 +473,11 @@ impl<'a> Formatter<'a> {
                 self.format_command_clauses(&clauses)
             }
             (NodeType::OBJECT_SQL_DROP_SCHEMA, Some(name), _) => {
-                let condition = if condition.is_some() { f.text("if exists ") } else { f.empty() };
-                f.concat(&[
-                    f.text("drop schema "),
-                    condition,
+                let condition = if condition.is_some() { f.text(" if exists") } else { f.empty() };
+                self.format_command_clauses(&[
+                    f.concat(&[f.text("drop schema"), condition]),
                     self.format_drop_names(name, more_names),
-                    self.format_drop_behavior(cascade),
+                    self.format_drop_behavior_clause(cascade),
                 ])
             }
             (NodeType::OBJECT_SQL_ALTER_SCHEMA, Some(name), Some(new_name)) => {
@@ -505,6 +503,17 @@ impl<'a> Formatter<'a> {
         }
     }
 
+    /// `cascade` or `restrict`, the last clause of a DROP
+    fn format_drop_behavior_clause(&self, cascade: Option<&'a Node>) -> FmtReg {
+        let f = &self.fmt;
+        match cascade {
+            Some(cascade) if cascade.children_begin_or_value() != 0 => f.text("cascade"),
+            Some(_) => f.text("restrict"),
+            None => f.empty(),
+        }
+    }
+
+    /// ` cascade` or ` restrict` after the action of an ALTER TABLE
     fn format_drop_behavior(&self, cascade: Option<&'a Node>) -> FmtReg {
         let f = &self.fmt;
         match cascade {

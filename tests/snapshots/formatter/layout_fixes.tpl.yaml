@@ -44,6 +44,32 @@ formatter-snapshots:
           - mode: pretty
             width: 160
 
+  # DROP moves the names to an indented list instead of breaking at a dot
+  - name: drop_names_on_indented_list
+    input: drop table if exists some_schema.first_table, some_schema.second_table, some_schema.third_table cascade
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 40
+          - mode: pretty
+            width: 40
+        validation:
+          setup: create schema some_schema;
+
+  # The same at a width where it fits
+  - name: drop_names_on_indented_list_wide
+    input: drop table if exists some_schema.first_table, some_schema.second_table, some_schema.third_table cascade
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 120
+          - mode: pretty
+            width: 120
+        validation:
+          setup: create schema some_schema;
+
   # The items of a list in parentheses that break are aligned, also the first one
   - name: list_in_broken_parentheses_aligned
     input: select name from products where category in ('electronics', 'household appliances', 'garden furniture', 'sporting goods') and price > 10
@@ -67,3 +93,47 @@ formatter-snapshots:
             width: 50
           - mode: pretty
             width: 50
+
+  # A qualified name that fits on its line stays whole, the text after it breaks
+  - name: qualified_name_breaks_last
+    input: grant select, insert, update on table some_schema.some_table to some_user, other_user
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 40
+          - mode: pretty
+            width: 40
+
+  # A qualified name that is longer than the line breaks at its dots
+  - name: qualified_name_longer_than_line
+    input: select * from some_database_name.some_schema_name.some_table_name
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 30
+          - mode: pretty
+            width: 30
+
+  # TRUNCATE moves the relations to an indented list like DROP
+  - name: truncate_relations_on_indented_list
+    input: truncate some_schema.first_table_name, some_schema.second_table_name restart identity cascade
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 40
+          - mode: pretty
+            width: 40
+
+  # DROP of other objects and of functions moves the names to an indented list too
+  - name: drop_objects_on_indented_list
+    input: drop materialized view some_schema.some_view_name, some_schema.other_view_name; drop function if exists some_schema.some_function_name(integer, text) cascade
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 40
+          - mode: pretty
+            width: 40

@@ -53,19 +53,19 @@ impl<'a> Formatter<'a> {
             [K::SQL_DROP_TYPE, K::SQL_DROP_CONCURRENTLY, K::SQL_DROP_IF_EXISTS, K::SQL_DROP_NAME, K::SQL_DROP_BEHAVIOR]
         );
         let (Some(object_type), Some(names)) = (object_type, names) else { return self.format_unimplemented(node) };
-        let mut parts = vec![f.text("drop "), self.reg_or_placeholder(object_type), f.text(" ")];
+        let mut header = vec![f.text("drop "), self.reg_or_placeholder(object_type)];
         if concurrently.is_some() {
-            parts.push(f.text("concurrently "));
+            header.push(f.text(" concurrently"));
         }
         if if_exists.is_some() {
-            parts.push(f.text("if exists "));
+            header.push(f.text(" if exists"));
         }
-        parts.push(self.reg_or_placeholder(names));
+        // The names and the behavior are clauses of their own, on lines of their own if the command does not fit
+        let mut clauses = vec![f.concat(&header), self.reg_or_placeholder(names)];
         if let Some(behavior) = behavior {
-            parts.push(f.text(" "));
-            parts.push(self.reg_or_placeholder(behavior));
+            clauses.push(self.reg_or_placeholder(behavior));
         }
-        f.concat(&parts)
+        self.format_command_clauses(&clauses)
     }
 
     pub(super) fn format_drop_function(&self, node: &'a Node) -> FmtReg {
@@ -80,20 +80,17 @@ impl<'a> Formatter<'a> {
             ]
         );
         let Some(name) = name else { return self.format_unimplemented(node) };
-        let mut parts = vec![f.text("drop function ")];
-        if if_exists.is_some() {
-            parts.push(f.text("if exists "));
-        }
-        parts.push(self.reg_or_placeholder(name));
-        parts.push(match arguments {
+        let header = if if_exists.is_some() { f.text("drop function if exists") } else { f.text("drop function") };
+        let arguments = match arguments {
             Some(arguments) => f.parenthesized_list(self.reg_or_placeholder(arguments)),
             None => f.text("()"),
-        });
+        };
+        // The function and the behavior are clauses of their own, like the names of the other DROP commands
+        let mut clauses = vec![header, f.concat(&[self.reg_or_placeholder(name), arguments])];
         if let Some(behavior) = behavior {
-            parts.push(f.text(" "));
-            parts.push(self.reg_or_placeholder(behavior));
+            clauses.push(self.reg_or_placeholder(behavior));
         }
-        f.concat(&parts)
+        self.format_command_clauses(&clauses)
     }
 
     pub(super) fn format_cursor_option(&self, node: &'a Node) -> FmtReg {
@@ -274,7 +271,8 @@ impl<'a> Formatter<'a> {
             [K::SQL_TRUNCATE_RELATIONS, K::SQL_TRUNCATE_RESTARTSEQS, K::SQL_TRUNCATE_BEHAVIOR]
         );
         let Some(relations) = relations else { return self.format_unimplemented(node) };
-        let mut clauses = vec![f.concat(&[f.text("truncate "), self.reg_or_placeholder(relations)])];
+        // The relations are a clause of their own, like the names of DROP
+        let mut clauses = vec![f.text("truncate"), self.reg_or_placeholder(relations)];
         if restart.is_some() {
             clauses.push(f.text("restart identity"));
         }

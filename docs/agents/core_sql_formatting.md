@@ -15,7 +15,11 @@ This guide documents the standard workflow to add or improve SQL formatter behav
 9. Lists (`comma_join`, `FormattingProgram::list`) indent the lines after their breaks once more when they follow
    text on their line (`select a,\n  b`). In parentheses that break, a list starts its line, so its items line up,
    the first one too.
-10. To try a change on real scripts, run `bazel run //packages/dashql-cli:dashql -- format <file.sql|dir|->`.
+10. Qualified names break at their dots only as the last resort. The renderer decides the outer joins first and
+    measures a name with the text up to the next possible break, so a name breaks only where its command gives it no
+    break before it: commands put their names and actions in clauses of their own (`drop table if exists` and the
+    names, `truncate` and the relations, `alter table t` and the actions) instead of after their keywords.
+11. To try a change on real scripts, run `bazel run //packages/dashql-cli:dashql -- format <file.sql|dir|->`.
 
 Example: for `OBJECT_SQL_ORDER`, read attributes like `SQL_ORDER_VALUE`, `SQL_ORDER_DIRECTION`, and `SQL_ORDER_NULLRULE`, then render the order item text used by `order by` clauses.
 

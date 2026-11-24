@@ -820,12 +820,13 @@ impl<'a> Formatter<'a> {
             | K::SQL_ALTER_ROLE_ROLE
             | K::SQL_FUNCTION_WITH_ARGUMENTS_NAME => self.format_qualified_name(node),
             // The lists of the utility commands
+            // The names of DROP and TRUNCATE start their line when the command breaks
             K::SQL_DROP_NAME
                 if self.ast.get(node.parent() as usize).is_some_and(|p| p.node_type() == NodeType::OBJECT_SQL_DROP) =>
             {
-                self.format_comma_list(node, true)
+                self.format_comma_list(node, false)
             }
-            K::SQL_TRUNCATE_RELATIONS => self.format_comma_list(node, true),
+            K::SQL_TRUNCATE_RELATIONS => self.format_comma_list(node, false),
             K::SQL_DROP_FUNCTION_ARGUMENTS
             | K::SQL_PREPARE_PARAMETER_TYPES
             | K::SQL_EXECUTE_ARGS

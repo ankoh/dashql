@@ -1026,12 +1026,16 @@ formatter-snapshots:
               drop table t1, t2 cascade;
           - mode: compact
             expected: |-
-              drop table t1, -- the first
-                t2 cascade; /* the second */
+              drop table
+                t1, -- the first
+                t2
+                cascade; /* the second */
           - mode: pretty
             expected: |-
-              drop table t1, -- the first
-                t2 cascade; /* the second */
+              drop table
+                t1, -- the first
+                t2
+                cascade; /* the second */
 
   - name: coverage_create_schema_comments
     input: |-
