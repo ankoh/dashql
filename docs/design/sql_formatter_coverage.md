@@ -15,7 +15,7 @@ the formatter.
    clause that the formatter drops without a placeholder; `RESPELLED` lists the scripts whose output spells a
    construct with another tree of the same meaning (array types). The test reports the unformattable node types of
    every failure. `UNFORMATTABLE` lists the scripts the formatter rejects on purpose: `DEFAULT` outside of the values
-   of `INSERT` and `MERGE` and of assignments, and empty `ROW` types.
+   of `INSERT` and `MERGE` and of assignments.
 
    This is the breadth gate and the grammar-change gate in one: a new parser fixture that uses syntax without a
    formatter handler fails CI.

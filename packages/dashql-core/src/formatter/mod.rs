@@ -1709,11 +1709,15 @@ impl<'a> Formatter<'a> {
     fn format_keyword_call(&self, node: &'a Node, key: AttributeKey, keyword: &'static str) -> FmtReg {
         let [child] = attrs!(self.children(node), [key]);
         let Some(child) = child else { return self.format_unimplemented(node) };
+        let f = &self.fmt;
+        // An empty list, `descriptor()` or `row()`
+        if child.node_type() == NodeType::ARRAY && child.children_count() == 0 {
+            return f.concat(&[f.text(keyword), f.text("()")]);
+        }
         let child_reg = self.reg(child);
         if child_reg == 0 {
             return self.format_unimplemented(node);
         }
-        let f = &self.fmt;
         f.concat(&[f.text(keyword), f.parenthesized(child_reg)])
     }
 

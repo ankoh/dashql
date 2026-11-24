@@ -15,8 +15,6 @@ use std::sync::Arc;
 const UNFORMATTABLE: &[&str] = &[
     // DEFAULT is only formatted as a value of an INSERT
     "select somefunc(default);",
-    // Empty ROW types now parse, but the formatter has no representation for them yet.
-    "create table t (p row())",
 ];
 
 /// Scripts whose formatted output spells a construct differently, with another tree of the same meaning

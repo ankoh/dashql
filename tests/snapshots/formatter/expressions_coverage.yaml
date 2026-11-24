@@ -269,6 +269,28 @@ formatter-snapshots:
                 table(t) as s partition by (x, y) order by (y desc), table(select 1 as z) order by (z), descriptor(a, b integer)
               );
 
+  - name: coverage_empty_descriptor_and_row_type
+    input: |-
+      select f(descriptor()), cast(row() as row()); create table t (p row())
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select f(descriptor()), cast(row() as row());
+
+              create table t (p row());
+          - mode: compact
+            expected: |-
+              select f(descriptor()), cast(row() as row());
+
+              create table t (p row());
+          - mode: pretty
+            expected: |-
+              select f(descriptor()), cast(row() as row());
+
+              create table t (p row());
+
   - name: coverage_semantic_view
     input: |-
       select * from semantic_view(m dimensions region, year as y measures sum(amount) as total facts f where region <> 'x'), semantic_view('model' measures count(*))
