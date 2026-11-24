@@ -12,7 +12,9 @@
 /// 5: requests name no protocol, only the answers of the server do
 /// 6: the events of the hooks name neither the harness nor the folder, a turn has no error
 /// 7: the event Notification, `waiting` and `interrupted` of a turn
-export const AGENT_SESSION_PROTOCOL = 7;
+/// 8: the results of a run per workbook and file, `PUT /v1/results/<token>/<workbook id>/<file>`, and `embedded` of a
+///    connection of `PUT /v1/connections`
+export const AGENT_SESSION_PROTOCOL = 8;
 
 /// The protocol of the server, on every answer
 export const AGENT_SESSION_PROTOCOL_HEADER = 'X-DashQL-Protocol';

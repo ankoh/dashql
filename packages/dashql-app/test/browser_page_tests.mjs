@@ -179,7 +179,7 @@ async function waitUntil(condition, timeout = PAGE_TIMEOUT) {
 
 /// A server of a session like the one of dashql connect. It speaks the protocol of the page, AGENT_SESSION_PROTOCOL
 /// of agent_session_protocol.ts, raise the default with it; `protocol: null` is a server older than the protocol.
-async function startSessionServer({ port = 0, token = 'secret', protocol = 7, id = 'session' } = {}) {
+async function startSessionServer({ port = 0, token = 'secret', protocol = 8, id = 'session' } = {}) {
     const streams = new Set();
     let state = { id, harness: 'claude', folder: '/work', ended: false, turns: [], workbooks: [], version: 0 };
     // The files that the page wrote into the copy of its workbook, in the order of the writes
