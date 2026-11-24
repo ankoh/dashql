@@ -252,9 +252,15 @@ impl PlanState {
     }
 
     /// Report a diagnostic of a statement. It is a warning in every scope: the statement runs as written, a barrier
-    /// orders it against the other statements of its connection.
+    /// orders it against the other statements of its connection. A message is reported once per node, e.g. the
+    /// barrier of `drop view a, b`.
     fn diagnose(&mut self, node: u32, script: u32, message: String) {
-        self.report(node, script, None, message, false);
+        let reported = self.diagnostics.iter().any(|d| {
+            d.node == node && d.text_span.is_none() && !d.error && d.message.as_deref() == Some(message.as_str())
+        });
+        if !reported {
+            self.report(node, script, None, message, false);
+        }
     }
 
     fn intern_entity(&mut self, connection: u32, table: &TableDeclaration) -> u32 {

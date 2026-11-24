@@ -366,10 +366,6 @@ planner-snapshots:
           script: sink
           error: false
           message: view dependencies are not expanded; conservative access barrier
-        - node: 3
-          script: sink
-          error: false
-          message: view dependencies are not expanded; conservative access barrier
 
   - name: MutationHazards
     catalog: |

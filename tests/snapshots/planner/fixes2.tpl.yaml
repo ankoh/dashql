@@ -44,3 +44,14 @@ planner-snapshots:
       - name: query
         input: |
           copy (select * from t) to '/tmp/t3.csv';
+
+  # A DROP of two views reports the view barrier once
+  - name: DropTwoViews
+    catalog: |
+      create table t (a int);
+      create view v8 as select a from t;
+      create view v2 as select a from t;
+    scripts:
+      - name: drop
+        input: |
+          drop view if exists v8, v2;

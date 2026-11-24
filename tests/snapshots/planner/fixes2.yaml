@@ -258,3 +258,50 @@ planner-snapshots:
           script: query
           error: false
           message: unsupported statement effects; backend session semantics are not guaranteed
+
+  - name: DropTwoViews
+    catalog: |
+      create table t (a int);
+      create view v8 as select a from t;
+      create view v2 as select a from t;
+    scripts:
+      - name: drop
+        input: |
+          drop view if exists v8, v2;
+    expected:
+      valid: true
+      scripts:
+        - name: drop
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "fbe9a77b39668775e516a3ae085d3c6b87df3f588a4ebe1df4f4a4a193be025d"
+      entities:
+        - catalog-id: '256.65536.4294967297'
+          type: TABLE
+          name: v8
+        - catalog-id: '256.65536.4294967298'
+          type: TABLE
+          name: v2
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: drop
+          statement-id: 0
+          type: DROP_VIEW
+          sql: "drop view if exists v8, v2"
+          produces-output: false
+          barrier: true
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: DDL
+            - entity: '256.65536.4294967298'
+              mode: DDL
+      edges: []
+      diagnostics:
+        - node: 0
+          script: drop
+          error: false
+          message: view dependencies are not expanded; conservative access barrier
