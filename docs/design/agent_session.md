@@ -122,8 +122,9 @@ folder that the harness works in, a folder that it can't write fails the start; 
   by the user only, where the hooks and the commands find it, and `connections`, the connections that the tab lets
   the agent use. The agent may not edit it without asking. The session goes from it when it ends.
 - `workbooks/<workbook id>/`: the copies of the workbooks of the tab, see below, the workbooks of the workspace as in
-  the storage of the app. They go when the session ends, with the attachments that a run without a session mirrors
-  there, which it mirrors again.
+  the storage of the app. They go when the session ends, with the results that the tab wrote into them. The attachments
+  that a run without a session mirrors there and the results that it stores stay: a copy is a workbook that the session
+  wrote, or one with a workbook file or scripts after a session that ended without removing its copies.
 - `bin/dashql`: the `dashql` of the agent, first on its `PATH`, gone when the session ends.
 
 `catalog`, `run` and `vis` of a copy take the workspace that holds it, `describe` takes `--workspace

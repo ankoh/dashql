@@ -269,7 +269,8 @@ and the session works in its root. Without `--folder` in the home folder, as in 
 the agent doesn't get every file of the user; `--folder ~` still runs there. It names itself in the workspace file, `.dashql/dashql-workspace.json` (`session`):
 the address and the token of the server for the hooks and the commands, readable by the user
 only, and the connections that the agent may use, removed when the session ends. The copies of the workbooks of the tab
-are the workbooks of the workspace, `.dashql/workbooks/<workbook id>/`, and go when the session ends. The tab writes the workbook that it shows into the session once the server answers, with the
+are the workbooks of the workspace, `.dashql/workbooks/<workbook id>/`, and go when the session ends; the stored results
+and the mirrored attachments of runs without a session stay. The tab writes the workbook that it shows into the session once the server answers, with the
 catalogs of the connections that the agent may use, and the agent works on that copy; its changed scripts come back
 into the tab with their text (`docs/design/agent_session.md`). `describe` takes the workspace, `--workspace
 <folder>/.dashql`; `catalog`, `run` and `vis` take a copy, `<folder>/.dashql/workbooks/<workbook id>`, and find the

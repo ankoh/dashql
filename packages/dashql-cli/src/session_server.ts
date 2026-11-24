@@ -197,8 +197,8 @@ export async function startSessionServer(options: SessionServerOptions): Promise
     // names itself in the workspace file, where the hooks find the server, and the copies of the tab are the workbooks
     // of the workspace, next to the `dashql` of the agent. A folder that the server can't write to has no session. One
     // session runs in a workspace: a session whose server answers keeps it, a session that ended without removing
-    // itself, e.g. after a crash, goes with its copies. The workbooks of the workspace are the copies and the
-    // attachments that a run mirrors, which it mirrors again.
+    // itself, e.g. after a crash, goes with its copies. The workbooks of the workspace are the copies, and the mirrored
+    // attachments and the stored results of the runs without a session, which stay.
     const workspace = path.join(options.folder, DASHQL_FOLDER);
     const copies = sessionCopiesFolder(workspace);
     const bin = sessionBinFolder(workspace);
@@ -206,8 +206,21 @@ export async function startSessionServer(options: SessionServerOptions): Promise
     if (running != null && await sessionAnswers(running)) {
         throw Object.assign(new Error(`a session of dashql connect already runs in ${options.folder}`), { code: SESSION_RUNS_ERROR });
     }
+    /// The workbooks of the workspace that this session wrote, the copies of the tab with their results
+    const written = new Set<string>();
+    /// Remove the files of the session: its copies, also the ones of a session that ended without removing them, and the
+    /// `dashql` of the agent. A copy is a workbook of the workspace that the session wrote or that has a workbook file or
+    /// scripts, which a run without a session never writes there.
     const removeSessionFiles = () => {
-        rmSync(copies, { force: true, recursive: true });
+        if (existsSync(copies)) {
+            for (const name of readdirSync(copies)) {
+                const folder = path.join(copies, name);
+                if (written.has(name) || existsSync(path.join(folder, STORAGE_WORKBOOK_FILE)) || existsSync(path.join(folder, STORAGE_SCRIPTS_FOLDER))) {
+                    rmSync(folder, { force: true, recursive: true });
+                }
+            }
+            if (readdirSync(copies).length === 0) rmSync(copies, { force: true, recursive: true });
+        }
         rmSync(bin, { force: true, recursive: true });
     };
     try {
@@ -405,6 +418,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
                 return;
             }
             const copy = path.join(copies, workbookId);
+            written.add(workbookId);
             if (parts.length === 0) {
                 // The whole copy goes, the page writes it again
                 rmSync(copy, { recursive: true, force: true });
@@ -441,6 +455,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             const valid = workbookId != null && WORKBOOK_ID.test(workbookId) && name != null && name.endsWith('.parquet')
                 && !/[/\\\0:]/.test(name) && name !== '.parquet';
             if (!valid) return void response.writeHead(400).end();
+            written.add(workbookId!);
             const results = path.join(workspace, WORKBOOKS_FOLDER, workbookId!, RESULTS_FOLDER);
             const file = path.join(results, name!);
             mkdirSync(results, { recursive: true });

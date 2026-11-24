@@ -46,11 +46,27 @@ describe('the session server', () => {
         const port = server.port;
         await server.close();
         server = null;
-        mkdirSync(path.join(copies, 'w1'), { recursive: true });
+        mkdirSync(path.join(copies, 'w1', 'scripts'), { recursive: true });
+        writeFileSync(path.join(copies, 'w1', 'dashql-workbook.json'), '{}');
+        mkdirSync(path.join(copies, 'w2', 'scripts'), { recursive: true });
+        // The stored results and the mirrored attachments of a run without a session are no copy, they stay
+        const own = path.join(copies, 'w3');
+        mkdirSync(path.join(own, 'results'), { recursive: true });
+        mkdirSync(path.join(own, 'attachments'), { recursive: true });
+        writeFileSync(path.join(own, 'results', 'a.sql.k.1.parquet'), 'PAR1');
         writeFileSync(path.join(folder, '.dashql', 'dashql-workspace.json'), JSON.stringify({ formatVersion: 1, session: { id: '51001', endpoint: `http://127.0.0.1:${port}`, token: 't' } }));
         server = await startSessionServer({ harness: 'codex', folder, session: '51002' });
         expect(endpoint()).toBe(`http://127.0.0.1:${server.port}`);
         expect(existsSync(path.join(copies, 'w1'))).toBe(false);
+        expect(existsSync(path.join(copies, 'w2'))).toBe(false);
+        expect(existsSync(path.join(own, 'results', 'a.sql.k.1.parquet'))).toBe(true);
+        // A session removes the copies and the results that it wrote, not the ones of runs without it
+        await writeAgentSessionWorkbook({ endpoint: `http://127.0.0.1:${server.port}`, token: server.token }, 'w4', [{ path: 'dashql-workbook.json', content: '{}' }]);
+        await server.close();
+        server = null;
+        expect(existsSync(path.join(copies, 'w4'))).toBe(false);
+        expect(existsSync(path.join(own, 'results', 'a.sql.k.1.parquet'))).toBe(true);
+        expect(existsSync(path.join(own, 'attachments'))).toBe(true);
     });
 
     it('keeps the copy of the workbook of a page in its folder and hands out its files', async () => {
