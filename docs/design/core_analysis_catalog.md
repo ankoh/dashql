@@ -348,7 +348,8 @@ The rules follow PostgreSQL and Hyper:
   declaring statement itself, reads the table of the catalog, or an unresolved one. An `EXPLAIN` that runs a
   `CREATE TABLE AS` (`analyze`) declares the table, as for the relations that it touches, other `EXPLAIN`s declare
   nothing.
-- **Columns of `CREATE TABLE`** keep their declaration order, column aliases rename by position.
+- **Columns of `CREATE TABLE`** keep their declaration order, column aliases rename by position. The scope of the
+  statement has the table as its FROM item, the `CHECK` constraints and generated columns read its columns.
 - **Output columns** of a derived table keep their positions: unnamed outputs are named as PostgreSQL
   does, by the function name or `?column?`. A column ref is named by its last name: `s.t.a` by the column `a`, the
   field access `o.product.name` by the field `name`. Column aliases rename the leading columns, of a derived

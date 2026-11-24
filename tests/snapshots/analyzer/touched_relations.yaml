@@ -67,6 +67,10 @@ analyzer-snapshots:
         - {expression: 6, text: "2.0"}
         - {expression: 7, text: "'a'"}
       name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: orders, text: "orders"}
+          text: "create tab..omer text)"
         - scope-id: 1
           sources:
             - {type: table, name: orders, text: "orders"}
@@ -168,6 +172,10 @@ analyzer-snapshots:
         - {id: 2, type: colref/internal, catalog: "256.65536.1:0.0", source: "events", statement-id: 5, text: "id"}
         - {id: 3, type: colref/internal, catalog: "256.65536.1:0.0", source: "events", statement-id: 6, text: "id"}
       name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: events, text: "events"}
+          text: "create tab..load text)"
         - scope-id: 1
           sources:
             - {type: table, name: events, text: "events"}
@@ -180,6 +188,14 @@ analyzer-snapshots:
           columns:
             - {name: payload, expression: 1}
           text: "select pay..rom events"
+        - scope-id: 3
+          sources:
+            - {type: table, name: staging, text: "staging"}
+          text: "create unl..g (id int)"
+        - scope-id: 4
+          sources:
+            - {type: table, name: session_only, text: "session_only"}
+          text: "create tem..y (id int)"
         - scope-id: 5
           sources:
             - {type: table, name: events, text: "events"}
@@ -350,6 +366,10 @@ analyzer-snapshots:
         - {id: 1, type: colref/internal, catalog: "257.65537.2:2.0", source: "u", statement-id: 3, text: "d"}
         - {id: 2, type: colref/unresolved, statement-id: 5, text: "e"}
       name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          text: "create tab..nt, b int)"
         - scope-id: 1
           sources:
             - {type: table, name: u, text: "u"}

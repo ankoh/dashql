@@ -15,6 +15,11 @@ analyzer-snapshots:
       touched-relations:
         - {statement-id: 0, name: orders}
       errors: []
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: orders, text: "orders"}
+          text: "create tab..ag text)))"
 
   - name: row_field_access
     catalog:

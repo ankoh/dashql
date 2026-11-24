@@ -2148,6 +2148,10 @@ analyzer-snapshots:
       expressions:
         - {id: 0, type: colref/internal, catalog: "256.65536.2:0.0", source: "q as x(p)", statement-id: 1, text: "p"}
       name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: q, text: "q"}
+          text: "create tab..nt, a int)"
         - scope-id: 1
           sources:
             - {type: table, name: x, column-aliases: [p], text: "q as x(p)"}
@@ -2459,6 +2463,10 @@ analyzer-snapshots:
         - {id: 0, type: colref/internal, catalog: "256.65536.2:0.0", source: "z", statement-id: 1, text: "a"}
         - {id: 1, type: colref/internal, catalog: "256.65536.2:1.1", source: "z", statement-id: 3, text: "b"}
       name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: z, text: "z"}
+          text: "create tab.. z (a int)"
         - scope-id: 1
           sources:
             - {type: table, name: z, text: "z"}
@@ -2503,12 +2511,20 @@ analyzer-snapshots:
         - {id: 0, type: colref/internal, catalog: "256.65536.2:0.0", source: "r", statement-id: 1, text: "a"}
         - {id: 1, type: colref/internal, catalog: "256.65536.2:1.0", source: "r", statement-id: 4, text: "b"}
       name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: r, text: "r"}
+          text: "create tab.. r (a int)"
         - scope-id: 1
           sources:
             - {type: table, name: r, text: "r"}
           columns:
             - {name: a, expression: 0}
           text: "select a from r"
+        - scope-id: 2
+          sources:
+            - {type: table, name: r, text: "r"}
+          text: "create tab.. r (b int)"
         - scope-id: 3
           sources:
             - {type: table, name: r, text: "r"}

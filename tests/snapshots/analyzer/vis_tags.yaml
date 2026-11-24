@@ -457,6 +457,10 @@ analyzer-snapshots:
           columns:
             - {name: a, expression: 0}
           text: "select 1 as a"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+          text: "create tab.. t (a int)"
       board:
         statement-id: 1
         row: 1
@@ -486,6 +490,10 @@ analyzer-snapshots:
       expressions:
         - {id: 0, type: colref/internal, catalog: "256.65536.1:0.0", source: "t", statement-id: 1, text: "a"}
       name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          text: "create tab.. t (a int)"
         - scope-id: 1
           sources:
             - {type: table, name: t, text: "t"}
@@ -528,6 +536,10 @@ analyzer-snapshots:
       expressions:
         - {id: 0, type: colref/internal, catalog: "256.65536.1:0.0", source: "t", statement-id: 1, text: "a"}
       name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          text: "create tab.. t (a int)"
         - scope-id: 1
           sources:
             - {type: table, name: t, text: "t"}
@@ -688,6 +700,10 @@ analyzer-snapshots:
       constants:
         - {expression: 2, text: "1"}
       name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          text: "create tab.. t (a int)"
         - scope-id: 1
           sources:
             - {type: table, name: t, text: "t"}
@@ -718,6 +734,11 @@ analyzer-snapshots:
         - {statement-id: 0, name: t}
       errors:
         - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis visualizes a query, this statement is no SELECT', text: "vis"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          text: "create tab.. t (a int)"
 
   - name: vis_tag_per_statement
     script:

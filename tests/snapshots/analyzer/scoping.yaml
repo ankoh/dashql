@@ -1931,6 +1931,10 @@ analyzer-snapshots:
         - {id: 0, type: colref/internal, catalog: "256.65536.2:0.0", source: "t", statement-id: 1, text: "z"}
         - {id: 1, type: colref/unresolved, statement-id: 1, text: "a"}
       name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          text: "create tab.. t (z int)"
         - scope-id: 1
           sources:
             - {type: table, name: t, text: "t"}
@@ -1970,6 +1974,10 @@ analyzer-snapshots:
           columns:
             - {name: a, expression: 0}
           text: "select a from t"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+          text: "create tab.. t (z int)"
         - scope-id: 2
           sources:
             - {type: table, name: t, text: "t"}
@@ -3570,6 +3578,10 @@ analyzer-snapshots:
       expressions:
         - {id: 0, type: colref/internal, catalog: "256.65536.2:0.0", source: "z", statement-id: 1, text: "a"}
       name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: z, text: "z"}
+          text: "create tab..t, a text)"
         - scope-id: 1
           sources:
             - {type: table, name: z, text: "z"}
@@ -3727,3 +3739,34 @@ analyzer-snapshots:
           columns:
             - {name: '?', expression: 2}
           text: "select 1 f.. = u.a), v"
+
+  - name: create_table_check_constraint
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: create table z (a int primary key, b int check (b > 0), check (a > b))
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.2:0"
+          name: z
+          text: "create tab..k (a > b))"
+          columns:
+            - {catalog-id: "256.65536.2:0.0", name: a, text: "a int primary key"}
+            - {catalog-id: "256.65536.2:0.1", name: b, text: "b int check (b > 0)"}
+      touched-relations:
+        - {statement-id: 0, name: z}
+      errors: []
+      expressions:
+        - {id: 0, type: colref/internal, catalog: "256.65536.2:0.1", source: "z", text: "b"}
+        - {id: 1, type: colref/internal, catalog: "256.65536.2:0.0", source: "z", text: "a"}
+        - {id: 2, type: colref/internal, catalog: "256.65536.2:0.1", source: "z", text: "b"}
+        - {id: 3, type: literal/integer, is-const: true, text: "0"}
+      constants:
+        - {expression: 3, text: "0"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: z, text: "z"}
+          text: "create tab..k (a > b))"

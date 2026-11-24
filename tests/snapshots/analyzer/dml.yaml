@@ -292,6 +292,10 @@ analyzer-snapshots:
         - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", statement-id: 1, text: "c"}
         - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", statement-id: 1, text: "a"}
       name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: z, text: "z"}
+          text: "create tab..t, l text)"
         - scope-id: 1
           parent: 2
           correlation-barrier: true

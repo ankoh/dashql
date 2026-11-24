@@ -212,6 +212,10 @@ analyzer-snapshots:
           columns:
             - {name: x, expression: 0}
           text: "select f.x..from foo f"
+        - scope-id: 1
+          sources:
+            - {type: table, name: foo, text: "foo"}
+          text: "create tab..foo(x int)"
       inferred-tables:
         - name: foo
           confidence: confident

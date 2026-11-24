@@ -2250,6 +2250,8 @@ impl NameResolutionPass {
                         return;
                     }
                 }
+                // The column refs of a column constraint, `b int check (b > 0)`, read the columns of the table
+                self.merge_child_states(node_state, node);
                 let [name, column_type] =
                     attrs!(state.children(node), [K::SQL_COLUMN_DEF_NAME, K::SQL_COLUMN_DEF_TYPE]);
                 if let Some(name) = name.filter(|n| n.node_type() == NodeType::NAME) {
@@ -2622,6 +2624,14 @@ impl NameResolutionPass {
                 }
                 // The columns keep their declaration order, column aliases rename them by position
                 let columns = std::mem::take(&mut node_state.table_columns);
+                // The CHECK constraints and generated columns read the columns of the table, `check (a > b)`
+                node_state.derived_tables.push(ScopeSource {
+                    ast_node_id: name_node.map_or(node_id, |n| state.node_id(n)),
+                    name: Some(table_name.table_name.text.clone()),
+                    column_aliases: Vec::new(),
+                    table: ReferencedTable::Table(TableLoc { entry: state.entry_id, index }),
+                    table_name: Some(table_name.clone()),
+                });
                 self.create_scope(state, node_state, node_id);
 
                 let name = table_name.table_name.clone();

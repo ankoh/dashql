@@ -212,6 +212,39 @@ analyzer-snapshots:
         - {expression: 44, text: "152"}
         - {expression: 45, text: "25"}
         - {expression: 46, text: "152"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: part, text: "part"}
+          text: "create tab.._partkey))"
+        - scope-id: 1
+          sources:
+            - {type: table, name: supplier, text: "supplier"}
+          text: "create tab.._suppkey))"
+        - scope-id: 2
+          sources:
+            - {type: table, name: partsupp, text: "partsupp"}
+          text: "create tab.._suppkey))"
+        - scope-id: 3
+          sources:
+            - {type: table, name: customer, text: "customer"}
+          text: "create tab.._custkey))"
+        - scope-id: 4
+          sources:
+            - {type: table, name: orders, text: "orders"}
+          text: "create tab..orderkey))"
+        - scope-id: 5
+          sources:
+            - {type: table, name: lineitem, text: "lineitem"}
+          text: "create tab..nenumber))"
+        - scope-id: 6
+          sources:
+            - {type: table, name: nation, text: "nation"}
+          text: "create tab..ationkey))"
+        - scope-id: 7
+          sources:
+            - {type: table, name: region, text: "region"}
+          text: "create tab..egionkey))"
 
   - name: tpch_2
     catalog:
