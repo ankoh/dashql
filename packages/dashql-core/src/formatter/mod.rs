@@ -641,6 +641,8 @@ impl<'a> Formatter<'a> {
             | K::SQL_SELECT_ORDER
             | K::SQL_WINDOW_FRAME_PARTITION
             | K::SQL_WINDOW_FRAME_ORDER
+            | K::SQL_RELATION_ARG_PARTITION
+            | K::SQL_RELATION_ARG_ORDER
             | K::SQL_FUNCTION_WITHIN_GROUP
             | K::SQL_FUNCTION_ARGUMENTS
             | K::SQL_FUNCTION_ORDER
@@ -689,8 +691,6 @@ impl<'a> Formatter<'a> {
             | K::SQL_FUNCTION_EXTRA_ARGUMENTS
             | K::SQL_CONST_CAST_FUNC_ARGS_ORDER
             | K::SQL_LAMBDA_PARAM
-            | K::SQL_RELATION_ARG_PARTITION
-            | K::SQL_RELATION_ARG_ORDER
             | K::SQL_SEMANTIC_CLAUSE_TARGETS => self.format_comma_list(node, true),
             K::SQL_SEMANTIC_VIEW_CLAUSES => {
                 let parts = self.array_regs(node);

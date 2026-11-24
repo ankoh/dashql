@@ -960,3 +960,7 @@ parser-snapshots:
   - name: select_into_temp
     input: |
       select 1 into temp a; select 1 into temporary table b; select 1 into local temp c; select 1 into global temp d
+  # A table argument with its correlation name, PARTITION BY and ORDER BY
+  - name: select_table_argument_partition_order
+    input: |
+      select * from f(table(t) as c partition by (x, y) order by (z desc))

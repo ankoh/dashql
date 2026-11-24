@@ -133,3 +133,19 @@ formatter-snapshots:
               select 1
               into temporary a;
 
+  - name: coverage_table_argument_partition_order
+    input: |-
+      select * from f(table(t) as c partition by (x, y) order by (z desc))
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from f(table(t) as c partition by (x, y) order by (z desc));
+          - mode: compact
+            expected: |-
+              select * from f(table(t) as c partition by (x, y) order by (z desc));
+          - mode: pretty
+            expected: |-
+              select *
+              from f(table(t) as c partition by (x, y) order by (z desc));

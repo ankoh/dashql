@@ -18131,3 +18131,121 @@ parser-snapshots:
       comment-blocks: []
       comment-warnings: []
 
+  - name: select_table_argument_partition_order
+    input: |-
+      select * from f(table(t) as c partition by (x, y) order by (z desc))
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 30
+          description:
+            text: "select * f.. (z desc))"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f.. (z desc))"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from f(tab.. (z desc))"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "f(table(t).. (z desc))"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_FUNCTION_TABLE
+                        text: "f(table(t).. (z desc))"
+                        children:
+                          - key: SQL_FUNCTION_TABLE_FUNCTION
+                            type: OBJECT_SQL_FUNCTION_EXPRESSION
+                            text: "f(table(t).. (z desc))"
+                            children:
+                              - key: SQL_FUNCTION_NAME
+                                type: ARRAY
+                                text: "f"
+                                children:
+                                  - type: NAME
+                                    text: "f"
+                              - key: SQL_FUNCTION_ARGUMENTS
+                                type: ARRAY
+                                text: "table(t) a..y (z desc)"
+                                children:
+                                  - type: OBJECT_SQL_FUNCTION_ARG
+                                    text: "table(t) a..y (z desc)"
+                                    children:
+                                      - key: SQL_FUNCTION_ARG_VALUE
+                                        type: OBJECT_SQL_RELATION_EXPR
+                                        text: "table(t) a..y (z desc)"
+                                        children:
+                                          - key: SQL_TABLEREF_NAME
+                                            type: ARRAY
+                                            text: "t"
+                                            children:
+                                              - type: NAME
+                                                text: "t"
+                                          - key: SQL_RELATION_ARG_ALIAS
+                                            type: NAME
+                                            text: "c"
+                                          - key: SQL_RELATION_ARG_PARTITION
+                                            type: ARRAY
+                                            text: "partition by (x, y)"
+                                            children:
+                                              - type: OBJECT_SQL_COLUMN_REF
+                                                text: "x"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "x"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "x"
+                                              - type: OBJECT_SQL_COLUMN_REF
+                                                text: "y"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "y"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "y"
+                                          - key: SQL_RELATION_ARG_ORDER
+                                            type: ARRAY
+                                            text: "order by (z desc)"
+                                            children:
+                                              - type: OBJECT_SQL_ORDER
+                                                text: "z desc"
+                                                children:
+                                                  - key: SQL_ORDER_VALUE
+                                                    type: OBJECT_SQL_COLUMN_REF
+                                                    text: "z"
+                                                    children:
+                                                      - key: SQL_COLUMN_REF_PATH
+                                                        type: ARRAY
+                                                        text: "z"
+                                                        children:
+                                                          - type: NAME
+                                                            text: "z"
+                                                  - key: SQL_ORDER_DIRECTION
+                                                    type: ENUM_SQL_ORDER_DIRECTION
+                                                    value: DESCENDING
+                          - key: SQL_FUNCTION_TABLE_WITH_ORDINALITY
+                            type: BOOL
+                            value: 0
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

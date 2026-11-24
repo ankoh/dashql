@@ -31,7 +31,7 @@ parser-snapshots:
       ORDER BY ALL DESC FETCH FIRST 2 ROWS WITH TIES;
   - name: typed_table_arguments
     input: >-
-      SELECT f(TABLE(t) AS t PARTITION BY x ORDER BY y, LAMBDA x: x+1);
+      SELECT f(TABLE(t) AS t PARTITION BY (x) ORDER BY (y), LAMBDA x: x+1);
   - name: typed_constraints
     input: CREATE TABLE t (x integer ASSUMED PRIMARY KEY, y integer REFERENCES u(x)) WITH (countnulls=1);
   - name: typed_external_stream

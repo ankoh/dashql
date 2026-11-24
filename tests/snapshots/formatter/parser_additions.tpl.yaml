@@ -37,3 +37,8 @@ formatter-snapshots:
     input: select 1 into temp a
     dialects:
       hyper:
+  # A table argument with its correlation name, PARTITION BY and ORDER BY
+  - name: coverage_table_argument_partition_order
+    input: select * from f(table(t) as c partition by (x, y) order by (z desc))
+    dialects:
+      hyper:

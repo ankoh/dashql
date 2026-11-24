@@ -797,12 +797,12 @@ parser-snapshots:
 
   - name: typed_table_arguments
     input: |-
-      SELECT f(TABLE(t) AS t PARTITION BY x ORDER BY y, LAMBDA x: x+1);
+      SELECT f(TABLE(t) AS t PARTITION BY (x) ORDER BY (y), LAMBDA x: x+1);
     expected:
       statements:
         - type: SELECT
           ast-begin: 0
-          ast-size: 17
+          ast-size: 32
           description:
             text: "SELECT f(T..A x: x+1);"
             description-begin: 0
@@ -828,45 +828,93 @@ parser-snapshots:
                             children:
                               - type: NAME
                                 text: "f"
-                          - key: SQL_FUNCTION_ORDER
+                          - key: SQL_FUNCTION_ARGUMENTS
                             type: ARRAY
-                            text: "ORDER BY y..BDA x: x+1"
+                            text: "TABLE(t) A..BDA x: x+1"
                             children:
-                              - type: OBJECT_SQL_ORDER
-                                text: "y"
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "TABLE(t) A..DER BY (y)"
                                 children:
-                                  - key: SQL_ORDER_VALUE
-                                    type: OBJECT_SQL_COLUMN_REF
-                                    text: "y"
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_RELATION_EXPR
+                                    text: "TABLE(t) A..DER BY (y)"
                                     children:
-                                      - key: SQL_COLUMN_REF_PATH
+                                      - key: SQL_TABLEREF_NAME
                                         type: ARRAY
-                                        text: "y"
+                                        text: "t"
                                         children:
                                           - type: NAME
+                                            text: "t"
+                                      - key: SQL_RELATION_ARG_ALIAS
+                                        type: NAME
+                                        text: "t"
+                                      - key: SQL_RELATION_ARG_PARTITION
+                                        type: ARRAY
+                                        text: "PARTITION BY (x)"
+                                        children:
+                                          - type: OBJECT_SQL_COLUMN_REF
+                                            text: "x"
+                                            children:
+                                              - key: SQL_COLUMN_REF_PATH
+                                                type: ARRAY
+                                                text: "x"
+                                                children:
+                                                  - type: NAME
+                                                    text: "x"
+                                      - key: SQL_RELATION_ARG_ORDER
+                                        type: ARRAY
+                                        text: "ORDER BY (y)"
+                                        children:
+                                          - type: OBJECT_SQL_ORDER
                                             text: "y"
-                              - type: OBJECT_SQL_ORDER
+                                            children:
+                                              - key: SQL_ORDER_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "y"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "y"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "y"
+                              - type: OBJECT_SQL_FUNCTION_ARG
                                 text: "LAMBDA x: x+1"
                                 children:
-                                  - key: SQL_ORDER_VALUE
-                                    type: OBJECT_SQL_NARY_EXPRESSION
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_LAMBDA_EXPRESSION
                                     text: "LAMBDA x: x+1"
                                     children:
-                                      - key: SQL_EXPRESSION_OPERATOR
-                                        type: ENUM_SQL_EXPRESSION_OPERATOR
-                                        value: PLUS
-                                      - key: SQL_EXPRESSION_ARGS
+                                      - key: SQL_LAMBDA_PARAM
                                         type: ARRAY
-                                        text: "LAMBDA x: x+1"
+                                        text: "x"
                                         children:
-                                          - type: LITERAL_INTEGER
-                                            text: "1"
+                                          - type: NAME
+                                            text: "x"
+                                      - key: SQL_LAMBDA_BODY
+                                        type: OBJECT_SQL_NARY_EXPRESSION
+                                        text: "x+1"
+                                        children:
+                                          - key: SQL_EXPRESSION_OPERATOR
+                                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                                            value: PLUS
+                                          - key: SQL_EXPRESSION_ARGS
+                                            type: ARRAY
+                                            text: "x+1"
+                                            children:
+                                              - type: OBJECT_SQL_COLUMN_REF
+                                                text: "x"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "x"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "x"
+                                              - type: LITERAL_INTEGER
+                                                text: "1"
       scanner-errors: []
-      parser-errors:
-        - message: 'syntax error, unexpected identifier literal, expecting LRB'
-          text: "x"
-        - message: 'syntax error, unexpected LAMBDA'
-          text: "LAMBDA"
+      parser-errors: []
       line-breaks: []
       comments: []
       comment-blocks: []
