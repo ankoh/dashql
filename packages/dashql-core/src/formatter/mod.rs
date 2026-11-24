@@ -3638,10 +3638,14 @@ impl<'a> Formatter<'a> {
             // The chunks are ranges of the symbols
             let chunk_symbols = symbols.get(begin..end).unwrap_or_default();
             let begin_offset = chunk_symbols.first().map_or(0, |s| s.location.offset);
-            // The last statement may end in text that the scanner dropped, like an unterminated string
+            // The last statement may end in text that the scanner dropped, like an unterminated string. It ends no
+            // earlier than its last symbol: a symbol can be text that `trim_end` drops as whitespace, like U+0085,
+            // which the scanner reads as a byte of an identifier.
             let end_offset = match chunk_symbols.last() {
                 Some(last) if last.kind == S_SEMICOLON => last.location.end(),
-                _ => self.scanned.text.trim_end().len() as u32,
+                last => (self.scanned.text.trim_end().len() as u32)
+                    .max(last.map_or(0, |s| s.location.end()))
+                    .max(begin_offset),
             };
             let mut in_chunk = Vec::new();
             // A statement root outside of the AST ends the statements, the rest of the text is copied as written
@@ -3913,6 +3917,18 @@ mod tests {
         assert_eq!(format(&out, FormattingMode::PRETTY, 120).0, out);
         assert_eq!(format("  /* abc", FormattingMode::PRETTY, 120).0, "/* abc");
         assert_eq!(format("select  1 /* abc", FormattingMode::INLINE, 120).0, "select  1 /* abc");
+    }
+
+    #[test]
+    fn copies_a_last_statement_that_ends_in_whitespace_of_unicode() {
+        // U+0085 is whitespace for `trim_end` but a byte of an identifier for the scanner, the statement that it is
+        // ends after the trimmed text
+        for mode in [FormattingMode::INLINE, FormattingMode::COMPACT, FormattingMode::PRETTY] {
+            let (out, _) = format("select 1; \u{85}", mode, 120);
+            assert_eq!(out, "select 1;\n\n\u{85}", "{mode:?}");
+            let (out, _) = format("select 1; x\u{85}", mode, 120);
+            assert_eq!(out, "select 1;\n\nx\u{85}", "{mode:?}");
+        }
     }
 
     #[test]
