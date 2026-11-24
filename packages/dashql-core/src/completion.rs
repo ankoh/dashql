@@ -9,8 +9,8 @@
 #![allow(non_upper_case_globals)]
 
 use crate::analyzer::{
-    is_within, AnalyzedScript, ColumnResolution, ReferencedTable, ScopeColumnSource, ScopeId, ScopeJoin, ScopeSource,
-    SourceVisibility, TableRole,
+    is_within, output_names_at, AnalyzedScript, ColumnResolution, OutputNames, ReferencedTable, ScopeColumnSource,
+    ScopeId, ScopeJoin, ScopeSource, SourceVisibility, TableRole,
 };
 use crate::catalog::*;
 use crate::cursor::{CursorContext, NameComponentType, ScriptCursor, SymbolLocation};
@@ -1342,6 +1342,38 @@ impl<'c, 'a> Completion<'c, 'a> {
                 }
             }
         }
+        // The output columns of its scope that a column ref in ORDER BY or GROUP BY sees, `order by total` after
+        // `select a as total`. A name of a catalog column keeps its objects, the promotion tags them.
+        for name in Self::visible_output_names(analyzed, cursor) {
+            match self.candidates_by_name.get(&name).and_then(|&c| self.candidates.get_mut(c)) {
+                Some(candidate) if !candidate.catalog_objects.is_empty() => {
+                    candidate.coarse_name_tags |= NameTag::COLUMN_NAME.0;
+                }
+                _ => self.add_local_candidate(&name, NameTag::COLUMN_NAME.0, tags, prefix, location, location),
+            }
+        }
+    }
+
+    /// The names of the output columns that the column ref at the cursor sees, in ORDER BY and GROUP BY of a SELECT
+    fn visible_output_names(analyzed: &AnalyzedScript, cursor: &ScriptCursor) -> Vec<Arc<str>> {
+        let CursorContext::ColumnRef { expression_id } = cursor.context else { return Vec::new() };
+        let Some(expression) = analyzed.expression(expression_id) else { return Vec::new() };
+        if output_names_at(&analyzed.parsed.nodes, expression.ast_node_id) == OutputNames::Invisible {
+            return Vec::new();
+        }
+        let scope = cursor
+            .name_scopes
+            .iter()
+            .filter_map(|&scope| analyzed.scope(scope))
+            .find(|scope| scope.expressions.contains(&expression_id));
+        let mut names: Vec<Arc<str>> = Vec::new();
+        for column in scope.map(|scope| scope.output_columns.as_slice()).unwrap_or_default() {
+            let name = &column.column_name.text;
+            if !name.is_empty() && !names.contains(name) {
+                names.push(name.clone());
+            }
+        }
+        names
     }
 
     /// The name scopes around the cursor with the FROM items that the column refs of the cursor can see in them.

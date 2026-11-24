@@ -452,3 +452,113 @@ completion-snapshots:
           location-qualified: "myc"
           objects: []
       text: "myc"
+
+  - name: fix_order_by_output_alias
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select a as total from t order by tot
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/unresolved, text: "tot"}
+    cursor:
+      search:
+        text: 'by tot'
+        index: 6
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: total
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,IN_NAME_SCOPE]
+          location: "tot"
+          location-qualified: "tot"
+          objects: []
+        - value: tot
+          candidate-tags: [IDENTITY]
+          location: "tot"
+          location-qualified: "tot"
+          objects: []
+        - value: by
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "tot"
+          location-qualified: "tot"
+          objects: []
+        - value: case
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "tot"
+          location-qualified: "tot"
+          objects: []
+        - value: cast
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "tot"
+          location-qualified: "tot"
+          objects: []
+      text: "tot"
+
+  - name: fix_order_by_output_alias_union
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select a as total from t union select c from u order by tot
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+        - {id: 2, type: colref/unresolved, text: "tot"}
+    cursor:
+      search:
+        text: 'by tot'
+        index: 6
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: total
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,IN_NAME_SCOPE]
+          location: "tot"
+          location-qualified: "tot"
+          objects: []
+        - value: tot
+          candidate-tags: [IDENTITY]
+          location: "tot"
+          location-qualified: "tot"
+          objects: []
+        - value: by
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "tot"
+          location-qualified: "tot"
+          objects: []
+        - value: case
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "tot"
+          location-qualified: "tot"
+          objects: []
+        - value: cast
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "tot"
+          location-qualified: "tot"
+          objects: []
+      text: "tot"

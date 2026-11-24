@@ -6,7 +6,9 @@ use crate::catalog::*;
 use crate::hash::HashMap;
 use dashql_buffers::algebra::{BinaryExpressionFunction, ComparisonFunction, LiteralType, UnaryFunction};
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
-use dashql_buffers::parser::{IntervalType as IntervalTypeEnum, KnownFunction, Node, SymbolSpan};
+use dashql_buffers::parser::{
+    AttributeKey, GroupByItemType, IntervalType as IntervalTypeEnum, KnownFunction, Node, NodeType, SymbolSpan,
+};
 use dashql_parser::span::TextSpan;
 use std::sync::Arc;
 
@@ -571,6 +573,91 @@ pub struct ScopeClause {
     pub ast_node_id: u32,
     /// The FROM items that the column refs of the clause see, also from its subqueries
     pub visibility: SourceVisibility,
+}
+
+/// How a column ref sees the output columns of its own scope
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OutputNames {
+    Invisible,
+    /// A bare name in ORDER BY or DISTINCT ON refers to an output column before a FROM item column
+    Preferred,
+    /// A bare name in GROUP BY, also in ROLLUP, CUBE and GROUPING SETS, refers to an output column if no FROM item has
+    /// the column
+    Fallback,
+}
+
+/// How the column ref at an AST node sees the output columns of its scope, see `output_name_clause_at`
+pub fn output_names_at(ast: &[Node], node_id: u32) -> OutputNames {
+    output_name_clause_at(ast, node_id).map_or(OutputNames::Invisible, |(names, _)| names)
+}
+
+/// The clause of a bare column ref at an AST node that may name an output column of its scope, as PostgreSQL's
+/// `findTargetlistEntrySQL92`: an item of ORDER BY or DISTINCT ON prefers the output columns, an item of GROUP BY,
+/// also inside ROLLUP, CUBE and GROUPING SETS, takes them if no FROM item has the column. Items of a window or an
+/// aggregate don't see them.
+pub fn output_name_clause_at(ast: &[Node], node_id: u32) -> Option<(OutputNames, &'static str)> {
+    let node = ast.get(node_id as usize)?;
+    let parent = |n: &Node| ast.get(n.parent() as usize);
+    match node.attribute_key() {
+        AttributeKey::SQL_ORDER_VALUE => {
+            let list = parent(node).and_then(parent)?;
+            (list.attribute_key() == AttributeKey::SQL_SELECT_ORDER).then_some((OutputNames::Preferred, "ORDER BY"))
+        }
+        // An expression of a GROUP BY item
+        AttributeKey::SQL_GROUP_BY_ITEM_ARG => group_by_clause(ast, parent(node)?),
+        _ => {
+            let list = parent(node)?;
+            let owner = parent(list)?;
+            match list.attribute_key() {
+                AttributeKey::SQL_SELECT_DISTINCT if owner.node_type() == NodeType::OBJECT_SQL_SELECT => {
+                    Some((OutputNames::Preferred, "DISTINCT ON"))
+                }
+                // An expression of ROLLUP or CUBE
+                AttributeKey::SQL_GROUP_BY_ITEM_ARG
+                    if matches!(
+                        group_by_item_type(ast, owner),
+                        Some(GroupByItemType::ROLLUP | GroupByItemType::CUBE)
+                    ) =>
+                {
+                    group_by_clause(ast, owner)
+                }
+                _ => None,
+            }
+        }
+    }
+}
+
+/// The type of a GROUP BY item, None for other nodes
+fn group_by_item_type(ast: &[Node], node: &Node) -> Option<GroupByItemType> {
+    if node.node_type() != NodeType::OBJECT_SQL_GROUP_BY_ITEM {
+        return None;
+    }
+    let begin = node.children_begin_or_value() as usize;
+    let children = ast.get(begin..begin + node.children_count() as usize).unwrap_or_default();
+    let [item_type] = dashql_parser::attrs!(children, [AttributeKey::SQL_GROUP_BY_ITEM_TYPE]);
+    item_type.map(|t| GroupByItemType(t.children_begin_or_value() as u8))
+}
+
+/// The GROUP BY clause of a SELECT that a GROUP BY item is in, also nested in GROUPING SETS
+fn group_by_clause(ast: &[Node], item: &Node) -> Option<(OutputNames, &'static str)> {
+    let mut item = item;
+    // The nesting is bounded by the AST
+    for _ in 0..ast.len() {
+        group_by_item_type(ast, item)?;
+        let list = ast.get(item.parent() as usize)?;
+        match list.attribute_key() {
+            AttributeKey::SQL_SELECT_GROUPS => return Some((OutputNames::Fallback, "GROUP BY")),
+            AttributeKey::SQL_GROUP_BY_ITEM_ARG => {
+                let owner = ast.get(list.parent() as usize)?;
+                if group_by_item_type(ast, owner) != Some(GroupByItemType::GROUPING_SETS) {
+                    return None;
+                }
+                item = owner;
+            }
+            _ => return None,
+        }
+    }
+    None
 }
 
 /// Is an AST node within the subtree of another one?

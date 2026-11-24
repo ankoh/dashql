@@ -125,3 +125,35 @@ completion-snapshots:
         index: 10
     completions:
       limit: 5
+
+  # An output alias in ORDER BY
+  - name: fix_order_by_output_alias
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a as total from t order by tot
+    cursor:
+      search:
+        text: 'by tot'
+        index: 6
+    completions:
+      limit: 5
+
+  # An output alias in ORDER BY after a UNION
+  - name: fix_order_by_output_alias_union
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a as total from t union select c from u order by tot
+    cursor:
+      search:
+        text: 'by tot'
+        index: 6
+    completions:
+      limit: 5

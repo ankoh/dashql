@@ -171,6 +171,8 @@ carry `IN_NAME_SCOPE` without requiring synthetic catalog object IDs.
 
 The name index of the script holds a CTE name too, tagged as a table by its references. A CTE is a table only in its scope, so the name of a CTE that is no table of the script loses that tag; elsewhere in the script it stays a plain name of the index without the base score of a table.
 
+A column ref in ORDER BY or GROUP BY of a SELECT also sees the output columns of its scope, as name resolution does (`output_names_at`): `select a as total from t order by tot` offers `total` as a local column candidate with `IN_NAME_SCOPE`, after a set operation too. An output column with the name of a catalog column keeps the objects of that name.
+
 Non-recursive CTE completion follows declaration order: a CTE suggests earlier siblings but not itself
 or later siblings. Recursive CTEs also suggest themselves. Script-local relations are visible only to
 later statements.
