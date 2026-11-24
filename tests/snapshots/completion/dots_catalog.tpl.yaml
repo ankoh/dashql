@@ -152,3 +152,19 @@ completion-snapshots:
         index: 2
     completions:
       limit: 5
+
+  # The cursor between the two dots of db..t completes nothing, no identity of the dots
+  - name: dot_between_two_dots
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+    editor:
+      input: |-
+        select * from db..t
+    cursor:
+      search:
+        text: 'db..'
+        index: 3
+    completions:
+      limit: 5

@@ -476,3 +476,26 @@ completion-snapshots:
               prefer-qualified: 0
               detail: "integer · t"
       text: "."
+
+  - name: dot_between_two_dots
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+        errors: []
+    editor:
+      input: |-
+        select * from db..t
+      catalog-id: 2
+      errors: []
+    cursor:
+      search:
+        text: 'db..'
+        index: 3
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_RESULT_TARGET
+      relative: MID_OF_SYMBOL
+      entries: []
+      text: ".."

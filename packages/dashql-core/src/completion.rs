@@ -205,6 +205,7 @@ pub fn is_symbol_kind_completable(kind: SymbolKind) -> bool {
             | S_GREATER_EQUALS
             | S_NOT_EQUALS
             | S_DOT_STAR_LA
+            | S_DOT_DOT
     )
 }
 
