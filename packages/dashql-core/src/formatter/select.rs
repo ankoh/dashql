@@ -24,16 +24,17 @@ impl<'a> Formatter<'a> {
             return false;
         }
         #[rustfmt::skip]
-        let [order, limit, limit_all, offset, locking, ctes, operation] = attrs!(self.children(input), [
+        let [order, limit, limit_all, fetch_first_row, offset, locking, ctes, operation] = attrs!(self.children(input), [
             K::SQL_SELECT_ORDER,
             K::SQL_SELECT_LIMIT,
             K::SQL_SELECT_LIMIT_ALL,
+            K::SQL_SELECT_FETCH_FIRST_ROW,
             K::SQL_SELECT_OFFSET,
             K::SQL_SELECT_ROW_LOCKING,
             K::SQL_SELECT_WITH_CTES,
             K::SQL_COMBINE_OPERATION,
         ]);
-        if [order, limit, limit_all, offset, locking, ctes].iter().any(Option::is_some) {
+        if [order, limit, limit_all, fetch_first_row, offset, locking, ctes].iter().any(Option::is_some) {
             return true;
         }
         let Some(operation) = operation else { return false };
@@ -42,25 +43,27 @@ impl<'a> Formatter<'a> {
         child < parent || (child == parent && index > 0)
     }
 
-    /// The LIMIT of a select: `limit all`, `limit n`, or `fetch first n rows with ties`
+    /// The LIMIT of a select: `limit all`, `limit n`, `fetch first n rows with ties`, or `fetch first row only`
+    /// without a count
     fn format_select_limit(
         &self,
         limit: Option<&'a Node>,
         limit_all: Option<&'a Node>,
+        fetch_first_row: Option<&'a Node>,
         with_ties: bool,
     ) -> Option<FmtReg> {
         let f = &self.fmt;
         if limit_all.is_some() {
             return Some(f.text("limit all"));
         }
+        if fetch_first_row.is_some() {
+            return Some(f.text(if with_ties { "fetch first row with ties" } else { "fetch first row only" }));
+        }
         let limit = limit?;
-        // `fetch first row only` has no count, it limits to one row
-        let no_count = limit.node_type() == NodeType::BOOL && limit.children_begin_or_value() != 0;
-        Some(match (with_ties, no_count) {
-            (true, true) => f.text("fetch first row with ties"),
-            (true, false) => f.concat(&[f.text("fetch first "), self.reg(limit), f.text(" rows with ties")]),
-            (false, true) => f.text("limit 1"),
-            (false, false) => f.concat(&[f.text("limit "), self.reg(limit)]),
+        Some(if with_ties {
+            f.concat(&[f.text("fetch first "), self.reg(limit), f.text(" rows with ties")])
+        } else {
+            f.concat(&[f.text("limit "), self.reg(limit)])
         })
     }
 
@@ -72,7 +75,7 @@ impl<'a> Formatter<'a> {
             select_having, select_windows, select_order, select_row_locking, select_with_ctes, select_with_recursive,
             select_offset, select_limit, select_limit_all, select_sample, select_values, select_table,
             combine_operation, combine_modifier, combine_input, select_statement, group_all, group_distinct,
-            with_ties, aggregation_threshold,
+            with_ties, aggregation_threshold, fetch_first_row,
         ] = attrs!(self.children(node), [
                 K::SQL_SELECT_ALL,
                 K::SQL_SELECT_DISTINCT,
@@ -101,6 +104,7 @@ impl<'a> Formatter<'a> {
                 K::SQL_SELECT_GROUP_DISTINCT,
                 K::SQL_SELECT_LIMIT_WITH_TIES,
                 K::SQL_SELECT_WITH_AGGREGATION_THRESHOLD,
+                K::SQL_SELECT_FETCH_FIRST_ROW,
             ],
         );
         let with_ties = super::is_true(with_ties);
@@ -146,7 +150,7 @@ impl<'a> Formatter<'a> {
             if let Some(select_order) = select_order {
                 tail.push(f.concat(&[f.text("order by "), self.reg(select_order)]));
             }
-            tail.extend(self.format_select_limit(select_limit, select_limit_all, with_ties));
+            tail.extend(self.format_select_limit(select_limit, select_limit_all, fetch_first_row, with_ties));
             if let Some(select_offset) = select_offset {
                 tail.push(f.concat(&[f.text("offset "), self.reg(select_offset)]));
             }
@@ -260,7 +264,7 @@ impl<'a> Formatter<'a> {
             if let Some(select_order) = select_order {
                 clauses.push(f.concat(&[f.text("order by "), self.reg(select_order)]));
             }
-            clauses.extend(self.format_select_limit(select_limit, select_limit_all, with_ties));
+            clauses.extend(self.format_select_limit(select_limit, select_limit_all, fetch_first_row, with_ties));
             if let Some(select_offset) = select_offset {
                 clauses.push(f.concat(&[f.text("offset "), self.reg(select_offset)]));
             }

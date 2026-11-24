@@ -1637,7 +1637,7 @@ parser-snapshots:
                         children:
                           - type: NAME
                             text: "t"
-              - key: SQL_SELECT_LIMIT
+              - key: SQL_SELECT_FETCH_FIRST_ROW
                 type: BOOL
                 value: 1
               - key: SQL_SELECT_LIMIT_WITH_TIES

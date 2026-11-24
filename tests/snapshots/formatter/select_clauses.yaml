@@ -281,15 +281,15 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select * from source limit 1;
+              select * from source fetch first row only;
           - mode: compact
             expected: |-
-              select * from source limit 1;
+              select * from source fetch first row only;
           - mode: pretty
             expected: |-
               select *
               from source
-              limit 1;
+              fetch first row only;
 
   - name: coverage_group_by_all
     input: |-

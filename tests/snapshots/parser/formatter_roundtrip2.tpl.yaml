@@ -1,0 +1,8 @@
+parser-snapshots:
+  # FETCH without a count is one row, with ONLY and with WITH TIES, unlike LIMIT 1 and LIMIT TRUE
+  - name: fetch_first_row_without_count
+    input: |
+      select * from t offset 5 rows fetch first rows only;
+      select * from t order by a fetch next row with ties;
+      select * from t limit 1;
+      select * from t limit true

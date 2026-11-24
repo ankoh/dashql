@@ -395,11 +395,12 @@ sql_limit_clause:
     //   we can see the ONLY token in the lookahead slot.
     //  
   | FETCH sql_first_or_next sql_select_fetch_first_value sql_row_or_rows ONLY { ctx.list(&[attr(Key::SQL_SELECT_LIMIT, $3)]) }
-  | FETCH sql_first_or_next sql_row_or_rows ONLY { ctx.list(&[attr(Key::SQL_SELECT_LIMIT, bool_node(@3, true))]) }
+    // Without a count, FETCH limits to one row
+  | FETCH sql_first_or_next sql_row_or_rows ONLY { ctx.list(&[attr(Key::SQL_SELECT_FETCH_FIRST_ROW, bool_node(@3, true))]) }
   | FETCH sql_first_or_next sql_select_fetch_first_value sql_row_or_rows WITH TIES { ctx.list(&[attr(Key::SQL_SELECT_LIMIT, $3), attr(Key::SQL_SELECT_LIMIT_WITH_TIES, bool_node(@$,true))]) }
   | FETCH sql_first_or_next sql_row_or_rows WITH TIES {
         ctx.list(&[
-            attr(Key::SQL_SELECT_LIMIT, bool_node(@3, true)),
+            attr(Key::SQL_SELECT_FETCH_FIRST_ROW, bool_node(@3, true)),
             attr(Key::SQL_SELECT_LIMIT_WITH_TIES, bool_node(@$, true)),
         ])
     }

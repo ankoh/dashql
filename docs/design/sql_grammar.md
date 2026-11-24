@@ -47,6 +47,9 @@ Further PostgreSQL forms and their trees:
 - A sort key with `USING op` keeps its operator in `SQL_ORDER_USING`: an `ExpressionOperator`, an `OPERATOR` or the
   `ARRAY` of `OPERATOR(schema.op)`.
 - A common table expression `AS [NOT] MATERIALIZED` has the boolean `SQL_CTE_MATERIALIZED`, false for `NOT`.
+- `FETCH FIRST ROW ONLY` and `FETCH FIRST ROW WITH TIES` without a count have the boolean
+  `SQL_SELECT_FETCH_FIRST_ROW` instead of a `SQL_SELECT_LIMIT`, which holds the expression of `LIMIT` or of a
+  `FETCH` with a count. The formatter writes it as `fetch first row only`.
 - The alias of the target of an INSERT (`INSERT INTO t AS x`) is the `SQL_TABLEREF_ALIAS` of its table reference.
 - `EXPLAIN ANALYZE`, `EXPLAIN ANALYZE VERBOSE` and `EXPLAIN VERBOSE`, the options without parentheses, give the tree
   of `EXPLAIN (ANALYZE, VERBOSE)`: an `OBJECT_SQL_GENERIC_OPTION` per keyword under `EXT_EXPLAIN_OPTIONS`, which the

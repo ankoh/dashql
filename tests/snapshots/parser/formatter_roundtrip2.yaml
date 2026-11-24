@@ -1,0 +1,190 @@
+parser-snapshots:
+
+  - name: fetch_first_row_without_count
+    input: |-
+      select * from t offset 5 rows fetch first rows only;
+      select * from t order by a fetch next row with ties;
+      select * from t limit 1;
+      select * from t limit true
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 10
+          description:
+            text: "select * f..rows only;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f.. rows only"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+              - key: SQL_SELECT_OFFSET
+                type: LITERAL_INTEGER
+                text: "5"
+              - key: SQL_SELECT_FETCH_FIRST_ROW
+                type: BOOL
+                value: 1
+        - type: SELECT
+          ast-begin: 10
+          ast-size: 15
+          description:
+            text: "select * f..with ties;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f.. with ties"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+              - key: SQL_SELECT_FETCH_FIRST_ROW
+                type: BOOL
+                value: 1
+              - key: SQL_SELECT_LIMIT_WITH_TIES
+                type: BOOL
+                value: 1
+              - key: SQL_SELECT_ORDER
+                type: ARRAY
+                text: "order by a"
+                children:
+                  - type: OBJECT_SQL_ORDER
+                    text: "a"
+                    children:
+                      - key: SQL_ORDER_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: NAME
+                                text: "a"
+        - type: SELECT
+          ast-begin: 25
+          ast-size: 9
+          description:
+            text: "select * f..t limit 1;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f.. t limit 1"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+              - key: SQL_SELECT_LIMIT
+                type: LITERAL_INTEGER
+                text: "1"
+        - type: SELECT
+          ast-begin: 34
+          ast-size: 9
+          description:
+            text: "select * f..limit true"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f..limit true"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+              - key: SQL_SELECT_LIMIT
+                type: BOOL
+                value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [52,53]
+        - text: [105,106]
+        - text: [130,131]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
