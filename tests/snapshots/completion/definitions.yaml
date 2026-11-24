@@ -331,3 +331,155 @@ completion-snapshots:
           location-qualified: "na"
           objects: []
       text: "na"
+
+  - name: def_function_name_before_params
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        create function na(x int) returns int
+      catalog-id: 2
+      errors: []
+    cursor:
+      search:
+        text: 'na('
+        index: 2
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: ARRAY
+      relative: END_OF_SYMBOL
+      entries:
+        - value: na
+          candidate-tags: [IDENTITY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: name
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: names
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: natural
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: binary
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+      text: "na"
+
+  - name: def_cte_column_list
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        with c(na) as (select 1) select * from c
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/cte, text: "c"}
+      expressions:
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 0, text: "1"}
+    cursor:
+      search:
+        text: 'na)'
+        index: 2
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: na
+          candidate-tags: [IDENTITY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: name
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: names
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: national
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: cardinality
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+      text: "na"
+
+  - name: def_alias_column_list
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select * from t as x(na)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t as x(na)"}
+    cursor:
+      search:
+        text: 'na)'
+        index: 2
+    completions:
+      limit: 5
+      strategy: TABLE_REF_ALIAS
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: na
+          candidate-tags: [IDENTITY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: name
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: names
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: national
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: cardinality
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+      text: "na"

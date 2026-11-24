@@ -94,3 +94,51 @@ completion-snapshots:
         index: 2
     completions:
       limit: 5
+
+  # The name of a function right before its parameters is a definition, no catalog names
+  - name: def_function_name_before_params
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        create function na(x int) returns int
+    cursor:
+      search:
+        text: 'na('
+        index: 2
+    completions:
+      limit: 5
+
+  # A column of the column list of a CTE is a definition, no catalog names
+  - name: def_cte_column_list
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with c(na) as (select 1) select * from c
+    cursor:
+      search:
+        text: 'na)'
+        index: 2
+    completions:
+      limit: 5
+
+  # A column alias of a table ref is a definition, the typed name stays first
+  - name: def_alias_column_list
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t as x(na)
+    cursor:
+      search:
+        text: 'na)'
+        index: 2
+    completions:
+      limit: 5

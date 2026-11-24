@@ -837,10 +837,19 @@ impl<'c, 'a> Completion<'c, 'a> {
             expects_identifier = expected_at_cursor.expected.contains(&S_IDENT);
         }
 
-        // Is the cursor at a definition position?
+        // Is the target at a definition position? A target before the symbol at the cursor, `create function f|(`,
+        // is in the node at its own begin, the cursor can be in the next one.
         if let Some(parsed) = cursor.script.parsed {
-            for &node_id in &cursor.ast_path_to_root {
-                if matches!(
+            let target_path: Vec<u32>;
+            let path = if target.symbol_id == location.current.symbol_id {
+                &cursor.ast_path_to_root
+            } else {
+                let node = crate::cursor::find_node_at_offset(parsed, target.symbol.location.offset as usize);
+                target_path = node.map(|(_, node)| Self::path_to_root(parsed, node)).unwrap_or_default();
+                &target_path
+            };
+            completion.at_definition = path.iter().any(|&node_id| {
+                matches!(
                     parsed.nodes.get(node_id as usize).map(|n| n.attribute_key()),
                     Some(
                         AttributeKey::SQL_CREATE_TABLE_NAME
@@ -849,15 +858,14 @@ impl<'c, 'a> Completion<'c, 'a> {
                             | AttributeKey::SQL_COLUMN_DEF_NAME
                             | AttributeKey::SQL_RESULT_TARGET_NAME
                             | AttributeKey::SQL_CTE_NAME
+                            | AttributeKey::SQL_CTE_COLUMNS
+                            | AttributeKey::SQL_ALIAS_COLUMN_NAMES
                             | AttributeKey::SQL_WINDOW_DEF_NAME
                             | AttributeKey::SQL_CREATE_FUNCTION_NAME
                             | AttributeKey::SQL_FUNCTION_PARAM_NAME
                     )
-                ) {
-                    completion.at_definition = true;
-                    break;
-                }
-            }
+                )
+            });
         }
 
         // Is the previous symbol an inner dot and the cursor on the successor?
@@ -930,6 +938,21 @@ impl<'c, 'a> Completion<'c, 'a> {
         }
         completion.derive_keyword_continuations(&expected_at_cursor.prefix);
         completion
+    }
+
+    /// The AST nodes from a node to its statement root
+    fn path_to_root(parsed: &dashql_parser::parser::ParsedScript, node_id: u32) -> Vec<u32> {
+        let mut path = Vec::new();
+        let mut node = node_id;
+        while let Some(n) = parsed.nodes.get(node as usize) {
+            path.push(node);
+            // Statement roots are their own parents
+            if n.parent() == node {
+                break;
+            }
+            node = n.parent();
+        }
+        path
     }
 
     /// Is there a real token after the feed point?

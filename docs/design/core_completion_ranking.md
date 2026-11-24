@@ -176,10 +176,11 @@ At these positions:
 2. Name-index search is suppressed (no table/column/function suggestions from the catalog)
 3. Keywords still appear if they match the prefix
 
-Detection uses the AST path from cursor to root, checking `attribute_key()` against:
-`SQL_CREATE_TABLE_NAME`, `SQL_CREATE_AS_NAME`, `SQL_VIEW_NAME`, `SQL_COLUMN_DEF_NAME`, `SQL_RESULT_TARGET_NAME`, `SQL_CTE_NAME`, `SQL_WINDOW_DEF_NAME`, `SQL_CREATE_FUNCTION_NAME`, `SQL_FUNCTION_PARAM_NAME`.
+Detection uses the AST path from the target symbol to the root, checking `attribute_key()` against:
+`SQL_CREATE_TABLE_NAME`, `SQL_CREATE_AS_NAME`, `SQL_VIEW_NAME`, `SQL_COLUMN_DEF_NAME`, `SQL_RESULT_TARGET_NAME`, `SQL_CTE_NAME`, `SQL_CTE_COLUMNS`, `SQL_ALIAS_COLUMN_NAMES`, `SQL_WINDOW_DEF_NAME`, `SQL_CREATE_FUNCTION_NAME`, `SQL_FUNCTION_PARAM_NAME`.
+The path is the cursor's, unless the target is the symbol before the one at the cursor: then it starts at the node at the begin of the target, since the cursor in `create function f|(x int)` is also at the begin of the parameters.
 
-Table aliases (`FROM t AS alias`) are handled separately by the `TABLE_REF_ALIAS` strategy which already skips name-index search.
+Table aliases (`FROM t AS alias`) are handled separately by the `TABLE_REF_ALIAS` strategy which already skips name-index search. Their column aliases (`FROM t AS x(a, b)`) are definitions.
 
 ## Pipeline
 
