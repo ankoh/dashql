@@ -7,7 +7,7 @@ import { CodeIcon, DatabaseIcon } from '@akohn/dashql-react/components/symbol_ic
 import { type Logger, stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useDashQLCore } from '../../host/core_provider.js';
 import { useLogger } from '../../host/logger_provider.js';
-import { DEFAULT_FORMAT_WIDTH } from '../../workbook/scripts/script_format.js';
+import { DEFAULT_FORMAT_WIDTH, isScriptFormattable } from '../../workbook/scripts/script_format.js';
 import { formatScriptEditor } from '../../workbook/editor/script_format_editor.js';
 import { DashQLProcessorPlugin, DashQLUpdateEffect } from '../../workbook/editor/dashql_processor.js';
 import { ScriptActionMenu } from '../../workbook/scripts/script_action_menu.js';
@@ -120,12 +120,13 @@ function AnalyzerScripts(props: { core: dashql.DashQL }) {
     // Pretty mode formats at the default width of the formatter: it breaks a clause only if it doesn't fit, a wide
     // editor would keep the clauses on one line. Compact mode fills the width of the editor. Both like the format
     // dialog of the shell. The editor applies the changes, so the cursor and the history stay, and the session
-    // analyzes the new text.
+    // analyzes the new text. A script that the formatter can't format fully would get its placeholders, the action is
+    // off for it like in the header of a script of the feed.
     const actionMenu = (name: string, session: dashql.DashQLScriptSession, view: EditorView | null) => () => (
         <ScriptActionMenu
             scriptName={name}
-            formatDisabled={view == null}
-            onFormat={mode => formatScriptEditor(
+            formatDisabled={view == null || !isScriptFormattable({ scriptSession: session })}
+            onFormat={mode => isScriptFormattable({ scriptSession: session }) && formatScriptEditor(
                 view,
                 { scriptSession: session },
                 mode,

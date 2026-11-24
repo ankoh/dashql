@@ -227,6 +227,22 @@ where s_suppkey = ps_suppkey
         expect(document.querySelector('[data-action="delete"]')).toBeNull();
     });
 
+    it('does not format a script that the formatter cannot format fully', async () => {
+        // A syntax error is copied as written, the formatter would not format all of the script
+        const text = 'select 1 +';
+        await act(async () => {
+            const view = editor('Editor Script');
+            view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text }, userEvent: 'input.paste' });
+        });
+        await act(async () => card('Editor Script')!.querySelector<HTMLButtonElement>('[data-testid="script-more-actions"]')!.click());
+        for (const mode of ['pretty', 'compact']) {
+            const item = document.querySelector<HTMLButtonElement>(`[data-action="format-${mode}"]`)!;
+            expect(item.disabled).toBe(true);
+            await act(async () => item.click());
+        }
+        expect(editor('Editor Script').state.doc.toString()).toBe(text);
+    });
+
     it('keeps the analysis of a collapsed editor script', async () => {
         await toggle('Editor Script');
         expect(card('Editor Script')!.querySelector('.cm-editor')).toBeNull();
