@@ -200,7 +200,7 @@ the analyzer publishes on the scopes: an aliased join, `(t join u using (a)) as 
 so `j._` yields the columns of the join with a `USING` column once, renamed by the column aliases of the join. Outside
 of the join, `NameScope::hiding_joins` hides the FROM items inside it, `t._` yields nothing, as in name resolution.
 
-The cursor text after the last dot acts as a prefix filter on the resolved candidates.
+The cursor text after the last dot filters the resolved candidates, of the catalog and of the name scopes alike: a candidate must contain it, and one that begins with it ranks first.
 
 ## Passive inline hints
 

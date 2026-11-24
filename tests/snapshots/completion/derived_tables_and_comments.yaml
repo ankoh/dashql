@@ -112,19 +112,6 @@ completion-snapshots:
               qualified-idx: 1
               prefer-qualified: 1
               detail: "integer · t"
-        - value: id
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-          location: "n"
-          location-qualified: "x.n"
-          objects:
-            - type: column
-              id: "256.65536.1:0.1"
-              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: x.id
-              qualified-idx: 1
-              prefer-qualified: 1
-              detail: "integer · t"
       text: "n"
 
   - name: cte_hides_main_query_columns

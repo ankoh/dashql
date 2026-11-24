@@ -279,32 +279,6 @@ completion-snapshots:
               qualified-idx: 1
               prefer-qualified: 0
               detail: "text · t"
-        - value: a
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-          location: "na"
-          location-qualified: "t.na"
-          objects:
-            - type: column
-              id: "256.65536.1:0.0"
-              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: t.a
-              qualified-idx: 1
-              prefer-qualified: 0
-              detail: "integer · t"
-        - value: b
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-          location: "na"
-          location-qualified: "t.na"
-          objects:
-            - type: column
-              id: "256.65536.1:0.1"
-              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: t.b
-              qualified-idx: 1
-              prefer-qualified: 0
-              detail: "integer · t"
       text: "na"
 
   - name: cov_function_qualified
@@ -865,32 +839,6 @@ completion-snapshots:
               qualified-idx: 1
               prefer-qualified: 0
               detail: "text · t"
-        - value: a
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-          location: "na"
-          location-qualified: "t.na"
-          objects:
-            - type: column
-              id: "256.65536.1:0.0"
-              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: t.a
-              qualified-idx: 1
-              prefer-qualified: 0
-              detail: "integer · t"
-        - value: b
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-          location: "na"
-          location-qualified: "t.na"
-          objects:
-            - type: column
-              id: "256.65536.1:0.1"
-              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: t.b
-              qualified-idx: 1
-              prefer-qualified: 0
-              detail: "integer · t"
       text: "na"
 
   - name: cov_cte_star

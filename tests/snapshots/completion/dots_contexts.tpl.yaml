@@ -364,3 +364,51 @@ completion-snapshots:
         index: 4
     completions:
       limit: 5
+
+  # The text after a dot filters the columns of a catalog table, none contains zz
+  - name: dot_filter_catalog_no_match
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select t.zz from t
+    cursor:
+      search:
+        text: 't.zz'
+        index: 4
+    completions:
+      limit: 5
+
+  # The text after a dot filters the columns of a CTE alike, none contains zz
+  - name: dot_filter_cte_no_match
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with c as (select 1 as a) select c.zz from c
+    cursor:
+      search:
+        text: 'c.zz'
+        index: 4
+    completions:
+      limit: 5
+
+  # The text after a dot keeps the columns of a catalog table that contain it
+  - name: dot_filter_catalog_substring
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select t.m from t
+    cursor:
+      search:
+        text: 't.m'
+        index: 3
+    completions:
+      limit: 5

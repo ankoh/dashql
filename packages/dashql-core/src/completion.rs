@@ -1720,6 +1720,13 @@ impl<'c, 'a> Completion<'c, 'a> {
         }
 
         for mut dot_candidate in dot_candidates {
+            // The text after the last dot filters the candidates, like those of the name scopes
+            if !last_text_prefix.is_empty() {
+                match match_tags(dot_candidate.name.as_bytes(), last_text_prefix) {
+                    Some(t) => dot_candidate.candidate_tags |= t,
+                    None => continue,
+                }
+            }
             if let Some(&co) = self.candidate_objects_by_id.get(&dot_candidate.object_id) {
                 // Update the tags and the replacement target
                 if let Some(object) = self.candidate_objects.get_mut(co) {
@@ -1730,11 +1737,6 @@ impl<'c, 'a> Completion<'c, 'a> {
                     }
                 }
                 continue;
-            }
-            if !last_text_prefix.is_empty() {
-                if let Some(t) = match_tags(dot_candidate.name.as_bytes(), last_text_prefix) {
-                    dot_candidate.candidate_tags |= t;
-                }
             }
             let candidate = match self.candidates_by_name.get(&dot_candidate.name) {
                 Some(&c) => {

@@ -107,32 +107,6 @@ completion-snapshots:
               qualified-idx: 1
               prefer-qualified: 0
               detail: "text · t"
-        - value: a
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-          location: "name"
-          location-qualified: "t.name"
-          objects:
-            - type: column
-              id: "256.65536.1:0.0"
-              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: t.a
-              qualified-idx: 1
-              prefer-qualified: 0
-              detail: "integer · t"
-        - value: b
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-          location: "name"
-          location-qualified: "t.name"
-          objects:
-            - type: column
-              id: "256.65536.1:0.1"
-              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: t.b
-              qualified-idx: 1
-              prefer-qualified: 0
-              detail: "integer · t"
       text: "name"
 
   - name: dot_quoted_alias
@@ -717,20 +691,6 @@ completion-snapshots:
               prefer-qualified: 0
               detail: "2 columns"
               columns: ["a integer","b integer"]
-        - value: v
-          name-tags: [TABLE_NAME]
-          candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
-          location: "t"
-          location-qualified: "sch.t"
-          objects:
-            - type: table
-              id: "257.65537.1:1"
-              candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
-              qualified: db.sch.v
-              qualified-idx: 2
-              prefer-qualified: 0
-              detail: "2 columns"
-              columns: ["x integer","y integer"]
       text: "t"
 
   - name: dot_delete_target_schema
@@ -1236,19 +1196,6 @@ completion-snapshots:
               qualified-idx: 1
               prefer-qualified: 0
               detail: "text · t"
-        - value: b
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-          location: "a"
-          location-qualified: "t.a"
-          objects:
-            - type: column
-              id: "256.65536.1:0.1"
-              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: t.b
-              qualified-idx: 1
-              prefer-qualified: 0
-              detail: "integer · t"
       text: "a"
 
   - name: dot_prefix_in_call_before_paren
@@ -1291,30 +1238,104 @@ completion-snapshots:
               qualified-idx: 1
               prefer-qualified: 0
               detail: "text · t"
-        - value: a
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-          location: "na"
-          location-qualified: "t.na"
-          objects:
-            - type: column
-              id: "256.65536.1:0.0"
-              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: t.a
-              qualified-idx: 1
-              prefer-qualified: 0
-              detail: "integer · t"
-        - value: b
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-          location: "na"
-          location-qualified: "t.na"
-          objects:
-            - type: column
-              id: "256.65536.1:0.1"
-              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: t.b
-              qualified-idx: 1
-              prefer-qualified: 0
-              detail: "integer · t"
       text: "na"
+
+  - name: dot_filter_catalog_no_match
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select t.zz from t
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "t.zz"}
+    cursor:
+      search:
+        text: 't.zz'
+        index: 4
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries: []
+      text: "zz"
+
+  - name: dot_filter_cte_no_match
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        with c as (select 1 as a) select c.zz from c
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/cte, text: "c"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "c.zz"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 1, text: "1"}
+    cursor:
+      search:
+        text: 'c.zz'
+        index: 4
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries: []
+      text: "zz"
+
+  - name: dot_filter_catalog_substring
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select t.m from t
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "t.m"}
+    cursor:
+      search:
+        text: 't.m'
+        index: 3
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: name
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "m"
+          location-qualified: "t.m"
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.name
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "text · t"
+      text: "m"

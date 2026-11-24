@@ -555,17 +555,4 @@ completion-snapshots:
               qualified-idx: 1
               prefer-qualified: 1
               detail: "integer · foo"
-        - value: juice
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN]
-          location: "ap"
-          location-qualified: "f.ap"
-          objects:
-            - type: column
-              id: "256.65536.1:0.1"
-              candidate-tags: [DOT_RESOLUTION_COLUMN]
-              qualified: f.juice
-              qualified-idx: 1
-              prefer-qualified: 1
-              detail: "integer · foo"
       text: "ap"
