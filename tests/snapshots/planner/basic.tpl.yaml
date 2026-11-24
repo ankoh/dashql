@@ -518,3 +518,170 @@ planner-snapshots:
       - name: planned
         input: |
           explain update t set a = 2;
+
+  # The lifetime of a table across scripts: the CREATE, a write, an ALTER that is a barrier, a read and the DROP
+  - name: DdlLifecycleAcrossScripts
+    scripts:
+      - name: create
+        input: |
+          create table t (a int);
+      - name: fill
+        input: |
+          insert into t values (1);
+      - name: alter
+        input: |
+          alter table t add column b int;
+      - name: read
+        input: |
+          select * from t;
+      - name: drop
+        input: |
+          drop table t;
+
+  # A rename is a barrier, the planner does not follow it: the new name is unresolved, the old one still resolves
+  - name: RenameIsABarrier
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: rename
+        input: |
+          alter table t rename to u;
+      - name: read
+        input: |
+          select * from u;
+      - name: old
+        input: |
+          select * from t;
+
+  # A DROP of a table and of a missing one: a DDL access of each, the missing one makes it a barrier
+  - name: DropResolvedAndMissing
+    catalog: |
+      create table a (x int);
+    scripts:
+      - name: read
+        input: |
+          select * from a;
+      - name: drop
+        input: |
+          drop table if exists a, missing;
+      - name: after
+        input: |
+          select 1;
+
+  # A DROP of two tables of one name in two schemas: two timelines, each read is ordered before the DROP
+  - name: DropQualifiedSameName
+    catalog: |
+      create table s1.t (x int);
+      create table s2.t (x int);
+    scripts:
+      - name: r1
+        input: |
+          select * from s1.t;
+      - name: r2
+        input: |
+          select * from s2.t;
+      - name: drop
+        input: |
+          drop table s1.t, s2.t;
+
+  # A DROP of two tables that the session created, one of them is created again. Another script that reads the name
+  # of two declarations reads an ambiguous relation, the script of the new declaration reads its own.
+  - name: DropSeveralSessionTables
+    scripts:
+      - name: setup
+        input: |
+          create table a (x int);
+          create table b (x int);
+      - name: readers
+        input: |
+          select * from a;
+          select * from b;
+      - name: drop
+        input: |
+          drop table a, b;
+      - name: recreate
+        input: |
+          create table b (y int);
+          select * from b;
+
+  # The statements of one script are ordered by their accesses only in a plan of the session, independent writes and
+  # reads run side by side
+  - name: ParallelStatementsOfOneScript
+    catalog: |
+      create table a (x int);
+      create table b (x int);
+    scripts:
+      - name: s
+        input: |
+          insert into a values (1);
+          insert into b values (1);
+          select * from a;
+          select * from b;
+          select * from a, b;
+
+  # An UPDATE and a MERGE that read their target under an alias have one WRITE access and no self edge
+  - name: WriteTargetReadByAlias
+    catalog: |
+      create table t (a int, b int);
+    scripts:
+      - name: updated
+        input: |
+          update t set b = t2.b from t t2 where t.a = t2.a;
+      - name: merged
+        input: |
+          merge into t using t s on s.a = t.a when matched then update set b = s.b;
+      - name: read
+        input: |
+          select * from t;
+
+  # A data-modifying WITH writes a second table, a reader of both reads after the statement
+  - name: DataModifyingWithWritesTwoTables
+    catalog: |
+      create table a (x int);
+      create table b (x int);
+    scripts:
+      - name: move
+        input: |
+          with moved as (delete from a returning x) insert into b select x from moved;
+      - name: read
+        input: |
+          select * from a, b;
+
+  # Scripts of queries are cacheable, also with row locking, several queries, VALUES, an executed EXPLAIN of a query or
+  # a visualization. A transaction, SELECT INTO, SET and a script without statements are not.
+  - name: CacheabilityOfStatementKinds
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: locking
+        input: |
+          select * from t for update;
+      - name: transaction
+        input: |
+          begin;
+          select * from t;
+          commit;
+      - name: two_queries
+        input: |
+          select 1;
+          select * from t;
+      - name: values
+        input: |
+          values (1), (2);
+      - name: select_into
+        input: |
+          select a into u from t;
+      - name: set
+        input: |
+          set search_path = public;
+          select 1;
+      - name: explain_analyze
+        input: |
+          explain analyze select * from t;
+      - name: vis
+        input: |
+          /** @vis table */
+          select a from t;
+      - name: comment
+        input: |
+          /* nothing */

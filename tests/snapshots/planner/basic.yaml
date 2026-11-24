@@ -3855,3 +3855,1158 @@ planner-snapshots:
           script: updated
           error: false
           message: execution-enabled EXPLAIN with a mutating body cannot be safely classified
+
+  - name: DdlLifecycleAcrossScripts
+    scripts:
+      - name: create
+        input: |
+          create table t (a int);
+      - name: fill
+        input: |
+          insert into t values (1);
+      - name: alter
+        input: |
+          alter table t add column b int;
+      - name: read
+        input: |
+          select * from t;
+      - name: drop
+        input: |
+          drop table t;
+    expected:
+      valid: true
+      scripts:
+        - name: create
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "f40891db6ced98d348de79b4545975072cee329e5073aa19204d6ad0a4e1b93e"
+        - name: fill
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "e6879f28aec03f6a73b75697e1cafc43a0e96bbda58cba88dfeda7fe6a086afb"
+        - name: alter
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "dbf4377d03ebf51c4097231b9df8fdfb7676034b466ed40b850dbf4e527beede"
+        - name: read
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "9fab1e38cd08d2b25d23cb6d5ac07d6cebd82346aaf4d7073e7e49bd25cb4d61"
+        - name: drop
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "29e4f410b62fb555cb00e33a49c369c720373fa8f4848c6b9c2983a54a023fdf"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: create
+          statement-id: 0
+          type: CREATE_TABLE
+          sql: "create table t (a int)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: DDL
+        - id: 1
+          script: fill
+          statement-id: 0
+          type: INSERT
+          sql: "insert into t values (1)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 2
+          script: alter
+          statement-id: 0
+          type: ALTER_TABLE
+          sql: "alter table t add column b int"
+          produces-output: false
+          barrier: true
+          accesses: []
+        - id: 3
+          script: read
+          statement-id: 0
+          type: SELECT
+          sql: "select * from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 4
+          script: drop
+          statement-id: 0
+          type: DROP_TABLE
+          sql: "drop table t"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: DDL
+      edges:
+        - from: 0
+          to: 1
+          reason: DDL
+          entity: '256.65536.4294967296'
+        - from: 0
+          to: 2
+          reason: BARRIER
+        - from: 1
+          to: 2
+          reason: BARRIER
+        - from: 1
+          to: 3
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 4
+          reason: DDL
+          entity: '256.65536.4294967296'
+        - from: 2
+          to: 3
+          reason: BARRIER
+        - from: 2
+          to: 4
+          reason: BARRIER
+        - from: 3
+          to: 4
+          reason: DDL
+          entity: '256.65536.4294967296'
+      diagnostics:
+        - node: 2
+          script: alter
+          error: false
+          message: unsupported statement effects; backend session semantics are not guaranteed
+
+  - name: RenameIsABarrier
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: rename
+        input: |
+          alter table t rename to u;
+      - name: read
+        input: |
+          select * from u;
+      - name: old
+        input: |
+          select * from t;
+    expected:
+      valid: true
+      scripts:
+        - name: rename
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "bec5c7f365853c34d60bfc4600d4064c9019eb8cb211882b6c81fd98b34d4ef3"
+        - name: read
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "5e6cef8f6559cfbecc18371457db8fd80f3728034f58485e4aff37d2d147aa2b"
+        - name: old
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "9fab1e38cd08d2b25d23cb6d5ac07d6cebd82346aaf4d7073e7e49bd25cb4d61"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references:
+        - name: u
+      nodes:
+        - id: 0
+          script: rename
+          statement-id: 0
+          type: ALTER_TABLE
+          sql: "alter table t rename to u"
+          produces-output: false
+          barrier: true
+          accesses: []
+        - id: 1
+          script: read
+          statement-id: 0
+          type: SELECT
+          sql: "select * from u"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses:
+            - unresolved-reference: 0
+              mode: READ
+        - id: 2
+          script: old
+          statement-id: 0
+          type: SELECT
+          sql: "select * from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: BARRIER
+        - from: 1
+          to: 2
+          reason: BARRIER
+      diagnostics:
+        - node: 0
+          script: rename
+          error: false
+          message: unsupported statement effects; backend session semantics are not guaranteed
+        - node: 1
+          script: read
+          error: false
+          message: 'unresolved relation: u'
+
+  - name: DropResolvedAndMissing
+    catalog: |
+      create table a (x int);
+    scripts:
+      - name: read
+        input: |
+          select * from a;
+      - name: drop
+        input: |
+          drop table if exists a, missing;
+      - name: after
+        input: |
+          select 1;
+    expected:
+      valid: true
+      scripts:
+        - name: read
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "3d209ca88d75e11ba71d55882224c8b81c965bf69628f1eb12b3cae878ac450b"
+        - name: drop
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "bb62d80eaf8b88f8266f350464461bdbaf5fd2e4c1fa68031f9245077e92964b"
+        - name: after
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "e11ea3b9ec4e099b6077c4d8c7966e6f56639c63e12a4e06cd407ea718907676"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: a
+      unresolved-references:
+        - name: missing
+      nodes:
+        - id: 0
+          script: read
+          statement-id: 0
+          type: SELECT
+          sql: "select * from a"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: drop
+          statement-id: 0
+          type: DROP_TABLE
+          sql: "drop table if exists a, missing"
+          produces-output: false
+          barrier: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: DDL
+            - unresolved-reference: 0
+              mode: DDL
+        - id: 2
+          script: after
+          statement-id: 0
+          type: SELECT
+          sql: "select 1"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses: []
+      edges:
+        - from: 0
+          to: 1
+          reason: DDL
+          entity: '256.65536.4294967296'
+        - from: 0
+          to: 1
+          reason: BARRIER
+        - from: 1
+          to: 2
+          reason: BARRIER
+      diagnostics:
+        - node: 1
+          script: drop
+          error: false
+          message: unresolved DROP target; conservative access barrier
+
+  - name: DropQualifiedSameName
+    catalog: |
+      create table s1.t (x int);
+      create table s2.t (x int);
+    scripts:
+      - name: r1
+        input: |
+          select * from s1.t;
+      - name: r2
+        input: |
+          select * from s2.t;
+      - name: drop
+        input: |
+          drop table s1.t, s2.t;
+    expected:
+      valid: true
+      scripts:
+        - name: r1
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "7abd4fce222c4d2915b833494ea3d647b173652384f86294828e74bff794a9fe"
+        - name: r2
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "3a6298f3c07abeb6447f9a0f093a32d8856c5724daa0ff66d905bb1bcf81362e"
+        - name: drop
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "8a5ddd10ac77101600b1bfee11637d923b0c598c2400847d2951fd903887e44d"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: s1.t
+        - catalog-id: '256.65537.4294967297'
+          type: TABLE
+          name: s2.t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: r1
+          statement-id: 0
+          type: SELECT
+          sql: "select * from s1.t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: r2
+          statement-id: 0
+          type: SELECT
+          sql: "select * from s2.t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65537.4294967297'
+              mode: READ
+        - id: 2
+          script: drop
+          statement-id: 0
+          type: DROP_TABLE
+          sql: "drop table s1.t, s2.t"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: DDL
+            - entity: '256.65537.4294967297'
+              mode: DDL
+      edges:
+        - from: 0
+          to: 2
+          reason: DDL
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 2
+          reason: DDL
+          entity: '256.65537.4294967297'
+      diagnostics: []
+
+  - name: DropSeveralSessionTables
+    scripts:
+      - name: setup
+        input: |
+          create table a (x int);
+          create table b (x int);
+      - name: readers
+        input: |
+          select * from a;
+          select * from b;
+      - name: drop
+        input: |
+          drop table a, b;
+      - name: recreate
+        input: |
+          create table b (y int);
+          select * from b;
+    expected:
+      valid: true
+      scripts:
+        - name: setup
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "53e257361f177a60e48c6f5c5b6ba1d73e93103ec50f3127f9427ff2553cbf40"
+        - name: readers
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 1
+          signature: "37c39c8c1f5114996fc95b726aa7c238e0738a7160cf71733af7c90d09b1baf7"
+        - name: drop
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "909078ef927cac6107acd665be2b66f455d15334a379f4991307992d65641116"
+        - name: recreate
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "9dc9f8273c1e8a8c05df111c595537a680f712919f5d8324b1c95e290b0d7e4a"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: a
+        - catalog-id: '256.65536.4294967297'
+          type: TABLE
+          name: b
+        - catalog-id: '256.65536.17179869184'
+          type: TABLE
+          name: b
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: setup
+          statement-id: 0
+          type: CREATE_TABLE
+          sql: "create table a (x int)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: DDL
+        - id: 1
+          script: setup
+          statement-id: 1
+          type: CREATE_TABLE
+          sql: "create table b (x int)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: DDL
+        - id: 2
+          script: readers
+          statement-id: 0
+          type: SELECT
+          sql: "select * from a"
+          produces-output: true
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 3
+          script: readers
+          statement-id: 1
+          type: SELECT
+          sql: "select * from b"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: READ
+        - id: 4
+          script: drop
+          statement-id: 0
+          type: DROP_TABLE
+          sql: "drop table a, b"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: DDL
+            - entity: '256.65536.4294967297'
+              mode: DDL
+        - id: 5
+          script: recreate
+          statement-id: 0
+          type: CREATE_TABLE
+          sql: "create table b (y int)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.17179869184'
+              mode: DDL
+        - id: 6
+          script: recreate
+          statement-id: 1
+          type: SELECT
+          sql: "select * from b"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.17179869184'
+              mode: READ
+      edges:
+        - from: 0
+          to: 2
+          reason: DDL
+          entity: '256.65536.4294967296'
+        - from: 0
+          to: 3
+          reason: BARRIER
+        - from: 0
+          to: 4
+          reason: DDL
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 3
+          reason: DDL
+          entity: '256.65536.4294967297'
+        - from: 1
+          to: 3
+          reason: BARRIER
+        - from: 1
+          to: 4
+          reason: DDL
+          entity: '256.65536.4294967297'
+        - from: 2
+          to: 3
+          reason: BARRIER
+        - from: 2
+          to: 4
+          reason: DDL
+          entity: '256.65536.4294967296'
+        - from: 3
+          to: 4
+          reason: DDL
+          entity: '256.65536.4294967297'
+        - from: 3
+          to: 4
+          reason: BARRIER
+        - from: 3
+          to: 5
+          reason: BARRIER
+        - from: 3
+          to: 6
+          reason: BARRIER
+        - from: 4
+          to: 5
+          reason: DDL
+          entity: '256.65536.17179869184'
+        - from: 5
+          to: 6
+          reason: DDL
+          entity: '256.65536.17179869184'
+      diagnostics:
+        - node: 3
+          script: readers
+          error: false
+          message: ambiguous relation reference
+
+  - name: ParallelStatementsOfOneScript
+    catalog: |
+      create table a (x int);
+      create table b (x int);
+    scripts:
+      - name: s
+        input: |
+          insert into a values (1);
+          insert into b values (1);
+          select * from a;
+          select * from b;
+          select * from a, b;
+    expected:
+      valid: true
+      scripts:
+        - name: s
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 4
+          signature: "b616a7d451f5105e8ac54b92f70e8b7e8c09ea1e4febbc612d14738db20d5f54"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: a
+        - catalog-id: '256.65536.4294967297'
+          type: TABLE
+          name: b
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: s
+          statement-id: 0
+          type: INSERT
+          sql: "insert into a values (1)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 1
+          script: s
+          statement-id: 1
+          type: INSERT
+          sql: "insert into b values (1)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: WRITE
+        - id: 2
+          script: s
+          statement-id: 2
+          type: SELECT
+          sql: "select * from a"
+          produces-output: true
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 3
+          script: s
+          statement-id: 3
+          type: SELECT
+          sql: "select * from b"
+          produces-output: true
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: READ
+        - id: 4
+          script: s
+          statement-id: 4
+          type: SELECT
+          sql: "select * from a, b"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+            - entity: '256.65536.4294967297'
+              mode: READ
+      edges:
+        - from: 0
+          to: 2
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 0
+          to: 4
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 3
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967297'
+        - from: 1
+          to: 4
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967297'
+      diagnostics: []
+
+  - name: WriteTargetReadByAlias
+    catalog: |
+      create table t (a int, b int);
+    scripts:
+      - name: updated
+        input: |
+          update t set b = t2.b from t t2 where t.a = t2.a;
+      - name: merged
+        input: |
+          merge into t using t s on s.a = t.a when matched then update set b = s.b;
+      - name: read
+        input: |
+          select * from t;
+    expected:
+      valid: true
+      scripts:
+        - name: updated
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "911aa2590c4e826a57f0f4c89e41c318453ed0a1b7053d01dafe658c9108855e"
+        - name: merged
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "1280b5ffbd4b7310f78e339799f2b8ffb3afca518987f079b41eba44d9528de1"
+        - name: read
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "9fab1e38cd08d2b25d23cb6d5ac07d6cebd82346aaf4d7073e7e49bd25cb4d61"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: updated
+          statement-id: 0
+          type: UPDATE
+          sql: "update t set b = t2.b from t t2 where t.a = t2.a"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 1
+          script: merged
+          statement-id: 0
+          type: MERGE
+          sql: "merge into t using t s on s.a = t.a when matched then update set b = s.b"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 2
+          script: read
+          statement-id: 0
+          type: SELECT
+          sql: "select * from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: WRITE_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 2
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+      diagnostics: []
+
+  - name: DataModifyingWithWritesTwoTables
+    catalog: |
+      create table a (x int);
+      create table b (x int);
+    scripts:
+      - name: move
+        input: |
+          with moved as (delete from a returning x) insert into b select x from moved;
+      - name: read
+        input: |
+          select * from a, b;
+    expected:
+      valid: true
+      scripts:
+        - name: move
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "edc4783a7c3db055f9991a16fff4c4c354b2782b0312f44f04a39e290b333bea"
+        - name: read
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "a7bbd9db20cc5534ad314288da8c663a920374d2dbaa86d4f67b15960a84d37a"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: a
+        - catalog-id: '256.65536.4294967297'
+          type: TABLE
+          name: b
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: move
+          statement-id: 0
+          type: INSERT
+          sql: "with moved as (delete from a returning x) insert into b select x from moved"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+            - entity: '256.65536.4294967297'
+              mode: WRITE
+        - id: 1
+          script: read
+          statement-id: 0
+          type: SELECT
+          sql: "select * from a, b"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+            - entity: '256.65536.4294967297'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 0
+          to: 1
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967297'
+      diagnostics: []
+
+  - name: CacheabilityOfStatementKinds
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: locking
+        input: |
+          select * from t for update;
+      - name: transaction
+        input: |
+          begin;
+          select * from t;
+          commit;
+      - name: two_queries
+        input: |
+          select 1;
+          select * from t;
+      - name: values
+        input: |
+          values (1), (2);
+      - name: select_into
+        input: |
+          select a into u from t;
+      - name: set
+        input: |
+          set search_path = public;
+          select 1;
+      - name: explain_analyze
+        input: |
+          explain analyze select * from t;
+      - name: vis
+        input: |
+          /** @vis table */
+          select a from t;
+      - name: comment
+        input: |
+          /* nothing */
+    expected:
+      valid: true
+      scripts:
+        - name: locking
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "2048b77039a16d55234ddab3af05ca82615051e4c5ce376ad4feb0203ed5d533"
+        - name: transaction
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: false
+          terminal-statement-id: 2
+          signature: "7ac8b559e9c778d4b7e6e2913f96698ccaf46ee46f2fb2be92211e2ee912fc6c"
+        - name: two_queries
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: true
+          terminal-statement-id: 1
+          signature: "1da8823a09904eabc340221641bdc400328a7976cbe7a8cf14207b79afd38a13"
+        - name: values
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "de557273fd5c50a44da738fa20a9a5db8e7bf0b22e2dcb0593fbde531baaf02a"
+        - name: select_into
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "04cc4defaff9d426e65ab5bd025e6ec0c379ef3bcf3b6f527a2f50e7d1e76a12"
+        - name: set
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "bdda5436482cc6efe0044453d6e2075f32fa471aa37c804a3b82c6861b1b9849"
+        - name: explain_analyze
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "ce76f2990b5f47c8cf86d4df8ed916295e6ea20e52fab3a57ef2e0dbbee9296f"
+        - name: vis
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "1b5e41cce874f07f85e0aa761f1b3e1d309485d82a3903f38a429925bdb8d150"
+        - name: comment
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: false
+          signature: "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+        - catalog-id: '256.65536.25769803776'
+          type: TABLE
+          name: u
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: locking
+          statement-id: 0
+          type: SELECT
+          sql: "select * from t for update"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: transaction
+          statement-id: 0
+          type: TRANSACTION
+          sql: "begin"
+          produces-output: false
+          barrier: true
+          accesses: []
+        - id: 2
+          script: transaction
+          statement-id: 1
+          type: SELECT
+          sql: "select * from t"
+          produces-output: true
+          barrier: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 3
+          script: transaction
+          statement-id: 2
+          type: TRANSACTION
+          sql: "commit"
+          produces-output: false
+          barrier: true
+          accesses: []
+        - id: 4
+          script: two_queries
+          statement-id: 0
+          type: SELECT
+          sql: "select 1"
+          produces-output: true
+          barrier: false
+          accesses: []
+        - id: 5
+          script: two_queries
+          statement-id: 1
+          type: SELECT
+          sql: "select * from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 6
+          script: values
+          statement-id: 0
+          type: SELECT
+          sql: "values (1), (2)"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses: []
+        - id: 7
+          script: select_into
+          statement-id: 0
+          type: SELECT_INTO
+          sql: "select a into u from t"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+            - entity: '256.65536.25769803776'
+              mode: DDL
+        - id: 8
+          script: set
+          statement-id: 0
+          type: SET
+          sql: "set search_path = public"
+          produces-output: false
+          barrier: true
+          accesses: []
+        - id: 9
+          script: set
+          statement-id: 1
+          type: SELECT
+          sql: "select 1"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses: []
+        - id: 10
+          script: explain_analyze
+          statement-id: 0
+          type: EXPLAIN
+          sql: "explain analyze select * from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 11
+          script: vis
+          statement-id: 0
+          type: SELECT
+          sql: "select a from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: BARRIER
+        - from: 1
+          to: 2
+          reason: BARRIER
+        - from: 2
+          to: 3
+          reason: BARRIER
+        - from: 3
+          to: 4
+          reason: BARRIER
+        - from: 3
+          to: 5
+          reason: BARRIER
+        - from: 3
+          to: 6
+          reason: BARRIER
+        - from: 3
+          to: 7
+          reason: BARRIER
+        - from: 3
+          to: 8
+          reason: BARRIER
+        - from: 4
+          to: 8
+          reason: BARRIER
+        - from: 5
+          to: 8
+          reason: BARRIER
+        - from: 6
+          to: 8
+          reason: BARRIER
+        - from: 7
+          to: 8
+          reason: BARRIER
+        - from: 8
+          to: 9
+          reason: BARRIER
+        - from: 8
+          to: 10
+          reason: BARRIER
+        - from: 8
+          to: 11
+          reason: BARRIER
+      diagnostics:
+        - node: 0
+          script: locking
+          error: false
+          message: 'unsupported session, locking, constraint, or graph effects'
+        - node: 8
+          script: set
+          error: false
+          message: unsupported statement effects; backend session semantics are not guaranteed

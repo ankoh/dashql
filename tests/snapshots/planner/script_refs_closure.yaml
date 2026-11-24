@@ -1098,3 +1098,270 @@ planner-snapshots:
       nodes: []
       edges: []
       diagnostics: []
+
+  - name: TargetScansScriptBelow
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    targets: [bar]
+    scripts:
+      - name: bar
+        connection: local
+        input: |
+          select * from :foo;
+      - name: foo
+        connection: trino
+        input: |
+          select 1 as a;
+    expected:
+      valid: false
+      connections:
+        - name: trino
+          kind: REMOTE
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: bar
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          target: true
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "a47b0a7bbff4fc2c3f2f25de44942c990b4d596bee4c3273f5786145f98400de"
+          references: [foo]
+        - name: foo
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          target: false
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "8b3c7bdf652fc96552d8eb2f33530d1c8687865ed525fe22728a23cda4050625"
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: bar
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (select * from external('/mnt/external/dashql-run-test/s1.parquet', format => 'parquet'))
+            select * from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          inputs: [0]
+          accesses: []
+        - id: 1
+          script: foo
+          connection: trino
+          statement-id: 0
+          type: SELECT
+          sql: "select 1 as a"
+          produces-output: true
+          barrier: false
+          script-result: true
+          materialization: 0
+          accesses: []
+      edges: []
+      materializations:
+        - script: foo
+          node: 1
+          path: /mnt/external/dashql-run-test/s1.parquet
+      references:
+        - node: 0
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+          materialization: 0
+      diagnostics:
+        - node: 0
+          script: bar
+          error: true
+          message: 'bar.sql references foo.sql, which runs later; move foo.sql above bar.sql'
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: scan
+
+  - name: TargetInlinesTarget
+    catalog: |
+      create table t (a int);
+    targets: [foo,bar]
+    scripts:
+      - name: foo
+        input: |
+          select a from t;
+      - name: bar
+        input: |
+          select count(*) from :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: true
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "1b5e41cce874f07f85e0aa761f1b3e1d309485d82a3903f38a429925bdb8d150"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: true
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "bdad57133fa51f1c18c2308aad31298b8aa77dd43668b7e990ea0c991710e668"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select a from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select a from t
+            )
+            select count(*) from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline
+
+  - name: TargetWhoseResultIsProvided
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    targets: [foo,bar]
+    materialized: [foo]
+    scripts:
+      - name: foo
+        connection: trino
+        input: |
+          select 1 as a;
+      - name: bar
+        connection: local
+        input: |
+          select * from :foo;
+    expected:
+      valid: true
+      connections:
+        - name: trino
+          kind: REMOTE
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: foo
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          target: true
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "8b3c7bdf652fc96552d8eb2f33530d1c8687865ed525fe22728a23cda4050625"
+        - name: bar
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          target: true
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "a47b0a7bbff4fc2c3f2f25de44942c990b4d596bee4c3273f5786145f98400de"
+          references: [foo]
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          connection: trino
+          statement-id: 0
+          type: SELECT
+          sql: "select 1 as a"
+          produces-output: true
+          barrier: false
+          script-result: true
+          materialization: 0
+          accesses: []
+        - id: 1
+          script: bar
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet'))
+            select * from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          inputs: [0]
+          accesses: []
+      edges:
+        - from: 0
+          to: 1
+          reason: MATERIALIZATION
+      materializations:
+        - script: foo
+          node: 0
+          path: /mnt/external/dashql-run-test/s0.parquet
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+          materialization: 0
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: scan

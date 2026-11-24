@@ -311,3 +311,60 @@ dataflow-snapshots:
         connection: d360
         input: |
           call tickets.ticket_delete (id => 1);
+
+  # The inlined script reads the table before the writer, the consumer after it: the table edge goes into the consumer
+  - name: InlinedReadBeforeTheWriter
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: base
+        input: |
+          select a from t;
+      - name: write
+        input: |
+          insert into t values (1);
+      - name: top
+        input: |
+          select * from :base;
+
+  # A chain of inline references reads a table through its first script, the scripts behind it have no table edge
+  - name: InlinedChainReadsThroughFirstScript
+    scripts:
+      - name: write
+        input: |
+          create table t (a int);
+      - name: base
+        input: |
+          select a from t;
+      - name: mid
+        input: |
+          select a + 1 as a from :base;
+      - name: top
+        input: |
+          select * from :mid;
+
+  # A table, a scan, an inline reference and a table within one script form one chain across two connections
+  - name: ScanChainAcrossConnections
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: setup
+        connection: trino
+        input: |
+          create table t (a int);
+      - name: foo
+        connection: trino
+        input: |
+          select a from t;
+      - name: bar
+        connection: local
+        input: |
+          select * from :foo;
+      - name: baz
+        connection: local
+        input: |
+          create table u as select * from :bar;
+          select * from u;

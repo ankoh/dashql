@@ -1284,3 +1284,194 @@ planner-snapshots:
             - text: ":joined"
               target: joined
               kind: inline
+
+  - name: ScanDiamond
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: foo
+        connection: trino
+        input: |
+          select id, amount from orders;
+      - name: small
+        connection: local
+        input: |
+          select id from :foo where amount < 10;
+      - name: big
+        connection: local
+        input: |
+          select id from :foo where amount >= 10;
+      - name: both
+        connection: local
+        input: |
+          select * from :small union all select * from :big;
+    expected:
+      valid: true
+      connections:
+        - name: trino
+          kind: REMOTE
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: foo
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "d6b6398d89bcb9a5e0582cc5770366430fd5e6983c0a023860a52b55afa6066f"
+        - name: small
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "f6695ab6aa5c162b01bf559ec296b07cb4cc6708c03c81f23da8e9c7a149c081"
+          references: [foo]
+        - name: big
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "d7b253c74fea19272e3bd6374c6b6913565fc04be80abc36313773ef14545e10"
+          references: [foo]
+        - name: both
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "fb263629af2e4e8af1f97d0b7858c2f7985957a7ab100c1cadc90755f92dd9c1"
+          references: [small,big]
+      entities:
+        - catalog-id: 'trino/256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          connection: trino
+          statement-id: 0
+          type: SELECT
+          sql: "select id, amount from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          materialization: 0
+          accesses:
+            - entity: 'trino/256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: small
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet'))
+            select id from foo where amount < 10
+          produces-output: true
+          barrier: false
+          script-result: true
+          inputs: [0]
+          accesses: []
+        - id: 2
+          script: big
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet'))
+            select id from foo where amount >= 10
+          produces-output: true
+          barrier: false
+          script-result: true
+          inputs: [0]
+          accesses: []
+        - id: 3
+          script: both
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet')),
+            small as (
+            select id from foo where amount < 10
+            ),
+            big as (
+            select id from foo where amount >= 10
+            )
+            select * from small union all select * from big
+          produces-output: true
+          barrier: false
+          script-result: true
+          inputs: [0]
+          inlined-scripts: [1,2]
+          accesses: []
+      edges:
+        - from: 0
+          to: 1
+          reason: MATERIALIZATION
+        - from: 0
+          to: 2
+          reason: MATERIALIZATION
+        - from: 0
+          to: 3
+          reason: MATERIALIZATION
+      materializations:
+        - script: foo
+          node: 0
+          path: /mnt/external/dashql-run-test/s0.parquet
+      references:
+        - node: 1
+          script: small
+          text: ":foo"
+          target: foo
+          cte: foo
+          materialization: 0
+        - node: 2
+          script: big
+          text: ":foo"
+          target: foo
+          cte: foo
+          materialization: 0
+        - node: 3
+          script: both
+          text: ":small"
+          target: small
+          cte: small
+        - node: 3
+          script: both
+          text: ":big"
+          target: big
+          cte: big
+      diagnostics: []
+      checked-references:
+        - script: small
+          references:
+            - text: ":foo"
+              target: foo
+              kind: scan
+        - script: big
+          references:
+            - text: ":foo"
+              target: foo
+              kind: scan
+        - script: both
+          references:
+            - text: ":small"
+              target: small
+              kind: inline
+            - text: ":big"
+              target: big
+              kind: inline

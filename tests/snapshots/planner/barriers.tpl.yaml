@@ -343,3 +343,74 @@ planner-snapshots:
           select * from t;
           truncate t;
           select * from t;
+
+  # TRUNCATE of several tables writes each of them, the reads of both are ordered after it
+  - name: TruncateSeveralTables
+    catalog: |
+      create table a (x int);
+      create table b (x int);
+    scripts:
+      - name: read
+        input: |
+          select * from a;
+      - name: truncate
+        input: |
+          truncate a, b;
+      - name: after
+        input: |
+          select * from a, b;
+
+  # TRUNCATE of a missing table writes an unresolved reference
+  - name: TruncateUnresolved
+    scripts:
+      - name: truncate
+        input: |
+          truncate missing;
+          select 1;
+
+  # A plan of targets chains a TRUNCATE like the other statements of the target, a writer that is no target is left out
+  - name: TruncateTarget
+    catalog: |
+      create table t (a int);
+    targets: [s]
+    scripts:
+      - name: w
+        input: |
+          insert into t values (1);
+      - name: s
+        input: |
+          truncate t;
+          insert into t values (2);
+          select * from t;
+
+  # TRUNCATE in a transaction keeps its WRITE access, the statements after the transaction are ordered by their accesses
+  - name: TruncateInTransaction
+    catalog: |
+      create table t (a int);
+      create table u (a int);
+    scripts:
+      - name: s
+        input: |
+          begin;
+          truncate t;
+          insert into t select * from u;
+          commit;
+          select * from u;
+
+  # A foreign key to a table that the session creates: the CREATE with the key is a barrier, the referenced table is
+  # no access of it, a read of the referenced table follows its CREATE
+  - name: ForeignKeyToSessionTable
+    scripts:
+      - name: parent
+        input: |
+          create table p (id int primary key);
+      - name: child
+        input: |
+          create table c (id int, p_id int references p (id));
+          insert into c values (1, 1);
+      - name: read
+        input: |
+          select * from c;
+      - name: other
+        input: |
+          select * from p;

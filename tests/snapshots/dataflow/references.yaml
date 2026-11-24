@@ -844,3 +844,171 @@ dataflow-snapshots:
           kind: scan
           name: listed
           route: [[624,56],[768,56]]
+
+  - name: InlinedReadBeforeTheWriter
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: base
+        input: |
+          select a from t;
+      - name: write
+        input: |
+          insert into t values (1);
+      - name: top
+        input: |
+          select * from :base;
+    expected:
+      scripts:
+        - name: base
+          statements:
+            - type: SELECT
+              text: "select a from t"
+          box: [0,0,280,80]
+        - name: write
+          statements:
+            - type: INSERT
+              target: t
+              text: "insert int..values (1)"
+          box: [0,128,280,80]
+        - name: top
+          statements:
+            - type: SELECT
+              text: "select * from :base"
+          box: [424,0,280,80]
+      edges:
+        - from: base.0
+          to: top.0
+          kind: inline
+          name: base
+          route: [[280,56],[424,56]]
+        - from: write.0
+          to: top.0
+          kind: table
+          name: t
+          route: [[280,184],[352,184],[352,56],[424,56]]
+
+  - name: InlinedChainReadsThroughFirstScript
+    scripts:
+      - name: write
+        input: |
+          create table t (a int);
+      - name: base
+        input: |
+          select a from t;
+      - name: mid
+        input: |
+          select a + 1 as a from :base;
+      - name: top
+        input: |
+          select * from :mid;
+    expected:
+      scripts:
+        - name: write
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (a int)"
+          box: [0,0,280,80]
+        - name: base
+          statements:
+            - type: SELECT
+              text: "select a from t"
+          box: [424,0,280,80]
+        - name: mid
+          statements:
+            - type: SELECT
+              text: "select a +..from :base"
+          box: [848,0,280,80]
+        - name: top
+          statements:
+            - type: SELECT
+              text: "select * from :mid"
+          box: [1272,0,280,80]
+      edges:
+        - from: write.0
+          to: base.0
+          kind: table
+          name: t
+          route: [[280,56],[424,56]]
+        - from: base.0
+          to: mid.0
+          kind: inline
+          name: base
+          route: [[704,56],[848,56]]
+        - from: mid.0
+          to: top.0
+          kind: inline
+          name: mid
+          route: [[1128,56],[1272,56]]
+
+  - name: ScanChainAcrossConnections
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: setup
+        connection: trino
+        input: |
+          create table t (a int);
+      - name: foo
+        connection: trino
+        input: |
+          select a from t;
+      - name: bar
+        connection: local
+        input: |
+          select * from :foo;
+      - name: baz
+        connection: local
+        input: |
+          create table u as select * from :bar;
+          select * from u;
+    expected:
+      scripts:
+        - name: setup
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (a int)"
+          box: [0,0,280,80]
+        - name: foo
+          statements:
+            - type: SELECT
+              text: "select a from t"
+          box: [424,0,280,80]
+        - name: bar
+          statements:
+            - type: SELECT
+              text: "select * from :foo"
+          box: [848,0,280,80]
+        - name: baz
+          statements:
+            - type: CREATE_TABLE_AS
+              target: u
+              text: "create tab.. from :bar"
+            - type: SELECT
+              text: "select * from u"
+          box: [1272,0,280,112]
+      edges:
+        - from: setup.0
+          to: foo.0
+          kind: table
+          name: t
+          route: [[280,56],[424,56]]
+        - from: foo.0
+          to: bar.0
+          kind: scan
+          name: foo
+          route: [[704,56],[848,56]]
+        - from: bar.0
+          to: baz.0
+          kind: inline
+          name: bar
+          route: [[1128,56],[1272,56]]
+        - from: baz.0
+          to: baz.1
+          kind: table
+          name: u

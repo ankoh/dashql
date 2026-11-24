@@ -147,3 +147,19 @@ planner-snapshots:
         input: |
           update t set b = f.b from :foo f where f.a = t.a;
           merge into t using :foo f on f.a = t.a when matched then update set b = f.b;
+
+  # A script that references a cycle without being part of it: only the reference that closes the cycle is an error
+  - name: CycleWithEntry
+    scripts:
+      - name: entry
+        input: |
+          select * from :a;
+      - name: a
+        input: |
+          select * from :b;
+      - name: b
+        input: |
+          select * from :c;
+      - name: c
+        input: |
+          select * from :a;

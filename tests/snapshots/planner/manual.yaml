@@ -321,3 +321,124 @@ planner-snapshots:
               kind: invalid
               errors:
                 - 'orders_all.sql runs only on request (@manual), the scripts of the connection trino inline it but west.sql of the connection local cannot read it'
+
+  - name: ManualInlinedByTwoTargets
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, region text);
+    targets: [west,east]
+    scripts:
+      - name: all
+        connection: trino
+        input: |
+          /* @manual */
+          select id, region from orders;
+      - name: west
+        connection: trino
+        input: |
+          select count(*) from :all where region = 'west';
+      - name: east
+        connection: trino
+        input: |
+          select count(*) from :all where region = 'east';
+    expected:
+      valid: true
+      connections:
+        - name: trino
+          kind: REMOTE
+      scripts:
+        - name: all
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: false
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "531b875af726e9fdb9aad3f66882f452dbc3ea4472e328a37424717a95c7d572"
+        - name: west
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: true
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "b5580cc347d6afa88b779651598a5a3fe9d65df6b7e5014991ea899153524782"
+          references: [all]
+        - name: east
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: true
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "37e1118841e1305089d8e587f68e1ae235eff2a638e18266d396a34baa00ac84"
+          references: [all]
+      entities:
+        - catalog-id: 'trino/256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: west
+          connection: trino
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with "all" as (
+            select id, region from orders
+            )
+            select count(*) from "all" where region = 'west'
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [0]
+          accesses:
+            - entity: 'trino/256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: east
+          connection: trino
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with "all" as (
+            select id, region from orders
+            )
+            select count(*) from "all" where region = 'east'
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [0]
+          accesses:
+            - entity: 'trino/256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 0
+          script: west
+          text: ":all"
+          target: all
+          cte: all
+        - node: 1
+          script: east
+          text: ":all"
+          target: all
+          cte: all
+      diagnostics: []
+      checked-references:
+        - script: west
+          references:
+            - text: ":all"
+              target: all
+              kind: inline
+        - script: east
+          references:
+            - text: ":all"
+              target: all
+              kind: inline

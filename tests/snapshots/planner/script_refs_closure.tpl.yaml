@@ -227,3 +227,53 @@ planner-snapshots:
           /* nothing */
       - name: other
         input: select 1;
+
+  # A materialized script below the target runs later, also in a plan of targets
+  - name: TargetScansScriptBelow
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    targets: [bar]
+    scripts:
+      - name: bar
+        connection: local
+        input: |
+          select * from :foo;
+      - name: foo
+        connection: trino
+        input: |
+          select 1 as a;
+
+  # A target that another target inlines runs in full and is inlined
+  - name: TargetInlinesTarget
+    catalog: |
+      create table t (a int);
+    targets: [foo, bar]
+    scripts:
+      - name: foo
+        input: |
+          select a from t;
+      - name: bar
+        input: |
+          select count(*) from :foo;
+
+  # A target whose result the host provides still runs, the scan of another target reads the result it writes
+  - name: TargetWhoseResultIsProvided
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    targets: [foo, bar]
+    materialized: [foo]
+    scripts:
+      - name: foo
+        connection: trino
+        input: |
+          select 1 as a;
+      - name: bar
+        connection: local
+        input: |
+          select * from :foo;

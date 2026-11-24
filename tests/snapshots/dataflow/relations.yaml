@@ -1216,3 +1216,59 @@ dataflow-snapshots:
           kind: table
           name: t
           route: [[704,88],[848,88]]
+
+  - name: TruncateContinuesTheFlow
+    scripts:
+      - name: setup
+        input: |
+          create table a (x int);
+          create table b (x int);
+      - name: clear
+        input: |
+          truncate a, b;
+      - name: report
+        input: |
+          select * from a, b;
+    expected:
+      scripts:
+        - name: setup
+          statements:
+            - type: CREATE_TABLE
+              target: a
+              text: "create tab.. a (x int)"
+            - type: CREATE_TABLE
+              target: b
+              text: "create tab.. b (x int)"
+          box: [0,0,280,112]
+        - name: clear
+          statements:
+            - type: TRUNCATE
+              target: a
+              text: "truncate a, b"
+          box: [424,32,280,80]
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select * from a, b"
+          box: [848,32,280,80]
+      edges:
+        - from: setup.0
+          to: clear.0
+          kind: table
+          name: a
+          route: [[280,56],[352,56],[352,88],[424,88]]
+        - from: setup.1
+          to: clear.0
+          kind: table
+          name: b
+          route: [[280,88],[424,88]]
+        - from: clear.0
+          to: report.0
+          kind: table
+          name: a
+          route: [[704,88],[848,88]]
+        - from: clear.0
+          to: report.0
+          kind: table
+          name: b
+          route: [[704,88],[848,88]]

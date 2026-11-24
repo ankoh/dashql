@@ -445,3 +445,81 @@ planner-snapshots:
               kind: invalid
               errors:
                 - 'cyclic script reference: a.sql -> b.sql -> a.sql'
+
+  - name: TolerantWithProvidedResult
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scope: tolerant
+    materialized: [foo]
+    scripts:
+      - name: foo
+        connection: trino
+        input: |
+          select 1 as a;
+      - name: bar
+        connection: local
+        input: |
+          select * from :foo;
+    expected:
+      valid: true
+      connections:
+        - name: trino
+          kind: REMOTE
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: foo
+          connection: trino
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "8b3c7bdf652fc96552d8eb2f33530d1c8687865ed525fe22728a23cda4050625"
+        - name: bar
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "a47b0a7bbff4fc2c3f2f25de44942c990b4d596bee4c3273f5786145f98400de"
+          references: [foo]
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: bar
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet'))
+            select * from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          inputs: [0]
+          accesses: []
+      edges: []
+      materializations:
+        - script: foo
+          reused: true
+          path: /mnt/external/dashql-run-test/s0.parquet
+      references:
+        - node: 0
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+          materialization: 0
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: scan

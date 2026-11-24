@@ -682,3 +682,85 @@ planner-snapshots:
               kind: invalid
               errors:
                 - a table parameter must be part of a query
+
+  - name: CycleWithEntry
+    scripts:
+      - name: entry
+        input: |
+          select * from :a;
+      - name: a
+        input: |
+          select * from :b;
+      - name: b
+        input: |
+          select * from :c;
+      - name: c
+        input: |
+          select * from :a;
+    expected:
+      valid: false
+      scripts:
+        - name: entry
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "0e27f616b373a9839fca73e147c203cef5d4a3aeba9fa7c67a39671882c366c5"
+          references: [a]
+        - name: a
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "aadc55335fee73057eb54b297b73ca890d086bd97297c680149b143a96bc7f9f"
+          references: [b]
+        - name: b
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "00ef3ee344327550d6e1d9863bcb64272b149a7943fbd14899e4d06d86a218ec"
+          references: [c]
+        - name: c
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "0e27f616b373a9839fca73e147c203cef5d4a3aeba9fa7c67a39671882c366c5"
+          references: [a]
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: c
+          text: ":a"
+          error: true
+          message: 'cyclic script reference: a.sql -> b.sql -> c.sql -> a.sql'
+      checked-references:
+        - script: entry
+          references:
+            - text: ":a"
+              target: a
+              kind: inline
+        - script: a
+          references:
+            - text: ":b"
+              target: b
+              kind: inline
+        - script: b
+          references:
+            - text: ":c"
+              target: c
+              kind: inline
+        - script: c
+          references:
+            - text: ":a"
+              target: a
+              kind: invalid
+              errors:
+                - 'cyclic script reference: a.sql -> b.sql -> c.sql -> a.sql'

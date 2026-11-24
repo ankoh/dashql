@@ -739,3 +739,157 @@ dataflow-snapshots:
         input: |
           /** @flow x=0 y=400 */
           select x from t;
+
+  # A cycle of three: the back edge runs around the bottom of the boxes
+  - name: LayoutCycleOfThree
+    scripts:
+      - name: a
+        input: |
+          select * from :c;
+      - name: b
+        input: |
+          select * from :a;
+      - name: c
+        input: |
+          select * from :b;
+
+  # Eight consumers of one producer stack in one column, the producer is level with one in the middle
+  - name: LayoutWideFanOut
+    scripts:
+      - name: base
+        input: |
+          create table base (x int);
+      - name: c1
+        input: |
+          select x from base;
+      - name: c2
+        input: |
+          select x from base;
+      - name: c3
+        input: |
+          select x from base;
+      - name: c4
+        input: |
+          select x from base;
+      - name: c5
+        input: |
+          select x from base;
+      - name: c6
+        input: |
+          select x from base;
+      - name: c7
+        input: |
+          select x from base;
+      - name: c8
+        input: |
+          select x from base;
+
+  # A fan-in and a fan-out of one box: the hub is level with the middle of both columns
+  - name: LayoutBowtie
+    scripts:
+      - name: a
+        input: |
+          create table a (x int);
+      - name: b
+        input: |
+          create table b (x int);
+      - name: c
+        input: |
+          create table c (x int);
+      - name: hub
+        input: |
+          create table hub as select a.x from a, b, c;
+      - name: o1
+        input: |
+          select x from hub;
+      - name: o2
+        input: |
+          select x from hub;
+      - name: o3
+        input: |
+          select x from hub;
+
+  # An edge that skips three layers of a chain runs below the chain
+  - name: LayoutEdgeSkipsLayers
+    scripts:
+      - name: s1
+        input: |
+          create table t1 (x int);
+      - name: s2
+        input: |
+          create table t2 as select x from t1;
+      - name: s3
+        input: |
+          create table t3 as select x from t2;
+      - name: s4
+        input: |
+          create table t4 as select x from t3;
+      - name: s5
+        input: |
+          select * from t4, t1;
+
+  # Edges out of three rows of one box into one row: the consumer is level with the middle row
+  - name: LayoutFanInFromRowsOfOneBox
+    scripts:
+      - name: schema
+        input: |
+          create table a (x int);
+          create table b (x int);
+          create table c (x int);
+      - name: report
+        input: |
+          select * from a, b, c;
+
+  # Two edges from right to left: the boxes start below the room that both take around their top
+  - name: LayoutTwoEdgesRightToLeft
+    scripts:
+      - name: p1
+        input: |
+          /** @flow x=800 y=0 */
+          create table t (x int);
+      - name: p2
+        input: |
+          /** @flow x=800 y=200 */
+          create table u (x int);
+      - name: consumer
+        input: |
+          /** @flow x=0 y=300 */
+          select * from t, u;
+
+  # A part with positions stays, a box without edges keeps its position, the part without positions and the box
+  # without edges and position go below everything
+  - name: LayoutFixedPartFreshPartAndLooseBoxes
+    scripts:
+      - name: a
+        input: |
+          /** @flow x=0 y=0 */
+          create table a (x int);
+      - name: from_a
+        input: |
+          /** @flow x=500 y=0 */
+          select x from a;
+      - name: b
+        input: |
+          create table b (x int);
+      - name: from_b
+        input: |
+          select x from b;
+      - name: pinned
+        input: |
+          /** @flow x=1200 y=600 */
+          select 1;
+      - name: loose
+        input: |
+          select 2;
+
+  # The sizes of @flow tags are taken as written, also outside the bounds of a resize. An x without y is no position.
+  - name: LayoutSizesOutsideTheResizeBounds
+    scripts:
+      - name: base
+        input: |
+          /** @flow x=300 width=2000 */
+          create table base (x int);
+      - name: tiny
+        input: |
+          /** @flow width=10 */
+          select x from base;

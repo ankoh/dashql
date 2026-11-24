@@ -2400,3 +2400,528 @@ dataflow-snapshots:
           kind: table
           name: t
           route: [[1080,56],[1104,56],[1104,-24],[352,-24],[352,456],[376,456]]
+
+  - name: LayoutCycleOfThree
+    scripts:
+      - name: a
+        input: |
+          select * from :c;
+      - name: b
+        input: |
+          select * from :a;
+      - name: c
+        input: |
+          select * from :b;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select * from :c"
+          box: [24,0,280,80]
+        - name: b
+          statements:
+            - type: SELECT
+              text: "select * from :a"
+          box: [448,0,280,80]
+        - name: c
+          statements:
+            - type: SELECT
+              text: "select * from :b"
+          box: [872,0,280,80]
+      edges:
+        - from: a.0
+          to: b.0
+          kind: invalid
+          name: a
+          route: [[304,56],[448,56]]
+        - from: b.0
+          to: c.0
+          kind: inline
+          name: b
+          route: [[728,56],[872,56]]
+        - from: c.0
+          to: a.0
+          kind: inline
+          name: c
+          route: [[1152,56],[1176,56],[1176,104],[0,104],[0,56],[24,56]]
+
+  - name: LayoutWideFanOut
+    scripts:
+      - name: base
+        input: |
+          create table base (x int);
+      - name: c1
+        input: |
+          select x from base;
+      - name: c2
+        input: |
+          select x from base;
+      - name: c3
+        input: |
+          select x from base;
+      - name: c4
+        input: |
+          select x from base;
+      - name: c5
+        input: |
+          select x from base;
+      - name: c6
+        input: |
+          select x from base;
+      - name: c7
+        input: |
+          select x from base;
+      - name: c8
+        input: |
+          select x from base;
+    expected:
+      scripts:
+        - name: base
+          statements:
+            - type: CREATE_TABLE
+              target: base
+              text: "create tab..se (x int)"
+          box: [0,384,280,80]
+        - name: c1
+          statements:
+            - type: SELECT
+              text: "select x from base"
+          box: [424,0,280,80]
+        - name: c2
+          statements:
+            - type: SELECT
+              text: "select x from base"
+          box: [424,128,280,80]
+        - name: c3
+          statements:
+            - type: SELECT
+              text: "select x from base"
+          box: [424,256,280,80]
+        - name: c4
+          statements:
+            - type: SELECT
+              text: "select x from base"
+          box: [424,384,280,80]
+        - name: c5
+          statements:
+            - type: SELECT
+              text: "select x from base"
+          box: [424,512,280,80]
+        - name: c6
+          statements:
+            - type: SELECT
+              text: "select x from base"
+          box: [424,640,280,80]
+        - name: c7
+          statements:
+            - type: SELECT
+              text: "select x from base"
+          box: [424,768,280,80]
+        - name: c8
+          statements:
+            - type: SELECT
+              text: "select x from base"
+          box: [424,896,280,80]
+      edges:
+        - from: base.0
+          to: c1.0
+          kind: table
+          name: base
+          route: [[280,440],[352,440],[352,56],[424,56]]
+        - from: base.0
+          to: c2.0
+          kind: table
+          name: base
+          route: [[280,440],[352,440],[352,184],[424,184]]
+        - from: base.0
+          to: c3.0
+          kind: table
+          name: base
+          route: [[280,440],[352,440],[352,312],[424,312]]
+        - from: base.0
+          to: c4.0
+          kind: table
+          name: base
+          route: [[280,440],[424,440]]
+        - from: base.0
+          to: c5.0
+          kind: table
+          name: base
+          route: [[280,440],[352,440],[352,568],[424,568]]
+        - from: base.0
+          to: c6.0
+          kind: table
+          name: base
+          route: [[280,440],[352,440],[352,696],[424,696]]
+        - from: base.0
+          to: c7.0
+          kind: table
+          name: base
+          route: [[280,440],[352,440],[352,824],[424,824]]
+        - from: base.0
+          to: c8.0
+          kind: table
+          name: base
+          route: [[280,440],[352,440],[352,952],[424,952]]
+
+  - name: LayoutBowtie
+    scripts:
+      - name: a
+        input: |
+          create table a (x int);
+      - name: b
+        input: |
+          create table b (x int);
+      - name: c
+        input: |
+          create table c (x int);
+      - name: hub
+        input: |
+          create table hub as select a.x from a, b, c;
+      - name: o1
+        input: |
+          select x from hub;
+      - name: o2
+        input: |
+          select x from hub;
+      - name: o3
+        input: |
+          select x from hub;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: CREATE_TABLE
+              target: a
+              text: "create tab.. a (x int)"
+          box: [0,0,280,80]
+        - name: b
+          statements:
+            - type: CREATE_TABLE
+              target: b
+              text: "create tab.. b (x int)"
+          box: [0,128,280,80]
+        - name: c
+          statements:
+            - type: CREATE_TABLE
+              target: c
+              text: "create tab.. c (x int)"
+          box: [0,256,280,80]
+        - name: hub
+          statements:
+            - type: CREATE_TABLE_AS
+              target: hub
+              text: "create tab..om a, b, c"
+          box: [424,128,280,80]
+        - name: o1
+          statements:
+            - type: SELECT
+              text: "select x from hub"
+          box: [848,0,280,80]
+        - name: o2
+          statements:
+            - type: SELECT
+              text: "select x from hub"
+          box: [848,128,280,80]
+        - name: o3
+          statements:
+            - type: SELECT
+              text: "select x from hub"
+          box: [848,256,280,80]
+      edges:
+        - from: a.0
+          to: hub.0
+          kind: table
+          name: a
+          route: [[280,56],[352,56],[352,184],[424,184]]
+        - from: b.0
+          to: hub.0
+          kind: table
+          name: b
+          route: [[280,184],[424,184]]
+        - from: c.0
+          to: hub.0
+          kind: table
+          name: c
+          route: [[280,312],[352,312],[352,184],[424,184]]
+        - from: hub.0
+          to: o1.0
+          kind: table
+          name: hub
+          route: [[704,184],[776,184],[776,56],[848,56]]
+        - from: hub.0
+          to: o2.0
+          kind: table
+          name: hub
+          route: [[704,184],[848,184]]
+        - from: hub.0
+          to: o3.0
+          kind: table
+          name: hub
+          route: [[704,184],[776,184],[776,312],[848,312]]
+
+  - name: LayoutEdgeSkipsLayers
+    scripts:
+      - name: s1
+        input: |
+          create table t1 (x int);
+      - name: s2
+        input: |
+          create table t2 as select x from t1;
+      - name: s3
+        input: |
+          create table t3 as select x from t2;
+      - name: s4
+        input: |
+          create table t4 as select x from t3;
+      - name: s5
+        input: |
+          select * from t4, t1;
+    expected:
+      scripts:
+        - name: s1
+          statements:
+            - type: CREATE_TABLE
+              target: t1
+              text: "create tab..t1 (x int)"
+          box: [0,0,280,80]
+        - name: s2
+          statements:
+            - type: CREATE_TABLE_AS
+              target: t2
+              text: "create tab.. x from t1"
+          box: [424,0,280,80]
+        - name: s3
+          statements:
+            - type: CREATE_TABLE_AS
+              target: t3
+              text: "create tab.. x from t2"
+          box: [848,0,280,80]
+        - name: s4
+          statements:
+            - type: CREATE_TABLE_AS
+              target: t4
+              text: "create tab.. x from t3"
+          box: [1272,0,280,80]
+        - name: s5
+          statements:
+            - type: SELECT
+              text: "select * f..rom t4, t1"
+          box: [1696,0,280,80]
+      edges:
+        - from: s1.0
+          to: s2.0
+          kind: table
+          name: t1
+          route: [[280,56],[424,56]]
+        - from: s1.0
+          to: s5.0
+          kind: table
+          name: t1
+          route: [[280,56],[352,56],[352,104],[1624,104],[1624,56],[1696,56]]
+        - from: s2.0
+          to: s3.0
+          kind: table
+          name: t2
+          route: [[704,56],[848,56]]
+        - from: s3.0
+          to: s4.0
+          kind: table
+          name: t3
+          route: [[1128,56],[1272,56]]
+        - from: s4.0
+          to: s5.0
+          kind: table
+          name: t4
+          route: [[1552,56],[1696,56]]
+
+  - name: LayoutFanInFromRowsOfOneBox
+    scripts:
+      - name: schema
+        input: |
+          create table a (x int);
+          create table b (x int);
+          create table c (x int);
+      - name: report
+        input: |
+          select * from a, b, c;
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: a
+              text: "create tab.. a (x int)"
+            - type: CREATE_TABLE
+              target: b
+              text: "create tab.. b (x int)"
+            - type: CREATE_TABLE
+              target: c
+              text: "create tab.. c (x int)"
+          box: [0,0,280,144]
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select * f..om a, b, c"
+          box: [424,32,280,80]
+      edges:
+        - from: schema.0
+          to: report.0
+          kind: table
+          name: a
+          route: [[280,56],[352,56],[352,88],[424,88]]
+        - from: schema.1
+          to: report.0
+          kind: table
+          name: b
+          route: [[280,88],[424,88]]
+        - from: schema.2
+          to: report.0
+          kind: table
+          name: c
+          route: [[280,120],[352,120],[352,88],[424,88]]
+
+  - name: LayoutTwoEdgesRightToLeft
+    scripts:
+      - name: p1
+        input: |
+          /** @flow x=800 y=0 */
+          create table t (x int);
+      - name: p2
+        input: |
+          /** @flow x=800 y=200 */
+          create table u (x int);
+      - name: consumer
+        input: |
+          /** @flow x=0 y=300 */
+          select * from t, u;
+    expected:
+      scripts:
+        - name: p1
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (x int)"
+          box: [800,0,280,80]
+        - name: p2
+          statements:
+            - type: CREATE_TABLE
+              target: u
+              text: "create tab.. u (x int)"
+          box: [800,200,280,80]
+        - name: consumer
+          statements:
+            - type: SELECT
+              text: "select * from t, u"
+          box: [376,300,280,80]
+      edges:
+        - from: p1.0
+          to: consumer.0
+          kind: table
+          name: t
+          route: [[1080,56],[1104,56],[1104,-40],[352,-40],[352,356],[376,356]]
+        - from: p2.0
+          to: consumer.0
+          kind: table
+          name: u
+          route: [[1080,256],[1104,256],[1104,-40],[352,-40],[352,356],[376,356]]
+
+  - name: LayoutFixedPartFreshPartAndLooseBoxes
+    scripts:
+      - name: a
+        input: |
+          /** @flow x=0 y=0 */
+          create table a (x int);
+      - name: from_a
+        input: |
+          /** @flow x=500 y=0 */
+          select x from a;
+      - name: b
+        input: |
+          create table b (x int);
+      - name: from_b
+        input: |
+          select x from b;
+      - name: pinned
+        input: |
+          /** @flow x=1200 y=600 */
+          select 1;
+      - name: loose
+        input: |
+          select 2;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: CREATE_TABLE
+              target: a
+              text: "create tab.. a (x int)"
+          box: [0,0,280,80]
+        - name: from_a
+          statements:
+            - type: SELECT
+              text: "select x from a"
+          box: [424,0,280,80]
+        - name: b
+          statements:
+            - type: CREATE_TABLE
+              target: b
+              text: "create tab.. b (x int)"
+          box: [0,776,280,80]
+        - name: from_b
+          statements:
+            - type: SELECT
+              text: "select x from b"
+          box: [424,776,280,80]
+        - name: pinned
+          statements:
+            - type: SELECT
+              text: "select 1"
+          box: [1200,600,280,80]
+        - name: loose
+          statements:
+            - type: SELECT
+              text: "select 2"
+          box: [0,952,280,80]
+      edges:
+        - from: a.0
+          to: from_a.0
+          kind: table
+          name: a
+          route: [[280,56],[424,56]]
+        - from: b.0
+          to: from_b.0
+          kind: table
+          name: b
+          route: [[280,832],[424,832]]
+
+  - name: LayoutSizesOutsideTheResizeBounds
+    scripts:
+      - name: base
+        input: |
+          /** @flow x=300 width=2000 */
+          create table base (x int);
+      - name: tiny
+        input: |
+          /** @flow width=10 */
+          select x from base;
+    expected:
+      scripts:
+        - name: base
+          statements:
+            - type: CREATE_TABLE
+              target: base
+              text: "create tab..se (x int)"
+          box: [0,0,2000,80]
+        - name: tiny
+          statements:
+            - type: SELECT
+              text: "select x from base"
+          box: [2144,0,10,80]
+      edges:
+        - from: base.0
+          to: tiny.0
+          kind: table
+          name: base
+          route: [[2000,56],[2144,56]]

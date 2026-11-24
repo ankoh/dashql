@@ -80,3 +80,26 @@ planner-snapshots:
         input: |
           select sum(amount) from :orders_all where region = 'west';
     targets: [west]
+
+  # Two targets inline a script that runs only on request, it has no node. Its name is a keyword and quoted.
+  - name: ManualInlinedByTwoTargets
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, region text);
+    targets: [west, east]
+    scripts:
+      - name: all
+        connection: trino
+        input: |
+          /* @manual */
+          select id, region from orders;
+      - name: west
+        connection: trino
+        input: |
+          select count(*) from :all where region = 'west';
+      - name: east
+        connection: trino
+        input: |
+          select count(*) from :all where region = 'east';

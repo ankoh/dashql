@@ -59,3 +59,22 @@ planner-snapshots:
       - name: report
         input: |
           select count(*) from t;
+
+  # A tolerant plan leaves out a script whose result the host provides, the scan reads the provided file
+  - name: TolerantWithProvidedResult
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scope: tolerant
+    materialized: [foo]
+    scripts:
+      - name: foo
+        connection: trino
+        input: |
+          select 1 as a;
+      - name: bar
+        connection: local
+        input: |
+          select * from :foo;

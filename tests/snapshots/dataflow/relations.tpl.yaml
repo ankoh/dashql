@@ -378,3 +378,17 @@ dataflow-snapshots:
       - name: read
         input: |
           select * from t;
+
+  # TRUNCATE of two tables writes both and continues both flows, two table edges run between the same two statements
+  - name: TruncateContinuesTheFlow
+    scripts:
+      - name: setup
+        input: |
+          create table a (x int);
+          create table b (x int);
+      - name: clear
+        input: |
+          truncate a, b;
+      - name: report
+        input: |
+          select * from a, b;
