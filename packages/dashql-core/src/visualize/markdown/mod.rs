@@ -3,7 +3,9 @@
 //!
 //! The fields are replaced by unique tokens, the template is parsed as CommonMark with pulldown-cmark, and the tokens
 //! are turned into field nodes again. Raw HTML is dropped, links and images with unsafe URLs or with fields in their
-//! URLs become plain spans. Adjacent text is merged into one text node, soft line breaks are text (`\n`).
+//! URLs become plain spans without URL and title. Titles and code languages with fields are left out, so no token
+//! reaches the document outside a field node. Adjacent text is merged into one text node, soft line breaks are text
+//! (`\n`).
 
 use crate::analyzer::types::VisualizationSpec;
 use dashql_buffers::visualization::{MarkdownNodeT, MarkdownNodeType, MarkdownSpecT};
@@ -20,7 +22,7 @@ pub struct MarkdownNode {
     pub url: String,
     /// The title of a link or image, empty if it contains a field
     pub title: String,
-    /// The language of a fenced code block, the first word of its info string
+    /// The language of a fenced code block, the first word of its info string, empty if it contains a field
     pub language: String,
     /// The level of a heading
     pub level: u8,
@@ -241,16 +243,28 @@ impl<'a> DocumentBuilder<'a> {
         }
     }
 
-    /// A link or an image, a span if the URL is unsafe or contains a field
+    /// A link or an image, a span without URL and title if the URL is unsafe or contains a field
     fn link(&self, node_type: MarkdownNodeType, link_type: LinkType, url: &str, title: &str) -> MarkdownNode {
         let url = if link_type == LinkType::Email { format!("mailto:{url}") } else { url.to_string() };
-        let safe = is_safe_url(&url) && !self.contains_field(&url);
-        let mut node = MarkdownNode::new(if safe { node_type } else { MarkdownNodeType::SPAN });
+        if !is_safe_url(&url) || self.contains_field(&url) {
+            return MarkdownNode::new(MarkdownNodeType::SPAN);
+        }
+        let mut node = MarkdownNode::new(node_type);
         if !self.contains_field(title) {
             node.title = title.to_string();
         }
         node.url = url;
         node
+    }
+
+    /// The language of a fenced code block, the first word of its info string, empty if it contains a field
+    fn code_language(&self, info: &str) -> String {
+        let language = info.split_whitespace().next().unwrap_or_default();
+        if self.contains_field(language) {
+            String::new()
+        } else {
+            language.to_string()
+        }
     }
 
     fn start(&mut self, tag: Tag) {
@@ -262,7 +276,7 @@ impl<'a> DocumentBuilder<'a> {
             Tag::BlockQuote(_) => MarkdownNode::new(MarkdownNodeType::BLOCKQUOTE),
             Tag::CodeBlock(kind) => {
                 let language = match kind {
-                    CodeBlockKind::Fenced(info) => info.split_whitespace().next().unwrap_or_default().to_string(),
+                    CodeBlockKind::Fenced(info) => self.code_language(&info),
                     CodeBlockKind::Indented => String::new(),
                 };
                 MarkdownNode { language, ..MarkdownNode::new(MarkdownNodeType::CODE_BLOCK) }

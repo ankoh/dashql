@@ -98,13 +98,55 @@ fn resolves_links() {
         compile("[a][ref] ![img](/x.png \"t\") <https://x.y> <me@x.y> [bad](javascript:x)\n\n[REF]: http://r 'T'"),
         "document(paragraph(link[url=\"http://r\" title=\"T\"](text[value=\"a\"]), text[value=\" \"], \
          image[url=\"/x.png\" title=\"t\"](text[value=\"img\"]), text[value=\" \"], link[url=\"https://x.y\"](text[value=\"https://x.y\"]), \
-         text[value=\" \"], link[url=\"mailto:me@x.y\"](text[value=\"me@x.y\"]), text[value=\" \"], span[url=\"javascript:x\"](text[value=\"bad\"])))"
+         text[value=\" \"], link[url=\"mailto:me@x.y\"](text[value=\"me@x.y\"]), text[value=\" \"], span(text[value=\"bad\"])))"
     );
-    // A field in the url makes a span that carries the field instead of a link
-    let compiled = compile("[x]({{f}} \"{{f}}\")");
-    assert!(compiled.starts_with("document(paragraph(span[url="), "{compiled}");
-    assert!(compiled.ends_with("](text[value=\"x\"])))"), "{compiled}");
+    // A field in the url makes a span without the url and the title
+    assert_eq!(compile("[x]({{f}} \"{{f}}\")"), "document(paragraph(span(text[value=\"x\"])))");
+    assert_eq!(compile("![x](data:image/png \"t\")"), "document(paragraph(span(text[value=\"x\"])))");
+    assert_eq!(compile("<{{f}}@x.y>"), "document(paragraph(span(field[value=\"f\"], text[value=\"@x.y\"])))");
     assert_eq!(compile("[x](/a&amp;b\\) \"t {{f}}\")"), "document(paragraph(link[url=\"/a&b)\"](text[value=\"x\"])))");
+}
+
+#[test]
+fn leaves_out_languages_with_fields() {
+    assert_eq!(
+        compile("```{{lang}} rest\ncode {{a}}\n```"),
+        "document(codeBlock(text[value=\"code \"], field[value=\"a\"], text[value=\"\\n\"]))"
+    );
+    assert_eq!(compile("```sql{{v}}\nx\n```"), "document(codeBlock(text[value=\"x\\n\"]))");
+    // Fields after the first word of the info string are not read
+    assert_eq!(compile("```sql {{v}}\nx\n```"), "document(codeBlock[lang=\"sql\"](text[value=\"x\\n\"]))");
+}
+
+/// The strings of a FlatBuffer node and its children
+fn object_strings(node: &MarkdownNodeT, out: &mut Vec<String>) {
+    for value in [&node.value, &node.url, &node.title, &node.language].into_iter().flatten() {
+        out.push(value.clone());
+    }
+    for child in node.children.iter().flatten() {
+        object_strings(child, out);
+    }
+}
+
+#[test]
+fn never_leaks_tokens() {
+    for template in [
+        "```{{lang}} rest\ncode {{a}}\n```",
+        "~~~ {{lang}}\n~~~",
+        "[x]({{u}} \"{{t}}\") [y](/ok \"{{t}}\") ![z](/{{u}}.png \"{{t}}\") ![w](/ok.png \"a {{t}}\")",
+        "[r] ![r]\n\n[r]: /{{u}} \"{{t}}\"",
+        "<https://x/{{u}}> <{{u}}@x.y>",
+        "# {{h}} {#{{id}}}\n\nSetext {{h}}\n===",
+        "<div title=\"{{a}}\">{{b}}</div>\n\n<span data-x=\"{{c}}\">{{d}}</span> <!-- {{e}} -->",
+        "`{{a}}` **{{b}}** *{{c}}*",
+    ] {
+        let document = compile_markdown_template(template);
+        let mut strings = Vec::new();
+        object_strings(&document.to_object().document.unwrap(), &mut strings);
+        for string in strings {
+            assert!(!string.contains("DASHQLMARKDOWNFIELD"), "{template:?} leaks {string:?}");
+        }
+    }
 }
 
 #[test]

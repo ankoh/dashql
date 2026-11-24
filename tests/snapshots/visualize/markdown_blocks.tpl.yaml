@@ -144,3 +144,17 @@ visualize-snapshots:
            ![{{a}} logo](https://example.com/a.png) <span class="x">{{b}}</span>
         */
         SELECT 1 AS a, 2 AS b;
+
+  # A field in the info string of a code fence leaves the block without a language, like a field in a link title.
+  # Heading attributes are not enabled, `{#{{id}}}` stays text around the field
+  - name: vis_markdown_field_in_code_info
+    script:
+      input: |
+        /* @vis markdown
+           # Title {#{{id}}}
+
+           ```{{lang}} rest
+           code {{a}}
+           ```
+        */
+        SELECT 1 AS a, 'sql' AS lang, 'x' AS id;

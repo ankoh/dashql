@@ -280,8 +280,11 @@ the tags are plain comments.
   to know it.
 - `markdown`: the template is parsed once with pulldown-cmark (CommonMark) and encoded as a safe
   FlatBuffer AST (`visualize/markdown`). `{{field}}` placeholders become `FIELD` leaves, raw HTML is
-  discarded, and unsafe or dynamic link destinations are not emitted as links. The app renders the AST
-  once per result row and substitutes the formatted Arrow values as React text.
+  discarded, and unsafe or dynamic link destinations are not emitted as links: the link or image becomes a
+  span with its text, without URL and title. A field only renders as text, so a link title or the language of
+  a code fence (the first word of its info string) with a field is left out. `fields` lists every placeholder
+  of the template, also those in parts that are left out. The app renders the AST once per result row and
+  substitutes the formatted Arrow values as React text.
 
   A placeholder is `{{`, a name without braces and `}}`, the name trimmed of spaces and line breaks. The
   placeholders are found before CommonMark parses the template, so they work in any text, code included.
