@@ -51,7 +51,7 @@ use session_inputs::{bind_inputs, collect_session_inputs, describe_call, Session
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use crate::workbook_run::result_key::{cacheable, script_signature};
+use crate::workbook_run::result_key::{cacheable, mutating, script_signature};
 
 /// A relation name: (database, schema, table)
 type Name = (String, String, String);
@@ -851,18 +851,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                 if ast.node_type() == NodeType::NONE {
                     continue;
                 }
-                let mutating = matches!(
-                    ast.node_type(),
-                    NodeType::OBJECT_SQL_INSERT
-                        | NodeType::OBJECT_SQL_DELETE
-                        | NodeType::OBJECT_SQL_UPDATE
-                        | NodeType::OBJECT_SQL_MERGE
-                        | NodeType::OBJECT_SQL_CREATE
-                        | NodeType::OBJECT_SQL_CREATE_AS
-                        | NodeType::OBJECT_SQL_VIEW
-                        | NodeType::OBJECT_SQL_CREATE_FUNCTION
-                ) || ast.attribute_key() == Key::SQL_SELECT_INTO;
-                if ty == Type::EXPLAIN && explain_executes && mutating {
+                if ty == Type::EXPLAIN && explain_executes && mutating(ast) {
                     barrier!("execution-enabled EXPLAIN with a mutating body cannot be safely classified");
                 }
                 if ast.node_type() == NodeType::ENUM_SQL_TEMP_TYPE

@@ -11,9 +11,10 @@ use std::fmt::Display;
 use std::future::Future;
 
 use dashql_buffers::execution::ExecutionGraphT;
-use dashql_buffers::parser::{Node, NodeType, StatementType};
+use dashql_buffers::parser::{AttributeKey, Node, NodeType, StatementType};
+use dashql_core::touched_relations::explain_executes;
 use dashql_parser::parser::context::resolve_text_span;
-use dashql_parser::parser::ParsedScript;
+use dashql_parser::parser::{ParsedScript, Statement};
 
 use crate::executor::StoredFile;
 
@@ -62,13 +63,50 @@ pub fn script_signature<N: Display, V: Display, F: Display, S: Display>(
     Some(lines.collect::<Vec<_>>().join("\n"))
 }
 
-/// May a run reuse the stored result of a script? A script of queries only: a reuse skips the whole script, so a
-/// script with commands before its query always runs, and a client function call asks a service and not the backend.
+/// May a run reuse the stored result of a script? A script of queries that write nothing: a reuse skips the whole
+/// script, so a script with commands before its query always runs, as does a query that writes, and a client function
+/// call asks a service and not the backend.
 pub fn cacheable(parsed: &ParsedScript, calls_client_functions: bool) -> bool {
     parses(parsed)
         && !parsed.statements.is_empty()
-        && parsed.statements.iter().all(|s| matches!(s.statement_type, StatementType::SELECT | StatementType::EXPLAIN))
+        && parsed.statements.iter().all(|s| {
+            matches!(s.statement_type, StatementType::SELECT | StatementType::EXPLAIN) && !query_writes(parsed, s)
+        })
         && !calls_client_functions
+}
+
+/// Does a node of a statement change the database when the statement runs? The statements that write or define
+/// relations or functions, also nested ones.
+pub fn mutating(node: &Node) -> bool {
+    node.node_type() != NodeType::NONE
+        && (matches!(
+            node.node_type(),
+            NodeType::OBJECT_SQL_INSERT
+                | NodeType::OBJECT_SQL_DELETE
+                | NodeType::OBJECT_SQL_UPDATE
+                | NodeType::OBJECT_SQL_MERGE
+                | NodeType::OBJECT_SQL_CREATE
+                | NodeType::OBJECT_SQL_CREATE_AS
+                | NodeType::OBJECT_SQL_VIEW
+                | NodeType::OBJECT_SQL_CREATE_FUNCTION
+        ) || node.attribute_key() == AttributeKey::SQL_SELECT_INTO)
+}
+
+/// Does a query write when it runs? A SELECT with a data-modifying WITH does, an EXPLAIN when it runs a statement that
+/// writes (`explain (analyze) update ...`).
+fn query_writes(parsed: &ParsedScript, statement: &Statement) -> bool {
+    let begin = statement.nodes_begin as usize;
+    let nodes = parsed.nodes.get(begin..begin + statement.node_count as usize).unwrap_or_default();
+    if !nodes.iter().any(mutating) {
+        return false;
+    }
+    if statement.statement_type != StatementType::EXPLAIN {
+        return true;
+    }
+    let root = parsed.nodes.get(statement.root as usize);
+    let options =
+        root.and_then(|r| parsed.children(r).iter().find(|c| c.attribute_key() == AttributeKey::EXT_EXPLAIN_OPTIONS));
+    explain_executes(parsed, options)
 }
 
 /// Did a script scan and parse without errors?
@@ -455,5 +493,12 @@ mod tests {
         assert!(!cacheable(&parsed("select 1"), true));
         assert!(!cacheable(&parsed("create table t as select 1; select * from t"), false));
         assert!(!cacheable(&parsed(""), false));
+        // A query that writes runs every time
+        assert!(!cacheable(&parsed("with gone as (delete from t returning a) select * from gone"), false));
+        assert!(!cacheable(&parsed("explain (analyze) update t set a = 1"), false));
+        assert!(!cacheable(&parsed("explain (analyze) create table u as select 1"), false));
+        // An EXPLAIN that doesn't run its statement writes nothing
+        assert!(cacheable(&parsed("explain update t set a = 1"), false));
+        assert!(cacheable(&parsed("explain (analyze) select * from t"), false));
     }
 }

@@ -1599,7 +1599,7 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
-          cacheable: true
+          cacheable: false
           terminal-statement-id: 3
           signature: "233fedba2c095dd7b8186f72a37338815d065676574a3999569dee42083fbdea"
       entities:
@@ -3553,7 +3553,7 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
-          cacheable: true
+          cacheable: false
           terminal-statement-id: 1
           signature: "76b3f87dbb97bacbe2cf7fae303047fda2d9807c9f1ef628c209a8cfd51798f4"
       entities:
@@ -3758,3 +3758,100 @@ planner-snapshots:
           script: t
           error: false
           message: relation was dropped without an earlier lifetime producer; later producer cannot be reordered
+
+  - name: WritingQueriesAreNotCacheable
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: deleted
+        input: |
+          with gone as (delete from t returning a) select * from gone;
+      - name: updated
+        input: |
+          explain (analyze) update t set a = 1;
+      - name: planned
+        input: |
+          explain update t set a = 2;
+    expected:
+      valid: true
+      scripts:
+        - name: deleted
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "f330816e00f0860d34b7f232686dead1c36e31c0b431d63d642afb3bf8894d3f"
+        - name: updated
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "48439795ef98e05009bcb1ae3f382a086e94b835894eed679ff39c6fb04b0c1b"
+        - name: planned
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "f75c8e1482e903893f020e9a9152e5397a7253ae5da3d89503f422acffbf8400"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: deleted
+          statement-id: 0
+          type: SELECT
+          sql: "with gone as (delete from t returning a) select * from gone"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 1
+          script: updated
+          statement-id: 0
+          type: EXPLAIN
+          sql: "explain (analyze) update t set a = 1"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 2
+          script: planned
+          statement-id: 0
+          type: EXPLAIN
+          sql: "explain update t set a = 2"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: WRITE_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 0
+          to: 1
+          reason: BARRIER
+        - from: 1
+          to: 2
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 2
+          reason: BARRIER
+      diagnostics:
+        - node: 1
+          script: updated
+          error: false
+          message: execution-enabled EXPLAIN with a mutating body cannot be safely classified

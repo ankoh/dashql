@@ -129,9 +129,10 @@ connection can't run, and runs again once the user runs it on its connection.
 
 ## Reuse
 
-A key is reusable if the script is cacheable and the keys of the scripts it references are reusable. Only scripts whose statements are all `SELECT` or `EXPLAIN` are cacheable: a reuse skips the complete
-script, so a script with commands before its terminal query, such as `CREATE TABLE t AS ...; SELECT * FROM t`, always
-executes. A referenced call of a client function is never cacheable.
+A key is reusable if the script is cacheable and the keys of the scripts it references are reusable. Only scripts whose statements are all `SELECT` or `EXPLAIN` that write nothing are cacheable: a reuse skips the
+complete script, so a script with commands before its terminal query, such as `CREATE TABLE t AS ...; SELECT * FROM t`,
+always executes, as does a query that writes, a `SELECT` with a data-modifying `WITH` or an `EXPLAIN (ANALYZE)` of an
+`UPDATE` (`planner_dependencies.md`, Cacheability). A referenced call of a client function is never cacheable.
 
 Every connection reuses results the same way, there is no choice per connection: **Run**, **Execute All** and a
 change of inputs reuse a stored result whose key fits, only **Refresh** computes a result anew. A refresh outdates the

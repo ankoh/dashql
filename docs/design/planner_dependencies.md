@@ -271,8 +271,11 @@ of its materializations.
 
 ## Cacheability
 
-A script is cacheable if it parses, has a statement and every statement is a SELECT or EXPLAIN
-(`ExecutionGraphScript.cacheable`). The scripts it references need no check: a referenced script is a single SELECT or a
+A script is cacheable if it parses, has a statement and every statement is a SELECT or EXPLAIN that writes nothing
+(`ExecutionGraphScript.cacheable`, `cacheable` in `workbook_run/result_key.rs`): a SELECT with a data-modifying WITH
+(`with gone as (delete from t returning a) select * from gone`) and an EXPLAIN that runs a statement that writes
+(`explain (analyze) update t set a = 1`) write every time they run, a reuse would skip the write. An EXPLAIN that
+doesn't run its statement writes nothing. The scripts it references need no check: a referenced script is a single SELECT or a
 call that reads, anything else invalidates the plan. A call isn't cacheable, so the key of a script that reads one isn't
 reusable (`workbook_results.md`). Whether a stored result is reused also depends on the connections
 (`workbook_results.md`, Result Keys).
