@@ -220,6 +220,8 @@ analyzer-snapshots:
                 - {name: name, table-column: "256.65536.1:1.0"}
                 - {name: quantity, table-column: "256.65536.1:1.1"}
               text: "(orders o ..true) as j"
+          clauses:
+            - {sources: within, text: "true"}
           columns:
             - {name: '?', computed: true}
             - {name: name, expression: 1}

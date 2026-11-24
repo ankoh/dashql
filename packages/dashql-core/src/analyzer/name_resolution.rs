@@ -59,6 +59,8 @@ struct NodeState {
     using_joins: Vec<UsingJoin>,
     /// The parenthesized joins with an alias of the next scope
     join_aliases: Vec<ScopeJoin>,
+    /// The clauses of the next scope that see only some of its FROM items, the `ON` conditions of its joins
+    clauses: Vec<ScopeClause>,
 }
 
 /// Move the entries of a list to the end of another one. Takes over the buffer if the destination is
@@ -83,6 +85,7 @@ impl NodeState {
         append(&mut self.derived_tables, &mut other.derived_tables);
         append(&mut self.using_joins, &mut other.using_joins);
         append(&mut self.join_aliases, &mut other.join_aliases);
+        append(&mut self.clauses, &mut other.clauses);
     }
 
     fn clear(&mut self) {
@@ -266,6 +269,7 @@ impl NameResolutionPass {
             // The table refs are added when they are resolved
             sources: std::mem::take(&mut target.derived_tables),
             joins: std::mem::take(&mut target.join_aliases),
+            clauses: std::mem::take(&mut target.clauses),
             ..Default::default()
         });
         // Start a new scope
@@ -1283,7 +1287,7 @@ impl NameResolutionPass {
         let hiding: Vec<ScopeJoin> = self
             .hiding_joins(state, target, node_id)
             .into_iter()
-            .filter(|join| visibility.sees_node(join.ast_node_id))
+            .filter(|join| visibility.sees_node(state.ast, join.ast_node_id))
             .collect();
 
         if let Some(alias) = alias {
@@ -1305,7 +1309,9 @@ impl NameResolutionPass {
         // No table alias, scan all FROM items for the column and check for ambiguity
         let Some(scope) = state.out.scope(target) else { return Lookup::Missing };
         let mut candidates = Vec::new();
-        for source in scope.sources.iter().filter(|s| visibility.sees(s) && !Self::is_hidden(state, s, &hiding)) {
+        for source in
+            scope.sources.iter().filter(|s| visibility.sees(state.ast, s) && !Self::is_hidden(state, s, &hiding))
+        {
             let resolution = Self::resolve_column(state, source, &column_name);
             if resolution.is_resolved() {
                 candidates.push((source.ast_node_id, source.name.clone(), resolution));
@@ -1541,13 +1547,13 @@ impl NameResolutionPass {
                     .iter()
                     .find(|join| join.ast_node_id != item && Self::is_within(state, item, join.ast_node_id));
                 match join {
-                    Some(join) if visibility.sees_node(join.ast_node_id) => {
+                    Some(join) if visibility.sees_node(state.ast, join.ast_node_id) => {
                         let alias = quote_identifier(&join.name);
                         return Some(format!(
                             "invalid reference to FROM-clause entry for table {table}, use the alias {alias} of its join"
                         ));
                     }
-                    _ if visibility != SourceVisibility::None && !visibility.sees_node(item) => {
+                    _ if visibility != SourceVisibility::None && !visibility.sees_node(state.ast, item) => {
                         return Some(format!(
                             "invalid reference to FROM-clause entry for table {table}, it cannot be referenced from this \
                              part of the query"
@@ -1678,7 +1684,7 @@ impl NameResolutionPass {
                     let visibility = self.visibility(expr);
                     let candidates: Vec<InferenceCandidate> = local_unresolved
                         .iter()
-                        .filter(|(node_id, _)| visibility.sees_node(*node_id))
+                        .filter(|(node_id, _)| visibility.sees_node(state.ast, *node_id))
                         .map(|(_, candidate)| candidate.clone())
                         .collect();
                     if candidates.is_empty() {
@@ -2428,7 +2434,11 @@ impl NameResolutionPass {
 
             NodeType::OBJECT_SQL_JOINED_TABLE => {
                 self.merge_child_states(node_state, node);
-                let [join_type, using] = attrs!(state.children(node), [K::SQL_JOIN_TYPE, K::SQL_JOIN_USING]);
+                let [join_type, using, on] =
+                    attrs!(state.children(node), [K::SQL_JOIN_TYPE, K::SQL_JOIN_USING, K::SQL_JOIN_ON]);
+                if let Some(on) = on {
+                    self.restrict_join_condition(state, node_state, node_id, state.node_id(on));
+                }
                 if let Some(using) = using.filter(|n| n.node_type() == NodeType::ARRAY) {
                     let mut columns = Vec::new();
                     for column in state.children(using) {
@@ -2678,11 +2688,30 @@ impl NameResolutionPass {
         if let Some(s) = state.out.scope_mut(scope) {
             s.result_targets.extend(result_targets);
             s.ctes_recursive = recursive.is_some();
-            s.clauses = restricted;
+            s.clauses.extend(restricted);
         }
         Self::attach_ctes(state, scope, ctes);
         // CTE definitions cannot correlate to the target or the read relations
         self.set_cte_correlation_barriers(state, scope);
+    }
+
+    /// The `ON` condition of a join sees only the FROM items inside the join, also from its subqueries, as in
+    /// PostgreSQL: `t join u on u.a = v.id, v` is an invalid reference to the FROM-clause entry v
+    fn restrict_join_condition(&mut self, state: &mut AnalysisState, node_state: &mut NodeState, join: u32, on: u32) {
+        let visibility = SourceVisibility::Within(join);
+        for &expr in &node_state.column_references {
+            if state.out.expression(expr).is_some_and(|e| Self::is_within(state, e.ast_node_id, on)) {
+                self.expression_visibility.insert(expr, visibility);
+            }
+        }
+        for &child in &node_state.child_scopes {
+            if state.out.scope(child).is_some_and(|s| Self::is_within(state, s.ast_node_id, on)) {
+                if let Some(s) = state.out.scope_mut(child) {
+                    s.parent_visibility = visibility;
+                }
+            }
+        }
+        node_state.clauses.push(ScopeClause { ast_node_id: on, visibility });
     }
 
     /// The relations that UPDATE, DELETE and MERGE read, the FROM items of UPDATE, the USING items of DELETE and the
@@ -2691,8 +2720,9 @@ impl NameResolutionPass {
     /// without the target.
     fn hide_target_from_reads(&mut self, state: &mut AnalysisState, node_state: &NodeState, target: u32, reads: u32) {
         for &expr in &node_state.column_references {
+            // The condition of a join sees the FROM items inside it only, the target is none of them
             if state.out.expression(expr).is_some_and(|e| Self::is_within(state, e.ast_node_id, reads)) {
-                self.expression_visibility.insert(expr, SourceVisibility::Except(target));
+                self.expression_visibility.entry(expr).or_insert(SourceVisibility::Except(target));
             }
         }
         for &child in &node_state.child_scopes {

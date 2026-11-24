@@ -1344,6 +1344,8 @@ analyzer-snapshots:
             - {type: table, name: v, text: "v"}
             - {type: table, name: w, text: "w"}
             - {type: table, name: v2, text: "v as v2"}
+          clauses:
+            - {sources: within, text: "v2.id = v.id"}
           columns:
             - {name: id, expression: 0}
           text: "select id ...id = v.id"
@@ -1370,6 +1372,8 @@ analyzer-snapshots:
           sources:
             - {type: table, name: v, text: "v"}
             - {type: table, name: w, text: "w"}
+          clauses:
+            - {sources: within, text: "v.id = w.id"}
           columns:
             - {name: id, expression: 0}
           text: "select id ...id = w.id"

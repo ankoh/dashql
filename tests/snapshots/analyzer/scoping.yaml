@@ -518,6 +518,8 @@ analyzer-snapshots:
           sources:
             - {type: cte, name: r, scope: 2, text: "r"}
             - {type: table, name: t, text: "t"}
+          clauses:
+            - {sources: within, text: "t.a = r.m"}
           columns:
             - {name: n, expression: 2}
             - {name: b, expression: 3}
@@ -690,6 +692,8 @@ analyzer-snapshots:
           sources:
             - {type: table, name: x, text: "t x"}
             - {type: table, name: y, text: "t y"}
+          clauses:
+            - {sources: within, text: "x.a = y.b"}
           columns:
             - {name: a, expression: 0}
             - {name: b, expression: 1}
@@ -719,6 +723,8 @@ analyzer-snapshots:
           sources:
             - {type: table, name: t, text: "t"}
             - {type: table, name: x, text: "t x"}
+          clauses:
+            - {sources: within, text: "t.a = x.b"}
           columns:
             - {name: a, expression: 0}
             - {name: a, expression: 1}
@@ -748,6 +754,8 @@ analyzer-snapshots:
           sources:
             - {type: table, name: t, text: "t"}
             - {type: table, name: u, text: "u"}
+          clauses:
+            - {sources: within, text: "a = c"}
           columns:
             - {name: b, expression: 0}
             - {name: c, expression: 1}
@@ -885,6 +893,8 @@ analyzer-snapshots:
           sources:
             - {type: table, name: t, text: "t"}
             - {type: subquery, name: s, scope: 0, text: "lateral (s..a = t.a) s"}
+          clauses:
+            - {sources: within, text: "true"}
           columns:
             - {name: a, expression: 0}
             - {name: c, expression: 1}
@@ -960,6 +970,8 @@ analyzer-snapshots:
                 - {name: a, table-column: "256.65536.1:1.0"}
                 - {name: c, table-column: "256.65536.1:1.1"}
               text: "(t join u .. u.a) as j"
+          clauses:
+            - {sources: within, text: "t.a = u.a"}
           columns:
             - {name: a, expression: 0}
             - {name: c, expression: 1}
@@ -1004,6 +1016,9 @@ analyzer-snapshots:
                 - {name: a, table-column: "256.65536.1:1.0"}
                 - {name: c, table-column: "256.65536.1:1.1"}
               text: "(t join u ..true) as k"
+          clauses:
+            - {sources: within, text: "true"}
+            - {sources: within, text: "true"}
           columns:
             - {name: a, expression: 0}
           text: "select a f..true) as j"
@@ -1330,6 +1345,8 @@ analyzer-snapshots:
                 - {name: a, table-column: "256.65536.1:1.0"}
                 - {name: c, table-column: "256.65536.1:1.1"}
               text: "(t join u .. u.a) as j"
+          clauses:
+            - {sources: within, text: "t.a = u.a"}
           columns:
             - {name: b, expression: 0}
             - {name: c, expression: 1}
@@ -1364,6 +1381,8 @@ analyzer-snapshots:
                 - {name: a, table-column: "256.65536.1:1.0"}
                 - {name: c, table-column: "256.65536.1:1.1"}
               text: "(t as x jo..true) as j"
+          clauses:
+            - {sources: within, text: "true"}
           columns:
             - {name: x, expression: 0}
           text: "select x.x.. j, v as x"
@@ -1395,6 +1414,8 @@ analyzer-snapshots:
                 - {name: a, table-column: "256.65536.1:0.0"}
                 - {name: b, table-column: "256.65536.1:0.1"}
               text: "(t join t ..true) as j"
+          clauses:
+            - {sources: within, text: "true"}
           columns:
             - {name: a, expression: 0}
           text: "select t.a..e) as j, t"
@@ -1484,6 +1505,9 @@ analyzer-snapshots:
                 - {name: a, table-column: "256.65536.1:1.0"}
                 - {name: c, table-column: "256.65536.1:1.1"}
               text: "(t join u ..true) as k"
+          clauses:
+            - {sources: within, text: "true"}
+            - {sources: within, text: "true"}
           columns:
             - {name: a, expression: 0}
             - {name: b, expression: 1}
@@ -1516,6 +1540,8 @@ analyzer-snapshots:
                 - {name: a, table-column: "256.65536.1:1.0"}
                 - {name: c, table-column: "256.65536.1:1.1"}
               text: "(t join u ..on true) j"
+          clauses:
+            - {sources: within, text: "true"}
           columns:
             - {name: a, table-column: "256.65536.1:0.0"}
             - {name: b, table-column: "256.65536.1:0.1"}
@@ -1551,6 +1577,8 @@ analyzer-snapshots:
                 - {name: a, table-column: "256.65536.1:1.0"}
                 - {name: c, table-column: "256.65536.1:1.1"}
               text: "(missing m.. u.a) as j"
+          clauses:
+            - {sources: within, text: "m.a = u.a"}
           columns:
             - {name: k, expression: 0}
           text: "select m.k.. u.a) as j"
@@ -1692,6 +1720,8 @@ analyzer-snapshots:
           sources:
             - {type: table, name: t, text: "t"}
             - {type: table, name: u, text: "u"}
+          clauses:
+            - {sources: within, text: "t.a = u.n6"}
           columns:
             - {name: '?', expression: 13}
             - {name: '?', computed: true}
@@ -2331,6 +2361,8 @@ analyzer-snapshots:
           sources:
             - {type: cte, name: r1, scope: 2, text: "r r1"}
             - {type: cte, name: r2, scope: 2, text: "r r2"}
+          clauses:
+            - {sources: within, text: "r1.n = r2.n"}
           columns:
             - {name: n, expression: 2}
             - {name: n, expression: 3}
@@ -2898,6 +2930,8 @@ analyzer-snapshots:
           sources:
             - {type: table, name: u, text: "u"}
             - {type: table, name: v, text: "v"}
+          clauses:
+            - {sources: within, text: "u.a = v.id.. v.x = t.b"}
           columns:
             - {name: '?', expression: 4}
           text: "(select 1 ..v.x = t.b)"
@@ -2934,6 +2968,8 @@ analyzer-snapshots:
             - {type: table, name: t, text: "t"}
             - {type: table, name: u, text: "u"}
             - {type: table, name: v, text: "v"}
+          clauses:
+            - {sources: within, text: "v.id = a"}
           columns:
             - {name: a, expression: 0}
             - {name: b, expression: 1}
@@ -3587,3 +3623,107 @@ analyzer-snapshots:
           columns:
             - {name: a, expression: 2}
           text: "select a from z"
+
+  - name: join_on_sees_only_its_inputs
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select 1 from t join u on u.a = v.id, v
+      catalog-id: 2
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table v, it cannot be referenced from this part of the query', text: "v.id"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "v"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+        - {id: 1, type: colref/unresolved, text: "v.id"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 2, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
+            - {type: table, name: v, text: "v"}
+          clauses:
+            - {sources: within, text: "u.a = v.id"}
+          columns:
+            - {name: '?', expression: 2}
+          text: "select 1 f.. = v.id, v"
+
+  - name: join_on_sees_no_earlier_from_item
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select 1 from v, t join u on u.a = v.id
+      catalog-id: 2
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table v, it cannot be referenced from this part of the query', text: "v.id"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "v"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+        - {id: 1, type: colref/unresolved, text: "v.id"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 2, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
+            - {type: table, name: v, text: "v"}
+          clauses:
+            - {sources: within, text: "u.a = v.id"}
+          columns:
+            - {name: '?', expression: 2}
+          text: "select 1 f..u.a = v.id"
+
+  - name: join_on_subquery_sees_only_its_inputs
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select 1 from t join u on exists (select 1 where v.id = u.a), v
+      catalog-id: 2
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table v, it cannot be referenced from this part of the query', text: "v.id"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "v"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "v.id"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 2, text: "1"}
+        - {expression: 3, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: within
+          columns:
+            - {name: '?', expression: 3}
+          text: "(select 1 ...id = u.a)"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
+            - {type: table, name: v, text: "v"}
+          clauses:
+            - {sources: within, text: "exists (se...id = u.a)"}
+          columns:
+            - {name: '?', expression: 2}
+          text: "select 1 f.. = u.a), v"

@@ -334,6 +334,9 @@ The rules follow PostgreSQL and Hyper:
   an `INVALID_FROM_CLAUSE_REFERENCE` (PostgreSQL's invalid reference to a FROM-clause entry), its column is not
   inferred. A derived table without `LATERAL` and a CTE see no FROM items of their parent, a qualifier of one stays
   unresolved without an error.
+- **Join conditions** see the FROM items inside their join only, also from their subqueries
+  (`SourceVisibility::Within` of the join, published in `NameScope::clauses`): `t join u on u.a = v.id, v` and
+  `v, t join u on u.a = v.id` are an `INVALID_FROM_CLAUSE_REFERENCE`, as in PostgreSQL.
 - **Script tables** resolve to the last declaration of the name before the referencing statement. An
   `ALTER` declares a new version, see `catalog_updates.md`. A statement before all declarations of the name, also the
   declaring statement itself, reads the table of the catalog, or an unresolved one.

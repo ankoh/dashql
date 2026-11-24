@@ -70,6 +70,8 @@ analyzer-snapshots:
         - scope-id: 1
           sources:
             - {type: subquery, name: o, scope: 0, text: "(select * .. y = :y) o"}
+          clauses:
+            - {sources: within, text: "true"}
           text: "select * f.. o on true"
 
   - name: parameters_casts

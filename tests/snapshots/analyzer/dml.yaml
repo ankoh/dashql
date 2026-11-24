@@ -1492,6 +1492,8 @@ analyzer-snapshots:
             - {type: table, name: u, text: "u"}
             - {type: table, name: v, text: "v"}
             - {type: table, name: t, text: "t"}
+          clauses:
+            - {sources: within, text: "v.id = u.c.. v.x = t.a"}
           text: "update t s.. t.a = u.a"
 
   - name: delete_using_function_target_invisible

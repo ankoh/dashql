@@ -1354,6 +1354,8 @@ analyzer-snapshots:
           sources:
             - {type: table, name: customer, text: "customer"}
             - {type: table, name: orders, text: "orders"}
+          clauses:
+            - {sources: within, text: "c_custkey ..requests%'"}
           columns:
             - {name: c_custkey, expression: 1}
             - {name: c_count, expression: 11}

@@ -366,7 +366,8 @@ enum AnalyzerErrorType: uint8 {
     CLIENT_FUNCTION_INVALID_VALUE,
     /// A transaction control statement without its counterpart in the script
     UNMATCHED_TRANSACTION_CONTROL,
-    /// A qualified column ref names a FROM item that an aliased join hides, the alias of the join names its columns
+    /// A qualified column ref names a FROM item that it doesn't see: one that an aliased join hides, whose alias names
+    /// its columns, or one outside of a join condition or a restricting clause
     INVALID_FROM_CLAUSE_REFERENCE,
 }
 

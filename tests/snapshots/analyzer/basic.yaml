@@ -187,6 +187,8 @@ analyzer-snapshots:
           sources:
             - {type: table, name: a, text: "A"}
             - {type: table, name: b, text: "B"}
+          clauses:
+            - {sources: within, text: "a = b"}
           columns:
             - {name: a, table-column: "256.65536.1:0.0"}
             - {name: b, table-column: "256.65536.1:0.1"}

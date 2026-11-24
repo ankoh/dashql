@@ -1336,7 +1336,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         // index. A derived table does not see itself.
         for (scope_id, visibility) in Self::visible_scopes(analyzed, cursor) {
             let Some(scope) = analyzed.scope(scope_id) else { continue };
-            for source in scope.sources.iter().filter(|source| visibility.sees(source)) {
+            for source in scope.sources.iter().filter(|source| visibility.sees(&analyzed.parsed.nodes, source)) {
                 for name in Self::derived_columns(analyzed, source) {
                     self.add_local_candidate(&name, NameTag::COLUMN_NAME.0, tags, prefix, location, location);
                 }
@@ -1382,7 +1382,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             // Columns of resolved table refs in scope
             for &table_ref_id in &scope.table_references {
                 let Some(table_ref) = analyzed.table_ref(table_ref_id) else { continue };
-                if !visibility.sees_node(table_ref.ast_node_id) {
+                if !visibility.sees_node(&analyzed.parsed.nodes, table_ref.ast_node_id) {
                     continue;
                 }
                 if in_insert_source && table_ref.role == TableRole::Write {
@@ -1400,7 +1400,10 @@ impl<'c, 'a> Completion<'c, 'a> {
             for &expr in &scope.expressions {
                 let Some(column_ref) = analyzed.expression(expr).and_then(|e| e.column_ref()) else { continue };
                 let ColumnResolution::TableColumn(loc) = column_ref.resolved else { continue };
-                if column_ref.resolved_source.is_some_and(|source| !visibility.sees_node(source)) {
+                if column_ref
+                    .resolved_source
+                    .is_some_and(|source| !visibility.sees_node(&analyzed.parsed.nodes, source))
+                {
                     continue;
                 }
                 // The location refers to the entries the script was analyzed against, which the catalog
@@ -1841,7 +1844,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         for (scope_id, visibility) in Self::visible_scopes(analyzed, cursor) {
             let Some(scope) = analyzed.scope(scope_id) else { continue };
             let mut hiding = scope.hiding_joins(ast, node_id);
-            hiding.retain(|join| visibility.sees_node(join.ast_node_id));
+            hiding.retain(|join| visibility.sees_node(ast, join.ast_node_id));
             if let Some(join) = hiding.iter().find(|join| &*join.name == name) {
                 return Some(QualifiedRelation::Join(join));
             }
@@ -2075,7 +2078,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             let hiding = scope.hiding_joins(ast, node_id);
             for &table_ref_id in &scope.table_references {
                 let Some(table_ref) = analyzed.table_ref(table_ref_id) else { continue };
-                if !visibility.sees_node(table_ref.ast_node_id) {
+                if !visibility.sees_node(ast, table_ref.ast_node_id) {
                     continue;
                 }
                 let join = hiding.iter().find(|join| is_within(ast, table_ref.ast_node_id, join.ast_node_id)).copied();

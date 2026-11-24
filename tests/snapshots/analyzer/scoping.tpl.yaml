@@ -731,3 +731,27 @@ analyzer-snapshots:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
     script:
       input: create table z as with c as (select a from t) select a from c; select a from z
+
+  # The ON condition of a join sees only the inputs of the join, a later FROM item is an invalid reference
+  - name: join_on_sees_only_its_inputs
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select 1 from t join u on u.a = v.id, v
+
+  # An earlier FROM item is no input of the join either
+  - name: join_on_sees_no_earlier_from_item
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select 1 from v, t join u on u.a = v.id
+
+  # A subquery in the ON condition sees the inputs of the join only
+  - name: join_on_subquery_sees_only_its_inputs
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select 1 from t join u on exists (select 1 where v.id = u.a), v

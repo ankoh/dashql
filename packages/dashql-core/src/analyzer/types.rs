@@ -511,15 +511,17 @@ pub enum SourceVisibility {
     /// The FROM items before a table ref node except the one of another, a lateral FROM item of UPDATE, DELETE and
     /// MERGE sees no target
     BeforeExcept(u32, u32),
+    /// The FROM items inside a joined table node, the `ON` condition of a join sees only the inputs of its join
+    Within(u32),
 }
 
 impl SourceVisibility {
-    pub fn sees(self, source: &ScopeSource) -> bool {
-        self.sees_node(source.ast_node_id)
+    pub fn sees(self, ast: &[Node], source: &ScopeSource) -> bool {
+        self.sees_node(ast, source.ast_node_id)
     }
 
     /// Whether the FROM item with an AST node id is visible
-    pub fn sees_node(self, ast_node_id: u32) -> bool {
+    pub fn sees_node(self, ast: &[Node], ast_node_id: u32) -> bool {
         match self {
             SourceVisibility::All => true,
             SourceVisibility::Before(node_id) => ast_node_id < node_id,
@@ -527,6 +529,7 @@ impl SourceVisibility {
             SourceVisibility::Only(node_id) => ast_node_id == node_id,
             SourceVisibility::Except(node_id) => ast_node_id != node_id,
             SourceVisibility::BeforeExcept(node_id, except) => ast_node_id < node_id && ast_node_id != except,
+            SourceVisibility::Within(join) => is_within(ast, ast_node_id, join),
         }
     }
 }
@@ -672,7 +675,7 @@ impl NameScope {
         let mut sources: Vec<&ScopeSource> = self
             .sources
             .iter()
-            .filter(|s| visibility.sees(s) && !Self::is_hidden(ast, s, &hiding) && named(s))
+            .filter(|s| visibility.sees(ast, s) && !Self::is_hidden(ast, s, &hiding) && named(s))
             .collect();
         // The aliased joins around the node, the innermost first: a nested join precedes the outer one in the
         // post-order AST
