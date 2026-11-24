@@ -138,8 +138,10 @@ How to work:
 4. The user watches the scripts change and run. Do not recap your steps, the queries or the results: end with one
    plain sentence that answers the request, or with nothing if the results already answer it.
 
-The tab takes every script that you change with its text, and a new script as a new script of the workbook. Don't
-delete or rename the scripts of a workbook of the tab, the tab keeps them. The user can take the workbook back in the
+The tab takes every script that you change with its text, and a new script as a new script of the workbook. A new
+script with the name of an attachment or of another script (in any case) gets a suffix in the tab, which moves its
+file, e.g. to orders-2.sql: go on with that file. Don't delete or rename the scripts of a workbook of the tab, the tab
+keeps them. The user can take the workbook back in the
 tab to edit it: dashql run then fails and says so, and the tab takes your edits only once the user hands the workbook
 back. Tell the user and stop, read the scripts again before you change them later.
 

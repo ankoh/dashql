@@ -158,7 +158,10 @@ A conversation that starts in the page works on a copy: the site is the truth, t
 - **The changes of the agent come back** (`agent/agent_session_copy.ts`). The first state that names a copy is what the
   page wrote, later stamps of its scripts that differ are changes of the agent: the page fetches a changed script and
   takes its text (`setScriptText`, no rewrite to accept or reject), a new script becomes a script of the workbook, and
-  its next changes go to that script. A new script goes where the workbook file of the copy lists it, at the end
+  its next changes go to that script. The runtime names a new script uniquely, also against the attachments: a name
+  that is taken gets a suffix, `orders-2.sql`. The tab then moves the file of the agent in the copy to that name and
+  writes the workbook file, so the tab and the copy name every script alike, for the runs and the edits of the agent;
+  the guide tells the agent to go on with the moved file. A new script goes where the workbook file of the copy lists it, at the end
   without an entry (`createScript` with its `index`). A script with the text of the page stays as it is. The server stamps the copies
   again after every `PostToolUse` and `Stop`, so an edit with a tool of the harness shows without a `dashql` command.
 - **The changes of the user go into the copy.** Half a second after an edit, the page writes the scripts whose text
@@ -311,8 +314,8 @@ stays the one place the page talks to.
   and `dashql catalog` that tell them; a run in the tab (`run_command.test.ts`): the events of a fake tab with the
   first rows of a result, an interrupt that stops the run in the tab, no tab, a folder that is no copy.
 - `agent/agent_session_copy.test.ts`: the scripts of a copy that changed, the texts and the new scripts of the agent,
-  the edits of the user into the copy and the stamps of their writes, which are no changes of the agent, a copy
-  adopted after a reload.
+  a new script that the page renamed, the edits of the user into the copy and the stamps of their writes, which are no
+  changes of the agent, a copy adopted after a reload.
 - The page test `app_agent_session` also checks that the tab writes its workbook into the session once it connects,
   not again after a reload, that an edit reaches the copy, that the tab takes the text of the agent, that a run that
   the server asks for runs in the tab and posts its events, that the stored result of a script comes

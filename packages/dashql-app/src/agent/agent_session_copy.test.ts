@@ -21,6 +21,8 @@ class Fixture {
     readonly catalogs = new Map<string, CopyCatalog>();
     /// The paths whose next write fails
     readonly failingWrites = new Set<string>();
+    /// The names of the attachments of the workbook, which no script takes
+    readonly attachments = new Set<string>();
     private listeners = new Set<() => void>();
     private clock = 1;
     private nextKey = 1;
@@ -100,8 +102,12 @@ class Fixture {
             this.created.push([base, text, connectionId, index]);
             const scriptKey = this.nextKey++;
             const names = [...this.page.keys()];
-            names.splice(index ?? names.length, 0, `${base}.sql`);
-            this.place(names, new Map(this.page).set(`${base}.sql`, { scriptKey, text, connectionId: connectionId ?? 'c1' }));
+            // A name that a script or an attachment has gets a suffix, like in the runtime
+            const taken = new Set([...names.map(name => name.replace(/\.sql$/, '')), ...this.attachments].map(name => name.toLowerCase()));
+            let name = base;
+            for (let suffix = 2; taken.has(name.toLowerCase()); ++suffix) name = `${base}-${suffix}`;
+            names.splice(index ?? names.length, 0, `${name}.sql`);
+            this.place(names, new Map(this.page).set(`${name}.sql`, { scriptKey, text, connectionId: connectionId ?? 'c1' }));
             return scriptKey;
         },
         setScriptConnection: (_workbookId, scriptKey, connectionId) => {
@@ -370,6 +376,34 @@ describe('the copies of the workbooks of a page in a session', () => {
         await tick();
         await copies.settled();
         expect(copyScriptOrder(fixture.copy.get('dashql-workbook.json')!.text)).toEqual(['c.sql', 'b.sql', 'a.sql']);
+    });
+
+    it('moves a new script of the agent to the name that the page gave it', async () => {
+        const fixture = new Fixture({ 'a.sql': 'select 1' });
+        fixture.attachments.add('orders');
+        const copies = new AgentSessionCopies(fixture.host, logger);
+        await copies.copy('w1');
+        await copies.update(fixture.state());
+
+        // The attachment has the name of the new script, the page names it orders-2.sql, and so does the copy
+        fixture.agentWrites('dashql-workbook.json', JSON.stringify({ scripts: [{ name: 'a.sql', connectionId: 'c1' }, { name: 'orders.sql', connectionId: 'hyper' }] }));
+        fixture.agentWrites('scripts/orders.sql', 'select 2');
+        await copies.update(fixture.state());
+        await copies.settled();
+        expect([...fixture.page.keys()]).toEqual(['a.sql', 'orders-2.sql']);
+        expect(fixture.copy.has('scripts/orders.sql')).toBe(false);
+        expect(fixture.copy.get('scripts/orders-2.sql')?.text).toBe('select 2');
+        expect(JSON.parse(fixture.copy.get('dashql-workbook.json')!.text)).toEqual({ scripts: [{ name: 'a.sql', connectionId: 'c1' }, { name: 'orders-2.sql', connectionId: 'hyper' }] });
+
+        // The next change of the agent goes to that script
+        await copies.update(fixture.state());
+        fixture.agentWrites('scripts/orders-2.sql', 'select 22');
+        await copies.update(fixture.state());
+        await tick();
+        await copies.settled();
+        expect(fixture.created).toHaveLength(1);
+        expect(fixture.taken).toEqual([[fixture.keyOf('orders-2.sql'), 'select 22']]);
+        expect([...fixture.copy.keys()].filter(path => path.startsWith('scripts/')).sort()).toEqual(['scripts/a.sql', 'scripts/orders-2.sql']);
     });
 
     it('copies nothing of a workbook without a folder in OPFS and leaves the copies of other workbooks alone', async () => {
