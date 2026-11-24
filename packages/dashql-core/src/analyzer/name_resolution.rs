@@ -99,12 +99,12 @@ struct UsingJoin {
     /// The AST node id of the joined table
     ast_node_id: u32,
     /// The USING columns, all common columns of a NATURAL join if None
-    using: Option<Vec<Arc<str>>>,
+    using: Option<Vec<Name>>,
 }
 
 impl UsingJoin {
     fn uses(&self, column_name: &str) -> bool {
-        self.using.as_ref().is_none_or(|using| using.iter().any(|c| &**c == column_name))
+        self.using.as_ref().is_none_or(|using| using.iter().any(|c| &*c.text == column_name))
     }
 }
 
@@ -1082,6 +1082,25 @@ impl NameResolutionPass {
         })
     }
 
+    /// The first input of the outermost join that names a column in USING and holds all of some FROM items. A NATURAL
+    /// join of tables with unknown columns may not join the column.
+    fn using_join_first_input(
+        &self,
+        state: &AnalysisState,
+        scope: ScopeId,
+        source_nodes: &[u32],
+        column_name: &str,
+    ) -> Option<u32> {
+        let joins = self.using_joins.get(&scope)?;
+        let join = joins.iter().rev().find(|join| {
+            join.using.is_some()
+                && join.uses(column_name)
+                && source_nodes.iter().all(|&node_id| Self::is_within(state, node_id, join.ast_node_id))
+        })?;
+        let [inputs] = state.node(join.ast_node_id).map_or([None], |n| attrs!(state.children(n), [K::SQL_JOIN_INPUT]));
+        inputs.and_then(|inputs| state.children(inputs).first()).map(|first| state.node_id(first))
+    }
+
     /// Report an ambiguous column ref with the FROM items that have the column
     fn report_ambiguous(
         &mut self,
@@ -1728,7 +1747,7 @@ impl NameResolutionPass {
                     let Some(Some(owner)) = bound else { continue };
                     InferenceConstraint {
                         kind: InferenceConstraintKind::Forced,
-                        expression_id: expression.expression_id,
+                        expression_id: Some(expression.expression_id),
                         column_name,
                         candidates: vec![owner.clone()],
                     }
@@ -1747,7 +1766,7 @@ impl NameResolutionPass {
                     };
                     InferenceConstraint {
                         kind: InferenceConstraintKind::Forced,
-                        expression_id: expression.expression_id,
+                        expression_id: Some(expression.expression_id),
                         column_name,
                         candidates: vec![InferenceCandidate {
                             table_name: rel.table_name.clone(),
@@ -1758,21 +1777,28 @@ impl NameResolutionPass {
                 // Unqualified, the candidates are the unresolved tables in scope that the column ref sees
                 None => {
                     let visibility = self.visibility(expr);
-                    let candidates: Vec<InferenceCandidate> = local_unresolved
+                    let mut candidates: Vec<(u32, InferenceCandidate)> = local_unresolved
                         .iter()
                         .filter(|(node_id, _)| visibility.sees_node(state.ast, *node_id))
-                        .map(|(_, candidate)| candidate.clone())
+                        .cloned()
                         .collect();
                     if candidates.is_empty() {
                         continue;
                     }
+                    // A USING column of a join is the column of its first input, all inputs have it
+                    let nodes: Vec<u32> = candidates.iter().map(|(node_id, _)| *node_id).collect();
+                    if let Some(first) = self.using_join_first_input(state, scope, &nodes, &column_name.text) {
+                        candidates.retain(|(node_id, _)| Self::is_within(state, *node_id, first));
+                    }
+                    let candidates: Vec<InferenceCandidate> =
+                        candidates.into_iter().map(|(_, candidate)| candidate).collect();
                     InferenceConstraint {
                         kind: if candidates.len() == 1 {
                             InferenceConstraintKind::Forced
                         } else {
                             InferenceConstraintKind::Disjunctive
                         },
-                        expression_id: expression.expression_id,
+                        expression_id: Some(expression.expression_id),
                         column_name,
                         candidates,
                     }
@@ -1780,6 +1806,51 @@ impl NameResolutionPass {
             };
             state.out.inference_constraints.push(constraint);
         }
+        self.associate_using_columns(state, scope);
+    }
+
+    /// The USING columns of a join are columns of both of its inputs: an input without a FROM item that has the column
+    /// gives it to its unresolved FROM items, to the one or to one of them
+    fn associate_using_columns(&self, state: &mut AnalysisState, scope: ScopeId) {
+        let (Some(s), Some(joins)) = (state.out.scope(scope), self.using_joins.get(&scope)) else { return };
+        let mut constraints = Vec::new();
+        for join in joins {
+            let Some(using) = &join.using else { continue };
+            let [inputs] =
+                state.node(join.ast_node_id).map_or([None], |n| attrs!(state.children(n), [K::SQL_JOIN_INPUT]));
+            for input in inputs.map(|i| state.children(i)).unwrap_or_default() {
+                let input = state.node_id(input);
+                let sources: Vec<&ScopeSource> =
+                    s.sources.iter().filter(|source| Self::is_within(state, source.ast_node_id, input)).collect();
+                for column in using {
+                    if sources.iter().any(|source| Self::resolve_column(state, source, &column.text).is_resolved()) {
+                        continue;
+                    }
+                    let candidates: Vec<InferenceCandidate> = sources
+                        .iter()
+                        .filter_map(|source| match &source.table {
+                            ReferencedTable::Unresolved(rel) => Some(InferenceCandidate {
+                                table_name: rel.table_name.clone(),
+                                table_ref: rel.table_ref,
+                            }),
+                            _ => None,
+                        })
+                        .collect();
+                    let kind = match candidates.len() {
+                        0 => continue,
+                        1 => InferenceConstraintKind::Forced,
+                        _ => InferenceConstraintKind::Disjunctive,
+                    };
+                    constraints.push(InferenceConstraint {
+                        kind,
+                        expression_id: None,
+                        column_name: column.clone(),
+                        candidates,
+                    });
+                }
+            }
+        }
+        state.out.inference_constraints.extend(constraints);
     }
 
     /// The columns of a FROM item, as a star forwards them
@@ -1886,7 +1957,7 @@ impl NameResolutionPass {
         let (Some(left), Some(right)) = (sides.next(), sides.next()) else { return Vec::new() };
         let name = |c: &ScopeJoinColumn| c.column.column_name.text.clone();
         let join_columns: Vec<Arc<str>> = match joins.iter().find(|join| join.ast_node_id == item_id) {
-            Some(UsingJoin { using: Some(using), .. }) => using.clone(),
+            Some(UsingJoin { using: Some(using), .. }) => using.iter().map(|c| c.text.clone()).collect(),
             // NATURAL joins the columns that both inputs have, in the order of the left input
             Some(UsingJoin { using: None, .. }) => left
                 .iter()
@@ -2522,7 +2593,7 @@ impl NameResolutionPass {
                         if column.node_type() == NodeType::NAME {
                             let name = state.node_name(column);
                             state.tag(&name, NameTag::COLUMN_NAME);
-                            columns.push(name.text);
+                            columns.push(name);
                         }
                     }
                     node_state.using_joins.push(UsingJoin { ast_node_id: node_id, using: Some(columns) });
@@ -3277,15 +3348,17 @@ impl NameResolutionPass {
             let column = schema.columns_by_name.get(column).and_then(|&c| schema.columns.get(c));
             column.is_some_and(|c| c.confidence == InferenceConfidence::Confident)
         };
-        let write_owner = |out: &mut super::AnalyzedScript, expr: u32, owner: &InferenceCandidate, confidence| {
-            if let Some(column_ref) = out.expressions.get_mut(expr as usize).and_then(|e| e.column_ref_mut()) {
-                column_ref.inferred = Some(InferredOwner {
-                    table_ref: owner.table_ref,
-                    table_name: owner.table_name.clone(),
-                    confidence,
-                });
-            }
-        };
+        let write_owner =
+            |out: &mut super::AnalyzedScript, expr: Option<u32>, owner: &InferenceCandidate, confidence| {
+                let expr = expr.and_then(|expr| out.expressions.get_mut(expr as usize));
+                if let Some(column_ref) = expr.and_then(|e| e.column_ref_mut()) {
+                    column_ref.inferred = Some(InferredOwner {
+                        table_ref: owner.table_ref,
+                        table_name: owner.table_name.clone(),
+                        confidence,
+                    });
+                }
+            };
 
         let mut resolved = vec![false; constraints.len()];
 
@@ -3354,8 +3427,13 @@ impl NameResolutionPass {
             if let Some(schema) = out.inferred_table_schemas.get_mut(schema) {
                 let column = add_column(schema, &c.column_name, InferenceConfidence::Candidate);
                 if let Some(column) = schema.columns.get_mut(column) {
-                    let others = c.candidates.iter().enumerate().filter(|&(ci, _)| ci != best);
-                    column.candidate_table_names.extend(others.map(|(_, candidate)| candidate.table_name.clone()));
+                    // Several uses of the column name the same other tables once
+                    for (ci, candidate) in c.candidates.iter().enumerate() {
+                        let key = candidate.table_name.key();
+                        if ci != best && !column.candidate_table_names.iter().any(|n| n.key() == key) {
+                            column.candidate_table_names.push(candidate.table_name.clone());
+                        }
+                    }
                 }
             }
             write_owner(out, c.expression_id, best_candidate, InferenceConfidence::Candidate);

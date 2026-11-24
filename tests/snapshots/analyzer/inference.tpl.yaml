@@ -59,3 +59,12 @@ analyzer-snapshots:
   - name: set_operation_branches
     script:
       input: select x from missing union select y from missing2
+
+  # A USING column is a column of both inputs of the join, an unqualified reference reads the first one
+  - name: using_column_of_both_tables
+    script:
+      input: select id, l, r from m1 join m2 using (id)
+
+  - name: using_column_of_a_nested_join
+    script:
+      input: select id from m1 join m2 on m1.x = m2.y join m3 using (id)

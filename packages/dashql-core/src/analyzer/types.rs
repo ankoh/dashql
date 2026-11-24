@@ -711,8 +711,8 @@ pub enum InferenceConstraintKind {
 pub struct InferenceConstraint {
     /// The kind of the constraint
     pub kind: InferenceConstraintKind,
-    /// The column ref expression the constraint was derived from
-    pub expression_id: u32,
+    /// The column ref expression the constraint was derived from, None for a USING column of a join
+    pub expression_id: Option<u32>,
     /// The column name that must be owned
     pub column_name: Name,
     /// The candidate owner tables, one for a forced constraint

@@ -409,3 +409,76 @@ analyzer-snapshots:
           confidence: confident
           columns:
             - {name: y, confidence: confident}
+
+  - name: using_column_of_both_tables
+    script:
+      input: select id, l, r from m1 join m2 using (id)
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - {type: name/unresolved, text: "m1"}
+        - {type: name/unresolved, text: "m2"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "id"}
+        - {id: 1, type: colref/unresolved, text: "l"}
+        - {id: 2, type: colref/unresolved, text: "r"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: unresolved, name: m1, text: "m1"}
+            - {type: unresolved, name: m2, text: "m2"}
+          columns:
+            - {name: id, expression: 0}
+            - {name: l, expression: 1}
+            - {name: r, expression: 2}
+          text: "select id,..using (id)"
+      inferred-tables:
+        - name: m1
+          confidence: confident
+          columns:
+            - {name: id, confidence: confident}
+            - {name: l, confidence: candidate, candidates: [m2]}
+            - {name: r, confidence: candidate, candidates: [m2]}
+        - name: m2
+          confidence: confident
+          columns:
+            - {name: id, confidence: confident}
+
+  - name: using_column_of_a_nested_join
+    script:
+      input: select id from m1 join m2 on m1.x = m2.y join m3 using (id)
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - {type: name/unresolved, text: "m1"}
+        - {type: name/unresolved, text: "m2"}
+        - {type: name/unresolved, text: "m3"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "id"}
+        - {id: 1, type: colref/unresolved, text: "m1.x"}
+        - {id: 2, type: colref/unresolved, text: "m2.y"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: unresolved, name: m1, text: "m1"}
+            - {type: unresolved, name: m2, text: "m2"}
+            - {type: unresolved, name: m3, text: "m3"}
+          clauses:
+            - {sources: within, text: "m1.x = m2.y"}
+          columns:
+            - {name: id, expression: 0}
+          text: "select id ..using (id)"
+      inferred-tables:
+        - name: m1
+          confidence: confident
+          columns:
+            - {name: x, confidence: confident}
+            - {name: id, confidence: candidate, candidates: [m2]}
+        - name: m2
+          confidence: confident
+          columns:
+            - {name: y, confidence: confident}
+        - name: m3
+          confidence: confident
+          columns:
+            - {name: id, confidence: confident}

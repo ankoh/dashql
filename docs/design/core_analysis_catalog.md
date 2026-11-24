@@ -300,7 +300,9 @@ creates a `NameScope` and links it to its parent. Declarations are registered as
 3. resolves the remaining unresolved columns against the unresolved tables
 4. assigns statement ids
 5. solves schema inference: columns referenced on tables that are not in the catalog become
-   `InferredTableSchema`s with a confidence
+   `InferredTableSchema`s with a confidence. The `USING` columns of a join are columns of both of its inputs: an input
+   without a FROM item that has the column gives it to its unresolved FROM item, or to one of them. An unqualified
+   reference of a `USING` column belongs to the first input of the join.
 6. binds explicit INSERT target columns
 
 Results:
