@@ -231,8 +231,12 @@ interface Copy {
     /// The stamps of the files of the copy as the page saw them last, null until the state names the copy that the
     /// page wrote
     seen: Map<string, string> | null;
-    /// The texts of the scripts that the copy holds, as far as the page knows, by file name
+    /// The texts of the scripts that the copy holds, as far as the page knows, by file name: what the page wrote or took
+    /// last. A script of the copy with this text is no change of the agent, also when its stamp is new.
     texts: Map<string, string>;
+    /// The workbook file that the page wrote into the copy last, null before it wrote one. A workbook file of the copy
+    /// with this text is no change of the agent.
+    workbookFile: string | null;
     /// The scripts that the page created for new scripts of the copy, by their file names in the copy
     created: Map<string, number>;
     /// The order of the scripts that the page wrote into the workbook file of the copy last, null before it wrote one
@@ -282,7 +286,7 @@ export class AgentSessionCopies {
     /// scripts that differ from the page are changes of the agent
     adopt(workbookId: string): void {
         this.known.add(workbookId);
-        this.copies.set(workbookId, { seen: null, texts: new Map(), created: new Map(), order: null, catalogs: new Map(), unsubscribe: () => { }, pushing: false, adopted: true });
+        this.copies.set(workbookId, { seen: null, texts: new Map(), workbookFile: null, created: new Map(), order: null, catalogs: new Map(), unsubscribe: () => { }, pushing: false, adopted: true });
     }
 
     /// Write a workbook of the page into the session, replacing an older copy, and follow it from then on. Resolves
@@ -300,7 +304,7 @@ export class AgentSessionCopies {
         }
         // The copy holds the workbook file of the page with its order
         const order = [...(this.host.scripts(workbookId)?.keys() ?? [])].join('\n');
-        const copy: Copy = { seen: null, texts, created: new Map(), order, catalogs: new Map(), unsubscribe: () => { }, pushing: false, adopted: false };
+        const copy: Copy = { seen: null, texts, workbookFile: null, created: new Map(), order, catalogs: new Map(), unsubscribe: () => { }, pushing: false, adopted: false };
         this.copies.set(workbookId, copy);
         await this.host.writeCopy(workbookId, files);
         if (this.disposed || this.copies.get(workbookId) !== copy) return;
@@ -374,6 +378,9 @@ export class AgentSessionCopies {
         const scripts = this.host.scripts(workbookId);
         if (scripts == null || this.copies.get(workbookId) !== copy) return;
         const fileName = path.slice(STORAGE_SCRIPTS_FOLDER.length + 1);
+        // The new stamp of a write of the page is no change of the agent: the user may have changed the script again
+        // since, e.g. before the switch back to AI, and the next push writes that
+        if (copy.texts.get(fileName) === text) return;
         // The copy holds it now, the page doesn't write it back
         copy.texts.set(fileName, text);
         const script = pageScriptOf(scripts, copy, fileName)?.[1];
@@ -404,7 +411,8 @@ export class AgentSessionCopies {
     private async takeWorkbookFile(workbookId: string, copy: Copy): Promise<void> {
         const workbookFile = await this.host.fetchText(workbookId, STORAGE_WORKBOOK_FILE);
         const scripts = this.host.scripts(workbookId);
-        if (scripts == null || this.copies.get(workbookId) !== copy) return;
+        // The page wrote this file, a later order of the user is newer
+        if (scripts == null || this.copies.get(workbookId) !== copy || workbookFile === copy.workbookFile) return;
         const copyOrder = copyScriptOrder(workbookFile);
         const order = copyOrder.flatMap(fileName => pageScriptOf(scripts, copy, fileName)?.[0] ?? []);
         if (order.length > 0) this.host.reorderScripts(workbookId, order);
@@ -462,7 +470,10 @@ export class AgentSessionCopies {
         // The workbook file lists the scripts
         if (listChanged) {
             const workbookFile = await this.host.readWorkbookFile(workbookId);
-            if (workbookFile != null) await this.host.writeFile(workbookId, STORAGE_WORKBOOK_FILE, workbookFile);
+            if (workbookFile != null) {
+                await this.host.writeFile(workbookId, STORAGE_WORKBOOK_FILE, workbookFile);
+                copy.workbookFile = workbookFile;
+            }
         }
         copy.order = order;
         // The catalogs of the connections that the agent may use, `dashql catalog` reads them

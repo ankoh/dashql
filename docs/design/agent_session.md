@@ -83,6 +83,9 @@ only the button of a new port gives new ones.
   of `dashql describe` says the same.
 - **Back to AI.** The tab takes what the agent changed meanwhile from the latest state. A script that the user changed
   in between keeps the text of the user: its write into the copy is the newest stamp, the copy holds the text of the page.
+  A new stamp of a file whose text is what the tab wrote or took last is no change of the agent, also when the user
+  changed the script again since (an edit just before the switch to AI, a second move of a script): the tab keeps its
+  text and writes it with the next push.
 
 The page test `app_agent_session` switches to SQL and back: the read-only editor, the edit of the user, a run and an
 edit of the agent that wait, and the edit that the tab takes in AI.
@@ -307,7 +310,8 @@ stays the one place the page talks to.
   and `dashql catalog` that tell them; a run in the tab (`run_command.test.ts`): the events of a fake tab with the
   first rows of a result, an interrupt that stops the run in the tab, no tab, a folder that is no copy.
 - `agent/agent_session_copy.test.ts`: the scripts of a copy that changed, the texts and the new scripts of the agent,
-  the edits of the user into the copy, a copy adopted after a reload.
+  the edits of the user into the copy and the stamps of their writes, which are no changes of the agent, a copy
+  adopted after a reload.
 - The page test `app_agent_session` also checks that the tab writes its workbook into the session once it connects,
   not again after a reload, that an edit reaches the copy, that the tab takes the text of the agent, that a run that
   the server asks for runs in the tab and posts its events, that the stored result of a script comes

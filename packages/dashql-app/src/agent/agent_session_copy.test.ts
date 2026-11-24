@@ -72,7 +72,7 @@ class Fixture {
             { path: 'dashql-workbook.json', content: '{}' },
             ...[...this.page].map(([name, script]) => ({ path: `scripts/${name}`, content: script.text })),
         ],
-        readWorkbookFile: async () => `{"scripts":${JSON.stringify([...this.page.keys()])}}`,
+        readWorkbookFile: async () => JSON.stringify({ scripts: [...this.page].map(([name, script]) => ({ name, connectionId: script.connectionId })) }),
         writeCopy: async (_workbookId, files) => {
             this.copy.clear();
             for (const file of files) this.copy.set(file.path, { text: String(file.content), mtimeMs: ++this.clock });
@@ -167,7 +167,7 @@ describe('the copies of the workbooks of a page in a session', () => {
         expect(fixture.copy.get('scripts/c.sql')?.text).toBe('select 3');
         expect(fixture.copy.has('scripts/b.sql')).toBe(false);
         // A new or deleted script changes the list of the workbook file
-        expect(fixture.copy.get('dashql-workbook.json')?.text).toBe('{"scripts":["a.sql","c.sql"]}');
+        expect(copyScriptOrder(fixture.copy.get('dashql-workbook.json')!.text)).toEqual(['a.sql', 'c.sql']);
 
         // The stamps of its own writes take nothing
         await copies.update(fixture.state());
@@ -310,7 +310,7 @@ describe('the copies of the workbooks of a page in a session', () => {
         await tick();
         await copies.settled();
         expect(fixture.writes).toEqual(['dashql-workbook.json']);
-        expect(fixture.copy.get('dashql-workbook.json')?.text).toBe('{"scripts":["a.sql","b.sql","c.sql","new.sql"]}');
+        expect(copyScriptOrder(fixture.copy.get('dashql-workbook.json')!.text)).toEqual(['a.sql', 'b.sql', 'c.sql', 'new.sql']);
     });
 
     it('holds the changes of the agent while the user has the workbook', async () => {
@@ -336,6 +336,40 @@ describe('the copies of the workbooks of a page in a session', () => {
         await copies.pause(false);
         expect(fixture.taken).toEqual([[fixture.keyOf('b.sql'), 'select 22']]);
         expect(fixture.page.get('a.sql')?.text).toBe('select 111');
+    });
+
+    it('takes no write of the page for a change of the agent', async () => {
+        const fixture = new Fixture({ 'a.sql': 'select 1', 'b.sql': 'select 2', 'c.sql': 'select 3' });
+        const copies = new AgentSessionCopies(fixture.host, logger);
+        await copies.copy('w1');
+        await copies.update(fixture.state());
+        await copies.pause(true);
+
+        // The user edits a.sql, the edit goes into the copy, and edits it again; the prompt goes back to AI before the
+        // second edit is in the copy
+        fixture.edit('a.sql', 'select 11');
+        await tick();
+        await copies.settled();
+        await copies.update(fixture.state());
+        fixture.edit('a.sql', 'select 111');
+        await copies.pause(false);
+        expect(fixture.taken).toEqual([]);
+        expect(fixture.page.get('a.sql')?.text).toBe('select 111');
+        await tick();
+        await copies.settled();
+        expect(fixture.copy.get('scripts/a.sql')?.text).toBe('select 111');
+
+        // The user moves a script, the order goes into the copy, and moves another one before the state with the
+        // stamp of that write arrives
+        fixture.reorder(['b.sql', 'a.sql', 'c.sql']);
+        await tick();
+        await copies.settled();
+        fixture.reorder(['c.sql', 'b.sql', 'a.sql']);
+        await copies.update(fixture.state());
+        expect([...fixture.page.keys()]).toEqual(['c.sql', 'b.sql', 'a.sql']);
+        await tick();
+        await copies.settled();
+        expect(copyScriptOrder(fixture.copy.get('dashql-workbook.json')!.text)).toEqual(['c.sql', 'b.sql', 'a.sql']);
     });
 
     it('copies nothing of a workbook without a folder in OPFS and leaves the copies of other workbooks alone', async () => {
