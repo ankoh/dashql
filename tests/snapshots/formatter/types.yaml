@@ -148,13 +148,18 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select cast(a as timestamp(3)), cast(a as time(2)), cast(a as timestamp with time zone), cast(a as time) from t;
+              select cast(a as timestamp(3)), cast(a as time(2)), cast(a as timestamp with time zone), cast(a as time without time zone) from t;
           - mode: compact
             expected: |-
-              select cast(a as timestamp(3)), cast(a as time(2)), cast(a as timestamp with time zone), cast(a as time) from t;
+              select cast(a as timestamp(3)), cast(a as time(2)), cast(a as timestamp with time zone),
+                cast(a as time without time zone)
+              from t;
           - mode: pretty
             expected: |-
-              select cast(a as timestamp(3)), cast(a as time(2)), cast(a as timestamp with time zone), cast(a as time)
+              select cast(a as timestamp(3)),
+                cast(a as time(2)),
+                cast(a as timestamp with time zone),
+                cast(a as time without time zone)
               from t;
 
   - name: type_array_casts

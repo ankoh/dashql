@@ -1,5 +1,86 @@
 formatter-snapshots:
 
+  - name: coverage_time_types_without_time_zone
+    input: |-
+      select cast(a as timestamp without time zone), cast(b as time without time zone), cast(c as timestamp with time zone), cast(d as time) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select cast(a as timestamp without time zone), cast(b as time without time zone), cast(c as timestamp with time zone), cast(d as time) from t;
+          - mode: compact
+            expected: |-
+              select cast(a as timestamp without time zone), cast(b as time without time zone), cast(c as timestamp with time zone),
+                cast(d as time)
+              from t;
+          - mode: pretty
+            expected: |-
+              select cast(a as timestamp without time zone),
+                cast(b as time without time zone),
+                cast(c as timestamp with time zone),
+                cast(d as time)
+              from t;
+        validation:
+          setup: |-
+            create table t(a timestamp, b time, c timestamptz, d time);
+      trino:
+        formatted:
+          - mode: inline
+            expected: |-
+              select cast(a as timestamp without time zone), cast(b as time without time zone), cast(c as timestamp with time zone), cast(d as time) from t;
+          - mode: compact
+            expected: |-
+              select cast(a as timestamp without time zone), cast(b as time without time zone), cast(c as timestamp with time zone),
+                cast(d as time)
+              from t;
+          - mode: pretty
+            expected: |-
+              select cast(a as timestamp without time zone),
+                cast(b as time without time zone),
+                cast(c as timestamp with time zone),
+                cast(d as time)
+              from t;
+
+  - name: coverage_time_literal_without_time_zone
+    input: |-
+      select cast(b as time(3) without time zone), cast(c as timestamp(6) with time zone), timestamp without time zone '2024-01-01 10:00', time with time zone '10:00:00+01' from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select cast(b as time(3) without time zone), cast(c as timestamp(6) with time zone), timestamp without time zone '2024-01-01 10:00', time with time zone '10:00:00+01' from t;
+          - mode: compact
+            expected: |-
+              select cast(b as time(3) without time zone), cast(c as timestamp(6) with time zone),
+                timestamp without time zone '2024-01-01 10:00', time with time zone '10:00:00+01'
+              from t;
+          - mode: pretty
+            expected: |-
+              select cast(b as time(3) without time zone),
+                cast(c as timestamp(6) with time zone),
+                timestamp without time zone '2024-01-01 10:00',
+                time with time zone '10:00:00+01'
+              from t;
+      trino:
+        formatted:
+          - mode: inline
+            expected: |-
+              select cast(b as time(3) without time zone), cast(c as timestamp(6) with time zone), timestamp '2024-01-01 10:00', time '10:00:00+01' from t;
+          - mode: compact
+            expected: |-
+              select cast(b as time(3) without time zone), cast(c as timestamp(6) with time zone), timestamp '2024-01-01 10:00',
+                time '10:00:00+01'
+              from t;
+          - mode: pretty
+            expected: |-
+              select cast(b as time(3) without time zone),
+                cast(c as timestamp(6) with time zone),
+                timestamp '2024-01-01 10:00',
+                time '10:00:00+01'
+              from t;
+
   - name: coverage_fetch_first_row_without_count
     input: |-
       select * from t offset 5 rows fetch first rows only; select * from t order by a fetch next row with ties; select * from t limit 1

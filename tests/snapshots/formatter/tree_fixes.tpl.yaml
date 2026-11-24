@@ -1,5 +1,22 @@
 formatter-snapshots:
 
+  # WITHOUT TIME ZONE is kept, a type without the clause stays without
+  - name: coverage_time_types_without_time_zone
+    input: select cast(a as timestamp without time zone), cast(b as time without time zone), cast(c as timestamp with time zone), cast(d as time) from t
+    dialects:
+      hyper:
+        validation:
+          setup: |-
+            create table t(a timestamp, b time, c timestamptz, d time);
+      trino:
+
+  # Times with a precision, Hyper takes none. A typed literal of Trino has no zone clause.
+  - name: coverage_time_literal_without_time_zone
+    input: select cast(b as time(3) without time zone), cast(c as timestamp(6) with time zone), timestamp without time zone '2024-01-01 10:00', time with time zone '10:00:00+01' from t
+    dialects:
+      hyper:
+      trino:
+
   # FETCH without a count stays FETCH FIRST ROW, unlike LIMIT 1
   - name: coverage_fetch_first_row_without_count
     input: >-

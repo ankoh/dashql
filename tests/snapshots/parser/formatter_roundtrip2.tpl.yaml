@@ -1,4 +1,9 @@
 parser-snapshots:
+  # WITHOUT TIME ZONE is the boolean false, a type without the clause has none
+  - name: time_types_with_and_without_time_zone
+    input: |
+      select cast(a as timestamp without time zone), cast(b as time(3) without time zone), cast(c as timestamp(6) with time zone),
+        cast(d as time), timestamp without time zone '2024-01-01 10:00' from t
   # FETCH without a count is one row, with ONLY and with WITH TIES, unlike LIMIT 1 and LIMIT TRUE
   - name: fetch_first_row_without_count
     input: |

@@ -1301,9 +1301,10 @@ impl<'a> Formatter<'a> {
         let f = &self.fmt;
         let [type_node, value] = attrs!(self.children(node), [K::SQL_CONST_CAST_TYPE, K::SQL_CONST_CAST_VALUE]);
         let (Some(type_node), Some(value)) = (type_node, value) else { return self.format_unimplemented(node) };
-        // Trino reads the time zone of a timestamp or time literal from its text, its literals have no zone in the type
+        // Trino reads the time zone of a timestamp or time literal from its text, its literals have no zone clause in
+        // the type
         if self.config.dialect == FormattingDialect::TRINO {
-            if let Some(keyword) = self.zoned_time_type(type_node) {
+            if let Some(keyword) = self.zone_clause_time_type(type_node) {
                 let value_reg = self.reg(value);
                 if value_reg == 0 {
                     return self.format_unimplemented(node);
@@ -1319,15 +1320,16 @@ impl<'a> Formatter<'a> {
         f.concat(&[type_reg, f.text(" "), value_reg])
     }
 
-    /// The keyword of a timestamp or time type with a time zone, `timestamp with time zone` is `timestamp`
-    fn zoned_time_type(&self, type_node: &'a Node) -> Option<&'static str> {
+    /// The keyword of a timestamp or time type with a time zone clause, `timestamp with time zone` and `timestamp
+    /// without time zone` are `timestamp`
+    fn zone_clause_time_type(&self, type_node: &'a Node) -> Option<&'static str> {
         let [element] = attrs!(self.children(type_node), [K::SQL_TYPENAME_TYPE]);
         let element = element?;
         let [tz] = attrs!(self.children(element), [K::SQL_TIME_TYPE_WITH_TIMEZONE]);
-        let zoned = tz.is_some_and(|t| t.node_type() == NodeType::BOOL && t.children_begin_or_value() != 0);
+        let has_clause = tz.is_some_and(|t| t.node_type() == NodeType::BOOL);
         match element.node_type() {
-            NodeType::OBJECT_SQL_TIMESTAMP_TYPE if zoned => Some("timestamp"),
-            NodeType::OBJECT_SQL_TIME_TYPE if zoned => Some("time"),
+            NodeType::OBJECT_SQL_TIMESTAMP_TYPE if has_clause => Some("timestamp"),
+            NodeType::OBJECT_SQL_TIME_TYPE if has_clause => Some("time"),
             _ => None,
         }
     }
@@ -1586,8 +1588,9 @@ impl<'a> Formatter<'a> {
         if let Some(precision) = precision {
             parts.push(f.parenthesized(self.reg(precision)));
         }
-        if is_true(with_tz) {
-            parts.push(f.text(" with time zone"));
+        // `without time zone` is the boolean false, a type without the clause has none
+        if let Some(with_tz) = with_tz.filter(|n| n.node_type() == NodeType::BOOL) {
+            parts.push(f.text(if is_true(Some(with_tz)) { " with time zone" } else { " without time zone" }));
         }
         f.concat(&parts)
     }

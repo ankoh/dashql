@@ -285,17 +285,17 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select cast(a as timestamp with time zone), cast(a as time with time zone), timestamp '2024-01-01', time '10:00', cast(a as timestamp(6) with time zone) from t;
+              select cast(a as timestamp with time zone), cast(a as time with time zone), timestamp without time zone '2024-01-01', time '10:00', cast(a as timestamp(6) with time zone) from t;
           - mode: compact
             expected: |-
-              select cast(a as timestamp with time zone), cast(a as time with time zone), timestamp '2024-01-01', time '10:00',
-                cast(a as timestamp(6) with time zone)
+              select cast(a as timestamp with time zone), cast(a as time with time zone), timestamp without time zone '2024-01-01',
+                time '10:00', cast(a as timestamp(6) with time zone)
               from t;
           - mode: pretty
             expected: |-
               select cast(a as timestamp with time zone),
                 cast(a as time with time zone),
-                timestamp '2024-01-01',
+                timestamp without time zone '2024-01-01',
                 time '10:00',
                 cast(a as timestamp(6) with time zone)
               from t;
