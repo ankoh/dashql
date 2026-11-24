@@ -61,6 +61,24 @@ formatter-snapshots:
     dialects:
       hyper:
 
+  # Prefixed strings stay one literal, with a space they would be casts or the operator `&`
+
+  - name: coverage_string_prefixes
+    input: |-
+      select E'tab\there', U&'d\0061t', N'national', e 'x', u & 'y' from t
+    dialects:
+      hyper:
+
+  - name: coverage_string_prefixes_validated
+    input: |-
+      select E'tab\there', U&'d\0061t'
+    dialects:
+      hyper:
+        validation:
+          setup: select 1;
+
+  # Table references and table arguments
+
   - name: coverage_table_ref_options
     input: select * from t with options (a := 1, b => 'x'), u *, table(f(1)) with options (x := 1) as r, lateral (select 1) with options (z := 3) as w
     dialects:

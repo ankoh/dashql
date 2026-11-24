@@ -193,6 +193,42 @@ formatter-snapshots:
                   columns (a.name)
               ) gt;
 
+  - name: coverage_string_prefixes
+    input: |-
+      select E'tab\there', U&'d\0061t', N'national', e 'x', u & 'y' from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select E'tab\there', U&'d\0061t', N'national', e 'x', u & 'y' from t;
+          - mode: compact
+            expected: |-
+              select E'tab\there', U&'d\0061t', N'national', e 'x', u & 'y' from t;
+          - mode: pretty
+            expected: |-
+              select E'tab\there', U&'d\0061t', N'national', e 'x', u & 'y'
+              from t;
+
+  - name: coverage_string_prefixes_validated
+    input: |-
+      select E'tab\there', U&'d\0061t'
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select E'tab\there', U&'d\0061t';
+          - mode: compact
+            expected: |-
+              select E'tab\there', U&'d\0061t';
+          - mode: pretty
+            expected: |-
+              select E'tab\there', U&'d\0061t';
+        validation:
+          setup: |-
+            select 1;
+
   - name: coverage_table_ref_options
     input: |-
       select * from t with options (a := 1, b => 'x'), u *, table(f(1)) with options (x := 1) as r, lateral (select 1) with options (z := 3) as w
