@@ -39,3 +39,20 @@ dataflow-snapshots:
         input: |
           /** @flow x=800 y=100 */
           select x from b;
+
+  # A scan of a script below its consumer runs later, the reference is invalid
+  - name: ScanOfALaterScript
+    connections:
+      - name: local
+        kind: LOCAL
+      - name: trino
+        kind: REMOTE
+    scripts:
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+      - name: foo
+        connection: trino
+        input: |
+          select 1 as x;

@@ -199,14 +199,17 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
         }
         let from = terminal_of(reference.script).and_then(|from| nodes.get(from as usize));
         let (Some(from), Some(to)) = (from, nodes.get(reference.node as usize)) else { continue };
+        // A scan of a script that runs later is an error of the plan, the reference is invalid
+        let scanned = graph.materializations.as_ref().and_then(|m| m.get(reference.materialization as usize));
+        let kind = match scanned {
+            Some(m) if m.node != NONE && m.node >= reference.node => DataflowEdgeKind::InvalidReference,
+            Some(_) => DataflowEdgeKind::ScanReference,
+            None => DataflowEdgeKind::InlineReference,
+        };
         edges.insert(DataflowEdge {
             from: port(from),
             to: port(to),
-            kind: if reference.materialization != NONE {
-                DataflowEdgeKind::ScanReference
-            } else {
-                DataflowEdgeKind::InlineReference
-            },
+            kind,
             name: reference.parameter.clone().unwrap_or_default(),
         });
     }

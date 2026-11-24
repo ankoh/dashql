@@ -16,7 +16,9 @@ in a run, from the analysis of every script:
 - **Script references**: a table parameter `:foo` flows from the terminal query of `foo.sql` to the statement of the
   parameter, `INLINE_REFERENCE` within a connection, `SCAN_REFERENCE` from the materialized result on the LOCAL
   connection. A reference with errors whose name finds a script is an `INVALID_REFERENCE` edge, the plan keeps the
-  script of an invalid reference; the editor reports the errors. A script that does not parse is one statement, the
+  script of an invalid reference; the editor reports the errors. A scan of a script below its consumer, which runs
+  later ("move foo.sql above bar.sql"), is an invalid edge too; the editor check ignores the order of the scripts, the
+  plan of a run reports it. A script that does not parse is one statement, the
   edge starts there.
 - **Relations**: the planner edges `READ_AFTER_WRITE`, `WRITE_AFTER_WRITE` and `DDL` of a relation whose source wrote
   the relation are `TABLE` edges, labeled with the relation name. A write continues the flow, so the `create`,

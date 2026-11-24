@@ -127,3 +127,37 @@ dataflow-snapshots:
           kind: table
           name: b
           route: [[656,156],[800,156]]
+
+  - name: ScanOfALaterScript
+    connections:
+      - name: local
+        kind: LOCAL
+      - name: trino
+        kind: REMOTE
+    scripts:
+      - name: bar
+        connection: local
+        input: |
+          select count(*) from :foo;
+      - name: foo
+        connection: trino
+        input: |
+          select 1 as x;
+    expected:
+      scripts:
+        - name: bar
+          statements:
+            - type: SELECT
+              text: "select cou.. from :foo"
+          box: [424,0,280,80]
+        - name: foo
+          statements:
+            - type: SELECT
+              text: "select 1 as x"
+          box: [0,0,280,80]
+      edges:
+        - from: foo.0
+          to: bar.0
+          kind: invalid
+          name: foo
+          route: [[280,56],[424,56]]
