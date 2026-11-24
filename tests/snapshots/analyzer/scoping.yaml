@@ -3806,3 +3806,99 @@ analyzer-snapshots:
             - {name: '?', computed: true}
             - {name: x, expression: 2}
           text: "select t, .., x from t"
+
+  - name: alter_view_rename_then_read_old_name
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: create view vw as select a from t; alter view vw rename to vw2; select a from vw
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.2:0"
+          name: vw
+          text: "create vie..t a from t"
+          columns:
+            - {catalog-id: "256.65536.2:0.0", name: a}
+        - catalog-id: "256.65536.2:1"
+          name: vw2
+          text: "alter view..ame to vw2"
+          columns:
+            - {catalog-id: "256.65536.2:1.0", name: a}
+      touched-relations:
+        - {statement-id: 0, name: vw}
+        - {statement-id: 1, name: vw}
+        - {statement-id: 1, name: vw2}
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 0, text: "t"}
+        - {type: name/unresolved, statement-id: 2, text: "vw"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", statement-id: 0, text: "a"}
+        - {id: 1, type: colref/unresolved, statement-id: 2, text: "a"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 0}
+          text: "select a from t"
+        - scope-id: 1
+          sources:
+            - {type: unresolved, name: vw, text: "vw"}
+          columns:
+            - {name: a, expression: 1}
+          text: "select a from vw"
+      inferred-tables:
+        - name: vw
+          confidence: confident
+          columns:
+            - {name: a, confidence: confident}
+
+  - name: drop_script_table_then_read
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: create table z (a int); select a from z; drop table z; select a from z
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.2:0"
+          name: z
+          text: "create tab.. z (a int)"
+          columns:
+            - {catalog-id: "256.65536.2:0.0", name: a, text: "a int"}
+      touched-relations:
+        - {statement-id: 0, name: z}
+        - {statement-id: 2, name: z}
+      errors: []
+      table-refs:
+        - {type: name/internal, catalog-id: "256.65536.2:0", statement-id: 1, text: "z"}
+        - {type: name/unresolved, statement-id: 3, text: "z"}
+      expressions:
+        - {id: 0, type: colref/internal, catalog: "256.65536.2:0.0", source: "z", statement-id: 1, text: "a"}
+        - {id: 1, type: colref/unresolved, statement-id: 3, text: "a"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: z, text: "z"}
+          text: "create tab.. z (a int)"
+        - scope-id: 1
+          sources:
+            - {type: table, name: z, text: "z"}
+          columns:
+            - {name: a, expression: 0}
+          text: "select a from z"
+        - scope-id: 2
+          sources:
+            - {type: unresolved, name: z, text: "z"}
+          columns:
+            - {name: a, expression: 1}
+          text: "select a from z"
+      inferred-tables:
+        - name: z
+          confidence: confident
+          columns:
+            - {name: a, confidence: confident}

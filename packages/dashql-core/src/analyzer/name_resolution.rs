@@ -203,6 +203,9 @@ pub(super) struct NameResolutionPass {
     expression_visibility: HashMap<ExprId, SourceVisibility>,
     /// The `excluded` rows of the INSERT scopes with ON CONFLICT DO UPDATE: the ON CONFLICT node and the target
     insert_excluded: HashMap<ScopeId, (u32, u32)>,
+    /// The table declarations of the script that a statement drops or renames, with the statement: the statements after
+    /// it don't see the name
+    removed_tables: Vec<(u32, u32)>,
 }
 
 impl NameResolutionPass {
@@ -225,6 +228,7 @@ impl NameResolutionPass {
             assignment_targets: HashMap::default(),
             expression_visibility: HashMap::default(),
             insert_excluded: HashMap::default(),
+            removed_tables: Vec::new(),
         }
     }
 
@@ -356,14 +360,7 @@ impl NameResolutionPass {
         let [name_node, actions] = attrs!(state.children(node), [K::SQL_ALTER_TABLE_NAME, K::SQL_ALTER_TABLE_ACTIONS]);
         let Some(name) = state.read_qualified_table_name(name_node) else { return };
         let Some(actions) = actions.filter(|n| n.node_type() == NodeType::ARRAY) else { return };
-        // The parts that a name leaves out match any, as in a reference to the table
-        let part = |named: &Name, declared: &Name| named.text.is_empty() || named.text == declared.text;
-        let declared = state.out.entry.table_declarations.iter().rposition(|t| {
-            t.table_name.table_name.text == name.table_name.text
-                && part(&name.schema_name, &t.table_name.schema_name)
-                && part(&name.database_name, &t.table_name.database_name)
-        });
-        let Some(mut table) = declared.map(|index| index as u32) else { return };
+        let Some(mut table) = Self::declared_table(state, &name) else { return };
         for action in state.children(actions) {
             match action.node_type() {
                 NodeType::OBJECT_SQL_ALTER_RENAME_TABLE | NodeType::OBJECT_SQL_ALTER_SET_SCHEMA => {
@@ -388,6 +385,10 @@ impl NameResolutionPass {
                     if moved.database_name.text.is_empty() {
                         moved.database_name = source.database_name.clone();
                     }
+                    // The old name is gone for the statements after the `ALTER`
+                    if let Some(statement) = state.find_statement_id(node_id) {
+                        self.removed_tables.push((table, statement));
+                    }
                     table = self.move_declaration(state, table, &moved, node_id, true);
                 }
                 _ => {
@@ -404,6 +405,33 @@ impl NameResolutionPass {
                         None => Self::apply_column_action(state, table, action),
                     }
                 }
+            }
+        }
+    }
+
+    /// The last declaration of the script that a name names so far. The parts that a name leaves out match any, as in a
+    /// reference to the table.
+    fn declared_table(state: &AnalysisState, name: &QualifiedTableName) -> Option<u32> {
+        let part = |named: &Name, declared: &Name| named.text.is_empty() || named.text == declared.text;
+        let declared = state.out.entry.table_declarations.iter().rposition(|t| {
+            t.table_name.table_name.text == name.table_name.text
+                && part(&name.schema_name, &t.table_name.schema_name)
+                && part(&name.database_name, &t.table_name.database_name)
+        });
+        declared.map(|index| index as u32)
+    }
+
+    /// `DROP TABLE` and `DROP VIEW` of tables that the script declares: the statements after it don't see them. A table
+    /// that the script doesn't declare stays what the catalog says, as for an `ALTER`.
+    fn visit_drop(&mut self, state: &mut AnalysisState, node: &Node, node_id: u32) {
+        let statement = state.find_statement_id(node_id);
+        let Some(statement) = statement.filter(|_| !Self::is_explain(state, statement)) else { return };
+        let [name, more_names] = attrs!(state.children(node), [K::SQL_DROP_NAME, K::SQL_DROP_MORE_NAMES]);
+        let more_names = more_names.map(|n| state.children(n)).unwrap_or_default();
+        for name in name.into_iter().chain(more_names) {
+            let Some(name) = state.read_qualified_table_name(Some(name)) else { continue };
+            if let Some(table) = Self::declared_table(state, &name) {
+                self.removed_tables.push((table, statement));
             }
         }
     }
@@ -853,7 +881,7 @@ impl NameResolutionPass {
     }
 
     /// Resolve all table refs in a scope and register the FROM items
-    fn resolve_table_refs_in_scope(state: &mut AnalysisState, scope: ScopeId) {
+    fn resolve_table_refs_in_scope(&self, state: &mut AnalysisState, scope: ScopeId) {
         // The derived tables were added when the scope was created
         let Some(s) = state.out.scope_mut(scope) else { return };
         let mut sources = std::mem::take(&mut s.sources);
@@ -919,12 +947,20 @@ impl NameResolutionPass {
 
             // Resolve as a table of the own script, then through the catalog. A statement of the script reads the
             // declaration of a name that the statements before it leave, a statement before all declarations of the
-            // name reads the table of the catalog.
+            // name reads the table of the catalog. A table that the statements before it drop or rename is gone.
             let mut resolved = Vec::new();
+            let mut removed = false;
             state.out.entry.resolve_table(&table_name, &mut resolved, MAX_TABLE_REF_AMBIGUITY);
             if let Some(statement) = statement {
                 let entry = &state.out.entry;
+                let is_removed = |index: usize| {
+                    self.removed_tables.iter().any(|&(table, by)| table as usize == index && by < statement)
+                };
                 resolved.retain_mut(|loc| match entry.table_declared_before(loc.index as usize, statement) {
+                    Some(index) if is_removed(index) => {
+                        removed = true;
+                        false
+                    }
                     Some(index) => {
                         loc.index = index as u32;
                         true
@@ -932,7 +968,7 @@ impl NameResolutionPass {
                     None => false,
                 });
             }
-            if resolved.is_empty() {
+            if resolved.is_empty() && !removed {
                 state.catalog.resolve_table(&table_name, state.entry_id, &mut resolved, MAX_TABLE_REF_AMBIGUITY);
             }
             if let Some(&best_loc) = resolved.first() {
@@ -2218,7 +2254,7 @@ impl NameResolutionPass {
                 }
             } else {
                 dfs.pop();
-                Self::resolve_table_refs_in_scope(state, scope);
+                self.resolve_table_refs_in_scope(state, scope);
                 self.add_insert_excluded(state, scope);
                 self.check_join_alias_names(state, scope);
                 self.populate_output_columns(state, scope);
@@ -2772,6 +2808,10 @@ impl NameResolutionPass {
                 self.merge_child_states(node_state, node);
                 node_state.clear();
                 self.visit_alter(state, node, node_id);
+            }
+
+            NodeType::OBJECT_SQL_DROP_TABLE | NodeType::OBJECT_SQL_DROP_VIEW => {
+                self.visit_drop(state, node, node_id);
             }
 
             NodeType::OBJECT_SQL_PROPERTY_GRAPH | NodeType::OBJECT_SQL_GRAPH_TABLE => {

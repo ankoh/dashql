@@ -349,7 +349,9 @@ The rules follow PostgreSQL and Hyper:
   expressions if their texts are. The column ref stays unresolved.
 - **Script tables** resolve to the last declaration of the name before the referencing statement. An
   `ALTER` declares a new version, see `catalog_updates.md`. A statement before all declarations of the name, also the
-  declaring statement itself, reads the table of the catalog, or an unresolved one. An `EXPLAIN` that runs a
+  declaring statement itself, reads the table of the catalog, or an unresolved one. A `DROP` or a rename of a table
+  of the script removes the name for the statements after it: they read an unresolved table, not the catalog. A `DROP`
+  of a table that only the catalog has changes nothing, like an `ALTER` of one. An `EXPLAIN` that runs a
   `CREATE TABLE AS` (`analyze`) declares the table, as for the relations that it touches, other `EXPLAIN`s declare
   nothing.
 - **Columns of `CREATE TABLE`** keep their declaration order, column aliases rename by position. The scope of the

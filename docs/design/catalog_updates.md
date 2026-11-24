@@ -143,7 +143,10 @@ reports, and the connection answers once the statement ran. Until then, a later 
 column or name.
 
 A statement reads the last declaration of a name before it, as the database would when the script runs: `select a from t`
-in front of `alter table t rename column a to b` resolves `a`, the same statement after it resolves `b`. Other scripts read
+in front of `alter table t rename column a to b` resolves `a`, the same statement after it resolves `b`. A table that the
+script renames or drops is gone under its old name for the statements after the `ALTER` or the `DROP`, until the script
+declares the name again. A `DROP` of a table that the script doesn't declare changes nothing in the script, like an
+`ALTER` of one. Other scripts read
 the last declaration of the script, which carries all of its `ALTER`s.
 
 The planner doesn't model these statements, they are barriers and run in workbook order.

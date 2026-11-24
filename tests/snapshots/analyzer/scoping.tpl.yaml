@@ -771,3 +771,19 @@ analyzer-snapshots:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
     script:
       input: select t, (select t from u limit 1), x from t
+
+  # A renamed table of the script is gone under its old name for the statements after the ALTER
+  - name: alter_view_rename_then_read_old_name
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: create view vw as select a from t; alter view vw rename to vw2; select a from vw
+
+  # A dropped table of the script is gone for the statements after the DROP
+  - name: drop_script_table_then_read
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: create table z (a int); select a from z; drop table z; select a from z
