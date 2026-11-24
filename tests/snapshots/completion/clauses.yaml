@@ -1552,9 +1552,9 @@ completion-snapshots:
             - type: column
               id: "256.65536.1:0.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: t.id
+              qualified: excluded.id
               qualified-idx: 1
-              prefer-qualified: 0
+              prefer-qualified: 1
               detail: "integer · t"
         - value: name
           name-tags: [COLUMN_NAME]
@@ -1565,9 +1565,9 @@ completion-snapshots:
             - type: column
               id: "256.65536.1:0.1"
               candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: t.name
+              qualified: excluded.name
               qualified-idx: 1
-              prefer-qualified: 0
+              prefer-qualified: 1
               detail: "text · t"
         - value: x
           name-tags: [COLUMN_NAME]
@@ -1578,9 +1578,9 @@ completion-snapshots:
             - type: column
               id: "256.65536.1:0.2"
               candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: t.x
+              qualified: excluded.x
               qualified-idx: 1
-              prefer-qualified: 0
+              prefer-qualified: 1
               detail: "integer · t"
       text: "."
 

@@ -173,3 +173,35 @@ completion-snapshots:
         index: 3
     completions:
       limit: 5
+
+  # The alias of a join after a dot in a correlated subquery
+  - name: fix_join_alias_dot_in_subquery
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select (select j. from u) from (t join u using (a)) as j
+    cursor:
+      search:
+        text: 'j.'
+        index: 2
+    completions:
+      limit: 5
+
+  # The columns of `excluded` after a dot in ON CONFLICT DO UPDATE
+  - name: fix_on_conflict_excluded_dot
+    catalog:
+      script:
+        input: |-
+          create table t (id int, name text);
+    editor:
+      input: |-
+        insert into t (id, name) values (1, 'a') on conflict (id) do update set name = excluded.
+    cursor:
+      search:
+        text: 'excluded.'
+        index: 9
+    completions:
+      limit: 5
