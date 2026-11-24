@@ -26,25 +26,13 @@ import {
 } from '@akohn/dashql/platform/session/session_folder';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 
-import { initWorkspace, readSession, sessionBinFolder, sessionCopiesFolder, writeSession } from './session_folder.js';
+import { initWorkspace, readSession, sessionAnswers, sessionBinFolder, sessionCopiesFolder, writeSession } from './session_folder.js';
 
 /// How long a run waits for the first event of the tab
 const RUN_CLAIM_TIMEOUT_MS = 30_000;
 
 /// The error of a start in a folder where a session runs
 export const SESSION_RUNS_ERROR = 'ESESSIONRUNS';
-
-/// Does the server of a session answer? Every answer of a server of a session carries the protocol, before its token
-/// is checked.
-async function sessionAnswers({ endpoint }: WorkspaceSession): Promise<boolean> {
-    try {
-        const response = await fetch(`${endpoint}/v1/state`, { signal: AbortSignal.timeout(1000) });
-        await response.body?.cancel();
-        return response.headers.has(AGENT_SESSION_PROTOCOL_HEADER);
-    } catch {
-        return false;
-    }
-}
 
 /// The size of the charts of a run request, null for a run without charts or a size out of bounds
 function chartSize(value: unknown): AgentSessionChartSize | null {

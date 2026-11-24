@@ -18,7 +18,7 @@ import { fetchAgentSession } from '@akohn/dashql/platform/session/agent_session_
 import { encodeRunEvent, type RunEvent } from '@akohn/dashql/platform/workbook/run_events';
 
 import { runRun, type RunEnvironment } from './run_command.js';
-import { initWorkspace, noWorkspace } from './session_folder.js';
+import { initWorkspace, noWorkspace, readSession, writeSession } from './session_folder.js';
 import { startSessionServer } from './session_server.js';
 import { runWith, testFiles } from './test_process.js';
 
@@ -530,5 +530,25 @@ describe('dashql run in a session of dashql connect', () => {
         const left = await runWith((a, cli) => runRun(a, cli), folder, [COPY]);
         expect(left.code).toBe(2);
         expect(left.stderr).toBe(`error: ${COPY} is the copy of a workbook of the tab of DashQL, no session of dashql connect runs in ${ws(folder)}\n`);
+    });
+
+    it('takes a session whose server is gone for none', async () => {
+        const folder = testFiles([]);
+        const server = await startSessionServer({ harness: 'claude', folder, session: SESSION });
+        const entry = readSession(ws(folder));
+        await server.close();
+        // A dashql connect that was killed left the session in the workspace file
+        writeSession(ws(folder), entry);
+        const copy = path.join(folder, ...COPY.split('/'));
+        const workbook = trinoWorkbook('http://trino.invalid', []);
+        mkdirSync(path.join(copy, 'scripts'), { recursive: true });
+        copyFileSync(path.join(workbook, 'dashql-workbook.json'), path.join(copy, 'dashql-workbook.json'));
+        const left = await runWith((a, cli) => runRun(a, cli), folder, [COPY]);
+        expect(left.code).toBe(2);
+        expect(left.stderr).toBe(`error: ${COPY} is the copy of a workbook of the tab of DashQL, no session of dashql connect runs in ${ws(folder)}\n`);
+        // Another workbook folder runs in the process
+        const own = await runWith((a, cli) => runRun(a, cli), workbook, ['--workspace', ws(folder), '.']);
+        expect(own.stderr).not.toContain('is no copy of a workbook of the tab');
+        expect(own.code).toBe(0);
     });
 });

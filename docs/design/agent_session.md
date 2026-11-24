@@ -46,7 +46,8 @@ its draft for SQL.
   `connect` in the folder fails while the server of the first answers; a session whose server is gone, e.g. after a
   crash, goes with its folder at the next start. The session has an id, a new UUID: the `id` of the state that the tab
   follows. The workspace file `.dashql/dashql-workspace.json` (`session`) holds the address and the token of the
-  server, removed from it when the session ends.
+  server, removed from it when the session ends, also when the terminal of `connect` closes. A session in it whose
+  server does not answer counts as none, for `connect`, `run` and `vis`.
 - **The workspace in every command.** The hooks take the workspace, the `.dashql/` of the folder that the harness
   works in, `--workspace <folder>/.dashql`, the commands of the agent a copy, `<folder>/.dashql/workbooks/<id>`, and
   the workspace that holds it (`describe` takes `--workspace`, `.dashql/` of the invoking directory by default); they

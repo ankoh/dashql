@@ -16,6 +16,7 @@ import {
     type WorkspaceFile,
     type WorkspaceSession,
 } from '@akohn/dashql/platform/session/session_folder';
+import { AGENT_SESSION_PROTOCOL_HEADER } from '@akohn/dashql/platform/session/agent_session_protocol';
 
 /// The workspace of a command without --workspace, the `.dashql/` of the invoking directory
 export const DEFAULT_WORKSPACE = DASHQL_FOLDER;
@@ -94,6 +95,26 @@ export function noWorkspace(name: string): string {
 /// The session of `dashql connect` that runs in a workspace, from its workspace file. Null when none runs there.
 export function readSession(workspace: string): WorkspaceSession | null {
     return readWorkspaceFile(workspace)?.session ?? null;
+}
+
+/// Does the server of a session answer? Every answer of a server of a session carries the protocol, before its token
+/// is checked.
+export async function sessionAnswers({ endpoint }: WorkspaceSession): Promise<boolean> {
+    try {
+        const response = await fetch(`${endpoint}/v1/state`, { signal: AbortSignal.timeout(1000) });
+        await response.body?.cancel();
+        return response.headers.has(AGENT_SESSION_PROTOCOL_HEADER);
+    } catch {
+        return false;
+    }
+}
+
+/// The session of `dashql connect` that runs in a workspace and whose server answers, null when none does. A session
+/// whose `dashql connect` ended without removing it from the workspace file, e.g. killed or after a crash, counts as
+/// none.
+export async function liveSession(workspace: string): Promise<WorkspaceSession | null> {
+    const session = readSession(workspace);
+    return session != null && await sessionAnswers(session) ? session : null;
 }
 
 /// Put the session that runs in a workspace into its workspace file, null when none runs there

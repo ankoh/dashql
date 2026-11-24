@@ -208,7 +208,8 @@ that are not named show up only when they fail. `--verbose` prints the log of th
   `workbooks/<id>/results/` of the workspace. The run fails when no tab follows the session; Ctrl-C asks the tab to stop it
   (`docs/design/agent_integration.md`, "Runs in the tab"). Every other workbook folder fails with a hint while the
   session runs, so nothing runs outside the tab; without a session a workbook folder runs in the process, a copy only
-  with the workspace of its session.
+  with the workspace of its session. A session runs while its server answers: one that a `dashql connect` that was
+  killed left in the workspace file counts as none, like at the start of `connect`.
 - **Connections.** Trino with basic auth and the embedded Hyper. `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD`
   override the user and the password of the workbook. They stay in memory, the workbook keeps its params.
   A local cloud on the embedded Hyper attaches the databases of its clouds folder in the root, like in the app.
@@ -243,7 +244,8 @@ terminal with hooks that send its events there: Claude Code with `--settings`, C
 written to `~/.claude` or `~/.codex`. Codex shows the new hooks for review at its start. The hooks call this `dashql`
 again with the workspace in their arguments (`session hook <event> --harness <name> --workspace <folder>/.dashql`), nothing
 goes through the environment. When the harness exits, `connect` ends the session and stops the server
-and exits with the code of the harness. A port that is taken fails before the harness starts, the tab gives a new one.
+and exits with the code of the harness, also when the terminal closes (SIGHUP) or the process is asked to stop
+(SIGTERM): it ends the harness first. A port that is taken fails before the harness starts, the tab gives a new one.
 The arguments after `--` go to the harness, `--command` launches another program than `claude` or `codex` on the
 `PATH`.
 

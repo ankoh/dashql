@@ -27,7 +27,7 @@ import type { RunEvent, RunReporter } from './run_events.js';
 import { LiveRunReporter } from './run_live.js';
 import { PlainRunReporter } from './run_output.js';
 import { runInTab } from './run_tab.js';
-import { DEFAULT_WORKSPACE, isWorkspace, noWorkspace, readSession, sessionCopiesFolder, workbookCopyOf } from './session_folder.js';
+import { DEFAULT_WORKSPACE, isWorkspace, liveSession, noWorkspace, sessionCopiesFolder, workbookCopyOf } from './session_folder.js';
 
 const RUN_USAGE = `Usage: dashql run [-w <dir>] [--rows <n>] [--refresh] [--plain] [--verbose] <workbook-dir> [<script>...]
 
@@ -58,7 +58,8 @@ connect in that workspace (dashql-workspace.json): on the connections of the tab
 browser reaches them, and the tab shows the run. It fails when no session runs there or no tab follows the session.
 Another folder runs with --workspace (-w), the folder of the files of DashQL, .dashql/ of the invoking directory by
 default: a workspace that dashql init or dashql connect set up, another folder fails. While a session runs there, the
-folder fails, so nothing runs outside the tab; without one it runs in this process.
+folder fails, so nothing runs outside the tab; without one it runs in this process. A session runs while its server
+answers: one that a dashql connect that was killed left in dashql-workspace.json counts as none.
 
 --verbose prints the log of the runtime to stderr.`;
 
@@ -288,7 +289,8 @@ export interface WorkbookFolderRun {
 
 /// Run the scripts of a workbook folder and report the events of the run: while a session of dashql connect runs in
 /// the workspace, a copy of its tab runs in the tab and no other folder runs; without a session the folder runs in this
-/// process. Returns the exit code, errors go to stderr.
+/// process. A session whose server does not answer, e.g. after its terminal closed, is none. Returns the exit code,
+/// errors go to stderr.
 export async function runWorkbookFolder(
     run: WorkbookFolderRun,
     dir: string,
@@ -298,7 +300,7 @@ export async function runWorkbookFolder(
     emit: (event: RunEvent) => void,
     live = false,
 ): Promise<number> {
-    const session = readSession(run.workspace);
+    const session = await liveSession(run.workspace);
     const copied = workbookCopyOf(dir)?.workbookId ?? null;
     if (session == null) {
         // A copy of a tab runs only in its tab

@@ -63,14 +63,18 @@ export function processConnectEnvironment(): ConnectEnvironment {
         sessionId: () => randomUUID(),
         runHarness: (program, args, env, cwd) => new Promise<number>((resolve, reject) => {
             const child = spawn(program, args, { cwd, env: { ...process.env, ...env }, stdio: 'inherit' });
-            // Ctrl-C reaches the harness in the same terminal, the harness decides what it means
+            // Ctrl-C reaches the harness in the same terminal, the harness decides what it means. A terminal that
+            // closes (SIGHUP) and a stop end the harness, and the session after it: without a handler, the signal would
+            // end this process before it removes the session from the workspace file.
             const ignore = () => { };
             const forward = () => child.kill('SIGTERM');
             process.on('SIGINT', ignore);
             process.on('SIGTERM', forward);
+            process.on('SIGHUP', forward);
             const done = () => {
                 process.off('SIGINT', ignore);
                 process.off('SIGTERM', forward);
+                process.off('SIGHUP', forward);
             };
             child.once('error', error => {
                 done();
