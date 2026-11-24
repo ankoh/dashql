@@ -1,0 +1,342 @@
+analyzer-snapshots:
+
+  # A CTE never names the target of INSERT, DELETE or UPDATE, the target is the table of the catalog. The source of the
+  # INSERT reads the CTE of the same name.
+  - name: cte_name_of_write_target
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: |-
+        with t as (select 5 as a) insert into t (a) select a from t;
+        with u as (select 1 as k) delete from u where c = 1;
+        with v as (select 1 as k) update v set x = 2 where id = 1
+
+  # A CTE of an expression subquery is invisible to the rest of the query
+  - name: cte_of_subquery_invisible_outside
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select (with c as (select a from t) select count(*) from c), (select 1 from c)
+
+  # A CTE shadows a table that the script creates, the statements after it read the table again
+  - name: cte_shadows_script_table
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: create table z (q int); with z as (select a from t) select a, q from z; select q from z
+
+  # A CTE and a derived table of the same name in one FROM clause
+  - name: duplicate_alias_cte_and_derived_table
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: with c as (select 1 as k) select * from c, (select 2 as k) c
+
+  # The whole row of a CTE and of a derived table. A name of an unresolved table is no whole row, its column is
+  # inferred.
+  - name: whole_row_of_cte_derived_table_and_unresolved
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: with c as (select a from t) select c, s from c, (select b from t) s; select x from x
+
+  # Three set operations have the output columns of their leftmost input, ORDER BY names them
+  - name: set_op_three_inputs_order_by_left_name
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select a from t union (select c from u except select id from v) intersect select y from w order by a
+
+  # VALUES as the left input of a set operation, its columns are unnamed
+  - name: set_op_values_left_input
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select q.a from (values (1, 2) union select a, b from t) q; values (1) union select a from t order by a
+
+  # CREATE TABLE AS of a set operation has the columns of its left input
+  - name: create_table_as_set_operation
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: create table z as select a, b from t union select a, c from u; select a, b, c from z
+
+  # Output names are invisible in the ORDER BY and the FILTER of an aggregate
+  - name: output_name_in_aggregate_order_and_filter
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select b as x, string_agg(a, ',' order by x) filter (where x > 0) from t group by b
+
+  # A USING join with an unresolved left input: the star lists the join column of the right input first. A NATURAL
+  # join with an unresolved input joins no column.
+  - name: star_join_using_unresolved_left
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select * from x join t using (a); select * from t natural join x
+
+  # NATURAL joins of three inputs: the joined columns of the first join join again, a join without common columns
+  # joins none
+  - name: star_natural_three_inputs
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select * from t natural join u natural join w; select * from v natural join w natural join (select 1 as id, 0 as k) s
+
+  # A USING column is ambiguous with the column of a FROM item outside of the join
+  - name: join_using_column_and_outer_item
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select a from t join u using (a), (select a from u) s
+
+  # A function in FROM of a scalar subquery reads a column of the outer query
+  - name: function_in_from_correlated_outer
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select (select count(*) from generate_series(1, t.a) g where g > b) from t
+
+  # A second CREATE TABLE of a name declares the table again for the statements after it
+  - name: create_table_twice_without_drop
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: create table z (a int); select a from z; create table z (b int); select a, b from z
+
+  # ALTER of a CREATE TABLE AS: an added column follows the derived columns, a rename keeps them
+  - name: alter_create_table_as_add_and_rename
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: |-
+        create table z as select a from t;
+        alter table z add column q int;
+        select a, q from z;
+        alter table z rename to y;
+        select a, q from y;
+        select a from z
+
+  # ADD COLUMN of a name that the table has changes nothing, DROP COLUMN removes it for the statements after it
+  - name: alter_add_existing_then_drop_column
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: create table z (a int, b int); alter table z add column a text; select a from z; alter table z drop column a; select a, b from z
+
+  # SET SCHEMA moves a table of the script, the new qualified name reads it, the old one doesn't
+  - name: alter_set_schema_then_read
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: create table s1.z (a int); alter table s1.z set schema s2; select a from s2.z; select a from s1.z
+
+  # DROP of several tables, a name without a schema drops a table that the script declares with one
+  - name: drop_several_tables
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: create table p (a int); create table s.q (b int); drop table p, q; select a from p; select b from s.q
+
+  # TRUNCATE writes the tables that it names
+  - name: truncate_tables
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: truncate t, s.u, z; select a from t
+
+  # The constraints of CREATE TABLE: a DEFAULT, a REFERENCES of another table that is no table ref, a CHECK of a
+  # column that the table doesn't have, and a table constraint
+  - name: create_table_constraints
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: create table g (a int default 1, b int references t (a) on delete cascade, check (d > a), unique (a, b)); select a, b from g
+
+  # NULL and float literals are constants, comparisons of them too
+  - name: const_null_and_float_literals
+    script:
+      input: select null, 1.5, 1e3, .5, null = null, -1.5, 'a' = 'b'
+
+  # Operators without a binary function or comparison of the analyzer are no constant expressions
+  - name: const_other_operators
+    script:
+      input: select 1 is null, 1 is distinct from 2, 'a' like 'b', 'a' similar to 'b', +1, 1 = any (array[1]), 'a' collate "C"
+
+  # Interval casts in arithmetic
+  - name: const_interval_arithmetic
+    script:
+      input: select interval '1' day * 2, -interval '1' day, interval '1' day + interval '2' hour, now() - interval '1' day
+
+  # Functions with a subquery, a parameter or a column as argument are no constants
+  - name: const_function_non_constant_args
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select abs((select 1)), length(:x), round(1.5, a) from t
+
+  # Functions of constants in FROM
+  - name: const_functions_in_from
+    script:
+      input: select * from generate_series(1, 3) g, unnest(array[1, 2]) n
+
+  # Parameters with the types of their casts: the numeric, character, bit, time and interval types, arrays, and
+  # generic types with modifiers or a qualified name
+  - name: parameters_casts_more_types
+    script:
+      input: |-
+        select :a::smallint, :b::real, :c::double precision, :d::numeric(5), :e::char(3), :f::character varying,
+          :g::bit(4), :h::bit varying(8), :i::time(3) with time zone, :j::timestamp(6), :k::interval(2),
+          :l::interval day to second(3), :m::int[][], :n::int array, :o::geography(4326),
+          try_cast(:q as float8), :r::tinyint, :s::decimal(10,2), :t::string, :u::double, :v::text[3]
+
+  # A parameter has the type of the cast whose value it is, not of an outer cast
+  - name: parameters_cast_positions
+    script:
+      input: select (:a)::int, :b::int::text, -:c::int, cast(:d::int as text), :e + 1::int
+
+  # @param tags that can't be split into a name and a value are warnings
+  - name: parameters_param_tag_malformed
+    script:
+      input: |-
+        /* @param :min 10
+           @param :"open = 1
+           @param : = 2
+           @param :empty = */
+        select :min, :empty
+
+  # Tags after the last statement belong to no statement
+  - name: tags_after_the_last_statement
+    script:
+      input: |-
+        select 1;
+        /* @param :x = 1
+           @vis table
+           @board row=1 */
+
+  # KPI args without a value, a string chart and a number delta are warnings
+  - name: vis_tag_kpi_arg_values
+    catalog:
+      script:
+        input: |-
+          create table sales (region text, revenue int, date timestamp);
+    script:
+      input: |
+        /* @vis kpi value= x=date chart='bar' delta=3 */
+        select date, sum(revenue) as total from sales group by date;
+
+  # A board column beyond the grid is clamped, the first arg of a key wins, a number with a fraction is no integer,
+  # a sign is allowed
+  - name: vis_tag_board_clamped_column_and_repeated_keys
+    script:
+      input: |
+        /* @vis table
+           @board column=14 width=2 row=1 row=5 height=1.5 */
+        select 1;
+        /* @vis table
+           @board column=+3 width=4 height=+2 */
+        select 2;
+
+  # The board of a script is that of its last statement
+  - name: vis_tag_board_of_an_earlier_statement
+    script:
+      input: |
+        /* @board row=2 */
+        select 1;
+        select 2;
+
+  # The RETURNING star of MERGE lists the target and then the source, a qualified star of DELETE ... USING the relation
+  # that it names
+  - name: dml_returning_star_with_read_relations
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: |-
+        delete from v using w where v.id = w.id returning w.*, x;
+        merge into t using u on t.a = u.a when matched then update set b = u.c returning *
+
+  # A USING column of an inner join in the ON condition of an outer join is the column of the first input
+  - name: join_on_using_column_of_inner_join
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select * from t join u using (a) join v on v.id = a
+
+  # An unqualified column of a subquery whose only unresolved table is in the outer query
+  - name: inference_correlated_unqualified_outer_unresolved
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select * from x where exists (select 1 from t where x.m = a)
+
+  # A table of the script without a schema and a table of the catalog of the same name in another schema: the
+  # unqualified name reads the table of the script, the qualified name the one of the catalog
+  - name: script_table_and_catalog_table_of_another_schema
+    catalog:
+      script:
+        input: create table s.k (a int);
+    script:
+      input: create table k (b int); select b from k; select a from s.k; select k.a, s.k.a from s.k
+
+  # A database-qualified table of the script reads with its database, with its schema, and with its name alone
+  - name: script_table_database_qualified_reads
+    script:
+      input: create table db9.s9.z (a int); select a from db9.s9.z; select a from s9.z; select z.a from z; select a from db8.s9.z
+
+  # A lateral function in FROM reads only the FROM items before it
+  - name: function_in_from_reads_later_item
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select * from t, generate_series(1, u.c) g, u
+
+  # A tag before an empty statement
+  - name: tags_before_an_empty_statement
+    script:
+      input: |-
+        select 1;
+        /* @vis table */ ;
+        select 2
+
+  # The savepoints of a transaction end with it, the latest savepoint of a name counts
+  - name: transaction_savepoints_per_transaction
+    script:
+      input: |
+        begin;
+        savepoint a;
+        commit;
+        begin;
+        rollback to a;
+        savepoint b;
+        savepoint b;
+        release b;
+        rollback to savepoint b;
+        release b;
+        rollback to b;
+        commit;
