@@ -299,6 +299,33 @@ fn merge_columns(mut ranges: Vec<(f64, f64)>) -> Vec<(f64, f64)> {
     columns
 }
 
+/// The boxes of a part in producer order: a box after the boxes it reads, in box order otherwise. The boxes of a
+/// cycle follow in box order.
+fn producer_order(part: &[usize], edges: &[DataflowLayoutEdge]) -> Vec<usize> {
+    let mut incoming: BTreeMap<usize, usize> = part.iter().map(|&b| (b, 0)).collect();
+    for e in edges {
+        if let Some(n) = incoming.get_mut(&(e.to_box as usize)) {
+            *n += 1;
+        }
+    }
+    let mut ready: BTreeSet<usize> = incoming.iter().filter(|(_, &n)| n == 0).map(|(&b, _)| b).collect();
+    let mut order = Vec::with_capacity(part.len());
+    while let Some(b) = ready.pop_first() {
+        order.push(b);
+        for e in edges.iter().filter(|e| e.from_box as usize == b) {
+            if let Some(n) = incoming.get_mut(&(e.to_box as usize)) {
+                *n -= 1;
+                if *n == 0 {
+                    ready.insert(e.to_box as usize);
+                }
+            }
+        }
+    }
+    let rest: Vec<usize> = part.iter().copied().filter(|b| !order.contains(b)).collect();
+    order.extend(rest);
+    order
+}
+
 /// Arrange the boxes once, from their hints if they have any
 fn arrange(
     boxes: &[DataflowLayoutBox],
@@ -333,36 +360,49 @@ fn arrange(
             fresh.push(part);
             continue;
         }
-        // A box without a hint starts right of its producers or left of its consumers that have one, with the row of
-        // the edge level with the row at its other end
+        // A box without a hint starts right of its producers or left of its consumers that have a seed, with the row of
+        // the edge level with the row at its other end. The boxes take their seeds in producer order, from the boxes
+        // with hints downstream first, then upstream, so that a chain of boxes without hints starts box after box.
         let mut seeds: Vec<Option<(f64, f64)>> = boxes.iter().map(|b| b.hint).collect();
-        for &b in &part {
-            let (Some(None), Some(g)) = (seeds.get(b), geometry.get(b)) else { continue };
-            let producers: Vec<(f64, f64)> = edges
-                .iter()
-                .filter(|e| e.to_box as usize == b)
-                .filter_map(|e| {
-                    let p = geometry.get(e.from_box as usize)?;
-                    let (x, y) = hint(e.from_box as usize)?;
-                    Some((x + p.width, y + p.port(e.from_statement, config) - g.port(e.to_statement, config)))
-                })
-                .collect();
-            let consumers: Vec<(f64, f64)> = edges
-                .iter()
-                .filter(|e| e.from_box as usize == b)
-                .filter_map(|e| {
-                    let c = geometry.get(e.to_box as usize)?;
-                    let (x, y) = hint(e.to_box as usize)?;
-                    Some((x, y + c.port(e.to_statement, config) - g.port(e.from_statement, config)))
-                })
-                .collect();
-            let seed = if let Some(&(x, y)) = producers.iter().max_by(|a, b| a.0.total_cmp(&b.0)) {
-                Some((x + config.layer_gap, y))
-            } else {
-                consumers.iter().min_by(|a, b| a.0.total_cmp(&b.0)).map(|&(x, y)| (x - config.layer_gap - g.width, y))
-            };
-            if let Some(s) = seeds.get_mut(b) {
-                *s = seed;
+        let order = producer_order(&part, edges);
+        loop {
+            let mut seeded = false;
+            for &b in &order {
+                let (Some(None), Some(g)) = (seeds.get(b), geometry.get(b)) else { continue };
+                let seed = edges
+                    .iter()
+                    .filter(|e| e.to_box as usize == b)
+                    .filter_map(|e| {
+                        let p = geometry.get(e.from_box as usize)?;
+                        let (x, y) = seeds.get(e.from_box as usize).copied().flatten()?;
+                        Some((x + p.width, y + p.port(e.from_statement, config) - g.port(e.to_statement, config)))
+                    })
+                    .max_by(|a, b| a.0.total_cmp(&b.0))
+                    .map(|(x, y)| (x + config.layer_gap, y));
+                if let (Some(seed), Some(s)) = (seed, seeds.get_mut(b)) {
+                    *s = Some(seed);
+                    seeded = true;
+                }
+            }
+            for &b in order.iter().rev() {
+                let (Some(None), Some(g)) = (seeds.get(b), geometry.get(b)) else { continue };
+                let seed = edges
+                    .iter()
+                    .filter(|e| e.from_box as usize == b)
+                    .filter_map(|e| {
+                        let c = geometry.get(e.to_box as usize)?;
+                        let (x, y) = seeds.get(e.to_box as usize).copied().flatten()?;
+                        Some((x, y + c.port(e.to_statement, config) - g.port(e.from_statement, config)))
+                    })
+                    .min_by(|a, b| a.0.total_cmp(&b.0))
+                    .map(|(x, y)| (x - config.layer_gap - g.width, y));
+                if let (Some(seed), Some(s)) = (seed, seeds.get_mut(b)) {
+                    *s = Some(seed);
+                    seeded = true;
+                }
+            }
+            if !seeded {
+                break;
             }
         }
         // A dropped box that almost lines up a row with a connected row of a box that stays lines it up
@@ -389,16 +429,36 @@ fn arrange(
             }
         }
         // ELK forms its columns from overlapping x ranges, a wide or dropped box would merge two columns. The seeds put
-        // every box at the column of its center instead, far apart: the boxes that stay form the columns.
-        let ranges = part.iter().filter(|&&b| !dropped(b)).filter_map(|&b| {
+        // every box at the column of its center instead, far apart: the boxes that stay form the columns. The other
+        // boxes in a gap between two columns form new columns there, in the order of their seeds.
+        let stays = |b: usize| hint(b).is_some() && !dropped(b);
+        let ranges = part.iter().filter(|&&b| stays(b)).filter_map(|&b| {
             let (x, _) = hint(b)?;
             Some((x, x + geometry.get(b)?.width))
         });
         let columns = merge_columns(ranges.collect());
-        for &b in &part {
-            if let (Some(Some((x, _))), Some(g)) = (seeds.get_mut(b), geometry.get(b)) {
-                *x = column_of(&columns, *x + g.width / 2.0) * COLUMN_SPREAD;
+        let mut gaps: BTreeMap<i64, Vec<(f64, f64)>> = BTreeMap::new();
+        for &b in part.iter().filter(|&&b| !stays(b)) {
+            let (Some(Some((x, _))), Some(g)) = (seeds.get(b), geometry.get(b)) else { continue };
+            let column = column_of(&columns, x + g.width / 2.0);
+            if column.fract() != 0.0 {
+                gaps.entry(column.floor() as i64).or_default().push((*x, x + g.width));
             }
+        }
+        let gaps: BTreeMap<i64, Vec<(f64, f64)>> =
+            gaps.into_iter().map(|(gap, ranges)| (gap, merge_columns(ranges))).collect();
+        for &b in &part {
+            let (Some(Some((x, _))), Some(g)) = (seeds.get_mut(b), geometry.get(b)) else { continue };
+            let mut column = column_of(&columns, *x + g.width / 2.0);
+            if !stays(b) && column.fract() != 0.0 {
+                // The new columns of a gap split it evenly
+                let gap = column.floor();
+                if let Some(ranges) = gaps.get(&(gap as i64)) {
+                    let index = ranges.iter().position(|&(x0, x1)| *x >= x0 && *x < x1).unwrap_or_default();
+                    column = gap + (index + 1) as f64 / (ranges.len() + 1) as f64;
+                }
+            }
+            *x = column * COLUMN_SPREAD;
         }
         // ELK routes an edge that runs from right to left around the top of the columns: it puts its dummies at y 0,
         // `edge_gap` apart, and pushes a box down that is closer than `edge_box_gap` below them. The seeds start below

@@ -11,3 +11,31 @@ dataflow-snapshots:
       - name: read
         input: |
           select * from t;
+
+  # A chain without positions after a box with a position goes from left to right, level with it
+  - name: LayoutChainAfterPositionedBox
+    scripts:
+      - name: a
+        input: |
+          /** @flow x=200 y=100 */
+          create table a (x int);
+      - name: b
+        input: |
+          create table b as select x from a;
+      - name: c
+        input: |
+          select x from b;
+
+  # A chain without positions before a box with a position goes from left to right, level with it
+  - name: LayoutChainBeforePositionedBox
+    scripts:
+      - name: a
+        input: |
+          create table a (x int);
+      - name: b
+        input: |
+          create table b as select x from a;
+      - name: c
+        input: |
+          /** @flow x=800 y=100 */
+          select x from b;

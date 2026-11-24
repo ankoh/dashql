@@ -84,7 +84,9 @@ dataflow snapshots use them, the app reads them from the module (`DashQLDataflow
   from right to left: ELK routes them around the top of the boxes, the layout starts the boxes below the room they
   take. The columns are the
   runs of overlapping x ranges of the boxes, a box goes into the column of its center. A box without a position starts
-  right of its producers or left of its consumers, with the row of the edge level with the row at its other end. A
+  right of its producers or left of its consumers, with the row of the edge level with the row at its other end. The
+  boxes start in producer order, so a chain of boxes without positions follows the box with a position it starts
+  from, box after box, and every new box in a gap between two columns is a column of its own there. A
   part is moved back by the offset that most of its boxes share,
   ELK moves a layout to the origin. Boxes without edges keep their positions, parts and boxes without any position go
   below everything.

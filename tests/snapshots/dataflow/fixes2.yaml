@@ -41,3 +41,89 @@ dataflow-snapshots:
           kind: table
           name: t
           route: [[704,56],[848,56]]
+
+  - name: LayoutChainAfterPositionedBox
+    scripts:
+      - name: a
+        input: |
+          /** @flow x=200 y=100 */
+          create table a (x int);
+      - name: b
+        input: |
+          create table b as select x from a;
+      - name: c
+        input: |
+          select x from b;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: CREATE_TABLE
+              target: a
+              text: "create tab.. a (x int)"
+          box: [200,100,280,80]
+        - name: b
+          statements:
+            - type: CREATE_TABLE_AS
+              target: b
+              text: "create tab..t x from a"
+          box: [624,100,280,80]
+        - name: c
+          statements:
+            - type: SELECT
+              text: "select x from b"
+          box: [1048,100,280,80]
+      edges:
+        - from: a.0
+          to: b.0
+          kind: table
+          name: a
+          route: [[480,156],[624,156]]
+        - from: b.0
+          to: c.0
+          kind: table
+          name: b
+          route: [[904,156],[1048,156]]
+
+  - name: LayoutChainBeforePositionedBox
+    scripts:
+      - name: a
+        input: |
+          create table a (x int);
+      - name: b
+        input: |
+          create table b as select x from a;
+      - name: c
+        input: |
+          /** @flow x=800 y=100 */
+          select x from b;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: CREATE_TABLE
+              target: a
+              text: "create tab.. a (x int)"
+          box: [-48,100,280,80]
+        - name: b
+          statements:
+            - type: CREATE_TABLE_AS
+              target: b
+              text: "create tab..t x from a"
+          box: [376,100,280,80]
+        - name: c
+          statements:
+            - type: SELECT
+              text: "select x from b"
+          box: [800,100,280,80]
+      edges:
+        - from: a.0
+          to: b.0
+          kind: table
+          name: a
+          route: [[232,156],[376,156]]
+        - from: b.0
+          to: c.0
+          kind: table
+          name: b
+          route: [[656,156],[800,156]]
