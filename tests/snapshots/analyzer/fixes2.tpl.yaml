@@ -25,3 +25,16 @@ analyzer-snapshots:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
     script:
       input: with x as (delete from v using w where v.id = w.id returning *) select * from x
+
+  # A qualified type name is read by its last name
+  - name: qualified_type_name_of_cast
+    script:
+      input: select :p::pg_catalog.int4, :q::pg_catalog.text, :r::myschema.mytype
+
+  # The column types of CREATE TABLE and ALTER TABLE are read by their last name too
+  - name: qualified_type_name_of_column
+    script:
+      input: |-
+        create table t (a pg_catalog.int4, b pg_catalog.varchar(10));
+        alter table t add column c pg_catalog.bool;
+        select * from t

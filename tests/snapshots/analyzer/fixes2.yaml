@@ -131,3 +131,65 @@ analyzer-snapshots:
             - {name: id, table-column: "256.65536.1:3.0"}
             - {name: y, table-column: "256.65536.1:3.1"}
           text: "with x as ..t * from x"
+
+  - name: qualified_type_name_of_cast
+    script:
+      input: select :p::pg_catalog.int4, :q::pg_catalog.text, :r::myschema.mytype
+      catalog-id: 1
+      errors: []
+      parameters:
+        - {kind: scalar, name: p, cast: "integer", text: ":p"}
+        - {kind: scalar, name: q, cast: "text", text: ":q"}
+        - {kind: scalar, name: r, cast: "myschema.mytype", text: ":r"}
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+          text: "select :p:..ema.mytype"
+
+  - name: qualified_type_name_of_column
+    script:
+      input: |-
+        create table t (a pg_catalog.int4, b pg_catalog.varchar(10));
+        alter table t add column c pg_catalog.bool;
+        select * from t
+      catalog-id: 1
+      tables:
+        - catalog-id: "256.65536.1:0"
+          name: t
+          text: "create tab..rchar(10))"
+          columns:
+            - {catalog-id: "256.65536.1:0.0", name: a, text: "a pg_catalog.int4"}
+            - {catalog-id: "256.65536.1:0.1", name: b, text: "b pg_catal..archar(10)"}
+        - catalog-id: "256.65536.1:1"
+          name: t
+          text: "alter tabl..talog.bool"
+          columns:
+            - {catalog-id: "256.65536.1:1.0", name: a, text: "a pg_catalog.int4"}
+            - {catalog-id: "256.65536.1:1.1", name: b, text: "b pg_catal..archar(10)"}
+            - {catalog-id: "256.65536.1:1.2", name: c, text: "c pg_catalog.bool"}
+      touched-relations:
+        - {statement-id: 0, name: t}
+        - {statement-id: 1, name: t}
+      errors: []
+      table-refs:
+        - {type: name/internal, catalog-id: "256.65536.1:1", statement-id: 2, text: "t"}
+      expressions:
+        - {id: 0, type: literal/integer, is-const: true, statement-id: 0, text: "10"}
+      constants:
+        - {expression: 0, text: "10"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          text: "create tab..rchar(10))"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, table-column: "256.65536.1:1.0"}
+            - {name: b, table-column: "256.65536.1:1.1"}
+            - {name: c, table-column: "256.65536.1:1.2"}
+          text: "select * from t"

@@ -145,6 +145,26 @@ fn derived_tables_keep_the_types_of_passed_through_columns() {
     assert_eq!(types, vec![("a", None), ("b", Some("integer"))]);
 }
 
+#[test]
+fn column_types_read_qualified_type_names() {
+    let catalog = Catalog::new();
+    let script = analyze_single_table(
+        "create table t (a pg_catalog.int4, b pg_catalog.varchar(10), c myschema.mytype, d pg_catalog.bool[])",
+        &catalog,
+    );
+    let types: Vec<(&str, Option<&str>)> =
+        single_table(&script).table_columns.iter().map(|c| (c.column_name.text(), c.column_type.as_deref())).collect();
+    assert_eq!(
+        types,
+        vec![
+            ("a", Some("integer")),
+            ("b", Some("varchar(10)")),
+            ("c", Some("myschema.mytype")),
+            ("d", Some("boolean[]"))
+        ]
+    );
+}
+
 /// The tables that a script declares as `schema.table(a, b)`, columns in declaration order
 fn declared(text: &str, catalog_sql: Option<&str>) -> Vec<String> {
     let mut catalog = Catalog::new();

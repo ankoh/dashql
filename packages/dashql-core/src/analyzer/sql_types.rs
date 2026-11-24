@@ -5,7 +5,8 @@
 //! `OBJECT_SQL_CHARACTER_TYPE`, the date and time types `OBJECT_SQL_TIMESTAMP_TYPE` and `OBJECT_SQL_TIME_TYPE`, and the
 //! intervals `OBJECT_SQL_INTERVAL_TYPE`. Every other type is a generic type with a name and modifiers. The generic names
 //! of well-known types (`text`, `date`, `int8`, `timestamptz`, ...) map to their kinds, so `::int8` and `::bigint`
-//! are the same type.
+//! are the same type. A qualified generic name keeps its schema, `myschema.mytype`, except that of `pg_catalog`:
+//! `pg_catalog.int4` is `int4`.
 
 use dashql_buffers::parser::{
     AttributeKey as K, CharacterType, IntervalType as IntervalTypeEnum, Node, NodeType, NumericType,
@@ -221,8 +222,19 @@ fn read_kind(parsed: &ParsedScript, node: &Node) -> Option<SqlTypeKind> {
             })
         }
         NodeType::OBJECT_SQL_GENERIC_TYPE => {
-            let [name, mods] = attrs!(parsed.children(node), [K::SQL_GENERIC_TYPE_NAME, K::SQL_GENERIC_TYPE_MODIFIERS]);
-            let name = type_name(parsed, name?)?;
+            let [name, qualifiers, mods] = attrs!(
+                parsed.children(node),
+                [K::SQL_GENERIC_TYPE_NAME, K::SQL_GENERIC_TYPE_QUALIFIERS, K::SQL_GENERIC_TYPE_MODIFIERS]
+            );
+            let mut name = type_name(parsed, name?)?;
+            // A qualified name, `pg_catalog.int4` or `myschema.mytype`, has the names after the first as qualifiers
+            if let Some(rest) = qualifiers.and_then(|q| type_name(parsed, q)) {
+                name = format!("{name}.{rest}");
+            }
+            // The types of `pg_catalog` are the types of their unqualified names
+            if let Some(unqualified) = name.strip_prefix("pg_catalog.").filter(|n| !n.contains('.')) {
+                name = unqualified.to_string();
+            }
             let mods = modifiers(parsed, mods);
             if mods.is_empty() {
                 if let Some(kind) = generic_kind(&name) {

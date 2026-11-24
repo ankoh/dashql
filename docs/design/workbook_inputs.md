@@ -30,7 +30,7 @@ An input has:
   is text. The analyzer reads the type of a cast as a structured type (`analyzer::sql_types`, `SqlType` in
   `analyzed_script.fbs`), the kind (`INT4`, `NUMERIC`, `TIMESTAMP`, a `GENERIC` name, ...) with its precision, scale,
   length, time zone and array dimensions. The names of well-known types map to their kinds, `::int8` and `::bigint` are
-  one type.
+  one type, and so is `::pg_catalog.int8`. Another qualified name keeps its schema, `::myschema.mytype`.
 - **Its consumers.** The statements that use the input.
 
 ## The `@param` Tag

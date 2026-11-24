@@ -67,6 +67,13 @@ fn types_print_their_canonical_names() {
         ("int[]", "integer[]"),
         ("int[][]", "integer[][]"),
         ("text array", "text[]"),
+        // A qualified name keeps its schema, except `pg_catalog`
+        ("pg_catalog.int4", "integer"),
+        ("pg_catalog.text", "text"),
+        ("pg_catalog.varchar(10)", "varchar(10)"),
+        ("pg_catalog.int8[]", "bigint[]"),
+        ("myschema.mytype", "myschema.mytype"),
+        ("db.myschema.mytype(3)", "db.myschema.mytype(3)"),
     ] {
         assert_eq!(sql(text), expected, "type: {text}");
     }
