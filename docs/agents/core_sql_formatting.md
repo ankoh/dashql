@@ -44,8 +44,8 @@ second run equals the first. Inline mode drops the comments.
   qualified name: after the dot the scanner reads no qualified name before a reserved keyword or an operator.
 - **Parentheses.** The opening (or closing) parentheses between a comment and the word of its node are counted. Those
   that the document prints itself count, the comment goes outside of as many of the parentheses around the document
-  as remain, whether they are parenthesis documents or texts like `]`. Parentheses that the formatter drops are
-  skipped, a second run counts the printed ones.
+  as remain, whether they are parenthesis documents or texts like `]`, also on a line of their own like the `)` of a
+  CTE in pretty mode. Parentheses that the formatter drops are skipped, a second run counts the printed ones.
 - **One line comment per document end.** A second line comment at the end of the same document goes in front of the
   node after it, on a line of its own.
 - **Without a node.** Comments inside a statement after its last printed node, as in `select (a /* a */)`, follow the

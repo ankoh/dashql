@@ -3756,6 +3756,14 @@ mod tests {
     }
 
     #[test]
+    fn keeps_line_comments_after_the_parenthesis_of_a_cte() {
+        // In pretty mode the closing parenthesis of a CTE is on a line of its own, the comment stays after it
+        let [_, pretty] =
+            format_stable("with a as (select 1 as x), -- c\nb as (select 2 as y) select * from a, b", 120);
+        assert_eq!(pretty, "with a as (\n  select 1 as x\n), -- c\nb as (\n  select 2 as y\n)\nselect *\nfrom a, b;");
+    }
+
+    #[test]
     fn keeps_comments_after_the_last_node_of_a_statement() {
         // Comments after the last node follow the statement on its line, or go before the semicolon
         let [compact, _] = format_stable("select (a /* a */) -- b\n;\nselect 2", 120);

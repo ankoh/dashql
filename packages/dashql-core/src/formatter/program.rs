@@ -411,8 +411,14 @@ impl<'a> FormattingProgram<'a> {
             }
             FormattingOpCode::Concat => {
                 let position = doc.children.iter().position(|&child| reaches(child))?;
-                let next = if at_start { position.checked_sub(1)? } else { position + 1 };
-                let &next = doc.children.get(next)?;
+                // The parenthesis may be on a line of its own, as the `)` after the body of a CTE in pretty mode
+                let is_break =
+                    |&&child: &&FmtReg| program.get(child as usize).is_some_and(|d| d.code == FormattingOpCode::Break);
+                let &next = if at_start {
+                    doc.children.get(..position)?.iter().rev().find(|c| !is_break(c))?
+                } else {
+                    doc.children.get(position + 1..)?.iter().find(|c| !is_break(c))?
+                };
                 let text = program.get(next as usize).filter(|d| d.code == FormattingOpCode::Text)?.text;
                 let (rest, count) = strip_parentheses(text, at_start);
                 (rest.is_empty() && count > 0).then_some((next, count))
