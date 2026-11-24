@@ -20,7 +20,7 @@ import {
     sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable';
 
-import { useConnections, useDispatch, useRuntime, useWorkbooks } from '@akohn/dashql-react/hooks';
+import { useDispatch, useRuntime, useWorkbooks } from '@akohn/dashql-react/hooks';
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import * as ActionList from '@akohn/dashql-react/components/action_list';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
@@ -44,7 +44,6 @@ import {
 } from '@akohn/dashql-react/components/symbol_icon';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { OPEN_WORKBOOK, SELECT_WORKBOOK, useRouterNavigate } from '../../app/router.js';
-import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { useNewWorkbookConnection } from '../../connections/embedded_connection_hooks.js';
 import { CloudsFolder } from '../../cloud/cloud_sidebar.js';
 import { useClouds } from '../../cloud/cloud_state.js';
@@ -94,8 +93,6 @@ import { PlatformType, usePlatformType } from '../../host/platform_type.js';
 
 interface WorkbookItem {
     workbookId: string;
-    /// The connections of the workbook, in the order its scripts use them
-    connections: ConnectionState[];
     scripts: WorkbookScripts;
     label: string;
     path: string;
@@ -569,7 +566,6 @@ const LocalWorkbookFolderRow: React.FC<{ expanded: boolean; count: number; onTog
 export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const navigate = useRouterNavigate();
     const runtime = useRuntime();
-    const connections = useConnections();
     const scriptsRegistry = useWorkbooks();
     const createWorkbook = useWorkbookCreation();
     const openGreeterPage = useOpenGreeter();
@@ -604,14 +600,10 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         for (const [workbookId, scripts] of scriptsRegistry) {
             // The ephemeral workbook has its own row at the end of the list, a cloud preview shows with the cloud
             if (scripts.ephemeral || isCloudPreview(scripts)) continue;
-            const workbookConnections = scripts.connectionIds
-                .map(id => connections.get(id))
-                .filter((connection): connection is ConnectionState => connection != null);
             const location = storageReader.getWorkbookLocation(workbookId);
             const path = displayPath(workbookId, location);
             items.set(workbookId, {
                 workbookId,
-                connections: workbookConnections,
                 scripts,
                 path,
                 label: scripts.name?.trim() || path,
@@ -619,7 +611,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
             });
         }
         return items;
-    }, [connections, scriptsRegistry, storageReader]);
+    }, [scriptsRegistry, storageReader]);
 
     // The workbooks that the tree doesn't list yet, e.g. new ones before their first write, show where their
     // first write registers them, at the end of the root
