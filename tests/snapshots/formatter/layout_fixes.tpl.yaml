@@ -114,6 +114,30 @@ formatter-snapshots:
           - mode: pretty
             width: 160
 
+  # A lambda keeps its parameters together and breaks in its body
+  - name: lambda_parameters_stay_together
+    input: |-
+      select f(lambda first_value, second_value: first_value * 2 + second_value) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 50
+          - mode: pretty
+            width: 50
+
+  # The same at a width where it fits
+  - name: lambda_parameters_stay_together_wide
+    input: |-
+      select f(lambda first_value, second_value: first_value * 2 + second_value) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 120
+          - mode: pretty
+            width: 120
+
   # The items of a list in parentheses that break are aligned, also the first one
   - name: list_in_broken_parentheses_aligned
     input: select name from products where category in ('electronics', 'household appliances', 'garden furniture', 'sporting goods') and price > 10

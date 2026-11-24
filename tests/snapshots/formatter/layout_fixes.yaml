@@ -236,6 +236,49 @@ formatter-snapshots:
               select sum(amount) over (partition by customer_id order by created_at rows between unbounded preceding and current row exclude current row)
               from orders;
 
+  - name: lambda_parameters_stay_together
+    input: |-
+      select f(lambda first_value, second_value: first_value * 2 + second_value) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select f(lambda first_value, second_value: first_value * 2 + second_value) from t;
+          - mode: compact
+            width: 50
+            expected: |-
+              select f(
+                lambda first_value, second_value:
+                  first_value * 2 + second_value
+              )
+              from t;
+          - mode: pretty
+            width: 50
+            expected: |-
+              select f(
+                lambda first_value, second_value:
+                  first_value * 2 + second_value
+              )
+              from t;
+
+  - name: lambda_parameters_stay_together_wide
+    input: |-
+      select f(lambda first_value, second_value: first_value * 2 + second_value) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select f(lambda first_value, second_value: first_value * 2 + second_value) from t;
+          - mode: compact
+            expected: |-
+              select f(lambda first_value, second_value: first_value * 2 + second_value) from t;
+          - mode: pretty
+            expected: |-
+              select f(lambda first_value, second_value: first_value * 2 + second_value)
+              from t;
+
   - name: list_in_broken_parentheses_aligned
     input: |-
       select name from products where category in ('electronics', 'household appliances', 'garden furniture', 'sporting goods') and price > 10

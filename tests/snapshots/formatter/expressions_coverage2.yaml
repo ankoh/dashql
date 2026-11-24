@@ -114,9 +114,9 @@ formatter-snapshots:
             expected: |-
               select array_transform(
                 some_array,
-                lambda element: case
-                  when element > 100 then element / 100
-                  else element * 100 end
+                lambda element:
+                  case when element > 100 then element / 100
+                    else element * 100 end
               )
               from t;
           - mode: pretty
@@ -124,10 +124,11 @@ formatter-snapshots:
             expected: |-
               select array_transform(
                 some_array,
-                lambda element: case
-                  when element > 100 then element / 100
-                  else element * 100
-                end
+                lambda element:
+                  case
+                    when element > 100 then element / 100
+                    else element * 100
+                  end
               )
               from t;
 
@@ -146,8 +147,8 @@ formatter-snapshots:
               select array_filter(
                 a,
                 lambda x:
-                -- the element
-                x > 1
+                  -- the element
+                  x > 1
               )
               from /* positive */ t;
           - mode: pretty
@@ -155,8 +156,8 @@ formatter-snapshots:
               select array_filter(
                 a,
                 lambda x:
-                -- the element
-                x > 1
+                  -- the element
+                  x > 1
               )
               from /* positive */ t;
 

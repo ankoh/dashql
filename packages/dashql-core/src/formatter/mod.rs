@@ -733,8 +733,19 @@ impl<'a> Formatter<'a> {
             | K::SQL_TABLEREF_OPTIONS
             | K::SQL_FUNCTION_EXTRA_ARGUMENTS
             | K::SQL_CONST_CAST_FUNC_ARGS_ORDER
-            | K::SQL_LAMBDA_PARAM
             | K::SQL_SEMANTIC_CLAUSE_TARGETS => self.format_comma_list(node, true),
+            // The parameters of a lambda stay on one line, its body breaks
+            K::SQL_LAMBDA_PARAM => {
+                let parts = self.array_regs(node);
+                let mut items = Vec::with_capacity(parts.len() * 2);
+                for (i, part) in parts.into_iter().enumerate() {
+                    if i > 0 {
+                        items.push(f.text(", "));
+                    }
+                    items.push(part);
+                }
+                f.concat(&items)
+            }
             K::SQL_SEMANTIC_VIEW_CLAUSES => {
                 let parts = self.array_regs(node);
                 self.space_join(&parts, FormattingJoinPolicy::BreakAllOrNone, false)
@@ -1790,10 +1801,12 @@ impl<'a> Formatter<'a> {
         let [params, body] = attrs!(self.children(node), [K::SQL_LAMBDA_PARAM, K::SQL_LAMBDA_BODY]);
         let Some(body) = body else { return self.format_unimplemented(node) };
         let body_reg = self.reg_or_placeholder(body);
-        match params.filter(|p| p.children_count() > 0) {
-            Some(params) => f.concat(&[f.text("lambda "), self.reg_or_placeholder(params), f.text(": "), body_reg]),
-            None => f.concat(&[f.text("lambda: "), body_reg]),
-        }
+        let head = match params.filter(|p| p.children_count() > 0) {
+            Some(params) => f.concat(&[f.text("lambda "), self.reg_or_placeholder(params), f.text(":")]),
+            None => f.text("lambda:"),
+        };
+        // The parameters stay together, the body goes on a line of its own if it does not fit after them
+        self.space_join(&[head, body_reg], FormattingJoinPolicy::BreakOnOverflow, true)
     }
 
     /// A named field of a row, `value as name` or `name => value`
