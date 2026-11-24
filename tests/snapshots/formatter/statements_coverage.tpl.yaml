@@ -283,3 +283,93 @@ formatter-snapshots:
       hyper:
         validation:
           setup: ""
+
+  # COPY with the legacy options, generic and named options, locations and a partitioning
+  - name: coverage_copy_from_legacy_options
+    input: copy binary t (a, b) with oids from stdin using delimiters '|'; copy t from 'data.csv' with csv header delimiter as ';' null as '' quote '"' escape '\' force not null a, b force null c encoding 'utf8' freeze; copy t from stdin sanitize
+    dialects:
+      hyper:
+
+  - name: coverage_copy_from_legacy_options_narrow
+    input: copy binary t (a, b) with oids from stdin using delimiters '|'; copy t from 'data.csv' with csv header delimiter as ';' null as '' quote '"' escape '\' force not null a, b force null c encoding 'utf8' freeze; copy t from stdin sanitize
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 60
+          - mode: pretty
+            width: 60
+
+  - name: coverage_copy_to_targets
+    input: copy t to stdout with (format csv, header, force_quote *, force_not_null (a, b)); copy t (a) to program 'gzip > out.gz' force quote a; copy t to stdout force quote *; copy (select 1 as a) to 'out.csv' with (format => 'csv', header := true) partition by a
+    dialects:
+      hyper:
+
+  - name: coverage_copy_from_locations
+    input: copy t from array['a.csv', 'b.csv']; copy t from array[]; copy t from s3_location('s3://bucket/key', region => 'us-east-1'); copy t from program 'cat data.csv'; copy (select 1) to null
+    dialects:
+      hyper:
+
+  - name: coverage_copy_narrow
+    input: copy (select some_column, other_column from some_table) to 's3://some-bucket/some/key.parquet' with (format => 'parquet') partition by some_column, other_column
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 60
+          - mode: pretty
+            width: 60
+
+  - name: coverage_copy_validated
+    input: copy (select 1 as a) to null with (format => 'csv')
+    dialects:
+      hyper:
+        validation:
+          setup: ""
+
+  # The commands of Hyper databases
+  - name: coverage_create_database
+    input: create local database if not exists db with owner = bob template t0 encoding 'utf8' location 'x' tablespace ts connection limit 5 version 3; create database db2 from db1; create database if not exists db3 with owner bob from db1 with version 2
+    dialects:
+      hyper:
+
+  - name: coverage_create_database_narrow
+    input: create local database if not exists db with owner = bob template t0 encoding 'utf8' location 'x' tablespace ts connection limit 5 version 3; create database db2 from db1; create database if not exists db3 with owner bob from db1 with version 2
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 50
+          - mode: pretty
+            width: 50
+
+  - name: coverage_database_import_export_alter
+    input: export database db to 'out.hyper'; export local database db with version 2 to 'out.hyper' with version 3; import local database if not exists db from 'in.hyper' with version 1; import database db from stdin; alter database db set timezone to 'UTC'; alter local database db with version 2 set search_path = public
+    dialects:
+      hyper:
+
+  - name: coverage_database_lifecycle
+    input: detach database db; detach database a, b; detach database *; drop local database if exists db; unload database db; unload database db gracefully; unload local database db forcefully with defragmentation; unload release; validate local database db; validate database db with (mode = fast, other = default); alter local database db rename to db2
+    dialects:
+      hyper:
+
+  # External tables and streams
+  - name: coverage_create_external_table
+    input: create temp external table if not exists ext (x int) for 'f.csv' (with csv header delimiter ';'); create external table e2 like t for array['a.parquet', 'b.parquet']; create external table e3 for 'x.parquet' with (format => 'parquet'); create external table e4 () for s3_location('s3://b/k')
+    dialects:
+      hyper:
+
+  - name: coverage_create_external_table_narrow
+    input: create temp external table if not exists ext (x int) for 'f.csv' (with csv header delimiter ';'); create external table e2 like t for array['a.parquet', 'b.parquet']; create external table e3 for 'x.parquet' with (format => 'parquet'); create external table e4 () for s3_location('s3://b/k')
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 50
+          - mode: pretty
+            width: 50
+
+  - name: coverage_create_external_stream
+    input: create temp bounded external stream if not exists s (x int) with (format => 'csv'); create buffered external stream s2 like t; create external stream s3 () (csv)
+    dialects:
+      hyper:

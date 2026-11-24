@@ -10,6 +10,7 @@
 
 mod commands;
 mod comments;
+mod copy;
 mod create;
 mod delete;
 mod explain;
@@ -837,6 +838,46 @@ impl<'a> Formatter<'a> {
             | K::SQL_CREATE_DEFINITION_FROM
             | K::SQL_RENAME_OBJECT_NAME
             | K::SQL_RENAME_OBJECT_ARG => self.format_qualified_name(node),
+            // The lists of COPY, external tables and databases
+            K::SQL_COPY_PARTITION_BY | K::SQL_DETACH_DATABASE_ALIAS | K::SQL_ARRAY_EXPRESSION_ARGS => {
+                self.format_comma_list(node, true)
+            }
+            K::SQL_COPY_COLUMNS | K::SQL_FUNCTION_CALL_ARGS | K::SQL_VALIDATE_DATABASE_OPTIONS => {
+                self.format_comma_list(node, false)
+            }
+            K::SQL_CREATE_DATABASE_OPTIONS
+            | K::SQL_CREATE_DATABASE_COPY_OPTIONS
+            | K::SQL_CREATE_DATABASE_COPY_SOURCE_OPTIONS
+            | K::SQL_ALTER_DATABASE_OPTIONS => self.format_space_list(node),
+            // The legacy options of COPY without commas, or the others that their parent puts in parentheses
+            K::SQL_COPY_OPTIONS | K::SQL_CREATE_EXTERNAL_TABLE_OPTIONS | K::SQL_CREATE_EXTERNAL_STREAM_OPTIONS => {
+                if self.are_legacy_copy_options(node) {
+                    self.format_space_list(node)
+                } else {
+                    self.format_comma_list(node, false)
+                }
+            }
+            // The columns of `force quote a, b`, or the values of a generic option in parentheses
+            K::SQL_COPY_OPTION_VALUE => {
+                let parent = self.ast.get(node.parent() as usize);
+                if parent.is_some_and(|p| self.children(p).iter().any(|a| a.attribute_key() == K::SQL_COPY_OPTION_KIND))
+                {
+                    self.format_comma_list(node, true)
+                } else {
+                    f.parenthesized_list(self.format_comma_list(node, false))
+                }
+            }
+            // The columns of an external table or stream, or the table of `like t`
+            K::SQL_CREATE_EXTERNAL_TABLE_SCHEMA | K::SQL_CREATE_EXTERNAL_STREAM_SCHEMA => {
+                if self.children(node).first().is_some_and(|c| c.node_type() == NodeType::OBJECT_SQL_COLUMN_DEF) {
+                    self.format_comma_list(node, false)
+                } else {
+                    self.format_qualified_name(node)
+                }
+            }
+            K::SQL_COPY_RELATION | K::SQL_CREATE_EXTERNAL_TABLE_NAME | K::SQL_CREATE_EXTERNAL_STREAM_NAME => {
+                self.format_qualified_name(node)
+            }
             K::SQL_TEMP_NAME
             | K::SQL_CREATE_TABLE_NAME
             | K::SQL_FUNCTION_NAME
@@ -1809,12 +1850,18 @@ impl<'a> Formatter<'a> {
     /// `array[...]` or `array(select ...)`
     fn format_array_expression(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [values, statement] =
-            attrs!(self.children(node), [K::SQL_ARRAY_EXPRESSION_VALUES, K::SQL_ARRAY_EXPRESSION_STATEMENT]);
+        let [values, statement, locations] = attrs!(
+            self.children(node),
+            [K::SQL_ARRAY_EXPRESSION_VALUES, K::SQL_ARRAY_EXPRESSION_STATEMENT, K::SQL_ARRAY_EXPRESSION_ARGS]
+        );
         if statement.is_some() {
             return self.format_keyword_call(node, K::SQL_ARRAY_EXPRESSION_STATEMENT, "array");
         }
-        let Some(values) = values.filter(|v| v.node_type() == NodeType::ARRAY) else {
+        // The locations of COPY and of external tables, `array[]` has none
+        if node.children_count() == 0 {
+            return f.text("array[]");
+        }
+        let Some(values) = values.or(locations).filter(|v| v.node_type() == NodeType::ARRAY) else {
             return self.format_unimplemented(node);
         };
         if values.children_count() == 0 {
@@ -2167,7 +2214,15 @@ impl<'a> Formatter<'a> {
 
     fn format_generic_option(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [key, value] = attrs!(self.children(node), [K::SQL_GENERIC_OPTION_KEY, K::SQL_GENERIC_OPTION_VALUE]);
+        let [key, name, value] = attrs!(
+            self.children(node),
+            [K::SQL_GENERIC_OPTION_KEY, K::SQL_GENERIC_OPTION_NAME, K::SQL_GENERIC_OPTION_VALUE]
+        );
+        // `owner = bob`, an option of a database, `name = default` without a value
+        if let (None, Some(name)) = (key, name) {
+            let value = value.map_or_else(|| f.text("default"), |v| self.reg_or_placeholder(v));
+            return f.concat(&[self.reg_or_placeholder(name), f.text(" = "), value]);
+        }
         let Some(key) = key else { return self.format_unimplemented(node) };
         let key_reg = self.reg(key);
         // A scan option of a table reference, `key => value`
@@ -3235,6 +3290,30 @@ impl<'a> Formatter<'a> {
             NodeType::OBJECT_SQL_CREATE_AS => self.format_create_as(node),
             NodeType::OBJECT_SQL_VIEW => self.format_view(node),
             NodeType::OBJECT_SQL_CREATE_FUNCTION => self.format_create_function(node),
+            NodeType::OBJECT_SQL_COPY => self.format_copy(node),
+            NodeType::OBJECT_SQL_COPY_OPTION => self.format_copy_option(node),
+            NodeType::ENUM_SQL_COPY_OPTION => self.format_copy_option_kind(node),
+            NodeType::ENUM_SQL_COPY_DIRECTION => f.empty(),
+            NodeType::OBJECT_SQL_PROGRAM_CALL => self.format_program_call(node),
+            NodeType::OBJECT_SQL_FUNCTION_CALL => self.format_function_call(node),
+            NodeType::OBJECT_SQL_FUNCTION_NAME => self.format_function_name(node),
+            NodeType::OBJECT_SQL_STDOUT_TARGET_DESCRIPTOR => f.text("stdout"),
+            NodeType::OBJECT_SQL_NULL_TARGET_DESCRIPTOR => f.text("null"),
+            NodeType::OBJECT_SQL_CREATE_EXTERNAL_TABLE => self.format_create_external_table(node),
+            NodeType::OBJECT_SQL_CREATE_EXTERNAL_TABLE_INFER_SCHEMA => f.empty(),
+            NodeType::OBJECT_SQL_CREATE_EXTERNAL_STREAM => self.format_create_external_stream(node),
+            NodeType::ENUM_SQL_STREAM_TYPE => self.format_stream_type(node),
+            NodeType::ENUM_SQL_DATABASE_LOCALITY => self.format_database_locality(node),
+            NodeType::OBJECT_SQL_CREATE_DATABASE_OPTION => self.format_database_option(node),
+            NodeType::ENUM_SQL_DATABASE_OPTION | NodeType::ENUM_SQL_DATABASE_COPY_DIRECTION => f.empty(),
+            NodeType::OBJECT_SQL_CREATE_DATABASE => self.format_create_database(node),
+            NodeType::OBJECT_SQL_CREATE_DATABASE_COPY => self.format_create_database_copy(node),
+            NodeType::OBJECT_SQL_ALTER_DATABASE => self.format_alter_database(node),
+            NodeType::OBJECT_SQL_DETACH_DATABASE => self.format_detach_database(node),
+            NodeType::OBJECT_SQL_DROP_DATABASE => self.format_drop_database(node),
+            NodeType::OBJECT_SQL_UNLOAD_DATABASE => self.format_unload_database(node),
+            NodeType::OBJECT_SQL_UNLOAD_RELEASE => f.text("unload release"),
+            NodeType::OBJECT_SQL_VALIDATE_DATABASE => self.format_validate_database(node),
             NodeType::OBJECT_SQL_DROP => self.format_drop_objects(node),
             NodeType::ENUM_SQL_DROP_OBJECT_TYPE => self.format_drop_object_type(node),
             NodeType::OBJECT_SQL_DROP_FUNCTION => self.format_drop_function(node),
