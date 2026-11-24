@@ -274,7 +274,9 @@ The **Query Results** toggle of the export of a `.dashql` file, on by default, a
 to the archive, e.g. to hand a slow dashboard with its data to someone without access to its connections. Every result
 is a table of its own, `workbook_result_<id>.parquet`, and a row of `workbook_results` names its script, the key of its
 file and its table (`script_name`, `cache_key`, `table_name`, see `workbook_tables.md`). The export takes the file of
-every script, also an outdated one: it is what the card shows. It retains the files until the archive holds them.
+every script, also an outdated one: it is what the card shows. It retains the files until the archive holds them. A
+file that is gone once it is pinned, or that can't be read, is no stored result: the archive leaves it out and the log
+names it. `withStoredResult` resolves with null for such a file.
 
 An import doesn't trust the keys. It adds every result whose script name names a script of the imported workbook as the
 file of that script, under a key that matches no script (`UNMATCHED_RESULT_KEY`, 64 zeros, `importFile`), and the

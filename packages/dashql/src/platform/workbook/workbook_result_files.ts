@@ -267,7 +267,12 @@ export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = 
                 await release();
             }
         },
-        readFile: async (workbookId, name) => await (await (await requireDirectory(workbookId)).getFileHandle(name)).getFile(),
+        readFile: async (workbookId, name) => {
+            // A read creates no folder, a file of a workbook without one is not found
+            const dir = await directory(workbookId, false);
+            if (dir == null) throw new DOMException(`The results of the workbook ${workbookId} have no file ${name}`, 'NotFoundError');
+            return await (await dir.getFileHandle(name)).getFile();
+        },
         importFile: async (workbookId, name, data, importOptions = {}) => {
             const since = unmountsOf(workbookId);
             const dir = await requireDirectory(workbookId, since);

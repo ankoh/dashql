@@ -46,7 +46,8 @@ pub(crate) async fn remove_garbage(platform: &JsPlatform, workbook_id: &str, lis
 }
 
 /// The result of a script, pinned until the pin is released: the id of the pin and the file. None if the script has
-/// none. A file that another window removes before the pin reads as a miss, the script runs then.
+/// none. A file that another window removes before the pin is none either: the pinned file is looked up again, once it
+/// is pinned nobody removes it.
 pub(crate) async fn retain(
     platform: &JsPlatform,
     workbook_id: &str,
@@ -56,6 +57,17 @@ pub(crate) async fn retain(
         return Ok(None);
     };
     let pin = platform.results_pin(workbook_id, &result.name).await?;
+    let present = match platform.results_files(workbook_id).await {
+        Ok(files) => files.iter().any(|file| file.name == result.name),
+        Err(error) => {
+            platform.results_release(pin).await;
+            return Err(error);
+        }
+    };
+    if !present {
+        platform.results_release(pin).await;
+        return Ok(None);
+    }
     Ok(Some((pin, result)))
 }
 

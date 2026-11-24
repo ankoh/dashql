@@ -217,7 +217,26 @@ impl Exports {
                 continue;
             };
             retained.ids.push(id);
-            let file = files.keep(&self.platform.results_file(workbook_id, &result.name).await?)?;
+            // A file that can't be read is no stored result, the archive leaves it out
+            let file = match self.platform.results_file(workbook_id, &result.name).await {
+                Ok(file) => file,
+                Err(error) => {
+                    let details = [
+                        ("workbookId", workbook_id),
+                        ("script", script.as_str()),
+                        ("file", result.name.as_str()),
+                        ("error", error.message()),
+                    ];
+                    self.platform.log_on(
+                        LogLevel::Warn,
+                        "The export leaves out a stored result that can't be read",
+                        &details,
+                        results::LOG_TARGET,
+                    );
+                    continue;
+                }
+            };
+            let file = files.keep(&file)?;
             counts.files += 1;
             counts.bytes += file.size as f64;
             counts.cached_scripts += 1;

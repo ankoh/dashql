@@ -696,6 +696,26 @@ describe('the runs of scripts of the runtime', () => {
         await expect(f.core.withStoredResult(f.workbookId, 'foo.sql', async () => { throw new Error('gone'); })).rejects.toThrow('gone');
         expect(events).toEqual([`pin ${name}`, `release ${name}`]);
         expect(await f.core.withStoredResult(f.workbookId, 'other.sql', use)).toBeNull();
+        // A file that another window removes between the listing and the pin is no stored result
+        events.length = 0;
+        f.cache!.pin.mockImplementationOnce(async (workbookId, pinned) => {
+            f.cache!.workbooks.get(workbookId)?.delete(pinned);
+            events.push(`pin ${pinned}`);
+            return async () => { events.push(`release ${pinned}`); };
+        });
+        expect(await f.core.withStoredResult(f.workbookId, 'foo.sql', use)).toBeNull();
+        expect(events).toEqual([`pin ${name}`, `release ${name}`]);
+    });
+
+    it('exports the stored results of the scripts and leaves out one that can not be read', async () => {
+        const f = await scripts([['foo.sql', 'select 1 as a;']], { cache: true });
+        await f.run('foo.sql');
+        await f.core.module.flushResultWrites();
+        await f.rt.storage.flush();
+        const exported = async () => await f.core.exportTables(f.workbookId, { results: true }, async () => {});
+        expect(await exported()).toMatchObject({ cachedScripts: 1, totalScripts: 1, files: 1 });
+        f.cache!.readFile.mockRejectedValueOnce(new DOMException('The file is gone', 'NotFoundError'));
+        expect(await exported()).toMatchObject({ cachedScripts: 0, totalScripts: 1, files: 0 });
     });
 
     it('renames the result of a renamed script and removes the result of a deleted one as garbage', async () => {
