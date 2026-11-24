@@ -916,6 +916,12 @@ parser-snapshots:
   - name: select_table_ref_options
     input: |
       select * from t with options (foo := 'bar'), u *, unnest(array[1]) with options (x := 1), table(unnest(array[2])) with options (y := 2) as v, lateral (select 1) with options (z := 3) as w
+  # A common table expression named options, with and without columns, next to the options of a table ref
+  - name: select_cte_named_options
+    input: |
+      with options as (select 1) select * from options;
+      with options (a, b) as (select 1, 2) select * from options with options (x := 1);
+      select * from t with options (foo => 'bar') options
   # TABLESAMPLE with bounds of the sample size in rows, unbounded on either side
   - name: select_tablesample_row_bounds
     input: |

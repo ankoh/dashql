@@ -22,7 +22,7 @@ Source text
 │ Scanner (logos)                                     │
 │  - Tokenizes into ScannedScript::symbols            │
 │  - Resolves identifiers vs keywords                 │
-│  - Performs 1-token lookahead to emit NOT_LA,       │
+│  - Performs lookahead to emit NOT_LA,               │
 │    NULLS_LA, WITH_LA for LALR(1) compatibility      │
 │  - Tracks line breaks, comments, name registry      │
 └─────────────────────────────────────────────────────┘
@@ -337,12 +337,15 @@ When the scanner matches an unquoted identifier, it:
 
 ### Lookahead rewrites
 
-Some tokens require 1-token lookahead to resolve LALR(1) conflicts.
+Some tokens require lookahead to resolve LALR(1) conflicts.
 The scanner wraps the raw lexer with a lookahead filter (`next_symbol` in `scanner.rs`):
 
 - `NOT` → `NOT_LA` when followed by `BETWEEN`, `IN`, `LIKE`, `ILIKE`, `GLOB`, `SIMILAR`
 - `NULLS` → `NULLS_LA` when followed by `FIRST` or `LAST`
-- `WITH` → `WITH_LA` when followed by `TIME` or `ORDINALITY`
+- `WITH` → `WITH_LA` when followed by `TIME`, `ORDINALITY` or `AGGREGATION_THRESHOLD`
+- `WITH` → `WITH_OPTIONS_LA` when followed by `OPTIONS ( name :=` or `OPTIONS ( name =>`, the options of a table ref
+  (`t with options (a := 1)`). It looks four tokens ahead: `OPTIONS` is an unreserved keyword, so `with options as
+  (...)` and `with options (a, b) as (...)` stay common table expressions named options.
 
 ## Comment Tags
 

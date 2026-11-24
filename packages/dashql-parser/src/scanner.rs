@@ -164,13 +164,22 @@ fn next_symbol(lexer: &mut Lexer, out: &mut ScannedScript, lookahead: &mut VecDe
         S_NOT | S_NULLS_P | S_WITH | S_DOT | S_WITHOUT | S_ARRAY | S_FORMAT | S_SEMI | S_ANTI => {}
         _ => return current,
     }
-    let next = lexer.lex(out);
-    lookahead.push_back(next);
+    let next = match lookahead.front() {
+        Some(&next) => next,
+        None => {
+            let next = lexer.lex(out);
+            lookahead.push_back(next);
+            next
+        }
+    };
     match (current.kind, next.kind) {
         (S_NOT, S_BETWEEN | S_IN_P | S_LIKE | S_ILIKE | S_GLOB | S_SIMILAR) => Symbol::new(S_NOT_LA, current.location),
         (S_NULLS_P, S_FIRST_P | S_LAST_P) => Symbol::new(S_NULLS_LA, current.location),
         (S_WITH, S_TIME | S_ORDINALITY | S_AGGREGATION_THRESHOLD) => Symbol::new(S_WITH_LA, current.location),
-        (S_WITH, S_OPTIONS) => Symbol::new(S_WITH_OPTIONS_LA, current.location),
+        // `t WITH OPTIONS (name := value)`, not a common table expression named options
+        (S_WITH, S_OPTIONS) if starts_scan_options(lexer, out, lookahead) => {
+            Symbol::new(S_WITH_OPTIONS_LA, current.location)
+        }
         (S_WITHOUT, S_TIME) => Symbol::new(S_WITHOUT_LA, current.location),
         (S_ARRAY, S_LRB | S_WRAPPER) => Symbol::new(S_ARRAY_LA, current.location),
         (S_SEMI, S_JOIN) => Symbol::new(S_SEMI_JOIN_LA, current.location),
@@ -185,6 +194,17 @@ fn next_symbol(lexer: &mut Lexer, out: &mut ScannedScript, lookahead: &mut VecDe
         (S_DOT, S_RRB | S_RSB | S_COMMA | S_SEMICOLON) => Symbol::new(S_DOT_TRAILING, current.location),
         _ => current,
     }
+}
+
+/// Do the symbols after WITH start the options of a table ref, `OPTIONS ( name := ...` or `OPTIONS ( name => ...`?
+/// A common table expression named options continues with AS or its columns, `OPTIONS ( name ,` or `OPTIONS ( name )`.
+fn starts_scan_options(lexer: &mut Lexer, out: &mut ScannedScript, lookahead: &mut VecDeque<Symbol>) -> bool {
+    while lookahead.len() < 4 && lookahead.back().is_none_or(|symbol| symbol.kind != S_YYEOF) {
+        let symbol = lexer.lex(out);
+        lookahead.push_back(symbol);
+    }
+    let kind = |i: usize| lookahead.get(i).map(|symbol| symbol.kind);
+    kind(1) == Some(S_LRB) && matches!(kind(3), Some(S_COLON_EQUALS | S_EQUALS_GREATER))
 }
 
 /// Can a symbol after a dot and whitespace be the next name of a qualified name?
