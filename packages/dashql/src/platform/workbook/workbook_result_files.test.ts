@@ -70,6 +70,15 @@ describe('the results of the workbooks', () => {
         expect(await names()).toEqual(['d.k.00000004.parquet']);
     });
 
+    it('fails a pin whose lock can not be requested', async () => {
+        const locks = { request: vi.fn(async () => { throw new DOMException('The request is denied', 'SecurityError'); }) };
+        const r = createWorkbookResultFiles({ getRoot: async () => root, locks: locks as unknown as LockManager });
+        await expect(r.pin(WORKBOOK, 'a.k.00000001.parquet')).rejects.toThrow('The request is denied');
+        // So does a read of a file, which pins it
+        await put('a.k.00000001.parquet');
+        await expect(r.readTable({} as EmbeddedComputeDatabase, WORKBOOK, 'a.k.00000001.parquet')).rejects.toThrow('The request is denied');
+    });
+
     it('imports bytes as a new file and leaves no file if the CRC-32 differs', async () => {
         const r = results();
         const raw = new Uint8Array([80, 65, 82, 49, 1, 2, 3]);

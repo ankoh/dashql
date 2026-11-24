@@ -163,7 +163,7 @@ export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = 
         await current.database.removeExternalDirectory(resultsMountPath(workbookId)).catch(() => {});
     });
 
-    const pin = (workbookId: string, name: string): Promise<() => Promise<void>> => new Promise(acquired => {
+    const pin = (workbookId: string, name: string): Promise<() => Promise<void>> => new Promise((acquired, failed) => {
         // The request settles once the lock is released, not when the callback returns
         const held = locks.request(lockName(workbookId, name), { mode: 'shared' }, () => new Promise<void>(release => {
             acquired(async () => {
@@ -171,6 +171,9 @@ export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = 
                 await held.catch(() => {});
             });
         }));
+        // A request that fails before the lock is granted, e.g. with a SecurityError in a sandboxed origin, fails the pin.
+        // Once the pin is acquired, this changes nothing.
+        held.catch(failed);
     });
     /// Change a file that nobody reads, resolves false if it is read
     const exclusively = async (workbookId: string, name: string, change: () => Promise<void>): Promise<boolean> =>
