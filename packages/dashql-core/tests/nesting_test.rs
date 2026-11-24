@@ -172,3 +172,31 @@ fn left_deep_chains_beyond_the_depth_limit_are_analyzed_and_formatted() {
         .join()
         .unwrap();
 }
+
+#[test]
+fn left_deep_chains_of_an_operator_format_flat() {
+    std::thread::Builder::new()
+        .stack_size(STACK_SIZE)
+        .spawn(|| {
+            let catalog = catalog();
+            for (name, operator) in [("plus", " + "), ("and", " and "), ("concatenation", " || ")] {
+                let text = format!("select {}", vec!["x"; 2000].join(operator));
+                for mode in [FormattingMode::COMPACT, FormattingMode::PRETTY] {
+                    let mut config = FormattingConfigT::default();
+                    config.dialect = FormattingDialect::HYPER;
+                    config.mode = mode;
+                    config.max_width = 40;
+                    let mut script = Script::new(&catalog);
+                    script.replace_text(&text);
+                    let formatted = script.format(&config, true).unwrap_or_else(|e| panic!("{name}: {e:?}"));
+                    // The operands are one list at one indentation, the output grows with the input
+                    let deepest = formatted.lines().map(|line| line.len() - line.trim_start().len()).max();
+                    assert!(deepest <= Some(4), "{name} in {mode:?} indents {deepest:?} deep");
+                    assert!(formatted.len() < 2 * text.len(), "{name} in {mode:?}: {} bytes", formatted.len());
+                }
+            }
+        })
+        .unwrap()
+        .join()
+        .unwrap();
+}

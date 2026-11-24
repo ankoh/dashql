@@ -447,3 +447,46 @@ formatter-snapshots:
                   text
                 )
                 cascade;
+
+  - name: operator_chain_flat
+    input: |-
+      select 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 + 16 + 17 + 18 + 19 + 20 + 21 + 22 + 23 + 24 + 25 + 26 + 27 + 28 + 29 + 30 as total, a || b || c || d || e || f as text from t where a = 'a' and b = 'b' and c = 'c' and d = 'd'
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 + 16 + 17 + 18 + 19 + 20 + 21 + 22 + 23 + 24 + 25 + 26 + 27 + 28 + 29 + 30 as total, a || b || c || d || e || f as text from t where a = 'a' and b = 'b' and c = 'c' and d = 'd';
+          - mode: compact
+            width: 30
+            expected: |-
+              select 1 + 2 + 3 + 4 + 5 + 6 +
+                  7 + 8 + 9 + 10 + 11 + 12 +
+                  13 + 14 + 15 + 16 + 17 +
+                  18 + 19 + 20 + 21 + 22 +
+                  23 + 24 + 25 + 26 + 27 +
+                  28 + 29 + 30 as total,
+                a || b || c || d || e ||
+                  f as text
+              from t
+              where a = 'a' and b = 'b'
+                and c = 'c' and d = 'd';
+          - mode: pretty
+            width: 30
+            expected: |-
+              select 1 + 2 + 3 + 4 + 5 + 6 +
+                  7 + 8 + 9 + 10 + 11 + 12 +
+                  13 + 14 + 15 + 16 + 17 +
+                  18 + 19 + 20 + 21 + 22 +
+                  23 + 24 + 25 + 26 + 27 +
+                  28 + 29 + 30 as total,
+                a || b || c || d || e ||
+                  f as text
+              from t
+              where a = 'a'
+                and b = 'b'
+                and c = 'c'
+                and d = 'd';
+        validation:
+          setup: |-
+            create table t(a text, b text, c text, d text, e text, f text);

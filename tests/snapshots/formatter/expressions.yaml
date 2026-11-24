@@ -1013,7 +1013,7 @@ formatter-snapshots:
             width: 20
             expected: |-
               select 1111111111 +
-                  2222222222 +
+                2222222222 +
                 3333333333;
           - mode: pretty
             expected: |-

@@ -455,6 +455,13 @@ impl<'a> FormattingProgram<'a> {
         })
     }
 
+    /// Take the items of a join, which leaves it empty: a join around it continues them, like the operands of a chain
+    pub fn take_join_items(&self, reg: FmtReg) -> Option<Vec<FmtReg>> {
+        let mut program = self.program.borrow_mut();
+        let doc = program.get_mut(reg as usize).filter(|doc| reg != 0 && doc.code == FormattingOpCode::Join)?;
+        Some(std::mem::take(doc).children)
+    }
+
     /// Put documents around a document, every reference to `reg` then renders them too
     pub fn wrap(&self, reg: FmtReg, prefix: &[FmtReg], suffix: &[FmtReg]) {
         if reg == 0 || (prefix.is_empty() && suffix.is_empty()) {

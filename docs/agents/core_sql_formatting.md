@@ -14,7 +14,8 @@ This guide documents the standard workflow to add or improve SQL formatter behav
 8. Commands lay out their clauses with `format_command_clauses`: on one line if the command fits, otherwise every clause after the first on an indented line of its own. Queries and data changes (SELECT, INSERT, UPDATE, DELETE, MERGE) put every clause on a line of its own in pretty mode instead.
 9. Lists (`comma_join`, `FormattingProgram::list`) indent the lines after their breaks once more when they follow
    text on their line (`select a,\n  b`). In parentheses that break, a list starts its line, so its items line up,
-   the first one too.
+   the first one too. A left-deep chain of one operator (`a + b + c`) is one join of its operands
+   (`continues_chain`), so it breaks at one indentation however long it is.
 10. Qualified names break at their dots only as the last resort. The renderer decides the outer joins first and
     measures a name with the text up to the next possible break, so a name breaks only where its command gives it no
     break before it: commands put their names and actions in clauses of their own (`drop table if exists` and the

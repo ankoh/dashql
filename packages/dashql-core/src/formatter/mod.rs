@@ -3226,6 +3226,23 @@ impl<'a> Formatter<'a> {
         false
     }
 
+    /// Is a node the left operand of a chain of an operator, an expression with that operator without parentheses?
+    fn continues_chain(&self, lhs: &Node, op: ExpressionOperator) -> bool {
+        if lhs.node_type() != NodeType::OBJECT_SQL_NARY_EXPRESSION || self.state(lhs).needs_parentheses {
+            return false;
+        }
+        let [lhs_op, lhs_args, postfix] =
+            attrs!(self.children(lhs), [K::SQL_EXPRESSION_OPERATOR, K::SQL_EXPRESSION_ARGS, K::SQL_EXPRESSION_POSTFIX]);
+        // Every operand has a document, so the document of the operand is the join of all of them
+        let formatted = lhs_args.is_some_and(|args| self.array_regs(args).iter().all(|&reg| reg != 0));
+        formatted
+            && postfix.is_none()
+            && lhs_op.is_some_and(|lhs_op| {
+                lhs_op.node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR
+                    && ExpressionOperator(value_u8(lhs_op)) == op
+            })
+    }
+
     fn format_expression(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
         let state = self.state(node);
@@ -3329,7 +3346,16 @@ impl<'a> Formatter<'a> {
                     f.concat(&[f.text(" "), op_reg, f.break_()])
                 };
                 let policy = if is_boolean_chain { None } else { Some(FormattingJoinPolicy::BreakOnOverflow) };
-                f.join(&args, inline_separator, break_separator, policy, true)
+                // A left operand with the same operator continues the chain: `a + b + c` is one join of three
+                // operands, not a join in a join, which would indent the operands deeper with every one of them
+                let mut operands = args.clone();
+                let lhs = self.children(args_node).first();
+                if known_operator && lhs.is_some_and(|lhs| self.continues_chain(lhs, op)) {
+                    if let Some(lhs_operands) = operands.first().and_then(|&lhs| f.take_join_items(lhs)) {
+                        operands.splice(0..1, lhs_operands);
+                    }
+                }
+                f.join(&operands, inline_separator, break_separator, policy, true)
             }
         };
 
