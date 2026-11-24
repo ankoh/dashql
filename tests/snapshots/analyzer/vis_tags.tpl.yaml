@@ -333,3 +333,13 @@ analyzer-snapshots:
       input: |
         /* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "a"}, "y": {"field": "c"}, "color": {"field": "z"}}} */
         select * from t join u using (a);
+
+  # A data-modifying statement with RETURNING returns rows, but it is no query
+  - name: vis_tag_dml_returning
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: |
+        /* @vis table */
+        insert into t values (1, 2) returning a, b;

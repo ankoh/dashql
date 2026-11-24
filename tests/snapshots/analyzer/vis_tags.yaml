@@ -717,7 +717,7 @@ analyzer-snapshots:
       touched-relations:
         - {statement-id: 0, name: t}
       errors:
-        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis visualizes a query, this statement returns no rows', text: "vis"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis visualizes a query, this statement is no SELECT', text: "vis"}
 
   - name: vis_tag_per_statement
     script:
@@ -1221,3 +1221,45 @@ analyzer-snapshots:
             width: 6
             height: 6
           vegalite: "{\"mark\":\"bar\",\"encoding\":{\"x\":{\"field\":\"a\"},\"y\":{\"field\":\"c\"},\"color\":{\"field\":\"z\"}}}"
+
+  - name: vis_tag_dml_returning
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: |
+        /* @vis table */
+        insert into t values (1, 2) returning a, b;
+      catalog-id: 2
+      errors:
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis visualizes a query, this statement is no SELECT', text: "vis"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      inserts:
+        - target-ref: 0
+          source: "values (1, 2)"
+          returning: true
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
+        - {id: 3, type: literal/integer, is-const: true, text: "2"}
+      constants:
+        - {expression: 2, text: "1"}
+        - {expression: 3, text: "2"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          correlation-barrier: true
+          columns:
+            - {name: '?', expression: 2}
+            - {name: '?', expression: 3}
+          text: "values (1, 2)"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
+          text: "insert int..rning a, b"

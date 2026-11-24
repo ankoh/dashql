@@ -592,7 +592,8 @@ pub(super) fn analyze(state: &mut AnalysisState) {
                 continue;
             }
             if !query {
-                warn(state, block.tag_span, "@vis visualizes a query, this statement returns no rows".into());
+                // Only a SELECT is visualized, not the rows of RETURNING, EXPLAIN or CALL
+                warn(state, block.tag_span, "@vis visualizes a query, this statement is no SELECT".into());
                 continue;
             }
             match kind {

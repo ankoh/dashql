@@ -73,7 +73,8 @@ SELECT metric, value, status FROM metrics;
 ```
 
 A statement has at most one renderer (`@vis vegalite`, `markdown`, `kpi` or `table`) and at most one `@board`.
-The first one wins, the others are warnings. Only queries (`SELECT`) are visualized. `@board` and `@flow` tags may
+The first one wins, the others are warnings. Only queries (`SELECT`) are visualized, not the rows of `RETURNING`,
+`EXPLAIN` or `CALL`: a renderer on another statement is a warning. `@board` and `@flow` tags may
 annotate any statement and need no renderer; see Dashboard placement and Dataflow placement.
 
 Like in Javadoc, the text before the first tag describes the statement, it is an ordinary comment, and so is
