@@ -573,3 +573,112 @@ planner-snapshots:
               kind: invalid
               errors:
                 - two.sql is no single SELECT that bar.sql could read
+
+  - name: WriteTargetOfUpdateAndMerge
+    catalog: |
+      create table t (a int, b int);
+    scripts:
+      - name: foo
+        input: |
+          select 1 as a, 2 as b;
+      - name: bar
+        input: |
+          update :foo set b = 1;
+          merge into :foo f using t on f.a = t.a when matched then update set b = t.b;
+    expected:
+      valid: false
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "8d907e2ebb01ccc235759922308fd4dbf7739ffbc10d4edd991f624539d3861f"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "d4346ebe3a70703cf059baaeec4b92bdedef63fa6b55a5946d83255ef62f068a"
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: bar
+          text: ":foo"
+          error: true
+          message: 'the table parameter :foo cannot be written'
+        - script: bar
+          text: ":foo"
+          error: true
+          message: 'the table parameter :foo cannot be written'
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              kind: invalid
+              errors:
+                - 'the table parameter :foo cannot be written'
+            - text: ":foo"
+              kind: invalid
+              errors:
+                - 'the table parameter :foo cannot be written'
+
+  - name: ReferenceInUpdateFromAndMergeUsing
+    catalog: |
+      create table t (a int, b int);
+    scripts:
+      - name: foo
+        input: |
+          select 1 as a, 2 as b;
+      - name: bar
+        input: |
+          update t set b = f.b from :foo f where f.a = t.a;
+          merge into t using :foo f on f.a = t.a when matched then update set b = f.b;
+    expected:
+      valid: false
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "8d907e2ebb01ccc235759922308fd4dbf7739ffbc10d4edd991f624539d3861f"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "8c5d0b0fd627e68681678f174db5cc0ed074a04bd6db9bf5ddd73b562e63b29e"
+          references: [foo]
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: bar
+          text: ":foo"
+          error: true
+          message: a table parameter must be part of a query
+        - script: bar
+          text: ":foo"
+          error: true
+          message: a table parameter must be part of a query
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: invalid
+              errors:
+                - a table parameter must be part of a query
+            - text: ":foo"
+              target: foo
+              kind: invalid
+              errors:
+                - a table parameter must be part of a query

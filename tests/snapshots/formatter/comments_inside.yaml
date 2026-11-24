@@ -1,0 +1,318 @@
+formatter-snapshots:
+
+  - name: comment_in_in_list
+    input: |-
+      select * from t where a in (1, /* two */ 2, 3 -- three
+      , 4)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from t where a in (1, 2, 3, 4);
+          - mode: compact
+            expected: |-
+              select *
+              from t
+              where a in (
+                1, /* two */ 2,
+                  3, -- three
+                  4
+              );
+          - mode: pretty
+            expected: |-
+              select *
+              from t
+              where a in (
+                1,
+                  /* two */ 2,
+                  3, -- three
+                  4
+              );
+        validation:
+          setup: |-
+            create table t(a int);
+
+  - name: comment_in_case
+    input: |-
+      select case -- the kinds
+        when a = 1 then 'one' /* first */
+        when a = 2 then 'two' -- second
+        else /* fallback */ 'other' end as k from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select case when a = 1 then 'one' when a = 2 then 'two' else 'other' end as k from t;
+          - mode: compact
+            expected: |-
+              select case
+                -- the kinds
+                when a = 1 then 'one'
+                /* first */ when a = 2 then 'two' -- second
+                else /* fallback */ 'other' end as k
+              from t;
+          - mode: pretty
+            expected: |-
+              select case
+                -- the kinds
+                when a = 1 then 'one'
+                /* first */ when a = 2 then 'two' -- second
+                else /* fallback */ 'other'
+              end as k
+              from t;
+        validation:
+          setup: |-
+            create table t(a int);
+
+  - name: comment_in_function_arguments
+    input: |-
+      select coalesce(a, -- the fallback
+        b, /* last */ c) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select coalesce(a, b, c) from t;
+          - mode: compact
+            expected: |-
+              select coalesce(
+                a, -- the fallback
+                  b, /* last */ c
+              )
+              from t;
+          - mode: pretty
+            expected: |-
+              select coalesce(
+                a, -- the fallback
+                  b, /* last */ c
+              )
+              from t;
+        validation:
+          setup: |-
+            create table t(a int, b int, c int);
+
+  - name: comment_between_joins
+    input: |-
+      select * from a -- first
+      join b on a.y = b.y /* inner */ left join c using (x) -- last
+      where a.y > 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from a join b on a.y = b.y left join c using (x) where a.y > 1;
+          - mode: compact
+            expected: |-
+              select *
+              from a -- first
+                join b on a.y = b.y
+                left join /* inner */ c
+                  using (x) -- last
+              where a.y > 1;
+          - mode: pretty
+            expected: |-
+              select *
+              from a -- first
+                join b on a.y = b.y
+                left join /* inner */ c
+                  using (x) -- last
+              where a.y > 1;
+        validation:
+          setup: |-
+            create table a(x int, y int);
+            create table b(y int);
+            create table c(x int);
+
+  - name: comment_in_group_and_order_by
+    input: |-
+      select a, count(*) from t group by a -- grouped
+      order by /* by count */ count(*) desc, -- then
+      a
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a, count(*) from t group by a order by count(*) desc, a;
+          - mode: compact
+            expected: |-
+              select a, count(*)
+              from t
+              group by a -- grouped
+              order by /* by count */ count(*) desc, -- then
+                a;
+          - mode: pretty
+            expected: |-
+              select a, count(*)
+              from t
+              group by a -- grouped
+              order by /* by count */ count(*) desc, -- then
+                a;
+        validation:
+          setup: |-
+            create table t(a int);
+
+  - name: comment_in_window
+    input: |-
+      select sum(x) over (partition by a -- per a
+        order by b /* ordered */ rows between 1 preceding and current row) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select sum(x) over (partition by a order by b rows between 1 preceding and current row) from t;
+          - mode: compact
+            expected: |-
+              select sum(x) over (
+                partition by a -- per a
+                  order by b /* ordered */ rows between 1 preceding and current row
+              )
+              from t;
+          - mode: pretty
+            expected: |-
+              select sum(x) over (
+                partition by a -- per a
+                  order by b /* ordered */ rows between 1 preceding and current row
+              )
+              from t;
+        validation:
+          setup: |-
+            create table t(x int, a int, b int);
+
+  - name: comment_in_insert_values
+    input: |-
+      insert into t (a, b) values (1, 'x'), -- first row
+        (2 /* two */, 'y')
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              insert into t(a, b) values (1, 'x'), (2, 'y');
+          - mode: compact
+            expected: |-
+              insert into t(a, b)
+              values (1, 'x'), -- first row
+                (2, /* two */ 'y');
+          - mode: pretty
+            expected: |-
+              insert into t(a, b)
+              values
+                (1, 'x'), -- first row
+                (2, /* two */ 'y');
+        validation:
+          setup: |-
+            create table t(a int, b text);
+
+  - name: comment_in_create_table
+    input: |-
+      create table if not exists t (
+        a integer, -- the key
+        /* the label */ b text not null,
+        c integer -- the last
+      )
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create table if not exists t (a integer, b text not null, c integer);
+          - mode: compact
+            expected: |-
+              create table if not exists t (
+                a integer, -- the key
+                /* the label */ b text not null,
+                c integer -- the last
+              );
+          - mode: pretty
+            expected: |-
+              create table if not exists t (
+                a integer, -- the key
+                /* the label */ b text not null,
+                c integer -- the last
+              );
+        validation:
+
+  - name: comment_after_respelled_type
+    input: |-
+      create table if not exists t (
+        a int, -- the key
+        b text
+      )
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create table if not exists t (a integer, b text);
+          - mode: compact
+            expected: |-
+              create table if not exists t (
+                a integer,
+                -- the key
+                b text
+              );
+          - mode: pretty
+            expected: |-
+              create table if not exists t (
+                a integer,
+                -- the key
+                b text
+              );
+        validation:
+
+  - name: comment_in_where_chain
+    input: |-
+      select * from t
+      where a = 1 -- first
+        and /* second */ b = 2
+        or c = 3 -- third
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from t where a = 1 and b = 2 or c = 3;
+          - mode: compact
+            expected: |-
+              select *
+              from t
+              where a = 1 -- first
+                  and /* second */ b = 2 or c = 3; -- third
+          - mode: pretty
+            expected: |-
+              select *
+              from t
+              where a = 1 -- first
+                  and /* second */ b = 2
+                or c = 3; -- third
+        validation:
+          setup: |-
+            create table t(a int, b int, c int);
+
+  - name: comment_block_before_comma
+    input: |-
+      select a /* one */, /* two */ b -- three
+      from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a, b from t;
+          - mode: compact
+            expected: |-
+              select a, /* one */ /* two */ b -- three
+              from t;
+          - mode: pretty
+            expected: |-
+              select a, /* one */ /* two */ b -- three
+              from t;
+        validation:
+          setup: |-
+            create table t(a int, b int);

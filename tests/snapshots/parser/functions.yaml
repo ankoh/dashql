@@ -257,3 +257,713 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: func_variadic_all_distinct
+    input: |-
+      select f(variadic array[1, 2]), f(1, variadic array[2] order by a), count(all a), json_arrayagg(distinct a absent on null) from t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 52
+          description:
+            text: "select f(v..ll) from t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select f(v..ll) from t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "f(variadic..t on null)"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "f(variadic..ray[1, 2])"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "f(variadic..ray[1, 2])"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "f"
+                            children:
+                              - type: NAME
+                                text: "f"
+                          - key: SQL_FUNCTION_VARIADIC
+                            type: OBJECT_SQL_FUNCTION_ARG
+                            text: "array[1, 2]"
+                            children:
+                              - key: SQL_FUNCTION_ARG_VALUE
+                                type: OBJECT_SQL_ARRAY_EXPRESSION
+                                text: "array[1, 2]"
+                                children:
+                                  - key: SQL_ARRAY_EXPRESSION_VALUES
+                                    type: ARRAY
+                                    text: "1, 2"
+                                    children:
+                                      - type: LITERAL_INTEGER
+                                        text: "1"
+                                      - type: LITERAL_INTEGER
+                                        text: "2"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "f(1, varia..rder by a)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "f(1, varia..rder by a)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "f"
+                            children:
+                              - type: NAME
+                                text: "f"
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "1"
+                            children:
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "1"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "1"
+                          - key: SQL_FUNCTION_VARIADIC
+                            type: OBJECT_SQL_FUNCTION_ARG
+                            text: "array[2]"
+                            children:
+                              - key: SQL_FUNCTION_ARG_VALUE
+                                type: OBJECT_SQL_ARRAY_EXPRESSION
+                                text: "array[2]"
+                                children:
+                                  - key: SQL_ARRAY_EXPRESSION_VALUES
+                                    type: ARRAY
+                                    text: "2"
+                                    children:
+                                      - type: LITERAL_INTEGER
+                                        text: "2"
+                          - key: SQL_FUNCTION_ORDER
+                            type: ARRAY
+                            text: "order by a"
+                            children:
+                              - type: OBJECT_SQL_ORDER
+                                text: "a"
+                                children:
+                                  - key: SQL_ORDER_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "a"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a"
+                                        children:
+                                          - type: NAME
+                                            text: "a"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "count(all a)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "count(all a)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "count"
+                            children:
+                              - type: NAME
+                                text: "count"
+                          - key: SQL_FUNCTION_ALL
+                            type: BOOL
+                            value: 1
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "a"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "a"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a"
+                                        children:
+                                          - type: NAME
+                                            text: "a"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "json_array..t on null)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "json_array..t on null)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "json_arrayagg"
+                            children:
+                              - type: NAME
+                                text: "json_arrayagg"
+                          - key: SQL_FUNCTION_DISTINCT
+                            type: BOOL
+                            value: 1
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "a"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "a"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a"
+                                        children:
+                                          - type: NAME
+                                            text: "a"
+                          - key: SQL_FUNCTION_ABSENT_ON_NULL
+                            type: BOOL
+                            value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: func_overlay_substring_collation_for
+    input: |-
+      select overlay('abcdef' placing 'xy' from 2 for 3), substring('abc' similar 'a#"b#"c' escape '#'), collation for (a) from t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 28
+          description:
+            text: "select ove..(a) from t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select ove..(a) from t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "overlay('a..on for (a)"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "overlay('a..m 2 for 3)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "overlay('a..m 2 for 3)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ENUM_SQL_KNOWN_FUNCTION
+                            value: OVERLAY
+                          - key: SQL_FUNCTION_OVERLAY_ARGS
+                            type: OBJECT_SQL_FUNCTION_OVERLAY_ARGS
+                            text: "('abcdef' ..m 2 for 3)"
+                            children:
+                              - key: SQL_FUNCTION_OVERLAY_INPUT
+                                type: LITERAL_STRING
+                                text: "'abcdef'"
+                              - key: SQL_FUNCTION_OVERLAY_PLACING
+                                type: LITERAL_STRING
+                                text: "'xy'"
+                              - key: SQL_FUNCTION_OVERLAY_FROM
+                                type: LITERAL_INTEGER
+                                text: "2"
+                              - key: SQL_FUNCTION_OVERLAY_FOR
+                                type: LITERAL_INTEGER
+                                text: "3"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "substring(..scape '#')"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "substring(..scape '#')"
+                        children:
+                          - key: SQL_FUNCTION_SUBSTRING_ARGS
+                            type: OBJECT_SQL_FUNCTION_SUBSTRING_ARGS
+                            text: "'abc' simi..escape '#'"
+                            children:
+                              - key: SQL_FUNCTION_SUBSTRING_INPUT
+                                type: LITERAL_STRING
+                                text: "'abc'"
+                              - key: SQL_FUNCTION_SUBSTRING_PATTERN
+                                type: LITERAL_STRING
+                                text: "'a#\"b#\"c'"
+                              - key: SQL_FUNCTION_SUBSTRING_ESCAPE
+                                type: LITERAL_STRING
+                                text: "'#'"
+                          - key: SQL_FUNCTION_NAME
+                            type: ENUM_SQL_KNOWN_FUNCTION
+                            value: SUBSTRING
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "collation for (a)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "collation for (a)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ENUM_SQL_KNOWN_FUNCTION
+                            value: COLLATION_FOR
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "collation for ("
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: func_hyper_argument_clauses
+    input: |-
+      select cast('x' as integer or null), greatest(preserve nulls 1, null), least(preserve nulls 2, null), extract(year from d, 'iso'), position('a' in 'abc', 'en_US') from t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 50
+          description:
+            text: "select cas..S') from t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select cas..S') from t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "cast('x' a.., 'en_US')"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "cast('x' a..r or null)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "cast('x' a..r or null)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ENUM_SQL_KNOWN_FUNCTION
+                            value: CAST
+                          - key: SQL_FUNCTION_CAST_ARGS
+                            type: OBJECT_SQL_FUNCTION_CAST_ARGS
+                            text: "cast('x' a..r or null)"
+                            children:
+                              - key: SQL_FUNCTION_CAST_VALUE
+                                type: LITERAL_STRING
+                                text: "'x'"
+                              - key: SQL_FUNCTION_CAST_TYPE
+                                type: OBJECT_SQL_TYPENAME
+                                text: "integer"
+                                children:
+                                  - key: SQL_TYPENAME_TYPE
+                                    type: ENUM_SQL_NUMERIC_TYPE
+                                    value: INT4
+                              - key: SQL_FUNCTION_CAST_OR_NULL
+                                type: BOOL
+                                value: 1
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "greatest(p..s 1, null)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "greatest(p..s 1, null)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "greatest"
+                            children:
+                              - type: NAME
+                                text: "greatest"
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "1, null"
+                            children:
+                              - type: LITERAL_INTEGER
+                                text: "1"
+                              - type: LITERAL_NULL
+                                text: "null"
+                          - key: SQL_FUNCTION_PRESERVE_NULLS
+                            type: BOOL
+                            value: 1
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "least(pres..s 2, null)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "least(pres..s 2, null)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "least"
+                            children:
+                              - type: NAME
+                                text: "least"
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "2, null"
+                            children:
+                              - type: LITERAL_INTEGER
+                                text: "2"
+                              - type: LITERAL_NULL
+                                text: "null"
+                          - key: SQL_FUNCTION_PRESERVE_NULLS
+                            type: BOOL
+                            value: 1
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "extract(ye.. d, 'iso')"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "extract(ye.. d, 'iso')"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ENUM_SQL_KNOWN_FUNCTION
+                            value: EXTRACT
+                          - key: SQL_FUNCTION_EXTRACT_ARGS
+                            type: OBJECT_SQL_FUNCTION_EXTRACT_ARGS
+                            text: "(year from.. d, 'iso')"
+                            children:
+                              - key: SQL_FUNCTION_EXTRACT_TARGET
+                                type: ENUM_SQL_EXTRACT_TARGET
+                                value: YEAR
+                              - key: SQL_FUNCTION_EXTRACT_INPUT
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "d"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "d"
+                                    children:
+                                      - type: NAME
+                                        text: "d"
+                              - key: SQL_FUNCTION_EXTRA_ARGUMENTS
+                                type: ARRAY
+                                text: "'iso'"
+                                children:
+                                  - type: OBJECT_SQL_FUNCTION_ARG
+                                    text: "'iso'"
+                                    children:
+                                      - key: SQL_FUNCTION_ARG_VALUE
+                                        type: LITERAL_STRING
+                                        text: "'iso'"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "position('.., 'en_US')"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "position('.., 'en_US')"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ENUM_SQL_KNOWN_FUNCTION
+                            value: POSITION
+                          - key: SQL_FUNCTION_POSITION_ARGS
+                            type: OBJECT_SQL_FUNCTION_POSITION_ARGS
+                            text: "('a' in 'a.., 'en_US')"
+                            children:
+                              - key: SQL_FUNCTION_POSITION_SEARCH
+                                type: LITERAL_STRING
+                                text: "'a'"
+                              - key: SQL_FUNCTION_POSITION_INPUT
+                                type: LITERAL_STRING
+                                text: "'abc'"
+                              - key: SQL_FUNCTION_EXTRA_ARGUMENTS
+                                type: ARRAY
+                                text: "'en_US'"
+                                children:
+                                  - type: OBJECT_SQL_FUNCTION_ARG
+                                    text: "'en_US'"
+                                    children:
+                                      - key: SQL_FUNCTION_ARG_VALUE
+                                        type: LITERAL_STRING
+                                        text: "'en_US'"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: func_extract_time_fields
+    input: |-
+      select extract(month from d), extract(hour from d), extract(minute from d), extract(second from d) from t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 38
+          description:
+            text: "select ext.. d) from t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select ext.. d) from t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "extract(mo..nd from d)"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "extract(mo..th from d)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "extract(mo..th from d)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ENUM_SQL_KNOWN_FUNCTION
+                            value: EXTRACT
+                          - key: SQL_FUNCTION_EXTRACT_ARGS
+                            type: OBJECT_SQL_FUNCTION_EXTRACT_ARGS
+                            text: "(month from d)"
+                            children:
+                              - key: SQL_FUNCTION_EXTRACT_TARGET
+                                type: ENUM_SQL_EXTRACT_TARGET
+                                value: MONTH
+                              - key: SQL_FUNCTION_EXTRACT_INPUT
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "d"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "d"
+                                    children:
+                                      - type: NAME
+                                        text: "d"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "extract(ho..ur from d)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "extract(ho..ur from d)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ENUM_SQL_KNOWN_FUNCTION
+                            value: EXTRACT
+                          - key: SQL_FUNCTION_EXTRACT_ARGS
+                            type: OBJECT_SQL_FUNCTION_EXTRACT_ARGS
+                            text: "(hour from d)"
+                            children:
+                              - key: SQL_FUNCTION_EXTRACT_TARGET
+                                type: ENUM_SQL_EXTRACT_TARGET
+                                value: HOUR
+                              - key: SQL_FUNCTION_EXTRACT_INPUT
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "d"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "d"
+                                    children:
+                                      - type: NAME
+                                        text: "d"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "extract(mi..te from d)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "extract(mi..te from d)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ENUM_SQL_KNOWN_FUNCTION
+                            value: EXTRACT
+                          - key: SQL_FUNCTION_EXTRACT_ARGS
+                            type: OBJECT_SQL_FUNCTION_EXTRACT_ARGS
+                            text: "(minute from d)"
+                            children:
+                              - key: SQL_FUNCTION_EXTRACT_TARGET
+                                type: ENUM_SQL_EXTRACT_TARGET
+                                value: MINUTE
+                              - key: SQL_FUNCTION_EXTRACT_INPUT
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "d"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "d"
+                                    children:
+                                      - type: NAME
+                                        text: "d"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "extract(se..nd from d)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "extract(se..nd from d)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ENUM_SQL_KNOWN_FUNCTION
+                            value: EXTRACT
+                          - key: SQL_FUNCTION_EXTRACT_ARGS
+                            type: OBJECT_SQL_FUNCTION_EXTRACT_ARGS
+                            text: "(second from d)"
+                            children:
+                              - key: SQL_FUNCTION_EXTRACT_TARGET
+                                type: ENUM_SQL_EXTRACT_TARGET
+                                value: SECOND
+                              - key: SQL_FUNCTION_EXTRACT_INPUT
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "d"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "d"
+                                    children:
+                                      - type: NAME
+                                        text: "d"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: func_typed_literal_with_ordered_arguments
+    input: |-
+      select f(1, 2 order by a) 'text'
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 17
+          description:
+            text: "select f(1.. a) 'text'"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select f(1.. a) 'text'"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "f(1, 2 ord.. a) 'text'"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "f(1, 2 ord.. a) 'text'"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_CONST_FUNCTION_CAST
+                        text: "f(1, 2 ord.. a) 'text'"
+                        children:
+                          - key: SQL_CONST_CAST_FUNC_NAME
+                            type: ARRAY
+                            text: "f"
+                            children:
+                              - type: NAME
+                                text: "f"
+                          - key: SQL_CONST_CAST_FUNC_ARGS_LIST
+                            type: ARRAY
+                            text: "1, 2"
+                            children:
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "1"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "1"
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "2"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "2"
+                          - key: SQL_CONST_CAST_FUNC_ARGS_ORDER
+                            type: ARRAY
+                            text: "order by a"
+                            children:
+                              - type: OBJECT_SQL_ORDER
+                                text: "a"
+                                children:
+                                  - key: SQL_ORDER_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "a"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a"
+                                        children:
+                                          - type: NAME
+                                            text: "a"
+                          - key: SQL_CONST_CAST_VALUE
+                            type: LITERAL_STRING
+                            text: "'text'"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

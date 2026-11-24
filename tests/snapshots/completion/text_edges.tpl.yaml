@@ -1,0 +1,208 @@
+completion-snapshots:
+  # A column prefix with a multibyte character
+  - name: text_unicode_column
+    catalog:
+      script:
+        input: |-
+          create table straße (größe int, gewicht int);
+    editor:
+      input: |-
+        select grö from straße
+    cursor:
+      search:
+        text: 'grö'
+        index: 4
+    completions:
+      limit: 5
+
+  # A table name with a multibyte character
+  - name: text_unicode_table
+    catalog:
+      script:
+        input: |-
+          create table straße (größe int, gewicht int);
+    editor:
+      input: |-
+        select * from str
+    cursor:
+      search:
+        text: 'str'
+        index: 3
+    completions:
+      limit: 5
+
+  # A quoted table prefix with a multibyte character
+  - name: text_unicode_quoted_table
+    catalog:
+      script:
+        input: |-
+          create table "Größen" (wert int);
+    editor:
+      input: |-
+        select * from "Grö
+    cursor:
+      search:
+        text: '"Grö'
+        index: 5
+    completions:
+      limit: 5
+
+  # A comment with multibyte characters before the statement of the cursor
+  - name: text_unicode_comment_before
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        /* äöü */ select na from t
+    cursor:
+      search:
+        text: 'na'
+        index: 2
+    completions:
+      limit: 5
+
+  # The cursor in the middle of a quoted table name
+  - name: text_quoted_mid
+    catalog:
+      script:
+        input: |-
+          create table "Region" (r int);
+    editor:
+      input: |-
+        select * from "Region"
+    cursor:
+      search:
+        text: 'Reg'
+        index: 3
+    completions:
+      limit: 5
+
+  # A quoted column prefix matches the columns in its case and qualifies them quoted
+  - name: text_quoted_column_prefix
+    catalog:
+      script:
+        input: |-
+          create table t ("Name" text, "Number" int);
+    editor:
+      input: |-
+        select * from t where "N
+    cursor:
+      search:
+        text: '"N'
+        index: 2
+    completions:
+      limit: 5
+
+  # An unquoted prefix matches a quoted name in any case and a folded name alike
+  - name: text_quoted_and_folded_names
+    catalog:
+      script:
+        input: |-
+          create table t ("Name" text, name2 int);
+    editor:
+      input: |-
+        select na from t
+    cursor:
+      search:
+        text: 'na'
+        index: 2
+    completions:
+      limit: 5
+
+  # A block comment right after the cursor symbol
+  - name: text_comment_after_cursor_symbol
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select na/* x */ from t
+    cursor:
+      search:
+        text: 'na'
+        index: 2
+    completions:
+      limit: 5
+
+  # A block comment between FROM and the table of the cursor
+  - name: text_comment_between_from_and_table
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from /* x */ u
+    cursor:
+      search:
+        text: ' u'
+        index: 2
+    completions:
+      limit: 5
+
+  # The cursor at the end of a line comment that ends the script has no target
+  - name: text_line_comment_eof
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a from t -- na
+    cursor:
+      search:
+        text: '-- na'
+        index: 5
+    completions:
+      limit: 5
+
+  # The cursor right before a block comment hints like whitespace after the previous symbol
+  - name: text_before_block_comment
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a from t /* x */
+    cursor:
+      search:
+        text: '/*'
+        index: 0
+    completions:
+      limit: 5
+
+  # The cursor right after a block comment hints like whitespace after the previous symbol
+  - name: text_after_block_comment
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a /* x */ from t
+    cursor:
+      search:
+        text: '*/'
+        index: 2
+    completions:
+      limit: 5
+
+  # The cursor in a dollar-quoted string completes nothing
+  - name: text_dollar_quoted_string
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select $$ na $$ from t
+    cursor:
+      search:
+        text: 'na'
+        index: 2
+    completions:
+      limit: 5

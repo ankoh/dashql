@@ -399,3 +399,322 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               select 10 / 2 % 3;
+
+  - name: prec_pow_assoc
+    input: |-
+      select 2^3^2, (2^3)^2, 2^(3^2), -2^2, (-2)^2
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 2 ^ 3 ^ 2, 2 ^ 3 ^ 2, 2 ^ (3 ^ 2), -2 ^ 2, -2 ^ 2;
+          - mode: compact
+            expected: |-
+              select 2 ^ 3 ^ 2, 2 ^ 3 ^ 2, 2 ^ (3 ^ 2), -2 ^ 2, -2 ^ 2;
+          - mode: pretty
+            expected: |-
+              select 2 ^ 3 ^ 2, 2 ^ 3 ^ 2, 2 ^ (3 ^ 2), -2 ^ 2, -2 ^ 2;
+        validation:
+
+  - name: prec_double_negation
+    input: |-
+      select - -1, -(-a), - (-a), a - -b, -(a*b), (-a)*b, a- - -b, - - - a from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select -(-1), -(-a), -(-a), a - -b, -(a * b), -a * b, a - -(-b), -(-(-a)) from t;
+          - mode: compact
+            expected: |-
+              select -(-1), -(-a), -(-a), a - -b, -(a * b), -a * b, a - -(-b), -(-(-a)) from t;
+          - mode: pretty
+            expected: |-
+              select -(-1), -(-a), -(-a), a - -b, -(a * b), -a * b, a - -(-b), -(-(-a))
+              from t;
+        validation:
+          setup: |-
+            create table t(a int, b int);
+
+  - name: prec_right_operands
+    input: |-
+      select a / (b * c), a / b * c, a - (b + c), a * (b / c), a % (b % c), a / (b / c), a - (b - c) - d, ((a + b)) * ((c)), (((a))) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a / (b * c), a / b * c, a - (b + c), a * (b / c), a % (b % c), a / (b / c), a - (b - c) - d, (a + b) * c, a from t;
+          - mode: compact
+            expected: |-
+              select a / (b * c), a / b * c, a - (b + c), a * (b / c), a % (b % c), a / (b / c), a - (b - c) - d, (a + b) * c, a
+              from t;
+          - mode: pretty
+            expected: |-
+              select a / (b * c), a / b * c, a - (b + c), a * (b / c), a % (b % c), a / (b / c), a - (b - c) - d, (a + b) * c, a
+              from t;
+        validation:
+          setup: |-
+            create table t(a int, b int, c int, d int);
+
+  - name: prec_comparison_nesting
+    input: |-
+      select (a = b) = p, p = (a = b), (a < b) is true, not (a is null), (not p) = q, (a = b) is null, ((a = 1)) and ((b = 2)) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select (a = b) = p, p = (a = b), (a < b) is true, not (a is null), (not p) = q, (a = b) is null, a = 1 and b = 2 from t;
+          - mode: compact
+            expected: |-
+              select (a = b) = p, p = (a = b), (a < b) is true, not (a is null), (not p) = q, (a = b) is null, a = 1 and b = 2
+              from t;
+          - mode: pretty
+            expected: |-
+              select (a = b) = p, p = (a = b), (a < b) is true, not (a is null), (not p) = q, (a = b) is null, a = 1 and b = 2
+              from t;
+        validation:
+          setup: |-
+            create table t(a int, b int, p bool, q bool);
+
+  - name: prec_not_variations
+    input: |-
+      select not not a, not (a and b) or c, not a = b, a and not b or not c, not (a or (b and not (c or d))) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select not (not a), not (a and b) or c, not (a = b), a and not b or not c, not (a or b and not (c or d)) from t;
+          - mode: compact
+            expected: |-
+              select not (not a), not (a and b) or c, not (a = b), a and not b or not c, not (a or b and not (c or d)) from t;
+          - mode: pretty
+            expected: |-
+              select not (not a), not (a and b) or c, not (a = b), a and not b or not c, not (a or b and not (c or d))
+              from t;
+        validation:
+          setup: |-
+            create table t(a bool, b bool, c bool, d bool);
+
+  - name: prec_concat_like
+    input: |-
+      select a || b like c || d, (a like b) = true, a || (b || c), (a || b) || c, a like (b || c), a not like (b) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a || b like c || d, a like b = true, a || (b || c), a || b || c, a like b || c, a not like b from t;
+          - mode: compact
+            expected: |-
+              select a || b like c || d, a like b = true, a || (b || c), a || b || c, a like b || c, a not like b from t;
+          - mode: pretty
+            expected: |-
+              select a || b like c || d, a like b = true, a || (b || c), a || b || c, a like b || c, a not like b
+              from t;
+        validation:
+          setup: |-
+            create table t(a text, b text, c text, d text);
+
+  - name: prec_between_operands
+    input: |-
+      select a between b + 1 and c * 2, (a between 1 and 2) = true, a between (select 1) and 2, (a in (1, 2)) = false, a + 1 in (2, 3), (a between b and c) and p, p between (p and q) and q, p between q and (p and q) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a between b + 1 and c * 2, a between 1 and 2 = true, a between (select 1) and 2, a in (1, 2) = false, a + 1 in (2, 3), a between b and c and p, p between (p and q) and q, p between q and (p and q) from t;
+          - mode: compact
+            expected: |-
+              select a between b + 1 and c * 2, a between 1 and 2 = true, a between (select 1) and 2, a in (1, 2) = false,
+                a + 1 in (2, 3), a between b and c and p, p between (p and q) and q, p between q and (p and q)
+              from t;
+          - mode: pretty
+            expected: |-
+              select a between b + 1 and c * 2,
+                a between 1 and 2 = true,
+                a between (select 1) and 2,
+                a in (1, 2) = false,
+                a + 1 in (2, 3),
+                a between b and c and p,
+                p between (p and q) and q,
+                p between q and (p and q)
+              from t;
+        validation:
+          setup: |-
+            create table t(a int, b int, c int, p bool, q bool);
+
+  - name: prec_in_like_is_operands
+    input: |-
+      select (p or q) in (true), p in (q or r, true), (a + 1) not in (1, 2), - a in (1), (p or q)::text like 'x', (p and q) is true, p and q is true, (p or q) is null, (a = 1) is not distinct from (b = 2), p is distinct from a = b from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select (p or q) in (true), p in (q or r, true), a + 1 not in (1, 2), -a in (1), (p or q)::text like 'x', (p and q) is true, p and q is true, (p or q) is null, (a = 1) is not distinct from (b = 2), p is distinct from (a = b) from t;
+          - mode: compact
+            expected: |-
+              select (p or q) in (true), p in (q or r, true), a + 1 not in (1, 2), -a in (1), (p or q)::text like 'x',
+                (p and q) is true, p and q is true, (p or q) is null, (a = 1) is not distinct from (b = 2),
+                p is distinct from (a = b)
+              from t;
+          - mode: pretty
+            expected: |-
+              select (p or q) in (true),
+                p in (q or r, true),
+                a + 1 not in (1, 2),
+                -a in (1),
+                (p or q)::text like 'x',
+                (p and q) is true,
+                p and q is true,
+                (p or q) is null,
+                (a = 1) is not distinct from (b = 2),
+                p is distinct from (a = b)
+              from t;
+        validation:
+          setup: |-
+            create table t(a int, b int, p bool, q bool, r bool);
+
+  - name: prec_isnull_notnull
+    input: |-
+      select a isnull, a notnull, a + 1 isnull, not a notnull from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a is null, a is not null, (a + 1) is null, not (a is not null) from t;
+          - mode: compact
+            expected: |-
+              select a is null, a is not null, (a + 1) is null, not (a is not null) from t;
+          - mode: pretty
+            expected: |-
+              select a is null, a is not null, (a + 1) is null, not (a is not null)
+              from t;
+        validation:
+          setup: |-
+            create table t(a int);
+
+  - name: prec_typecast_operands
+    input: |-
+      select (-1)::text, (-a)::text, -(a::int), (not p)::text, (a is null)::text, (a = b)::text, (a between 1 and 2)::text, array[1, 2]::text[], (array[1] || array[2])::bigint[] from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select (-1)::text, (-a)::text, -a::integer, (not p)::text, (a is null)::text, (a = b)::text, (a between 1 and 2)::text, array[1, 2]::text[], (array[1] || array[2])::bigint[] from t;
+          - mode: compact
+            expected: |-
+              select (-1)::text, (-a)::text, -a::integer, (not p)::text, (a is null)::text, (a = b)::text, (a between 1 and 2)::text,
+                array[1, 2]::text[], (array[1] || array[2])::bigint[]
+              from t;
+          - mode: pretty
+            expected: |-
+              select (-1)::text,
+                (-a)::text,
+                -a::integer,
+                (not p)::text,
+                (a is null)::text,
+                (a = b)::text,
+                (a between 1 and 2)::text,
+                array[1, 2]::text[],
+                (array[1] || array[2])::bigint[]
+              from t;
+        validation:
+          setup: |-
+            create table t(a int, b int, p bool);
+
+  - name: prec_case_operands
+    input: |-
+      select (case when p then 1 end) + 1, case when p then 1 end = 1, -(case when p then 1 end), (case when p then b end)::text, not (case when p then true end) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select case when p then 1 end + 1, case when p then 1 end = 1, -case when p then 1 end, case when p then b end::text, not case when p then true end from t;
+          - mode: compact
+            expected: |-
+              select case when p then 1 end + 1, case when p then 1 end = 1, -case when p then 1 end, case when p then b end::text,
+                not case when p then true end
+              from t;
+          - mode: pretty
+            expected: |-
+              select case
+                    when p then 1
+                  end + 1,
+                case
+                    when p then 1
+                  end = 1,
+                -case
+                  when p then 1
+                end,
+                case
+                  when p then b
+                end::text,
+                not case
+                  when p then true
+                end
+              from t;
+        validation:
+          setup: |-
+            create table t(b int, p bool);
+
+  - name: prec_subquery_operands
+    input: |-
+      select -(select 1), (select 1) * 2, a in (select 1 union select 2), (select 1 union select 1) = 1, exists (select 1) = true, not exists (select 1) or p from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select -(select 1), (select 1) * 2, a in (select 1 union select 2), (select 1 union select 1) = 1, exists (select 1) = true, not exists (select 1) or p from t;
+          - mode: compact
+            expected: |-
+              select -(select 1), (select 1) * 2, a in (select 1 union select 2), (select 1 union select 1) = 1,
+                exists (select 1) = true, not exists (select 1) or p
+              from t;
+          - mode: pretty
+            expected: |-
+              select -(select 1),
+                (select 1) * 2,
+                a in (select 1 union select 2),
+                (select 1 union select 1) = 1,
+                exists (select 1) = true,
+                not exists (select 1) or p
+              from t;
+        validation:
+          setup: |-
+            create table t(a int, p bool);
+
+  - name: prec_collate_at_time_zone
+    input: |-
+      select (a || b) collate "C", a || b collate "C", (ts at time zone 'UTC') at time zone 'CET', (ts + interval '1 day') at time zone 'UTC', ts at time zone (a || 'x'), f(ts) at time zone a, ts at time zone 'UTC' + interval '1' hour from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select (a || b) collate "C", a || b collate "C", ts at time zone 'UTC' at time zone 'CET', (ts + interval '1 day') at time zone 'UTC', ts at time zone (a || 'x'), f(ts) at time zone a, ts at time zone 'UTC' + interval '1' hour from t;
+          - mode: compact
+            expected: |-
+              select (a || b) collate "C", a || b collate "C", ts at time zone 'UTC' at time zone 'CET',
+                (ts + interval '1 day') at time zone 'UTC', ts at time zone (a || 'x'), f(ts) at time zone a,
+                ts at time zone 'UTC' + interval '1' hour
+              from t;
+          - mode: pretty
+            expected: |-
+              select (a || b) collate "C",
+                a || b collate "C",
+                ts at time zone 'UTC' at time zone 'CET',
+                (ts + interval '1 day') at time zone 'UTC',
+                ts at time zone (a || 'x'),
+                f(ts) at time zone a,
+                ts at time zone 'UTC' + interval '1' hour
+              from t;

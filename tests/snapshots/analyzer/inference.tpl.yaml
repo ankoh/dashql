@@ -49,3 +49,13 @@ analyzer-snapshots:
       input: |-
         select name from foo f, bar g;
         select f.name from foo f
+
+  # Unresolved tables of different schemas infer different schemas
+  - name: schema_qualified_unresolved
+    script:
+      input: select m1.x, m2.y, m3.z from s1.missing m1, s2.missing m2, missing m3
+
+  # Every branch of a set operation infers the columns of its own FROM items
+  - name: set_operation_branches
+    script:
+      input: select x from missing union select y from missing2

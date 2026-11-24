@@ -196,3 +196,12 @@ parser-snapshots:
         pg MATCH (a)-[e] -(b)
         COLUMNS (a.x AS y)
       ) gt
+  # Unicode delimited identifiers with UESCAPE, a six digit escape, an invalid escape and an empty name
+  - name: scanner_unicode_identifier_escapes
+    input: |
+      select 1 as U&"d!0061t" UESCAPE '!', 2 as U&"\+01F600", 3 as U&"\zz", 4 as U&""
+  # An unterminated tagged dollar-quoted string runs to the end of the text
+  - name: scanner_unterminated_tagged_dollar_string
+    input: |
+      select 1;
+      select $fn$ select 2; $f$

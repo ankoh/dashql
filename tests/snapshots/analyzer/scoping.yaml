@@ -2159,3 +2159,1438 @@ analyzer-snapshots:
           columns:
             - {name: a, expression: 0}
           text: "select a from t"
+
+  - name: cte_data_modifying_delete
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: with d as (delete from t where a > 0 returning a, b) select a, b from d
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+        - {type: name/cte, text: "d"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.0", source: "d", text: "a"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:0.1", source: "d", text: "b"}
+        - {id: 5, type: literal/integer, is-const: true, text: "0"}
+      constants:
+        - {expression: 5, text: "0"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: none
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 1}
+            - {name: b, expression: 2}
+          text: "delete fro..rning a, b"
+        - scope-id: 1
+          sources:
+            - {type: cte, name: d, scope: 0, text: "d"}
+          columns:
+            - {name: a, expression: 3}
+            - {name: b, expression: 4}
+          text: "with d as .., b from d"
+
+  - name: cte_data_modifying_insert
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: with i as (insert into t (a, b) select a, c from u returning *) select i.a, i.b from i
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+        - {type: name/cte, text: "i"}
+      inserts:
+        - target-ref: 1
+          source: "select a, c from u"
+          returning: true
+          columns:
+            - {name: a, resolved: true}
+            - {name: b, resolved: true}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "i", text: "i.a"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.1", source: "i", text: "i.b"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          correlation-barrier: true
+          sources:
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: a, expression: 0}
+            - {name: c, expression: 1}
+          text: "select a, c from u"
+        - scope-id: 1
+          parent: 2
+          parent-sources: none
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+          text: "insert int..eturning *"
+        - scope-id: 2
+          sources:
+            - {type: cte, name: i, scope: 1, text: "i"}
+          columns:
+            - {name: a, expression: 2}
+            - {name: b, expression: 3}
+          text: "with i as ..i.b from i"
+
+  - name: cte_data_modifying_update
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: with x as (update t set b = 1 returning a) select a from x
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+        - {type: name/cte, text: "x"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "x", text: "a"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 3, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: none
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 0}
+          text: "update t s..eturning a"
+        - scope-id: 1
+          sources:
+            - {type: cte, name: x, scope: 0, text: "x"}
+          columns:
+            - {name: a, expression: 2}
+          text: "with x as ..t a from x"
+
+  - name: cte_recursive_used_twice
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: with recursive r(n) as (select 1 union all select n + 1 from r where n < 3) select r1.n, r2.n from r r1 join r r2 on r1.n = r2.n
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/cte, text: "r"}
+        - {type: name/cte, text: "r r1"}
+        - {type: name/cte, text: "r r2"}
+      expressions:
+        - {id: 0, type: colref/local, scope: 2, column: 0, source: "r", text: "n"}
+        - {id: 1, type: colref/local, scope: 2, column: 0, source: "r", text: "n"}
+        - {id: 2, type: colref/local, scope: 2, column: 0, source: "r r1", text: "r1.n"}
+        - {id: 3, type: colref/local, scope: 2, column: 0, source: "r r2", text: "r2.n"}
+        - {id: 4, type: colref/local, scope: 2, column: 0, source: "r r1", text: "r1.n"}
+        - {id: 5, type: colref/local, scope: 2, column: 0, source: "r r2", text: "r2.n"}
+        - {id: 6, type: literal/integer, is-const: true, text: "1"}
+        - {id: 7, type: literal/integer, is-const: true, text: "1"}
+        - {id: 8, type: literal/integer, is-const: true, text: "3"}
+      constants:
+        - {expression: 6, text: "1"}
+        - {expression: 7, text: "1"}
+        - {expression: 8, text: "3"}
+      name-scopes:
+        - scope-id: 0
+          parent: 2
+          columns:
+            - {name: '?', expression: 6}
+          text: "select 1"
+        - scope-id: 1
+          parent: 2
+          sources:
+            - {type: cte, name: r, scope: 2, text: "r"}
+          columns:
+            - {name: '?', computed: true}
+          text: "select n +..here n < 3"
+        - scope-id: 2
+          parent: 3
+          parent-sources: none
+          columns:
+            - {name: '?', expression: 6}
+          text: "select 1 u..here n < 3"
+        - scope-id: 3
+          sources:
+            - {type: cte, name: r1, scope: 2, text: "r r1"}
+            - {type: cte, name: r2, scope: 2, text: "r r2"}
+          columns:
+            - {name: n, expression: 2}
+            - {name: n, expression: 3}
+          text: "with recur..1.n = r2.n"
+
+  - name: cte_recursive_in_expression_subquery
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select a from t where a in (with recursive r(n) as (select c from u union all select n - 1 from r where n > t.b) select n from r)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/cte, text: "r"}
+        - {type: name/cte, text: "r"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.1", source: "r", text: "n"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:1.1", source: "r", text: "n"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "t.b"}
+        - {id: 5, type: colref/catalog, catalog: "256.65536.1:1.1", source: "r", text: "n"}
+        - {id: 6, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 7, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 7, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          parent: 2
+          sources:
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: c, expression: 1}
+          text: "select c from u"
+        - scope-id: 1
+          parent: 2
+          sources:
+            - {type: cte, name: r, scope: 2, text: "r"}
+          columns:
+            - {name: '?', computed: true}
+          text: "select n -..re n > t.b"
+        - scope-id: 2
+          parent: 3
+          parent-sources: none
+          columns:
+            - {name: c, expression: 1}
+          text: "select c f..re n > t.b"
+        - scope-id: 3
+          parent: 4
+          sources:
+            - {type: cte, name: r, scope: 2, text: "r"}
+          columns:
+            - {name: n, expression: 5}
+          text: "(with recu.. n from r)"
+        - scope-id: 4
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 0}
+          text: "select a f.. n from r)"
+
+  - name: cte_recursive_shadows_catalog_table
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: with recursive t(n) as (select 1 union all select n + 1 from t where n < 5) select n, a from t
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/cte, text: "t"}
+        - {type: name/cte, text: "t"}
+      expressions:
+        - {id: 0, type: colref/local, scope: 2, column: 0, source: "t", text: "n"}
+        - {id: 1, type: colref/local, scope: 2, column: 0, source: "t", text: "n"}
+        - {id: 2, type: colref/local, scope: 2, column: 0, source: "t", text: "n"}
+        - {id: 3, type: colref/unresolved, text: "a"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+        - {id: 5, type: literal/integer, is-const: true, text: "1"}
+        - {id: 6, type: literal/integer, is-const: true, text: "5"}
+      constants:
+        - {expression: 4, text: "1"}
+        - {expression: 5, text: "1"}
+        - {expression: 6, text: "5"}
+      name-scopes:
+        - scope-id: 0
+          parent: 2
+          columns:
+            - {name: '?', expression: 4}
+          text: "select 1"
+        - scope-id: 1
+          parent: 2
+          sources:
+            - {type: cte, name: t, scope: 2, text: "t"}
+          columns:
+            - {name: '?', computed: true}
+          text: "select n +..here n < 5"
+        - scope-id: 2
+          parent: 3
+          parent-sources: none
+          columns:
+            - {name: '?', expression: 4}
+          text: "select 1 u..here n < 5"
+        - scope-id: 3
+          sources:
+            - {type: cte, name: t, scope: 2, text: "t"}
+          columns:
+            - {name: n, expression: 2}
+            - {name: a, expression: 3}
+          text: "with recur.., a from t"
+
+  - name: cte_recursive_forward_reference
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: with recursive c1 as (select z from c2), c2 as (select 1 as z) select z from c1
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/cte, text: "c2"}
+        - {type: name/cte, text: "c1"}
+      expressions:
+        - {id: 0, type: colref/local, scope: 1, column: 0, source: "c2", text: "z"}
+        - {id: 1, type: colref/local, scope: 0, column: 0, source: "c1", text: "z"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 2, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          parent: 2
+          parent-sources: none
+          sources:
+            - {type: cte, name: c2, scope: 1, text: "c2"}
+          columns:
+            - {name: z, expression: 0}
+          text: "select z from c2"
+        - scope-id: 1
+          parent: 2
+          parent-sources: none
+          columns:
+            - {name: z, expression: 2}
+          text: "select 1 as z"
+        - scope-id: 2
+          sources:
+            - {type: cte, name: c1, scope: 0, text: "c1"}
+          columns:
+            - {name: z, expression: 1}
+          text: "with recur.. z from c1"
+
+  - name: cte_scalar_subquery_in_later_cte
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: with c1 as (select a from t), c2 as (select (select max(a) from c1) as m) select m from c2
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/cte, text: "c1"}
+        - {type: name/cte, text: "c2"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "c1", text: "a"}
+        - {id: 2, type: colref/local, scope: 2, column: 0, source: "c2", text: "m"}
+        - {id: 3, type: function, name: max, text: "max(a)"}
+      name-scopes:
+        - scope-id: 0
+          parent: 3
+          parent-sources: none
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 0}
+          text: "select a from t"
+        - scope-id: 1
+          parent: 2
+          sources:
+            - {type: cte, name: c1, scope: 0, text: "c1"}
+          columns:
+            - {name: '?', expression: 3}
+          text: "(select ma..) from c1)"
+        - scope-id: 2
+          parent: 3
+          parent-sources: none
+          columns:
+            - {name: m, computed: true}
+          text: "select (se..m c1) as m"
+        - scope-id: 3
+          sources:
+            - {type: cte, name: c2, scope: 2, text: "c2"}
+          columns:
+            - {name: m, expression: 2}
+          text: "with c1 as.. m from c2"
+
+  - name: cte_nested_with_sees_outer_cte
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: with c as (select a from t) select s.a from (with d as (select a from c) select a from d) s
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/cte, text: "c"}
+        - {type: name/cte, text: "d"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "(with d as.. from d) s", text: "s.a"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "c", text: "a"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.0", source: "d", text: "a"}
+      name-scopes:
+        - scope-id: 0
+          parent: 3
+          parent-sources: none
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 0}
+          text: "select a from t"
+        - scope-id: 1
+          parent: 2
+          parent-sources: none
+          sources:
+            - {type: cte, name: c, scope: 0, text: "c"}
+          columns:
+            - {name: a, expression: 2}
+          text: "select a from c"
+        - scope-id: 2
+          parent: 3
+          parent-sources: none
+          sources:
+            - {type: cte, name: d, scope: 1, text: "d"}
+          columns:
+            - {name: a, expression: 3}
+          text: "(with d as.. a from d)"
+        - scope-id: 3
+          sources:
+            - {type: subquery, name: s, scope: 2, text: "(with d as.. from d) s"}
+          columns:
+            - {name: a, expression: 1}
+          text: "with c as .. from d) s"
+
+  - name: cte_visible_in_set_operation_branches
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: with c as (select a from t) select c from u union select a from c
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/cte, text: "c"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "c", text: "a"}
+      name-scopes:
+        - scope-id: 0
+          parent: 3
+          parent-sources: none
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 0}
+          text: "select a from t"
+        - scope-id: 1
+          parent: 3
+          sources:
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: c, expression: 1}
+          text: "select c from u"
+        - scope-id: 2
+          parent: 3
+          sources:
+            - {type: cte, name: c, scope: 0, text: "c"}
+          columns:
+            - {name: a, expression: 2}
+          text: "select a from c"
+        - scope-id: 3
+          columns:
+            - {name: c, expression: 1}
+          text: "with c as ..t a from c"
+
+  - name: set_op_column_count_mismatch
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select q.a, q.b from (select a, b from t union select c from u) q
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "(select a,.. from u) q", text: "q.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "(select a,.. from u) q", text: "q.b"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+      name-scopes:
+        - scope-id: 0
+          parent: 2
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 2}
+            - {name: b, expression: 3}
+          text: "select a, b from t"
+        - scope-id: 1
+          parent: 2
+          sources:
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: c, expression: 4}
+          text: "select c from u"
+        - scope-id: 2
+          parent: 3
+          parent-sources: none
+          columns:
+            - {name: a, expression: 2}
+            - {name: b, expression: 3}
+          text: "(select a,.. c from u)"
+        - scope-id: 3
+          sources:
+            - {type: subquery, name: q, scope: 2, text: "(select a,.. from u) q"}
+          columns:
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
+          text: "select q.a.. from u) q"
+
+  - name: set_op_parenthesized_order_limit
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: |-
+        (select a from t order by b limit 1) union all (select c from u order by a)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "a"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 4, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          parent: 2
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 0}
+          text: "(select a ..b limit 1)"
+        - scope-id: 1
+          parent: 2
+          sources:
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: c, expression: 2}
+          text: "(select c ..rder by a)"
+        - scope-id: 2
+          columns:
+            - {name: a, expression: 0}
+          text: "(select a ..rder by a)"
+
+  - name: set_op_values_branch
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select q.a, q.b from (select a, b from t union all values (1, 2)) q
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "(select a,.. (1, 2)) q", text: "q.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "(select a,.. (1, 2)) q", text: "q.b"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+        - {id: 5, type: literal/integer, is-const: true, text: "2"}
+      constants:
+        - {expression: 4, text: "1"}
+        - {expression: 5, text: "2"}
+      name-scopes:
+        - scope-id: 0
+          parent: 2
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 2}
+            - {name: b, expression: 3}
+          text: "select a, b from t"
+        - scope-id: 1
+          parent: 2
+          columns:
+            - {name: '?', expression: 4}
+            - {name: '?', expression: 5}
+          text: "values (1, 2)"
+        - scope-id: 2
+          parent: 3
+          parent-sources: none
+          columns:
+            - {name: a, expression: 2}
+            - {name: b, expression: 3}
+          text: "(select a,..es (1, 2))"
+        - scope-id: 3
+          sources:
+            - {type: subquery, name: q, scope: 2, text: "(select a,.. (1, 2)) q"}
+          columns:
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
+          text: "select q.a.. (1, 2)) q"
+
+  - name: set_op_correlated_branches
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select * from t where exists (select a from u where u.a = t.b union select id from v where v.x = t.a)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "v"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "t.b"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:2.0", source: "v", text: "id"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:2.1", source: "v", text: "v.x"}
+        - {id: 5, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+      name-scopes:
+        - scope-id: 0
+          parent: 2
+          sources:
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: a, expression: 0}
+          text: "select a f.. u.a = t.b"
+        - scope-id: 1
+          parent: 2
+          sources:
+            - {type: table, name: v, text: "v"}
+          columns:
+            - {name: id, expression: 3}
+          text: "select id .. v.x = t.a"
+        - scope-id: 2
+          parent: 3
+          columns:
+            - {name: a, expression: 0}
+          text: "(select a ..v.x = t.a)"
+        - scope-id: 3
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+          text: "select * f..v.x = t.a)"
+
+  - name: join_using_unknown_column
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select zz from t join u using (zz)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "zz"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: zz, expression: 0}
+          text: "select zz ..using (zz)"
+
+  - name: join_natural_unresolved_table
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select a, k from t natural join missing
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/unresolved, text: "missing"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/unresolved, text: "k"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: unresolved, name: missing, text: "missing"}
+          columns:
+            - {name: a, expression: 0}
+            - {name: k, expression: 1}
+          text: "select a, ..in missing"
+      inferred-tables:
+        - name: missing
+          confidence: confident
+          columns:
+            - {name: k, confidence: confident}
+
+  - name: join_on_correlated_outer
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select (select 1 from u join v on u.a = v.id and v.x = t.b) from t
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "v"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:2.0", source: "v", text: "v.id"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:2.1", source: "v", text: "v.x"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "t.b"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 4, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          sources:
+            - {type: table, name: u, text: "u"}
+            - {type: table, name: v, text: "v"}
+          columns:
+            - {name: '?', expression: 4}
+          text: "(select 1 ..v.x = t.b)"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: '?', computed: true}
+          text: "select (se...b) from t"
+
+  - name: join_unaliased_parenthesized_using
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select a, t.b, u.c, v.x from (t join u using (a)) join v on v.id = a
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "v"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "t.b"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "u.c"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:2.1", source: "v", text: "v.x"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:2.0", source: "v", text: "v.id"}
+        - {id: 5, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
+            - {type: table, name: v, text: "v"}
+          columns:
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
+            - {name: c, expression: 2}
+            - {name: x, expression: 3}
+          text: "select a, ..n v.id = a"
+
+  - name: lateral_values
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select t.a, s.k from t, lateral (values (t.a + 1)) s(k)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 1, type: colref/local, scope: 0, column: 0, source: "lateral (v..+ 1)) s(k)", text: "s.k"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 3, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: before
+          columns:
+            - {name: '?', computed: true}
+          text: "(values (t.a + 1))"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: subquery, name: s, scope: 0, column-aliases: [k], text: "lateral (v..+ 1)) s(k)"}
+          columns:
+            - {name: a, expression: 0}
+            - {name: k, expression: 1}
+          text: "select t.a..+ 1)) s(k)"
+
+  - name: lateral_nested_two_levels
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select s.k from t, lateral (select z.k from u, lateral (select t.a + u.c as k) z) s
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/local, scope: 1, column: 0, source: "lateral (s..as k) z) s", text: "s.k"}
+        - {id: 1, type: colref/local, scope: 0, column: 0, source: "lateral (s...c as k) z", text: "z.k"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "u.c"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: before
+          columns:
+            - {name: k, computed: true}
+          text: "(select t... u.c as k)"
+        - scope-id: 1
+          parent: 2
+          parent-sources: before
+          sources:
+            - {type: table, name: u, text: "u"}
+            - {type: subquery, name: z, scope: 0, text: "lateral (s...c as k) z"}
+          columns:
+            - {name: k, expression: 1}
+          text: "(select z...c as k) z)"
+        - scope-id: 2
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: subquery, name: s, scope: 1, text: "lateral (s..as k) z) s"}
+          columns:
+            - {name: k, expression: 0}
+          text: "select s.k..as k) z) s"
+
+  - name: star_unknown_qualifier
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select x.* from t
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          text: "select x.* from t"
+
+  - name: star_resolved_and_unresolved
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select q.a, q.zz from (select * from t, missing) q
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/unresolved, text: "missing"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "(select * ..missing) q", text: "q.a"}
+        - {id: 1, type: colref/unresolved, text: "q.zz"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: none
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: unresolved, name: missing, text: "missing"}
+          columns:
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+          text: "(select * .., missing)"
+        - scope-id: 1
+          sources:
+            - {type: subquery, name: q, scope: 0, text: "(select * ..missing) q"}
+          columns:
+            - {name: a, expression: 0}
+            - {name: zz, expression: 1}
+          text: "select q.a..missing) q"
+
+  - name: star_schema_qualified
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        errors: []
+    script:
+      input: select q.a, q.b from (select s1.k.* from s1.k) q
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65537.1:4", text: "s1.k"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65537.1:4.0", source: "(select s1..om s1.k) q", text: "q.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65537.1:4.1", source: "(select s1..om s1.k) q", text: "q.b"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: none
+          sources:
+            - {type: table, name: k, text: "s1.k"}
+          columns:
+            - {name: a, table-column: "256.65537.1:4.0"}
+            - {name: b, table-column: "256.65537.1:4.1"}
+          text: "(select s1..from s1.k)"
+        - scope-id: 1
+          sources:
+            - {type: subquery, name: q, scope: 0, text: "(select s1..om s1.k) q"}
+          columns:
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
+          text: "select q.a..om s1.k) q"
+
+  - name: star_cte_column_aliases
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: with c(p) as (select a, b from t) select q.p, q.b from (select * from c) q
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/cte, text: "c"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "(select * from c) q", text: "q.p"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.1", source: "(select * from c) q", text: "q.b"}
+      name-scopes:
+        - scope-id: 0
+          parent: 2
+          parent-sources: none
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
+          text: "select a, b from t"
+        - scope-id: 1
+          parent: 2
+          parent-sources: none
+          sources:
+            - {type: cte, name: c, scope: 0, text: "c"}
+          columns:
+            - {name: p, expression: 0}
+            - {name: b, expression: 1}
+          text: "(select * from c)"
+        - scope-id: 2
+          sources:
+            - {type: subquery, name: q, scope: 1, text: "(select * from c) q"}
+          columns:
+            - {name: p, expression: 2}
+            - {name: b, expression: 3}
+          text: "with c(p) .. from c) q"
+
+  - name: alias_names_other_table
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select t.c, x.b from u as t, t as x
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u as t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t as x"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u as t", text: "t.c"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t as x", text: "x.b"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "u as t"}
+            - {type: table, name: x, text: "t as x"}
+          columns:
+            - {name: c, expression: 0}
+            - {name: b, expression: 1}
+          text: "select t.c.. t, t as x"
+
+  - name: quoted_identifiers_with_spaces
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table "my table" ("my col" int, "My Col" int);
+        errors: []
+    script:
+      input: select "my col", m."my col", "My Col" from "my table" m
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:4", text: "\"my table\" m"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:4.0", source: "\"my table\" m", text: "\"my col\""}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:4.0", source: "\"my table\" m", text: "m.\"my col\""}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:4.1", source: "\"my table\" m", text: "\"My Col\""}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: m, text: "\"my table\" m"}
+          columns:
+            - {name: my col, expression: 0}
+            - {name: my col, expression: 1}
+            - {name: My Col, expression: 2}
+          text: "select \"my..y table\" m"
+
+  - name: duplicate_alias_table_and_function
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select * from t as g, generate_series(1, 3) as g
+      catalog-id: 2
+      errors:
+        - {type: DUPLICATE_TABLE_ALIAS, message: duplicate table alias g, text: "generate_s..1, 3) as g"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t as g"}
+      expressions:
+        - {id: 0, type: function, name: generate_series, is-const: true, text: "generate_s..ries(1, 3)"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
+        - {id: 2, type: literal/integer, is-const: true, text: "3"}
+      constants:
+        - {expression: 1, text: "1"}
+        - {expression: 2, text: "3"}
+        - {expression: 0, text: "generate_s..ries(1, 3)"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: before
+          columns:
+            - {name: g, computed: true}
+          text: "generate_s..1, 3) as g"
+        - scope-id: 1
+          sources:
+            - {type: table, name: g, text: "t as g"}
+          columns:
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+          text: "select * f..1, 3) as g"
+
+  - name: ambiguous_three_candidates
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select a from t, u, t as t2
+      catalog-id: 2
+      errors:
+        - {type: COLUMN_REF_AMBIGUOUS, message: 'column reference is ambiguous, candidates: t.a, u.a, t2.a', text: "a"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t as t2"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "a"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
+            - {type: table, name: t2, text: "t as t2"}
+          columns:
+            - {name: a, expression: 0}
+          text: "select a f..u, t as t2"
+
+  - name: grouping_sets_rollup_cube
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select a, b, count(*), grouping(a) from t group by grouping sets ((a), (b)), rollup (a), cube (b)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 5, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 6, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 7, type: function, name: count, text: "count(*)"}
+        - {id: 8, type: function, name: grouping, text: "grouping(a)"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
+            - {name: '?', expression: 7}
+            - {name: '?', expression: 8}
+          text: "select a, .., cube (b)"
+
+  - name: window_frame_inherits_named_window
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select sum(b) over (w rows between 1 preceding and current row) from t window w as (partition by a order by zz)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 2, type: colref/unresolved, text: "zz"}
+        - {id: 3, type: function, name: sum, text: "sum(b) ove..rrent row)"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 4, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: '?', expression: 3}
+          text: "select sum..der by zz)"
+
+  - name: locking_clause_of_table
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select b from t, u for update of t nowait
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: b, expression: 0}
+          text: "select b f..f t nowait"
+
+  - name: tablesample_and_fetch_first
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select a from t tablesample bernoulli (10) repeatable (5) fetch first 3 rows only
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t tablesam..atable (5)"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t tablesam..atable (5)", text: "a"}
+        - {id: 1, type: literal/integer, is-const: true, text: "10"}
+        - {id: 2, type: literal/integer, is-const: true, text: "5"}
+        - {id: 3, type: literal/integer, is-const: true, text: "3"}
+      constants:
+        - {expression: 1, text: "10"}
+        - {expression: 2, text: "5"}
+        - {expression: 3, text: "3"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t tablesam..atable (5)"}
+          columns:
+            - {name: a, expression: 0}
+          text: "select a f.. rows only"
+
+  - name: explain_select_resolves
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: explain select a from t where zz = 1
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/unresolved, text: "zz"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 2, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 0}
+          text: "select a f..ere zz = 1"
+
+  - name: same_schema_in_two_databases
+    catalog:
+      script:
+        input: create table db1.s.x (a int); create table db2.s.x (b int); create table base (k int, l int); create view bv as select k from base;
+        errors: []
+    script:
+      input: select a, b from s.x
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "s.x"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "s.x", text: "a"}
+        - {id: 1, type: colref/unresolved, text: "b"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: x, text: "s.x"}
+          columns:
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
+          text: "select a, ..b from s.x"
+
+  - name: catalog_view_read_by_script
+    catalog:
+      script:
+        input: create table db1.s.x (a int); create table db2.s.x (b int); create table base (k int, l int); create view bv as select k from base;
+        errors: []
+    script:
+      input: select k, l from bv
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "258.65538.1:3", text: "bv"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "258.65538.1:3.0", source: "bv", text: "k"}
+        - {id: 1, type: colref/unresolved, text: "l"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: bv, text: "bv"}
+          columns:
+            - {name: k, expression: 0}
+            - {name: l, expression: 1}
+          text: "select k, l from bv"
+
+  - name: explain_create_table_not_declared
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: explain create table z as select a from t; select a from z
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 0, text: "t"}
+        - {type: name/unresolved, statement-id: 1, text: "z"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", statement-id: 0, text: "a"}
+        - {id: 1, type: colref/unresolved, statement-id: 1, text: "a"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 0}
+          text: "select a from t"
+        - scope-id: 1
+          sources:
+            - {type: unresolved, name: z, text: "z"}
+          columns:
+            - {name: a, expression: 1}
+          text: "select a from z"
+      inferred-tables:
+        - name: z
+          confidence: confident
+          columns:
+            - {name: a, confidence: confident}
+
+  - name: alter_view_rename
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: create view vw as select a from t; alter view vw rename to vw2; select a from vw2
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.2:0"
+          name: vw
+          text: "create vie..t a from t"
+          columns:
+            - {catalog-id: "256.65536.2:0.0", name: a}
+        - catalog-id: "256.65536.2:1"
+          name: vw2
+          text: "alter view..ame to vw2"
+          columns:
+            - {catalog-id: "256.65536.2:1.0", name: a}
+      touched-relations:
+        - {statement-id: 0, name: vw}
+        - {statement-id: 1, name: vw}
+        - {statement-id: 1, name: vw2}
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 0, text: "t"}
+        - {type: name/internal, catalog-id: "256.65536.2:1", statement-id: 2, text: "vw2"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", statement-id: 0, text: "a"}
+        - {id: 1, type: colref/internal, catalog: "256.65536.2:1.0", source: "vw2", statement-id: 2, text: "a"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 0}
+          text: "select a from t"
+        - scope-id: 1
+          sources:
+            - {type: table, name: vw2, text: "vw2"}
+          columns:
+            - {name: a, expression: 1}
+          text: "select a from vw2"
+
+  - name: create_table_duplicate_column
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: create table z (a int, a text); select a from z
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.2:0"
+          name: z
+          text: "create tab..t, a text)"
+          columns:
+            - {catalog-id: "256.65536.2:0.0", name: a, text: "a int"}
+            - {catalog-id: "256.65536.2:0.1", name: a, text: "a text"}
+      touched-relations:
+        - {statement-id: 0, name: z}
+      errors: []
+      table-refs:
+        - {type: name/internal, catalog-id: "256.65536.2:0", statement-id: 1, text: "z"}
+      expressions:
+        - {id: 0, type: colref/internal, catalog: "256.65536.2:0.0", source: "z", statement-id: 1, text: "a"}
+      name-scopes:
+        - scope-id: 1
+          sources:
+            - {type: table, name: z, text: "z"}
+          columns:
+            - {name: a, expression: 0}
+          text: "select a from z"
+
+  - name: create_table_as_with_cte
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: create table z as with c as (select a from t) select a from c; select a from z
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.2:0"
+          name: z
+          text: "create tab..t a from c"
+          columns:
+            - {catalog-id: "256.65536.2:0.0", name: a}
+      touched-relations:
+        - {statement-id: 0, name: z}
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 0, text: "t"}
+        - {type: name/cte, statement-id: 0, text: "c"}
+        - {type: name/internal, catalog-id: "256.65536.2:0", statement-id: 1, text: "z"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", statement-id: 0, text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "c", statement-id: 0, text: "a"}
+        - {id: 2, type: colref/internal, catalog: "256.65536.2:0.0", source: "z", statement-id: 1, text: "a"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: none
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 0}
+          text: "select a from t"
+        - scope-id: 1
+          sources:
+            - {type: cte, name: c, scope: 0, text: "c"}
+          columns:
+            - {name: a, expression: 1}
+          text: "with c as ..t a from c"
+        - scope-id: 2
+          sources:
+            - {type: table, name: z, text: "z"}
+          columns:
+            - {name: a, expression: 2}
+          text: "select a from z"

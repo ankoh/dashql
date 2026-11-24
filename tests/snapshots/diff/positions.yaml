@@ -304,3 +304,78 @@ diff-snapshots:
           source-statement: 3
           target-statement: 0
           target-span: "select d from x"
+
+  - name: update_prefers_same_section
+    source: |-
+      select a, b, c, d, e, f, g, h from t where x = 1 and y = 2;
+      select k from kept;
+    target: |-
+      select a, b, c, d, e, f, g, h from t where x = 9 and y = 9;
+      select k from kept;
+      select a, b, c, d, e, f, g, h from t where x = 1 and y = 3;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "9"
+            - text: "9"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 1
+          target-span: "select k from kept"
+        - code: INSERT
+          target-statement: 2
+          target-span: "select a, .. and y = 3"
+
+  - name: rename_table_everywhere
+    source: |-
+      create table t (a int);
+      insert into t values (1);
+      select a from t;
+    target: |-
+      create table orders (a int);
+      insert into orders values (1);
+      select a from orders;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "orders"
+        - code: UPDATE
+          source-statement: 1
+          target-statement: 1
+          target-changes:
+            - text: "orders"
+        - code: UPDATE
+          source-statement: 2
+          target-statement: 2
+          target-changes:
+            - text: "orders"
+
+  - name: swap_ddl_and_query
+    source: |-
+      create table t (a int);
+      insert into t values (1);
+      select a from t;
+    target: |-
+      insert into t values (1);
+      create table t (a int);
+      select a from t;
+    expected:
+      ops:
+        - code: MOVE
+          source-statement: 0
+          target-statement: 1
+          target-span: "create tab.. t (a int)"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 0
+          target-span: "insert int..values (1)"
+        - code: KEEP
+          source-statement: 2
+          target-statement: 2
+          target-span: "select a from t"

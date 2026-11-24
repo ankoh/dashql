@@ -40,3 +40,16 @@ formatter-snapshots:
     input: select * from "Region" where "r_Name" = 'EUROPE' group by
     dialects:
       hyper:
+
+  # Grouping sets with nested sets, CUBE, ROLLUP and the empty set; a set with one element loses its parentheses
+  - name: group_by_grouping_sets_nested
+    input: select region, segment, channel, sum(amount) from sales group by grouping sets ((region, segment, channel), (region, segment), (region), cube (channel, segment), rollup (region, channel), ())
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 80
+          - mode: pretty
+            width: 80
+        validation:
+          setup: create table sales(region text, segment text, channel text, amount int);

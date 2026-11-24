@@ -368,3 +368,69 @@ formatter-snapshots:
         validation:
           setup: |-
             create table t(a int, b double precision, c int);
+
+  - name: op_generic_binary
+    input: |-
+      select a << 2, a >> 1, a & b, a | b, a # b, a @> b, a <@ b, a -> 'k', a ->> 'k', a ~ 'x', a !~ 'x', a ~* 'x', a !~* 'x', a && b from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a << 2, a >> 1, a & b, a | b, a # b, a @> b, a <@ b, a -> 'k', a ->> 'k', a ~ 'x', a !~ 'x', a ~* 'x', a !~* 'x', a && b from t;
+          - mode: compact
+            expected: |-
+              select a << 2, a >> 1, a & b, a | b, a # b, a @> b, a <@ b, a -> 'k', a ->> 'k', a ~ 'x', a !~ 'x', a ~* 'x',
+                a !~* 'x', a && b
+              from t;
+          - mode: pretty
+            expected: |-
+              select a << 2,
+                a >> 1,
+                a & b,
+                a | b,
+                a # b,
+                a @> b,
+                a <@ b,
+                a -> 'k',
+                a ->> 'k',
+                a ~ 'x',
+                a !~ 'x',
+                a ~* 'x',
+                a !~* 'x',
+                a && b
+              from t;
+
+  - name: op_generic_precedence
+    input: |-
+      select a + b << c, (a << b) + c, a || b -> 'k', (a -> 'k') = b, a = b -> 'k', a -> 'k' -> 'j', a -> ('k' -> 'j') from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a + b << c, (a << b) + c, a || b -> 'k', a -> 'k' = b, a = b -> 'k', a -> 'k' -> 'j', a -> ('k' -> 'j') from t;
+          - mode: compact
+            expected: |-
+              select a + b << c, (a << b) + c, a || b -> 'k', a -> 'k' = b, a = b -> 'k', a -> 'k' -> 'j', a -> ('k' -> 'j') from t;
+          - mode: pretty
+            expected: |-
+              select a + b << c, (a << b) + c, a || b -> 'k', a -> 'k' = b, a = b -> 'k', a -> 'k' -> 'j', a -> ('k' -> 'j')
+              from t;
+
+  - name: op_minus_after_operator
+    input: |-
+      select a<-1, a*-b, a=-1, a>=-1, a<>-a, 1+-1, a::int*-1, a||-1, a@-b from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a < -1, a * -b, a = -1, a >= -1, a <> -a, 1 + -1, a::integer * -1, a ||- 1, a @- b from t;
+          - mode: compact
+            expected: |-
+              select a < -1, a * -b, a = -1, a >= -1, a <> -a, 1 + -1, a::integer * -1, a ||- 1, a @- b from t;
+          - mode: pretty
+            expected: |-
+              select a < -1, a * -b, a = -1, a >= -1, a <> -a, 1 + -1, a::integer * -1, a ||- 1, a @- b
+              from t;

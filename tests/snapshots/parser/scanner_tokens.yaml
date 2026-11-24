@@ -2449,3 +2449,128 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: scanner_unicode_identifier_escapes
+    input: |-
+      select 1 as U&"d!0061t" UESCAPE '!', 2 as U&"\+01F600", 3 as U&"\zz", 4 as U&""
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 14
+          description:
+            text: "select 1 a.. 4 as U&\"\""
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1 a.. 4 as U&\"\""
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1 as U&\"d!.. 4 as U&\"\""
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1 as U&\"d!..ESCAPE '!'"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "U&\"d!0061t..ESCAPE '!'"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "2 as U&\"\\+01F600\""
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "2"
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "U&\"\\+01F600\""
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "3 as U&\"\\zz\""
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "3"
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "U&\"\\zz\""
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "4 as U&\"\""
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "4"
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "U&\"\""
+      scanner-errors:
+        - message: invalid Unicode delimited identifier
+          text: "U&\"\\zz\""
+        - message: invalid Unicode delimited identifier
+          text: "U&\"\""
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: scanner_unterminated_tagged_dollar_string
+    input: |-
+      select 1;
+      select $fn$ select 2; $f$
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "select 1;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+        - type: SELECT
+          ast-begin: 4
+          ast-size: 4
+          description:
+            text: "select $fn..ect 2; $f$"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select $fn..ect 2; $f$"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "$fn$ select 2; $f$"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "$fn$ select 2; $f$"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_STRING
+                        text: "$fn$ select 2; $f$"
+      scanner-errors:
+        - message: unterminated dollar-quoted string
+          text: "$fn$ select 2; $f$"
+      parser-errors: []
+      line-breaks:
+        - text: [9,10]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

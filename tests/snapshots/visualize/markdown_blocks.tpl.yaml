@@ -119,3 +119,28 @@ visualize-snapshots:
            0) zero
         */
         SELECT 1 AS a;
+
+  # The CommonMark extensions are not enabled: tables, strikethrough and task lists stay text, and a footnote is a
+  # reference link to the URL of its definition
+  - name: vis_markdown_extensions_disabled
+    script:
+      input: |
+        /* @vis markdown
+           | name | value |
+           | ---- | ----- |
+           | {{a}} | 1 |
+
+           ~~gone~~ - [ ] todo [^1]
+
+           [^1]: note
+        */
+        SELECT 1 AS a;
+
+  # A field in the alt text of an image and inside inline HTML, which is dropped around it
+  - name: vis_markdown_field_in_alt_and_html
+    script:
+      input: |
+        /* @vis markdown
+           ![{{a}} logo](https://example.com/a.png) <span class="x">{{b}}</span>
+        */
+        SELECT 1 AS a, 2 AS b;

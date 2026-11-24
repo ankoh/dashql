@@ -462,3 +462,55 @@ visualize-snapshots:
                     value: '\{{a}}'
               - type: text
                 value: " in code"
+
+  - name: vis_markdown_token_collision
+    script:
+      input: |
+        /* @vis markdown
+           DASHQLMARKDOWNFIELD0TOKEN and {{a}} and DASHQLMARKDOWNFIELDX0TOKEN
+        */
+        SELECT 1 AS a;
+    markdown:
+      template: 'DASHQLMARKDOWNFIELD0TOKEN and {{a}} and DASHQLMARKDOWNFIELDX0TOKEN'
+      fields:
+        - a
+      document:
+        type: document
+        children:
+          - type: paragraph
+            children:
+              - type: text
+                value: "DASHQLMARKDOWNFIELD0TOKEN and "
+              - type: field
+                field: a
+              - type: text
+                value: " and DASHQLMARKDOWNFIELDX0TOKEN"
+
+  - name: vis_markdown_non_ascii_fields
+    script:
+      input: |
+        /* @vis markdown
+           {{Größe}} · {{日本}} · {{ü x}}
+        */
+        SELECT 1 AS "Größe";
+    markdown:
+      template: '{{Größe}} · {{日本}} · {{ü x}}'
+      fields:
+        - Größe
+        - 日本
+        - ü x
+      document:
+        type: document
+        children:
+          - type: paragraph
+            children:
+              - type: field
+                field: Größe
+              - type: text
+                value: " · "
+              - type: field
+                field: 日本
+              - type: text
+                value: " · "
+              - type: field
+                field: ü x

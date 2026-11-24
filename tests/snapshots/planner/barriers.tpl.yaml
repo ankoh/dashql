@@ -226,3 +226,88 @@ planner-snapshots:
           begin;
           insert into items values (1);
           select * from items;
+
+  # ALTER, schema and index statements are barriers without accesses
+  - name: SchemaStatements
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: s
+        input: |
+          select * from t;
+          alter table t add column b int;
+          create schema s2;
+          create index i on t (a);
+          select * from t;
+
+  # Row locking and a foreign key of the table are barriers, once per statement
+  - name: LockingAndForeignKey
+    catalog: |
+      create table t (a int primary key);
+    scripts:
+      - name: s
+        input: |
+          select * from t;
+          select * from t for update;
+          create table u (a int, foreign key (a) references t (a));
+          select * from t;
+
+  # A temporary view is a barrier like a temporary table
+  - name: TemporaryView
+    catalog: |
+      create table base (x int);
+    scripts:
+      - name: s
+        input: |
+          create temp view v as select x from base;
+          select 1;
+
+  # Two transactions of one script, ended by COMMIT and ROLLBACK: the statements between them are ordered by their
+  # accesses again
+  - name: TwoTransactions
+    catalog: |
+      create table t (a int);
+      create table u (a int);
+    scripts:
+      - name: s
+        input: |
+          begin;
+          insert into t values (1);
+          commit;
+          select * from u;
+          select * from t;
+          start transaction;
+          delete from u;
+          rollback;
+          select * from u;
+
+  # A transaction begins and ends in one script: the analyzer errors are warnings, the BEGIN holds the rest of its
+  # script, the COMMIT of the other script is a barrier alone
+  - name: TransactionAcrossScripts
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: open
+        input: |
+          begin;
+          insert into t values (1);
+      - name: close
+        input: |
+          insert into t values (2);
+          commit;
+
+  # A plan of targets chains the statements of a transaction like the others and keeps the barriers
+  - name: TransactionTarget
+    catalog: |
+      create table t (a int);
+      create table u (a int);
+    targets: [s]
+    scripts:
+      - name: s
+        input: |
+          select * from u;
+          begin;
+          insert into t values (1);
+          commit;
+          select * from t;
+          select * from u;

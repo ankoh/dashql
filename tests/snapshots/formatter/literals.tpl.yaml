@@ -1,0 +1,94 @@
+formatter-snapshots:
+  # Literals and identifiers are printed as written
+
+  # Doubled quotes, an empty string and a string with a line break
+  - name: coverage_literal_strings
+    input: |-
+      select 'it''s', '', 'line one
+      line two' as lines from t
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int);
+
+  # Strings on separate lines are one literal, the line break between them stays
+  - name: coverage_literal_string_continuation
+    input: |-
+      select 'first part'
+        'second part' as s from t
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int);
+
+  # A string with a line break in a list that breaks, the line width counts from its last line
+  - name: literal_multiline_string_in_broken_list
+    input: |-
+      select first_column_name, 'a string
+        that spans lines' as multi, second_column_name, third_column_name from some_table where first_column_name = 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 60
+          - mode: pretty
+            width: 60
+        validation:
+          setup: create table some_table(first_column_name int, second_column_name int, third_column_name int);
+
+  # Exponents, leading and trailing dots and long integers
+  - name: coverage_literal_numbers
+    input: select 1e10, 1.5e-3, .5, 5., 0.000, 9223372036854775807, 1E+3, -0.5e2
+    dialects:
+      hyper:
+        validation: {}
+
+  - name: coverage_literal_bit_and_hex_strings
+    input: select b'1010', x'ff', B'1', X'0F'
+    dialects:
+      hyper:
+
+  - name: coverage_literal_dollar_quoted
+    input: select $$a 'quoted' text$$, $tag$ with $$ inside $tag$, $q$$q$
+    dialects:
+      hyper:
+        validation: {}
+
+  # Booleans and null keep their spelling
+  - name: coverage_literal_bool_null_spelling
+    input: SELECT TRUE, False, NULL, Null, not FALSE
+    dialects:
+      hyper:
+        validation: {}
+
+  # Quoted identifiers keep their quotes: keywords, spaces, doubled quotes and non-ASCII letters
+  - name: coverage_identifier_quoted
+    input: select "select", "Mixed Case", "a""b", "ä", "group"."where" from "from" as "group" where "group"."order" = 1
+    dialects:
+      hyper:
+        validation:
+          setup: create table "from"("select" int, "Mixed Case" int, "a""b" int, "ä" int, "where" int, "order" int);
+
+  - name: coverage_identifier_backticks
+    input: select `a`, `Mixed Case`.`b` from `schema`.`table` as `Mixed Case`
+    dialects:
+      hyper:
+
+  # Unreserved keywords as column names
+  - name: coverage_identifier_unreserved_keywords
+    input: select year, month, name, value, type, key, data, text, date, time from events
+    dialects:
+      hyper:
+        validation:
+          setup: create table events(year int, month int, name text, value int, type text, key text, data text, text text, date date, time time);
+
+  # Aliases with keyword names, a table alias is written without as
+  - name: coverage_alias_keywords
+    input: select a as year, b as value, c as name, d as "select", e as from_x, f year2 from t as year, u as value, v as "where"
+    dialects:
+      hyper:
+        validation:
+          setup: |-
+            create table t(a int, b int, c int, d int, e int, f int);
+            create table u(g int);
+            create table v(h int);

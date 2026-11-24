@@ -1,0 +1,270 @@
+completion-snapshots:
+  # A dot in GROUP BY completes the columns of the table
+  - name: dot_group_by
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select count(*) from t group by t.
+    cursor:
+      search:
+        text: 'by t.'
+        index: 5
+    completions:
+      limit: 5
+
+  # The cursor in the middle of a column after a dot, the text before it ranks the columns
+  - name: dot_mid_column
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select t.name from t
+    cursor:
+      search:
+        text: 't.name'
+        index: 4
+    completions:
+      limit: 5
+
+  # A quoted alias before a dot keeps its quotes in the qualified names
+  - name: dot_quoted_alias
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select "X". from t "X"
+    cursor:
+      search:
+        text: '"X".'
+        index: 4
+    completions:
+      limit: 5
+
+  # An alias before a dot matches the folded alias of the table in another case
+  - name: dot_uppercase_alias
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select X. from t x
+    cursor:
+      search:
+        text: 'X.'
+        index: 2
+    completions:
+      limit: 5
+
+  # The alias of the target of an UPDATE completes its columns in a SET value
+  - name: dot_update_alias
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        update t x set a = x.
+    cursor:
+      search:
+        text: 'x.'
+        index: 2
+    completions:
+      limit: 5
+
+  # A table of the USING clause of a DELETE completes its columns after a dot
+  - name: dot_delete_using
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        delete from t using u where u.
+    cursor:
+      search:
+        text: 'u.'
+        index: 2
+    completions:
+      limit: 5
+
+  # A table of the own script completes its columns after a dot, not through the catalog
+  - name: dot_local_table
+    catalog: {}
+    editor:
+      input: |-
+        create table z (q int, r int);
+        select z. from z
+    cursor:
+      search:
+        text: 'z.'
+        index: 2
+    completions:
+      limit: 5
+
+  # The cursor after the star of a qualified star completes nothing
+  - name: dot_after_star
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select t.* from t
+    cursor:
+      search:
+        text: 't.*'
+        index: 3
+    completions:
+      limit: 5
+
+  # A qualifier without a FROM clause completes nothing after a dot
+  - name: dot_without_from
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select t.
+    cursor:
+      search:
+        text: 't.'
+        index: 2
+    completions:
+      limit: 5
+
+  # The text after the dot of a CTE filters its columns, an exact match first
+  - name: dot_cte_prefix
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with c as (select a as k, b as kb from t) select c.k from c
+    cursor:
+      search:
+        text: 'c.k'
+        index: 3
+    completions:
+      limit: 5
+
+  # A CTE with the name of a catalog table completes only its own columns after a dot
+  - name: dot_cte_shadows_catalog_table
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with t as (select 1 as x) select t. from t
+    cursor:
+      search:
+        text: 't.'
+        index: 2
+    completions:
+      limit: 5
+
+  # A schema after FROM completes its tables in the default database and in other databases
+  - name: dot_schema_in_two_databases
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+    editor:
+      input: |-
+        select * from sch.
+    cursor:
+      search:
+        text: 'sch.'
+        index: 4
+    completions:
+      limit: 5
+
+  # The text after the dot of a database filters its schemas
+  - name: dot_database_schema_prefix
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+    editor:
+      input: |-
+        select * from db.s
+    cursor:
+      search:
+        text: 'db.s'
+        index: 4
+    completions:
+      limit: 5
+
+  # The table after the schema of an INSERT target
+  - name: dot_insert_target_table
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+    editor:
+      input: |-
+        insert into sch.t values (1)
+    cursor:
+      search:
+        text: 'sch.t'
+        index: 5
+    completions:
+      limit: 5
+
+  # A schema as the target of a DELETE completes its tables after a dot
+  - name: dot_delete_target_schema
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+    editor:
+      input: |-
+        delete from sch.
+    cursor:
+      search:
+        text: 'sch.'
+        index: 4
+    completions:
+      limit: 5
+
+  # A schema after JOIN completes its tables after a dot
+  - name: dot_join_target_schema
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+    editor:
+      input: |-
+        select * from sch.t join sch. on true
+    cursor:
+      search:
+        text: 'join sch.'
+        index: 9
+    completions:
+      limit: 5
+
+  # A trailing dot in the arguments of a function completes the columns of the table
+  - name: dot_in_call_before_space
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select sum(t. ) from t
+    cursor:
+      search:
+        text: 't.'
+        index: 2
+    completions:
+      limit: 5

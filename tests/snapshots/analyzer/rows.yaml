@@ -188,3 +188,39 @@ analyzer-snapshots:
             - {name: id, expression: 0}
             - {name: name, expression: 1}
           text: "select s.i.. s, orders"
+
+  - name: row_field_access_hidden_by_join_alias
+    catalog:
+      script:
+        input: create table orders (id int, product row(name text, quantity int)); create table stock (name text, quantity int);
+        errors: []
+    script:
+      input: select (j.product).quantity, j.name from (orders o join stock s on true) as j where o.product.name is null and j.product.name is null
+      catalog-id: 2
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table o, use the alias j of its join', text: "o.product.name"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "orders o"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "stock s"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.1", source: "orders o", text: "j.product"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.0", source: "stock s", text: "j.name"}
+        - {id: 2, type: colref/unresolved, text: "o.product.name"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.1", source: "orders o", text: "j.product.name"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: o, text: "orders o"}
+            - {type: table, name: s, text: "stock s"}
+          joins:
+            - name: j
+              columns:
+                - {name: id, table-column: "256.65536.1:0.0"}
+                - {name: product, table-column: "256.65536.1:0.1"}
+                - {name: name, table-column: "256.65536.1:1.0"}
+                - {name: quantity, table-column: "256.65536.1:1.1"}
+              text: "(orders o ..true) as j"
+          columns:
+            - {name: '?', computed: true}
+            - {name: name, expression: 1}
+          text: "select (j...me is null"

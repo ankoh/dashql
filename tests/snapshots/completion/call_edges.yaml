@@ -1,0 +1,462 @@
+completion-snapshots:
+
+  - name: call_namespace_upper_case
+    catalog:
+      client_functions: tickets
+    editor:
+      input: |-
+        CALL TICKETS.
+      catalog-id: 1
+      errors: []
+      client-function-calls:
+        - {statement: 0, namespace: tickets}
+    cursor:
+      search:
+        text: 'TICKETS.'
+        index: 8
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      client-function-name: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: ticket_feed
+          name-tags: [FUNCTION_NAME]
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          detail: "(project string)"
+          parameters:
+            - name: "project"
+              detail: "string · required"
+            - name: "_next"
+              detail: "string"
+              description: "The page to read, a next value of the service, e.g. from `_meta`. `null` means the first page."
+            - name: "_pages"
+              detail: "integer"
+              description: "The number of pages to read, 1 without this option."
+          facts: ["Endpoint GET /feed","Paging url"]
+          objects: []
+        - value: ticket_list
+          name-tags: [FUNCTION_NAME]
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          detail: "(project string, page_size? integer, page_token? string)"
+          description: "Lists the tickets of a project, see `ticket_feed` for a feed."
+          parameters:
+            - name: "project"
+              detail: "string · required"
+              description: "The key of the project."
+            - name: "page_size"
+              detail: "integer"
+            - name: "page_token"
+              detail: "string"
+            - name: "_next"
+              detail: "string"
+              description: "The page to read, a next value of the service, e.g. from `_meta`. `null` means the first page."
+            - name: "_pages"
+              detail: "integer"
+              description: "The number of pages to read, 1 without this option."
+          result-description: "One row per item of `/items` in the response."
+          columns: ["id BIGINT"]
+          example: "CALL tickets.ticket_list (project => 'CORE');"
+          facts: ["Family Tickets","Endpoint GET /projects/{project}/tickets","Paging token"]
+          objects: []
+        - value: ticket_search
+          name-tags: [FUNCTION_NAME]
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          detail: "(query? string)"
+          parameters: ["query string"]
+          facts: ["Endpoint POST /tickets:search"]
+          objects: []
+      text: "."
+
+  - name: call_namespace_quoted
+    catalog:
+      client_functions: tickets
+    editor:
+      input: |-
+        call "tickets".
+      catalog-id: 1
+      errors: []
+      client-function-calls:
+        - {statement: 0, namespace: tickets}
+    cursor:
+      search:
+        text: '".'
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      client-function-name: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: ticket_feed
+          name-tags: [FUNCTION_NAME]
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          detail: "(project string)"
+          parameters:
+            - name: "project"
+              detail: "string · required"
+            - name: "_next"
+              detail: "string"
+              description: "The page to read, a next value of the service, e.g. from `_meta`. `null` means the first page."
+            - name: "_pages"
+              detail: "integer"
+              description: "The number of pages to read, 1 without this option."
+          facts: ["Endpoint GET /feed","Paging url"]
+          objects: []
+        - value: ticket_list
+          name-tags: [FUNCTION_NAME]
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          detail: "(project string, page_size? integer, page_token? string)"
+          description: "Lists the tickets of a project, see `ticket_feed` for a feed."
+          parameters:
+            - name: "project"
+              detail: "string · required"
+              description: "The key of the project."
+            - name: "page_size"
+              detail: "integer"
+            - name: "page_token"
+              detail: "string"
+            - name: "_next"
+              detail: "string"
+              description: "The page to read, a next value of the service, e.g. from `_meta`. `null` means the first page."
+            - name: "_pages"
+              detail: "integer"
+              description: "The number of pages to read, 1 without this option."
+          result-description: "One row per item of `/items` in the response."
+          columns: ["id BIGINT"]
+          example: "CALL tickets.ticket_list (project => 'CORE');"
+          facts: ["Family Tickets","Endpoint GET /projects/{project}/tickets","Paging token"]
+          objects: []
+        - value: ticket_search
+          name-tags: [FUNCTION_NAME]
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          detail: "(query? string)"
+          parameters: ["query string"]
+          facts: ["Endpoint POST /tickets:search"]
+          objects: []
+      text: "."
+
+  - name: call_namespace_passive
+    catalog:
+      client_functions: tickets
+    editor:
+      input: 'call '
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: 'call '
+        index: 5
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - value: tickets
+          name-tags: [SCHEMA_NAME]
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          detail: "Ticket Service"
+          objects: []
+      text: "call"
+
+  - name: call_unknown_function
+    catalog:
+      client_functions: tickets
+    editor:
+      input: |-
+        call tickets.nofn (
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: '('
+        index: 1
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries: []
+      text: "("
+
+  - name: call_function_name_mid
+    catalog:
+      client_functions: tickets
+    editor:
+      input: |-
+        call tickets.ticket_list (project => 'a')
+      catalog-id: 1
+      errors: []
+      client-function-calls:
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\"}}"}
+      expressions:
+        - {id: 0, type: literal/string, is-const: true, text: "'a'"}
+      constants:
+        - {expression: 0, text: "'a'"}
+    cursor:
+      search:
+        text: 'ticket_'
+        index: 7
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      client-function-name: 1
+      symbol: NAME
+      relative: MID_OF_SYMBOL
+      entries:
+        - value: ticket_feed
+          name-tags: [FUNCTION_NAME]
+          candidate-tags: [PREFIX_MATCH]
+          location: "ticket_list"
+          location-qualified: "ticket_list"
+          detail: "(project string)"
+          parameters:
+            - name: "project"
+              detail: "string · required"
+            - name: "_next"
+              detail: "string"
+              description: "The page to read, a next value of the service, e.g. from `_meta`. `null` means the first page."
+            - name: "_pages"
+              detail: "integer"
+              description: "The number of pages to read, 1 without this option."
+          facts: ["Endpoint GET /feed","Paging url"]
+          objects: []
+        - value: ticket_list
+          name-tags: [FUNCTION_NAME]
+          candidate-tags: [PREFIX_MATCH]
+          location: "ticket_list"
+          location-qualified: "ticket_list"
+          detail: "(project string, page_size? integer, page_token? string)"
+          description: "Lists the tickets of a project, see `ticket_feed` for a feed."
+          parameters:
+            - name: "project"
+              detail: "string · required"
+              description: "The key of the project."
+            - name: "page_size"
+              detail: "integer"
+            - name: "page_token"
+              detail: "string"
+            - name: "_next"
+              detail: "string"
+              description: "The page to read, a next value of the service, e.g. from `_meta`. `null` means the first page."
+            - name: "_pages"
+              detail: "integer"
+              description: "The number of pages to read, 1 without this option."
+          result-description: "One row per item of `/items` in the response."
+          columns: ["id BIGINT"]
+          example: "CALL tickets.ticket_list (project => 'CORE');"
+          facts: ["Family Tickets","Endpoint GET /projects/{project}/tickets","Paging token"]
+          objects: []
+        - value: ticket_search
+          name-tags: [FUNCTION_NAME]
+          candidate-tags: [PREFIX_MATCH]
+          location: "ticket_list"
+          location-qualified: "ticket_list"
+          detail: "(query? string)"
+          parameters: ["query string"]
+          facts: ["Endpoint POST /tickets:search"]
+          objects: []
+      text: "ticket_list"
+
+  - name: call_option_name_mid
+    catalog:
+      client_functions: tickets
+    editor:
+      input: |-
+        call tickets.ticket_list (page_size => 1)
+      catalog-id: 1
+      errors:
+        - {type: CLIENT_FUNCTION_MISSING_OPTION, message: tickets.ticket_list needs the option project, text: "call ticke..size => 1)"}
+      client-function-calls:
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"page_size\":1}}"}
+      expressions:
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 0, text: "1"}
+    cursor:
+      search:
+        text: 'page_'
+        index: 5
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      client-function-name: 1
+      symbol: NAME
+      relative: MID_OF_SYMBOL
+      entries:
+        - value: page_size
+          name-tags: [OPTION_NAME]
+          candidate-tags: [PREFIX_MATCH]
+          location: "page_size"
+          location-qualified: "page_size"
+          detail: "integer"
+          objects: []
+        - value: page_token
+          name-tags: [OPTION_NAME]
+          candidate-tags: [PREFIX_MATCH]
+          location: "page_size"
+          location-qualified: "page_size"
+          detail: "string"
+          objects: []
+      text: "page_size"
+
+  - name: call_option_value_string
+    catalog:
+      client_functions: tickets
+    editor:
+      input: |-
+        call tickets.ticket_list (project => 'ab')
+      catalog-id: 1
+      errors: []
+      client-function-calls:
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"ab\"}}"}
+      expressions:
+        - {id: 0, type: literal/string, is-const: true, text: "'ab'"}
+      constants:
+        - {expression: 0, text: "'ab'"}
+    cursor:
+      search:
+        text: '''a'
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      symbol: LITERAL_STRING
+      relative: MID_OF_SYMBOL
+      entries: []
+      text: "'ab'"
+
+  - name: call_option_value_function_args
+    catalog:
+      client_functions: tickets
+    editor:
+      input: |-
+        call tickets.ticket_list (project => lower(
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: 'lower('
+        index: 6
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries: []
+      text: "("
+
+  - name: call_after_closing_paren
+    catalog:
+      client_functions: tickets
+    editor:
+      input: 'call tickets.ticket_list (project => ''a'') '
+      catalog-id: 1
+      errors: []
+      client-function-calls:
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\"}}"}
+      expressions:
+        - {id: 0, type: literal/string, is-const: true, text: "'a'"}
+      constants:
+        - {expression: 0, text: "'a'"}
+    cursor:
+      search:
+        text: ') '
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_CALL
+      relative: AFTER_SYMBOL
+      entries: []
+      text: ")"
+
+  - name: call_second_statement
+    catalog:
+      client_functions: tickets
+    editor:
+      input: |-
+        select 1; call tickets.
+      catalog-id: 1
+      errors: []
+      client-function-calls:
+        - {statement: 1, namespace: tickets}
+      expressions:
+        - {id: 0, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
+      constants:
+        - {expression: 0, text: "1"}
+    cursor:
+      search:
+        text: 'tickets.'
+        index: 8
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      client-function-name: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: ticket_feed
+          name-tags: [FUNCTION_NAME]
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          detail: "(project string)"
+          parameters:
+            - name: "project"
+              detail: "string · required"
+            - name: "_next"
+              detail: "string"
+              description: "The page to read, a next value of the service, e.g. from `_meta`. `null` means the first page."
+            - name: "_pages"
+              detail: "integer"
+              description: "The number of pages to read, 1 without this option."
+          facts: ["Endpoint GET /feed","Paging url"]
+          objects: []
+        - value: ticket_list
+          name-tags: [FUNCTION_NAME]
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          detail: "(project string, page_size? integer, page_token? string)"
+          description: "Lists the tickets of a project, see `ticket_feed` for a feed."
+          parameters:
+            - name: "project"
+              detail: "string · required"
+              description: "The key of the project."
+            - name: "page_size"
+              detail: "integer"
+            - name: "page_token"
+              detail: "string"
+            - name: "_next"
+              detail: "string"
+              description: "The page to read, a next value of the service, e.g. from `_meta`. `null` means the first page."
+            - name: "_pages"
+              detail: "integer"
+              description: "The number of pages to read, 1 without this option."
+          result-description: "One row per item of `/items` in the response."
+          columns: ["id BIGINT"]
+          example: "CALL tickets.ticket_list (project => 'CORE');"
+          facts: ["Family Tickets","Endpoint GET /projects/{project}/tickets","Paging token"]
+          objects: []
+        - value: ticket_search
+          name-tags: [FUNCTION_NAME]
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          detail: "(query? string)"
+          parameters: ["query string"]
+          facts: ["Endpoint POST /tickets:search"]
+          objects: []
+      text: "."

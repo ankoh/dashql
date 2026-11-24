@@ -121,3 +121,29 @@ planner-snapshots:
       - name: bar
         input: |
           select * from :foo, :two;
+
+  # A script is no target of UPDATE or MERGE either
+  - name: WriteTargetOfUpdateAndMerge
+    catalog: |
+      create table t (a int, b int);
+    scripts:
+      - name: foo
+        input: |
+          select 1 as a, 2 as b;
+      - name: bar
+        input: |
+          update :foo set b = 1;
+          merge into :foo f using t on f.a = t.a when matched then update set b = t.b;
+
+  # The FROM of an UPDATE and the source of a MERGE are no query
+  - name: ReferenceInUpdateFromAndMergeUsing
+    catalog: |
+      create table t (a int, b int);
+    scripts:
+      - name: foo
+        input: |
+          select 1 as a, 2 as b;
+      - name: bar
+        input: |
+          update t set b = f.b from :foo f where f.a = t.a;
+          merge into t using :foo f on f.a = t.a when matched then update set b = f.b;

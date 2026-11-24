@@ -249,3 +249,199 @@ planner-snapshots:
             - text: ":report"
               target: report
               kind: inline
+
+  - name: TolerantScriptThatDoesNotParseAndCycle
+    scope: tolerant
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: broken
+        input: |
+          select from where 1;
+      - name: reads_broken
+        input: |
+          select * from :broken;
+      - name: a
+        input: |
+          select * from :b;
+      - name: b
+        input: |
+          select * from :a;
+      - name: report
+        input: |
+          select count(*) from t;
+    expected:
+      valid: false
+      scripts:
+        - name: schema
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "f40891db6ced98d348de79b4545975072cee329e5073aa19204d6ad0a4e1b93e"
+        - name: broken
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+        - name: reads_broken
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "c97f42afa3aca74488cf42c8328d302d341c84d12f25bdbef414651c7deef6aa"
+          references: [broken]
+        - name: a
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "aadc55335fee73057eb54b297b73ca890d086bd97297c680149b143a96bc7f9f"
+          references: [b]
+        - name: b
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "0e27f616b373a9839fca73e147c203cef5d4a3aeba9fa7c67a39671882c366c5"
+          references: [a]
+        - name: report
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "66931d9517e7d1aee25224dc5d1463e803bcf6f7a953657c0a0cfaec1f1bbf2f"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: schema
+          statement-id: 0
+          type: CREATE_TABLE
+          sql: "create table t (a int)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: DDL
+        - id: 1
+          script: broken
+          statement-id: 0
+          type: SELECT
+          sql: "select from where 1;"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses: []
+        - id: 2
+          script: reads_broken
+          statement-id: 0
+          type: SELECT
+          sql: "select * from :broken"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses: []
+        - id: 3
+          script: a
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with b as (
+            select * from :a
+            )
+            select * from b
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [4]
+          accesses: []
+        - id: 4
+          script: b
+          statement-id: 0
+          type: SELECT
+          sql: "select * from :a"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses: []
+        - id: 5
+          script: report
+          statement-id: 0
+          type: SELECT
+          sql: "select count(*) from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: BARRIER
+        - from: 0
+          to: 5
+          reason: DDL
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 2
+          reason: BARRIER
+        - from: 1
+          to: 3
+          reason: BARRIER
+        - from: 1
+          to: 4
+          reason: BARRIER
+        - from: 1
+          to: 5
+          reason: BARRIER
+      references:
+        - node: 3
+          script: a
+          text: ":b"
+          target: b
+          cte: b
+      diagnostics:
+        - script: reads_broken
+          text: ":broken"
+          error: true
+          message: broken.sql is no single SELECT that reads_broken.sql could read
+        - script: b
+          text: ":a"
+          error: true
+          message: 'cyclic script reference: a.sql -> b.sql -> a.sql'
+        - node: 1
+          script: broken
+          error: false
+          message: 'the script does not parse, it runs as written'
+      checked-references:
+        - script: reads_broken
+          references:
+            - text: ":broken"
+              target: broken
+              kind: invalid
+              errors:
+                - broken.sql is no single SELECT that reads_broken.sql could read
+        - script: a
+          references:
+            - text: ":b"
+              target: b
+              kind: inline
+        - script: b
+          references:
+            - text: ":a"
+              target: a
+              kind: invalid
+              errors:
+                - 'cyclic script reference: a.sql -> b.sql -> a.sql'

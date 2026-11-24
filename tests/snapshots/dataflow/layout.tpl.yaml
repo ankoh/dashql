@@ -527,3 +527,203 @@ dataflow-snapshots:
         input: |
           /* @param :max = 5 */
           select x from :derived where x < :max::int;
+
+  # A wide fan-in: six producers stack in one column, the consumer is level with the middle of them
+  - name: LayoutWideFanIn
+    scripts:
+      - name: t1
+        input: |
+          create table t1 (x int);
+      - name: t2
+        input: |
+          create table t2 (x int);
+      - name: t3
+        input: |
+          create table t3 (x int);
+      - name: t4
+        input: |
+          create table t4 (x int);
+      - name: t5
+        input: |
+          create table t5 (x int);
+      - name: t6
+        input: |
+          create table t6 (x int);
+      - name: joined
+        input: |
+          select * from t1, t2, t3, t4, t5, t6;
+
+  # Without any edge every box goes into rows of four from the origin, a row is as high as its highest box
+  - name: LayoutOnlyIsolatedBoxes
+    scripts:
+      - name: a
+        input: |
+          select 1;
+      - name: b
+        input: |
+          select 1;
+          select 2;
+          select 3;
+      - name: c
+        input: |
+          /** @vis table */
+          select 1 as x;
+      - name: d
+        input: |
+          select 1;
+      - name: e
+        input: |
+          /* nothing yet */
+      - name: f
+        input: |
+          select 1;
+          select 2;
+      - name: g
+        input: |
+          select 1;
+      - name: h
+        input: |
+          select 1;
+      - name: i
+        input: |
+          select 1;
+
+  # Two edges between the same boxes that cross: the rows of the producer and of the consumer are in opposite order
+  - name: LayoutTwoEdgesBetweenTwoBoxes
+    scripts:
+      - name: schema
+        input: |
+          create table a (x int);
+          create table b (x int);
+      - name: report
+        input: |
+          select x from b;
+          select x from a;
+
+  # A box without a position between a producer and a consumer with positions goes right of its producer
+  - name: LayoutBetweenFixedBoxes
+    scripts:
+      - name: producer
+        input: |
+          /** @flow x=0 y=0 */
+          create table t (x int);
+      - name: middle
+        input: |
+          create table u as select x from t;
+      - name: consumer
+        input: |
+          /** @flow x=1000 y=300 */
+          select x from u;
+
+  # Negative positions stay, a box without edges keeps its negative position too
+  - name: LayoutNegativePositions
+    scripts:
+      - name: producer
+        input: |
+          /** @flow x=-600 y=-200 */
+          create table t (x int);
+      - name: consumer
+        input: |
+          /** @flow x=-120 y=-200 */
+          select x from t;
+      - name: alone
+        input: |
+          /** @flow x=-600 y=400 */
+          select 1;
+
+  # An input has no position, it goes left of the box with a position that it feeds
+  - name: LayoutInputOfFixedBox
+    scripts:
+      - name: report
+        input: |
+          /* @param :min = 1
+             @flow x=400 y=100 */
+          select x from generate_series(1, 10) s(x) where x > :min::int;
+      - name: chart
+        input: |
+          /** @flow x=800 y=100 */
+          select x from :report;
+
+  # Only a visualized terminal statement gets a chart, a visualized statement before it is a row
+  - name: LayoutChartOfNonTerminalStatement
+    scripts:
+      - name: base
+        input: |
+          create table t (x int);
+          /** @vis table */
+          select x from t;
+          insert into t values (1);
+      - name: consumer
+        input: |
+          select x from t;
+
+  # A collapsed box has no chart, it is the header of a box without one
+  - name: LayoutCollapsedChart
+    collapsed: [chart]
+    scripts:
+      - name: base
+        input: |
+          create table t (x int);
+      - name: chart
+        input: |
+          /** @vis table */
+          select x from t;
+      - name: after
+        input: |
+          select * from :chart;
+
+  # A chart in the middle of a chain: its consumer is level with its row, not with its chart
+  - name: LayoutChartInChain
+    scripts:
+      - name: base
+        input: |
+          create table t (x int);
+          insert into t values (1);
+      - name: chart
+        input: |
+          /** @vis table */
+          select x from t;
+      - name: after
+        input: |
+          select * from :chart;
+
+  # A wide box overlaps the x ranges of two columns and merges them, the edges keep the boxes in two layers
+  - name: LayoutWideBoxSpansColumns
+    scripts:
+      - name: a
+        input: |
+          /** @flow x=0 y=0 */
+          create table t (x int);
+      - name: b
+        input: |
+          /** @flow x=480 y=0 */
+          select x from t;
+      - name: wide
+        input: |
+          /** @flow x=0 y=300 width=900 */
+          select count(*) from t;
+
+  # A binary tree of references: every box is level with the middle of its consumers
+  - name: LayoutBinaryTree
+    scripts:
+      - name: root
+        input: |
+          select 1 as x;
+      - name: l
+        input: |
+          select x from :root where x > 0;
+      - name: r
+        input: |
+          select x from :root where x <= 0;
+      - name: ll
+        input: |
+          select x from :l where x > 10;
+      - name: lr
+        input: |
+          select x from :l where x <= 10;
+      - name: rl
+        input: |
+          select x from :r where x > -10;
+      - name: rr
+        input: |
+          select x from :r where x <= -10;

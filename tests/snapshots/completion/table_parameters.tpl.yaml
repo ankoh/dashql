@@ -1,0 +1,32 @@
+completion-snapshots:
+  # A table parameter after FROM completes the scripts with a result, there are none without a session
+  - name: param_from_colon
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from :
+    cursor:
+      search:
+        text: ':'
+        index: 1
+    completions:
+      limit: 5
+
+  # The name of a table parameter after JOIN completes the scripts with a result, there are none without a session
+  - name: param_join_name
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t join :fo
+    cursor:
+      search:
+        text: ':fo'
+        index: 3
+    completions:
+      limit: 5

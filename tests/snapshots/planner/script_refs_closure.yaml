@@ -959,3 +959,142 @@ planner-snapshots:
             - text: ":reads"
               target: reads
               kind: inline
+
+  - name: TwoTargets
+    catalog: |
+      create table t (a int);
+    targets: [load,report]
+    scripts:
+      - name: load
+        input: |
+          insert into t values (1);
+          insert into t values (2);
+      - name: other
+        input: |
+          delete from t;
+      - name: report
+        input: |
+          select count(*) from t;
+          select max(a) from t;
+    expected:
+      valid: true
+      scripts:
+        - name: load
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: true
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "28559b077cf92432f644c43e994abc47ea810d28c90cde9864bfe934eda34bec"
+        - name: other
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          planned: false
+          target: false
+        - name: report
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          target: true
+          cacheable: true
+          terminal-statement-id: 1
+          signature: "66903c360799942c5917cc4d25cb098806cd61602f12fe9ba2624f1e10884828"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: load
+          statement-id: 0
+          type: INSERT
+          sql: "insert into t values (1)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 1
+          script: load
+          statement-id: 1
+          type: INSERT
+          sql: "insert into t values (2)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 2
+          script: report
+          statement-id: 0
+          type: SELECT
+          sql: "select count(*) from t"
+          produces-output: true
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 3
+          script: report
+          statement-id: 1
+          type: SELECT
+          sql: "select max(a) from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: WRITE_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 0
+          to: 1
+          reason: SEQUENCE
+        - from: 1
+          to: 2
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 3
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 2
+          to: 3
+          reason: SEQUENCE
+      diagnostics: []
+
+  - name: TargetEmpty
+    targets: [empty]
+    scripts:
+      - name: empty
+        input: |
+          /* nothing */
+      - name: other
+        input: select 1;
+    expected:
+      valid: true
+      scripts:
+        - name: empty
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          target: true
+          cacheable: false
+          signature: "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119"
+        - name: other
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          planned: false
+          target: false
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics: []

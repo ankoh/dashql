@@ -35,3 +35,27 @@ planner-snapshots:
       - name: chart
         input: |
           select * from :report;
+
+  # A tolerant plan passes a script that does not parse through as one barrier, a reference to it and the back
+  # reference of a cycle are not spliced
+  - name: TolerantScriptThatDoesNotParseAndCycle
+    scope: tolerant
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: broken
+        input: |
+          select from where 1;
+      - name: reads_broken
+        input: |
+          select * from :broken;
+      - name: a
+        input: |
+          select * from :b;
+      - name: b
+        input: |
+          select * from :a;
+      - name: report
+        input: |
+          select count(*) from t;

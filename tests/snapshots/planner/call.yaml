@@ -763,3 +763,62 @@ planner-snapshots:
               kind: invalid
               errors:
                 - 'explained.sql explains a call of tickets.ticket_list and sends nothing, consumer.sql cannot read it'
+
+  - name: CallReferencedUnknownFunction
+    client_functions: tickets
+    connections:
+      - name: d360
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: unknown
+        connection: d360
+        input: |
+          call tickets.backend_procedure (a => 1);
+      - name: consumer
+        connection: local
+        input: |
+          select * from :unknown;
+    expected:
+      valid: false
+      connections:
+        - name: d360
+          kind: REMOTE
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: unknown
+          connection: d360
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "8b292d47eb726e0634e95f829a698a623aad20b72f0c56f70222cb9de4c12002"
+        - name: consumer
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "acbdf3fa7c8604ade2ad03891433597b057c8deb774442237113fd24d86d1d89"
+          references: [unknown]
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: consumer
+          text: ":unknown"
+          error: true
+          message: 'unknown.sql calls an unknown function of tickets, which writes, consumer.sql can only read a call that reads'
+      checked-references:
+        - script: consumer
+          references:
+            - text: ":unknown"
+              target: unknown
+              kind: invalid
+              errors:
+                - 'unknown.sql calls an unknown function of tickets, which writes, consumer.sql can only read a call that reads'

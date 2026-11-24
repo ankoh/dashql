@@ -411,3 +411,60 @@ visualize-snapshots:
           }
         }
       }
+
+  - name: vis_sql_text_escaped
+    script:
+      input: |
+        /* @vis vegalite {"mark": "text"} */
+        SELECT 'say "hi"' AS "Quoted Name", 'C:\temp	x' AS path, 'Grüße 日本' AS t;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 'say \"hi\"' AS \"Quoted Name\", 'C:\\temp\tx' AS path, 'Grüße 日本' AS t"
+        },
+        "mark": "text"
+      }
+
+  - name: vis_sql_text_trailing_line_comment
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar"} */
+        SELECT 1 AS a -- the measure
+        ;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        },
+        "mark": "bar"
+      }
+
+  - name: vis_duplicate_json_keys
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar", "width": 100, "mark": "line"} */
+        SELECT 1 AS a;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        },
+        "mark": "line",
+        "width": 100
+      }
+
+  - name: vis_data_only
+    script:
+      input: |
+        /* @vis vegalite {"data": {"url": "https://example.com/data.csv"}} */
+        SELECT 1 AS a;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        }
+      }

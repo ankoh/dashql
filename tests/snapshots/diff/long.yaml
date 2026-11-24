@@ -382,3 +382,248 @@ diff-snapshots:
           source-statement: 19
           target-statement: 18
           target-span: "select c19..ere k = 19"
+
+  - name: long_script_block_deleted
+    source: |-
+      select c0, d0, e0, f0 from t0 where k = 0;
+      select c1, d1, e1, f1 from t1 where k = 1;
+      select c2, d2, e2, f2 from t2 where k = 2;
+      select c3, d3, e3, f3 from t3 where k = 3;
+      select c4, d4, e4, f4 from t4 where k = 4;
+      select c5, d5, e5, f5 from t5 where k = 5;
+      select c6, d6, e6, f6 from t6 where k = 6;
+      select c7, d7, e7, f7 from t7 where k = 7;
+      select c8, d8, e8, f8 from t8 where k = 8;
+      select c9, d9, e9, f9 from t9 where k = 9;
+      select c10, d10, e10, f10 from t10 where k = 10;
+      select c11, d11, e11, f11 from t11 where k = 11;
+      select c12, d12, e12, f12 from t12 where k = 12;
+      select c13, d13, e13, f13 from t13 where k = 13;
+      select c14, d14, e14, f14 from t14 where k = 14;
+      select c15, d15, e15, f15 from t15 where k = 15;
+      select c16, d16, e16, f16 from t16 where k = 16;
+      select c17, d17, e17, f17 from t17 where k = 17;
+      select c18, d18, e18, f18 from t18 where k = 18;
+      select c19, d19, e19, f19 from t19 where k = 19;
+    target: |-
+      select c0, d0, e0, f0 from t0 where k = 0;
+      select c1, d1, e1, f1 from t1 where k = 1;
+      select c2, d2, e2, f2 from t2 where k = 2;
+      select c3, d3, e3, f3 from t3 where k = 3;
+      select c4, d4, e4, f4 from t4 where k = 4;
+      select c5, d5, e5, f5 from t5 where k = 5;
+      select c6, d6, e6, f6 from t6 where k = 6;
+      select c7, d7, e7, f7 from t7 where k = 7;
+      select c13, d13, e13, f13 from t13 where k = 13;
+      select c14, d14, e14, f14 from t14 where k = 14;
+      select c15, d15, e15, f15 from t15 where k = 15;
+      select c16, d16, e16, f16 from t16 where k = 16;
+      select c17, d17, e17, f17 from t17 where k = 17;
+      select c18, d18, e18, f18 from t18 where k = 18;
+      select c19, d19, e19, f19 from t19 where k = 19;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select c0,..here k = 0"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 1
+          target-span: "select c1,..here k = 1"
+        - code: KEEP
+          source-statement: 2
+          target-statement: 2
+          target-span: "select c2,..here k = 2"
+        - code: KEEP
+          source-statement: 3
+          target-statement: 3
+          target-span: "select c3,..here k = 3"
+        - code: KEEP
+          source-statement: 4
+          target-statement: 4
+          target-span: "select c4,..here k = 4"
+        - code: KEEP
+          source-statement: 5
+          target-statement: 5
+          target-span: "select c5,..here k = 5"
+        - code: KEEP
+          source-statement: 6
+          target-statement: 6
+          target-span: "select c6,..here k = 6"
+        - code: KEEP
+          source-statement: 7
+          target-statement: 7
+          target-span: "select c7,..here k = 7"
+        - code: DELETE
+          source-statement: 8
+          source-span: "select c8,..here k = 8"
+        - code: DELETE
+          source-statement: 9
+          source-span: "select c9,..here k = 9"
+        - code: DELETE
+          source-statement: 10
+          source-span: "select c10..ere k = 10"
+        - code: DELETE
+          source-statement: 11
+          source-span: "select c11..ere k = 11"
+        - code: DELETE
+          source-statement: 12
+          source-span: "select c12..ere k = 12"
+        - code: KEEP
+          source-statement: 13
+          target-statement: 8
+          target-span: "select c13..ere k = 13"
+        - code: KEEP
+          source-statement: 14
+          target-statement: 9
+          target-span: "select c14..ere k = 14"
+        - code: KEEP
+          source-statement: 15
+          target-statement: 10
+          target-span: "select c15..ere k = 15"
+        - code: KEEP
+          source-statement: 16
+          target-statement: 11
+          target-span: "select c16..ere k = 16"
+        - code: KEEP
+          source-statement: 17
+          target-statement: 12
+          target-span: "select c17..ere k = 17"
+        - code: KEEP
+          source-statement: 18
+          target-statement: 13
+          target-span: "select c18..ere k = 18"
+        - code: KEEP
+          source-statement: 19
+          target-statement: 14
+          target-span: "select c19..ere k = 19"
+
+  - name: long_script_mixed_changes
+    source: |-
+      select c0, d0, e0, f0 from t0 where k = 0;
+      select c1, d1, e1, f1 from t1 where k = 1;
+      select c2, d2, e2, f2 from t2 where k = 2;
+      select c3, d3, e3, f3 from t3 where k = 3;
+      select c4, d4, e4, f4 from t4 where k = 4;
+      select c5, d5, e5, f5 from t5 where k = 5;
+      select c6, d6, e6, f6 from t6 where k = 6;
+      select c7, d7, e7, f7 from t7 where k = 7;
+      select c8, d8, e8, f8 from t8 where k = 8;
+      select c9, d9, e9, f9 from t9 where k = 9;
+      select c10, d10, e10, f10 from t10 where k = 10;
+      select c11, d11, e11, f11 from t11 where k = 11;
+      select c12, d12, e12, f12 from t12 where k = 12;
+      select c13, d13, e13, f13 from t13 where k = 13;
+      select c14, d14, e14, f14 from t14 where k = 14;
+      select c15, d15, e15, f15 from t15 where k = 15;
+      select c16, d16, e16, f16 from t16 where k = 16;
+      select c17, d17, e17, f17 from t17 where k = 17;
+      select c18, d18, e18, f18 from t18 where k = 18;
+      select c19, d19, e19, f19 from t19 where k = 19;
+    target: |-
+      select c0, d0, e0, f0 from t0 where k = 0;
+      select c1, d1, e1, f1 from t1 where k = 1;
+      select c2, d2, e2, f2 from t2 where k = 2;
+      select c4, d4, e4, f4 from t4 where k = 4;
+      select c5, d5, e5, f5 from t5 where k = 5;
+      select c6, d6, e6, f6 from t6 where k = 66;
+      select c7, d7, e7, f7 from t7 where k = 7;
+      select c8, d8, e8, f8 from t8 where k = 8;
+      select c9, d9, e9, f9 from t9 where k = 9;
+      select c10, d10, e10, f10 from t10 where k = 10;
+      select c11, d11, e11, f11 from t11 where k = 11;
+      select 'inserted';
+      select c12, d12, e12, f12 from t12 where k = 12;
+      select c13, d13, e13, f13 from t13 where k = 13;
+      select c14, d14, e14, f14 from t14 where k = 14;
+      select c16, d16, e16, f16 from t16 where k = 16;
+      select c17, d17, e17, f17 from t17 where k = 17;
+      select c18, d18, e18, f18 from t18 where k = 18;
+      select c19, d19, e19, f19 from t19 where k = 19;
+      select c15, d15, e15, f15 from t15 where k = 15;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select c0,..here k = 0"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 1
+          target-span: "select c1,..here k = 1"
+        - code: KEEP
+          source-statement: 2
+          target-statement: 2
+          target-span: "select c2,..here k = 2"
+        - code: DELETE
+          source-statement: 3
+          source-span: "select c3,..here k = 3"
+        - code: KEEP
+          source-statement: 4
+          target-statement: 3
+          target-span: "select c4,..here k = 4"
+        - code: KEEP
+          source-statement: 5
+          target-statement: 4
+          target-span: "select c5,..here k = 5"
+        - code: UPDATE
+          source-statement: 6
+          target-statement: 5
+          target-changes:
+            - text: "66"
+        - code: KEEP
+          source-statement: 7
+          target-statement: 6
+          target-span: "select c7,..here k = 7"
+        - code: KEEP
+          source-statement: 8
+          target-statement: 7
+          target-span: "select c8,..here k = 8"
+        - code: KEEP
+          source-statement: 9
+          target-statement: 8
+          target-span: "select c9,..here k = 9"
+        - code: KEEP
+          source-statement: 10
+          target-statement: 9
+          target-span: "select c10..ere k = 10"
+        - code: KEEP
+          source-statement: 11
+          target-statement: 10
+          target-span: "select c11..ere k = 11"
+        - code: INSERT
+          target-statement: 11
+          target-span: "select 'inserted'"
+        - code: KEEP
+          source-statement: 12
+          target-statement: 12
+          target-span: "select c12..ere k = 12"
+        - code: KEEP
+          source-statement: 13
+          target-statement: 13
+          target-span: "select c13..ere k = 13"
+        - code: KEEP
+          source-statement: 14
+          target-statement: 14
+          target-span: "select c14..ere k = 14"
+        - code: MOVE
+          source-statement: 15
+          target-statement: 19
+          target-span: "select c15..ere k = 15"
+        - code: KEEP
+          source-statement: 16
+          target-statement: 15
+          target-span: "select c16..ere k = 16"
+        - code: KEEP
+          source-statement: 17
+          target-statement: 16
+          target-span: "select c17..ere k = 17"
+        - code: KEEP
+          source-statement: 18
+          target-statement: 17
+          target-span: "select c18..ere k = 18"
+        - code: KEEP
+          source-statement: 19
+          target-statement: 18
+          target-span: "select c19..ere k = 19"

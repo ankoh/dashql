@@ -908,3 +908,43 @@ parser-snapshots:
              sum(a) over (order by b groups 1 preceding exclude ties),
              sum(a) over (order by b rows unbounded preceding exclude no others)
       from t
+  # FULL without OUTER, RIGHT OUTER, and NATURAL with RIGHT, FULL and OUTER
+  - name: select_join_type_combinations
+    input: |
+      select * from a full join b on true right outer join c on true natural right join d natural full outer join e natural left outer join f natural right outer join g
+  # Scan options of table references, a descendant star, and options after a table function and a lateral subquery
+  - name: select_table_ref_options
+    input: |
+      select * from t with options (foo := 'bar'), u *, unnest(array[1]) with options (x := 1), table(unnest(array[2])) with options (y := 2) as v, lateral (select 1) with options (z := 3) as w
+  # TABLESAMPLE with bounds of the sample size in rows, unbounded on either side
+  - name: select_tablesample_row_bounds
+    input: |
+      select * from t tablesample system(20 percent between 1 rows and 2 rows), u tablesample system(10 percent between unbounded rows and 5 rows), v tablesample system(5 percent between 3 rows and unbounded rows)
+  # The UNIQUE predicate over subqueries
+  - name: select_unique_predicate
+    input: |
+      select unique (select x from t), not unique (select y from u)
+  # Lambda arguments with one, two and no parameters
+  - name: select_lambda_arguments
+    input: |
+      select array_filter(a, lambda x: x > 1), array_transform(a, b, lambda x, y: x + y), f(lambda : 1) from t
+  # Semantic views with dimensions, measures, facts and a filter, named by an identifier and by a string
+  - name: select_semantic_view
+    input: |
+      select * from semantic_view(m dimensions region, year as y measures sum(revenue) as total facts f where year > 2000), semantic_view('model' measures count(*))
+  # Secure CTEs with and without column names
+  - name: select_cte_secure
+    input: |
+      with a as secure (select 1), b(x) as secure (select 2) select * from a, b
+  # Window frame bounds with OR NULL
+  - name: select_window_bound_or_null
+    input: |
+      select sum(y) over (order by x rows between 1 preceding or null and 2 following or null) from t
+  # GROUP BY CUBE next to ROLLUP
+  - name: select_group_by_cube
+    input: |
+      select a, b, count(*) from t group by cube (a, b), rollup (a)
+  # NOT NULL in the fields of row types, in the elements of array types and in the columns of a function alias
+  - name: select_not_null_type_elements
+    input: |
+      select cast(row(1) as row(x integer not null)), cast(array[1] as array(integer not null)) from f() as (y integer not null)

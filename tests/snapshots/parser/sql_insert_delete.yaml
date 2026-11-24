@@ -1172,3 +1172,440 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: update_from_where
+    input: |-
+      update t as x set a = u.a, b = default from u, v where x.id = u.id and u.id = v.id returning x.a
+    expected:
+      statements:
+        - type: UPDATE
+          ast-begin: 0
+          ast-size: 54
+          description:
+            text: "update t a..urning x.a"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_UPDATE
+            text: "update t a..urning x.a"
+            children:
+              - key: SQL_UPDATE_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t as x"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+                  - key: SQL_TABLEREF_ALIAS
+                    type: NAME
+                    text: "x"
+              - key: SQL_UPDATE_ASSIGNMENTS
+                type: ARRAY
+                text: "a = u.a, b.. = default"
+                children:
+                  - type: OBJECT_SQL_ASSIGNMENT
+                    text: "a = u.a"
+                    children:
+                      - key: SQL_ASSIGNMENT_COLUMNS
+                        type: NAME
+                        text: "a"
+                      - key: SQL_ASSIGNMENT_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "u.a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "u.a"
+                            children:
+                              - type: NAME
+                                text: "u"
+                              - type: NAME
+                                text: "a"
+                  - type: OBJECT_SQL_ASSIGNMENT
+                    text: "b = default"
+                    children:
+                      - key: SQL_ASSIGNMENT_COLUMNS
+                        type: NAME
+                        text: "b"
+                      - key: SQL_ASSIGNMENT_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "default"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: DEFAULT
+              - key: SQL_UPDATE_FROM
+                type: ARRAY
+                text: "u, v"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "u"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "u"
+                        children:
+                          - type: NAME
+                            text: "u"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "v"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "v"
+                        children:
+                          - type: NAME
+                            text: "v"
+              - key: SQL_UPDATE_WHERE
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "x.id = u.i...id = v.id"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: AND
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "x.id = u.i...id = v.id"
+                    children:
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "x.id = u.id"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "x.id = u.id"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "x.id"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "x.id"
+                                    children:
+                                      - type: NAME
+                                        text: "x"
+                                      - type: NAME
+                                        text: "id"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "u.id"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "u.id"
+                                    children:
+                                      - type: NAME
+                                        text: "u"
+                                      - type: NAME
+                                        text: "id"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "u.id = v.id"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "u.id = v.id"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "u.id"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "u.id"
+                                    children:
+                                      - type: NAME
+                                        text: "u"
+                                      - type: NAME
+                                        text: "id"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "v.id"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "v.id"
+                                    children:
+                                      - type: NAME
+                                        text: "v"
+                                      - type: NAME
+                                        text: "id"
+              - key: SQL_UPDATE_RETURNING
+                type: ARRAY
+                text: "x.a"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "x.a"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "x.a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "x.a"
+                            children:
+                              - type: NAME
+                                text: "x"
+                              - type: NAME
+                                text: "a"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: merge_conditions_do_nothing_returning
+    input: |-
+      merge into t as x using u on x.id = u.id when matched and u.deleted then delete when matched then do nothing when not matched by source and x.a > 0 then update set a = 0 when not matched by target and u.a is not null then insert (a) values (u.a) when not matched then do nothing returning *
+    expected:
+      statements:
+        - type: MERGE
+          ast-begin: 0
+          ast-size: 73
+          description:
+            text: "merge into..eturning *"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_MERGE
+            text: "merge into..eturning *"
+            children:
+              - key: SQL_MERGE_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t as x"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+                  - key: SQL_TABLEREF_ALIAS
+                    type: NAME
+                    text: "x"
+              - key: SQL_MERGE_SOURCE
+                type: OBJECT_SQL_TABLEREF
+                text: "u"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "u"
+                    children:
+                      - type: NAME
+                        text: "u"
+              - key: SQL_MERGE_CONDITION
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "x.id = u.id"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "x.id = u.id"
+                    children:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "x.id"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "x.id"
+                            children:
+                              - type: NAME
+                                text: "x"
+                              - type: NAME
+                                text: "id"
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "u.id"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "u.id"
+                            children:
+                              - type: NAME
+                                text: "u"
+                              - type: NAME
+                                text: "id"
+              - key: SQL_MERGE_CLAUSES
+                type: ARRAY
+                text: "when match..do nothing"
+                children:
+                  - type: OBJECT_SQL_MERGE_WHEN_CLAUSE
+                    text: "when match..hen delete"
+                    children:
+                      - key: SQL_MERGE_WHEN_CLAUSE_KIND
+                        type: ENUM_SQL_MERGE_MATCH
+                        value: MATCHED
+                      - key: SQL_MERGE_WHEN_CLAUSE_CONDITION
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "u.deleted"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "u.deleted"
+                            children:
+                              - type: NAME
+                                text: "u"
+                              - type: NAME
+                                text: "deleted"
+                      - key: SQL_MERGE_WHEN_CLAUSE_ACTION
+                        type: OBJECT_SQL_MERGE_ACTION
+                        text: "delete"
+                        children:
+                          - key: SQL_MERGE_ACTION_KIND
+                            type: ENUM_SQL_MERGE_ACTION
+                            value: DELETE
+                  - type: OBJECT_SQL_MERGE_WHEN_CLAUSE
+                    text: "when match..do nothing"
+                    children:
+                      - key: SQL_MERGE_WHEN_CLAUSE_KIND
+                        type: ENUM_SQL_MERGE_MATCH
+                        value: MATCHED
+                      - key: SQL_MERGE_WHEN_CLAUSE_ACTION
+                        type: OBJECT_SQL_MERGE_ACTION
+                        text: "do nothing"
+                        children:
+                          - key: SQL_MERGE_ACTION_KIND
+                            type: ENUM_SQL_MERGE_ACTION
+                            value: DO_NOTHING
+                  - type: OBJECT_SQL_MERGE_WHEN_CLAUSE
+                    text: "when not m.. set a = 0"
+                    children:
+                      - key: SQL_MERGE_WHEN_CLAUSE_KIND
+                        type: ENUM_SQL_MERGE_MATCH
+                        value: NOT_MATCHED_BY_SOURCE
+                      - key: SQL_MERGE_WHEN_CLAUSE_CONDITION
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "x.a > 0"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: GREATER_THAN
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "x.a > 0"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "x.a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "x.a"
+                                    children:
+                                      - type: NAME
+                                        text: "x"
+                                      - type: NAME
+                                        text: "a"
+                              - type: LITERAL_INTEGER
+                                text: "0"
+                      - key: SQL_MERGE_WHEN_CLAUSE_ACTION
+                        type: OBJECT_SQL_MERGE_ACTION
+                        text: "update set a = 0"
+                        children:
+                          - key: SQL_MERGE_ACTION_KIND
+                            type: ENUM_SQL_MERGE_ACTION
+                            value: UPDATE
+                          - key: SQL_MERGE_ACTION_TARGET
+                            type: ARRAY
+                            text: "a = 0"
+                            children:
+                              - type: OBJECT_SQL_ASSIGNMENT
+                                text: "a = 0"
+                                children:
+                                  - key: SQL_ASSIGNMENT_COLUMNS
+                                    type: NAME
+                                    text: "a"
+                                  - key: SQL_ASSIGNMENT_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "0"
+                  - type: OBJECT_SQL_MERGE_WHEN_CLAUSE
+                    text: "when not m..lues (u.a)"
+                    children:
+                      - key: SQL_MERGE_WHEN_CLAUSE_KIND
+                        type: ENUM_SQL_MERGE_MATCH
+                        value: NOT_MATCHED_BY_TARGET
+                      - key: SQL_MERGE_WHEN_CLAUSE_CONDITION
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "u.a is not null"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: NOT_NULL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "u.a is not null"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "u.a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "u.a"
+                                    children:
+                                      - type: NAME
+                                        text: "u"
+                                      - type: NAME
+                                        text: "a"
+                      - key: SQL_MERGE_WHEN_CLAUSE_ACTION
+                        type: OBJECT_SQL_MERGE_ACTION
+                        text: "insert (a)..lues (u.a)"
+                        children:
+                          - key: SQL_MERGE_ACTION_KIND
+                            type: ENUM_SQL_MERGE_ACTION
+                            value: INSERT
+                          - key: SQL_MERGE_ACTION_COLUMNS
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: NAME
+                                text: "a"
+                          - key: SQL_MERGE_ACTION_VALUES
+                            type: ARRAY
+                            text: "(u.a)"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "u.a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "u.a"
+                                    children:
+                                      - type: NAME
+                                        text: "u"
+                                      - type: NAME
+                                        text: "a"
+                  - type: OBJECT_SQL_MERGE_WHEN_CLAUSE
+                    text: "when not m..do nothing"
+                    children:
+                      - key: SQL_MERGE_WHEN_CLAUSE_KIND
+                        type: ENUM_SQL_MERGE_MATCH
+                        value: NOT_MATCHED_BY_TARGET
+                      - key: SQL_MERGE_WHEN_CLAUSE_ACTION
+                        type: OBJECT_SQL_MERGE_ACTION
+                        text: "do nothing"
+                        children:
+                          - key: SQL_MERGE_ACTION_KIND
+                            type: ENUM_SQL_MERGE_ACTION
+                            value: DO_NOTHING
+              - key: SQL_MERGE_RETURNING
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

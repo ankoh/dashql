@@ -531,3 +531,77 @@ visualize-snapshots:
                 children:
                   - type: text
                     value: zero
+
+  - name: vis_markdown_extensions_disabled
+    script:
+      input: |
+        /* @vis markdown
+           | name | value |
+           | ---- | ----- |
+           | {{a}} | 1 |
+
+           ~~gone~~ - [ ] todo [^1]
+
+           [^1]: note
+        */
+        SELECT 1 AS a;
+    markdown:
+      template: |-
+        | name | value |
+        | ---- | ----- |
+        | {{a}} | 1 |
+
+        ~~gone~~ - [ ] todo [^1]
+
+        [^1]: note
+      fields:
+        - a
+      document:
+        type: document
+        children:
+          - type: paragraph
+            children:
+              - type: text
+                value: "| name | value |\n| ---- | ----- |\n| "
+              - type: field
+                field: a
+              - type: text
+                value: " | 1 |"
+          - type: paragraph
+            children:
+              - type: text
+                value: "~~gone~~ - [ ] todo "
+              - type: link
+                url: note
+                children:
+                  - type: text
+                    value: ^1
+
+  - name: vis_markdown_field_in_alt_and_html
+    script:
+      input: |
+        /* @vis markdown
+           ![{{a}} logo](https://example.com/a.png) <span class="x">{{b}}</span>
+        */
+        SELECT 1 AS a, 2 AS b;
+    markdown:
+      template: '![{{a}} logo](https://example.com/a.png) <span class="x">{{b}}</span>'
+      fields:
+        - a
+        - b
+      document:
+        type: document
+        children:
+          - type: paragraph
+            children:
+              - type: image
+                url: 'https://example.com/a.png'
+                children:
+                  - type: field
+                    field: a
+                  - type: text
+                    value: " logo"
+              - type: text
+                value: " "
+              - type: field
+                field: b

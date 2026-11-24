@@ -167,3 +167,16 @@ diff-snapshots:
           target-statement: 0
           target-changes:
             - text: ":min"
+
+  - name: non_ascii_name_case
+    source: |-
+      select äpfel, b, c, d, e, f from t;
+    target: |-
+      select Äpfel, b, c, d, e, f from t;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "Äpfel"

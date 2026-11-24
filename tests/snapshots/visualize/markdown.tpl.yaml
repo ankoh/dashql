@@ -128,3 +128,21 @@ visualize-snapshots:
            Write \{{a}} for {{a}}, \\{{a}} after a backslash, \{{{a}}} in braces, `\{{a}}` in code
         */
         SELECT 1 AS a;
+
+  # Text that looks like the token of a field does not become a field: the tokens get a longer prefix
+  - name: vis_markdown_token_collision
+    script:
+      input: |
+        /* @vis markdown
+           DASHQLMARKDOWNFIELD0TOKEN and {{a}} and DASHQLMARKDOWNFIELDX0TOKEN
+        */
+        SELECT 1 AS a;
+
+  # Non-ASCII field names are kept as written
+  - name: vis_markdown_non_ascii_fields
+    script:
+      input: |
+        /* @vis markdown
+           {{Größe}} · {{日本}} · {{ü x}}
+        */
+        SELECT 1 AS "Größe";

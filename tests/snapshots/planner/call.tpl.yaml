@@ -154,3 +154,21 @@ planner-snapshots:
         connection: local
         input: |
           select * from :deleted, :explained;
+
+  # An unknown function of a shadowed namespace counts as a write, the LOCAL connection cannot scan it
+  - name: CallReferencedUnknownFunction
+    client_functions: tickets
+    connections:
+      - name: d360
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: unknown
+        connection: d360
+        input: |
+          call tickets.backend_procedure (a => 1);
+      - name: consumer
+        connection: local
+        input: |
+          select * from :unknown;

@@ -1090,3 +1090,197 @@ planner-snapshots:
             - text: ":foo"
               target: foo
               kind: scan
+
+  - name: ScanOfTwoConnections
+    connections:
+      - name: a
+        kind: REMOTE
+        catalog: |
+          create table t (x int);
+      - name: b
+        kind: REMOTE
+        catalog: |
+          create table t (x int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: from_a
+        connection: a
+        input: |
+          select x from t;
+      - name: from_b
+        connection: b
+        input: |
+          select x from t;
+      - name: joined
+        connection: local
+        input: |
+          select * from :from_a a join :from_b b using (x);
+      - name: top
+        connection: local
+        input: |
+          select count(*) from :joined;
+    expected:
+      valid: true
+      connections:
+        - name: a
+          kind: REMOTE
+        - name: b
+          kind: REMOTE
+        - name: local
+          kind: LOCAL
+      scripts:
+        - name: from_a
+          connection: a
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "f30d3bb80babc5977f10bff0bc3fb0c4e54a88826004630b883290f3fd6cd4ac"
+        - name: from_b
+          connection: b
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "f30d3bb80babc5977f10bff0bc3fb0c4e54a88826004630b883290f3fd6cd4ac"
+        - name: joined
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "03c8aa2dd6f324214c06529468d15947aaf17b3ab5e886b74002db984a8155dc"
+          references: [from_a,from_b]
+        - name: top
+          connection: local
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "953dde60f864aacd18106c36dde73d533c4870183e00f246b8bfb11aa266f5dc"
+          references: [joined]
+      entities:
+        - catalog-id: 'a/256.65536.4294967296'
+          type: TABLE
+          name: t
+        - catalog-id: 'b/256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: from_a
+          connection: a
+          statement-id: 0
+          type: SELECT
+          sql: "select x from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          materialization: 0
+          accesses:
+            - entity: 'a/256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: from_b
+          connection: b
+          statement-id: 0
+          type: SELECT
+          sql: "select x from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          materialization: 1
+          accesses:
+            - entity: 'b/256.65536.4294967296'
+              mode: READ
+        - id: 2
+          script: joined
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with from_a as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet')),
+            from_b as (select * from external('/mnt/external/dashql-run-test/s1.parquet', format => 'parquet'))
+            select * from from_a a join from_b b using (x)
+          produces-output: true
+          barrier: false
+          script-result: true
+          inputs: [0,1]
+          accesses: []
+        - id: 3
+          script: top
+          connection: local
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with from_a as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet')),
+            from_b as (select * from external('/mnt/external/dashql-run-test/s1.parquet', format => 'parquet')),
+            joined as (
+            select * from from_a a join from_b b using (x)
+            )
+            select count(*) from joined
+          produces-output: true
+          barrier: false
+          script-result: true
+          inputs: [0,1]
+          inlined-scripts: [2]
+          accesses: []
+      edges:
+        - from: 0
+          to: 2
+          reason: MATERIALIZATION
+        - from: 0
+          to: 3
+          reason: MATERIALIZATION
+        - from: 1
+          to: 2
+          reason: MATERIALIZATION
+        - from: 1
+          to: 3
+          reason: MATERIALIZATION
+      materializations:
+        - script: from_a
+          node: 0
+          path: /mnt/external/dashql-run-test/s0.parquet
+        - script: from_b
+          node: 1
+          path: /mnt/external/dashql-run-test/s1.parquet
+      references:
+        - node: 2
+          script: joined
+          text: ":from_a"
+          target: from_a
+          cte: from_a
+          materialization: 0
+        - node: 2
+          script: joined
+          text: ":from_b"
+          target: from_b
+          cte: from_b
+          materialization: 1
+        - node: 3
+          script: top
+          text: ":joined"
+          target: joined
+          cte: joined
+      diagnostics: []
+      checked-references:
+        - script: joined
+          references:
+            - text: ":from_a"
+              target: from_a
+              kind: scan
+            - text: ":from_b"
+              target: from_b
+              kind: scan
+        - script: top
+          references:
+            - text: ":joined"
+              target: joined
+              kind: inline

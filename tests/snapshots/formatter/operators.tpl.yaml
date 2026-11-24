@@ -148,3 +148,21 @@ formatter-snapshots:
         validation:
           setup: |-
             create table t(a int, b double precision, c int);
+
+  # Generic binary operators: bit shifts and logic, containment, JSON access and regular expressions
+  - name: op_generic_binary
+    input: "select a << 2, a >> 1, a & b, a | b, a # b, a @> b, a <@ b, a -> 'k', a ->> 'k', a ~ 'x', a !~ 'x', a ~* 'x', a !~* 'x', a && b from t"
+    dialects:
+      hyper:
+
+  # Generic operators bind tighter than comparisons and looser than arithmetic, and are left-associative
+  - name: op_generic_precedence
+    input: "select a + b << c, (a << b) + c, a || b -> 'k', (a -> 'k') = b, a = b -> 'k', a -> 'k' -> 'j', a -> ('k' -> 'j') from t"
+    dialects:
+      hyper:
+
+  # A minus after an operator: `||-` and `@-` are operators of their own like in PostgreSQL, the others get a space
+  - name: op_minus_after_operator
+    input: select a<-1, a*-b, a=-1, a>=-1, a<>-a, 1+-1, a::int*-1, a||-1, a@-b from t
+    dialects:
+      hyper:

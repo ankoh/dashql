@@ -354,3 +354,150 @@ formatter-snapshots:
             width: 60
         validation:
           setup: ""
+
+  # A long IN subquery breaks within its parentheses, the AND after it continues the condition
+  - name: long_in_subquery
+    input: select * from orders where customer_id not in (select customer_id from blocked_customers where blocked_at > current_date - 30 and reason <> 'test') and amount > 0
+    dialects:
+      hyper:
+        validation:
+          setup: |-
+            create table orders(customer_id int, amount int);
+            create table blocked_customers(customer_id int, blocked_at date, reason text);
+
+  # Nested calls break at the outermost call first
+  - name: long_nested_calls
+    input: select coalesce(nullif(trim(lower(first_name_of_the_person)), ''), nullif(trim(lower(last_name_of_the_person)), ''), 'unknown_person_name') as display_name from people
+    dialects:
+      hyper:
+        validation:
+          setup: create table people(first_name_of_the_person text, last_name_of_the_person text);
+
+  # A long WHEN condition breaks before its ANDs
+  - name: long_case_condition
+    input: select case when order_status = 'shipped' and shipped_at is not null and delivered_at is null and carrier_name <> 'internal' then 'in transit' when order_status = 'cancelled' or refund_amount > 0 then 'void' else 'other' end as state from orders
+    dialects:
+      hyper:
+        validation:
+          setup: create table orders(order_status text, shipped_at date, delivered_at date, carrier_name text, refund_amount int);
+
+  # A long window specification breaks within its parentheses
+  - name: long_window_specification
+    input: select sum(order_amount) over (partition by customer_region, customer_segment, order_channel order by order_date desc nulls last, order_id rows between unbounded preceding and current row) as running_total from orders
+    dialects:
+      hyper:
+        validation:
+          setup: create table orders(order_amount int, customer_region text, customer_segment text, order_channel text, order_date date, order_id int);
+
+  # FILTER and OVER after an aggregate, the window breaks first
+  - name: long_aggregate_filter_over
+    input: select count(distinct customer_id) filter (where order_status = 'complete' and amount > 100) over (partition by region order by order_date) as complete_customers from orders
+    dialects:
+      hyper:
+
+  # A select with all clauses, the CTE breaks only in pretty mode
+  - name: long_select_all_clauses
+    input: with recent as (select * from orders where order_date > current_date - 7) select distinct customer_id, count(*) as order_count, sum(amount) as total from recent where amount > 0 and status <> 'void' group by customer_id having count(*) > 2 window w as (partition by customer_id) order by total desc, customer_id limit 10 offset 5
+    dialects:
+      hyper:
+        validation:
+          setup: create table orders(customer_id int, order_date date, amount int, status text);
+
+  # A long arithmetic expression breaks after an operator of the outermost sum
+  - name: long_arithmetic_mixed
+    input: select (unit_price * quantity_ordered - discount_amount) / nullif(total_quantity_sold, 0) * 100 + adjustment_factor_value - (shipping_cost + handling_fee) as margin from sales
+    dialects:
+      hyper:
+        validation:
+          setup: create table sales(unit_price int, quantity_ordered int, discount_amount int, total_quantity_sold int, adjustment_factor_value int, shipping_cost int, handling_fee int);
+
+  # Nested parentheses at a narrow width
+  - name: deep_arithmetic_narrow
+    input: select ((a + b) * (c - d)) / ((e + f) * (g - h)) - (((i))) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 20
+          - mode: pretty
+            width: 20
+        validation:
+          setup: create table t(a int, b int, c int, d int, e int, f int, g int, h int, i int);
+
+  # EXISTS and NOT EXISTS in an AND chain
+  - name: long_exists_chain
+    input: select * from customers c where exists (select 1 from orders o where o.customer_id = c.id) and not exists (select 1 from refunds r where r.customer_id = c.id) and c.active
+    dialects:
+      hyper:
+        validation:
+          setup: |-
+            create table customers(id int, active bool);
+            create table orders(customer_id int);
+            create table refunds(customer_id int);
+
+  # A scalar subquery as the right side of a comparison in an OR
+  - name: long_scalar_subquery_comparison
+    input: select * from products p where p.price > (select avg(price) * 1.5 from products q where q.category_id = p.category_id and q.discontinued = false) or p.featured
+    dialects:
+      hyper:
+        validation:
+          setup: create table products(price int, category_id int, discontinued bool, featured bool);
+
+  # Scalar subqueries as arguments, pretty mode breaks them
+  - name: scalar_subquery_arguments
+    input: select coalesce((select max(a) from t), 0), greatest((select 1), (select 2)) + 1, abs((select 1) + 1) from t
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int);
+
+  # A long list of tables in FROM
+  - name: long_from_list
+    input: select count(*) from customer_accounts ca, customer_addresses cad, customer_orders co, order_line_items oli where ca.id = cad.account_id
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 60
+          - mode: pretty
+            width: 60
+        validation:
+          setup: |-
+            create table customer_accounts(id int);
+            create table customer_addresses(account_id int);
+            create table customer_orders(id int);
+            create table order_line_items(id int);
+
+  # An indentation of four spaces
+  - name: indent_four_nested
+    input: select a from (select a from (select a from t where a > 1 and b < 2) s where a in (select c from u)) r where r.a = 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 40
+            indent: 4
+          - mode: pretty
+            width: 40
+            indent: 4
+        validation:
+          setup: |-
+            create table t(a int, b int);
+            create table u(c int);
+
+  # No indentation
+  - name: indent_zero
+    input: select a, b from (select a, b from t where a > 1) s where a in (select c from u) order by a
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 30
+            indent: 0
+          - mode: pretty
+            width: 30
+            indent: 0
+        validation:
+          setup: |-
+            create table t(a int, b int);
+            create table u(c int);

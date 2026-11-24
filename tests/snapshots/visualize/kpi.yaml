@@ -93,3 +93,55 @@ visualize-snapshots:
           "$sql": "SELECT count(*) AS n FROM orders"
         }
       }
+
+  - name: kpi_board_column_moved
+    script:
+      input: |
+        /* @vis kpi value=a
+           @board column=11 */
+        SELECT 1 AS a;
+    dashboard:
+      column: 9
+      width: 3
+      height: 3
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        }
+      }
+
+  - name: kpi_board_height_only
+    script:
+      input: |
+        /* @vis kpi
+           @board height=5 */
+        SELECT 1 AS a;
+    dashboard:
+      width: 3
+      height: 5
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        }
+      }
+
+  - name: kpi_after_unknown_kind
+    script:
+      input: |
+        /* @vis sparkline value=a
+           @vis kpi value=a chart=bar delta=none */
+        SELECT 1 AS a;
+    dashboard:
+      width: 3
+      height: 3
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        }
+      }

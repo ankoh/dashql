@@ -1,0 +1,96 @@
+completion-snapshots:
+  # The name of a column of a CREATE TABLE is a definition, no catalog names
+  - name: def_column_name
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        create table w (na int)
+    cursor:
+      search:
+        text: 'na'
+        index: 2
+    completions:
+      limit: 5
+
+  # The name of a CREATE TABLE is a definition, no catalog names
+  - name: def_create_table_name
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        create table na (x int)
+    cursor:
+      search:
+        text: 'na'
+        index: 2
+    completions:
+      limit: 5
+
+  # The name of a CREATE TABLE AS is a definition, no catalog names
+  - name: def_create_table_as_name
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        create table na as select 1
+    cursor:
+      search:
+        text: 'na'
+        index: 2
+    completions:
+      limit: 5
+
+  # The name of a CREATE VIEW is a definition, no catalog names
+  - name: def_view_name
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        create view na as select a from t
+    cursor:
+      search:
+        text: 'na'
+        index: 2
+    completions:
+      limit: 5
+
+  # The name of a parameter of a CREATE FUNCTION is a definition, no catalog names
+  - name: def_function_param
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        create function f(na int) returns int
+    cursor:
+      search:
+        text: 'na'
+        index: 2
+    completions:
+      limit: 5
+
+  # An alias of a select item without AS is a definition, no catalog names
+  - name: def_select_alias_without_as
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a na from t
+    cursor:
+      search:
+        text: 'na'
+        index: 2
+    completions:
+      limit: 5

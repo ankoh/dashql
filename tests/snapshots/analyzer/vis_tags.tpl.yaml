@@ -313,3 +313,23 @@ analyzer-snapshots:
         /* @vis kpi value="Total
            @board row = 1 width=-2 */
         select sum(revenue) as total from sales;
+
+  # The fields are the output columns of a query with a CTE, not those of the CTE
+  - name: vis_tag_fields_of_a_cte_query
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "k"}, "y": {"field": "a"}, "color": {"field": "b"}}} */
+        with c as (select a as k, b from t) select k, b from c;
+
+  # A star over a USING join of catalog tables has known columns, the fields are checked
+  - name: vis_tag_fields_of_a_star
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "a"}, "y": {"field": "c"}, "color": {"field": "z"}}} */
+        select * from t join u using (a);

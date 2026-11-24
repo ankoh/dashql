@@ -374,3 +374,116 @@ planner-snapshots:
           select 1;
           drop table v;
           drop table base;
+
+  # An UPDATE writes its target after its readers and reads the table of its FROM
+  - name: UpdateFromReadsSource
+    catalog: |
+      create table t (a int, b int);
+      create table u (a int, c int);
+    scripts:
+      - name: before
+        input: |
+          select * from t;
+      - name: bump
+        input: |
+          update t set b = u.c from u where t.a = u.a;
+      - name: after
+        input: |
+          select * from t;
+          insert into u values (1, 1);
+
+  # An UPDATE produces output with RETURNING only
+  - name: UpdateReturning
+    catalog: |
+      create table t (a int, b int);
+    scripts:
+      - name: bump
+        input: |
+          update t set b = b + 1 returning a, b;
+      - name: quiet
+        input: |
+          update t set b = 0 where a < 0;
+
+  # A MERGE writes its target, reads its source and produces output with RETURNING
+  - name: MergeReturning
+    catalog: |
+      create table t (a int, b int);
+      create table u (a int, c int);
+    scripts:
+      - name: sync
+        input: |
+          merge into t using u on t.a = u.a
+          when matched then update set b = u.c
+          when not matched then insert (a, b) values (u.a, u.c)
+          returning t.a;
+
+  # A write waits for the readers since the last write only, earlier readers are ordered through that write
+  - name: ReadersThenWritersTimeline
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: r1
+        input: select * from t;
+      - name: r2
+        input: select count(*) from t;
+      - name: w1
+        input: insert into t values (1);
+      - name: r3
+        input: select max(a) from t;
+      - name: r4
+        input: select min(a) from t;
+      - name: w2
+        input: delete from t where a = 1;
+      - name: w3
+        input: insert into t values (2);
+      - name: r5
+        input: select * from t;
+
+  # Every CREATE of a name is an identity of its own, also without a DROP between, the read takes the last one
+  - name: SameScriptCreateTwice
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: s
+        input: |
+          create table if not exists t (a int);
+          create table u (a int);
+          create table u (b int);
+          select * from u;
+
+  # A DROP IF EXISTS of a missing table is an unresolved barrier, the CREATE after it shares its name timeline
+  - name: DropIfExistsThenCreate
+    scripts:
+      - name: s
+        input: |
+          drop table if exists missing;
+          create table missing (x int);
+          select * from missing;
+
+  # A view that is created twice: two DDL accesses of one name, the read of the view is a barrier
+  - name: CreateOrReplaceView
+    catalog: |
+      create table base (x int);
+    scripts:
+      - name: s
+        input: |
+          create or replace view v as select x from base;
+          create or replace view v as select x + 1 as x from base;
+          select * from v;
+
+  # Plain EXPLAIN reads the targets of UPDATE and MERGE, an execution-enabled EXPLAIN of an UPDATE writes it and is a
+  # barrier
+  - name: ExplainUpdateAndMerge
+    catalog: |
+      create table t (a int, b int);
+      create table u (a int, c int);
+    scripts:
+      - name: plain
+        input: |
+          select * from t;
+          explain update t set b = 1;
+          explain merge into t using u on t.a = u.a when matched then update set b = u.c;
+      - name: analyzed
+        input: |
+          explain (analyze) update t set b = 2 returning a;
+          select * from t;

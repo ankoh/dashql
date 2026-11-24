@@ -44,3 +44,24 @@ formatter-snapshots:
     dialects:
       trino:
       hyper:
+
+  # The keyword form of array types and arrays of rows are array(...) in Trino
+  - name: coverage_trino_array_keyword_form
+    input: select cast(a as int array), cast(b as row(x int)[]), cast(c as array(varchar)) from t
+    dialects:
+      trino:
+      hyper:
+
+  # Array types in column definitions, also inside a row type
+  - name: coverage_trino_create_table_arrays
+    input: create table t (a int[], b array(row(x int, y text)), c varchar(10) array, d row(e int[]))
+    dialects:
+      trino:
+      hyper:
+
+  # Zoned types of casts keep their zone, a literal without a zone stays as written
+  - name: coverage_trino_time_types
+    input: select cast(a as timestamp with time zone), cast(a as time with time zone), timestamp without time zone '2024-01-01', time '10:00', cast(a as timestamp(6) with time zone) from t
+    dialects:
+      trino:
+      hyper:

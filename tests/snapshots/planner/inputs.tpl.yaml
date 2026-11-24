@@ -102,3 +102,48 @@ planner-snapshots:
         input: |
           /* @param :span = interval '1 day 2 hours' */
           select id from events where ts > now() - :span;
+
+  # Inputs in LIMIT, VALUES, CREATE TABLE AS, DELETE and UPDATE
+  - name: InputPositions
+    catalog: |
+      create table t (a int, b text);
+    scripts:
+      - name: s
+        input: |
+          /* @param :n = 3
+             @param :name = 'x' */
+          select a from t order by a limit :n;
+          insert into t values (:n, :name);
+          create table u as select :n as a, :name as b;
+          delete from t where b = :name;
+          update t set a = :n where b = :name;
+
+  # NULL, a quote in a string, a big integer and a float
+  - name: InputNullAndQuotes
+    catalog: |
+      create table t (a int, b text);
+    scripts:
+      - name: s
+        input: |
+          /* @param :none = null
+             @param :quoted = 'it''s'
+             @param :big = 12345678901234
+             @param :ratio = 1.5e3 */
+          select * from t where b = :quoted or a = :none or a < :big or a < :ratio;
+
+  # An inlined query binds the value of its own script, the consumer the value of its own tag or the first one
+  - name: InputInlinedOwnValue
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: foo
+        input: |
+          /* @param :min = 10 */
+          select a from t where a > :min;
+      - name: bar
+        input: |
+          /* @param :min = 20 */
+          select count(*) from :foo where a > :min;
+      - name: baz
+        input: |
+          select count(*) from :foo where a > :min;

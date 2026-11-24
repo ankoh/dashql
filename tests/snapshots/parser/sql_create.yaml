@@ -1625,3 +1625,436 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: create_table_named_constraints_and_definitions
+    input: |-
+      create table t (a smallint primary key with (fillfactor = 70), b integer unique with (fillfactor = 80), constraint t_b_check check (b > 0), constraint t_pk primary key (a), assumed unique (b))
+    expected:
+      statements:
+        - type: CREATE_TABLE
+          ast-begin: 0
+          ast-size: 46
+          description:
+            text: "create tab..nique (b))"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..nique (b))"
+            children:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(a smallin..nique (b))"
+                children:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "a smallint..ctor = 70)"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "smallint"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT2
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: "primary ke..ctor = 70)"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "primary ke..ctor = 70)"
+                            children:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: PRIMARY_KEY
+                              - key: SQL_COLUMN_CONSTRAINT_DEFINITION
+                                type: ARRAY
+                                text: "with (fill..ctor = 70)"
+                                children:
+                                  - type: OBJECT_SQL_DEF_ARG
+                                    text: "fillfactor = 70"
+                                    children:
+                                      - key: SQL_DEFINITION_ARG_KEY
+                                        type: NAME
+                                        text: "fillfactor"
+                                      - key: SQL_DEFINITION_ARG_VALUE
+                                        type: LITERAL_INTEGER
+                                        text: "70"
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "b integer ..ctor = 80)"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "b"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: "unique wit..ctor = 80)"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "unique wit..ctor = 80)"
+                            children:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: UNIQUE
+                              - key: SQL_COLUMN_CONSTRAINT_DEFINITION
+                                type: ARRAY
+                                text: "with (fill..ctor = 80)"
+                                children:
+                                  - type: OBJECT_SQL_DEF_ARG
+                                    text: "fillfactor = 80"
+                                    children:
+                                      - key: SQL_DEFINITION_ARG_KEY
+                                        type: NAME
+                                        text: "fillfactor"
+                                      - key: SQL_DEFINITION_ARG_VALUE
+                                        type: LITERAL_INTEGER
+                                        text: "80"
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "constraint..ck (b > 0)"
+                    children:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: CHECK
+                      - key: SQL_TABLE_CONSTRAINT_ARGUMENT
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "b > 0"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: GREATER_THAN
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "b > 0"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "b"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "b"
+                                    children:
+                                      - type: NAME
+                                        text: "b"
+                              - type: LITERAL_INTEGER
+                                text: "0"
+                      - key: SQL_TABLE_CONSTRAINT_NAME
+                        type: NAME
+                        text: "t_b_check"
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "constraint..ry key (a)"
+                    children:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: PRIMARY_KEY
+                      - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                        type: ARRAY
+                        text: "(a)"
+                        children:
+                          - type: NAME
+                            text: "a"
+                      - key: SQL_TABLE_CONSTRAINT_NAME
+                        type: NAME
+                        text: "t_pk"
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "assumed unique (b)"
+                    children:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: UNIQUE
+                      - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                        type: ARRAY
+                        text: "(b)"
+                        children:
+                          - type: NAME
+                            text: "b"
+                      - key: SQL_TABLE_CONSTRAINT_ASSUMED
+                        type: BOOL
+                        value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: create_table_foreign_key_partial_set_default
+    input: |-
+      create table t (a integer references u (x) match partial on delete set default on update set default)
+    expected:
+      statements:
+        - type: CREATE_TABLE
+          ast-begin: 0
+          ast-size: 23
+          description:
+            text: "create tab..t default)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..t default)"
+            children:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(a integer..t default)"
+                children:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "a integer ..et default"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: "references..et default"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "references..et default"
+                            children:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: REFERENCES
+                              - key: SQL_COLUMN_CONSTRAINT_REFERENCES_NAME
+                                type: ARRAY
+                                text: "u"
+                                children:
+                                  - type: NAME
+                                    text: "u"
+                              - key: SQL_COLUMN_CONSTRAINT_REFERENCES_COLUMNS
+                                type: ARRAY
+                                text: "(x)"
+                                children:
+                                  - type: NAME
+                                    text: "x"
+                              - key: SQL_COLUMN_CONSTRAINT_KEY_MATCH
+                                type: ENUM_SQL_KEY_MATCH
+                                value: PARTIAL
+                              - key: SQL_COLUMN_CONSTRAINT_KEY_ACTIONS
+                                type: ARRAY
+                                text: "on delete ..et default"
+                                children:
+                                  - type: OBJECT_SQL_KEY_ACTION
+                                    text: "on delete ..et default"
+                                    children:
+                                      - key: SQL_KEY_ACTION_TRIGGER
+                                        type: ENUM_SQL_KEY_ACTION_TRIGGER
+                                        value: DELETE
+                                      - key: SQL_KEY_ACTION_COMMAND
+                                        type: ENUM_SQL_KEY_ACTION_COMMAND
+                                        value: SET_DEFAULT
+                                  - type: OBJECT_SQL_KEY_ACTION
+                                    text: "on update ..et default"
+                                    children:
+                                      - key: SQL_KEY_ACTION_TRIGGER
+                                        type: ENUM_SQL_KEY_ACTION_TRIGGER
+                                        value: UPDATE
+                                      - key: SQL_KEY_ACTION_COMMAND
+                                        type: ENUM_SQL_KEY_ACTION_COMMAND
+                                        value: SET_DEFAULT
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: create_table_like_options
+    input: |-
+      create table t (like u including indexes including storage excluding comments)
+    expected:
+      statements:
+        - type: CREATE_TABLE
+          ast-begin: 0
+          ast-size: 17
+          description:
+            text: "create tab.. comments)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE
+            text: "create tab.. comments)"
+            children:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(like u in.. comments)"
+                children:
+                  - type: OBJECT_SQL_TABLE_LIKE
+                    text: "like u inc..g comments"
+                    children:
+                      - key: SQL_TABLE_LIKE_TABLE
+                        type: ARRAY
+                        text: "u"
+                        children:
+                          - type: NAME
+                            text: "u"
+                      - key: SQL_TABLE_LIKE_OPTIONS
+                        type: ARRAY
+                        text: "including ..g comments"
+                        children:
+                          - type: OBJECT_SQL_TABLE_LIKE_OPTION
+                            text: "including indexes"
+                            children:
+                              - key: SQL_TABLE_LIKE_OPTION_KIND
+                                type: ENUM_SQL_TABLE_LIKE_OPTION
+                                value: INDEXES
+                              - key: SQL_TABLE_LIKE_OPTION_INCLUDE
+                                type: BOOL
+                                value: 1
+                          - type: OBJECT_SQL_TABLE_LIKE_OPTION
+                            text: "including storage"
+                            children:
+                              - key: SQL_TABLE_LIKE_OPTION_KIND
+                                type: ENUM_SQL_TABLE_LIKE_OPTION
+                                value: STORAGE
+                              - key: SQL_TABLE_LIKE_OPTION_INCLUDE
+                                type: BOOL
+                                value: 1
+                          - type: OBJECT_SQL_TABLE_LIKE_OPTION
+                            text: "excluding comments"
+                            children:
+                              - key: SQL_TABLE_LIKE_OPTION_KIND
+                                type: ENUM_SQL_TABLE_LIKE_OPTION
+                                value: COMMENTS
+                              - key: SQL_TABLE_LIKE_OPTION_INCLUDE
+                                type: BOOL
+                                value: 0
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: create_table_interval_ranges
+    input: |-
+      create table t (a interval month, b interval day to hour, c interval day to minute, d interval hour to second)
+    expected:
+      statements:
+        - type: CREATE_TABLE
+          ast-begin: 0
+          ast-size: 24
+          description:
+            text: "create tab..to second)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..to second)"
+            children:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(a interva..to second)"
+                children:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "a interval month"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "interval month"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_INTERVAL_TYPE
+                            text: "month"
+                            children:
+                              - key: SQL_INTERVAL_TYPE
+                                type: ENUM_SQL_INTERVAL_TYPE
+                                value: MONTH
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "b interval..ay to hour"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "b"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "interval d..ay to hour"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_INTERVAL_TYPE
+                            text: "day to hour"
+                            children:
+                              - key: SQL_INTERVAL_TYPE
+                                type: ENUM_SQL_INTERVAL_TYPE
+                                value: DAY_TO_HOUR
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "c interval.. to minute"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "c"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "interval d.. to minute"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_INTERVAL_TYPE
+                            text: "day to minute"
+                            children:
+                              - key: SQL_INTERVAL_TYPE
+                                type: ENUM_SQL_INTERVAL_TYPE
+                                value: DAY_TO_MINUTE
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "d interval.. to second"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "d"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "interval h.. to second"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_INTERVAL_TYPE
+                            text: "hour to second"
+                            children:
+                              - key: SQL_INTERVAL_TYPE
+                                type: ENUM_SQL_INTERVAL_TYPE
+                                value: HOUR_TO_SECOND
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

@@ -1,0 +1,124 @@
+formatter-snapshots:
+  # Comments inside the clauses of a statement, see "Comments" in docs/agents/core_sql_formatting.md
+
+  # Comments between the values of an IN list, a line comment stays after the comma
+  - name: comment_in_in_list
+    input: |-
+      select * from t where a in (1, /* two */ 2, 3 -- three
+      , 4)
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int);
+
+  # A comment after CASE goes in front of the first WHEN, a block comment at the end of a WHEN in front of the next one
+  - name: comment_in_case
+    input: |-
+      select case -- the kinds
+        when a = 1 then 'one' /* first */
+        when a = 2 then 'two' -- second
+        else /* fallback */ 'other' end as k from t
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int);
+
+  # A line comment in the arguments of a call breaks them
+  - name: comment_in_function_arguments
+    input: |-
+      select coalesce(a, -- the fallback
+        b, /* last */ c) from t
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int, b int, c int);
+
+  # A block comment in front of a join keyword goes in front of the joined table
+  - name: comment_between_joins
+    input: |-
+      select * from a -- first
+      join b on a.y = b.y /* inner */ left join c using (x) -- last
+      where a.y > 1
+    dialects:
+      hyper:
+        validation:
+          setup: |-
+            create table a(x int, y int);
+            create table b(y int);
+            create table c(x int);
+
+  # Comments in GROUP BY and ORDER BY
+  - name: comment_in_group_and_order_by
+    input: |-
+      select a, count(*) from t group by a -- grouped
+      order by /* by count */ count(*) desc, -- then
+      a
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int);
+
+  # Comments in a window specification
+  - name: comment_in_window
+    input: |-
+      select sum(x) over (partition by a -- per a
+        order by b /* ordered */ rows between 1 preceding and current row) from t
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(x int, a int, b int);
+
+  # Comments between the rows of VALUES, a block comment before a comma goes in front of the next value
+  - name: comment_in_insert_values
+    input: |-
+      insert into t (a, b) values (1, 'x'), -- first row
+        (2 /* two */, 'y')
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int, b text);
+
+  # Comments on the column definitions of CREATE TABLE
+  - name: comment_in_create_table
+    input: |-
+      create table if not exists t (
+        a integer, -- the key
+        /* the label */ b text not null,
+        c integer -- the last
+      )
+    dialects:
+      hyper:
+        validation: {}
+
+  # A column type that is written differently ends with another word, the comment goes in front of the next column
+  - name: comment_after_respelled_type
+    input: |-
+      create table if not exists t (
+        a int, -- the key
+        b text
+      )
+    dialects:
+      hyper:
+        validation: {}
+
+  # Comments in an AND and OR chain, the comment at the end of the statement follows the semicolon
+  - name: comment_in_where_chain
+    input: |-
+      select * from t
+      where a = 1 -- first
+        and /* second */ b = 2
+        or c = 3 -- third
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int, b int, c int);
+
+  # A block comment before a comma goes in front of the next target, after the block comment before it
+  - name: comment_block_before_comma
+    input: |-
+      select a /* one */, /* two */ b -- three
+      from t
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int, b int);

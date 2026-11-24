@@ -1,0 +1,266 @@
+parser-snapshots:
+  # Privileges of GRANT: a column list, the keyword privileges, a named one, several tables and grantees
+  - name: cmd_grant_privileges
+    input: |
+      grant select (a, b), references, create, usage on table t, s.u to bob, public with grant option;
+      grant all privileges on all tables in schema s1, s2 to bob;
+      grant all (a) on t to bob
+  # Every kind of target of GRANT
+  - name: cmd_grant_targets
+    input: |
+      grant usage on sequence seq to bob;
+      grant usage on foreign data wrapper w to bob;
+      grant usage on foreign server srv to bob;
+      grant execute on function f(integer, text), g() to bob;
+      grant create on database db1, db2 to bob;
+      grant usage on domain d to bob;
+      grant usage on language plpgsql to bob;
+      grant select on large object 1, 2 to bob;
+      grant create on schema s to bob;
+      grant create on tablespace ts to bob;
+      grant usage on type ty to bob;
+      grant usage on all sequences in schema s to bob;
+      grant execute on all functions in schema s to bob
+  # REVOKE with GRANT OPTION FOR and a drop behavior
+  - name: cmd_revoke
+    input: |
+      revoke grant option for select on t from bob cascade;
+      revoke all on all functions in schema s from public restrict;
+      revoke insert on t from bob
+  # Granting and revoking roles, with the admin option and a grantor
+  - name: cmd_grant_revoke_role
+    input: |
+      grant r1, r2 to u1, u2 with admin option granted by admin;
+      revoke admin option for r1 from u1 granted by admin cascade;
+      revoke r1, r2 from u1 restrict
+  # CREATE ROLE, USER and GROUP with every role option
+  - name: cmd_create_role
+    input: |
+      create role r with login password 'pw' connection limit 5 valid until '2030-01-01' inherit in role a admin b role c;
+      create user u encrypted password 'x';
+      create user v unencrypted password 'y';
+      create group g
+  # ALTER ROLE, USER and GROUP: options, settings in a database, members and a null password
+  - name: cmd_alter_role
+    input: |
+      alter role r with password null connection limit -1;
+      alter role r in database db set timezone to 'UTC';
+      alter role all reset all;
+      alter user u nologin;
+      alter user u set search_path = public;
+      alter group g add user a, b;
+      alter group g drop user a
+  # DROP ROLE, USER and GROUP with lists of names
+  - name: cmd_drop_role
+    input: |
+      drop role if exists a, b;
+      drop user u;
+      drop group if exists g1, g2
+  # CREATE SEQUENCE with every sequence option
+  - name: cmd_create_sequence
+    input: |
+      create temp sequence if not exists s as bigint increment by 2 minvalue 1 no maxvalue start with 10 cache 5 cycle owned by t.x;
+      create sequence s2 increment -1 no minvalue maxvalue 100 start 3 no cycle
+  # ALTER SEQUENCE with the forms of RESTART
+  - name: cmd_alter_sequence
+    input: |
+      alter sequence if exists s restart;
+      alter sequence s restart with 5;
+      alter sequence s restart 7 cache 1
+  # CREATE INDEX with an access method, the options of index elements and storage options
+  - name: cmd_create_index
+    input: |
+      create unique index concurrently if not exists idx on t using btree (a collate "C" text_pattern_ops desc nulls first, b asc nulls last) with (fillfactor = 70);
+      create index on t (a)
+  # DROP of every generic object type with IF EXISTS, lists and drop behaviors
+  - name: cmd_drop_objects
+    input: |
+      drop index concurrently if exists i1, i2 cascade;
+      drop index concurrently i3;
+      drop sequence s restrict;
+      drop materialized view mv;
+      drop foreign table ft;
+      drop event trigger et;
+      drop type ty;
+      drop domain d;
+      drop collation c;
+      drop conversion cv;
+      drop extension e;
+      drop external table if exists et;
+      drop external stream es
+  # DROP FUNCTION with argument types and a drop behavior
+  - name: cmd_drop_function
+    input: |
+      drop function if exists f(integer, text) cascade;
+      drop function h() restrict
+  # DECLARE CURSOR with every cursor option, WITH and WITHOUT HOLD
+  - name: cmd_declare_cursor
+    input: |
+      declare c no scroll binary insensitive cursor with hold for select 1;
+      declare c2 scroll cursor without hold for select 2
+  # Every direction of FETCH and MOVE
+  - name: cmd_fetch_directions
+    input: |
+      fetch next from c;
+      fetch prior c;
+      fetch first in c;
+      fetch last c;
+      fetch absolute -1 c;
+      fetch relative 2 c;
+      fetch 3 c;
+      fetch all from c;
+      fetch forward c;
+      fetch forward 5 c;
+      fetch backward all c;
+      fetch c;
+      move backward 2 in c;
+      move c
+  # CLOSE of a cursor, of all cursors and of an external stream
+  - name: cmd_close
+    input: |
+      close c;
+      close all;
+      close external stream if exists s
+  # PREPARE, EXECUTE with positional and named arguments, and every form of DEALLOCATE
+  - name: cmd_prepare_execute_deallocate
+    input: |
+      prepare p(integer, text) as select $1, $2;
+      execute p(1, x => 'a', y := 2);
+      execute p;
+      deallocate p;
+      deallocate prepare p;
+      deallocate all;
+      deallocate prepare all
+  # Every form of SHOW
+  - name: cmd_show
+    input: |
+      show timezone;
+      show time zone;
+      show transaction isolation level;
+      show session authorization;
+      show all
+  # TRUNCATE with ONLY, a descendant star, sequence restarts and drop behaviors
+  - name: cmd_truncate
+    input: |
+      truncate table only t, u * restart identity cascade;
+      truncate t continue identity restrict
+  # ANALYZE and ANALYSE with VERBOSE and columns
+  - name: cmd_analyze
+    input: |
+      analyze verbose t (a, b);
+      analyse s.t
+  # COMMENT ON COLUMN with a text and with NULL
+  - name: cmd_comment
+    input: |
+      comment on column t.x is 'a column';
+      comment on column s.t.x is null
+  # COPY FROM with the legacy options
+  - name: cmd_copy_from_legacy_options
+    input: |
+      copy binary t (a, b) with oids from stdin using delimiters '|';
+      copy t from 'data.csv' with csv header delimiter as ';' null as '' quote '"' escape '\' force not null a, b force null c encoding 'utf8' freeze;
+      copy t from stdin sanitize
+  # COPY TO with STDOUT, a program, generic and named options and a partitioning
+  - name: cmd_copy_to_targets
+    input: |
+      copy t to stdout with (format csv, header, force_quote *, force_not_null (a, b));
+      copy t (a) to program 'gzip > out.gz' force quote a;
+      copy t to stdout force quote *;
+      copy (select 1 as a) to 'out.csv' with (format => 'csv', header := true) partition by a
+  # COPY FROM an array of locations and a location function
+  - name: cmd_copy_from_locations
+    input: |
+      copy t from array['a.csv', 'b.csv'];
+      copy t from array[];
+      copy t from s3_location('s3://bucket/key', region => 'us-east-1');
+      copy t from program 'cat data.csv'
+  # CREATE DATABASE with locality, IF NOT EXISTS and every database option
+  - name: cmd_create_database_options
+    input: |
+      create local database if not exists db with owner = bob template t0 encoding 'utf8' location 'x' tablespace ts connection limit 5 version 3;
+      create database db2 from db1;
+      create database if not exists db3 with owner bob from db1 with version 2
+  # IMPORT, EXPORT and ALTER DATABASE
+  - name: cmd_database_import_export_alter
+    input: |
+      export database db to 'out.hyper';
+      import local database if not exists db from 'in.hyper' with version 1;
+      import database db from stdin;
+      alter database db set timezone to 'UTC';
+      alter local database db with version 2 set search_path = public
+  # The lifecycle of a database: DETACH, DROP, UNLOAD, VALIDATE and the renaming
+  - name: cmd_database_lifecycle
+    input: |
+      detach database db;
+      drop local database if exists db;
+      unload database db;
+      unload database db gracefully;
+      unload local database db forcefully with defragmentation;
+      unload release;
+      validate local database db;
+      alter local database db rename to db2
+  # CREATE EXTERNAL TABLE with columns, LIKE, no schema, the old and the named options
+  - name: cmd_create_external_table
+    input: |
+      create temp external table if not exists ext (x int) for 'f.csv' (with csv header delimiter ';');
+      create external table e2 like t for array['a.parquet', 'b.parquet'];
+      create external table e3 for 'x.parquet' with (format => 'parquet');
+      create external table e4 () for s3_location('s3://b/k')
+  # CREATE EXTERNAL STREAM with every stream type and options
+  - name: cmd_create_external_stream
+    input: |
+      create temp bounded external stream if not exists s (x int) with (format => 'csv');
+      create buffered external stream s2 like t;
+      create external stream s3 () (csv)
+  # CREATE TYPE in every form, and CREATE DOMAIN
+  - name: cmd_define_types
+    input: |
+      create type t1 as (a int, b text);
+      create type e as enum ();
+      create type e2 as enum ('red', 'blue');
+      create type r as range (subtype = int);
+      create type shell;
+      create type b (input = f_in, output = f_out, internallength = 16);
+      create domain d as int;
+      create domain d2 as text with (collation => 'C')
+  # CREATE AGGREGATE, OPERATOR, COLLATION and TEXT SEARCH definitions
+  - name: cmd_define_objects
+    input: |
+      create aggregate a(int) (sfunc = f, stype = int);
+      create aggregate a2 (basetype = int, sfunc = f, stype = int);
+      create operator === (procedure = f, leftarg = int, rightarg = int);
+      create collation c (locale = 'de_DE');
+      create collation c2 from c;
+      create text search parser p (start = f);
+      create text search dictionary d (template = simple);
+      create text search template t (lexize = f);
+      create text search configuration c (parser = p)
+  # Renaming objects of every kind
+  - name: cmd_rename_objects
+    input: |
+      alter aggregate a(int) rename to b;
+      alter collation c rename to c2;
+      alter conversion cv rename to cv2;
+      alter domain d rename to d2;
+      alter domain d rename constraint c to c2;
+      alter foreign data wrapper w rename to w2;
+      alter function f(int) rename to g;
+      alter group g rename to g2;
+      alter procedural language l rename to l2;
+      alter operator class oc using btree rename to oc2;
+      alter operator family of using btree rename to of2;
+      alter policy if exists p on t rename to p2;
+      alter server s rename to s2;
+      alter sequence if exists s rename to s2;
+      alter materialized view mv rename column a to b;
+      alter index if exists i rename to j;
+      alter foreign table if exists ft rename a to b;
+      alter rule r on t rename to r2;
+      alter trigger tr on t rename to tr2;
+      alter event trigger et rename to et2;
+      alter role r rename to r2;
+      alter user u rename to u2;
+      alter tablespace ts rename to ts2;
+      alter text search dictionary d rename to d2;
+      alter type ty rename to ty2;
+      alter type ty rename attribute a to b cascade

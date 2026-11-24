@@ -59,3 +59,17 @@ parser-snapshots:
   - name: alter_schema_rename
     input: |
       alter schema analytics rename to archive
+  # ALTER TABLE ONLY and the actions that add, drop and rename constraints
+  - name: alter_table_constraints
+    input: |
+      alter table only t add constraint t_pk primary key (a);
+      alter table t add assumed unique (b);
+      alter table t drop constraint if exists t_pk cascade;
+      alter table t drop constraint c restrict;
+      alter table t rename constraint c to d
+  # CREATE SCHEMA with AUTHORIZATION and statements, and DROP SCHEMA with several names
+  - name: schema_authorization_statements_and_lists
+    input: |
+      create schema s authorization bob create table t (a int) create view v as select 1 create index on t (a) create sequence q grant select on t to bob;
+      create schema if not exists authorization 'bob';
+      drop schema if exists s1, s2 cascade

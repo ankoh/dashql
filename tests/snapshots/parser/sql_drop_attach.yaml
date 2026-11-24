@@ -270,3 +270,102 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: drop_table_view_lists
+    input: |-
+      drop table if exists t, s.u cascade;
+      drop table t restrict;
+      drop view v1, v2 cascade
+    expected:
+      statements:
+        - type: DROP_TABLE
+          ast-begin: 0
+          ast-size: 9
+          description:
+            text: "drop table..u cascade;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_DROP_TABLE
+            text: "drop table...u cascade"
+            children:
+              - key: SQL_DROP_IF_EXISTS
+                type: BOOL
+                value: 1
+              - key: SQL_DROP_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_DROP_MORE_NAMES
+                type: ARRAY
+                text: ", s.u"
+                children:
+                  - type: ARRAY
+                    text: "s.u"
+                    children:
+                      - type: NAME
+                        text: "s"
+                      - type: NAME
+                        text: "u"
+              - key: SQL_DROP_CASCADE
+                type: BOOL
+                value: 1
+        - type: DROP_TABLE
+          ast-begin: 9
+          ast-size: 4
+          description:
+            text: "drop table.. restrict;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_DROP_TABLE
+            text: "drop table..t restrict"
+            children:
+              - key: SQL_DROP_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_DROP_CASCADE
+                type: BOOL
+                value: 0
+        - type: DROP_VIEW
+          ast-begin: 13
+          ast-size: 7
+          description:
+            text: "drop view ..v2 cascade"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_DROP_VIEW
+            text: "drop view ..v2 cascade"
+            children:
+              - key: SQL_DROP_NAME
+                type: ARRAY
+                text: "v1"
+                children:
+                  - type: NAME
+                    text: "v1"
+              - key: SQL_DROP_MORE_NAMES
+                type: ARRAY
+                text: ", v2"
+                children:
+                  - type: ARRAY
+                    text: "v2"
+                    children:
+                      - type: NAME
+                        text: "v2"
+              - key: SQL_DROP_CASCADE
+                type: BOOL
+                value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [36,37]
+        - text: [59,60]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

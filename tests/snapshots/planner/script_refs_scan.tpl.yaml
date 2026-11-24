@@ -216,3 +216,35 @@ planner-snapshots:
         connection: trino
         input: |
           select 1 as a;
+
+  # The LOCAL connection scans the results of two connections in one statement, a consumer that inlines it scans
+  # both too
+  - name: ScanOfTwoConnections
+    connections:
+      - name: a
+        kind: REMOTE
+        catalog: |
+          create table t (x int);
+      - name: b
+        kind: REMOTE
+        catalog: |
+          create table t (x int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: from_a
+        connection: a
+        input: |
+          select x from t;
+      - name: from_b
+        connection: b
+        input: |
+          select x from t;
+      - name: joined
+        connection: local
+        input: |
+          select * from :from_a a join :from_b b using (x);
+      - name: top
+        connection: local
+        input: |
+          select count(*) from :joined;

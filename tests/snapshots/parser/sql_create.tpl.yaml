@@ -90,3 +90,19 @@ parser-snapshots:
   - name: create_table_empty
     input: |
       create table t ()
+  # Named table constraints, column constraints with storage options, and a smallint column
+  - name: create_table_named_constraints_and_definitions
+    input: |
+      create table t (a smallint primary key with (fillfactor = 70), b integer unique with (fillfactor = 80), constraint t_b_check check (b > 0), constraint t_pk primary key (a), assumed unique (b))
+  # MATCH PARTIAL and SET DEFAULT actions of a foreign key
+  - name: create_table_foreign_key_partial_set_default
+    input: |
+      create table t (a integer references u (x) match partial on delete set default on update set default)
+  # LIKE with INCLUDING INDEXES, INCLUDING STORAGE and EXCLUDING COMMENTS
+  - name: create_table_like_options
+    input: |
+      create table t (like u including indexes including storage excluding comments)
+  # Interval column types with the ranges month, day to hour, day to minute and hour to second
+  - name: create_table_interval_ranges
+    input: |
+      create table t (a interval month, b interval day to hour, c interval day to minute, d interval hour to second)

@@ -111,3 +111,11 @@ diff-snapshots:
 
     target: |
       select a, b, c, d, e, f from orders where amount > :min;
+
+  # Unquoted non-ASCII names: only ASCII letters fold, so Ä and ä are different names
+  - name: non_ascii_name_case
+    source: |
+      select äpfel, b, c, d, e, f from t;
+
+    target: |
+      select Äpfel, b, c, d, e, f from t;

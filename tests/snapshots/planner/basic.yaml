@@ -2851,3 +2851,805 @@ planner-snapshots:
           script: drops
           error: false
           message: view dependencies are not expanded; conservative access barrier
+
+  - name: UpdateFromReadsSource
+    catalog: |
+      create table t (a int, b int);
+      create table u (a int, c int);
+    scripts:
+      - name: before
+        input: |
+          select * from t;
+      - name: bump
+        input: |
+          update t set b = u.c from u where t.a = u.a;
+      - name: after
+        input: |
+          select * from t;
+          insert into u values (1, 1);
+    expected:
+      valid: true
+      scripts:
+        - name: before
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "9fab1e38cd08d2b25d23cb6d5ac07d6cebd82346aaf4d7073e7e49bd25cb4d61"
+        - name: bump
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "f0a9ece6259dad52f0e11084cc9f6284b3036aeaa7e22c5f08110f3d0b953e2d"
+        - name: after
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "f23ceec0cc07aa5059aa61e848730750c87cedc950c21715ee0a9bc6b4652009"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+        - catalog-id: '256.65536.4294967297'
+          type: TABLE
+          name: u
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: before
+          statement-id: 0
+          type: SELECT
+          sql: "select * from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bump
+          statement-id: 0
+          type: UPDATE
+          sql: "update t set b = u.c from u where t.a = u.a"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+            - entity: '256.65536.4294967297'
+              mode: READ
+        - id: 2
+          script: after
+          statement-id: 0
+          type: SELECT
+          sql: "select * from t"
+          produces-output: true
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 3
+          script: after
+          statement-id: 1
+          type: INSERT
+          sql: "insert into u values (1, 1)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: WRITE
+      edges:
+        - from: 0
+          to: 1
+          reason: WRITE_AFTER_READ
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 2
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 3
+          reason: WRITE_AFTER_READ
+          entity: '256.65536.4294967297'
+      diagnostics: []
+
+  - name: UpdateReturning
+    catalog: |
+      create table t (a int, b int);
+    scripts:
+      - name: bump
+        input: |
+          update t set b = b + 1 returning a, b;
+      - name: quiet
+        input: |
+          update t set b = 0 where a < 0;
+    expected:
+      valid: true
+      scripts:
+        - name: bump
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "0f34dabd6cb35feef2a19f0b80ad099e32dabbcda1db4a377cbee57e1dede009"
+        - name: quiet
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "3c7dc8772dd57c0d23de4524483dba64bd68d139ce0911a1d600f5251f39e1ed"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: bump
+          statement-id: 0
+          type: UPDATE
+          sql: "update t set b = b + 1 returning a, b"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 1
+          script: quiet
+          statement-id: 0
+          type: UPDATE
+          sql: "update t set b = 0 where a < 0"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+      edges:
+        - from: 0
+          to: 1
+          reason: WRITE_AFTER_WRITE
+          entity: '256.65536.4294967296'
+      diagnostics: []
+
+  - name: MergeReturning
+    catalog: |
+      create table t (a int, b int);
+      create table u (a int, c int);
+    scripts:
+      - name: sync
+        input: |
+          merge into t using u on t.a = u.a
+          when matched then update set b = u.c
+          when not matched then insert (a, b) values (u.a, u.c)
+          returning t.a;
+    expected:
+      valid: true
+      scripts:
+        - name: sync
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "d70887ef5a8a2fde1e51b2f452de02387cdf1295f2effbfced244025e6f7a6b0"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+        - catalog-id: '256.65536.4294967297'
+          type: TABLE
+          name: u
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: sync
+          statement-id: 0
+          type: MERGE
+          sql: |-
+            merge into t using u on t.a = u.a
+            when matched then update set b = u.c
+            when not matched then insert (a, b) values (u.a, u.c)
+            returning t.a
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+            - entity: '256.65536.4294967297'
+              mode: READ
+      edges: []
+      diagnostics: []
+
+  - name: ReadersThenWritersTimeline
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: r1
+        input: select * from t;
+      - name: r2
+        input: select count(*) from t;
+      - name: w1
+        input: insert into t values (1);
+      - name: r3
+        input: select max(a) from t;
+      - name: r4
+        input: select min(a) from t;
+      - name: w2
+        input: delete from t where a = 1;
+      - name: w3
+        input: insert into t values (2);
+      - name: r5
+        input: select * from t;
+    expected:
+      valid: true
+      scripts:
+        - name: r1
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "9fab1e38cd08d2b25d23cb6d5ac07d6cebd82346aaf4d7073e7e49bd25cb4d61"
+        - name: r2
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "66931d9517e7d1aee25224dc5d1463e803bcf6f7a953657c0a0cfaec1f1bbf2f"
+        - name: w1
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "e6879f28aec03f6a73b75697e1cafc43a0e96bbda58cba88dfeda7fe6a086afb"
+        - name: r3
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "34199d39510e70640ec2abc90c76460621de250ab0a538297493c4fc021f550e"
+        - name: r4
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "19f71344e22faaedd251627293d290f2888449a25c8956c64a4f01f382afd9bd"
+        - name: w2
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "243a662c6711656b148709ebd2ade7b83efddfdbccfbf848dc5ca3d6cb962d5a"
+        - name: w3
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "198bcbfb0c6942def93ab59ff5df0dd3c61e58cca6a0da36d4392425532cc299"
+        - name: r5
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "9fab1e38cd08d2b25d23cb6d5ac07d6cebd82346aaf4d7073e7e49bd25cb4d61"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: r1
+          statement-id: 0
+          type: SELECT
+          sql: "select * from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: r2
+          statement-id: 0
+          type: SELECT
+          sql: "select count(*) from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 2
+          script: w1
+          statement-id: 0
+          type: INSERT
+          sql: "insert into t values (1)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 3
+          script: r3
+          statement-id: 0
+          type: SELECT
+          sql: "select max(a) from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 4
+          script: r4
+          statement-id: 0
+          type: SELECT
+          sql: "select min(a) from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 5
+          script: w2
+          statement-id: 0
+          type: DELETE
+          sql: "delete from t where a = 1"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 6
+          script: w3
+          statement-id: 0
+          type: INSERT
+          sql: "insert into t values (2)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 7
+          script: r5
+          statement-id: 0
+          type: SELECT
+          sql: "select * from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 2
+          reason: WRITE_AFTER_READ
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 2
+          reason: WRITE_AFTER_READ
+          entity: '256.65536.4294967296'
+        - from: 2
+          to: 3
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 2
+          to: 4
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 2
+          to: 5
+          reason: WRITE_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 3
+          to: 5
+          reason: WRITE_AFTER_READ
+          entity: '256.65536.4294967296'
+        - from: 4
+          to: 5
+          reason: WRITE_AFTER_READ
+          entity: '256.65536.4294967296'
+        - from: 5
+          to: 6
+          reason: WRITE_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 6
+          to: 7
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+      diagnostics: []
+
+  - name: SameScriptCreateTwice
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: s
+        input: |
+          create table if not exists t (a int);
+          create table u (a int);
+          create table u (b int);
+          select * from u;
+    expected:
+      valid: true
+      scripts:
+        - name: s
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: false
+          terminal-statement-id: 3
+          signature: "92f5548c58d52389cec92cf15bf631848b869a9bc657c0604aa5fd5f4c47cee3"
+      entities:
+        - catalog-id: '256.65536.8589934592'
+          type: TABLE
+          name: t
+        - catalog-id: '256.65536.8589934593'
+          type: TABLE
+          name: u
+        - catalog-id: '256.65536.8589934594'
+          type: TABLE
+          name: u
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: s
+          statement-id: 0
+          type: CREATE_TABLE
+          sql: "create table if not exists t (a int)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.8589934592'
+              mode: DDL
+        - id: 1
+          script: s
+          statement-id: 1
+          type: CREATE_TABLE
+          sql: "create table u (a int)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.8589934593'
+              mode: DDL
+        - id: 2
+          script: s
+          statement-id: 2
+          type: CREATE_TABLE
+          sql: "create table u (b int)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.8589934594'
+              mode: DDL
+        - id: 3
+          script: s
+          statement-id: 3
+          type: SELECT
+          sql: "select * from u"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.8589934594'
+              mode: READ
+      edges:
+        - from: 1
+          to: 2
+          reason: DDL
+          entity: '256.65536.8589934594'
+        - from: 2
+          to: 3
+          reason: DDL
+          entity: '256.65536.8589934594'
+      diagnostics: []
+
+  - name: DropIfExistsThenCreate
+    scripts:
+      - name: s
+        input: |
+          drop table if exists missing;
+          create table missing (x int);
+          select * from missing;
+    expected:
+      valid: true
+      scripts:
+        - name: s
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 2
+          signature: "aefe68d17884b9eff1ed92fe4b774d0d236f5e90a2a1f656afbd93a748a36a21"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: missing
+      unresolved-references:
+        - name: missing
+      nodes:
+        - id: 0
+          script: s
+          statement-id: 0
+          type: DROP_TABLE
+          sql: "drop table if exists missing"
+          produces-output: false
+          barrier: true
+          accesses:
+            - unresolved-reference: 0
+              mode: DDL
+        - id: 1
+          script: s
+          statement-id: 1
+          type: CREATE_TABLE
+          sql: "create table missing (x int)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: DDL
+        - id: 2
+          script: s
+          statement-id: 2
+          type: SELECT
+          sql: "select * from missing"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: DDL
+          entity: '256.65536.4294967296'
+        - from: 0
+          to: 1
+          reason: BARRIER
+        - from: 0
+          to: 2
+          reason: BARRIER
+        - from: 1
+          to: 2
+          reason: DDL
+          entity: '256.65536.4294967296'
+      diagnostics:
+        - node: 0
+          script: s
+          error: false
+          message: unresolved DROP target; conservative access barrier
+
+  - name: CreateOrReplaceView
+    catalog: |
+      create table base (x int);
+    scripts:
+      - name: s
+        input: |
+          create or replace view v as select x from base;
+          create or replace view v as select x + 1 as x from base;
+          select * from v;
+    expected:
+      valid: true
+      scripts:
+        - name: s
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: false
+          terminal-statement-id: 2
+          signature: "22384881a23fd67967fd299a56b36351836e4fc9e14a75d7e65dae1d3a9ba711"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: base
+        - catalog-id: '256.65536.8589934592'
+          type: TABLE
+          name: v
+        - catalog-id: '256.65536.8589934593'
+          type: TABLE
+          name: v
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: s
+          statement-id: 0
+          type: CREATE_VIEW
+          sql: "create or replace view v as select x from base"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+            - entity: '256.65536.8589934592'
+              mode: DDL
+        - id: 1
+          script: s
+          statement-id: 1
+          type: CREATE_VIEW
+          sql: "create or replace view v as select x + 1 as x from base"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+            - entity: '256.65536.8589934593'
+              mode: DDL
+        - id: 2
+          script: s
+          statement-id: 2
+          type: SELECT
+          sql: "select * from v"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses:
+            - entity: '256.65536.8589934593'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: DDL
+          entity: '256.65536.8589934593'
+        - from: 0
+          to: 2
+          reason: BARRIER
+        - from: 1
+          to: 2
+          reason: DDL
+          entity: '256.65536.8589934593'
+        - from: 1
+          to: 2
+          reason: BARRIER
+      diagnostics:
+        - node: 2
+          script: s
+          error: false
+          message: view dependencies are not expanded; conservative access barrier
+
+  - name: ExplainUpdateAndMerge
+    catalog: |
+      create table t (a int, b int);
+      create table u (a int, c int);
+    scripts:
+      - name: plain
+        input: |
+          select * from t;
+          explain update t set b = 1;
+          explain merge into t using u on t.a = u.a when matched then update set b = u.c;
+      - name: analyzed
+        input: |
+          explain (analyze) update t set b = 2 returning a;
+          select * from t;
+    expected:
+      valid: true
+      scripts:
+        - name: plain
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 2
+          signature: "fbb1345bd63e8e687865892d0a6dada44b43c5bb21d1d9251666083a22732576"
+        - name: analyzed
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 1
+          signature: "76b3f87dbb97bacbe2cf7fae303047fda2d9807c9f1ef628c209a8cfd51798f4"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+        - catalog-id: '256.65536.4294967297'
+          type: TABLE
+          name: u
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: plain
+          statement-id: 0
+          type: SELECT
+          sql: "select * from t"
+          produces-output: true
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: plain
+          statement-id: 1
+          type: EXPLAIN
+          sql: "explain update t set b = 1"
+          produces-output: true
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 2
+          script: plain
+          statement-id: 2
+          type: EXPLAIN
+          sql: "explain merge into t using u on t.a = u.a when matched then update set b = u.c"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+            - entity: '256.65536.4294967297'
+              mode: READ
+        - id: 3
+          script: analyzed
+          statement-id: 0
+          type: EXPLAIN
+          sql: "explain (analyze) update t set b = 2 returning a"
+          produces-output: true
+          barrier: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 4
+          script: analyzed
+          statement-id: 1
+          type: SELECT
+          sql: "select * from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 3
+          reason: WRITE_AFTER_READ
+          entity: '256.65536.4294967296'
+        - from: 0
+          to: 3
+          reason: BARRIER
+        - from: 1
+          to: 3
+          reason: WRITE_AFTER_READ
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 3
+          reason: BARRIER
+        - from: 2
+          to: 3
+          reason: WRITE_AFTER_READ
+          entity: '256.65536.4294967296'
+        - from: 2
+          to: 3
+          reason: BARRIER
+        - from: 3
+          to: 4
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 3
+          to: 4
+          reason: BARRIER
+      diagnostics:
+        - node: 3
+          script: analyzed
+          error: false
+          message: execution-enabled EXPLAIN with a mutating body cannot be safely classified

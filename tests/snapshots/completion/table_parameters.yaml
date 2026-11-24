@@ -1,0 +1,43 @@
+completion-snapshots:
+
+  - name: param_from_colon
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select * from :
+      catalog-id: 2
+      errors: []
+    cursor:
+      search:
+        text: ':'
+        index: 1
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      entries: []
+      text: ":"
+
+  - name: param_join_name
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select * from t join :fo
+      catalog-id: 2
+      errors: []
+    cursor:
+      search:
+        text: ':fo'
+        index: 3
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      entries: []
+      text: "fo"

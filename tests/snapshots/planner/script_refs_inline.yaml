@@ -2339,3 +2339,1396 @@ planner-snapshots:
           text: ":foo"
           error: true
           message: 'input :foo has no value'
+
+  - name: InlineUpdateSubquery
+    catalog: |
+      create table t (a int, b int);
+    scripts:
+      - name: foo
+        input: |
+          select a, b from t where b > 1;
+      - name: bar
+        input: |
+          update t set b = (select max(b) from :foo) where a in (select a from :foo);
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "c4fad4de9ad3fdc52853f6a3b79e297d8cb4743622accabccb79d3ea2b7d04b8"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "6f6bec1fe9dee5d177cc73d1ac8d23985baa05ce48bb8f5956bad724ac532179"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select a, b from t where b > 1"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: UPDATE
+          sql: |-
+            update t set b = (with foo as (
+            select a, b from t where b > 1
+            )
+            select max(b) from foo) where a in (with foo as (
+            select a, b from t where b > 1
+            )
+            select a from foo)
+          produces-output: false
+          barrier: false
+          inlined-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+      edges:
+        - from: 0
+          to: 1
+          reason: WRITE_AFTER_READ
+          entity: '256.65536.4294967296'
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline
+            - text: ":foo"
+              target: foo
+              kind: inline
+
+  - name: InlineMergeSourceSubquery
+    hyper: skip
+    catalog: |
+      create table t (a int, b int);
+      create table u (a int, c int);
+    scripts:
+      - name: foo
+        input: |
+          select a, c from u where c > 0;
+      - name: bar
+        input: |
+          merge into t using (select * from :foo) s on s.a = t.a when matched then update set b = s.c;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "0039553d9979eb2089bfcd5979cca99217e33985643edbbd4117b3f42c8a726a"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "f79ab5c07d70db532a8048806bdb90584eec3b43eae29d1b4c4b104d4ac3addc"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967297'
+          type: TABLE
+          name: u
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select a, c from u where c > 0"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: MERGE
+          sql: |-
+            merge into t using (with foo as (
+            select a, c from u where c > 0
+            )
+            select * from foo) s on s.a = t.a when matched then update set b = s.c
+          produces-output: false
+          barrier: false
+          inlined-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: READ
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline
+
+  - name: InlineUnion
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: foo
+        input: |
+          select a from t where a > 1;
+      - name: bar
+        input: |
+          select a from t where a < 0;
+      - name: both
+        input: |
+          select a from :foo union all select a from :bar;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "b3cc3cebcb7cf15bb01185c850ac2f3ff247eed398ebd5116dd4561f038ad1ac"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "d973c7794b1eca8605a5c1b9881003ab677acb9b873ffa1441d47283932597e0"
+        - name: both
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "9d57341ae792dd7c8b4f009c9f0469a56e0d8abbcc8df1aafbf8ab2155338151"
+          references: [foo,bar]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select a from t where a > 1"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: "select a from t where a < 0"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 2
+          script: both
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select a from t where a > 1
+            ),
+            bar as (
+            select a from t where a < 0
+            )
+            select a from foo union all select a from bar
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [0,1]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 2
+          script: both
+          text: ":foo"
+          target: foo
+          cte: foo
+        - node: 2
+          script: both
+          text: ":bar"
+          target: bar
+          cte: bar
+      diagnostics: []
+      checked-references:
+        - script: both
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline
+            - text: ":bar"
+              target: bar
+              kind: inline
+
+  - name: InlineLateral
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders where amount > 10;
+      - name: bar
+        input: |
+          select o.id, x.amount from orders o, lateral (select f.amount from :foo f where f.id = o.id) x;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "a1426e02b52d98aaf7d8a582650a9eb3d93fc93cca2c69b409fa5b2300fa9681"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "83c35d7a06dbdcd5aeb99e918098e14894c3d0be21db64de62109560ba3661e5"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id, amount from orders where amount > 10"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id, amount from orders where amount > 10
+            )
+            select o.id, x.amount from orders o, lateral (select f.amount from foo f where f.id = o.id) x
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline
+
+  - name: InlineSameScriptTwice
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          select * from :foo a join :foo b using (id);
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "d6b6398d89bcb9a5e0582cc5770366430fd5e6983c0a023860a52b55afa6066f"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "96ab1475bbc64b7b0c53e394a2b81dd156d639911207d95b4c878dbb2643f14c"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id, amount from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id, amount from orders
+            )
+            select * from foo a join foo b using (id)
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline
+            - text: ":foo"
+              target: foo
+              kind: inline
+
+  - name: InlineIntoView
+    hyper: skip
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          create view big as select * from :foo where amount > 10;
+          select * from big;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "d6b6398d89bcb9a5e0582cc5770366430fd5e6983c0a023860a52b55afa6066f"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "a928f066ae188f0b31c07c86e8300e675795b464867c21fd2da159ca6773c137"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+        - catalog-id: '256.65536.12884901888'
+          type: TABLE
+          name: big
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id, amount from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: CREATE_VIEW
+          sql: |-
+            create view big as with foo as (
+            select id, amount from orders
+            )
+            select * from foo where amount > 10
+          produces-output: false
+          barrier: false
+          inlined-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+            - entity: '256.65536.12884901888'
+              mode: DDL
+        - id: 2
+          script: bar
+          statement-id: 1
+          type: SELECT
+          sql: "select * from big"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses:
+            - entity: '256.65536.12884901888'
+              mode: READ
+      edges:
+        - from: 0
+          to: 2
+          reason: BARRIER
+        - from: 1
+          to: 2
+          reason: DDL
+          entity: '256.65536.12884901888'
+        - from: 1
+          to: 2
+          reason: BARRIER
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics:
+        - node: 2
+          script: bar
+          error: false
+          message: view dependencies are not expanded; conservative access barrier
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline
+
+  - name: InlineIntoInsertOwnTarget
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id + 100 as id, amount from orders;
+      - name: bar
+        input: |
+          insert into orders select * from :foo;
+          select count(*) from orders;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "40737eb489788a0123bf6c21e01f095772cbf04cf664b55c25713d4184a57d81"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "f3f86bac1993df1a96347acaab6bea1271a59d60431af016a0aaf8c4a454d2a0"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id + 100 as id, amount from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: INSERT
+          sql: |-
+            insert into orders with foo as (
+            select id + 100 as id, amount from orders
+            )
+            select * from foo
+          produces-output: false
+          barrier: false
+          inlined-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 2
+          script: bar
+          statement-id: 1
+          type: SELECT
+          sql: "select count(*) from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: WRITE_AFTER_READ
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 2
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline
+
+  - name: InlinedReadsAroundWriter
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: early
+        input: |
+          select count(*) from :foo;
+      - name: load
+        input: |
+          insert into orders values (1, 10);
+      - name: late
+        input: |
+          select count(*) from :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "d6b6398d89bcb9a5e0582cc5770366430fd5e6983c0a023860a52b55afa6066f"
+        - name: early
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "bdad57133fa51f1c18c2308aad31298b8aa77dd43668b7e990ea0c991710e668"
+          references: [foo]
+        - name: load
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "7d45d7a7840cca72cf65a0cbddb785610c81899c5754445f4e9752882f36133f"
+        - name: late
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "bdad57133fa51f1c18c2308aad31298b8aa77dd43668b7e990ea0c991710e668"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: orders
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id, amount from orders"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: early
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id, amount from orders
+            )
+            select count(*) from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 2
+          script: load
+          statement-id: 0
+          type: INSERT
+          sql: "insert into orders values (1, 10)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 3
+          script: late
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id, amount from orders
+            )
+            select count(*) from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 2
+          reason: WRITE_AFTER_READ
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 2
+          reason: WRITE_AFTER_READ
+          entity: '256.65536.4294967296'
+        - from: 2
+          to: 3
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+      references:
+        - node: 1
+          script: early
+          text: ":foo"
+          target: foo
+          cte: foo
+        - node: 3
+          script: late
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+      checked-references:
+        - script: early
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline
+        - script: late
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline
+
+  - name: InlinedReadOfView
+    hyper: skip
+    catalog: |
+      create table base (id int);
+      create view v as select * from base;
+    scripts:
+      - name: foo
+        input: |
+          select id from v;
+      - name: bar
+        input: |
+          select count(*) from :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "b6062e73541b5ac5ce9273e2f30a680430d38c7ecd58a2a5e6000ea1dde62dd2"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "bdad57133fa51f1c18c2308aad31298b8aa77dd43668b7e990ea0c991710e668"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967297'
+          type: TABLE
+          name: v
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id from v"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id from v
+            )
+            select count(*) from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: BARRIER
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics:
+        - node: 0
+          script: foo
+          error: false
+          message: view dependencies are not expanded; conservative access barrier
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline
+
+  - name: InlinedReadOfDroppedTable
+    hyper: skip
+    catalog: |
+      create table t (id int);
+    scripts:
+      - name: foo
+        input: |
+          select id from t;
+      - name: dropper
+        input: |
+          drop table t;
+      - name: bar
+        input: |
+          select count(*) from :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "b7788853197207d4a52495f39ad9b0e533ea7c07b131d8fe52ae5b86ea51ce9b"
+        - name: dropper
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "29e4f410b62fb555cb00e33a49c369c720373fa8f4848c6b9c2983a54a023fdf"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "bdad57133fa51f1c18c2308aad31298b8aa77dd43668b7e990ea0c991710e668"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select id from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: dropper
+          statement-id: 0
+          type: DROP_TABLE
+          sql: "drop table t"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: DDL
+        - id: 2
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select id from t
+            )
+            select count(*) from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: DDL
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 2
+          reason: DDL
+          entity: '256.65536.4294967296'
+      references:
+        - node: 2
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline
+
+  - name: InlinedTableFunction
+    scripts:
+      - name: foo
+        input: |
+          select * from generate_series(1, 3) s(x);
+      - name: bar
+        input: |
+          select count(*) from :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "b2c52da62f94ea8a8e1bf4a924c1981cc5ba526875cad3a712a5cfc5407d8d1f"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "bdad57133fa51f1c18c2308aad31298b8aa77dd43668b7e990ea0c991710e668"
+          references: [foo]
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select * from generate_series(1, 3) s(x)"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses: []
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select * from generate_series(1, 3) s(x)
+            )
+            select count(*) from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [0]
+          accesses: []
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline
+
+  - name: InlinedUnresolvedRelation
+    hyper: skip
+    scripts:
+      - name: foo
+        input: |
+          select * from missing;
+      - name: bar
+        input: |
+          select 1;
+          select count(*) from :foo;
+          select 2;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "cdce64da3d13e2bbc0a75cde1425f1e7673d49137217be5ba2b23b5ccb5f2864"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 2
+          signature: "00f26542ecb0408ff44c1c7aaa913fdef97b5d9aaf4569c63b74e09666a373a6"
+          references: [foo]
+      entities: []
+      unresolved-references:
+        - name: missing
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select * from missing"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses:
+            - unresolved-reference: 0
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: "select 1"
+          produces-output: true
+          barrier: false
+          accesses: []
+        - id: 2
+          script: bar
+          statement-id: 1
+          type: SELECT
+          sql: |-
+            with foo as (
+            select * from missing
+            )
+            select count(*) from foo
+          produces-output: true
+          barrier: true
+          inlined-scripts: [0]
+          accesses:
+            - unresolved-reference: 0
+              mode: READ
+        - id: 3
+          script: bar
+          statement-id: 2
+          type: SELECT
+          sql: "select 2"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses: []
+      edges:
+        - from: 0
+          to: 1
+          reason: BARRIER
+        - from: 0
+          to: 2
+          reason: BARRIER
+        - from: 1
+          to: 2
+          reason: BARRIER
+        - from: 2
+          to: 3
+          reason: BARRIER
+      references:
+        - node: 2
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics:
+        - node: 0
+          script: foo
+          error: false
+          message: 'unresolved relation: missing'
+        - node: 2
+          script: bar
+          error: false
+          message: 'unresolved relation: missing'
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline
+
+  - name: InlinedReadOfLaterProducer
+    hyper: skip
+    scripts:
+      - name: bar
+        input: |
+          select count(*) from :foo;
+      - name: baz
+        input: |
+          create table t (x int);
+      - name: foo
+        input: |
+          select * from t;
+    expected:
+      valid: true
+      scripts:
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "bdad57133fa51f1c18c2308aad31298b8aa77dd43668b7e990ea0c991710e668"
+          references: [foo]
+        - name: baz
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "5176f585ce7254226eb3898f3448f6e401b79727f451223ecae61b767ca9c90d"
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "9fab1e38cd08d2b25d23cb6d5ac07d6cebd82346aaf4d7073e7e49bd25cb4d61"
+      entities:
+        - catalog-id: '256.65536.8589934592'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select * from t
+            )
+            select count(*) from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [2]
+          accesses:
+            - entity: '256.65536.8589934592'
+              mode: READ
+        - id: 1
+          script: baz
+          statement-id: 0
+          type: CREATE_TABLE
+          sql: "create table t (x int)"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.8589934592'
+              mode: DDL
+        - id: 2
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select * from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.8589934592'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: DDL
+          entity: '256.65536.8589934592'
+        - from: 1
+          to: 2
+          reason: DDL
+          entity: '256.65536.8589934592'
+      references:
+        - node: 0
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline
+
+  - name: InlineValuesProducer
+    scripts:
+      - name: foo
+        input: |
+          values (1), (2);
+      - name: bar
+        input: |
+          select * from :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "de557273fd5c50a44da738fa20a9a5db8e7bf0b22e2dcb0593fbde531baaf02a"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "a47b0a7bbff4fc2c3f2f25de44942c990b4d596bee4c3273f5786145f98400de"
+          references: [foo]
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "values (1), (2)"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses: []
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            values (1), (2)
+            )
+            select * from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [0]
+          accesses: []
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline
+
+  - name: ProducerWithEmptyStatements
+    scripts:
+      - name: foo
+        input: |
+          ;
+          select 1 as a;;
+      - name: bar
+        input: |
+          select * from :foo;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "8b3c7bdf652fc96552d8eb2f33530d1c8687865ed525fe22728a23cda4050625"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 1
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "a47b0a7bbff4fc2c3f2f25de44942c990b4d596bee4c3273f5786145f98400de"
+          references: [foo]
+      entities: []
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select 1 as a"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses: []
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select 1 as a
+            )
+            select * from foo
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [0]
+          accesses: []
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline

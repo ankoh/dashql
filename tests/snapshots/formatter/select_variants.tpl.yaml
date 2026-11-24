@@ -172,3 +172,53 @@ formatter-snapshots:
     input: with recursive a(n) as (select 1 union all select n + 1 from a where n < 3) options (identifier_resolution 'case_insensitive') select * from a
     dialects:
       hyper: {}
+
+  # TABLE as a statement
+  - name: coverage_table_statement
+    input: table t
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int);
+
+  # LIMIT and OFFSET take expressions, Hyper takes only constants
+  - name: coverage_limit_offset_expressions
+    input: select a from t order by a limit 10 + 5 offset (select 1)
+    dialects:
+      hyper:
+
+  # OFFSET ... ROWS FETCH ... ONLY is written as LIMIT and OFFSET
+  - name: coverage_offset_fetch_forms
+    input: select a from t offset 10 rows fetch first 5 rows only; select a from t offset 1 row fetch next 1 row only
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int);
+
+  # Star targets that exclude columns
+  - name: coverage_star_exclude
+    input: select * exclude (a, b), t.* exclude c from t
+    dialects:
+      hyper:
+
+  # A CASE with an expression as operand, and a simple CASE nested in a THEN
+  - name: case_operand_expression
+    input: select case (a + b) % 3 when 0 then 'zero' when 1 then 'one' end, case when p then case b when 1 then 2 end end from t
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int, b int, p bool);
+
+  # Subscripts of parenthesized expressions, calls and subqueries
+  - name: coverage_subscript_on_expressions
+    input: select (a || b)[1], (f(x))[1:2], (array[1, 2, 3])[2:], (select array[1])[1], a[i + 1][j] from t
+    dialects:
+      hyper:
+
+  # Interval literals in arithmetic
+  - name: interval_arithmetic
+    input: select interval '1 day' * 2, current_date - interval '7' day, ts + interval '1' hour * n, -interval '1 day' from t
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(ts timestamp, n int);

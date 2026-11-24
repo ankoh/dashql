@@ -18,3 +18,7 @@ trino-progress-snapshots:
   # with an older time, a stage that moves below another one, a stage without id, a poll without time
   - name: handwritten_irregular_polls
     recording: handwritten_irregular_polls
+  # Stages without statistics: a stage that is PENDING after RUNNING has done its work and succeeded, before the
+  # query finishes
+  - name: handwritten_operator_summaries
+    recording: handwritten_operator_summaries

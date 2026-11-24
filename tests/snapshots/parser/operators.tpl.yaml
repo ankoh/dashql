@@ -27,3 +27,7 @@ parser-snapshots:
   - name: nested_expressions
     input: |
       select ((((((((((1 + 2)))))))))), -(-(-(-1))), case when case when a then b end then case c when 1 then case when d then 2 end end end from t
+  # The truth tests IS FALSE and IS NOT TRUE, and postfix operators
+  - name: is_truth_tests_and_postfix_operators
+    input: |
+      select a is false, a is not true, (b !), (c ~~~) from t

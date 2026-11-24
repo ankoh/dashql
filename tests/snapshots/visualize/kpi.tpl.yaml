@@ -61,3 +61,37 @@ visualize-snapshots:
     dashboard:
       width: 3
       height: 3
+
+  # A @board column is moved left by the width of the KPI card, not by the default width of a table
+  - name: kpi_board_column_moved
+    script:
+      input: |
+        /* @vis kpi value=a
+           @board column=11 */
+        SELECT 1 AS a;
+    dashboard:
+      column: 9
+      width: 3
+      height: 3
+
+  # A @board height alone keeps the width of a KPI card
+  - name: kpi_board_height_only
+    script:
+      input: |
+        /* @vis kpi
+           @board height=5 */
+        SELECT 1 AS a;
+    dashboard:
+      width: 3
+      height: 5
+
+  # An unknown kind before the @vis kpi: the KPI card is still the renderer and keeps its size
+  - name: kpi_after_unknown_kind
+    script:
+      input: |
+        /* @vis sparkline value=a
+           @vis kpi value=a chart=bar delta=none */
+        SELECT 1 AS a;
+    dashboard:
+      width: 3
+      height: 3

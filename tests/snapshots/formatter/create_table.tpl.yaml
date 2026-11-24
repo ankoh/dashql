@@ -60,3 +60,9 @@ formatter-snapshots:
     input: create table t ()
     dialects:
       hyper:
+
+  # Long defaults and checks, every column on its own line. Hyper has no check constraints
+  - name: create_table_long_defaults_and_checks
+    input: create table accounts (account_id bigint not null primary key, balance numeric(18, 2) not null default 0 check (balance >= 0 and balance < 1000000000), status text not null default 'active' check (status in ('active', 'frozen', 'closed')), created_at timestamp default current_timestamp)
+    dialects:
+      hyper:

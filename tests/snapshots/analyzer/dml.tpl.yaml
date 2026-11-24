@@ -324,3 +324,62 @@ analyzer-snapshots:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
     script:
       input: merge into t using generate_series(1, t.b) g on true when matched then delete
+
+  # A schema-qualified target, a VALUES source that doesn't see the target, a source that reads the target
+  - name: update_schema_qualified_target
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: update s1.k set b = a where s1.k.a > 0
+
+  - name: insert_values_do_not_see_target
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: insert into t values (a, 1)
+
+  - name: insert_select_from_target
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: insert into t select * from t where t.a > 0
+
+  # A CTE as the source of MERGE, a recursive CTE as the source of INSERT, a CTE doesn't see the target of DELETE
+  - name: merge_with_cte_source
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: with s as (select a, c from u) merge into t using s on t.a = s.a when matched then update set b = s.c
+
+  - name: insert_recursive_cte_source
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: with recursive r(n) as (select 1 union all select n + 1 from r where n < 3) insert into t (a, b) select n, n * 2 from r
+
+  - name: delete_cte_does_not_see_target
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: with c as (select t.a as k) delete from t where a in (select k from c)
+
+  # UPDATE reads its target table again under an alias, without one the name is taken twice
+  - name: update_from_same_table
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: update t set b = t2.a from t as t2 where t.a = t2.b
+
+  - name: update_from_target_name_twice
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: update t set b = 1 from t

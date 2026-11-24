@@ -1141,3 +1141,83 @@ analyzer-snapshots:
         row: 1
         width: 1
         height: 3
+
+  - name: vis_tag_fields_of_a_cte_query
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "k"}, "y": {"field": "a"}, "color": {"field": "b"}}} */
+        with c as (select a as k, b from t) select k, b from c;
+      catalog-id: 2
+      errors:
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'unknown field "a", the statement has the columns b, k', text: "\"a\""}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/cte, text: "c"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "c", text: "k"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.1", source: "c", text: "b"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: none
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: k, expression: 0}
+            - {name: b, expression: 1}
+          text: "select a a.., b from t"
+        - scope-id: 1
+          sources:
+            - {type: cte, name: c, scope: 0, text: "c"}
+          columns:
+            - {name: k, expression: 2}
+            - {name: b, expression: 3}
+          text: "with c as .., b from c"
+      visualizations:
+        - statement-id: 0
+          source: "with c as .., b from c"
+          renderer: vegalite
+          dashboard:
+            width: 6
+            height: 6
+          vegalite: "{\"mark\":\"bar\",\"encoding\":{\"x\":{\"field\":\"k\"},\"y\":{\"field\":\"a\"},\"color\":{\"field\":\"b\"}}}"
+
+  - name: vis_tag_fields_of_a_star
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "a"}, "y": {"field": "c"}, "color": {"field": "z"}}} */
+        select * from t join u using (a);
+      catalog-id: 2
+      errors:
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'unknown field "z", the statement has the columns a, b, c', text: "\"z\""}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+            - {name: c, table-column: "256.65536.1:1.1"}
+          text: "select * f.. using (a)"
+      visualizations:
+        - statement-id: 0
+          source: "select * f.. using (a)"
+          renderer: vegalite
+          dashboard:
+            width: 6
+            height: 6
+          vegalite: "{\"mark\":\"bar\",\"encoding\":{\"x\":{\"field\":\"a\"},\"y\":{\"field\":\"c\"},\"color\":{\"field\":\"z\"}}}"

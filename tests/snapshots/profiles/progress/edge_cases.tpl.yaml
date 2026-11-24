@@ -236,3 +236,40 @@ progress-snapshots:
         {"type":"updateQuery","time":2,"status":"running","stats":{"workDone":0,"workTotal":0,"cpuTimeUs":0}},
         {"type":"updateQuery","time":3,"status":"failed","stats":{"workDone":2,"workTotal":5}}
       ]
+  # A reported pipeline state wins over the rollup of its slots, field by field, and rolls up to the fragment
+  - name: reported_pipeline_state
+    plan: |-
+      {"operator":"executiontarget","operatorId":1,"input":{"operator":"tablescan","operatorId":2},
+       "pipelines":[{"pipelineId":1,"operators":[2,1]}]}
+    events: |-
+      [
+        {"type":"updateSlot","time":1,"slot":0,"status":"running","stats":{"tuplesIn":5,"tuplesOut":5,"cpuTimeUs":10}},
+        {"type":"updateSlot","time":1,"slot":1,"status":"running","stats":{"tuplesIn":5,"tuplesOut":5,"cpuTimeUs":1}},
+        {"type":"updatePipeline","time":2,"pipeline":0,"status":"failed","stats":{"cpuTimeUs":100,"spilledBytes":64}}
+      ]
+  # A fragment takes what its pipelines know and fills the rest from its operators: the slots know the tuples and the
+  # status, an operator report adds the memory that no slot has
+  - name: fragment_pipelines_then_operators
+    plan: |-
+      {"operator":"executiontarget","operatorId":1,"input":{"operator":"map","operatorId":2,"input":{"operator":"tablescan","operatorId":3}},
+       "pipelines":[{"pipelineId":1,"operators":[3,2,1]}]}
+    events: |-
+      [
+        {"type":"updateSlot","time":1,"slot":0,"status":"succeeded","stats":{"tuplesIn":7,"tuplesOut":7}},
+        {"type":"updateSlot","time":1,"slot":1,"status":"running","stats":{"tuplesIn":7,"tuplesOut":7}},
+        {"type":"updateSlot","time":1,"slot":2,"status":"running","stats":{"tuplesIn":7,"tuplesOut":7}},
+        {"type":"updateOperator","time":2,"operator":1,"status":"succeeded","stats":{"memoryBytes":512}}
+      ]
+  # The pipelines of the plan that are no objects are skipped, unknown members are left out, and a pipeline without
+  # known members stays a pipeline without slots and fragment
+  - name: plan_pipelines_with_unknown_members
+    plan: |-
+      {"operator":"executiontarget","operatorId":1,"input":{"operator":"tablescan","operatorId":2},
+       "pipelines":[7,{"pipelineId":1,"operators":[2,99,1]},{"operators":[42]}]}
+    events: |-
+      [
+        {"type":"updateSlot","time":1,"slot":0,"status":"succeeded","stats":{"tuplesOut":3}},
+        {"type":"updateSlot","time":1,"slot":1,"status":"succeeded","stats":{"tuplesIn":3,"tuplesOut":3}},
+        {"type":"updatePipeline","time":2,"pipeline":1,"status":"skipped"},
+        {"type":"updateSlot","time":2,"slot":2,"status":"failed"}
+      ]

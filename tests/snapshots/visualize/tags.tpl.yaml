@@ -144,3 +144,20 @@ visualize-snapshots:
         SELECT 1 AS a;
         /* @vis vegalite {"mark": "line"} */
         SELECT 2 AS a;
+
+  # A tag runs to the end of the comment: text after the JSON makes it malformed, the statement is not visualized
+  - name: tags_text_after_json_invalid
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar"}
+           Revenue per region */
+        SELECT 1 AS a;
+        /* @vis table */
+        SELECT 2 AS b;
+
+  # A VALUES list is a query and is visualized
+  - name: tags_values_statement
+    script:
+      input: |
+        /* @vis table */
+        VALUES (1, 'a'), (2, 'b');

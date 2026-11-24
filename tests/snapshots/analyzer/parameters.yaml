@@ -196,3 +196,172 @@ analyzer-snapshots:
           columns:
             - {name: '?', computed: true}
           text: "select :x"
+
+  - name: parameters_in_limit_and_function_args
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select f(:x), a from t limit :n offset $1
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: function, name: f, text: "f(:x)"}
+      parameters:
+        - {kind: scalar, name: x, text: ":x"}
+        - {kind: scalar, name: n, text: ":n"}
+        - {kind: scalar, name: 1, text: "$1"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: '?', expression: 1}
+            - {name: a, expression: 0}
+          text: "select f(:.. offset $1"
+
+  - name: parameters_in_cte_and_subquery
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: with c as (select * from :src where k = :k) select * from c where exists (select 1 from $1 p where p.id = c.id)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/cte, text: "c"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "k"}
+        - {id: 1, type: colref/unresolved, text: "p.id"}
+        - {id: 2, type: colref/unresolved, text: "c.id"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 3, text: "1"}
+      parameters:
+        - {kind: table, name: src, text: ":src"}
+        - {kind: scalar, name: k, text: ":k"}
+        - {kind: table, name: 1, text: "$1"}
+      name-scopes:
+        - scope-id: 1
+          parent: 2
+          columns:
+            - {name: '?', expression: 3}
+          text: "(select 1 ..id = c.id)"
+        - scope-id: 2
+          sources:
+            - {type: cte, name: c, scope: 0, text: "c"}
+          text: "with c as ..id = c.id)"
+
+  - name: parameters_param_tag_literal_forms
+    script:
+      input: |-
+        /* @param :neg = -5
+           @param :ratio = 1.25
+           @param :flag = true
+           @param :off = false
+           @param :nothing = null
+           @param :quote = 'it''s'
+           @param :ts = timestamp '2024-01-01 10:00:00'
+           @param :num = cast('7' as int)
+           @param :typed = '2024-01-01'::date
+           @param :dollar = $$x$$
+           @param :badspan = interval 'abc' day
+           @param :expr = 1 + 2 */
+        select :neg, :ratio, :flag, :off, :nothing, :quote, :ts, :num, :typed, :dollar, :badspan, :expr
+      catalog-id: 1
+      errors:
+        - {type: INVALID_PARAM_TAG, severity: WARNING, message: 'cast(''7'' as int) is no literal, a literal is a number, a string, true, false, null, or a typed literal like date ''2024-01-01'' or interval ''3'' day', text: "cast('7' as int)"}
+        - {type: INVALID_PARAM_TAG, severity: WARNING, message: '''2024-01-01''::date is no literal, a literal is a number, a string, true, false, null, or a typed literal like date ''2024-01-01'' or interval ''3'' day', text: "'2024-01-01'::date"}
+        - {type: INVALID_PARAM_TAG, severity: WARNING, message: '$$x$$ is no plain string, a literal is a number, a string, true, false, null, or a typed literal like date ''2024-01-01'' or interval ''3'' day', text: "$$x$$"}
+        - {type: INVALID_PARAM_TAG, severity: WARNING, message: 'interval ''abc'' day is no interval literal, an interval is a number and a unit, e.g. interval ''3'' day, a literal is a number, a string, true, false, null, or a typed literal like date ''2024-01-01'' or interval ''3'' day', text: "interval 'abc' day"}
+        - {type: INVALID_PARAM_TAG, severity: WARNING, message: '1 + 2 is no literal, a literal is a number, a string, true, false, null, or a typed literal like date ''2024-01-01'' or interval ''3'' day', text: "1 + 2"}
+      parameters:
+        - {kind: scalar, name: neg, text: ":neg"}
+        - {kind: scalar, name: ratio, text: ":ratio"}
+        - {kind: scalar, name: flag, text: ":flag"}
+        - {kind: scalar, name: off, text: ":off"}
+        - {kind: scalar, name: nothing, text: ":nothing"}
+        - {kind: scalar, name: quote, text: ":quote"}
+        - {kind: scalar, name: ts, text: ":ts"}
+        - {kind: scalar, name: num, text: ":num"}
+        - {kind: scalar, name: typed, text: ":typed"}
+        - {kind: scalar, name: dollar, text: ":dollar"}
+        - {kind: scalar, name: badspan, text: ":badspan"}
+        - {kind: scalar, name: expr, text: ":expr"}
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+          text: "select :ne..pan, :expr"
+      param-values:
+        - {name: neg, value: "-5", statement-id: 0}
+        - {name: ratio, value: "1.25", statement-id: 0}
+        - {name: flag, value: "true", statement-id: 0}
+        - {name: off, value: "false", statement-id: 0}
+        - {name: nothing, value: "null", statement-id: 0}
+        - {name: quote, value: "'it''s'", statement-id: 0}
+        - {name: ts, value: "timestamp '2024-01-01 10:00:00'", statement-id: 0}
+        - {name: num, statement-id: 0}
+        - {name: typed, statement-id: 0}
+        - {name: dollar, statement-id: 0}
+        - {name: badspan, statement-id: 0}
+        - {name: expr, statement-id: 0}
+
+  - name: parameters_param_tag_unused_and_quoted_names
+    script:
+      input: |-
+        /* @param :unused = 1
+           @param :"Mixed Case" = 'x'
+           @param :mixed = 2 */
+        select :"Mixed Case", :mixed
+      catalog-id: 1
+      errors: []
+      parameters:
+        - {kind: scalar, name: Mixed Case, text: ":\"Mixed Case\""}
+        - {kind: scalar, name: mixed, text: ":mixed"}
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+          text: "select :\"M..e\", :mixed"
+      param-values:
+        - {name: unused, value: "1", statement-id: 0}
+        - {name: Mixed Case, value: "'x'", statement-id: 0}
+        - {name: mixed, value: "2", statement-id: 0}
+
+  - name: parameters_param_tag_legacy_end
+    script:
+      input: |-
+        -- @param :year = 2024
+        -- @end
+        /* @end */
+        select :year
+      catalog-id: 1
+      errors:
+        - {type: MALFORMED_COMMENT_TAG, severity: WARNING, message: '@end without an opening tag', text: "@end"}
+      parameters:
+        - {kind: scalar, name: year, text: ":year"}
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - {name: '?', computed: true}
+          text: "select :year"
+      param-values:
+        - {name: year, value: "2024", statement-id: 0}

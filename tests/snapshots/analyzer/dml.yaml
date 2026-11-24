@@ -1517,3 +1517,282 @@ analyzer-snapshots:
             - {type: table, name: t, text: "t"}
             - {type: subquery, name: g, scope: 0, text: "generate_s..(1, t.b) g"}
           text: "merge into..hen delete"
+
+  - name: update_schema_qualified_target
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        errors: []
+    script:
+      input: update s1.k set b = a where s1.k.a > 0
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65537.1:4", role: write, text: "s1.k"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65537.1:4.0", source: "s1.k", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65537.1:4.0", source: "s1.k", text: "s1.k.a"}
+        - {id: 2, type: colref/catalog, catalog: "256.65537.1:4.1", source: "s1.k", text: "b"}
+        - {id: 3, type: literal/integer, is-const: true, text: "0"}
+      constants:
+        - {expression: 3, text: "0"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: k, text: "s1.k"}
+          text: "update s1...s1.k.a > 0"
+
+  - name: insert_values_do_not_see_target
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: insert into t values (a, 1)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      inserts:
+        - target-ref: 0
+          source: "values (a, 1)"
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "a"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 1, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          correlation-barrier: true
+          columns:
+            - {name: '?', expression: 0}
+            - {name: '?', expression: 1}
+          text: "values (a, 1)"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+          text: "insert int..ues (a, 1)"
+
+  - name: insert_select_from_target
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: insert into t select * from t where t.a > 0
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      inserts:
+        - target-ref: 1
+          source: "select * f..re t.a > 0"
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 1, type: literal/integer, is-const: true, text: "0"}
+      constants:
+        - {expression: 1, text: "0"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          correlation-barrier: true
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+          text: "select * f..re t.a > 0"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+          text: "insert int..re t.a > 0"
+
+  - name: merge_with_cte_source
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: with s as (select a, c from u) merge into t using s on t.a = s.a when matched then update set b = s.c
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+        - {type: name/cte, text: "s"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:1.0", source: "s", text: "s.a"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:1.1", source: "s", text: "s.c"}
+        - {id: 5, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: none
+          correlation-barrier: true
+          sources:
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: a, expression: 0}
+            - {name: c, expression: 1}
+          text: "select a, c from u"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: cte, name: s, scope: 0, text: "s"}
+          text: "with s as ..et b = s.c"
+
+  - name: insert_recursive_cte_source
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: with recursive r(n) as (select 1 union all select n + 1 from r where n < 3) insert into t (a, b) select n, n * 2 from r
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/cte, text: "r"}
+        - {type: name/cte, text: "r"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      inserts:
+        - target-ref: 2
+          source: "select n, ..* 2 from r"
+          columns:
+            - {name: a, resolved: true}
+            - {name: b, resolved: true}
+      expressions:
+        - {id: 0, type: colref/local, scope: 2, column: 0, source: "r", text: "n"}
+        - {id: 1, type: colref/local, scope: 2, column: 0, source: "r", text: "n"}
+        - {id: 2, type: colref/local, scope: 2, column: 0, source: "r", text: "n"}
+        - {id: 3, type: colref/local, scope: 2, column: 0, source: "r", text: "n"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+        - {id: 5, type: literal/integer, is-const: true, text: "1"}
+        - {id: 6, type: literal/integer, is-const: true, text: "3"}
+        - {id: 7, type: literal/integer, is-const: true, text: "2"}
+      constants:
+        - {expression: 4, text: "1"}
+        - {expression: 5, text: "1"}
+        - {expression: 6, text: "3"}
+        - {expression: 7, text: "2"}
+      name-scopes:
+        - scope-id: 0
+          parent: 2
+          columns:
+            - {name: '?', expression: 4}
+          text: "select 1"
+        - scope-id: 1
+          parent: 2
+          sources:
+            - {type: cte, name: r, scope: 2, text: "r"}
+          columns:
+            - {name: '?', computed: true}
+          text: "select n +..here n < 3"
+        - scope-id: 2
+          parent: 4
+          parent-sources: none
+          correlation-barrier: true
+          columns:
+            - {name: '?', expression: 4}
+          text: "select 1 u..here n < 3"
+        - scope-id: 3
+          parent: 4
+          correlation-barrier: true
+          sources:
+            - {type: cte, name: r, scope: 2, text: "r"}
+          columns:
+            - {name: n, expression: 2}
+            - {name: '?', computed: true}
+          text: "select n, ..* 2 from r"
+        - scope-id: 4
+          sources:
+            - {type: table, name: t, text: "t"}
+          text: "with recur..* 2 from r"
+
+  - name: delete_cte_does_not_see_target
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: with c as (select t.a as k) delete from t where a in (select k from c)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/cte, text: "c"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "t.a"}
+        - {id: 1, type: colref/local, scope: 0, column: 0, source: "c", text: "k"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+      name-scopes:
+        - scope-id: 0
+          parent: 2
+          parent-sources: none
+          correlation-barrier: true
+          columns:
+            - {name: k, expression: 0}
+          text: "select t.a as k"
+        - scope-id: 1
+          parent: 2
+          sources:
+            - {type: cte, name: c, scope: 0, text: "c"}
+          columns:
+            - {name: k, expression: 1}
+          text: "(select k from c)"
+        - scope-id: 2
+          sources:
+            - {type: table, name: t, text: "t"}
+          text: "with c as .. k from c)"
+
+  - name: update_from_same_table
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: update t set b = t2.a from t as t2 where t.a = t2.b
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t as t2"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t as t2", text: "t2.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t as t2", text: "t2.b"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t2, text: "t as t2"}
+            - {type: table, name: t, text: "t"}
+          text: "update t s..t.a = t2.b"
+
+  - name: update_from_target_name_twice
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: update t set b = 1 from t
+      catalog-id: 2
+      errors:
+        - {type: DUPLICATE_TABLE_ALIAS, message: duplicate table alias t, text: "t"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "b"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 1, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          text: "update t s..= 1 from t"

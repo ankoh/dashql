@@ -1,0 +1,128 @@
+completion-snapshots:
+  # A column in three tables in scope has an object per table, each qualified
+  - name: amb_three_tables
+    catalog:
+      script:
+        input: |-
+          create table t (id int); create table u (id int); create table w (id int);
+    editor:
+      input: |-
+        select i from t, u, w
+    cursor:
+      search:
+        text: 'i '
+        index: 1
+    completions:
+      limit: 5
+
+  # A column in scope ranks above a function with the same prefix
+  - name: amb_function_and_column
+    catalog:
+      script:
+        input: |-
+          create table t (sum_a int); create function sum_all(x int) returns int;
+    editor:
+      input: |-
+        select sum from t
+    cursor:
+      search:
+        text: 'sum'
+        index: 3
+    completions:
+      limit: 5
+
+  # A column of a table of a schema is qualified with the schema and the table
+  - name: amb_qualify_schema_table
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a1 int);
+    editor:
+      input: |-
+        select a from sch.t
+    cursor:
+      search:
+        text: 'select a'
+        index: 8
+    completions:
+      limit: 5
+
+  # A column of a table of another database is qualified with the database, the schema and the table
+  - name: amb_qualify_database_table
+    catalog:
+      script:
+        input: |-
+          create table db.sch.t (a1 int);
+    editor:
+      input: |-
+        select a from db.sch.t
+    cursor:
+      search:
+        text: 'select a'
+        index: 8
+    completions:
+      limit: 5
+
+  # A CTE with the name of a catalog table is a table in its scope, without the objects of the catalog table
+  - name: amb_cte_shadows_catalog_table
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with t as (select 1 as x) select * from t
+    cursor:
+      search:
+        text: 'from t'
+        index: 6
+    completions:
+      limit: 5
+
+  # The columns of a catalog table that a CTE shadows are no columns in scope
+  - name: amb_cte_shadows_catalog_columns
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with t as (select 1 as x) select na from t
+    cursor:
+      search:
+        text: 'na'
+        index: 2
+    completions:
+      limit: 5
+
+  # An underscore matches as a prefix and as a substring
+  - name: amb_underscore_prefix
+    catalog:
+      script:
+        input: |-
+          create table t (_id int, id_x int, x_id int);
+    editor:
+      input: |-
+        select _ from t
+    cursor:
+      search:
+        text: '_ '
+        index: 1
+    completions:
+      limit: 5
+
+  # A limit of zero completes no candidates
+  - name: amb_limit_zero
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select na from t
+    cursor:
+      search:
+        text: 'na'
+        index: 2
+    completions:
+      limit: 0

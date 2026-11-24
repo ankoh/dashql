@@ -1,0 +1,239 @@
+completion-snapshots:
+  # UNION after the FROM item of the first branch, it outranks the alias
+  - name: stmt_union_keyword
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a from t uni
+    cursor:
+      search:
+        text: 'uni'
+        index: 3
+    completions:
+      limit: 5
+
+  # After UNION the hints are SELECT and the set quantifiers
+  - name: stmt_union_passive
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: 'select a from t union '
+    cursor:
+      search:
+        text: 'union '
+        index: 6
+    completions:
+      limit: 5
+
+  # The second branch of a UNION sees only its own FROM items, the columns of the first are no columns in scope
+  - name: stmt_union_branch_scope
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a from t union all select na from u
+    cursor:
+      search:
+        text: 'select na'
+        index: 9
+    completions:
+      limit: 5
+
+  # ELSE in a CASE after a THEN result, END follows
+  - name: stmt_case_else
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select case when a = 1 then b el from t
+    cursor:
+      search:
+        text: ' el'
+        index: 3
+    completions:
+      limit: 5
+
+  # NOT and NULL after IS
+  - name: stmt_is_null
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t where a is n
+    cursor:
+      search:
+        text: 'is n'
+        index: 4
+    completions:
+      limit: 5
+
+  # AND after the lower bound of a BETWEEN
+  - name: stmt_between_and
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t where a between 1 a
+    cursor:
+      search:
+        text: '1 a'
+        index: 3
+    completions:
+      limit: 5
+
+  # OFFSET after a LIMIT
+  - name: stmt_limit_offset
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t limit 10 off
+    cursor:
+      search:
+        text: 'off'
+        index: 3
+    completions:
+      limit: 5
+
+  # A column in the query of a CREATE VIEW
+  - name: stmt_create_view_column
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        create view w as select na from t
+    cursor:
+      search:
+        text: 'na'
+        index: 2
+    completions:
+      limit: 5
+
+  # A table after DROP TABLE
+  - name: stmt_drop_table_name
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        drop table u
+    cursor:
+      search:
+        text: 'table u'
+        index: 7
+    completions:
+      limit: 5
+
+  # OUTER after LEFT continues with JOIN
+  - name: stmt_left_outer_join
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t left ou
+    cursor:
+      search:
+        text: 'ou'
+        index: 2
+    completions:
+      limit: 5
+
+  # WHEN after the condition of a MERGE
+  - name: stmt_merge_when
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        merge into t using u on t.a = u.a wh
+    cursor:
+      search:
+        text: ' wh'
+        index: 3
+    completions:
+      limit: 5
+
+  # SETS after GROUPING in a GROUP BY
+  - name: stmt_grouping_sets
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a from t group by grouping s
+    cursor:
+      search:
+        text: 'grouping s'
+        index: 10
+    completions:
+      limit: 5
+
+  # DELETE at the start of a statement continues with FROM
+  - name: stmt_delete_continuation
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        dele
+    cursor:
+      search:
+        text: 'dele'
+        index: 4
+    completions:
+      limit: 5
+
+  # UNBOUNDED in the frame of a window continues with PRECEDING
+  - name: stmt_rows_unbounded_preceding
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select sum(a) over (order by a rows unb) from t
+    cursor:
+      search:
+        text: 'unb'
+        index: 3
+    completions:
+      limit: 5
+
+  # A column in the FILTER clause of an aggregate
+  - name: stmt_filter_where_column
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select count(*) filter (where na) from t
+    cursor:
+      search:
+        text: 'na'
+        index: 2
+    completions:
+      limit: 5

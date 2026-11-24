@@ -732,3 +732,87 @@ dataflow-snapshots:
           kind: invalid
           name: all_orders
           route: [[280,56],[424,56]]
+
+  - name: ScriptThatDoesNotParse
+    scripts:
+      - name: broken
+        input: |
+          select from where 1;
+      - name: after
+        input: |
+          select * from :broken;
+    expected:
+      scripts:
+        - name: broken
+          statements:
+            - type: SELECT
+              text: "select from where 1"
+          box: [0,0,280,80]
+        - name: after
+          statements:
+            - type: SELECT
+              text: "select * f..om :broken"
+          box: [424,0,280,80]
+      edges:
+        - from: broken.0
+          to: after.0
+          kind: invalid
+          name: broken
+          route: [[280,56],[424,56]]
+
+  - name: ClientFunctionCalls
+    client_functions: tickets
+    connections:
+      - name: d360
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: listed
+        connection: d360
+        input: |
+          /* @param :project = 'OPS' */
+          call tickets.ticket_list (project => :project);
+      - name: counted
+        connection: local
+        input: |
+          select count(*) from :listed;
+      - name: deleted
+        connection: d360
+        input: |
+          call tickets.ticket_delete (id => 1);
+    expected:
+      scripts:
+        - name: listed
+          statements:
+            - type: CALL
+              text: "call ticke.. :project)"
+          box: [344,0,280,80]
+        - name: counted
+          statements:
+            - type: SELECT
+              text: "select cou..om :listed"
+          box: [768,0,280,80]
+        - name: deleted
+          statements:
+            - type: CALL
+              text: "call ticke.. (id => 1)"
+          manual: true
+          box: [0,176,280,80]
+      inputs:
+        - name: project
+          type: "text"
+          cast: false
+          value: "'OPS'"
+          box: [0,0,200,80]
+      edges:
+        - from: ":project"
+          to: listed.0
+          kind: input
+          name: project
+          route: [[200,56],[344,56]]
+        - from: listed.0
+          to: counted.0
+          kind: scan
+          name: listed
+          route: [[624,56],[768,56]]

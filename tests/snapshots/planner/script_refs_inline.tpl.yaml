@@ -348,3 +348,202 @@ planner-snapshots:
       - name: bar
         input: |
           select * from orders where amount > :foo;
+
+  # References in subqueries of an UPDATE take the common table expressions in the subqueries
+  - name: InlineUpdateSubquery
+    catalog: |
+      create table t (a int, b int);
+    scripts:
+      - name: foo
+        input: |
+          select a, b from t where b > 1;
+      - name: bar
+        input: |
+          update t set b = (select max(b) from :foo) where a in (select a from :foo);
+
+  # A reference in the source query of a MERGE takes the common table expression in the query
+  - name: InlineMergeSourceSubquery
+    hyper: skip
+    catalog: |
+      create table t (a int, b int);
+      create table u (a int, c int);
+    scripts:
+      - name: foo
+        input: |
+          select a, c from u where c > 0;
+      - name: bar
+        input: |
+          merge into t using (select * from :foo) s on s.a = t.a when matched then update set b = s.c;
+
+  # The branches of a set operation share the common table expressions before it
+  - name: InlineUnion
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: foo
+        input: |
+          select a from t where a > 1;
+      - name: bar
+        input: |
+          select a from t where a < 0;
+      - name: both
+        input: |
+          select a from :foo union all select a from :bar;
+
+  # A reference in a LATERAL subquery goes into the outermost SELECT
+  - name: InlineLateral
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders where amount > 10;
+      - name: bar
+        input: |
+          select o.id, x.amount from orders o, lateral (select f.amount from :foo f where f.id = o.id) x;
+
+  # Two references to one script are one common table expression
+  - name: InlineSameScriptTwice
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          select * from :foo a join :foo b using (id);
+
+  # A CREATE VIEW inlines the query, the view reads the relations of the query
+  - name: InlineIntoView
+    hyper: skip
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: bar
+        input: |
+          create view big as select * from :foo where amount > 10;
+          select * from big;
+
+  # An INSERT that reads its own target through an inlined query has one WRITE access and no self edge
+  - name: InlineIntoInsertOwnTarget
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id + 100 as id, amount from orders;
+      - name: bar
+        input: |
+          insert into orders select * from :foo;
+          select count(*) from orders;
+
+  # The inherited reads of two consumers take part in the timeline: one before a write and one after it
+  - name: InlinedReadsAroundWriter
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: foo
+        input: |
+          select id, amount from orders;
+      - name: early
+        input: |
+          select count(*) from :foo;
+      - name: load
+        input: |
+          insert into orders values (1, 10);
+      - name: late
+        input: |
+          select count(*) from :foo;
+
+  # A view that the inlined query reads is a READ of the consumer but no barrier of it
+  - name: InlinedReadOfView
+    hyper: skip
+    catalog: |
+      create table base (id int);
+      create view v as select * from base;
+    scripts:
+      - name: foo
+        input: |
+          select id from v;
+      - name: bar
+        input: |
+          select count(*) from :foo;
+
+  # A dropped table that the inlined query reads is not diagnosed in the consumer
+  - name: InlinedReadOfDroppedTable
+    hyper: skip
+    catalog: |
+      create table t (id int);
+    scripts:
+      - name: foo
+        input: |
+          select id from t;
+      - name: dropper
+        input: |
+          drop table t;
+      - name: bar
+        input: |
+          select count(*) from :foo;
+
+  # A table function of the inlined query is no access of the consumer
+  - name: InlinedTableFunction
+    scripts:
+      - name: foo
+        input: |
+          select * from generate_series(1, 3) s(x);
+      - name: bar
+        input: |
+          select count(*) from :foo;
+
+  # An unresolved relation of the inlined query makes the consumer a barrier
+  - name: InlinedUnresolvedRelation
+    hyper: skip
+    scripts:
+      - name: foo
+        input: |
+          select * from missing;
+      - name: bar
+        input: |
+          select 1;
+          select count(*) from :foo;
+          select 2;
+
+  # An inlined query below its consumer reads a table that a script between them creates: the consumer reads it
+  # before the CREATE, without a diagnostic
+  - name: InlinedReadOfLaterProducer
+    hyper: skip
+    scripts:
+      - name: bar
+        input: |
+          select count(*) from :foo;
+      - name: baz
+        input: |
+          create table t (x int);
+      - name: foo
+        input: |
+          select * from t;
+
+  # A VALUES statement is a query that a reference inlines
+  - name: InlineValuesProducer
+    scripts:
+      - name: foo
+        input: |
+          values (1), (2);
+      - name: bar
+        input: |
+          select * from :foo;
+
+  # Empty statements don't count, the referenced script is a single SELECT
+  - name: ProducerWithEmptyStatements
+    scripts:
+      - name: foo
+        input: |
+          ;
+          select 1 as a;;
+      - name: bar
+        input: |
+          select * from :foo;

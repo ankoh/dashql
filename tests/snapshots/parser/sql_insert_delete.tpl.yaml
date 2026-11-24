@@ -40,3 +40,11 @@ parser-snapshots:
   - name: insert_on_conflict_on_constraint
     input: |
       with src as (select 1 as a) insert into t select a from src join u on src.a = u.a on conflict on constraint t_pkey do nothing
+  # UPDATE of an aliased table with FROM and WHERE
+  - name: update_from_where
+    input: |
+      update t as x set a = u.a, b = default from u, v where x.id = u.id and u.id = v.id returning x.a
+  # MERGE with conditions on the WHEN clauses, DO NOTHING and RETURNING
+  - name: merge_conditions_do_nothing_returning
+    input: |
+      merge into t as x using u on x.id = u.id when matched and u.deleted then delete when matched then do nothing when not matched by source and x.a > 0 then update set a = 0 when not matched by target and u.a is not null then insert (a) values (u.a) when not matched then do nothing returning *

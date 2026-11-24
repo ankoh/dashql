@@ -11,3 +11,23 @@ parser-snapshots:
   - name: func_restrict_time_minus_interval
     input: |
       select * from foo where event_timestamp > current_timestamp - interval '30 days'
+  # VARIADIC arguments, ALL before the arguments, DISTINCT with ABSENT ON NULL
+  - name: func_variadic_all_distinct
+    input: |
+      select f(variadic array[1, 2]), f(1, variadic array[2] order by a), count(all a), json_arrayagg(distinct a absent on null) from t
+  # OVERLAY with FOR, SUBSTRING with SIMILAR and ESCAPE, COLLATION FOR
+  - name: func_overlay_substring_collation_for
+    input: |
+      select overlay('abcdef' placing 'xy' from 2 for 3), substring('abc' similar 'a#"b#"c' escape '#'), collation for (a) from t
+  # CAST with OR NULL, GREATEST and LEAST with PRESERVE NULLS, the extra arguments of EXTRACT and POSITION
+  - name: func_hyper_argument_clauses
+    input: |
+      select cast('x' as integer or null), greatest(preserve nulls 1, null), least(preserve nulls 2, null), extract(year from d, 'iso'), position('a' in 'abc', 'en_US') from t
+  # EXTRACT of the month and the time fields
+  - name: func_extract_time_fields
+    input: |
+      select extract(month from d), extract(hour from d), extract(minute from d), extract(second from d) from t
+  # A typed literal whose type name takes arguments with an ORDER BY
+  - name: func_typed_literal_with_ordered_arguments
+    input: |
+      select f(1, 2 order by a) 'text'

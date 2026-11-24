@@ -106,3 +106,33 @@ formatter-snapshots:
           setup: |-
             create table a(x int);
             create table b(x int);
+
+  # Long join conditions, the joins break before the condition does
+  - name: join_long_conditions
+    input: select * from orders o join order_items i on i.order_id = o.order_id and i.tenant_id = o.tenant_id and i.deleted_at is null left join products p on p.product_id = i.product_id and p.tenant_id = i.tenant_id
+    dialects:
+      hyper:
+        validation:
+          setup: |-
+            create table orders(order_id int, tenant_id int);
+            create table order_items(order_id int, tenant_id int, product_id int, deleted_at date);
+            create table products(product_id int, tenant_id int);
+
+  # A parenthesized join as the right side of a join is written without its parentheses, its ON binds first
+  - name: join_parenthesized_right_side
+    input: select * from a join (b join c on b.x = c.x) on a.x = b.x left join (d cross join e) on d.y = a.y
+    dialects:
+      hyper:
+        validation:
+          setup: |-
+            create table a(x int, y int);
+            create table b(x int);
+            create table c(x int);
+            create table d(y int);
+            create table e(z int);
+
+  # Lateral subqueries and functions in a join chain
+  - name: join_lateral_chain
+    input: select * from customers c cross join lateral (select * from orders o where o.customer_id = c.id order by o.created_at desc limit 3) recent left join lateral unnest(c.tags) tag on true
+    dialects:
+      hyper:

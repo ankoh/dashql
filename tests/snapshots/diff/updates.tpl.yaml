@@ -62,3 +62,108 @@ diff-snapshots:
 
     target: |
       select distinct a, b, c, d, e, f from t where x = 1;
+
+  # Two changed nodes that touch in the text are coalesced into one change span
+  - name: update_adjacent_changes_coalesced
+    source: |
+      select a, b, c, d, e, f from t where x>1;
+
+    target: |
+      select a, b, c, d, e, f from t where y<1;
+
+  # The sort direction changes: the enum of the order is the change
+  - name: update_order_direction_changed
+    source: |
+      select a, b, c, d, e, f from t order by a asc;
+
+    target: |
+      select a, b, c, d, e, f from t order by a desc;
+
+  # An inner join becomes a left join
+  - name: update_join_type_changed
+    source: |
+      select a, b, c, d, e, f, g, h from t join u on t.id = u.id;
+
+    target: |
+      select a, b, c, d, e, f, g, h from t left join u on t.id = u.id;
+
+  # The table of the from clause is renamed
+  - name: update_table_renamed
+    source: |
+      select a, b, c, d, e, f from orders where x = 1;
+
+    target: |
+      select a, b, c, d, e, f from orders_v2 where x = 1;
+
+  # The alias of an output column is renamed
+  - name: update_alias_renamed
+    source: |
+      select a, b, c, d, e, sum(x) as total from t group by a, b, c, d, e;
+
+    target: |
+      select a, b, c, d, e, sum(x) as revenue from t group by a, b, c, d, e;
+
+  # Literals compare by their text: the same number written with another scale is a change
+  - name: update_float_literal_rescaled
+    source: |
+      select a, b, c, d, e, f from t where x = 1.0;
+
+    target: |
+      select a, b, c, d, e, f from t where x = 1.00;
+
+  # An interval literal changes
+  - name: update_interval_literal
+    source: |
+      select a, b, c, d, e, f from t where ts > now() - interval '1 day';
+
+    target: |
+      select a, b, c, d, e, f from t where ts > now() - interval '7 days';
+
+  # A boolean literal changes
+  - name: update_boolean_literal
+    source: |
+      select a, b, c, d, e, f from t where active = true;
+
+    target: |
+      select a, b, c, d, e, f from t where active = false;
+
+  # Non-ASCII text before the change: the change span is in bytes of the target and still covers the literal
+  - name: update_after_multibyte_text
+    source: |
+      select 'Grüße', 'naïve', '日本', a, b, c from t where x = 1;
+
+    target: |
+      select 'Grüße', 'naïve', '日本', a, b, c from t where x = 2;
+
+  # A change in an argument of nested function calls
+  - name: update_nested_function_argument
+    source: |
+      select a, b, c, round(avg(price * (1 - discount)), 2) from t group by a, b, c;
+
+    target: |
+      select a, b, c, round(avg(price * (1 - tax)), 2) from t group by a, b, c;
+
+  # A changed branch of a case expression
+  - name: update_case_branch
+    source: |
+      select a, b, c, d, case when x > 0 then 'pos' else 'neg' end from t;
+
+    target: |
+      select a, b, c, d, case when x > 0 then 'pos' else 'zero' end from t;
+
+  # A column inserted in the middle of a select list: list items compare by position, so every shifted column and
+  # the last one are changes
+  - name: update_column_inserted_in_middle
+    source: |
+      select a, b, c, d, e, f, g, h from t where x = 1 and y = 2 and z = 3;
+
+    target: |
+      select a, n, b, c, d, e, f, g, h from t where x = 1 and y = 2 and z = 3;
+
+  # A union becomes a union all
+  - name: update_union_all
+    source: |
+      select a, b, c, d from t union select a, b, c, d from u;
+
+    target: |
+      select a, b, c, d from t union all select a, b, c, d from u;

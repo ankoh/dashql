@@ -43,3 +43,56 @@ analyzer-snapshots:
          * @param x the value
          */
         select :x
+
+  # Scalar parameters in function arguments, LIMIT and OFFSET
+  - name: parameters_in_limit_and_function_args
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select f(:x), a from t limit :n offset $1
+
+  # Table parameters without results in a CTE and a correlated subquery, their columns stay unresolved
+  - name: parameters_in_cte_and_subquery
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: with c as (select * from :src where k = :k) select * from c where exists (select 1 from $1 p where p.id = c.id)
+
+  # The literal forms of @param tags: numbers, booleans, null, strings and typed literals. Casts, dollar-quoted strings,
+  # intervals without a number and expressions are warnings and leave the input unset
+  - name: parameters_param_tag_literal_forms
+    script:
+      input: |-
+        /* @param :neg = -5
+           @param :ratio = 1.25
+           @param :flag = true
+           @param :off = false
+           @param :nothing = null
+           @param :quote = 'it''s'
+           @param :ts = timestamp '2024-01-01 10:00:00'
+           @param :num = cast('7' as int)
+           @param :typed = '2024-01-01'::date
+           @param :dollar = $$x$$
+           @param :badspan = interval 'abc' day
+           @param :expr = 1 + 2 */
+        select :neg, :ratio, :flag, :off, :nothing, :quote, :ts, :num, :typed, :dollar, :badspan, :expr
+
+  # A tag of a parameter that the script doesn't use still has its value, a quoted name keeps its case
+  - name: parameters_param_tag_unused_and_quoted_names
+    script:
+      input: |-
+        /* @param :unused = 1
+           @param :"Mixed Case" = 'x'
+           @param :mixed = 2 */
+        select :"Mixed Case", :mixed
+
+  # An @end closes a run of line comments of older scripts, one without an opening tag is a warning
+  - name: parameters_param_tag_legacy_end
+    script:
+      input: |-
+        -- @param :year = 2024
+        -- @end
+        /* @end */
+        select :year

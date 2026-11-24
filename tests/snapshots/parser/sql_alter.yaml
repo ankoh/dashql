@@ -846,3 +846,403 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: alter_table_constraints
+    input: |-
+      alter table only t add constraint t_pk primary key (a);
+      alter table t add assumed unique (b);
+      alter table t drop constraint if exists t_pk cascade;
+      alter table t drop constraint c restrict;
+      alter table t rename constraint c to d
+    expected:
+      statements:
+        - type: ALTER_TABLE
+          ast-begin: 0
+          ast-size: 11
+          description:
+            text: "alter tabl..y key (a);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_TABLE
+            text: "alter tabl..ry key (a)"
+            children:
+              - key: SQL_ALTER_TABLE_ONLY
+                type: BOOL
+                value: 1
+              - key: SQL_ALTER_TABLE_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_ALTER_TABLE_ACTIONS
+                type: ARRAY
+                text: "add constr..ry key (a)"
+                children:
+                  - type: OBJECT_SQL_ALTER_ADD_CONSTRAINT
+                    text: "add constr..ry key (a)"
+                    children:
+                      - key: SQL_ALTER_ACTION_CONSTRAINT
+                        type: OBJECT_SQL_TABLE_CONSTRAINT
+                        text: "constraint..ry key (a)"
+                        children:
+                          - key: SQL_TABLE_CONSTRAINT_TYPE
+                            type: ENUM_SQL_TABLE_CONSTRAINT
+                            value: PRIMARY_KEY
+                          - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                            type: ARRAY
+                            text: "(a)"
+                            children:
+                              - type: NAME
+                                text: "a"
+                          - key: SQL_TABLE_CONSTRAINT_NAME
+                            type: NAME
+                            text: "t_pk"
+        - type: ALTER_TABLE
+          ast-begin: 11
+          ast-size: 10
+          description:
+            text: "alter tabl..nique (b);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_TABLE
+            text: "alter tabl..unique (b)"
+            children:
+              - key: SQL_ALTER_TABLE_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_ALTER_TABLE_ACTIONS
+                type: ARRAY
+                text: "add assume..unique (b)"
+                children:
+                  - type: OBJECT_SQL_ALTER_ADD_CONSTRAINT
+                    text: "add assume..unique (b)"
+                    children:
+                      - key: SQL_ALTER_ACTION_CONSTRAINT
+                        type: OBJECT_SQL_TABLE_CONSTRAINT
+                        text: "assumed unique (b)"
+                        children:
+                          - key: SQL_TABLE_CONSTRAINT_TYPE
+                            type: ENUM_SQL_TABLE_CONSTRAINT
+                            value: UNIQUE
+                          - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                            type: ARRAY
+                            text: "(b)"
+                            children:
+                              - type: NAME
+                                text: "b"
+                          - key: SQL_TABLE_CONSTRAINT_ASSUMED
+                            type: BOOL
+                            value: 1
+        - type: ALTER_TABLE
+          ast-begin: 21
+          ast-size: 8
+          description:
+            text: "alter tabl..k cascade;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_TABLE
+            text: "alter tabl..pk cascade"
+            children:
+              - key: SQL_ALTER_TABLE_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_ALTER_TABLE_ACTIONS
+                type: ARRAY
+                text: "drop const..pk cascade"
+                children:
+                  - type: OBJECT_SQL_ALTER_DROP_CONSTRAINT
+                    text: "drop const..pk cascade"
+                    children:
+                      - key: SQL_ALTER_ACTION_CONSTRAINT
+                        type: NAME
+                        text: "t_pk"
+                      - key: SQL_ALTER_ACTION_IF
+                        type: BOOL
+                        value: 1
+                      - key: SQL_ALTER_ACTION_CASCADE
+                        type: BOOL
+                        value: 1
+        - type: ALTER_TABLE
+          ast-begin: 29
+          ast-size: 7
+          description:
+            text: "alter tabl.. restrict;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_TABLE
+            text: "alter tabl..c restrict"
+            children:
+              - key: SQL_ALTER_TABLE_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_ALTER_TABLE_ACTIONS
+                type: ARRAY
+                text: "drop const..c restrict"
+                children:
+                  - type: OBJECT_SQL_ALTER_DROP_CONSTRAINT
+                    text: "drop const..c restrict"
+                    children:
+                      - key: SQL_ALTER_ACTION_CONSTRAINT
+                        type: NAME
+                        text: "c"
+                      - key: SQL_ALTER_ACTION_CASCADE
+                        type: BOOL
+                        value: 0
+        - type: ALTER_TABLE
+          ast-begin: 36
+          ast-size: 7
+          description:
+            text: "alter tabl..int c to d"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_ALTER_TABLE
+            text: "alter tabl..int c to d"
+            children:
+              - key: SQL_ALTER_TABLE_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_ALTER_TABLE_ACTIONS
+                type: ARRAY
+                text: "rename con..int c to d"
+                children:
+                  - type: OBJECT_SQL_ALTER_RENAME_CONSTRAINT
+                    text: "rename con..int c to d"
+                    children:
+                      - key: SQL_ALTER_ACTION_CONSTRAINT
+                        type: NAME
+                        text: "c"
+                      - key: SQL_ALTER_ACTION_NEW_NAME
+                        type: NAME
+                        text: "d"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [55,56]
+        - text: [93,94]
+        - text: [147,148]
+        - text: [189,190]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: schema_authorization_statements_and_lists
+    input: |-
+      create schema s authorization bob create table t (a int) create view v as select 1 create index on t (a) create sequence q grant select on t to bob;
+      create schema if not exists authorization 'bob';
+      drop schema if exists s1, s2 cascade
+    expected:
+      statements:
+        - type: CREATE_SCHEMA
+          ast-begin: 0
+          ast-size: 41
+          description:
+            text: "create sch.. t to bob;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_SCHEMA
+            text: "create sch..n t to bob"
+            children:
+              - key: SQL_SCHEMA_NAME
+                type: ARRAY
+                text: "s"
+                children:
+                  - type: NAME
+                    text: "s"
+              - key: SQL_SCHEMA_AUTHORIZATION
+                type: NAME
+                text: "bob"
+              - key: SQL_SCHEMA_STATEMENTS
+                type: ARRAY
+                text: "create tab..n t to bob"
+                children:
+                  - type: OBJECT_SQL_CREATE
+                    text: "create tab.. t (a int)"
+                    children:
+                      - key: SQL_CREATE_TABLE_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+                      - key: SQL_CREATE_TABLE_ELEMENTS
+                        type: ARRAY
+                        text: "(a int)"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_DEF
+                            text: "a int"
+                            children:
+                              - key: SQL_COLUMN_DEF_NAME
+                                type: NAME
+                                text: "a"
+                              - key: SQL_COLUMN_DEF_TYPE
+                                type: OBJECT_SQL_TYPENAME
+                                text: "int"
+                                children:
+                                  - key: SQL_TYPENAME_TYPE
+                                    type: ENUM_SQL_NUMERIC_TYPE
+                                    value: INT4
+                  - type: OBJECT_SQL_VIEW
+                    text: "create vie..s select 1"
+                    children:
+                      - key: SQL_VIEW_NAME
+                        type: ARRAY
+                        text: "v"
+                        children:
+                          - type: NAME
+                            text: "v"
+                      - key: SQL_VIEW_STATEMENT
+                        type: OBJECT_SQL_SELECT
+                        text: "select 1"
+                        children:
+                          - key: SQL_SELECT_TARGETS
+                            type: ARRAY
+                            text: "1"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "1"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "1"
+                  - type: OBJECT_SQL_CREATE_INDEX
+                    text: "create ind..x on t (a)"
+                    children:
+                      - key: SQL_CREATE_INDEX_RELATION
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+                      - key: SQL_CREATE_INDEX_INDEX_PARAMS
+                        type: ARRAY
+                        text: "a"
+                        children:
+                          - type: OBJECT_SQL_INDEX_ELEMENT
+                            text: "a"
+                            children:
+                              - key: SQL_INDEX_ELEMENT_NAME
+                                type: NAME
+                                text: "a"
+                  - type: OBJECT_SQL_CREATE_SEQUENCE
+                    text: "create sequence q"
+                    children:
+                      - key: SQL_CREATE_SEQUENCE_NAME
+                        type: ARRAY
+                        text: "q"
+                        children:
+                          - type: NAME
+                            text: "q"
+                  - type: OBJECT_SQL_GRANT
+                    text: "grant sele..n t to bob"
+                    children:
+                      - key: SQL_GRANT_PRIVILEGES
+                        type: ARRAY
+                        text: "select"
+                        children:
+                          - type: OBJECT_SQL_GRANT_ACCESS_PRIVILEGE
+                            text: "select"
+                            children:
+                              - key: SQL_GRANT_ACCESS_PRIVILEGE_KIND
+                                type: ENUM_SQL_PRIVILEGE
+                                value: SELECT
+                      - key: SQL_GRANT_TARGET
+                        type: OBJECT_SQL_GRANT_TARGET
+                        text: "t"
+                        children:
+                          - key: SQL_GRANT_TARGET_KIND
+                            type: ENUM_SQL_GRANT_TARGET_TYPE
+                            value: RELATION
+                          - key: SQL_GRANT_TARGET_OBJECTS
+                            type: ARRAY
+                            text: "t"
+                            children:
+                              - type: ARRAY
+                                text: "t"
+                                children:
+                                  - type: NAME
+                                    text: "t"
+                      - key: SQL_GRANT_GRANTEES
+                        type: ARRAY
+                        text: "bob"
+                        children:
+                          - type: ARRAY
+                            text: "bob"
+                            children:
+                              - type: NAME
+                                text: "bob"
+        - type: CREATE_SCHEMA
+          ast-begin: 41
+          ast-size: 3
+          description:
+            text: "create sch..ion 'bob';"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_SCHEMA
+            text: "create sch..tion 'bob'"
+            children:
+              - key: SQL_SCHEMA_IF
+                type: BOOL
+                value: 1
+              - key: SQL_SCHEMA_AUTHORIZATION
+                type: LITERAL_STRING
+                text: "'bob'"
+        - type: DROP_SCHEMA
+          ast-begin: 44
+          ast-size: 8
+          description:
+            text: "drop schem..s2 cascade"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_DROP_SCHEMA
+            text: "drop schem..s2 cascade"
+            children:
+              - key: SQL_SCHEMA_IF
+                type: BOOL
+                value: 1
+              - key: SQL_SCHEMA_NAME
+                type: ARRAY
+                text: "s1"
+                children:
+                  - type: NAME
+                    text: "s1"
+              - key: SQL_SCHEMA_MORE_NAMES
+                type: ARRAY
+                text: ", s2"
+                children:
+                  - type: ARRAY
+                    text: "s2"
+                    children:
+                      - type: NAME
+                        text: "s2"
+              - key: SQL_SCHEMA_CASCADE
+                type: BOOL
+                value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [148,149]
+        - text: [197,198]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

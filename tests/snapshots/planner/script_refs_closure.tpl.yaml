@@ -199,3 +199,31 @@ planner-snapshots:
         input: |
           select * from :reads;
     targets: [bar, baz]
+
+  # Two targets: SEQUENCE edges within each, conflict edges between them, a writer that is no target is left out
+  - name: TwoTargets
+    catalog: |
+      create table t (a int);
+    targets: [load, report]
+    scripts:
+      - name: load
+        input: |
+          insert into t values (1);
+          insert into t values (2);
+      - name: other
+        input: |
+          delete from t;
+      - name: report
+        input: |
+          select count(*) from t;
+          select max(a) from t;
+
+  # A target without statements plans nothing, its script has no terminal statement
+  - name: TargetEmpty
+    targets: [empty]
+    scripts:
+      - name: empty
+        input: |
+          /* nothing */
+      - name: other
+        input: select 1;

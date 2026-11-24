@@ -331,3 +331,81 @@ analyzer-snapshots:
           confidence: confident
           columns:
             - {name: name, confidence: confident}
+
+  - name: schema_qualified_unresolved
+    script:
+      input: select m1.x, m2.y, m3.z from s1.missing m1, s2.missing m2, missing m3
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - {type: name/unresolved, text: "s1.missing m1"}
+        - {type: name/unresolved, text: "s2.missing m2"}
+        - {type: name/unresolved, text: "missing m3"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "m1.x"}
+        - {id: 1, type: colref/unresolved, text: "m2.y"}
+        - {id: 2, type: colref/unresolved, text: "m3.z"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: unresolved, name: m1, text: "s1.missing m1"}
+            - {type: unresolved, name: m2, text: "s2.missing m2"}
+            - {type: unresolved, name: m3, text: "missing m3"}
+          columns:
+            - {name: x, expression: 0}
+            - {name: y, expression: 1}
+            - {name: z, expression: 2}
+          text: "select m1...missing m3"
+      inferred-tables:
+        - name: s1.missing
+          confidence: confident
+          columns:
+            - {name: x, confidence: confident}
+        - name: s2.missing
+          confidence: confident
+          columns:
+            - {name: y, confidence: confident}
+        - name: missing
+          confidence: confident
+          columns:
+            - {name: z, confidence: confident}
+
+  - name: set_operation_branches
+    script:
+      input: select x from missing union select y from missing2
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - {type: name/unresolved, text: "missing"}
+        - {type: name/unresolved, text: "missing2"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "x"}
+        - {id: 1, type: colref/unresolved, text: "y"}
+      name-scopes:
+        - scope-id: 0
+          parent: 2
+          sources:
+            - {type: unresolved, name: missing, text: "missing"}
+          columns:
+            - {name: x, expression: 0}
+          text: "select x f..om missing"
+        - scope-id: 1
+          parent: 2
+          sources:
+            - {type: unresolved, name: missing2, text: "missing2"}
+          columns:
+            - {name: y, expression: 1}
+          text: "select y f..m missing2"
+        - scope-id: 2
+          columns:
+            - {name: x, expression: 0}
+          text: "select x f..m missing2"
+      inferred-tables:
+        - name: missing
+          confidence: confident
+          columns:
+            - {name: x, confidence: confident}
+        - name: missing2
+          confidence: confident
+          columns:
+            - {name: y, confidence: confident}

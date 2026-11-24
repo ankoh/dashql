@@ -842,3 +842,37 @@ trino-progress-snapshots:
         wall-time-us: 9000
         work-done: 10
         work-total: 10
+
+  - name: handwritten_operator_summaries
+    recording: handwritten_operator_summaries
+    fragments:
+      - id: 0
+        engine-id: 0
+        operators: []
+      - id: 1
+        engine-id: 1
+        parent: 0
+        operators: []
+    updates:
+      - time: 5
+        entity: query
+        status: running
+      - time: 5
+        entity: fragment
+        index: 0
+        status: running
+      - time: 5
+        entity: fragment
+        index: 1
+        status: running
+      - time: 10
+        entity: fragment
+        index: 1
+        status: succeeded
+      - time: 25
+        entity: query
+        status: succeeded
+      - time: 25
+        entity: fragment
+        index: 0
+        status: succeeded

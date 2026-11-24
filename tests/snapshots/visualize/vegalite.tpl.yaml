@@ -164,3 +164,32 @@ visualize-snapshots:
       input: |
         /* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "anything"}}} */
         SELECT * FROM unknown_table;
+
+  # The data is JSON-escaped: quotes, a quoted name, a backslash, a tab and non-ASCII text
+  - name: vis_sql_text_escaped
+    script:
+      input: |
+        /* @vis vegalite {"mark": "text"} */
+        SELECT 'say "hi"' AS "Quoted Name", 'C:\temp	x' AS path, 'Grüße 日本' AS t;
+
+  # A line comment at the end of the query is not part of its text
+  - name: vis_sql_text_trailing_line_comment
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar"} */
+        SELECT 1 AS a -- the measure
+        ;
+
+  # A key written twice: the last value wins, in the place of the first key
+  - name: vis_duplicate_json_keys
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar", "width": 100, "mark": "line"} */
+        SELECT 1 AS a;
+
+  # A spec that only has data is the empty spec after the data is dropped
+  - name: vis_data_only
+    script:
+      input: |
+        /* @vis vegalite {"data": {"url": "https://example.com/data.csv"}} */
+        SELECT 1 AS a;

@@ -266,3 +266,37 @@ dataflow-snapshots:
         connection: local
         input: |
           select * from :all_orders;
+
+  # A script that does not parse is one statement, a reference to it is invalid
+  - name: ScriptThatDoesNotParse
+    scripts:
+      - name: broken
+        input: |
+          select from where 1;
+      - name: after
+        input: |
+          select * from :broken;
+
+  # A call that reads is scanned by the LOCAL connection, a script with a call that writes runs only on request, an
+  # input feeds a call
+  - name: ClientFunctionCalls
+    client_functions: tickets
+    connections:
+      - name: d360
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: listed
+        connection: d360
+        input: |
+          /* @param :project = 'OPS' */
+          call tickets.ticket_list (project => :project);
+      - name: counted
+        connection: local
+        input: |
+          select count(*) from :listed;
+      - name: deleted
+        connection: d360
+        input: |
+          call tickets.ticket_delete (id => 1);

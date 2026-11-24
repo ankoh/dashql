@@ -526,3 +526,174 @@ analyzer-snapshots:
           columns:
             - {name: '?', expression: 0}
           text: "select 1"
+
+  - name: const_and_or_quirk
+    script:
+      input: select 1 = 1 and 2 < 3, 1 = 1 or 2 = 2, true and false, not (1 = 1)
+      catalog-id: 1
+      errors: []
+      expressions:
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
+        - {id: 2, type: literal/integer, is-const: true, text: "2"}
+        - {id: 3, type: literal/integer, is-const: true, text: "3"}
+        - {id: 4, type: comparison, op: EQUAL, arg-left: 0, arg-right: 1, is-const: true, text: "1 = 1"}
+        - {id: 5, type: comparison, op: LESS_THAN, arg-left: 2, arg-right: 3, is-const: true, text: "2 < 3"}
+        - {id: 6, type: binary, op: UNKNOWN, arg-left: 4, arg-right: 5, is-const: true, text: "1 = 1 and 2 < 3"}
+        - {id: 7, type: literal/integer, is-const: true, text: "1"}
+        - {id: 8, type: literal/integer, is-const: true, text: "1"}
+        - {id: 9, type: literal/integer, is-const: true, text: "2"}
+        - {id: 10, type: literal/integer, is-const: true, text: "2"}
+        - {id: 11, type: comparison, op: EQUAL, arg-left: 7, arg-right: 8, is-const: true, text: "1 = 1"}
+        - {id: 12, type: comparison, op: EQUAL, arg-left: 9, arg-right: 10, is-const: true, text: "2 = 2"}
+        - {id: 13, type: binary, op: UNKNOWN, arg-left: 11, arg-right: 12, is-const: true, text: "1 = 1 or 2 = 2"}
+        - {id: 14, type: literal/integer, is-const: true, text: "1"}
+        - {id: 15, type: literal/integer, is-const: true, text: "1"}
+        - {id: 16, type: comparison, op: EQUAL, arg-left: 14, arg-right: 15, is-const: true, text: "1 = 1"}
+      constants:
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "1"}
+        - {expression: 2, text: "2"}
+        - {expression: 3, text: "3"}
+        - {expression: 4, text: "1 = 1"}
+        - {expression: 5, text: "2 < 3"}
+        - {expression: 6, text: "1 = 1 and 2 < 3"}
+        - {expression: 7, text: "1"}
+        - {expression: 8, text: "1"}
+        - {expression: 9, text: "2"}
+        - {expression: 10, text: "2"}
+        - {expression: 11, text: "1 = 1"}
+        - {expression: 12, text: "2 = 2"}
+        - {expression: 13, text: "1 = 1 or 2 = 2"}
+        - {expression: 14, text: "1"}
+        - {expression: 15, text: "1"}
+        - {expression: 16, text: "1 = 1"}
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - {name: '?', expression: 6}
+            - {name: '?', expression: 13}
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+          text: "select 1 =..ot (1 = 1)"
+
+  - name: const_non_constant_forms
+    script:
+      input: select 1::int, cast(1 as int), 'a' || 'b', 1 between 0 and 2, 1 in (1, 2), case when 1 = 1 then 2 end, (select 1)
+      catalog-id: 1
+      errors: []
+      expressions:
+        - {id: 0, type: function, known-function: CAST, is-const: true, text: "cast(1 as int)"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
+        - {id: 3, type: literal/string, is-const: true, text: "'a'"}
+        - {id: 4, type: literal/string, is-const: true, text: "'b'"}
+        - {id: 5, type: literal/integer, is-const: true, text: "1"}
+        - {id: 6, type: literal/integer, is-const: true, text: "0"}
+        - {id: 7, type: literal/integer, is-const: true, text: "2"}
+        - {id: 8, type: literal/integer, is-const: true, text: "1"}
+        - {id: 9, type: literal/integer, is-const: true, text: "2"}
+        - {id: 10, type: literal/integer, is-const: true, text: "1"}
+        - {id: 11, type: literal/integer, is-const: true, text: "1"}
+        - {id: 12, type: literal/integer, is-const: true, text: "1"}
+        - {id: 13, type: comparison, op: EQUAL, arg-left: 11, arg-right: 12, is-const: true, text: "1 = 1"}
+        - {id: 14, type: literal/integer, is-const: true, text: "2"}
+        - {id: 15, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 1, text: "1"}
+        - {expression: 2, text: "1"}
+        - {expression: 3, text: "'a'"}
+        - {expression: 4, text: "'b'"}
+        - {expression: 5, text: "1"}
+        - {expression: 6, text: "0"}
+        - {expression: 7, text: "2"}
+        - {expression: 8, text: "1"}
+        - {expression: 9, text: "2"}
+        - {expression: 10, text: "1"}
+        - {expression: 11, text: "1"}
+        - {expression: 12, text: "1"}
+        - {expression: 13, text: "1 = 1"}
+        - {expression: 14, text: "2"}
+        - {expression: 15, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          columns:
+            - {name: '?', expression: 15}
+          text: "(select 1)"
+        - scope-id: 1
+          columns:
+            - {name: '?', computed: true}
+            - {name: '?', expression: 0}
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+            - {name: '?', computed: true}
+          text: "select 1::..(select 1)"
+
+  - name: const_known_functions_without_args
+    script:
+      input: select current_time, localtime, localtimestamp, current_role, session_user, user, current_catalog, current_schema
+      catalog-id: 1
+      errors: []
+      expressions:
+        - {id: 0, type: function, known-function: CURRENT_TIME, is-const: true, text: "current_time"}
+        - {id: 1, type: function, known-function: LOCALTIME, is-const: true, text: "localtime"}
+        - {id: 2, type: function, known-function: LOCALTIMESTAMP, is-const: true, text: "localtimestamp"}
+        - {id: 3, type: function, known-function: CURRENT_ROLE, is-const: true, text: "current_role"}
+        - {id: 4, type: function, known-function: SESSION_USER, is-const: true, text: "session_user"}
+        - {id: 5, type: function, known-function: USER, is-const: true, text: "user"}
+        - {id: 6, type: function, known-function: CURRENT_CATALOG, is-const: true, text: "current_catalog"}
+        - {id: 7, type: function, known-function: CURRENT_SCHEMA, is-const: true, text: "current_schema"}
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - {name: '?', expression: 0}
+            - {name: '?', expression: 1}
+            - {name: '?', expression: 2}
+            - {name: '?', expression: 3}
+            - {name: '?', expression: 4}
+            - {name: '?', expression: 5}
+            - {name: '?', expression: 6}
+            - {name: '?', expression: 7}
+          text: "select cur..ent_schema"
+
+  - name: const_known_functions_special
+    script:
+      input: select try_cast('1' as int), collation for ('a'), current_time(3), localtimestamp(2)
+      catalog-id: 1
+      errors: []
+      expressions:
+        - {id: 0, type: function, known-function: TRY_CAST, is-const: true, text: "try_cast('..1' as int)"}
+        - {id: 1, type: function, known-function: COLLATION_FOR, is-const: true, text: "collation for ('a')"}
+        - {id: 2, type: function, known-function: CURRENT_TIME, is-const: true, text: "current_time(3)"}
+        - {id: 3, type: function, known-function: LOCALTIMESTAMP, is-const: true, text: "localtimestamp(2)"}
+        - {id: 4, type: literal/string, is-const: true, text: "'1'"}
+        - {id: 5, type: literal/string, is-const: true, text: "'a'"}
+        - {id: 6, type: literal/integer, is-const: true, text: "3"}
+        - {id: 7, type: literal/integer, is-const: true, text: "2"}
+      constants:
+        - {expression: 4, text: "'1'"}
+        - {expression: 5, text: "'a'"}
+        - {expression: 1, text: "collation for ('a')"}
+        - {expression: 6, text: "3"}
+        - {expression: 2, text: "current_time(3)"}
+        - {expression: 7, text: "2"}
+        - {expression: 3, text: "localtimestamp(2)"}
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - {name: '?', expression: 0}
+            - {name: '?', expression: 1}
+            - {name: '?', expression: 2}
+            - {name: '?', expression: 3}
+          text: "select try..mestamp(2)"
+
+  - name: empty_comments_and_semicolons
+    script:
+      input: |-
+        -- just a comment
+        /* block */ ;;
+      catalog-id: 1
+      errors: []

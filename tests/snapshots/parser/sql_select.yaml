@@ -16133,3 +16133,1635 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: select_join_type_combinations
+    input: |-
+      select * from a full join b on true right outer join c on true natural right join d natural full outer join e natural left outer join f natural right outer join g
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 52
+          description:
+            text: "select * f..ter join g"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f..ter join g"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from a ful..ter join g"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "a full joi..ter join g"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_JOINED_TABLE
+                        text: "a full joi..ter join g"
+                        children:
+                          - key: SQL_JOIN_TYPE
+                            type: ENUM_SQL_JOIN_TYPE
+                            value: NATURAL_OUTER_RIGHT
+                          - key: SQL_JOIN_INPUT
+                            type: ARRAY
+                            text: "a full joi..ter join g"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "a full joi..ter join f"
+                                children:
+                                  - key: SQL_TABLEREF_TABLE
+                                    type: OBJECT_SQL_JOINED_TABLE
+                                    text: "a full joi..ter join f"
+                                    children:
+                                      - key: SQL_JOIN_TYPE
+                                        type: ENUM_SQL_JOIN_TYPE
+                                        value: NATURAL_OUTER_LEFT
+                                      - key: SQL_JOIN_INPUT
+                                        type: ARRAY
+                                        text: "a full joi..ter join f"
+                                        children:
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "a full joi..ter join e"
+                                            children:
+                                              - key: SQL_TABLEREF_TABLE
+                                                type: OBJECT_SQL_JOINED_TABLE
+                                                text: "a full joi..ter join e"
+                                                children:
+                                                  - key: SQL_JOIN_TYPE
+                                                    type: ENUM_SQL_JOIN_TYPE
+                                                    value: NATURAL_OUTER_FULL
+                                                  - key: SQL_JOIN_INPUT
+                                                    type: ARRAY
+                                                    text: "a full joi..ter join e"
+                                                    children:
+                                                      - type: OBJECT_SQL_TABLEREF
+                                                        text: "a full joi..ght join d"
+                                                        children:
+                                                          - key: SQL_TABLEREF_TABLE
+                                                            type: OBJECT_SQL_JOINED_TABLE
+                                                            text: "a full joi..ght join d"
+                                                            children:
+                                                              - key: SQL_JOIN_TYPE
+                                                                type: ENUM_SQL_JOIN_TYPE
+                                                                value: NATURAL_RIGHT
+                                                              - key: SQL_JOIN_INPUT
+                                                                type: ARRAY
+                                                                text: "a full joi..ght join d"
+                                                                children:
+                                                                  - type: OBJECT_SQL_TABLEREF
+                                                                    text: "a full joi.. c on true"
+                                                                    children:
+                                                                      - key: SQL_TABLEREF_TABLE
+                                                                        type: OBJECT_SQL_JOINED_TABLE
+                                                                        text: "a full joi.. c on true"
+                                                                        children:
+                                                                          - key: SQL_JOIN_ON
+                                                                            type: BOOL
+                                                                            value: 1
+                                                                          - key: SQL_JOIN_TYPE
+                                                                            type: ENUM_SQL_JOIN_TYPE
+                                                                            value: OUTER_RIGHT
+                                                                          - key: SQL_JOIN_INPUT
+                                                                            type: ARRAY
+                                                                            text: "a full joi.. c on true"
+                                                                            children:
+                                                                              - type: OBJECT_SQL_TABLEREF
+                                                                                text: "a full joi.. b on true"
+                                                                                children:
+                                                                                  - key: SQL_TABLEREF_TABLE
+                                                                                    type: OBJECT_SQL_JOINED_TABLE
+                                                                                    text: "a full joi.. b on true"
+                                                                                    children:
+                                                                                      - key: SQL_JOIN_ON
+                                                                                        type: BOOL
+                                                                                        value: 1
+                                                                                      - key: SQL_JOIN_TYPE
+                                                                                        type: ENUM_SQL_JOIN_TYPE
+                                                                                        value: FULL
+                                                                                      - key: SQL_JOIN_INPUT
+                                                                                        type: ARRAY
+                                                                                        text: "a full joi.. b on true"
+                                                                                        children:
+                                                                                          - type: OBJECT_SQL_TABLEREF
+                                                                                            text: "a"
+                                                                                            children:
+                                                                                              - key: SQL_TABLEREF_NAME
+                                                                                                type: ARRAY
+                                                                                                text: "a"
+                                                                                                children:
+                                                                                                  - type: NAME
+                                                                                                    text: "a"
+                                                                                          - type: OBJECT_SQL_TABLEREF
+                                                                                            text: "b"
+                                                                                            children:
+                                                                                              - key: SQL_TABLEREF_NAME
+                                                                                                type: ARRAY
+                                                                                                text: "b"
+                                                                                                children:
+                                                                                                  - type: NAME
+                                                                                                    text: "b"
+                                                                              - type: OBJECT_SQL_TABLEREF
+                                                                                text: "c"
+                                                                                children:
+                                                                                  - key: SQL_TABLEREF_NAME
+                                                                                    type: ARRAY
+                                                                                    text: "c"
+                                                                                    children:
+                                                                                      - type: NAME
+                                                                                        text: "c"
+                                                                  - type: OBJECT_SQL_TABLEREF
+                                                                    text: "d"
+                                                                    children:
+                                                                      - key: SQL_TABLEREF_NAME
+                                                                        type: ARRAY
+                                                                        text: "d"
+                                                                        children:
+                                                                          - type: NAME
+                                                                            text: "d"
+                                                      - type: OBJECT_SQL_TABLEREF
+                                                        text: "e"
+                                                        children:
+                                                          - key: SQL_TABLEREF_NAME
+                                                            type: ARRAY
+                                                            text: "e"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "e"
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "f"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "f"
+                                                children:
+                                                  - type: NAME
+                                                    text: "f"
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "g"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "g"
+                                    children:
+                                      - type: NAME
+                                        text: "g"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_table_ref_options
+    input: |-
+      select * from t with options (foo := 'bar'), u *, unnest(array[1]) with options (x := 1), table(unnest(array[2])) with options (y := 2) as v, lateral (select 1) with options (z := 3) as w
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 58
+          description:
+            text: "select * f..:= 3) as w"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f..:= 3) as w"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t wit..:= 3) as w"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t with opt.. := 'bar')"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+                      - key: SQL_TABLEREF_OPTIONS
+                        type: ARRAY
+                        text: "with optio.. := 'bar')"
+                        children:
+                          - type: OBJECT_SQL_GENERIC_OPTION
+                            text: "foo := 'bar'"
+                            children:
+                              - key: SQL_GENERIC_OPTION_KEY
+                                type: NAME
+                                text: "foo"
+                              - key: SQL_GENERIC_OPTION_VALUE
+                                type: LITERAL_STRING
+                                text: "'bar'"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "u *"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "u"
+                        children:
+                          - type: NAME
+                            text: "u"
+                      - key: SQL_TABLEREF_NAME_STAR
+                        type: BOOL
+                        value: 1
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "unnest(arr..s (x := 1)"
+                    children:
+                      - key: SQL_TABLEREF_OPTIONS
+                        type: ARRAY
+                        text: "with optio..s (x := 1)"
+                        children:
+                          - type: OBJECT_SQL_GENERIC_OPTION
+                            text: "x := 1"
+                            children:
+                              - key: SQL_GENERIC_OPTION_KEY
+                                type: NAME
+                                text: "x"
+                              - key: SQL_GENERIC_OPTION_VALUE
+                                type: LITERAL_INTEGER
+                                text: "1"
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_FUNCTION_TABLE
+                        text: "unnest(array[1])"
+                        children:
+                          - key: SQL_FUNCTION_TABLE_FUNCTION
+                            type: OBJECT_SQL_FUNCTION_EXPRESSION
+                            text: "unnest(array[1])"
+                            children:
+                              - key: SQL_FUNCTION_NAME
+                                type: ARRAY
+                                text: "unnest"
+                                children:
+                                  - type: NAME
+                                    text: "unnest"
+                              - key: SQL_FUNCTION_ARGUMENTS
+                                type: ARRAY
+                                text: "array[1]"
+                                children:
+                                  - type: OBJECT_SQL_FUNCTION_ARG
+                                    text: "array[1]"
+                                    children:
+                                      - key: SQL_FUNCTION_ARG_VALUE
+                                        type: OBJECT_SQL_ARRAY_EXPRESSION
+                                        text: "array[1]"
+                                        children:
+                                          - key: SQL_ARRAY_EXPRESSION_VALUES
+                                            type: ARRAY
+                                            text: "1"
+                                            children:
+                                              - type: LITERAL_INTEGER
+                                                text: "1"
+                          - key: SQL_FUNCTION_TABLE_WITH_ORDINALITY
+                            type: BOOL
+                            value: 0
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "table(unne..:= 2) as v"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_FUNCTION_TABLE
+                        text: "unnest(array[2])"
+                        children:
+                          - key: SQL_FUNCTION_TABLE_FUNCTION
+                            type: OBJECT_SQL_FUNCTION_EXPRESSION
+                            text: "unnest(array[2])"
+                            children:
+                              - key: SQL_FUNCTION_NAME
+                                type: ARRAY
+                                text: "unnest"
+                                children:
+                                  - type: NAME
+                                    text: "unnest"
+                              - key: SQL_FUNCTION_ARGUMENTS
+                                type: ARRAY
+                                text: "array[2]"
+                                children:
+                                  - type: OBJECT_SQL_FUNCTION_ARG
+                                    text: "array[2]"
+                                    children:
+                                      - key: SQL_FUNCTION_ARG_VALUE
+                                        type: OBJECT_SQL_ARRAY_EXPRESSION
+                                        text: "array[2]"
+                                        children:
+                                          - key: SQL_ARRAY_EXPRESSION_VALUES
+                                            type: ARRAY
+                                            text: "2"
+                                            children:
+                                              - type: LITERAL_INTEGER
+                                                text: "2"
+                          - key: SQL_FUNCTION_TABLE_WITH_ORDINALITY
+                            type: BOOL
+                            value: 0
+                      - key: SQL_TABLEREF_OPTIONS
+                        type: ARRAY
+                        text: "with optio..s (y := 2)"
+                        children:
+                          - type: OBJECT_SQL_GENERIC_OPTION
+                            text: "y := 2"
+                            children:
+                              - key: SQL_GENERIC_OPTION_KEY
+                                type: NAME
+                                text: "y"
+                              - key: SQL_GENERIC_OPTION_VALUE
+                                type: LITERAL_INTEGER
+                                text: "2"
+                      - key: SQL_TABLEREF_ALIAS
+                        type: NAME
+                        text: "v"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "lateral (s..:= 3) as w"
+                    children:
+                      - key: SQL_TABLEREF_OPTIONS
+                        type: ARRAY
+                        text: "with optio..s (z := 3)"
+                        children:
+                          - type: OBJECT_SQL_GENERIC_OPTION
+                            text: "z := 3"
+                            children:
+                              - key: SQL_GENERIC_OPTION_KEY
+                                type: NAME
+                                text: "z"
+                              - key: SQL_GENERIC_OPTION_VALUE
+                                type: LITERAL_INTEGER
+                                text: "3"
+                      - key: SQL_TABLEREF_LATERAL
+                        type: BOOL
+                        value: 1
+                      - key: SQL_TABLEREF_ALIAS
+                        type: NAME
+                        text: "w"
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_SELECT
+                        text: "(select 1)"
+                        children:
+                          - key: SQL_SELECT_TARGETS
+                            type: ARRAY
+                            text: "1"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "1"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "1"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_tablesample_row_bounds
+    input: |-
+      select * from t tablesample system(20 percent between 1 rows and 2 rows), u tablesample system(10 percent between unbounded rows and 5 rows), v tablesample system(5 percent between 3 rows and unbounded rows)
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 30
+          description:
+            text: "select * f..nded rows)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f..nded rows)"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t tab..nded rows)"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t tablesam..nd 2 rows)"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+                      - key: SQL_TABLEREF_SAMPLE
+                        type: OBJECT_SQL_TABLEREF_SAMPLE
+                        text: "tablesampl..nd 2 rows)"
+                        children:
+                          - key: SQL_SAMPLE_COUNT_VALUE
+                            type: LITERAL_INTEGER
+                            text: "20"
+                          - key: SQL_SAMPLE_COUNT_UNIT
+                            type: ENUM_SQL_SAMPLE_UNIT_TYPE
+                            value: PERCENT
+                          - key: SQL_SAMPLE_FUNCTION
+                            type: NAME
+                            text: "system"
+                          - key: SQL_SAMPLE_MIN_ROWS
+                            type: LITERAL_INTEGER
+                            text: "1"
+                          - key: SQL_SAMPLE_MAX_ROWS
+                            type: LITERAL_INTEGER
+                            text: "2"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "u tablesam..nd 5 rows)"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "u"
+                        children:
+                          - type: NAME
+                            text: "u"
+                      - key: SQL_TABLEREF_SAMPLE
+                        type: OBJECT_SQL_TABLEREF_SAMPLE
+                        text: "tablesampl..nd 5 rows)"
+                        children:
+                          - key: SQL_SAMPLE_COUNT_VALUE
+                            type: LITERAL_INTEGER
+                            text: "10"
+                          - key: SQL_SAMPLE_COUNT_UNIT
+                            type: ENUM_SQL_SAMPLE_UNIT_TYPE
+                            value: PERCENT
+                          - key: SQL_SAMPLE_FUNCTION
+                            type: NAME
+                            text: "system"
+                          - key: SQL_SAMPLE_MAX_ROWS
+                            type: LITERAL_INTEGER
+                            text: "5"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "v tablesam..nded rows)"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "v"
+                        children:
+                          - type: NAME
+                            text: "v"
+                      - key: SQL_TABLEREF_SAMPLE
+                        type: OBJECT_SQL_TABLEREF_SAMPLE
+                        text: "tablesampl..nded rows)"
+                        children:
+                          - key: SQL_SAMPLE_COUNT_VALUE
+                            type: LITERAL_INTEGER
+                            text: "5"
+                          - key: SQL_SAMPLE_COUNT_UNIT
+                            type: ENUM_SQL_SAMPLE_UNIT_TYPE
+                            value: PERCENT
+                          - key: SQL_SAMPLE_FUNCTION
+                            type: NAME
+                            text: "system"
+                          - key: SQL_SAMPLE_MIN_ROWS
+                            type: LITERAL_INTEGER
+                            text: "3"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_unique_predicate
+    input: |-
+      select unique (select x from t), not unique (select y from u)
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 29
+          description:
+            text: "select uni.. y from u)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select uni.. y from u)"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "unique (se.. y from u)"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "unique (se.. x from t)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_UNIQUE_EXPRESSION
+                        text: "unique (se.. x from t)"
+                        children:
+                          - key: SQL_UNIQUE_STATEMENT
+                            type: OBJECT_SQL_SELECT
+                            text: "(select x from t)"
+                            children:
+                              - key: SQL_SELECT_TARGETS
+                                type: ARRAY
+                                text: "x"
+                                children:
+                                  - type: OBJECT_SQL_RESULT_TARGET
+                                    text: "x"
+                                    children:
+                                      - key: SQL_RESULT_TARGET_VALUE
+                                        type: OBJECT_SQL_COLUMN_REF
+                                        text: "x"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "x"
+                                            children:
+                                              - type: NAME
+                                                text: "x"
+                              - key: SQL_SELECT_FROM
+                                type: ARRAY
+                                text: "from t"
+                                children:
+                                  - type: OBJECT_SQL_TABLEREF
+                                    text: "t"
+                                    children:
+                                      - key: SQL_TABLEREF_NAME
+                                        type: ARRAY
+                                        text: "t"
+                                        children:
+                                          - type: NAME
+                                            text: "t"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "not unique.. y from u)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "not unique.. y from u)"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: NOT
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "not unique.. y from u)"
+                            children:
+                              - type: OBJECT_SQL_UNIQUE_EXPRESSION
+                                text: "unique (se.. y from u)"
+                                children:
+                                  - key: SQL_UNIQUE_STATEMENT
+                                    type: OBJECT_SQL_SELECT
+                                    text: "(select y from u)"
+                                    children:
+                                      - key: SQL_SELECT_TARGETS
+                                        type: ARRAY
+                                        text: "y"
+                                        children:
+                                          - type: OBJECT_SQL_RESULT_TARGET
+                                            text: "y"
+                                            children:
+                                              - key: SQL_RESULT_TARGET_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "y"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "y"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "y"
+                                      - key: SQL_SELECT_FROM
+                                        type: ARRAY
+                                        text: "from u"
+                                        children:
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "u"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "u"
+                                                children:
+                                                  - type: NAME
+                                                    text: "u"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_lambda_arguments
+    input: |-
+      select array_filter(a, lambda x: x > 1), array_transform(a, b, lambda x, y: x + y), f(lambda : 1) from t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 61
+          description:
+            text: "select arr.. 1) from t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select arr.. 1) from t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "array_filt..ambda : 1)"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "array_filt.. x: x > 1)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "array_filt.. x: x > 1)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "array_filter"
+                            children:
+                              - type: NAME
+                                text: "array_filter"
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "a, lambda x: x > 1"
+                            children:
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "a"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "a"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a"
+                                        children:
+                                          - type: NAME
+                                            text: "a"
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "lambda x: x > 1"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_LAMBDA_EXPRESSION
+                                    text: "lambda x: x > 1"
+                                    children:
+                                      - key: SQL_LAMBDA_PARAM
+                                        type: ARRAY
+                                        text: "x"
+                                        children:
+                                          - type: NAME
+                                            text: "x"
+                                      - key: SQL_LAMBDA_BODY
+                                        type: OBJECT_SQL_NARY_EXPRESSION
+                                        text: "x > 1"
+                                        children:
+                                          - key: SQL_EXPRESSION_OPERATOR
+                                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                                            value: GREATER_THAN
+                                          - key: SQL_EXPRESSION_ARGS
+                                            type: ARRAY
+                                            text: "x > 1"
+                                            children:
+                                              - type: OBJECT_SQL_COLUMN_REF
+                                                text: "x"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "x"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "x"
+                                              - type: LITERAL_INTEGER
+                                                text: "1"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "array_tran.. y: x + y)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "array_tran.. y: x + y)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "array_transform"
+                            children:
+                              - type: NAME
+                                text: "array_transform"
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "a, b, lamb.., y: x + y"
+                            children:
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "a"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "a"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a"
+                                        children:
+                                          - type: NAME
+                                            text: "a"
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "b"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "b"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "b"
+                                        children:
+                                          - type: NAME
+                                            text: "b"
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "lambda x, y: x + y"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_LAMBDA_EXPRESSION
+                                    text: "lambda x, y: x + y"
+                                    children:
+                                      - key: SQL_LAMBDA_PARAM
+                                        type: ARRAY
+                                        text: "x, y"
+                                        children:
+                                          - type: NAME
+                                            text: "x"
+                                          - type: NAME
+                                            text: "y"
+                                      - key: SQL_LAMBDA_BODY
+                                        type: OBJECT_SQL_NARY_EXPRESSION
+                                        text: "x + y"
+                                        children:
+                                          - key: SQL_EXPRESSION_OPERATOR
+                                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                                            value: PLUS
+                                          - key: SQL_EXPRESSION_ARGS
+                                            type: ARRAY
+                                            text: "x + y"
+                                            children:
+                                              - type: OBJECT_SQL_COLUMN_REF
+                                                text: "x"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "x"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "x"
+                                              - type: OBJECT_SQL_COLUMN_REF
+                                                text: "y"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "y"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "y"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "f(lambda : 1)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "f(lambda : 1)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "f"
+                            children:
+                              - type: NAME
+                                text: "f"
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "lambda : 1"
+                            children:
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "lambda : 1"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_LAMBDA_EXPRESSION
+                                    text: "lambda : 1"
+                                    children:
+                                      - key: SQL_LAMBDA_BODY
+                                        type: LITERAL_INTEGER
+                                        text: "1"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_semantic_view
+    input: |-
+      select * from semantic_view(m dimensions region, year as y measures sum(revenue) as total facts f where year > 2000), semantic_view('model' measures count(*))
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 63
+          description:
+            text: "select * f.. count(*))"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f.. count(*))"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from seman.. count(*))"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "semantic_v..ar > 2000)"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_FUNCTION_TABLE
+                        text: "semantic_v..ar > 2000)"
+                        children:
+                          - key: SQL_FUNCTION_TABLE_FUNCTION
+                            type: OBJECT_SQL_SEMANTIC_VIEW
+                            text: "semantic_v..ar > 2000)"
+                            children:
+                              - key: SQL_SEMANTIC_VIEW_NAME
+                                type: ARRAY
+                                text: "semantic_view"
+                                children:
+                                  - type: NAME
+                                    text: "semantic_view"
+                              - key: SQL_SEMANTIC_VIEW_MODEL
+                                type: NAME
+                                text: "m"
+                              - key: SQL_SEMANTIC_VIEW_CLAUSES
+                                type: ARRAY
+                                text: "dimensions..ear > 2000"
+                                children:
+                                  - type: OBJECT_SQL_SEMANTIC_DIMENSIONS
+                                    text: "dimensions.. year as y"
+                                    children:
+                                      - key: SQL_SEMANTIC_CLAUSE_TARGETS
+                                        type: ARRAY
+                                        text: "region, year as y"
+                                        children:
+                                          - type: OBJECT_SQL_RESULT_TARGET
+                                            text: "region"
+                                            children:
+                                              - key: SQL_RESULT_TARGET_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "region"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "region"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "region"
+                                          - type: OBJECT_SQL_RESULT_TARGET
+                                            text: "year as y"
+                                            children:
+                                              - key: SQL_RESULT_TARGET_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "year"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "year"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "year"
+                                              - key: SQL_RESULT_TARGET_NAME
+                                                type: NAME
+                                                text: "y"
+                                  - type: OBJECT_SQL_SEMANTIC_MEASURES
+                                    text: "measures s..) as total"
+                                    children:
+                                      - key: SQL_SEMANTIC_CLAUSE_TARGETS
+                                        type: ARRAY
+                                        text: "sum(revenu..) as total"
+                                        children:
+                                          - type: OBJECT_SQL_RESULT_TARGET
+                                            text: "sum(revenu..) as total"
+                                            children:
+                                              - key: SQL_RESULT_TARGET_VALUE
+                                                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                                                text: "sum(revenue)"
+                                                children:
+                                                  - key: SQL_FUNCTION_NAME
+                                                    type: ARRAY
+                                                    text: "sum"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "sum"
+                                                  - key: SQL_FUNCTION_ARGUMENTS
+                                                    type: ARRAY
+                                                    text: "revenue"
+                                                    children:
+                                                      - type: OBJECT_SQL_FUNCTION_ARG
+                                                        text: "revenue"
+                                                        children:
+                                                          - key: SQL_FUNCTION_ARG_VALUE
+                                                            type: OBJECT_SQL_COLUMN_REF
+                                                            text: "revenue"
+                                                            children:
+                                                              - key: SQL_COLUMN_REF_PATH
+                                                                type: ARRAY
+                                                                text: "revenue"
+                                                                children:
+                                                                  - type: NAME
+                                                                    text: "revenue"
+                                              - key: SQL_RESULT_TARGET_NAME
+                                                type: NAME
+                                                text: "total"
+                                  - type: OBJECT_SQL_SEMANTIC_FACTS
+                                    text: "facts f"
+                                    children:
+                                      - key: SQL_SEMANTIC_CLAUSE_TARGETS
+                                        type: ARRAY
+                                        text: "f"
+                                        children:
+                                          - type: OBJECT_SQL_RESULT_TARGET
+                                            text: "f"
+                                            children:
+                                              - key: SQL_RESULT_TARGET_VALUE
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "f"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "f"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "f"
+                                  - type: OBJECT_SQL_SEMANTIC_FILTER
+                                    text: "where year > 2000"
+                                    children:
+                                      - key: SQL_SEMANTIC_CLAUSE_CONDITION
+                                        type: OBJECT_SQL_NARY_EXPRESSION
+                                        text: "year > 2000"
+                                        children:
+                                          - key: SQL_EXPRESSION_OPERATOR
+                                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                                            value: GREATER_THAN
+                                          - key: SQL_EXPRESSION_ARGS
+                                            type: ARRAY
+                                            text: "year > 2000"
+                                            children:
+                                              - type: OBJECT_SQL_COLUMN_REF
+                                                text: "year"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "year"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "year"
+                                              - type: LITERAL_INTEGER
+                                                text: "2000"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "semantic_v.. count(*))"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_FUNCTION_TABLE
+                        text: "semantic_v.. count(*))"
+                        children:
+                          - key: SQL_FUNCTION_TABLE_FUNCTION
+                            type: OBJECT_SQL_SEMANTIC_VIEW
+                            text: "semantic_v.. count(*))"
+                            children:
+                              - key: SQL_SEMANTIC_VIEW_NAME
+                                type: ARRAY
+                                text: "semantic_view"
+                                children:
+                                  - type: NAME
+                                    text: "semantic_view"
+                              - key: SQL_SEMANTIC_VIEW_SPECIFICATION
+                                type: LITERAL_STRING
+                                text: "'model'"
+                              - key: SQL_SEMANTIC_VIEW_CLAUSES
+                                type: ARRAY
+                                text: "measures count(*)"
+                                children:
+                                  - type: OBJECT_SQL_SEMANTIC_MEASURES
+                                    text: "measures count(*)"
+                                    children:
+                                      - key: SQL_SEMANTIC_CLAUSE_TARGETS
+                                        type: ARRAY
+                                        text: "count(*)"
+                                        children:
+                                          - type: OBJECT_SQL_RESULT_TARGET
+                                            text: "count(*)"
+                                            children:
+                                              - key: SQL_RESULT_TARGET_VALUE
+                                                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                                                text: "count(*)"
+                                                children:
+                                                  - key: SQL_FUNCTION_NAME
+                                                    type: ARRAY
+                                                    text: "count"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "count"
+                                                  - key: SQL_FUNCTION_ARGUMENTS_STAR
+                                                    type: BOOL
+                                                    value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_cte_secure
+    input: |-
+      with a as secure (select 1), b(x) as secure (select 2) select * from a, b
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 28
+          description:
+            text: "with a as .. from a, b"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "with a as .. from a, b"
+            children:
+              - key: SQL_SELECT_WITH_CTES
+                type: ARRAY
+                text: "a as secur..(select 2)"
+                children:
+                  - type: OBJECT_SQL_CTE
+                    text: "a as secur..(select 1)"
+                    children:
+                      - key: SQL_CTE_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_CTE_STATEMENT
+                        type: OBJECT_SQL_SELECT
+                        text: "select 1"
+                        children:
+                          - key: SQL_SELECT_TARGETS
+                            type: ARRAY
+                            text: "1"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "1"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "1"
+                      - key: SQL_CTE_SECURE
+                        type: BOOL
+                        value: 1
+                  - type: OBJECT_SQL_CTE
+                    text: "b(x) as se..(select 2)"
+                    children:
+                      - key: SQL_CTE_NAME
+                        type: NAME
+                        text: "b"
+                      - key: SQL_CTE_COLUMNS
+                        type: ARRAY
+                        text: "x"
+                        children:
+                          - type: NAME
+                            text: "x"
+                      - key: SQL_CTE_STATEMENT
+                        type: OBJECT_SQL_SELECT
+                        text: "select 2"
+                        children:
+                          - key: SQL_SELECT_TARGETS
+                            type: ARRAY
+                            text: "2"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "2"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_CTE_SECURE
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from a, b"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "a"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "a"
+                        children:
+                          - type: NAME
+                            text: "a"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "b"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "b"
+                        children:
+                          - type: NAME
+                            text: "b"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_window_bound_or_null
+    input: |-
+      select sum(y) over (order by x rows between 1 preceding or null and 2 following or null) from t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 33
+          description:
+            text: "select sum..ll) from t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select sum..ll) from t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "sum(y) ove..g or null)"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "sum(y) ove..g or null)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "sum(y) ove..g or null)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "sum"
+                            children:
+                              - type: NAME
+                                text: "sum"
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "y"
+                            children:
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "y"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "y"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "y"
+                                        children:
+                                          - type: NAME
+                                            text: "y"
+                          - key: SQL_FUNCTION_OVER
+                            type: OBJECT_SQL_WINDOW_FRAME
+                            text: "(order by ..g or null)"
+                            children:
+                              - key: SQL_WINDOW_FRAME_MODE
+                                type: ENUM_SQL_WINDOW_RANGE_MODE
+                                value: ROWS
+                              - key: SQL_WINDOW_FRAME_BOUNDS
+                                type: ARRAY
+                                text: "between 1 ..ng or null"
+                                children:
+                                  - type: OBJECT_SQL_WINDOW_BOUND
+                                    text: "1 preceding or null"
+                                    children:
+                                      - key: SQL_WINDOW_BOUND_MODE
+                                        type: ENUM_SQL_WINDOW_BOUND_MODE
+                                        value: VALUE
+                                      - key: SQL_WINDOW_BOUND_DIRECTION
+                                        type: ENUM_SQL_WINDOW_BOUND_DIRECTION
+                                        value: PRECEDING
+                                      - key: SQL_WINDOW_BOUND_VALUE
+                                        type: LITERAL_INTEGER
+                                        text: "1"
+                                      - key: SQL_WINDOW_BOUND_OR_NULL
+                                        type: BOOL
+                                        value: 1
+                                  - type: OBJECT_SQL_WINDOW_BOUND
+                                    text: "2 following or null"
+                                    children:
+                                      - key: SQL_WINDOW_BOUND_MODE
+                                        type: ENUM_SQL_WINDOW_BOUND_MODE
+                                        value: VALUE
+                                      - key: SQL_WINDOW_BOUND_DIRECTION
+                                        type: ENUM_SQL_WINDOW_BOUND_DIRECTION
+                                        value: FOLLOWING
+                                      - key: SQL_WINDOW_BOUND_VALUE
+                                        type: LITERAL_INTEGER
+                                        text: "2"
+                                      - key: SQL_WINDOW_BOUND_OR_NULL
+                                        type: BOOL
+                                        value: 1
+                              - key: SQL_WINDOW_FRAME_ORDER
+                                type: ARRAY
+                                text: "order by x"
+                                children:
+                                  - type: OBJECT_SQL_ORDER
+                                    text: "x"
+                                    children:
+                                      - key: SQL_ORDER_VALUE
+                                        type: OBJECT_SQL_COLUMN_REF
+                                        text: "x"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "x"
+                                            children:
+                                              - type: NAME
+                                                text: "x"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_group_by_cube
+    input: |-
+      select a, b, count(*) from t group by cube (a, b), rollup (a)
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 35
+          description:
+            text: "select a, ..rollup (a)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select a, ..rollup (a)"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "a, b, count(*)"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: NAME
+                                text: "a"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "b"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "b"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "b"
+                            children:
+                              - type: NAME
+                                text: "b"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "count(*)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "count(*)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "count"
+                            children:
+                              - type: NAME
+                                text: "count"
+                          - key: SQL_FUNCTION_ARGUMENTS_STAR
+                            type: BOOL
+                            value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+              - key: SQL_SELECT_GROUPS
+                type: ARRAY
+                text: "group by c..rollup (a)"
+                children:
+                  - type: OBJECT_SQL_GROUP_BY_ITEM
+                    text: "cube (a, b)"
+                    children:
+                      - key: SQL_GROUP_BY_ITEM_TYPE
+                        type: ENUM_SQL_GROUP_BY_ITEM_TYPE
+                        value: CUBE
+                      - key: SQL_GROUP_BY_ITEM_ARG
+                        type: ARRAY
+                        text: "a, b"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_REF
+                            text: "a"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "a"
+                                children:
+                                  - type: NAME
+                                    text: "a"
+                          - type: OBJECT_SQL_COLUMN_REF
+                            text: "b"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "b"
+                                children:
+                                  - type: NAME
+                                    text: "b"
+                  - type: OBJECT_SQL_GROUP_BY_ITEM
+                    text: "rollup (a)"
+                    children:
+                      - key: SQL_GROUP_BY_ITEM_TYPE
+                        type: ENUM_SQL_GROUP_BY_ITEM_TYPE
+                        value: ROLLUP
+                      - key: SQL_GROUP_BY_ITEM_ARG
+                        type: ARRAY
+                        text: "a"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_REF
+                            text: "a"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "a"
+                                children:
+                                  - type: NAME
+                                    text: "a"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_not_null_type_elements
+    input: |-
+      select cast(row(1) as row(x integer not null)), cast(array[1] as array(integer not null)) from f() as (y integer not null)
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 46
+          description:
+            text: "select cas.. not null)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select cas.. not null)"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "cast(row(1..not null))"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "cast(row(1..not null))"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "cast(row(1..not null))"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ENUM_SQL_KNOWN_FUNCTION
+                            value: CAST
+                          - key: SQL_FUNCTION_CAST_ARGS
+                            type: OBJECT_SQL_FUNCTION_CAST_ARGS
+                            text: "(row(1) as..not null))"
+                            children:
+                              - key: SQL_FUNCTION_CAST_VALUE
+                                type: OBJECT_SQL_ROW_EXPRESSION
+                                text: "row(1)"
+                                children:
+                                  - key: SQL_ROW_EXPRESSION_EXPLICIT
+                                    type: BOOL
+                                    value: 1
+                                  - key: SQL_ROW_EXPRESSION_VALUES
+                                    type: ARRAY
+                                    text: "1"
+                                    children:
+                                      - type: LITERAL_INTEGER
+                                        text: "1"
+                              - key: SQL_FUNCTION_CAST_TYPE
+                                type: OBJECT_SQL_TYPENAME
+                                text: "row(x inte.. not null)"
+                                children:
+                                  - key: SQL_TYPENAME_TYPE
+                                    type: OBJECT_SQL_ROW_TYPE
+                                    text: "row(x inte.. not null)"
+                                    children:
+                                      - key: SQL_ROW_TYPE_FIELDS
+                                        type: ARRAY
+                                        text: "x integer not null"
+                                        children:
+                                          - type: OBJECT_SQL_COLUMN_DEF
+                                            text: "x integer not null"
+                                            children:
+                                              - key: SQL_COLUMN_DEF_NAME
+                                                type: NAME
+                                                text: "x"
+                                              - key: SQL_COLUMN_DEF_TYPE
+                                                type: OBJECT_SQL_TYPENAME
+                                                text: "integer"
+                                                children:
+                                                  - key: SQL_TYPENAME_TYPE
+                                                    type: ENUM_SQL_NUMERIC_TYPE
+                                                    value: INT4
+                                              - key: SQL_COLUMN_DEF_NOT_NULL
+                                                type: BOOL
+                                                value: 1
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "cast(array..not null))"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "cast(array..not null))"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ENUM_SQL_KNOWN_FUNCTION
+                            value: CAST
+                          - key: SQL_FUNCTION_CAST_ARGS
+                            type: OBJECT_SQL_FUNCTION_CAST_ARGS
+                            text: "(array[1] ..not null))"
+                            children:
+                              - key: SQL_FUNCTION_CAST_VALUE
+                                type: OBJECT_SQL_ARRAY_EXPRESSION
+                                text: "array[1]"
+                                children:
+                                  - key: SQL_ARRAY_EXPRESSION_VALUES
+                                    type: ARRAY
+                                    text: "1"
+                                    children:
+                                      - type: LITERAL_INTEGER
+                                        text: "1"
+                              - key: SQL_FUNCTION_CAST_TYPE
+                                type: OBJECT_SQL_TYPENAME
+                                text: "array(inte.. not null)"
+                                children:
+                                  - key: SQL_TYPENAME_TYPE
+                                    type: OBJECT_SQL_GENERIC_TYPE
+                                    text: "array(inte.. not null)"
+                                    children:
+                                      - key: SQL_GENERIC_TYPE_NAME
+                                        type: NAME
+                                        text: "array"
+                                      - key: SQL_GENERIC_TYPE_MODIFIERS
+                                        type: ARRAY
+                                        text: "array(inte.. not null)"
+                                        children:
+                                          - type: OBJECT_SQL_TYPENAME
+                                            text: "integer"
+                                            children:
+                                              - key: SQL_TYPENAME_TYPE
+                                                type: ENUM_SQL_NUMERIC_TYPE
+                                                value: INT4
+                                      - key: SQL_TYPENAME_ELEMENT_NOT_NULL
+                                        type: BOOL
+                                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from f() a.. not null)"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "f() as (y .. not null)"
+                    children:
+                      - key: SQL_TABLEREF_ALIAS
+                        type: OBJECT_SQL_ALIAS
+                        text: "as (y inte.. not null)"
+                        children:
+                          - key: SQL_ALIAS_COLUMN_DEFS
+                            type: ARRAY
+                            text: "y integer not null"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_DEF
+                                text: "y integer not null"
+                                children:
+                                  - key: SQL_COLUMN_DEF_NAME
+                                    type: NAME
+                                    text: "y"
+                                  - key: SQL_COLUMN_DEF_TYPE
+                                    type: OBJECT_SQL_TYPENAME
+                                    text: "integer"
+                                    children:
+                                      - key: SQL_TYPENAME_TYPE
+                                        type: ENUM_SQL_NUMERIC_TYPE
+                                        value: INT4
+                                  - key: SQL_COLUMN_DEF_NOT_NULL
+                                    type: BOOL
+                                    value: 1
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_FUNCTION_TABLE
+                        text: "f()"
+                        children:
+                          - key: SQL_FUNCTION_TABLE_FUNCTION
+                            type: OBJECT_SQL_FUNCTION_EXPRESSION
+                            text: "f()"
+                            children:
+                              - key: SQL_FUNCTION_NAME
+                                type: ARRAY
+                                text: "f"
+                                children:
+                                  - type: NAME
+                                    text: "f"
+                          - key: SQL_FUNCTION_TABLE_WITH_ORDINALITY
+                            type: BOOL
+                            value: 0
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

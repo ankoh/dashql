@@ -398,3 +398,256 @@ planner-snapshots:
           text: ":span"
           error: true
           message: 'input :span has no value'
+
+  - name: InputPositions
+    catalog: |
+      create table t (a int, b text);
+    scripts:
+      - name: s
+        input: |
+          /* @param :n = 3
+             @param :name = 'x' */
+          select a from t order by a limit :n;
+          insert into t values (:n, :name);
+          create table u as select :n as a, :name as b;
+          delete from t where b = :name;
+          update t set a = :n where b = :name;
+    expected:
+      valid: true
+      scripts:
+        - name: s
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: false
+          terminal-statement-id: 4
+          signature: "79393d21dfe602f882e9f94f0bf3ff879b1368055ef4418eee7f2f7169df9552\n:n=3\n:name='x'"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+        - catalog-id: '256.65536.8589934592'
+          type: TABLE
+          name: u
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: s
+          statement-id: 0
+          type: SELECT
+          sql: "select a from t order by a limit 3"
+          produces-output: true
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: s
+          statement-id: 1
+          type: INSERT
+          sql: "insert into t values (3, 'x')"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 2
+          script: s
+          statement-id: 2
+          type: CREATE_TABLE_AS
+          sql: "create table u as select 3 as a, 'x' as b"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.8589934592'
+              mode: DDL
+        - id: 3
+          script: s
+          statement-id: 3
+          type: DELETE
+          sql: "delete from t where b = 'x'"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 4
+          script: s
+          statement-id: 4
+          type: UPDATE
+          sql: "update t set a = 3 where b = 'x'"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+      edges:
+        - from: 0
+          to: 1
+          reason: WRITE_AFTER_READ
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 3
+          reason: WRITE_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 3
+          to: 4
+          reason: WRITE_AFTER_WRITE
+          entity: '256.65536.4294967296'
+      diagnostics: []
+
+  - name: InputNullAndQuotes
+    catalog: |
+      create table t (a int, b text);
+    scripts:
+      - name: s
+        input: |
+          /* @param :none = null
+             @param :quoted = 'it''s'
+             @param :big = 12345678901234
+             @param :ratio = 1.5e3 */
+          select * from t where b = :quoted or a = :none or a < :big or a < :ratio;
+    expected:
+      valid: true
+      scripts:
+        - name: s
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "70223f027ee6f4168e9edff28e92fdcff024729250f2576776fab2c22520a571\n:big=12345678901234\n:none=null\n:quoted='it''s'\n:ratio=1.5e3"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: s
+          statement-id: 0
+          type: SELECT
+          sql: "select * from t where b = 'it''s' or a = null or a < 12345678901234 or a < 1.5e3"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      diagnostics: []
+
+  - name: InputInlinedOwnValue
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: foo
+        input: |
+          /* @param :min = 10 */
+          select a from t where a > :min;
+      - name: bar
+        input: |
+          /* @param :min = 20 */
+          select count(*) from :foo where a > :min;
+      - name: baz
+        input: |
+          select count(*) from :foo where a > :min;
+    expected:
+      valid: true
+      scripts:
+        - name: foo
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "10f4f71b4076ee9b691c7f2683cc3084cd490fa5a5c486edbf2d31b14c22e558\n:min=10"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "322c0c120c8250e0fbdd1f1884ca032be524632cd272f291a612abd293ecf58a\n:min=20"
+          references: [foo]
+        - name: baz
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "322c0c120c8250e0fbdd1f1884ca032be524632cd272f291a612abd293ecf58a\n:min=10"
+          references: [foo]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: foo
+          statement-id: 0
+          type: SELECT
+          sql: "select a from t where a > 10"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select a from t where a > 10
+            )
+            select count(*) from foo where a > 20
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 2
+          script: baz
+          statement-id: 0
+          type: SELECT
+          sql: |-
+            with foo as (
+            select a from t where a > 10
+            )
+            select count(*) from foo where a > 10
+          produces-output: true
+          barrier: false
+          script-result: true
+          inlined-scripts: [0]
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges: []
+      references:
+        - node: 1
+          script: bar
+          text: ":foo"
+          target: foo
+          cte: foo
+        - node: 2
+          script: baz
+          text: ":foo"
+          target: foo
+          cte: foo
+      diagnostics: []
+      checked-references:
+        - script: bar
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline
+        - script: baz
+          references:
+            - text: ":foo"
+              target: foo
+              kind: inline

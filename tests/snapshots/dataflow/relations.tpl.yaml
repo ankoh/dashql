@@ -334,3 +334,47 @@ dataflow-snapshots:
       - name: read
         input: |
           select count(*) from t;
+
+  # An UPDATE reads the table of its FROM and continues the flow of its target
+  - name: UpdateFromAnotherTable
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int, b int);
+          create table u (a int, c int);
+      - name: bump
+        input: |
+          update t set b = u.c from u where t.a = u.a returning t.a;
+      - name: read
+        input: |
+          select * from t;
+
+  # A statement that writes a relation and reads it through an inlined query keeps its own edge of the relation
+  - name: InlinedReadAndOwnWrite
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: foo
+        input: |
+          select a from t;
+      - name: bar
+        input: |
+          insert into t select a + 1 from :foo;
+      - name: read
+        input: |
+          select * from t;
+
+  # EXPLAIN reads the relations of its body, an execution-enabled EXPLAIN of an INSERT writes the table
+  - name: ExplainOfTable
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: plans
+        input: |
+          explain select * from t;
+          explain (analyze) insert into t values (1);
+      - name: read
+        input: |
+          select * from t;

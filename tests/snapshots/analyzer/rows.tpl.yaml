@@ -46,3 +46,11 @@ analyzer-snapshots:
         input: create table orders (id int, product row(name text, quantity int));
     script:
       input: select s.id, missing.name from (select id from orders) s, orders
+
+  # A row field of a FROM item that an aliased join hides is an invalid reference, the alias of the join reads it
+  - name: row_field_access_hidden_by_join_alias
+    catalog:
+      script:
+        input: create table orders (id int, product row(name text, quantity int)); create table stock (name text, quantity int);
+    script:
+      input: select (j.product).quantity, j.name from (orders o join stock s on true) as j where o.product.name is null and j.product.name is null

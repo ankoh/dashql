@@ -1,0 +1,230 @@
+formatter-snapshots:
+
+  - name: coverage_literal_strings
+    input: |-
+      select 'it''s', '', 'line one
+      line two' as lines from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 'it''s', '', 'line one
+              line two' as lines from t;
+          - mode: compact
+            expected: |-
+              select 'it''s', '', 'line one
+              line two' as lines from t;
+          - mode: pretty
+            expected: |-
+              select 'it''s', '', 'line one
+              line two' as lines
+              from t;
+        validation:
+          setup: |-
+            create table t(a int);
+
+  - name: coverage_literal_string_continuation
+    input: |-
+      select 'first part'
+        'second part' as s from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 'first part'
+                'second part' as s from t;
+          - mode: compact
+            expected: |-
+              select 'first part'
+                'second part' as s from t;
+          - mode: pretty
+            expected: |-
+              select 'first part'
+                'second part' as s
+              from t;
+        validation:
+          setup: |-
+            create table t(a int);
+
+  - name: literal_multiline_string_in_broken_list
+    input: |-
+      select first_column_name, 'a string
+        that spans lines' as multi, second_column_name, third_column_name from some_table where first_column_name = 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select first_column_name, 'a string
+                that spans lines' as multi, second_column_name, third_column_name from some_table where first_column_name = 1;
+          - mode: compact
+            width: 60
+            expected: |-
+              select first_column_name,
+                'a string
+                that spans lines' as multi,
+                second_column_name, third_column_name
+              from some_table
+              where first_column_name = 1;
+          - mode: pretty
+            width: 60
+            expected: |-
+              select first_column_name,
+                'a string
+                that spans lines' as multi,
+                second_column_name,
+                third_column_name
+              from some_table
+              where first_column_name = 1;
+        validation:
+          setup: |-
+            create table some_table(first_column_name int, second_column_name int, third_column_name int);
+
+  - name: coverage_literal_numbers
+    input: |-
+      select 1e10, 1.5e-3, .5, 5., 0.000, 9223372036854775807, 1E+3, -0.5e2
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1e10, 1.5e-3, .5, 5., 0.000, 9223372036854775807, 1E+3, -0.5e2;
+          - mode: compact
+            expected: |-
+              select 1e10, 1.5e-3, .5, 5., 0.000, 9223372036854775807, 1E+3, -0.5e2;
+          - mode: pretty
+            expected: |-
+              select 1e10, 1.5e-3, .5, 5., 0.000, 9223372036854775807, 1E+3, -0.5e2;
+        validation:
+
+  - name: coverage_literal_bit_and_hex_strings
+    input: |-
+      select b'1010', x'ff', B'1', X'0F'
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select b'1010', x'ff', B'1', X'0F';
+          - mode: compact
+            expected: |-
+              select b'1010', x'ff', B'1', X'0F';
+          - mode: pretty
+            expected: |-
+              select b'1010', x'ff', B'1', X'0F';
+
+  - name: coverage_literal_dollar_quoted
+    input: |-
+      select $$a 'quoted' text$$, $tag$ with $$ inside $tag$, $q$$q$
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select $$a 'quoted' text$$, $tag$ with $$ inside $tag$, $q$$q$;
+          - mode: compact
+            expected: |-
+              select $$a 'quoted' text$$, $tag$ with $$ inside $tag$, $q$$q$;
+          - mode: pretty
+            expected: |-
+              select $$a 'quoted' text$$, $tag$ with $$ inside $tag$, $q$$q$;
+        validation:
+
+  - name: coverage_literal_bool_null_spelling
+    input: |-
+      SELECT TRUE, False, NULL, Null, not FALSE
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select TRUE, False, NULL, Null, not FALSE;
+          - mode: compact
+            expected: |-
+              select TRUE, False, NULL, Null, not FALSE;
+          - mode: pretty
+            expected: |-
+              select TRUE, False, NULL, Null, not FALSE;
+        validation:
+
+  - name: coverage_identifier_quoted
+    input: |-
+      select "select", "Mixed Case", "a""b", "ä", "group"."where" from "from" as "group" where "group"."order" = 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select "select", "Mixed Case", "a""b", "ä", "group"."where" from "from" "group" where "group"."order" = 1;
+          - mode: compact
+            expected: |-
+              select "select", "Mixed Case", "a""b", "ä", "group"."where" from "from" "group" where "group"."order" = 1;
+          - mode: pretty
+            expected: |-
+              select "select", "Mixed Case", "a""b", "ä", "group"."where"
+              from "from" "group"
+              where "group"."order" = 1;
+        validation:
+          setup: |-
+            create table "from"("select" int, "Mixed Case" int, "a""b" int, "ä" int, "where" int, "order" int);
+
+  - name: coverage_identifier_backticks
+    input: |-
+      select `a`, `Mixed Case`.`b` from `schema`.`table` as `Mixed Case`
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select `a`, `Mixed Case`.`b` from `schema`.`table` `Mixed Case`;
+          - mode: compact
+            expected: |-
+              select `a`, `Mixed Case`.`b` from `schema`.`table` `Mixed Case`;
+          - mode: pretty
+            expected: |-
+              select `a`, `Mixed Case`.`b`
+              from `schema`.`table` `Mixed Case`;
+
+  - name: coverage_identifier_unreserved_keywords
+    input: |-
+      select year, month, name, value, type, key, data, text, date, time from events
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select year, month, name, value, type, key, data, text, date, time from events;
+          - mode: compact
+            expected: |-
+              select year, month, name, value, type, key, data, text, date, time from events;
+          - mode: pretty
+            expected: |-
+              select year, month, name, value, type, key, data, text, date, time
+              from events;
+        validation:
+          setup: |-
+            create table events(year int, month int, name text, value int, type text, key text, data text, text text, date date, time time);
+
+  - name: coverage_alias_keywords
+    input: |-
+      select a as year, b as value, c as name, d as "select", e as from_x, f year2 from t as year, u as value, v as "where"
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a as year, b as value, c as name, d as "select", e as from_x, f as year2 from t year, u value, v "where";
+          - mode: compact
+            expected: |-
+              select a as year, b as value, c as name, d as "select", e as from_x, f as year2 from t year, u value, v "where";
+          - mode: pretty
+            expected: |-
+              select a as year, b as value, c as name, d as "select", e as from_x, f as year2
+              from t year, u value, v "where";
+        validation:
+          setup: |-
+            create table t(a int, b int, c int, d int, e int, f int);
+            create table u(g int);
+            create table v(h int);

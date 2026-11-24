@@ -78,3 +78,21 @@ parser-snapshots:
         pg MATCH (a)
         COLUMNS (scope.a.* EXCLUDE (scope.a.secret, scope.a.internal_id))
       ) gt
+
+  # Label expressions with disjunction, conjunction, negation, the wildcard and parentheses
+  - name: pgq_label_expressions
+    input: |-
+      WITH pg AS PROPERTY GRAPH ()
+      SELECT * FROM GRAPH_TABLE(
+        pg MATCH (a IS Person | Company)-[e IS !Knows & (Likes | %)]->(b:%)
+        COLUMNS (a.name)
+      ) gt
+
+  # Element patterns with WHERE clauses and the forms of quantifiers
+  - name: pgq_element_where_and_quantifiers
+    input: |-
+      WITH pg AS PROPERTY GRAPH ()
+      SELECT * FROM GRAPH_TABLE(
+        pg MATCH (a WHERE a.age > 30)-[e WHERE e.since > 2000]->{2}(b)-[f]->{,3}(c)-[g]->{1,}(d)-[h]->{,}(e2)-[i]-> ? (f2)
+        COLUMNS (a.name)
+      ) gt

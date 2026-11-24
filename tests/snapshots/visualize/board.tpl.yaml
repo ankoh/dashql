@@ -184,3 +184,39 @@ visualize-snapshots:
     dashboard:
       width: 2
       height: 6
+
+  # A Markdown card has the default size of a visualization
+  - name: board_markdown_default
+    script:
+      input: |
+        /* @vis markdown **{{a}}** */
+        SELECT 1 AS a;
+    dashboard:
+      width: 6
+      height: 6
+
+  # A width beyond the grid is clamped to 12 first, then the column moves left to 0
+  - name: board_width_clamped_column_moved
+    script:
+      input: |
+        /* @vis table
+           @board column=8 width=20 */
+        SELECT 1 AS a;
+    dashboard:
+      column: 0
+      width: 12
+      height: 6
+
+  # The placement of a visualized statement that is not the last statement of the script
+  - name: board_not_last_statement
+    script:
+      input: |
+        /* @vis table
+           @board row=1 width=4 */
+        SELECT 1 AS a;
+        /* @board width=2 */
+        SELECT 2 AS b;
+    dashboard:
+      row: 1
+      width: 4
+      height: 6

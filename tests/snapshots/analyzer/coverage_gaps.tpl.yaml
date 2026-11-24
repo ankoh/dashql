@@ -94,3 +94,31 @@ analyzer-snapshots:
       input: |-
         -- @end
         select 1
+
+  # AND and OR of constants are binary expressions with the function UNKNOWN (see docs/design/core_quirks.md), booleans
+  # and NOT are no constants
+  - name: const_and_or_quirk
+    script:
+      input: select 1 = 1 and 2 < 3, 1 = 1 or 2 = 2, true and false, not (1 = 1)
+
+  # Casts, string concatenation, BETWEEN, IN, CASE and scalar subqueries are no constant expressions
+  - name: const_non_constant_forms
+    script:
+      input: select 1::int, cast(1 as int), 'a' || 'b', 1 between 0 and 2, 1 in (1, 2), case when 1 = 1 then 2 end, (select 1)
+
+  # Known functions without arguments are constant, but no constant roots
+  - name: const_known_functions_without_args
+    script:
+      input: select current_time, localtime, localtimestamp, current_role, session_user, user, current_catalog, current_schema
+
+  # Known functions with a special syntax and a precision
+  - name: const_known_functions_special
+    script:
+      input: select try_cast('1' as int), collation for ('a'), current_time(3), localtimestamp(2)
+
+  # A script of comments and empty statements
+  - name: empty_comments_and_semicolons
+    script:
+      input: |-
+        -- just a comment
+        /* block */ ;;

@@ -255,3 +255,32 @@ visualize-snapshots:
         },
         "mark": "bar"
       }
+
+  - name: tags_text_after_json_invalid
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar"}
+           Revenue per region */
+        SELECT 1 AS a;
+        /* @vis table */
+        SELECT 2 AS b;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 2 AS b"
+        }
+      }
+
+  - name: tags_values_statement
+    script:
+      input: |
+        /* @vis table */
+        VALUES (1, 'a'), (2, 'b');
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "VALUES (1, 'a'), (2, 'b')"
+        }
+      }

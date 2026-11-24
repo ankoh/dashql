@@ -244,3 +244,22 @@ formatter-snapshots:
         formatted:
           - mode: compact
             width: 40
+
+  # The query of a long view starts on its own line
+  - name: create_view_long_query
+    input: create or replace view daily_revenue as select order_date, region, sum(amount) as revenue, count(distinct customer_id) as customers from orders where status = 'complete' group by order_date, region
+    dialects:
+      hyper:
+
+  # Long column and value lists of an INSERT
+  - name: insert_long_columns_and_values
+    input: insert into customer_profiles (customer_id, first_name, last_name, email_address, phone_number, created_at, updated_at) values (1, 'Ada', 'Lovelace', 'ada@example.com', '+44 20 7946 0000', current_timestamp, current_timestamp)
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 80
+          - mode: pretty
+            width: 80
+        validation:
+          setup: create table customer_profiles(customer_id int, first_name text, last_name text, email_address text, phone_number text, created_at timestamp, updated_at timestamp);

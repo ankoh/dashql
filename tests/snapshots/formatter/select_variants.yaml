@@ -518,3 +518,155 @@ formatter-snapshots:
               ) options (identifier_resolution 'case_insensitive')
               select *
               from a;
+
+  - name: coverage_table_statement
+    input: |-
+      table t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              table t;
+          - mode: compact
+            expected: |-
+              table t;
+          - mode: pretty
+            expected: |-
+              table t;
+        validation:
+          setup: |-
+            create table t(a int);
+
+  - name: coverage_limit_offset_expressions
+    input: |-
+      select a from t order by a limit 10 + 5 offset (select 1)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a from t order by a limit 10 + 5 offset (select 1);
+          - mode: compact
+            expected: |-
+              select a from t order by a limit 10 + 5 offset (select 1);
+          - mode: pretty
+            expected: |-
+              select a
+              from t
+              order by a
+              limit 10 + 5
+              offset (select 1);
+
+  - name: coverage_offset_fetch_forms
+    input: |-
+      select a from t offset 10 rows fetch first 5 rows only; select a from t offset 1 row fetch next 1 row only
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a from t limit 5 offset 10;
+
+              select a from t limit 1 offset 1;
+          - mode: compact
+            expected: |-
+              select a from t limit 5 offset 10;
+
+              select a from t limit 1 offset 1;
+          - mode: pretty
+            expected: |-
+              select a
+              from t
+              limit 5
+              offset 10;
+
+              select a
+              from t
+              limit 1
+              offset 1;
+        validation:
+          setup: |-
+            create table t(a int);
+
+  - name: coverage_star_exclude
+    input: |-
+      select * exclude (a, b), t.* exclude c from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * exclude (a, b), t.* exclude c from t;
+          - mode: compact
+            expected: |-
+              select * exclude (a, b), t.* exclude c from t;
+          - mode: pretty
+            expected: |-
+              select * exclude (a, b), t.* exclude c
+              from t;
+
+  - name: case_operand_expression
+    input: |-
+      select case (a + b) % 3 when 0 then 'zero' when 1 then 'one' end, case when p then case b when 1 then 2 end end from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select case (a + b) % 3 when 0 then 'zero' when 1 then 'one' end, case when p then case b when 1 then 2 end end from t;
+          - mode: compact
+            expected: |-
+              select case (a + b) % 3 when 0 then 'zero' when 1 then 'one' end, case when p then case b when 1 then 2 end end from t;
+          - mode: pretty
+            expected: |-
+              select case (a + b) % 3
+                  when 0 then 'zero'
+                  when 1 then 'one'
+                end,
+                case
+                  when p then case b
+                    when 1 then 2
+                  end
+                end
+              from t;
+        validation:
+          setup: |-
+            create table t(a int, b int, p bool);
+
+  - name: coverage_subscript_on_expressions
+    input: |-
+      select (a || b)[1], (f(x))[1:2], (array[1, 2, 3])[2:], (select array[1])[1], a[i + 1][j] from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select (a || b)[1], (f(x))[1:2], (array[1, 2, 3])[2:], (select array[1])[1], a[i + 1][j] from t;
+          - mode: compact
+            expected: |-
+              select (a || b)[1], (f(x))[1:2], (array[1, 2, 3])[2:], (select array[1])[1], a[i + 1][j] from t;
+          - mode: pretty
+            expected: |-
+              select (a || b)[1], (f(x))[1:2], (array[1, 2, 3])[2:], (select array[1])[1], a[i + 1][j]
+              from t;
+
+  - name: interval_arithmetic
+    input: |-
+      select interval '1 day' * 2, current_date - interval '7' day, ts + interval '1' hour * n, -interval '1 day' from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select interval '1 day' * 2, current_date - interval '7' day, ts + interval '1' hour * n, -interval '1 day' from t;
+          - mode: compact
+            expected: |-
+              select interval '1 day' * 2, current_date - interval '7' day, ts + interval '1' hour * n, -interval '1 day' from t;
+          - mode: pretty
+            expected: |-
+              select interval '1 day' * 2, current_date - interval '7' day, ts + interval '1' hour * n, -interval '1 day'
+              from t;
+        validation:
+          setup: |-
+            create table t(ts timestamp, n int);
