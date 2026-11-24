@@ -1,0 +1,104 @@
+formatter-snapshots:
+
+  # Clauses of expressions that the formatter must not drop
+
+  - name: coverage_function_absent_on_null
+    input: select json_arrayagg(distinct a absent on null), json_arrayagg(a order by a null on null) from t
+    dialects:
+      hyper:
+        validation:
+          setup: create table t (a int);
+
+  - name: coverage_cast_or_null_preserve_nulls
+    input: select cast('x' as integer or null), greatest(preserve nulls 1, null), least(preserve nulls 2, null)
+    dialects:
+      hyper:
+        validation:
+          setup: select 1;
+
+  - name: coverage_extract_position_extra_arguments
+    input: select extract(year from d, 'iso'), position('a' in 'abc', 'en_US') from t
+    dialects:
+      hyper:
+
+  - name: coverage_substring_similar_escape
+    input: |-
+      select overlay('abcdef' placing 'xy' from 2 for 3), substring('abc' similar 'a#"b#"c' escape '#'), collation for (a) from t
+    dialects:
+      hyper:
+        validation:
+          setup: create table t (a text);
+
+  - name: coverage_typed_literal_ordered_arguments
+    input: select f(1, 2 order by a) 'text'
+    dialects:
+      hyper:
+
+  - name: coverage_window_bound_or_null
+    input: select sum(y) over (order by x rows between 1 preceding or null and 2 following or null) from t
+    dialects:
+      hyper:
+        validation:
+          setup: create table t (x int, y int);
+
+  - name: coverage_tablesample_row_bounds
+    input: select * from t tablesample system(20 percent between 1 rows and 2 rows), u tablesample bernoulli(10 percent between unbounded rows and 5 rows), v tablesample (5 percent between 3 rows and unbounded rows)
+    dialects:
+      hyper:
+
+  - name: coverage_not_null_type_elements
+    input: select cast(row(1) as row(x integer not null)), cast(array[1] as array(integer not null)) from f() as (y integer not null), g() as r(z text not null)
+    dialects:
+      hyper:
+
+  - name: coverage_qualified_type_name
+    input: select cast(a as pg_catalog.int4), b::myschema.mytype(3) from t
+    dialects:
+      hyper:
+
+  - name: coverage_pgq_optional_quantifier
+    input: with pg as property graph () select * from graph_table(pg match (a)-[e]-> ? (b)-[f]-> ? -[g]->{1,}(c) columns (a.name)) gt
+    dialects:
+      hyper:
+
+  - name: coverage_table_ref_options
+    input: select * from t with options (a := 1, b => 'x'), u *, table(f(1)) with options (x := 1) as r, lateral (select 1) with options (z := 3) as w
+    dialects:
+      hyper:
+
+  - name: coverage_relation_arguments
+    input: select * from f(table(t) as s partition by (x, y) order by (y desc), table(select 1 as z) order by (z), descriptor(a, b integer))
+    dialects:
+      hyper:
+
+  - name: coverage_semantic_view
+    input: select * from semantic_view(m dimensions region, year as y measures sum(amount) as total facts f where region <> 'x'), semantic_view('model' measures count(*))
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 60
+          - mode: pretty
+            width: 60
+
+  # Other expressions
+
+  - name: coverage_lambdas
+    input: |-
+      select array_filter(a, lambda x: x > 1), array_transform(a, b, lambda x, y: x + y), f(lambda : 1), g(fn => lambda x: x) from t
+    dialects:
+      hyper:
+
+  - name: coverage_row_fields
+    input: select row(1 as a, 2 b, c => 3), row(4 as d)
+    dialects:
+      hyper:
+        validation:
+          setup: select 1;
+
+  - name: coverage_unique_predicate
+    input: select unique (select x from t), not unique (select y from u)
+    dialects:
+      hyper:
+        validation:
+          setup: create table t (x int); create table u (y int);

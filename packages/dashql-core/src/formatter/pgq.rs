@@ -233,17 +233,60 @@ impl<'a> Formatter<'a> {
             return self.format_unimplemented(node);
         };
         match quantifier {
+            // The scanner would read `->?` as one operator
+            Some(quantifier) if self.is_optional_quantifier(quantifier) => {
+                f.concat(&[result, f.text(" "), self.reg(quantifier)])
+            }
             Some(quantifier) => f.concat(&[result, self.reg(quantifier)]),
             None => result,
         }
     }
 
+    /// Is a quantifier the `?` of an optional path element?
+    fn is_optional_quantifier(&self, quantifier: &'a Node) -> bool {
+        let [optional] = attrs!(self.children(quantifier), [K::SQL_GRAPH_QUANTIFIER_OPTIONAL]);
+        is_true(optional)
+    }
+
+    /// The elements of a path pattern, `(a)-[e]->(b)`. An element that ends with the `?` of an optional element is
+    /// followed by a space, the scanner would read `?-` or `?<-` as one operator.
+    pub(super) fn format_graph_path_pattern(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let mut parts: Vec<FmtReg> = Vec::with_capacity(node.children_count() as usize);
+        let mut glue_next = false;
+        for (element, reg) in self.children(node).iter().zip(self.array_regs(node)) {
+            match parts.pop() {
+                Some(previous) if glue_next => parts.push(f.concat(&[previous, f.text(" "), reg])),
+                Some(previous) => {
+                    parts.push(previous);
+                    parts.push(reg);
+                }
+                None => parts.push(reg),
+            }
+            let [quantifier] = attrs!(self.children(element), [K::SQL_GRAPH_PATH_ELEMENT_QUANTIFIER]);
+            glue_next = quantifier.is_some_and(|q| self.is_optional_quantifier(q));
+        }
+        f.join(&parts, f.empty(), f.break_(), Some(FormattingJoinPolicy::BreakOnOverflow), true)
+    }
+
     pub(super) fn format_graph_quantifier(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [lower, upper, fixed] = attrs!(
+        let [lower, upper, fixed, optional] = attrs!(
             self.children(node),
-            [K::SQL_GRAPH_QUANTIFIER_LOWER, K::SQL_GRAPH_QUANTIFIER_UPPER, K::SQL_GRAPH_QUANTIFIER_FIXED]
+            [
+                K::SQL_GRAPH_QUANTIFIER_LOWER,
+                K::SQL_GRAPH_QUANTIFIER_UPPER,
+                K::SQL_GRAPH_QUANTIFIER_FIXED,
+                K::SQL_GRAPH_QUANTIFIER_OPTIONAL,
+            ]
         );
+        // `?`, the path element is optional
+        if is_true(optional) {
+            if lower.is_some() || upper.is_some() || fixed.is_some() {
+                return self.format_unimplemented(node);
+            }
+            return f.text("?");
+        }
         if is_true(fixed) {
             let Some(lower) = lower else { return self.format_unimplemented(node) };
             return f.concat(&[f.text("{"), self.reg(lower), f.text("}")]);
