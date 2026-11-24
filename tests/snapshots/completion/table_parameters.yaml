@@ -32,6 +32,10 @@ completion-snapshots:
         select * from t join :fo
       catalog-id: 2
       errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      parameters:
+        - {kind: table, name: fo, text: ":fo"}
     cursor:
       search:
         text: ':fo'
@@ -39,5 +43,7 @@ completion-snapshots:
     completions:
       limit: 5
       strategy: DEFAULT
+      symbol: NAME
+      relative: END_OF_SYMBOL
       entries: []
       text: "fo"

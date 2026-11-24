@@ -1566,6 +1566,8 @@ impl<'c, 'a> Completion<'c, 'a> {
         let mut last_text_prefix: &[u8] = &[];
         let name_path_ts = resolve(name_path_loc);
         let mut truncate_at = name_path_ts.offset + name_path_ts.length;
+        // Is the cursor before the name after a dot and whitespace? `sch.| set a = 1` reads `sch.set`.
+        let mut before_name = false;
         for component in &name_path {
             let comp_ts = resolve(component.loc);
             if component.component_type == NameComponentType::TrailingDot {
@@ -1578,6 +1580,10 @@ impl<'c, 'a> Completion<'c, 'a> {
             }
             if comp_ts.offset + comp_ts.length < cursor_location {
                 sealed += 1;
+            } else if comp_ts.offset > cursor_location {
+                // The name is no part of what the cursor completes, insert at the cursor
+                before_name = true;
+                break;
             } else {
                 // The cursor points into a name, complete the text left of the cursor
                 let last_text = self.text_at(comp_ts.offset, comp_ts.length);
@@ -1595,7 +1601,11 @@ impl<'c, 'a> Completion<'c, 'a> {
 
         // The text ranges to replace
         let script_length = scanned.text.len() as u32;
-        let name_path_end = (name_path_ts.offset + name_path_ts.length).min(script_length);
+        let mut name_path_end = (name_path_ts.offset + name_path_ts.length).min(script_length);
+        if before_name {
+            truncate_at = cursor_location;
+            name_path_end = cursor_location.max(name_path_ts.offset);
+        }
         let replace_text_at = SymbolSpan::new(truncate_at, name_path_end.max(truncate_at) - truncate_at);
         let name_path_text_loc =
             SymbolSpan::new(name_path_ts.offset, name_path_end.max(name_path_ts.offset) - name_path_ts.offset);

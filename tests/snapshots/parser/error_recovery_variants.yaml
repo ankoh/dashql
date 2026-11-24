@@ -963,7 +963,28 @@ parser-snapshots:
     expected:
       statements:
         - type: UPDATE
-          ast-begin: 2
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "update t set;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_UPDATE
+            text: "update t set;"
+            children:
+              - key: SQL_UPDATE_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+        - type: UPDATE
+          ast-begin: 4
           ast-size: 7
           description:
             text: "update t set a = ;"
@@ -1671,9 +1692,51 @@ parser-snapshots:
       select 2
     expected:
       statements:
-        - type: SELECT
-          ast-begin: 7
+        - type: INSERT
+          ast-begin: 0
           ast-size: 9
+          description:
+            text: "insert int..ct (a) do;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_INSERT
+            text: "insert int..ct (a) do;"
+            children:
+              - key: SQL_INSERT_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+        - type: INSERT
+          ast-begin: 9
+          ast-size: 7
+          description:
+            text: "insert int..pdate set;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_INSERT
+            text: "insert int..pdate set;"
+            children:
+              - key: SQL_INSERT_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+        - type: SELECT
+          ast-begin: 16
+          ast-size: 4
           description:
             text: "select 2"
             description-begin: 0

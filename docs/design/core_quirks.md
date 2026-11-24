@@ -31,7 +31,9 @@ entry when you find another one. The headings name where the behavior lives.
   names (`unquote` in `analyzer/parameters.rs`).
 - **Lenient incomplete statements.** `SELECT * FROM A WHERE` parses without an error, because
   `sql_where_clause: WHERE` accepts a bare keyword. A bare `FROM` keeps the lenient tree, but reports
-  "expected a table reference after FROM" unless the input ends right after it.
+  "expected a table reference after FROM" unless the input ends right after it. At the end of the input, a join
+  without a condition (`select * from t join u`, `sql_join_qual: EOF`), an INSERT without rows (`insert into t`)
+  and an UPDATE without SET (`update t`) parse without an error too, so that completion sees the table ref.
 - **`EOF` is part of rules.** The grammar shifts `EOF` inside rules (`ext_dot_trailing: DOT EOF`).
   Parsing can still finish because the parser keeps reading EOF at the end of input.
 

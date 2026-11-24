@@ -237,3 +237,35 @@ completion-snapshots:
         index: 2
     completions:
       limit: 5
+
+  # A table after JOIN at the end of the input, without a condition, is a table ref
+  - name: stmt_join_table_at_end
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t join u
+    cursor:
+      search:
+        text: 'join u'
+        index: 6
+    completions:
+      limit: 5
+
+  # After the target of an UPDATE, the keyword SET outranks an alias, as WHERE does after a table in FROM
+  - name: stmt_update_alias_or_set
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        update t se
+    cursor:
+      search:
+        text: 't se'
+        index: 4
+    completions:
+      limit: 5

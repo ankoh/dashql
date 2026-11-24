@@ -927,6 +927,9 @@ sql_join_outer:
 sql_join_qual:
     USING LRB sql_name_list RRB   { ctx.list(&[attr(Key::SQL_JOIN_USING, ctx.array(loc(&[@2, @3, @4]), $3))]) }
   | ON sql_a_expr                 { ctx.list(&[attr(Key::SQL_JOIN_ON, ctx.expression($2))]) }
+  // A join without a condition at the end of the input, while it is typed: the table that it reads stays a table ref,
+  // `select * from t join sch.`
+  | EOF                           { ctx.list(&[]) }
     ;
 
 sql_relation_expr:

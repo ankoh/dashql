@@ -1339,3 +1339,262 @@ completion-snapshots:
               prefer-qualified: 0
               detail: "text · t"
       text: "m"
+
+  - name: dot_join_target_schema_at_end
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+        errors: []
+    editor:
+      input: |-
+        select * from sch.t join sch.
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "sch.t"}
+        - {type: name/unresolved, text: "sch."}
+    cursor:
+      search:
+        text: 'join sch.'
+        index: 9
+    completions:
+      limit: 5
+      strategy: TABLE_REF
+      dot: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: t
+          keyword-continuation: on
+          name-tags: [TABLE_NAME]
+          candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
+          location: ""
+          location-qualified: "sch."
+          objects:
+            - type: table
+              id: "256.65536.1:0"
+              candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
+              qualified: sch.t
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "2 columns"
+              columns: ["a integer","b integer"]
+        - value: v
+          keyword-continuation: on
+          name-tags: [TABLE_NAME]
+          candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
+          location: ""
+          location-qualified: "sch."
+          objects:
+            - type: table
+              id: "257.65537.1:1"
+              candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
+              qualified: db.sch.v
+              qualified-idx: 2
+              prefer-qualified: 0
+              detail: "2 columns"
+              columns: ["x integer","y integer"]
+      text: "."
+
+  - name: dot_join_target_database_at_end
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+        errors: []
+    editor:
+      input: |-
+        select * from sch.t join db.s
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "sch.t"}
+        - {type: name/unresolved, text: "db.s"}
+    cursor:
+      search:
+        text: 'db.s'
+        index: 4
+    completions:
+      limit: 5
+      strategy: TABLE_REF
+      dot: 1
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: sch
+          name-tags: [SCHEMA_NAME]
+          candidate-tags: [DOT_RESOLUTION_SCHEMA,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "s"
+          location-qualified: "db.s"
+          objects:
+            - type: schema
+              id: "257.65537"
+              candidate-tags: [DOT_RESOLUTION_SCHEMA,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+      text: "s"
+
+  - name: dot_insert_target_schema_at_end
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+        errors: []
+    editor:
+      input: |-
+        insert into sch.
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/unresolved, role: write, text: "sch."}
+      inserts:
+        - target-ref: 0
+    cursor:
+      search:
+        text: 'sch.'
+        index: 4
+    completions:
+      limit: 5
+      strategy: TABLE_REF
+      dot: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: t
+          name-tags: [TABLE_NAME]
+          candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
+          location: ""
+          location-qualified: "sch."
+          objects:
+            - type: table
+              id: "256.65536.1:0"
+              candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
+              qualified: sch.t
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "2 columns"
+              columns: ["a integer","b integer"]
+        - value: v
+          name-tags: [TABLE_NAME]
+          candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
+          location: ""
+          location-qualified: "sch."
+          objects:
+            - type: table
+              id: "257.65537.1:1"
+              candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
+              qualified: db.sch.v
+              qualified-idx: 2
+              prefer-qualified: 0
+              detail: "2 columns"
+              columns: ["x integer","y integer"]
+      text: "."
+
+  - name: dot_insert_target_schema_before_values
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+        errors: []
+    editor:
+      input: |-
+        insert into sch. values (1)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/unresolved, role: write, text: "sch. values"}
+      inserts:
+        - target-ref: 0
+    cursor:
+      search:
+        text: 'sch.'
+        index: 4
+    completions:
+      limit: 5
+      strategy: TABLE_REF
+      dot: 1
+      symbol: ARRAY
+      relative: END_OF_SYMBOL
+      entries:
+        - value: t
+          name-tags: [TABLE_NAME]
+          candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
+          location: ""
+          location-qualified: "sch."
+          objects:
+            - type: table
+              id: "256.65536.1:0"
+              candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
+              qualified: sch.t
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "2 columns"
+              columns: ["a integer","b integer"]
+        - value: v
+          name-tags: [TABLE_NAME]
+          candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
+          location: ""
+          location-qualified: "sch."
+          objects:
+            - type: table
+              id: "257.65537.1:1"
+              candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
+              qualified: db.sch.v
+              qualified-idx: 2
+              prefer-qualified: 0
+              detail: "2 columns"
+              columns: ["x integer","y integer"]
+      text: "."
+
+  - name: dot_update_target_schema_before_set
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+        errors: []
+    editor:
+      input: |-
+        update sch. set a = 1
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/unresolved, role: write, text: "sch. set a"}
+    cursor:
+      search:
+        text: 'sch.'
+        index: 4
+    completions:
+      limit: 5
+      strategy: TABLE_REF
+      dot: 1
+      symbol: ARRAY
+      relative: END_OF_SYMBOL
+      entries:
+        - value: t
+          name-tags: [TABLE_NAME]
+          candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
+          location: ""
+          location-qualified: "sch."
+          objects:
+            - type: table
+              id: "256.65536.1:0"
+              candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
+              qualified: sch.t
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "2 columns"
+              columns: ["a integer","b integer"]
+        - value: v
+          name-tags: [TABLE_NAME]
+          candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
+          location: ""
+          location-qualified: "sch."
+          objects:
+            - type: table
+              id: "257.65537.1:1"
+              candidate-tags: [DOT_RESOLUTION_TABLE,THROUGH_CATALOG]
+              qualified: db.sch.v
+              qualified-idx: 2
+              prefer-qualified: 0
+              detail: "2 columns"
+              columns: ["x integer","y integer"]
+      text: "."

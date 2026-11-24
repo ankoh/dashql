@@ -87,6 +87,7 @@ When dot-completion is active, the engine restricts candidates to those reachabl
 `ScriptCursor::read_cursor_name_path` reads the sequence of name components around the cursor (e.g. `schema.table.col`).
 Each component is classified as `Name`, `Star`, `TrailingDot`, or `Index`.
 The engine determines how many components are *sealed* (fully typed, before a dot) and uses the sealed prefix to resolve the dot context.
+A keyword after a dot and whitespace continues the name, so `update sch. set a = 1` reads `sch.set`: a name that begins after the cursor is no part of the completion, the candidates are inserted at the cursor and the name stays.
 
 ## Completion strategies
 

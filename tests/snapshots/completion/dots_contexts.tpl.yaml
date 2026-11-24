@@ -412,3 +412,83 @@ completion-snapshots:
         index: 3
     completions:
       limit: 5
+
+  # A schema after JOIN at the end of the input, without a condition, completes its tables
+  - name: dot_join_target_schema_at_end
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+    editor:
+      input: |-
+        select * from sch.t join sch.
+    cursor:
+      search:
+        text: 'join sch.'
+        index: 9
+    completions:
+      limit: 5
+
+  # A database after JOIN at the end of the input completes its schemas
+  - name: dot_join_target_database_at_end
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+    editor:
+      input: |-
+        select * from sch.t join db.s
+    cursor:
+      search:
+        text: 'db.s'
+        index: 4
+    completions:
+      limit: 5
+
+  # A schema in the target of an INSERT at the end of the input completes its tables
+  - name: dot_insert_target_schema_at_end
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+    editor:
+      input: |-
+        insert into sch.
+    cursor:
+      search:
+        text: 'sch.'
+        index: 4
+    completions:
+      limit: 5
+
+  # A schema in the target of an INSERT before VALUES completes its tables, inserted at the cursor: sch. values reads sch.values
+  - name: dot_insert_target_schema_before_values
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+    editor:
+      input: |-
+        insert into sch. values (1)
+    cursor:
+      search:
+        text: 'sch.'
+        index: 4
+    completions:
+      limit: 5
+
+  # A schema in the target of an UPDATE before SET completes its tables, inserted at the cursor: sch. set reads sch.set
+  - name: dot_update_target_schema_before_set
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+    editor:
+      input: |-
+        update sch. set a = 1
+    cursor:
+      search:
+        text: 'sch.'
+        index: 4
+    completions:
+      limit: 5

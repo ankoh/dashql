@@ -976,19 +976,20 @@ completion-snapshots:
         insert into u
       catalog-id: 2
       errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", role: write, text: "u"}
+      inserts:
+        - target-ref: 0
     cursor:
       search:
         text: 'into u'
         index: 6
     completions:
       limit: 5
-      strategy: DEFAULT
+      strategy: TABLE_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
       entries:
-        - value: u
-          candidate-tags: [IDENTITY]
-          location: "u"
-          location-qualified: "u"
-          objects: []
         - value: u
           name-tags: [TABLE_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
@@ -1014,6 +1015,11 @@ completion-snapshots:
           location-qualified: "u"
           objects: []
         - value: unconditional
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "u"
+          location-qualified: "u"
+          objects: []
+        - value: unencrypted
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "u"
           location-qualified: "u"

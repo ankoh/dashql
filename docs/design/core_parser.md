@@ -58,11 +58,15 @@ limited.
 ### Error recovery
 
 The recovery is bison's: pop states to one that shifts the error token (`statement_list: error`, `opt_statement: error`,
-`sql_a_expr: error`, `sql_cte_options: error`), then drop tokens until one fits. A reduction that clears the lookahead
+`sql_a_expr: error`, `sql_cte_options: error`, and after the target of an INSERT or an UPDATE, so that the target of
+an unfinished statement stays a table ref), then drop tokens until one fits. A reduction that clears the lookahead
 (`ctx.clear_lookahead()`) drops the token that failed, but keeps a `;`, `)` or `]`: the bracket closes the expression
 that the recovery replaced, `values (u.)` keeps its statement. A `;` is never dropped, a `;` that a recovery inside a
 statement can't use (`select (1;`, `with a as (select 1);`) ends the statement like the depth limit does, it unwinds to
 the lowest state that shifts the error token and drops the broken statement. The next statement always survives.
+The recovery can only use a state that is on the stack: at the end of the input, LAC (lookahead correction) detects
+the error before the name before it is reduced, so a few rules take `EOF` instead to keep the tree of a statement that
+is typed (see the lenient incomplete statements in `core_quirks.md`).
 
 ## Flat AST Design
 

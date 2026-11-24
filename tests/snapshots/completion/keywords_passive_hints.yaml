@@ -395,6 +395,8 @@ completion-snapshots:
       input: 'update t '
       catalog-id: 2
       errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
     cursor:
       search:
         text: 't '
@@ -402,6 +404,8 @@ completion-snapshots:
     completions:
       limit: 5
       strategy: DEFAULT
+      symbol: OBJECT_SQL_UPDATE
+      relative: AFTER_SYMBOL
       entries:
         - value: as
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
