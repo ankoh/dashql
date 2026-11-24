@@ -1,0 +1,476 @@
+completion-snapshots:
+  # A database and a schema before a dot, the typed text filters the tables
+  - name: depth_table_ref_database_schema_prefix
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int, name text); create table db.sch.v (x int, y int, xy int); create table db.sch.w (z int);
+    editor:
+      input: |-
+        select * from db.sch.v
+    cursor:
+      search:
+        text: 'sch.v'
+        index: 5
+    completions:
+      limit: 5
+
+  # Right after the second dot of a table ref, every table of the schema replaces the name
+  - name: depth_table_ref_database_schema_begin
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int, name text); create table db.sch.v (x int, y int, xy int); create table db.sch.w (z int);
+    editor:
+      input: |-
+        select * from db.sch.v
+    cursor:
+      search:
+        text: 'sch.'
+        index: 4
+    completions:
+      limit: 5
+
+  # Three names before a dot in a table ref complete nothing
+  - name: depth_table_ref_four_names
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int, name text); create table db.sch.v (x int, y int, xy int); create table db.sch.w (z int);
+    editor:
+      input: |-
+        select * from db.sch.v.
+    cursor:
+      search:
+        text: 'sch.v.'
+        index: 6
+    completions:
+      limit: 5
+
+  # A schema and a table before a dot in a column ref, the typed text filters the columns
+  - name: depth_colref_schema_table_prefix
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int, name text); create table db.sch.v (x int, y int, xy int); create table db.sch.w (z int);
+    editor:
+      input: |-
+        select sch.t.na from sch.t
+    cursor:
+      search:
+        text: 'sch.t.na'
+        index: 8
+    completions:
+      limit: 5
+
+  # A database, a schema and a table before a dot, the typed text filters the columns
+  - name: depth_colref_database_schema_table_prefix
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int, name text); create table db.sch.v (x int, y int, xy int); create table db.sch.w (z int);
+    editor:
+      input: |-
+        select db.sch.v.x from db.sch.v
+    cursor:
+      search:
+        text: 'v.x'
+        index: 3
+    completions:
+      limit: 5
+
+  # The qualified name picks its FROM item among several of the same schema
+  - name: depth_colref_database_schema_table_second_item
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int, name text); create table db.sch.v (x int, y int, xy int); create table db.sch.w (z int);
+    editor:
+      input: |-
+        select db.sch.w. from db.sch.v, db.sch.w
+    cursor:
+      search:
+        text: 'sch.w.'
+        index: 6
+    completions:
+      limit: 5
+
+  # Four names before a dot in a column ref complete nothing
+  - name: depth_colref_four_names
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int, name text); create table db.sch.v (x int, y int, xy int); create table db.sch.w (z int);
+    editor:
+      input: |-
+        select q.db.sch.v. from db.sch.v
+    cursor:
+      search:
+        text: 'sch.v.'
+        index: 6
+    completions:
+      limit: 5
+
+  # Right after an inner dot, at the begin of the name, every column replaces the name
+  - name: depth_dot_begin_of_name
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select t.name from t
+    cursor:
+      search:
+        text: 't.'
+        index: 2
+    completions:
+      limit: 5
+
+  # At the begin of a trailing dot, the name before it is completed
+  - name: depth_trailing_dot_begin
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select x. from t x
+    cursor:
+      search:
+        text: 'x.'
+        index: 1
+    completions:
+      limit: 5
+
+  # Right after t.* and before a comma, nothing is completed
+  - name: depth_dot_star_before_comma
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select t.*, na from t
+    cursor:
+      search:
+        text: '*,'
+        index: 1
+    completions:
+      limit: 5
+
+  # The column aliases of a CTE source rename its leading columns after a dot
+  - name: depth_cte_source_column_aliases
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with c as (select a, b from t) select x. from c as x(p)
+    cursor:
+      search:
+        text: 'x.'
+        index: 2
+    completions:
+      limit: 5
+
+  # The column aliases of a derived table name its columns after a dot
+  - name: depth_subquery_column_aliases
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select s. from (select a, b from t) as s(p, q)
+    cursor:
+      search:
+        text: 's.'
+        index: 2
+    completions:
+      limit: 5
+
+  # The column aliases of VALUES name its columns after a dot
+  - name: depth_values_column_aliases
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select v. from (values (1, 2)) as v(p, q)
+    cursor:
+      search:
+        text: 'v.'
+        index: 2
+    completions:
+      limit: 5
+
+  # An output column of a CTE without a name is no candidate after a dot
+  - name: depth_cte_unnamed_column
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with c as (select a + 1, b from t) select c. from c
+    cursor:
+      search:
+        text: 'c.'
+        index: 2
+    completions:
+      limit: 5
+
+  # An aliased join of a CTE and a table, the CTE columns have no catalog objects
+  - name: depth_join_alias_with_cte
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with c as (select 1 as k) select j. from (c join u on true) as j
+    cursor:
+      search:
+        text: 'j.'
+        index: 2
+    completions:
+      limit: 5
+
+  # The typed text filters the derived columns of an aliased join
+  - name: depth_join_alias_with_subquery_prefix
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select j.k from ((select 1 as k, 2 as kk) s join u on true) as j
+    cursor:
+      search:
+        text: 'j.k'
+        index: 3
+    completions:
+      limit: 5
+
+  # A LATERAL subquery sees an earlier FROM item after a dot
+  - name: depth_lateral_outer_table
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t, lateral (select t. from u) s
+    cursor:
+      search:
+        text: 't.'
+        index: 2
+    completions:
+      limit: 5
+
+  # The recursive term of a CTE sees the CTE itself after a dot
+  - name: depth_recursive_cte_self
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with recursive r(n) as (select 1 union all select r. from r where n < 3) select * from r
+    cursor:
+      search:
+        text: 'r.'
+        index: 2
+    completions:
+      limit: 5
+
+  # The alias of an UPDATE FROM item after a dot in the SET clause
+  - name: depth_update_from_alias
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        update t set a = x. from u x
+    cursor:
+      search:
+        text: 'x.'
+        index: 2
+    completions:
+      limit: 5
+
+  # The source of MERGE after a dot in the SET clause of WHEN MATCHED
+  - name: depth_merge_update_source
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        merge into t using u on t.a = u.a when matched then update set b = u.
+    cursor:
+      search:
+        text: 'b = u.'
+        index: 6
+    completions:
+      limit: 5
+
+  # EXCLUDED after a dot in ON CONFLICT DO UPDATE has the columns of the target
+  - name: depth_on_conflict_excluded
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        insert into t values (1) on conflict (a) do update set b = excluded.
+    cursor:
+      search:
+        text: 'excluded.'
+        index: 9
+    completions:
+      limit: 5
+
+  # An alias that is not ASCII before a dot
+  - name: depth_unicode_alias
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select ä. from t ä
+    cursor:
+      search:
+        text: 'ä.'
+        index: 3
+    completions:
+      limit: 5
+
+  # Typed text that is not ASCII filters the columns after a dot
+  - name: depth_unicode_column_prefix
+    catalog:
+      script:
+        input: |-
+          create table straße (größe int, gewicht int);
+    editor:
+      input: |-
+        select s.grö from straße s
+    cursor:
+      search:
+        text: 's.grö'
+        index: 6
+    completions:
+      limit: 5
+
+  # The columns of a view of the script after a dot, without types
+  - name: depth_script_view_columns
+    editor:
+      input: |-
+        create view myv as select 1 as mycol, 2 as other;
+        select myv. from myv
+    cursor:
+      search:
+        text: 'myv. '
+        index: 4
+    completions:
+      limit: 5
+
+  # The parser recovers `q.` without a column ref, the alias names a table
+  - name: aliasdot_table
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with c as (
+        select * from t q where q.
+
+        )
+    cursor:
+      search:
+        text: 'q.'
+        index: 2
+    completions:
+      limit: 5
+
+  # The recovered `q.` of a table with column aliases
+  - name: aliasdot_table_column_aliases
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with c as (
+        select * from t as q(p) where q.
+
+        )
+    cursor:
+      search:
+        text: 'q.'
+        index: 2
+    completions:
+      limit: 5
+
+  # The recovered `j.` of an aliased join, a USING column once
+  - name: aliasdot_join
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with c as (
+        select * from (t join u using (a)) as j where j.
+
+        )
+    cursor:
+      search:
+        text: 'j.'
+        index: 2
+    completions:
+      limit: 5
+
+  # The recovered `q.` of a derived table
+  - name: aliasdot_subquery
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with c as (
+        select * from (select 1 as k) q where q.
+
+        )
+    cursor:
+      search:
+        text: 'q.'
+        index: 2
+    completions:
+      limit: 5
+
+  # The recovered `q.` of an unknown table completes nothing
+  - name: aliasdot_unresolved
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with c as (
+        select * from nothing q where q.
+
+        )
+    cursor:
+      search:
+        text: 'q.'
+        index: 2
+    completions:
+      limit: 5

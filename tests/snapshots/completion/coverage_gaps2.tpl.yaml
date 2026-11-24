@@ -1,0 +1,523 @@
+completion-snapshots:
+  # A column in RETURNING of INSERT
+  - name: clause_returning_insert
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        insert into t values (1) returning na
+    cursor:
+      search:
+        text: 'returning na'
+        index: 12
+    completions:
+      limit: 5
+
+  # A column in RETURNING of DELETE
+  - name: clause_returning_delete
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        delete from t where a = 1 returning na
+    cursor:
+      search:
+        text: 'returning na'
+        index: 12
+    completions:
+      limit: 5
+
+  # A column in the SET clause of ON CONFLICT DO UPDATE
+  - name: clause_on_conflict_set_value
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        insert into t values (1) on conflict (a) do update set b = na
+    cursor:
+      search:
+        text: '= na'
+        index: 4
+    completions:
+      limit: 5
+
+  # A column in the ORDER BY of a window that names another window
+  - name: clause_window_named_ref_order_by
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select sum(a) over (w order by na) from t window w as (partition by b)
+    cursor:
+      search:
+        text: 'by na'
+        index: 5
+    completions:
+      limit: 5
+
+  # A column in GROUPING SETS
+  - name: clause_grouping_sets_column
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a from t group by grouping sets ((na), ())
+    cursor:
+      search:
+        text: '((na'
+        index: 4
+    completions:
+      limit: 5
+
+  # A column in the query of COPY
+  - name: clause_copy_query_column
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        copy (select na from t) to 'x'
+    cursor:
+      search:
+        text: 'select na'
+        index: 9
+    completions:
+      limit: 5
+
+  # A column in a query under EXPLAIN
+  - name: clause_explain_select_column
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        explain select na from t
+    cursor:
+      search:
+        text: 'select na'
+        index: 9
+    completions:
+      limit: 5
+
+  # A column in the ORDER BY of an aggregate call
+  - name: clause_aggregate_order_by_argument
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select string_agg(name, ',' order by na) from t
+    cursor:
+      search:
+        text: 'by na'
+        index: 5
+    completions:
+      limit: 5
+
+  # A function in FROM sees the FROM items before it
+  - name: clause_table_function_argument
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t, generate_series(1, na)
+    cursor:
+      search:
+        text: ', na'
+        index: 4
+    completions:
+      limit: 5
+
+  # A derived table sees a CTE of the outer query
+  - name: scope_cte_outer_in_derived_table
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with other_c as (select 1 as x) select * from (select * from oth) s
+    cursor:
+      search:
+        text: 'from oth'
+        index: 8
+    completions:
+      limit: 5
+
+  # The second branch of a UNION sees the CTE of the statement
+  - name: scope_cte_in_union_branch
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with my_c as (select 1 as x) select * from t union all select * from my_
+    cursor:
+      search:
+        text: 'from my_'
+        index: 8
+    completions:
+      limit: 5
+
+  # A subquery in a later CTE sees an earlier sibling
+  - name: scope_cte_in_later_cte_subquery
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with first_c as (select 1 as x), second_c as (select * from t where a in (select x from fi)) select 1
+    cursor:
+      search:
+        text: 'from fi'
+        index: 7
+    completions:
+      limit: 5
+
+  # Two scopes read the same table, the innermost one qualifies the column
+  - name: scope_nested_same_table_innermost
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t x where exists (select na from t y)
+    cursor:
+      search:
+        text: 'select na'
+        index: 9
+    completions:
+      limit: 5
+
+  # A self-join where one side renames the column with a column alias
+  - name: amb_self_join_column_aliases
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a from t l join t as r(p) on true
+    cursor:
+      search:
+        text: 'select a'
+        index: 8
+    completions:
+      limit: 5
+
+  # The script and the catalog both declare a table with the name
+  - name: amb_same_table_script_and_catalog
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        create table t (x int);
+        select * from t
+    cursor:
+      search:
+        text: 'from t'
+        index: 6
+    completions:
+      limit: 5
+
+  # Two schemas have a table with the name, both prefer the qualified name
+  - name: amb_same_table_two_schemas
+    catalog:
+      script:
+        input: |-
+          create table s1.customers (a int); create table s2.customers (b int);
+    editor:
+      input: |-
+        select * from cust
+    cursor:
+      search:
+        text: 'cust'
+        index: 4
+    completions:
+      limit: 5
+
+  # Two FROM items of different schemas have the column, both prefer the qualified name
+  - name: amb_same_column_two_schemas
+    catalog:
+      script:
+        input: |-
+          create table s1.orders (id int); create table s2.orders (id int);
+    editor:
+      input: |-
+        select i from s1.orders, s2.orders
+    cursor:
+      search:
+        text: 'select i'
+        index: 8
+    completions:
+      limit: 5
+
+  # RETURNING after the rows of INSERT
+  - name: kw_returning
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        insert into t values (1) ret
+    cursor:
+      search:
+        text: 'ret'
+        index: 3
+    completions:
+      limit: 5
+
+  # SEMI stands in for its lookahead token SEMI_JOIN_LA
+  - name: kw_lookahead_semi
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t sem
+    cursor:
+      search:
+        text: 'sem'
+        index: 3
+    completions:
+      limit: 5
+
+  # ANTI stands in for its lookahead token ANTI_JOIN_LA
+  - name: kw_lookahead_anti
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t ant
+    cursor:
+      search:
+        text: 'ant'
+        index: 3
+    completions:
+      limit: 5
+
+  # WITH and WITHOUT stand in for their lookahead tokens after a type
+  - name: kw_lookahead_with_without
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select cast(a as timestamp wi
+    cursor:
+      search:
+        text: ' wi'
+        index: 3
+    completions:
+      limit: 5
+
+  # UPDATE after ON CONFLICT DO continues with SET
+  - name: cont_on_conflict_do_update
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        insert into t values (1) on conflict do upd
+    cursor:
+      search:
+        text: 'upd'
+        index: 3
+    completions:
+      limit: 5
+
+  # WITHIN after an ordered-set aggregate continues with GROUP
+  - name: cont_within_group
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select percentile_cont(0.5) wit
+    cursor:
+      search:
+        text: 'wit'
+        index: 3
+    completions:
+      limit: 5
+
+  # CURRENT can be a name, ROW and PRECEDING tie as continuations, it gets none
+  - name: cont_score_tie
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select sum(a) over (order by a rows between unbounded preceding and cur
+    cursor:
+      search:
+        text: 'cur'
+        index: 3
+    completions:
+      limit: 5
+
+  # No passive hint right after SELECT
+  - name: passive_suppress_select
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: "select "
+    cursor:
+      search:
+        text: 'select '
+        index: 7
+    completions:
+      limit: 5
+
+  # No passive hint right after BY
+  - name: passive_suppress_by
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: "select a from t group by "
+    cursor:
+      search:
+        text: 'by '
+        index: 3
+    completions:
+      limit: 5
+
+  # FROM is no passive hint outside of a SELECT, DELETE gets none
+  - name: passive_delete_no_from
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: "delete "
+    cursor:
+      search:
+        text: 'delete '
+        index: 7
+    completions:
+      limit: 5
+
+  # A name that does not follow the colon right away is no table parameter
+  - name: param_space_after_colon
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from : fo
+    cursor:
+      search:
+        text: ': fo'
+        index: 4
+    completions:
+      limit: 5
+
+  # INSERT INTO takes no table parameter, the name of a parameter gets no keywords
+  - name: param_insert_target
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        insert into :fo
+    cursor:
+      search:
+        text: ':fo'
+        index: 3
+    completions:
+      limit: 5
+
+  # A colon in an expression completes nothing
+  - name: param_colon_in_expression
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t where a = :
+    cursor:
+      search:
+        text: ':'
+        index: 1
+    completions:
+      limit: 5
+
+  # A view without columns is described as a view
+  - name: info_empty_view
+    editor:
+      input: |-
+        create view myv as select * from nothing;
+        select * from my
+    cursor:
+      search:
+        text: 'from my'
+        index: 7
+    completions:
+      limit: 5
+
+  # A function without parameters and one that returns any
+  - name: info_function_signatures
+    catalog:
+      script:
+        input: |-
+          create function myf() returns int; create function myg(x int, y any) returns any;
+    editor:
+      input: |-
+        select my
+    cursor:
+      search:
+        text: 'my'
+        index: 2
+    completions:
+      limit: 5
+
+  # An identifier of the maximum length still has an identity candidate
+  - name: ident_at_max_length
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn from t
+    cursor:
+      search:
+        text: 'nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn'
+        index: 64
+    completions:
+      limit: 5
