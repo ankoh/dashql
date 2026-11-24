@@ -1626,6 +1626,160 @@ parser-snapshots:
       comment-blocks: []
       comment-warnings: []
 
+  - name: create_table_generated_column
+    input: |-
+      create table t (a int, b int generated always as (a * 2) stored not null, c text constraint g generated always as (upper(d)) stored)
+    expected:
+      statements:
+        - type: CREATE_TABLE
+          ast-begin: 0
+          ast-size: 41
+          description:
+            text: "create tab..)) stored)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..)) stored)"
+            children:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(a int, b ..)) stored)"
+                children:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "a int"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "b int gene..d not null"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "b"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: "generated ..d not null"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "generated .. 2) stored"
+                            children:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: GENERATED
+                              - key: SQL_COLUMN_CONSTRAINT_VALUE
+                                type: OBJECT_SQL_NARY_EXPRESSION
+                                text: "a * 2"
+                                children:
+                                  - key: SQL_EXPRESSION_OPERATOR
+                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                    value: MULTIPLY
+                                  - key: SQL_EXPRESSION_ARGS
+                                    type: ARRAY
+                                    text: "a * 2"
+                                    children:
+                                      - type: OBJECT_SQL_COLUMN_REF
+                                        text: "a"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "a"
+                                            children:
+                                              - type: NAME
+                                                text: "a"
+                                      - type: LITERAL_INTEGER
+                                        text: "2"
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            children:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "c text con..d)) stored"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "c"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "text"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_GENERIC_TYPE
+                            text: "text"
+                            children:
+                              - key: SQL_GENERIC_TYPE_NAME
+                                type: NAME
+                                text: "text"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: "constraint..d)) stored"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "constraint..d)) stored"
+                            children:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: GENERATED
+                              - key: SQL_COLUMN_CONSTRAINT_VALUE
+                                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                                text: "upper(d)"
+                                children:
+                                  - key: SQL_FUNCTION_NAME
+                                    type: ARRAY
+                                    text: "upper"
+                                    children:
+                                      - type: NAME
+                                        text: "upper"
+                                  - key: SQL_FUNCTION_ARGUMENTS
+                                    type: ARRAY
+                                    text: "d"
+                                    children:
+                                      - type: OBJECT_SQL_FUNCTION_ARG
+                                        text: "d"
+                                        children:
+                                          - key: SQL_FUNCTION_ARG_VALUE
+                                            type: OBJECT_SQL_COLUMN_REF
+                                            text: "d"
+                                            children:
+                                              - key: SQL_COLUMN_REF_PATH
+                                                type: ARRAY
+                                                text: "d"
+                                                children:
+                                                  - type: NAME
+                                                    text: "d"
+                              - key: SQL_COLUMN_CONSTRAINT_NAME
+                                type: NAME
+                                text: "g"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
   - name: create_table_named_constraints_and_definitions
     input: |-
       create table t (a smallint primary key with (fillfactor = 70), b integer unique with (fillfactor = 80), constraint t_b_check check (b > 0), constraint t_pk primary key (a), assumed unique (b))

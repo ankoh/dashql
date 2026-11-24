@@ -90,6 +90,10 @@ parser-snapshots:
   - name: create_table_empty
     input: |
       create table t ()
+  # Parse generated columns, a column constraint with an expression
+  - name: create_table_generated_column
+    input: |
+      create table t (a int, b int generated always as (a * 2) stored not null, c text constraint g generated always as (upper(d)) stored)
   # Named table constraints, column constraints with storage options, and a smallint column
   - name: create_table_named_constraints_and_definitions
     input: |

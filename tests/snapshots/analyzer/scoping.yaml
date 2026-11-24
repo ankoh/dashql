@@ -3771,6 +3771,48 @@ analyzer-snapshots:
             - {type: table, name: z, text: "z"}
           text: "create tab..k (a > b))"
 
+  - name: create_table_generated_column
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: create table z (a int, b int generated always as (a * 2) stored, c int generated always as (x + 1) stored); select b from z
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.2:0"
+          name: z
+          text: "create tab..1) stored)"
+          columns:
+            - {catalog-id: "256.65536.2:0.0", name: a, text: "a int"}
+            - {catalog-id: "256.65536.2:0.1", name: b, text: "b int gene.. 2) stored"}
+            - {catalog-id: "256.65536.2:0.2", name: c, text: "c int gene.. 1) stored"}
+      touched-relations:
+        - {statement-id: 0, name: z}
+      errors: []
+      table-refs:
+        - {type: name/internal, catalog-id: "256.65536.2:0", statement-id: 1, text: "z"}
+      expressions:
+        - {id: 0, type: colref/internal, catalog: "256.65536.2:0.0", source: "z", statement-id: 0, text: "a"}
+        - {id: 1, type: colref/unresolved, statement-id: 0, text: "x"}
+        - {id: 2, type: colref/internal, catalog: "256.65536.2:0.1", source: "z", statement-id: 1, text: "b"}
+        - {id: 3, type: literal/integer, is-const: true, text: "2"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 3, text: "2"}
+        - {expression: 4, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: z, text: "z"}
+          text: "create tab..1) stored)"
+        - scope-id: 1
+          sources:
+            - {type: table, name: z, text: "z"}
+          columns:
+            - {name: b, expression: 2}
+          text: "select b from z"
+
   - name: whole_row_reference
     catalog:
       script:

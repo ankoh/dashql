@@ -211,7 +211,15 @@ sql_func_type:
 
 // XXX omitted identity and foreign
 sql_col_constraint_elem:
-    NOT NULL_P                { ctx.list(&[attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, enum_node(@$, ColumnConstraint::NOT_NULL))]) }
+    GENERATED ALWAYS AS LRB sql_a_expr RRB STORED {
+      ctx.list(
+          &[
+              attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, enum_node(@$, ColumnConstraint::GENERATED)),
+              attr(Key::SQL_COLUMN_CONSTRAINT_VALUE, ctx.expression($5)),
+          ],
+      )
+  }
+  | NOT NULL_P                { ctx.list(&[attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, enum_node(@$, ColumnConstraint::NOT_NULL))]) }
   | NULL_P                    { ctx.list(&[attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, enum_node(@$, ColumnConstraint::NULL_))]) }
   | UNIQUE sql_opt_definition {
       ctx.list(

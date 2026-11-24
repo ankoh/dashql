@@ -167,6 +167,7 @@ enum ColumnConstraint: uint8 {
     DEFAULT,
     COLLATE,
     REFERENCES,
+    GENERATED,
 }
 
 enum TableConstraint: uint8 {

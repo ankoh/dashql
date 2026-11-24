@@ -2121,6 +2121,7 @@ impl<'a> Formatter<'a> {
             ColumnConstraint::DEFAULT => "default",
             ColumnConstraint::COLLATE => "collate",
             ColumnConstraint::REFERENCES => "references",
+            ColumnConstraint::GENERATED => "generated always as",
             _ => return self.format_unimplemented(node),
         };
         self.fmt.text(text)
@@ -2179,6 +2180,11 @@ impl<'a> Formatter<'a> {
             ColumnConstraint::DEFAULT => {
                 parts.push(f.text(" "));
                 parts.push(or_placeholder(constraint_value));
+            }
+            ColumnConstraint::GENERATED => {
+                parts.push(f.text(" "));
+                parts.push(f.parenthesized(or_placeholder(constraint_value)));
+                parts.push(f.text(" stored"));
             }
             ColumnConstraint::COLLATE => {
                 parts.push(f.text(" "));
