@@ -180,6 +180,17 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
     const runtime = useRuntime();
     const [dialog, setDialog] = React.useState<ConflictDialogState | null>(null);
     const [connectionDialog, setConnectionDialog] = React.useState<ConnectionDialogState | null>(null);
+    // The dialogs as of the last change, a second import reads them before the state renders
+    const dialogRef = React.useRef<ConflictDialogState | null>(null);
+    const connectionDialogRef = React.useRef<ConnectionDialogState | null>(null);
+    const showDialog = React.useCallback((next: ConflictDialogState | null) => {
+        dialogRef.current = next;
+        setDialog(next);
+    }, []);
+    const showConnectionDialog = React.useCallback((next: ConnectionDialogState | null) => {
+        connectionDialogRef.current = next;
+        setConnectionDialog(next);
+    }, []);
 
     const backend = reader.workbookFolders;
 
@@ -207,24 +218,21 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
         // Like the question for a registered workbook, a second import while the question is open is cancelled
         let asked: ConnectionDialogState | null = null;
         const chosen = await new Promise<Map<string, core.ImportChoice> | null>(resolve => {
-            const next: ConnectionDialogState = { workbookName: importedWorkbookName(preview), questions, resolve };
-            setConnectionDialog(current => {
-                if (current != null && current !== next) {
-                    resolve(null);
-                    logger.warn('ignored workbook import while another connection decision is pending', {}, 'workbook_import');
-                    return current;
-                }
-                asked = next;
-                return next;
-            });
+            if (connectionDialogRef.current != null) {
+                logger.warn('ignored workbook import while another connection decision is pending', {}, 'workbook_import');
+                resolve(null);
+                return;
+            }
+            asked = { workbookName: importedWorkbookName(preview), questions, resolve };
+            showConnectionDialog(asked);
         });
-        setConnectionDialog(current => current === asked ? null : current);
+        if (connectionDialogRef.current === asked) showConnectionDialog(null);
         if (chosen == null) {
             dropImport(preview);
             return null;
         }
         return prepared(Object.fromEntries(chosen), false);
-    }, [dropImport, logger]);
+    }, [dropImport, logger, showConnectionDialog]);
 
     /// Cancel the queries of a workbook before a replacement. The runtime holds the writes while it imports.
     const stopWorkbookWork = React.useCallback(async (workbookId: string) => {
@@ -280,16 +288,14 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
         run: (choice: ConflictChoice) => Promise<string | null>,
     ): Promise<string | null> => {
         return new Promise<string | null>(resolve => {
-            setDialog(current => {
-                if (current != null) {
-                    resolve(null);
-                    logger.warn('ignored workbook import while another decision is pending', {}, 'workbook_import');
-                    return current;
-                }
-                return { preview, existingDisplayLocation, presentation, busy: false, run, resolve };
-            });
+            if (dialogRef.current != null) {
+                logger.warn('ignored workbook import while another decision is pending', {}, 'workbook_import');
+                resolve(null);
+                return;
+            }
+            showDialog({ preview, existingDisplayLocation, presentation, busy: false, run, resolve });
         });
-    }, [logger]);
+    }, [logger, showDialog]);
 
     const importWorkbook = React.useCallback(async (
         source: ImportSource,
@@ -319,22 +325,22 @@ export function WorkbookImportProvider(props: React.PropsWithChildren<{ dependen
     const handleChoice = React.useCallback(async (choice: ConflictChoice) => {
         const current = dialog;
         if (current == null || current.busy) return;
-        setDialog({ ...current, busy: true });
+        showDialog({ ...current, busy: true });
         try {
             const result = await current.run(choice);
-            setDialog(null);
+            showDialog(null);
             current.resolve(result);
         } catch (error) {
             logger.error('workbook import failed', { error: String(error) }, 'workbook_import');
-            setDialog({ ...current, busy: false });
+            showDialog({ ...current, busy: false });
         }
-    }, [dialog, logger]);
+    }, [dialog, logger, showDialog]);
 
     const cancelDialog = React.useCallback(() => {
         if (dialog == null || dialog.busy) return;
-        setDialog(null);
+        showDialog(null);
         dialog.resolve(null);
-    }, [dialog]);
+    }, [dialog, showDialog]);
 
     const value = React.useMemo<WorkbookImportContextValue>(() => ({
         readImport,
