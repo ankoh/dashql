@@ -45,3 +45,22 @@ formatter-snapshots:
               select *
               from a, b;
 
+  - name: coverage_insert_target_alias
+    input: |-
+      insert into t as x (a) values (1) returning x.a
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              insert into t as x(a) values (1) returning x.a;
+          - mode: compact
+            expected: |-
+              insert into t as x(a) values (1) returning x.a;
+          - mode: pretty
+            expected: |-
+              insert into t as x(a)
+              values
+                (1)
+              returning x.a;
+

@@ -37,6 +37,14 @@ analyzer-snapshots:
     script:
       input: insert into t default values returning a, b
 
+  # The alias of the target of an INSERT names the target in ON CONFLICT and RETURNING
+  - name: insert_target_alias
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: insert into t as x (a) values (1) on conflict (a) do update set b = x.b + 1 returning x.a, x.b
+
   - name: insert_with_cte_source
     catalog:
       script:

@@ -166,6 +166,51 @@ analyzer-snapshots:
             - {name: b, expression: 1}
           text: "insert int..rning a, b"
 
+  - name: insert_target_alias
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: insert into t as x (a) values (1) on conflict (a) do update set b = x.b + 1 returning x.a, x.b
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t as x"}
+      inserts:
+        - target-ref: 0
+          source: "values (1)"
+          returning: true
+          columns:
+            - {name: a, resolved: true}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t as x", text: "x.b"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t as x", text: "x.a"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t as x", text: "x.b"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t as x", text: "a"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t as x", text: "b"}
+        - {id: 5, type: literal/integer, is-const: true, text: "1"}
+        - {id: 6, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 5, text: "1"}
+        - {expression: 6, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: except
+          correlation-barrier: true
+          columns:
+            - {name: '?', expression: 5}
+          text: "values (1)"
+        - scope-id: 1
+          sources:
+            - {type: table, name: x, text: "t as x"}
+            - {type: table, name: excluded, text: "on conflic.. = x.b + 1"}
+          columns:
+            - {name: a, expression: 1}
+            - {name: b, expression: 2}
+          text: "insert int..g x.a, x.b"
+
   - name: insert_with_cte_source
     catalog:
       script:

@@ -48,3 +48,7 @@ parser-snapshots:
   - name: merge_conditions_do_nothing_returning
     input: |
       merge into t as x using u on x.id = u.id when matched and u.deleted then delete when matched then do nothing when not matched by source and x.a > 0 then update set a = 0 when not matched by target and u.a is not null then insert (a) values (u.a) when not matched then do nothing returning *
+  # INSERT into a target with an alias
+  - name: insert_target_alias
+    input: |
+      insert into t as x (a) values (1) on conflict (a) do update set a = x.a + 1 returning x.a

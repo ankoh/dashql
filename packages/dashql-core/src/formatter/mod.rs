@@ -857,7 +857,9 @@ impl<'a> Formatter<'a> {
             if alias_reg == 0 {
                 return self.format_unimplemented(node);
             }
-            base_reg = f.concat(&[base_reg, f.text(" "), alias_reg]);
+            // The alias of the target of an INSERT needs its AS
+            let separator = if node.attribute_key() == K::SQL_INSERT_TARGET { " as " } else { " " };
+            base_reg = f.concat(&[base_reg, f.text(separator), alias_reg]);
         }
         if let Some(sample) = sample {
             let sample_reg = self.reg(sample);

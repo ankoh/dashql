@@ -32,9 +32,12 @@ sql_insert_stmt:
     }
     ;
 
-// The table that an INSERT writes, a table name or a table parameter
+// The table that an INSERT writes, a table name with an optional alias or a table parameter
 sql_insert_target:
     sql_qualified_name  { ctx.object(@1, NodeType::OBJECT_SQL_TABLEREF, &[attr(Key::SQL_TABLEREF_NAME, $1)]) }
+  | sql_qualified_name AS sql_col_id {
+      ctx.object(@$, NodeType::OBJECT_SQL_TABLEREF, &[attr(Key::SQL_TABLEREF_NAME, $1), attr(Key::SQL_TABLEREF_ALIAS, $3)])
+  }
   | sql_table_param_ref { ctx.object(@1, NodeType::OBJECT_SQL_TABLEREF, &[attr(Key::SQL_TABLEREF_TABLE, $1)]) }
     ;
 
