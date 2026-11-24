@@ -346,8 +346,8 @@ const WorkbookRow: React.FC<WorkbookRowProps> = ({ item, depth, selected, onOpen
     const renameInputRef = useNameEditor(renaming);
     const commitRename = React.useCallback((name: string) => {
         setRenaming(false);
-        modifyWorkbookScripts({ kind: 'renameWorkbook', value: { name } });
-    }, [modifyWorkbookScripts]);
+        if ((name.trim() || null) !== title) modifyWorkbookScripts({ kind: 'renameWorkbook', value: { name } });
+    }, [modifyWorkbookScripts, title]);
     const cancelRename = React.useCallback(() => setRenaming(false), []);
     const sortable = useSortableRow(item.workbookId);
     const contextMenu = useRowContextMenu();
