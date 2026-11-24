@@ -106,3 +106,7 @@ parser-snapshots:
   - name: create_table_interval_ranges
     input: |
       create table t (a interval month, b interval day to hour, c interval day to minute, d interval hour to second)
+  # IS OF in a column default, a b_expr, is the same type test as in a select
+  - name: create_table_default_is_of
+    input: |
+      create table t (a boolean default 1 is of (integer), b boolean default 1 is not of (text))

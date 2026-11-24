@@ -2058,3 +2058,123 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: create_table_default_is_of
+    input: |-
+      create table t (a boolean default 1 is of (integer), b boolean default 1 is not of (text))
+    expected:
+      statements:
+        - type: CREATE_TABLE
+          ast-begin: 0
+          ast-size: 30
+          description:
+            text: "create tab..of (text))"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..of (text))"
+            children:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(a boolean..of (text))"
+                children:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "a boolean .. (integer)"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "boolean"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: BOOL
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: "default 1 .. (integer)"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "default 1 .. (integer)"
+                            children:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: DEFAULT
+                              - key: SQL_COLUMN_CONSTRAINT_VALUE
+                                type: OBJECT_SQL_TYPETEST_EXPRESSION
+                                text: "1 is of (integer)"
+                                children:
+                                  - key: SQL_TYPETEST_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "1"
+                                  - key: SQL_TYPETEST_TYPES
+                                    type: ARRAY
+                                    text: "integer"
+                                    children:
+                                      - type: OBJECT_SQL_TYPENAME
+                                        text: "integer"
+                                        children:
+                                          - key: SQL_TYPENAME_TYPE
+                                            type: ENUM_SQL_NUMERIC_TYPE
+                                            value: INT4
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "b boolean .. of (text)"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "b"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "boolean"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: BOOL
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: "default 1 .. of (text)"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "default 1 .. of (text)"
+                            children:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: DEFAULT
+                              - key: SQL_COLUMN_CONSTRAINT_VALUE
+                                type: OBJECT_SQL_TYPETEST_EXPRESSION
+                                text: "1 is not of (text)"
+                                children:
+                                  - key: SQL_TYPETEST_NEGATE
+                                    type: BOOL
+                                    value: 1
+                                  - key: SQL_TYPETEST_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "1"
+                                  - key: SQL_TYPETEST_TYPES
+                                    type: ARRAY
+                                    text: "text"
+                                    children:
+                                      - type: OBJECT_SQL_TYPENAME
+                                        text: "text"
+                                        children:
+                                          - key: SQL_TYPENAME_TYPE
+                                            type: OBJECT_SQL_GENERIC_TYPE
+                                            text: "text"
+                                            children:
+                                              - key: SQL_GENERIC_TYPE_NAME
+                                                type: NAME
+                                                text: "text"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

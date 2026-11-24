@@ -51,6 +51,8 @@ Further PostgreSQL forms and their trees:
 - `EXPLAIN ANALYZE`, `EXPLAIN ANALYZE VERBOSE` and `EXPLAIN VERBOSE`, the options without parentheses, give the tree
   of `EXPLAIN (ANALYZE, VERBOSE)`: an `OBJECT_SQL_GENERIC_OPTION` per keyword under `EXT_EXPLAIN_OPTIONS`, which the
   formatter writes as the parenthesized list. `ANALYZE` is also an option value (`EXPLAIN (FORMAT ANALYZE)`).
+- `IS [NOT] OF` is an `OBJECT_SQL_TYPETEST_EXPRESSION` in every expression, also in the restricted expressions of a
+  column default.
 
 `SET a.b = v` with a single value is an `OBJECT_EXT_SET` with its key path and value, every other SET form
 an `OBJECT_SQL_SET` with its parameter (`SQL_SET_PARAMETER`, a `SessionParameter`) or variable (`SQL_SET_NAME`)

@@ -1880,8 +1880,27 @@ sql_b_expr:
   | sql_b_expr sql_qual_op              %prec POSTFIXOP   { expr_postfix(ctx, @$, $2, $1) }
   | sql_b_expr IS DISTINCT FROM sql_b_expr          %prec IS    { expr2(ctx, @$, enum_node(loc(&[@2, @3, @4]), ExprFunc::IS_DISTINCT_FROM), $1, $5) }
   | sql_b_expr IS NOT DISTINCT FROM sql_b_expr      %prec IS    { expr2(ctx, @$, enum_node(loc(&[@2, @3, @4, @5]), ExprFunc::IS_NOT_DISTINCT_FROM), $1, $6) }
-  | sql_b_expr IS OF LRB sql_type_list RRB          %prec IS    { expr2(ctx, @$, enum_node(loc(&[@2, @3]), ExprFunc::IS_OF), $1, ctx.array(@5, $5)) }
-  | sql_b_expr IS NOT OF LRB sql_type_list RRB      %prec IS    { expr2(ctx, @$, enum_node(loc(&[@2, @3, @4]), ExprFunc::IS_NOT_OF), $1, ctx.array(@6, $6)) }
+  | sql_b_expr IS OF LRB sql_type_list RRB          %prec IS {
+      ctx.object(
+          @$,
+          NodeType::OBJECT_SQL_TYPETEST_EXPRESSION,
+          &[
+              attr(Key::SQL_TYPETEST_VALUE, ctx.expression($1)),
+              attr(Key::SQL_TYPETEST_TYPES, ctx.array(@5, $5)),
+          ],
+      )
+  }
+  | sql_b_expr IS NOT OF LRB sql_type_list RRB      %prec IS {
+      ctx.object(
+          @$,
+          NodeType::OBJECT_SQL_TYPETEST_EXPRESSION,
+          &[
+              attr(Key::SQL_TYPETEST_NEGATE, bool_node(@3, true)),
+              attr(Key::SQL_TYPETEST_VALUE, ctx.expression($1)),
+              attr(Key::SQL_TYPETEST_TYPES, ctx.array(@6, $6)),
+          ],
+      )
+  }
     ;
 
 // Productions that can be used in both a_expr and b_expr.

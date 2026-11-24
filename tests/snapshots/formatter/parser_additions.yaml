@@ -100,3 +100,19 @@ formatter-snapshots:
               explain (format analyze)
               create table x as select 1;
 
+  - name: coverage_default_is_of
+    input: |-
+      create table t (a boolean default 1 is of (integer), b boolean default 1 is not of (text))
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create table t (a boolean default 1 is of (integer), b boolean default 1 is not of (text));
+          - mode: compact
+            expected: |-
+              create table t (a boolean default 1 is of (integer), b boolean default 1 is not of (text));
+          - mode: pretty
+            expected: |-
+              create table t (a boolean default 1 is of (integer), b boolean default 1 is not of (text));
+
