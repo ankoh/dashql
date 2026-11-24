@@ -400,6 +400,27 @@ fn arrange(
                 *x = column_of(&columns, *x + g.width / 2.0) * COLUMN_SPREAD;
             }
         }
+        // ELK routes an edge that runs from right to left around the top of the columns: it puts its dummies at y 0,
+        // `edge_gap` apart, and pushes a box down that is closer than `edge_box_gap` below them. The seeds start below
+        // the room that these edges take, so that every box keeps its y. The layout moves back by the offset of its
+        // boxes, wherever the seeds start.
+        let column = |b: u32| seeds.get(b as usize).copied().flatten().map(|(x, _)| x);
+        let backward: BTreeSet<(u32, u32, u32, u32)> = edges
+            .iter()
+            .filter(|e| part.contains(&(e.from_box as usize)))
+            .filter(|e| matches!((column(e.from_box), column(e.to_box)), (Some(from), Some(to)) if to <= from))
+            .map(|e| (e.from_box, e.from_statement, e.to_box, e.to_statement))
+            .collect();
+        let top =
+            part.iter().filter_map(|&b| seeds.get(b).copied().flatten()).map(|(_, y)| y).fold(f64::INFINITY, f64::min);
+        if !backward.is_empty() && top.is_finite() {
+            let shift = config.edge_box_gap + config.edge_gap * (backward.len() - 1) as f64 - top;
+            for &b in &part {
+                if let Some(Some((_, y))) = seeds.get_mut(b) {
+                    *y += shift;
+                }
+            }
+        }
         routes.extend(elk(boxes, edges, config, geometry, &part, &seeds, true));
     }
     // Boxes without edges keep their hints, the others and the parts without any hint go below everything
@@ -869,6 +890,26 @@ mod tests {
             again[1].dropped = true;
             let after = compute_dataflow_layout(&again, &edges, &config);
             assert_eq!(row(&after, 1, 0) == row(&after, 3, 0), snaps, "offset {offset}");
+        }
+    }
+
+    #[test]
+    fn a_consumer_left_of_its_producer_keeps_its_y() {
+        let config = DataflowLayoutConfig::default();
+        // ELK routes the edges from right to left around the top, the boxes below them keep their y
+        for y in [0.0, 200.0, 400.0] {
+            let boxes = [
+                DataflowLayoutBox { hint: Some((800.0, 0.0)), ..data(2) },
+                DataflowLayoutBox { hint: Some((0.0, y)), ..data(1) },
+                DataflowLayoutBox { hint: Some((0.0, y + 200.0)), ..data(1) },
+            ];
+            let edges = [edge(0, 0, 1, 0), edge(0, 1, 2, 0)];
+            let (g, routes) = compute_dataflow_layout_with_routes(&boxes, &edges, &config);
+            assert_eq!((g[0].y, g[1].y, g[2].y), (0.0, y, y + 200.0), "y {y}");
+            // The routes run above the boxes, the lower one `edge_box_gap` above the producer, the other `edge_gap` higher
+            let top = routes.iter().flat_map(|(_, points)| points.iter().map(|p| p.1)).fold(f64::INFINITY, f64::min);
+            assert_eq!(top, -config.edge_box_gap - config.edge_gap);
+            assert_no_overlaps(&g);
         }
     }
 

@@ -80,7 +80,9 @@ dataflow snapshots use them, the app reads them from the module (`DashQLDataflow
   are packed by ELK with its defaults, boxes without edges go into rows of four below them. The layout depends on
   the graph only, not on the size of the window.
 - **With positions** ELK lays out interactively, every connected part on its own: the columns follow the x of the
-  boxes, the order in a column their y, and a box keeps its y where it does not overlap another. The columns are the
+  boxes, the order in a column their y, and a box keeps its y where it does not overlap another, also below the edges that run
+  from right to left: ELK routes them around the top of the boxes, the layout starts the boxes below the room they
+  take. The columns are the
   runs of overlapping x ranges of the boxes, a box goes into the column of its center. A box without a position starts
   right of its producers or left of its consumers, with the row of the edge level with the row at its other end. A
   part is moved back by the offset that most of its boxes share,

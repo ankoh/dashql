@@ -2370,3 +2370,33 @@ dataflow-snapshots:
           kind: inline
           name: r
           route: [[704,312],[776,312],[776,440],[848,440]]
+
+  - name: LayoutConsumerLeftOfProducer
+    scripts:
+      - name: producer
+        input: |
+          /** @flow x=800 y=0 */
+          create table t (x int);
+      - name: consumer
+        input: |
+          /** @flow x=0 y=400 */
+          select x from t;
+    expected:
+      scripts:
+        - name: producer
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (x int)"
+          box: [800,0,280,80]
+        - name: consumer
+          statements:
+            - type: SELECT
+              text: "select x from t"
+          box: [376,400,280,80]
+      edges:
+        - from: producer.0
+          to: consumer.0
+          kind: table
+          name: t
+          route: [[1080,56],[1104,56],[1104,-24],[352,-24],[352,456],[376,456]]

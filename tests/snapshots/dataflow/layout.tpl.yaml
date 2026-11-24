@@ -727,3 +727,15 @@ dataflow-snapshots:
       - name: rr
         input: |
           select x from :r where x <= -10;
+
+  # A consumer left of its producer keeps its y, the edge runs around the top of the boxes
+  - name: LayoutConsumerLeftOfProducer
+    scripts:
+      - name: producer
+        input: |
+          /** @flow x=800 y=0 */
+          create table t (x int);
+      - name: consumer
+        input: |
+          /** @flow x=0 y=400 */
+          select x from t;
