@@ -14,6 +14,7 @@ import {
     StorageBackendType,
 } from './storage_backend.js';
 import {
+    type WorkbookTreeChange,
     type WorkbookTreeFolder,
     applyWorkbookTreeChange,
     emptyWorkbookTree,
@@ -50,6 +51,8 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
     private readonly treeListeners = new Set<() => void>();
     /// The changes of the workbook tree that are being written
     private pendingTreeChanges = 0;
+    /// Counts the changes of the workbook tree, a read of the stored tree that a change overtook is dropped
+    private treeRevision = 0;
     /// Cached per-workbook native backends, keyed by uuid
     private readonly nativeCache: Map<string, NativeStorageBackend>;
     /// The stamps of the native attachments that are mirrored into OPFS, keyed by workbook uuid
@@ -103,10 +106,19 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
         return () => { this.treeListeners.delete(listener); };
     }
 
+    /// Apply a change to the workbook tree in memory, after it was written. A reload of the stored tree that began
+    /// before it doesn't replace it.
+    private applyTreeChange(change: WorkbookTreeChange): void {
+        this.treeRevision += 1;
+        this.setTree(applyWorkbookTreeChange(this.core, this.tree, change));
+    }
+
     /// Change the workbook tree: the tree that the change leads to shows right away if it is known, the write follows,
     /// and once no other change is being written the tree is read as it is stored. A failed write shows the stored tree
-    /// again.
+    /// again. A change that starts during the read keeps its tree, its own read follows. The promise settles like the
+    /// write, a failed read is only logged.
     private async changeTree(write: () => Promise<void>, changed: WorkbookTreeFolder | null = null): Promise<void> {
+        this.treeRevision += 1;
         if (changed != null) this.setTree(changed);
         this.pendingTreeChanges += 1;
         try {
@@ -114,7 +126,27 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
         } finally {
             this.pendingTreeChanges -= 1;
             // An earlier write would read the tree without the changes that are still being written
-            if (this.pendingTreeChanges === 0) this.setTree(await this.opfs.loadWorkbookTree());
+            if (this.pendingTreeChanges === 0) await this.reloadTree();
+        }
+    }
+
+    /// Show the workbook tree as it is stored. A tree that changed while it was read is read again, unless a change is
+    /// being written: that change reads it once it is written.
+    private async reloadTree(): Promise<void> {
+        for (;;) {
+            const revision = this.treeRevision;
+            let stored: WorkbookTreeFolder;
+            try {
+                stored = await this.opfs.loadWorkbookTree();
+            } catch (error) {
+                this.logger.warn('failed to read the workbook tree', { error: String(error) }, LOG_CTX);
+                return;
+            }
+            if (this.pendingTreeChanges !== 0) return;
+            if (this.treeRevision === revision) {
+                this.setTree(stored);
+                return;
+            }
         }
     }
 
@@ -178,7 +210,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
     async upsertWorkbookEntry(entry: WorkbookEntry, folderPath: readonly string[] = []): Promise<void> {
         await this.opfs.upsertWorkbookEntry(entry, folderPath);
         this.locations.set(entry.path, locationFromEntry(entry));
-        this.setTree(applyWorkbookTreeChange(this.core, this.tree, { kind: 'upsert', entry, folderPath }));
+        this.applyTreeChange({ kind: 'upsert', entry, folderPath });
     }
     async removeWorkbookEntry(workbookId: string): Promise<void> {
         await this.opfs.removeWorkbookEntry(workbookId);
@@ -207,7 +239,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
         this.locations.delete(workbookId);
         this.nativeCache.delete(workbookId);
         this.mirroredAttachments.delete(workbookId);
-        this.setTree(applyWorkbookTreeChange(this.core, this.tree, { kind: 'remove', workbookId }));
+        this.applyTreeChange({ kind: 'remove', workbookId });
     }
 
     /// The workbook tree, the folders and workbooks of the sidebar
@@ -309,7 +341,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
             // The OPFS backend registered the workbook, a new one at the end of the root. Mirror that in
             // memory so getWorkbookOrder() includes it immediately, before the next app initialization.
             this.locations.set(workbookId, loc);
-            this.setTree(applyWorkbookTreeChange(this.core, this.tree, { kind: 'upsert', entry: { path: workbookId, storageType: StorageBackendType.OPFS } }));
+            this.applyTreeChange({ kind: 'upsert', entry: { path: workbookId, storageType: StorageBackendType.OPFS } });
         }
     }
 
@@ -379,6 +411,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
         this.nativeCache.clear();
         this.mirroredAttachments.clear();
         this.locations.clear();
+        this.treeRevision += 1;
         this.setTree(emptyWorkbookTree());
         await this.opfs.clearAllStorage?.();
     }
@@ -476,7 +509,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
             nativePath: dir,
         });
         this.locations.set(uuid, { type: StorageBackendType.Native, nativePath: dir });
-        this.setTree(applyWorkbookTreeChange(this.core, this.tree, { kind: 'upsert', entry: { path: uuid, storageType: StorageBackendType.Native, nativePath: dir } }));
+        this.applyTreeChange({ kind: 'upsert', entry: { path: uuid, storageType: StorageBackendType.Native, nativePath: dir } });
         this.nativeCache.set(uuid, native);
 
         // 5. Now it's safe to drop the OPFS copy of the files (registry entry and results stay).

@@ -191,6 +191,52 @@ describe('CompositeStorageBackend V2 flat routing', () => {
         expect(backend.getWorkbookOrder()).toEqual([OTHER_WORKBOOK_ID, TEST_WORKBOOK_ID]);
     });
 
+    it('keeps the tree of a change that starts while the stored tree is read', async () => {
+        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
+        await backend.saveWorkbookManifest(OTHER_WORKBOOK_ID, testWorkbook({ workbookId: OTHER_WORKBOOK_ID }));
+        expect(backend.getWorkbookOrder()).toEqual([TEST_WORKBOOK_ID, OTHER_WORKBOOK_ID]);
+
+        // The read after the first move takes the stored tree and returns it once the second move began
+        let releaseRead = () => {};
+        const read = new Promise<void>(resolve => { releaseRead = resolve; });
+        const load = vi.spyOn(registry, 'loadWorkbookTree').mockImplementationOnce(async () => {
+            const stored = structuredClone(registry.tree);
+            await read;
+            return stored;
+        });
+        const first = backend.moveWorkbook(OTHER_WORKBOOK_ID, [], 0);
+        await vi.waitFor(() => expect(load).toHaveBeenCalled());
+
+        let releaseWrite = () => {};
+        const write = new Promise<void>(resolve => { releaseWrite = resolve; });
+        const move = registry.moveWorkbook.bind(registry);
+        vi.spyOn(registry, 'moveWorkbook').mockImplementationOnce(async (...args) => {
+            await write;
+            await move(...args);
+        });
+        const second = backend.moveWorkbook(TEST_WORKBOOK_ID, [], 0);
+        expect(backend.getWorkbookOrder()).toEqual([TEST_WORKBOOK_ID, OTHER_WORKBOOK_ID]);
+
+        releaseRead();
+        await first;
+        // The read of the first move is older than the second move, it doesn't replace its tree
+        expect(backend.getWorkbookOrder()).toEqual([TEST_WORKBOOK_ID, OTHER_WORKBOOK_ID]);
+        releaseWrite();
+        await second;
+        expect(backend.getWorkbookOrder()).toEqual([TEST_WORKBOOK_ID, OTHER_WORKBOOK_ID]);
+    });
+
+    it('settles a change of the tree like its write, also when the stored tree can not be read', async () => {
+        const load = vi.spyOn(registry, 'loadWorkbookTree');
+        load.mockRejectedValueOnce(new Error('read failed'));
+        await expect(backend.createFolder(['clients'])).resolves.toBeUndefined();
+        expect(backend.getWorkbookTree().folders).toEqual([]);
+        load.mockRejectedValueOnce(new Error('read failed'));
+        await expect(backend.createFolder(['clients'])).rejects.toThrow('There is already a folder');
+        await backend.createFolder(['archive']);
+        expect(backend.getWorkbookTree().folders.map(folder => folder.name)).toEqual(['archive', 'clients']);
+    });
+
     it('routes a native workbook of a nested folder after a refresh', async () => {
         const dir = '/tmp/nested';
         await backend.createFolder(['clients']);
