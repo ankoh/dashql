@@ -35,6 +35,11 @@ fn names_the_relations_of_ddl_statements_as_written() {
 }
 
 #[test]
+fn a_drop_touches_every_relation_that_it_names() {
+    assert_eq!(touched("drop table a, s.b, d.s.c; drop view if exists v, w cascade;"), ["a", "s.b", "d.s.c", "v", "w"]);
+}
+
+#[test]
 fn other_statements_touch_nothing() {
     assert!(touched("select 1; insert into t values (1); delete from t; set a = 1; explain select 1;").is_empty());
 }

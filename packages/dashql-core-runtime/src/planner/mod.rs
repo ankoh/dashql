@@ -978,78 +978,97 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
             let ddl = drop
                 || matches!(ty, Type::CREATE_TABLE | Type::CREATE_TABLE_AS | Type::CREATE_VIEW | Type::SELECT_INTO);
             if ddl {
-                let packed = pack::pack_parsed_statement(parsed, statement_id);
-                match packed.target {
-                    None => barrier!("missing DDL target"),
-                    Some(target) => {
-                        let mut name: Name = (
-                            target.database_name.clone().unwrap_or_default(),
-                            target.schema_name.clone().unwrap_or_default(),
-                            target.relation_name.clone().unwrap_or_default(),
-                        );
-                        let mut table: Option<&TableDeclaration> = None;
-                        if drop {
-                            // Prefer an exact live name, then native suffix matches. Never let a future
-                            // declaration in an analyzed input redirect this DROP.
-                            if !c.live_namespace.contains_key(&name) {
-                                let matches: BTreeSet<Name> = c
-                                    .live_namespace
-                                    .keys()
-                                    .filter(|n| {
-                                        n.2 == name.2
-                                            && (name.1.is_empty() || n.1 == name.1)
-                                            && (name.0.is_empty() || n.0 == name.0)
-                                    })
-                                    .cloned()
-                                    .collect();
-                                if matches.len() == 1 {
-                                    if let Some(only) = matches.into_iter().next() {
-                                        name = only;
-                                    }
-                                } else if matches.len() > 1 {
-                                    barrier!("ambiguous DROP target");
+                // `drop table a, b` drops every relation that it names
+                let targets: Vec<Name> = if drop {
+                    pack::drop_name_paths(parsed, statement_id)
+                        .into_iter()
+                        .filter_map(|path| match path.as_slice() {
+                            [table] => Some((String::new(), String::new(), table.clone())),
+                            [schema, table] => Some((String::new(), schema.clone(), table.clone())),
+                            [database, schema, table] => Some((database.clone(), schema.clone(), table.clone())),
+                            _ => None,
+                        })
+                        .collect()
+                } else {
+                    let packed = pack::pack_parsed_statement(parsed, statement_id);
+                    packed
+                        .target
+                        .map(|t| {
+                            (
+                                t.database_name.unwrap_or_default(),
+                                t.schema_name.unwrap_or_default(),
+                                t.relation_name.unwrap_or_default(),
+                            )
+                        })
+                        .into_iter()
+                        .collect()
+                };
+                if targets.is_empty() {
+                    barrier!("missing DDL target");
+                }
+                for mut name in targets {
+                    let mut table: Option<&TableDeclaration> = None;
+                    if drop {
+                        // Prefer an exact live name, then native suffix matches. Never let a future
+                        // declaration in an analyzed input redirect this DROP.
+                        if !c.live_namespace.contains_key(&name) {
+                            let matches: BTreeSet<Name> = c
+                                .live_namespace
+                                .keys()
+                                .filter(|n| {
+                                    n.2 == name.2
+                                        && (name.1.is_empty() || n.1 == name.1)
+                                        && (name.0.is_empty() || n.0 == name.0)
+                                })
+                                .cloned()
+                                .collect();
+                            if matches.len() == 1 {
+                                if let Some(only) = matches.into_iter().next() {
+                                    name = only;
                                 }
-                            }
-                            match c.live_namespace.get(&name) {
-                                Some(&live) => table = Some(live),
-                                None => barrier!("unresolved DROP target; conservative access barrier"),
-                            }
-                            if let Some(t) = table {
-                                if c.views.contains(&t.table_id().pack()) || c.live_views.contains(&name) {
-                                    barrier!("view dependencies are not expanded; conservative access barrier");
-                                }
-                            }
-                        } else {
-                            for declaration in &analyzed.entry.table_declarations {
-                                if declaration.ast_statement_id == Some(statement_id as u32)
-                                    && resource_name(&declaration.table_name) == name
-                                {
-                                    table = Some(declaration);
-                                }
-                            }
-                            match table {
-                                Some(t) => name = resource_name(&t.table_name),
-                                None => barrier!("missing DDL target declaration"),
+                            } else if matches.len() > 1 {
+                                barrier!("ambiguous DROP target");
                             }
                         }
-                        let target = access(&mut state, &mut accesses, &name, table, Mode::DDL);
-                        inherited.remove(&target);
-                        if drop {
-                            c.live_producers.remove(&name);
-                            c.live_namespace.remove(&name);
-                            c.live_views.remove(&name);
-                            c.dropped_resources.insert(name);
+                        match c.live_namespace.get(&name) {
+                            Some(&live) => table = Some(live),
+                            None => barrier!("unresolved DROP target; conservative access barrier"),
+                        }
+                        if let Some(t) = table {
+                            if c.views.contains(&t.table_id().pack()) || c.live_views.contains(&name) {
+                                barrier!("view dependencies are not expanded; conservative access barrier");
+                            }
+                        }
+                    } else {
+                        for declaration in &analyzed.entry.table_declarations {
+                            if declaration.ast_statement_id == Some(statement_id as u32)
+                                && resource_name(&declaration.table_name) == name
+                            {
+                                table = Some(declaration);
+                            }
+                        }
+                        match table {
+                            Some(t) => name = resource_name(&t.table_name),
+                            None => barrier!("missing DDL target declaration"),
+                        }
+                    }
+                    let target = access(&mut state, &mut accesses, &name, table, Mode::DDL);
+                    inherited.remove(&target);
+                    if drop {
+                        c.live_producers.remove(&name);
+                        c.live_namespace.remove(&name);
+                        c.live_views.remove(&name);
+                        c.dropped_resources.insert(name);
+                    } else {
+                        c.live_producers.insert(name.clone());
+                        if let Some(t) = table {
+                            c.live_namespace.insert(name.clone(), t);
+                        }
+                        c.dropped_resources.remove(&name);
+                        if ty == Type::CREATE_VIEW {
+                            c.live_views.insert(name);
                         } else {
-                            c.live_producers.insert(name.clone());
-                            if let Some(t) = table {
-                                c.live_namespace.insert(name.clone(), t);
-                            }
-                            c.dropped_resources.remove(&name);
-                            if ty == Type::CREATE_VIEW {
-                                c.live_views.insert(name);
-                            } else {
-                                c.live_views.remove(&name);
-                            }
+                            c.live_views.remove(&name);
                         }
                     }
                 }

@@ -54,7 +54,7 @@ columns keep the order of the connection.
 | Statement | Asks about |
 |---|---|
 | `CREATE TABLE`, `CREATE TABLE AS`, `CREATE VIEW`, `SELECT INTO` | The relation |
-| `DROP TABLE`, `DROP VIEW` | The relation |
+| `DROP TABLE`, `DROP VIEW` | Every relation it names, `drop table a, b` touches both |
 | `ALTER TABLE` adding, dropping or renaming a column, changing its type | The relation |
 | `ALTER TABLE`, `ALTER VIEW` with `RENAME TO` or `SET SCHEMA` | The old and the new name |
 | `DROP SCHEMA`, `ALTER SCHEMA ... RENAME TO` | Everything in the schema, and in the new one |

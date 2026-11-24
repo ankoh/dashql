@@ -3653,3 +3653,108 @@ planner-snapshots:
           script: analyzed
           error: false
           message: execution-enabled EXPLAIN with a mutating body cannot be safely classified
+
+  - name: DropSeveralTables
+    catalog: |
+      create table a (x int);
+      create table b (x int);
+    scripts:
+      - name: s
+        input: |
+          select * from b;
+          drop table a, b;
+          select 1;
+      - name: t
+        input: |
+          select * from b;
+    expected:
+      valid: true
+      scripts:
+        - name: s
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 2
+          signature: "54c2ec7dea53a3f6551739c54dbd7a1c994c3f10f84503044b1a93288a6b58ed"
+        - name: t
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "4e6a70380407764822f50193bd4247d8a65c2831ea35b6494bd6b69d15bf3a87"
+      entities:
+        - catalog-id: '256.65536.4294967297'
+          type: TABLE
+          name: b
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: a
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: s
+          statement-id: 0
+          type: SELECT
+          sql: "select * from b"
+          produces-output: true
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: READ
+        - id: 1
+          script: s
+          statement-id: 1
+          type: DROP_TABLE
+          sql: "drop table a, b"
+          produces-output: false
+          barrier: false
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: DDL
+            - entity: '256.65536.4294967296'
+              mode: DDL
+        - id: 2
+          script: s
+          statement-id: 2
+          type: SELECT
+          sql: "select 1"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses: []
+        - id: 3
+          script: t
+          statement-id: 0
+          type: SELECT
+          sql: "select * from b"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: DDL
+          entity: '256.65536.4294967297'
+        - from: 0
+          to: 3
+          reason: BARRIER
+        - from: 1
+          to: 3
+          reason: DDL
+          entity: '256.65536.4294967297'
+        - from: 1
+          to: 3
+          reason: BARRIER
+        - from: 2
+          to: 3
+          reason: BARRIER
+      diagnostics:
+        - node: 3
+          script: t
+          error: false
+          message: relation was dropped without an earlier lifetime producer; later producer cannot be reordered

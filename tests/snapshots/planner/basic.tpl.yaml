@@ -487,3 +487,18 @@ planner-snapshots:
         input: |
           explain (analyze) update t set b = 2 returning a;
           select * from t;
+
+  # A DROP of several tables drops every one of them, the reads of each are ordered before it
+  - name: DropSeveralTables
+    catalog: |
+      create table a (x int);
+      create table b (x int);
+    scripts:
+      - name: s
+        input: |
+          select * from b;
+          drop table a, b;
+          select 1;
+      - name: t
+        input: |
+          select * from b;

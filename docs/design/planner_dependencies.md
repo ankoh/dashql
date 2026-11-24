@@ -114,8 +114,8 @@ Readers before the previous writer are ordered transitively through it. A statem
 `insert into t select * from t`, has one WRITE access and no self-edge. Relations of different connections never
 conflict.
 
-DDL accesses come from the target of CREATE TABLE, CREATE TABLE AS, CREATE VIEW, SELECT INTO, DROP TABLE and DROP
-VIEW. Accesses name catalog identities, the timeline names: a DROP and a recreation of the same name share one
+DDL accesses come from the target of CREATE TABLE, CREATE TABLE AS, CREATE VIEW and SELECT INTO, and from every
+relation that a DROP TABLE or DROP VIEW names (`drop table a, b`). Accesses name catalog identities, the timeline names: a DROP and a recreation of the same name share one
 timeline while their accesses keep distinct entities (`planner.md`, Conflicts). The planner tracks a live namespace
 per connection while it visits the statements: the declarations of participating scripts enter it at their CREATE,
 those of every other script of the catalog are in it from the start, a DROP removes the name. A direct read of a
