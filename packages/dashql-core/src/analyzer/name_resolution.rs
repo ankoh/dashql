@@ -2248,7 +2248,10 @@ impl NameResolutionPass {
                         rt.expression_id = Some(expr);
                         if rt.column_name.is_none() {
                             if let Some(column_ref) = state.out.expression(expr).and_then(Expression::column_ref) {
-                                rt.column_name = Some(column_ref.column_name.column_name.clone());
+                                // The last name names the output column, as in PostgreSQL: the column of `s.t.a`
+                                // and the field of `t.c.f`
+                                let last = self.column_paths.get(&expr).and_then(|path| path.last());
+                                rt.column_name = Some(last.unwrap_or(&column_ref.column_name.column_name).clone());
                             }
                         }
                     }

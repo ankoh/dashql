@@ -39,7 +39,7 @@ analyzer-snapshots:
           columns:
             - {name: '?', computed: true}
             - {name: '?', computed: true}
-            - {name: product, expression: 2}
+            - {name: name, expression: 2}
             - {name: quantity, expression: 3}
           text: "select (pr..m orders o"
 
@@ -147,7 +147,7 @@ analyzer-snapshots:
           sources:
             - {type: unresolved, name: o, text: "orders o"}
           columns:
-            - {name: product, expression: 0}
+            - {name: name, expression: 0}
           text: "select o.p..m orders o"
       inferred-tables:
         - name: orders

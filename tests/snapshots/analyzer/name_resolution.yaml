@@ -1971,8 +1971,8 @@ analyzer-snapshots:
             - {type: table, name: k, text: "s1.k"}
             - {type: table, name: k, text: "s2.k"}
           columns:
-            - {name: k, expression: 0}
-            - {name: k, expression: 1}
+            - {name: a, expression: 0}
+            - {name: c, expression: 1}
           text: "select s1...s1.k, s2.k"
 
   - name: column_ref_database_qualified
@@ -1993,7 +1993,7 @@ analyzer-snapshots:
           sources:
             - {type: table, name: n, text: "db1.s3.n"}
           columns:
-            - {name: s3, expression: 0}
+            - {name: e, expression: 0}
           text: "select db1..m db1.s3.n"
 
   - name: column_ref_schema_qualified_in_subquery
@@ -2016,7 +2016,7 @@ analyzer-snapshots:
         - scope-id: 0
           parent: 1
           columns:
-            - {name: k, expression: 0}
+            - {name: b, expression: 0}
           text: "(select s1.k.b)"
         - scope-id: 1
           sources:
@@ -2043,7 +2043,7 @@ analyzer-snapshots:
           sources:
             - {type: table, name: x, text: "s1.k x"}
           columns:
-            - {name: k, expression: 0}
+            - {name: a, expression: 0}
           text: "select s1...rom s1.k x"
 
   - name: qualifier_hides_outer_table
