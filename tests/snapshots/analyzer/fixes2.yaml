@@ -193,3 +193,76 @@ analyzer-snapshots:
             - {name: b, table-column: "256.65536.1:1.1"}
             - {name: c, table-column: "256.65536.1:1.2"}
           text: "select * from t"
+
+  - name: distinct_on_output_name
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select distinct on (n) b as n from t order by n
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.1", text: "n"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", text: "n"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: n, expression: 1}
+          text: "select dis..order by n"
+
+  - name: grouping_sets_output_name
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: |-
+        select b as n, count(*) from t group by rollup (n);
+        select b as n, count(*) from t group by cube (n, a);
+        select b as n, count(*) from t group by grouping sets ((n), ())
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 0, text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 1, text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 2, text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", statement-id: 0, text: "b"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", statement-id: 0, text: "n"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", statement-id: 1, text: "b"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.1", statement-id: 1, text: "n"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", statement-id: 1, text: "a"}
+        - {id: 5, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", statement-id: 2, text: "b"}
+        - {id: 6, type: colref/catalog, catalog: "256.65536.1:0.1", statement-id: 2, text: "n"}
+        - {id: 7, type: function, name: count, statement-id: 0, text: "count(*)"}
+        - {id: 8, type: function, name: count, statement-id: 1, text: "count(*)"}
+        - {id: 9, type: function, name: count, statement-id: 2, text: "count(*)"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: n, expression: 0}
+            - {name: '?', expression: 7}
+          text: "select b a..rollup (n)"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: n, expression: 2}
+            - {name: '?', expression: 8}
+          text: "select b a..ube (n, a)"
+        - scope-id: 2
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: n, expression: 5}
+            - {name: '?', expression: 9}
+          text: "select b a.. ((n), ())"

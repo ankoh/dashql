@@ -343,7 +343,10 @@ The rules follow PostgreSQL and Hyper:
 - **Whole rows**: an unqualified name that no column has, also none of a parent scope, but that names a FROM item reads
   the whole row of the item (`ColumnResolution::WholeRow`), as in PostgreSQL: `select t from t`. A FROM item with an
   unknown schema may have the column, its column is inferred. `t.` with a trailing dot is a qualifier still.
-- **Output names in ORDER BY and GROUP BY**: a name of several output columns is a `COLUMN_REF_AMBIGUOUS` (PostgreSQL's
+- **Output names in ORDER BY, DISTINCT ON and GROUP BY**: a bare name of an item of ORDER BY or DISTINCT ON reads the
+  output column of the name before a column of a FROM item, a bare name of an item of GROUP BY, also inside ROLLUP,
+  CUBE and GROUPING SETS, only if no FROM item has the column (PostgreSQL's `findTargetlistEntrySQL92`). A name of
+  several output columns is a `COLUMN_REF_AMBIGUOUS` (PostgreSQL's
   `ORDER BY "a" is ambiguous`) if they read different values: `select a, b as a from t order by a`, but not
   `select a, t.a from t order by a`. Column refs are the same through the same column of the same FROM item, other
   expressions if their texts are. The column ref stays unresolved.

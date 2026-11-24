@@ -18,7 +18,7 @@ use crate::hash::{HashMap, HashSet};
 use crate::table_parameters::{TableParameterLookup, TABLE_PARAMETERS_ENTRY_ID};
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType, NameTag, SemanticNodeMarkerType};
 use dashql_buffers::parser::{
-    AttributeKey as K, JoinType, KnownFunction, MergeMatch, Node, NodeType, StatementType, SymbolSpan,
+    AttributeKey as K, GroupByItemType, JoinType, KnownFunction, MergeMatch, Node, NodeType, StatementType, SymbolSpan,
 };
 use dashql_parser::attrs;
 use std::ops::Range;
@@ -131,9 +131,10 @@ enum FinishedColumnRef {
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum OutputNames {
     Invisible,
-    /// A bare name in ORDER BY refers to an output column before a FROM item column
+    /// A bare name in ORDER BY or DISTINCT ON refers to an output column before a FROM item column
     Preferred,
-    /// A bare name in GROUP BY refers to an output column if no FROM item has the column
+    /// A bare name in GROUP BY, also in ROLLUP, CUBE and GROUPING SETS, refers to an output column if no FROM item has
+    /// the column
     Fallback,
 }
 
@@ -1452,21 +1453,74 @@ impl NameResolutionPass {
 
     /// How a column ref sees the output columns of its scope
     fn output_names(state: &AnalysisState, expr: ExprId) -> OutputNames {
-        let Some(node) = state.out.expression(expr).and_then(|e| state.node(e.ast_node_id)) else {
-            return OutputNames::Invisible;
-        };
-        let (output_names, list_key) = match node.attribute_key() {
-            K::SQL_ORDER_VALUE => (OutputNames::Preferred, K::SQL_SELECT_ORDER),
-            K::SQL_GROUP_BY_ITEM_ARG => (OutputNames::Fallback, K::SQL_SELECT_GROUPS),
-            _ => return OutputNames::Invisible,
-        };
-        // The item must be in the clause of the SELECT, not in a window or an aggregate
-        let list = state.ast.get(node.parent() as usize).and_then(|item| state.ast.get(item.parent() as usize));
-        if list.is_some_and(|list| list.attribute_key() == list_key) {
-            output_names
-        } else {
-            OutputNames::Invisible
+        Self::output_name_clause(state, expr).map_or(OutputNames::Invisible, |(names, _)| names)
+    }
+
+    /// The clause of a bare column ref that may name an output column of its scope, as PostgreSQL's
+    /// `findTargetlistEntrySQL92`: an item of ORDER BY or DISTINCT ON prefers the output columns, an item of GROUP BY,
+    /// also inside ROLLUP, CUBE and GROUPING SETS, takes them if no FROM item has the column. Items of a window or an
+    /// aggregate don't see them.
+    fn output_name_clause(state: &AnalysisState, expr: ExprId) -> Option<(OutputNames, &'static str)> {
+        let node = state.out.expression(expr).and_then(|e| state.node(e.ast_node_id))?;
+        let parent = |n: &Node| state.ast.get(n.parent() as usize);
+        match node.attribute_key() {
+            K::SQL_ORDER_VALUE => {
+                let list = parent(node).and_then(parent)?;
+                (list.attribute_key() == K::SQL_SELECT_ORDER).then_some((OutputNames::Preferred, "ORDER BY"))
+            }
+            // An expression of a GROUP BY item
+            K::SQL_GROUP_BY_ITEM_ARG => Self::group_by_clause(state, parent(node)?),
+            _ => {
+                let list = parent(node)?;
+                let owner = parent(list)?;
+                match list.attribute_key() {
+                    K::SQL_SELECT_DISTINCT if owner.node_type() == NodeType::OBJECT_SQL_SELECT => {
+                        Some((OutputNames::Preferred, "DISTINCT ON"))
+                    }
+                    // An expression of ROLLUP or CUBE
+                    K::SQL_GROUP_BY_ITEM_ARG
+                        if matches!(
+                            Self::group_by_item_type(state, owner),
+                            Some(GroupByItemType::ROLLUP | GroupByItemType::CUBE)
+                        ) =>
+                    {
+                        Self::group_by_clause(state, owner)
+                    }
+                    _ => None,
+                }
+            }
         }
+    }
+
+    /// The type of a GROUP BY item, None for other nodes
+    fn group_by_item_type(state: &AnalysisState, node: &Node) -> Option<GroupByItemType> {
+        if node.node_type() != NodeType::OBJECT_SQL_GROUP_BY_ITEM {
+            return None;
+        }
+        let [item_type] = attrs!(state.children(node), [K::SQL_GROUP_BY_ITEM_TYPE]);
+        item_type.map(|t| GroupByItemType(t.children_begin_or_value() as u8))
+    }
+
+    /// The GROUP BY clause of a SELECT that a GROUP BY item is in, also nested in GROUPING SETS
+    fn group_by_clause(state: &AnalysisState, item: &Node) -> Option<(OutputNames, &'static str)> {
+        let mut item = item;
+        // The nesting is bounded by the AST
+        for _ in 0..state.ast.len() {
+            Self::group_by_item_type(state, item)?;
+            let list = state.ast.get(item.parent() as usize)?;
+            match list.attribute_key() {
+                K::SQL_SELECT_GROUPS => return Some((OutputNames::Fallback, "GROUP BY")),
+                K::SQL_GROUP_BY_ITEM_ARG => {
+                    let owner = state.ast.get(list.parent() as usize)?;
+                    if Self::group_by_item_type(state, owner) != Some(GroupByItemType::GROUPING_SETS) {
+                        return None;
+                    }
+                    item = owner;
+                }
+                _ => return None,
+            }
+        }
+        None
     }
 
     /// The FROM items of its own scope that a column ref sees, as the clauses of the scope publish them
@@ -1534,7 +1588,7 @@ impl NameResolutionPass {
         text(left).is_some_and(|l| Some(l) == text(right))
     }
 
-    /// Report a name in ORDER BY or GROUP BY that names output columns of different values, as in PostgreSQL:
+    /// Report a name in ORDER BY, DISTINCT ON or GROUP BY that names output columns of different values, as in PostgreSQL:
     /// `select a, b as a from t order by a` is ambiguous. The column ref stays unresolved.
     fn check_ambiguous_output_names(&mut self, state: &mut AnalysisState, scope: ScopeId) {
         let Some(s) = state.out.scope(scope) else { return };
@@ -1554,10 +1608,7 @@ impl NameResolutionPass {
             }
         }
         for (expr, name) in ambiguous {
-            let clause = match Self::output_names(state, expr) {
-                OutputNames::Fallback => "GROUP BY",
-                _ => "ORDER BY",
-            };
+            let clause = Self::output_name_clause(state, expr).map_or("ORDER BY", |(_, clause)| clause);
             let Some(expression) = state.out.expression_mut(expr) else { continue };
             let node_id = expression.ast_node_id;
             if let Some(column_ref) = expression.column_ref_mut() {

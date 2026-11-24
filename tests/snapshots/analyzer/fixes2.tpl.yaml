@@ -38,3 +38,22 @@ analyzer-snapshots:
         create table t (a pg_catalog.int4, b pg_catalog.varchar(10));
         alter table t add column c pg_catalog.bool;
         select * from t
+
+  # DISTINCT ON reads an output name that no input column has, as ORDER BY does
+  - name: distinct_on_output_name
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select distinct on (n) b as n from t order by n
+
+  # ROLLUP, CUBE and GROUPING SETS read an output name that no input column has, as a plain GROUP BY does
+  - name: grouping_sets_output_name
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: |-
+        select b as n, count(*) from t group by rollup (n);
+        select b as n, count(*) from t group by cube (n, a);
+        select b as n, count(*) from t group by grouping sets ((n), ())
