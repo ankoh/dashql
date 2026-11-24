@@ -114,8 +114,6 @@ enum CandidateTag: uint32 {
     THROUGH_CATALOG = 8192,
     // Candidate is already in same name scope
     IN_NAME_SCOPE = 16384,
-    // Candidate is already in same name statement
-    IN_SAME_STATEMENT = 32768,
     // Candidate exactly matches the user input
     EXACT_MATCH = 262144,
     // Candidate IS the user input

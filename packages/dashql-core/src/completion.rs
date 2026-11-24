@@ -57,7 +57,6 @@ const DOT_SCHEMA_SCORE_MODIFIER: Score = 2;
 const DOT_TABLE_SCORE_MODIFIER: Score = 2;
 const DOT_COLUMN_SCORE_MODIFIER: Score = 2;
 const IN_NAME_SCOPE_SCORE_MODIFIER: Score = 10;
-const IN_SAME_STATEMENT_SCORE_MODIFIER: Score = 1;
 
 // Suffix-probe modifiers
 const SUFFIX_INCOMPATIBLE_PENALTY: Score = 15;
@@ -104,7 +103,6 @@ fn compute_candidate_score(tags: CandidateTags) -> Score {
     add(&mut score, CandidateTag::DOT_RESOLUTION_SCHEMA, DOT_SCHEMA_SCORE_MODIFIER);
     add(&mut score, CandidateTag::DOT_RESOLUTION_COLUMN, DOT_COLUMN_SCORE_MODIFIER);
     add(&mut score, CandidateTag::IN_NAME_SCOPE, IN_NAME_SCOPE_SCORE_MODIFIER);
-    add(&mut score, CandidateTag::IN_SAME_STATEMENT, IN_SAME_STATEMENT_SCORE_MODIFIER);
     add(&mut score, CandidateTag::SUFFIX_DEPTH_ONE, SUFFIX_DEPTH_ONE_BONUS);
     add(&mut score, CandidateTag::SUFFIX_DEPTH_MANY, SUFFIX_DEPTH_MANY_BONUS);
     let penalty = if has(tags, CandidateTag::SUFFIX_INCOMPATIBLE) { SUFFIX_INCOMPATIBLE_PENALTY } else { 0 };
