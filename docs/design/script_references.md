@@ -8,7 +8,9 @@ select region, count(*) from :foo group by region;
 ```
 
 A script that is referenced is a single SELECT, its result is the result of the query. A reference reads the query
-like a view: it never runs commands, neither in a run of the workbook nor in a run of the consumer. A script that is a
+like a view: it never runs commands, neither in a run of the workbook nor in a run of the consumer. A SELECT with a
+data-modifying WITH (`with g as (delete from t returning a) select * from g`) writes whenever it runs, a reference to
+it is an error ("gone.sql writes with a data-modifying WITH, bar.sql can only read a query that writes nothing"). A script that is a
 single call of a client function that reads is referenced too, but only scanned, see [Client Function Calls](#client-function-calls). A script with
 commands, e.g. `create table t as ...; select * from t`, is split into a script with the commands and one with the
 query; the planner orders the query after the commands by the relations it reads (`planner_dependencies.md`).
@@ -183,7 +185,7 @@ The editor checks, completes and renames script references while the scripts cha
 
 `check_script_references` (`script_references.rs`, the references of the `workbookDerived` view) checks the references of every
 script whose analysis is current with its text, like a plan of the workbook would: the name lookup, the connections,
-a referenced script that is no single SELECT, a reference outside of a query, the common table expressions of a
+a referenced script that is no single SELECT or writes, a reference outside of a query, the common table expressions of a
 inlined query, a view that reads a materialized result and cycles. Other scripts may be broken or stale meanwhile, a
 referenced script without a current analysis is read as a single SELECT. It reports every table parameter with what
 it reads, `INLINE`, `SCAN`, `ATTACHMENT` or `INVALID`, the referenced script or attachment and the messages of the planner, the text

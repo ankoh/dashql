@@ -1,0 +1,28 @@
+planner-snapshots:
+  # A referenced script with a data-modifying WITH writes whenever it runs, no script reads it
+  - name: ReferenceToDataModifyingWith
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: gone
+        input: |
+          with g as (delete from t returning a) select * from g;
+      - name: bar
+        input: |
+          select count(*) from :gone;
+      - name: after
+        input: |
+          select * from t;
+
+  # The editor check of a reference to a data-modifying WITH reports the error too
+  - name: ReferenceToDataModifyingWithTolerant
+    scope: tolerant
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: gone
+        input: |
+          with g as (delete from t returning a) select * from g;
+      - name: bar
+        input: |
+          select count(*) from :gone;

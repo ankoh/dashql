@@ -94,7 +94,7 @@ pub fn mutating(node: &Node) -> bool {
 
 /// Does a query write when it runs? A SELECT with a data-modifying WITH does, an EXPLAIN when it runs a statement that
 /// writes (`explain (analyze) update ...`).
-fn query_writes(parsed: &ParsedScript, statement: &Statement) -> bool {
+pub(crate) fn query_writes(parsed: &ParsedScript, statement: &Statement) -> bool {
     let begin = statement.nodes_begin as usize;
     let nodes = parsed.nodes.get(begin..begin + statement.node_count as usize).unwrap_or_default();
     if !nodes.iter().any(mutating) {

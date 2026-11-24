@@ -22,6 +22,7 @@
 //! the outermost SELECT around the references, before the common table expressions the statement already has.
 
 use crate::planner::{has_manual_tag, script_label, ConnectionKind, Prepared, SessionPlanRequest};
+use crate::workbook_run::result_key::query_writes;
 use dashql_buffers::execution::ExecutionGraphMaterializationT;
 use dashql_buffers::parser::{AttributeKey as Key, NodeType, StatementType};
 use dashql_core::analyzer::ParameterKind;
@@ -484,7 +485,7 @@ impl ScriptReferences {
 }
 
 /// Why a script cannot read the result of a script it references, None if it can. A referenced script is a single
-/// SELECT, or a single call of a client function that reads. A call runs in the host and not in a database, so no query
+/// SELECT that writes nothing, or a single call of a client function that reads. A call runs in the host and not in a database, so no query
 /// can inline it: only a scan reads its result, which the host materializes.
 fn unreadable(
     request: &SessionPlanRequest,
@@ -499,7 +500,12 @@ fn unreadable(
     }
     let Some(call) = p.analyzed.single_client_function_call() else {
         return match p.parsed.statements.as_slice() {
-            [statement] if statement.statement_type == StatementType::SELECT => None,
+            // A data-modifying WITH writes whenever the query runs, a reference would run it with its consumer
+            [statement] if statement.statement_type == StatementType::SELECT => {
+                query_writes(p.parsed, statement).then(|| {
+                    format!("{producer_label} writes with a data-modifying WITH, {consumer_label} can only read a query that writes nothing")
+                })
+            }
             _ => Some(format!("{producer_label} is no single SELECT that {consumer_label} could read")),
         };
     };

@@ -1,0 +1,127 @@
+planner-snapshots:
+
+  - name: ReferenceToDataModifyingWith
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: gone
+        input: |
+          with g as (delete from t returning a) select * from g;
+      - name: bar
+        input: |
+          select count(*) from :gone;
+      - name: after
+        input: |
+          select * from t;
+    expected:
+      valid: false
+      scripts:
+        - name: gone
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "bdfa0fa4e9ed3c819fc15f697ee00f1a4c3b7e64457793efc9427c7599fe7479"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "a5d9fcee283b3912aed3094dff3e12b2005ad07b6f0aa8e167d1cf3d83c2e651"
+          references: [gone]
+        - name: after
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "9fab1e38cd08d2b25d23cb6d5ac07d6cebd82346aaf4d7073e7e49bd25cb4d61"
+      entities: []
+      unresolved-references: []
+      nodes: []
+      edges: []
+      diagnostics:
+        - script: bar
+          text: ":gone"
+          error: true
+          message: 'gone.sql writes with a data-modifying WITH, bar.sql can only read a query that writes nothing'
+      checked-references:
+        - script: bar
+          references:
+            - text: ":gone"
+              target: gone
+              kind: invalid
+              errors:
+                - 'gone.sql writes with a data-modifying WITH, bar.sql can only read a query that writes nothing'
+
+  - name: ReferenceToDataModifyingWithTolerant
+    scope: tolerant
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: gone
+        input: |
+          with g as (delete from t returning a) select * from g;
+      - name: bar
+        input: |
+          select count(*) from :gone;
+    expected:
+      valid: false
+      scripts:
+        - name: gone
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "bdfa0fa4e9ed3c819fc15f697ee00f1a4c3b7e64457793efc9427c7599fe7479"
+        - name: bar
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "a5d9fcee283b3912aed3094dff3e12b2005ad07b6f0aa8e167d1cf3d83c2e651"
+          references: [gone]
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: gone
+          statement-id: 0
+          type: SELECT
+          sql: "with g as (delete from t returning a) select * from g"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 1
+          script: bar
+          statement-id: 0
+          type: SELECT
+          sql: "select count(*) from :gone"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses: []
+      edges: []
+      diagnostics:
+        - script: bar
+          text: ":gone"
+          error: true
+          message: 'gone.sql writes with a data-modifying WITH, bar.sql can only read a query that writes nothing'
+      checked-references:
+        - script: bar
+          references:
+            - text: ":gone"
+              target: gone
+              kind: invalid
+              errors:
+                - 'gone.sql writes with a data-modifying WITH, bar.sql can only read a query that writes nothing'
