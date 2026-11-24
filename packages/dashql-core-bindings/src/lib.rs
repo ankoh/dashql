@@ -1737,6 +1737,13 @@ pub fn touched_relations(text: &str) -> Vec<u8> {
     finish!(dashql_core::touched_relations::touched_relations(text))
 }
 
+/// Compile a Markdown text without fields, e.g. the answer of an agent, returns a packed `MarkdownSpec` whose document
+/// is safe to render: no raw HTML, no unsafe URLs
+#[wasm_bindgen(js_name = compileMarkdown)]
+pub fn compile_markdown(text: &str) -> Vec<u8> {
+    finish!(dashql_core::visualize::compile_markdown_text(text).to_object())
+}
+
 /// Process a batch request into a `BatchResult`
 #[wasm_bindgen(js_name = processBatch)]
 pub fn process_batch(request: &[u8]) -> Result<Vec<u8>, JsError> {

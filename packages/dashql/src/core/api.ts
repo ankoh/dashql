@@ -24,6 +24,7 @@ export type DashQLBindings = Pick<
     | 'quoteColumnName'
     | 'processBatch'
     | 'touchedRelations'
+    | 'compileMarkdown'
     | 'installPanicHook'
     | 'QueryProgressFollower'
     | 'replayQueryProgress'
@@ -579,6 +580,11 @@ export class DashQL {
     /// parse touches nothing that we know of.
     public touchedRelations(text: string): buffers.analyzer.QualifiedTableNameT[] {
         return buffers.catalog.TouchedRelations.getRootAsTouchedRelations(new flatbuffers.ByteBuffer(this.bindings.touchedRelations(text))).unpack().relations;
+    }
+
+    /// Compile a Markdown text without fields, e.g. the answer of an agent, into a document that is safe to render
+    public compileMarkdown(text: string): buffers.visualization.MarkdownNodeT | null {
+        return buffers.visualization.MarkdownSpec.getRootAsMarkdownSpec(new flatbuffers.ByteBuffer(this.bindings.compileMarkdown(text))).unpack().document;
     }
 }
 

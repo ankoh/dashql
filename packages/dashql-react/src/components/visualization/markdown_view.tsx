@@ -99,6 +99,33 @@ function renderNode(node: MarkdownNode, fields: Map<string, string | null>, key:
     }
 }
 
+const NO_FIELDS = new Map<string, string | null>();
+
+/// A document without images: an image becomes its alt text, the page loads nothing that a text names
+function withoutImages(node: MarkdownNode): MarkdownNode {
+    if (node.nodeType === NodeType.IMAGE) {
+        const span = new buffers.visualization.MarkdownNodeT();
+        span.nodeType = NodeType.SPAN;
+        span.children = node.children.map(withoutImages);
+        return span;
+    }
+    if (node.children.length === 0) return node;
+    const copy = Object.assign(new buffers.visualization.MarkdownNodeT(), node);
+    copy.children = node.children.map(withoutImages);
+    return copy;
+}
+
+/// A Markdown document without fields, e.g. the answer of an agent, as the core compiled it (`compileMarkdown`).
+/// Images show their alt text.
+export function MarkdownText(props: { document: MarkdownNode; className?: string; 'data-testid'?: string }): React.ReactElement {
+    const document = React.useMemo(() => withoutImages(props.document), [props.document]);
+    return (
+        <div className={props.className} data-testid={props['data-testid']}>
+            {renderNode(document, NO_FIELDS, 'md')}
+        </div>
+    );
+}
+
 /// The Markdown document of a visualization, rendered once per row of the result with the formatted values of its fields
 export function MarkdownView(props: MarkdownViewProps): React.ReactElement {
     const logger = useLogger();

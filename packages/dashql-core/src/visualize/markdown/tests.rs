@@ -190,3 +190,17 @@ fn converts_documents_to_objects() {
     assert_eq!(empty.fields, None);
     assert_eq!(empty.document.unwrap().children, None);
 }
+
+#[test]
+fn a_text_without_fields_keeps_its_braces() {
+    let document = compile_markdown_text("**42** orders, see {{total}}\n\n- `a`\n- <b>b</b>\0");
+    assert!(document.fields.is_empty());
+    assert!(document.template.is_empty());
+    assert_eq!(
+        render(&document.document),
+        concat!(
+            "document(paragraph(strong(text[value=\"42\"]), text[value=\" orders, see {{total}}\"]), ",
+            "list[ordered=false tight=true start=0](listItem(inlineCode(text[value=\"a\"])), listItem(text[value=\"b\u{fffd}\"])))"
+        )
+    );
+}

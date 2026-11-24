@@ -351,6 +351,16 @@ pub fn compile_markdown_template(row_template: &str) -> MarkdownDocument {
     }
 }
 
+/// Compile a Markdown text without fields into a document, e.g. the answer of an agent: `{{name}}` stays text
+pub fn compile_markdown_text(text: &str) -> MarkdownDocument {
+    let markdown = text.replace('\0', "\u{fffd}");
+    let mut builder = DocumentBuilder::new(&[]);
+    for event in Parser::new(&markdown) {
+        builder.event(event);
+    }
+    MarkdownDocument { template: String::new(), fields: Vec::new(), document: builder.finish() }
+}
+
 /// Compile the Markdown spec of a visualization, `None` if it has none
 pub fn compile_markdown_spec(spec: &VisualizationSpec) -> Option<MarkdownDocument> {
     Some(compile_markdown_template(&spec.markdown.as_ref()?.row_template))

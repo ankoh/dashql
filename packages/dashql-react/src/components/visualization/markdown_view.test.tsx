@@ -10,7 +10,7 @@ import type * as arrow from 'apache-arrow';
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import { MarkdownView, type MarkdownViewProps } from './markdown_view.js';
+import { MarkdownText, MarkdownView, type MarkdownViewProps } from './markdown_view.js';
 import { LoggerContext } from '../../logger.js';
 
 const Node = buffers.visualization.MarkdownNodeT;
@@ -111,5 +111,25 @@ describe('MarkdownView', () => {
 
         expect(container.querySelector('a')).toMatchObject({ target: '_blank', rel: 'noopener noreferrer' });
         expect(container.querySelector('img')?.alt).toBe('Alpha');
+    });
+});
+
+describe('MarkdownText', () => {
+    it('renders a document without fields and shows images as their alt text', () => {
+        const container = document.createElement('div');
+        const root = createRoot(container);
+        act(() => root.render(
+            <MarkdownText data-testid="text" document={node(NodeType.DOCUMENT, { children: [
+                node(NodeType.PARAGRAPH, { children: [
+                    node(NodeType.STRONG, { children: [node(NodeType.TEXT, { value: '42' })] }),
+                    node(NodeType.TEXT, { value: ' orders ' }),
+                    node(NodeType.IMAGE, { url: 'https://example.com/x.png', children: [node(NodeType.TEXT, { value: 'chart' })] }),
+                ] }),
+            ] })} />,
+        ));
+        expect(container.querySelector('[data-testid="text"] strong')?.textContent).toBe('42');
+        expect(container.querySelector('img')).toBeNull();
+        expect(container.textContent).toBe('42 orders chart');
+        act(() => root.unmount());
     });
 });
