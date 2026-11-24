@@ -612,7 +612,7 @@ planner-snapshots:
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
-          cacheable: true
+          cacheable: false
           terminal-statement-id: 2
           signature: "4dccd8fe1109bd3a3d2ae14d3649eb265c10ff722d71d606a28ffc41ed601c14"
       entities:
