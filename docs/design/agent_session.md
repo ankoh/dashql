@@ -29,6 +29,11 @@ its draft for SQL.
   secret, and follows that target like the target of a link, trying it every 2 s until a server answers
   (`agent/agent_connect.ts`, `AgentSessionProvider`). The tab keeps the target, the mode and the harness in the
   storage of the tab, a reload waits on the same line.
+- **One tab follows a session.** "Duplicate tab" copies the storage of the tab, with the target, the copies and the
+  connections of the agent, and the server sends every run to every page that follows it. Only the tab that owns the
+  app runs it, with `AgentSessionProvider` (`AppOwnershipGate`, the Web Lock `dashql-app`): a duplicate shows that
+  DashQL is open elsewhere until the user takes the app over, then the other tab stops its writers and reloads without
+  the app, and the duplicate follows the session like a reload of that tab. No run runs twice.
 - **`dashql connect` listens and launches.** It runs the server of the session on that port with the secret as token
   and launches the harness with the hooks of the session in its arguments, nothing is installed
   (`packages/dashql-cli/README.md`). The session ends when the harness exits.
