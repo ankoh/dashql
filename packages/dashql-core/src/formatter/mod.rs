@@ -2474,14 +2474,7 @@ impl<'a> Formatter<'a> {
                 f.text(if is_true(Some(ignore_nulls)) { " ignore nulls" } else { " respect nulls" }),
             ]);
         }
-        if let Some(filter) = filter {
-            let filter_reg = self.reg(filter);
-            if filter_reg == 0 {
-                return self.format_unimplemented(node);
-            }
-            let body = f.concat(&[f.text("where "), filter_reg]);
-            result = f.concat(&[result, f.text(" filter "), f.parenthesized(body)]);
-        }
+        // The grammar reads WITHIN GROUP before FILTER
         if let Some(within_group) = within_group {
             let wg_reg = self.reg(within_group);
             if wg_reg == 0 {
@@ -2489,6 +2482,14 @@ impl<'a> Formatter<'a> {
             }
             let body = f.concat(&[f.text("order by "), wg_reg]);
             result = f.concat(&[result, f.text(" within group "), f.parenthesized(body)]);
+        }
+        if let Some(filter) = filter {
+            let filter_reg = self.reg(filter);
+            if filter_reg == 0 {
+                return self.format_unimplemented(node);
+            }
+            let body = f.concat(&[f.text("where "), filter_reg]);
+            result = f.concat(&[result, f.text(" filter "), f.parenthesized(body)]);
         }
         if let Some(over) = over {
             let over_reg = self.reg(over);

@@ -185,6 +185,23 @@ formatter-snapshots:
           setup: |-
             create table t(a int);
 
+  - name: coverage_fn_within_group_filter
+    input: |-
+      select percentile_cont(0.5) within group (order by a) filter (where b > 1) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select percentile_cont(0.5) within group (order by a) filter (where b > 1) from t;
+          - mode: compact
+            expected: |-
+              select percentile_cont(0.5) within group (order by a) filter (where b > 1) from t;
+          - mode: pretty
+            expected: |-
+              select percentile_cont(0.5) within group (order by a) filter (where b > 1)
+              from t;
+
   - name: fn_variadic
     input: |-
       select f(variadic a), f(a, variadic b)
