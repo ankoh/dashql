@@ -73,11 +73,6 @@
     animation: composer_agent_turn 3s linear infinite;
 }
 
-/* The agent waits for the user in the terminal: the frame stops and asks for attention */
-.composer[data-agent="waiting"] {
-    border-color: var(--color_attention_fg);
-}
-
 @keyframes composer_agent_turn {
     to { --composer_agent_angle: 360deg; }
 }
@@ -133,27 +128,15 @@
 }
 
 /* The line that launches an agent in the terminal, in the place of the editor: what to do, then the command to copy */
-.composer_connect {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 8px 8px 4px 8px;
-}
-
-.composer[data-variant="hero"] .composer_connect {
-    padding: 12px 12px 6px 12px;
-}
-
-.composer_connect_status {
-    padding-left: 2px;
+/* In AI the web app tells that agents run in the desktop app, in place of the editor */
+.composer_notice {
+    padding: 10px 12px 4px 12px;
     color: var(--color_fg_muted);
     font-size: var(--font_size_small);
 }
 
-/* Over the font of the text input */
-.composer_connect .composer_connect_command {
-    font-family: var(--font_family_mono);
-    font-size: var(--font_size_compact);
+.composer[data-variant="hero"] .composer_notice {
+    padding: 14px 16px 6px 16px;
 }
 
 .composer_editor {

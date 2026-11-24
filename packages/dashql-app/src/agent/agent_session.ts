@@ -2,6 +2,10 @@ import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_s
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import type { AgentSessionState } from '@akohn/dashql/platform/session/agent_session_state';
 
+import type { AgentFollowTarget } from './agent_commands.js';
+
+export type { AgentFollowTarget };
+
 /// A script that the agent wrote
 export interface AgentScript {
     scriptKey: number;
@@ -13,23 +17,23 @@ export interface AgentScript {
 export interface AgentStep {
     /// What the tool does, in one line
     label: string;
-    /// When it started, in ms since the epoch on the clock of the server, the same machine
+    /// When it started, in ms since the epoch
     startedAt: number;
     /// When it ended, null while it runs
     endedAt: number | null;
     failed: boolean;
 }
 
-/// A question that the user asked the agent in the terminal
+/// A question that the user asked the agent in the prompt
 export interface AgentQuestion {
     /// The question in natural language
     question: string;
     /// The latest status line of the agent while it works, null once it finished
     status: string | null;
-    /// What the agent waits for in the terminal while it works, e.g. an approval, null while it works on its own
-    waiting: string | null;
-    /// Did the question end on an interrupt in the terminal instead of an answer?
+    /// Did the user stop the question?
     interrupted: boolean;
+    /// Why the question failed, e.g. the harness exited with an error
+    error: string | null;
     /// The final message of the agent
     note: string | null;
     /// The uses of tools, oldest first
@@ -43,63 +47,52 @@ export interface AgentTurn {
     scripts: AgentScript[];
 }
 
-/// The session of a harness in the terminal, as the page follows it. The page only watches: the hooks of the harness
-/// send its events to the server of `dashql connect`, the page reads them from there (docs/design/agent_session.md). The
-/// questions come from the terminal, the prompt of the page is closed while the page reaches the session.
+/// The conversation of the agent on a workbook, as the bar of the workbook shows it. The desktop app runs a harness of
+/// the machine for every question, the agent works on the workbook through the `dashql` commands
+/// (docs/design/agent_integration.md).
 export interface AgentSession {
-    /// The id of the session, a new one for every server on the port of the line
-    id: string;
-    /// The harness, e.g. claude or codex
-    harness: string;
-    /// The folder that the agent works in
-    folder: string;
-    /// Does the page still reach the session? Not once the session ended.
-    connected: boolean;
-    /// Did the harness end the session? The page waits on the port for the next one.
-    ended: boolean;
-    /// The questions of the session, oldest first
+    workbookId: string;
+    /// The harness of the latest question, e.g. claude or codex, null before the first
+    harness: string | null;
+    /// The questions, oldest first
     turns: AgentTurn[];
     /// Dismiss the final message of a question
     onDismiss: (questionId: number) => void;
     /// Scroll to a script that the agent wrote
     onShowScript: (scriptKey: number) => void;
+    /// Stop the question that runs
+    onStop: () => void;
 }
 
-/// What the agent does: nothing, it waits for the user in the terminal on its question, a tool runs, or it thinks
-/// between its tools, where the harness tells nothing
+/// What the agent does: nothing, a tool runs, or it thinks between its tools, where the harness tells nothing
 export type AgentActivity =
     | { kind: 'idle' }
-    | { kind: 'waiting'; text: string }
     | { kind: 'tool'; text: string }
     | { kind: 'thinking' };
 
-/// The question of a session for its activity, a question of the model or a turn of the state of the server
-type ActivityQuestion = Pick<AgentQuestion, 'status' | 'waiting'> & { steps: readonly Pick<AgentStep, 'label' | 'endedAt'>[] };
+/// The question of a conversation for its activity
+type ActivityQuestion = Pick<AgentQuestion, 'status'> & { steps: readonly Pick<AgentStep, 'label' | 'endedAt'>[] };
 
-/// What the agent of a session does for the question that it works on, idle without one and while the page doesn't
-/// reach the session
-export function agentActivity(session: { connected: boolean; turns: readonly { question: ActivityQuestion }[] }): AgentActivity {
-    const question = session.connected ? [...session.turns].reverse().find(turn => turn.question.status != null)?.question : undefined;
+/// What the agent does for the question that it works on, idle without one
+export function agentActivity(session: { turns: readonly { question: ActivityQuestion }[] }): AgentActivity {
+    const question = [...session.turns].reverse().find(turn => turn.question.status != null)?.question;
     if (question == null) return { kind: 'idle' };
-    if (question.waiting != null) return { kind: 'waiting', text: question.waiting };
     const running = [...question.steps].reverse().find(step => step.endedAt == null);
     return running != null ? { kind: 'tool', text: running.label } : { kind: 'thinking' };
 }
 
-/// The title of the browser tab with a mark of what the agent does, which a user in the terminal next to it sees
-export function agentDocumentTitle(title: string, activity: AgentActivity): string {
-    switch (activity.kind) {
-        case 'idle':
-            return title;
-        case 'waiting':
-            return `(!) ${title}`;
-        default:
-            return `\u25CF ${title}`;
-    }
+/// Does the agent work on a question of the conversation?
+export function isAgentWorking(session: { turns: readonly { question: Pick<AgentQuestion, 'status'> }[] } | null): boolean {
+    return session != null && session.turns.some(turn => turn.question.status != null);
 }
 
-/// The step of a shell command that runs scripts with `dashql run`, e.g. `DASHQL_TRINO_PASSWORD=… dashql run tpch`
-export const DASHQL_RUN = /(^|[\s/])dashql run\b/;
+/// The title of the window with a mark while the agent works
+export function agentDocumentTitle(title: string, activity: AgentActivity): string {
+    return activity.kind === 'idle' ? title : `● ${title}`;
+}
+
+/// The step of a shell command that runs scripts with `dashql run` or `dashql vis`
+export const DASHQL_RUN = /(^|[\s/])dashql (run|vis)\b/;
 
 /// A duration in a few characters: `0.4 s`, `12 s`, `2 min 5 s`
 export function formatAgentDuration(ms: number): string {
@@ -112,18 +105,17 @@ export function formatAgentDuration(ms: number): string {
 }
 
 /// The name of a harness as users know it
-export function harnessLabel(harness: string): string {
+export function harnessLabel(harness: string | null): string {
     switch (harness) {
         case 'claude': return 'Claude Code';
         case 'codex': return 'Codex';
+        case 'opencode': return 'opencode';
+        case null: return 'The agent';
         default: return harness;
     }
 }
 
-/// Where the feed follows the agent to: the text of a script it edits or the results of a script it runs
-export type AgentFollowTarget = 'script' | 'result';
-
-/// The workbook that a session may work on
+/// The workbook that the conversation works on
 export interface AgentSessionArgs {
     workbookScripts: WorkbookScripts;
     /// Follow the agent to a script, every time it edits or runs one
@@ -132,26 +124,18 @@ export interface AgentSessionArgs {
     showScript: (scriptKey: number) => void;
 }
 
-/// The session of an agent as its server tells it, and whether the page reaches the server
-export interface FollowedAgentSession {
-    state: AgentSessionState;
-    connected: boolean;
-}
-
-/// The session as the bar of a workbook shows it: the files that the agent touched are the scripts of the workbook
-/// with their names, the dismissed turns are gone. The prompt stays closed while the page reaches the session.
+/// The conversation as the bar of a workbook shows it: the scripts that the agent changed are the scripts of the
+/// workbook with their names, the dismissed turns are gone
 export function agentSessionOf(
-    followed: FollowedAgentSession,
+    workbookId: string,
+    state: AgentSessionState,
     workbookScripts: WorkbookScripts,
     dismissed: ReadonlySet<number>,
-    onDismiss: (questionId: number) => void,
-    onShowScript: (scriptKey: number) => void,
+    handlers: Pick<AgentSession, 'onDismiss' | 'onShowScript' | 'onStop'>,
 ): AgentSession {
-    const { state } = followed;
     const turns: AgentTurn[] = state.turns.filter(turn => !dismissed.has(turn.turnId)).map(turn => {
         const scripts: AgentScript[] = [];
-        for (const file of turn.files) {
-            const fileName = file.split(/[\\/]/).pop() ?? file;
+        for (const fileName of turn.files) {
             const ref = workbookScripts.scriptRefs[fileName];
             if (ref != null && !scripts.some(script => script.scriptKey === ref.scriptId)) {
                 scripts.push({ scriptKey: ref.scriptId, scriptName: scriptDisplayName(fileName) });
@@ -160,24 +144,15 @@ export function agentSessionOf(
         return {
             questionId: turn.turnId,
             question: {
-                question: turn.question || 'A question in the terminal',
+                question: turn.question,
                 status: turn.status,
-                waiting: turn.waiting,
                 interrupted: turn.interrupted,
+                error: turn.error,
                 note: turn.note,
                 steps: turn.steps.map(step => ({ label: step.label, startedAt: step.startedAt, endedAt: step.endedAt, failed: step.failed })),
             },
             scripts,
         };
     });
-    return {
-        id: state.id,
-        harness: state.harness,
-        folder: state.folder,
-        connected: followed.connected && !state.ended,
-        ended: state.ended,
-        turns,
-        onDismiss,
-        onShowScript,
-    };
+    return { workbookId, harness: state.harness, turns, ...handlers };
 }

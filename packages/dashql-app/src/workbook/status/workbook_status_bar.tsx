@@ -52,17 +52,14 @@ export interface WorkbookStatusBarPrompt {
 /// The parts of the bar that handle a click themselves
 const BAR_CONTROLS = 'button, a, input, select, textarea, [role="button"]';
 
-/// The agent at the right end of the bar: the harness of the session and the folder it works in
+/// The agent at the right end of the bar: the harness of the latest question, a stop button while it works
 function AgentState(props: { session: AgentSession; activity: AgentActivity['kind'] }) {
     const { session } = props;
-    const dot = session.ended ? 'ended' : !session.connected ? 'lost' : props.activity === 'waiting' ? 'waiting' : props.activity === 'idle' ? 'connected' : 'working';
+    const working = props.activity !== 'idle';
     return (
-        <span className={styles.agent} title={`${harnessLabel(session.harness)} in ${session.folder}`}
-            data-testid="workbook-agent-state" data-state={dot}>
-            {dot === 'waiting'
-                ? <span className={`${styles.indicator} ${styles.waiting_dot}`} aria-hidden="true" />
-                : <StatusDot className={styles.indicator} status={dot === 'working' ? IndicatorStatus.Running
-                    : dot === 'connected' ? IndicatorStatus.Succeeded : IndicatorStatus.None} />}
+        <span className={styles.agent} title={harnessLabel(session.harness)}
+            data-testid="workbook-agent-state" data-state={working ? 'working' : 'idle'}>
+            <StatusDot className={styles.indicator} status={working ? IndicatorStatus.Running : IndicatorStatus.None} />
             {harnessLabel(session.harness)}
         </span>
     );
@@ -87,8 +84,6 @@ function LogLine(props: { record: LogRecord; selected: boolean; onSelect: () => 
 
 /// Wobble while the agent works: the face moves faster and the eyes dart around, it reads along
 const WOBBLE_AGENT_WORKING: Partial<WobbleTuning> = { wobble: 0.04, wobbleSpeed: 2.4, glanceIntervalMs: 700 };
-/// Wobble while the agent waits for the user in the terminal: the eyes hold still and look out at the user
-const WOBBLE_AGENT_WAITING: Partial<WobbleTuning> = { glanceAmplitude: 0, blinkIntervalMs: 1600 };
 
 /// The bar of Wobble. Wobble leads it and tells the status of the workbook next to it: what runs, what needs the user,
 /// else what happened last. The dot of Wobble tells that something runs, a failure is red, the status has no dot of its
@@ -105,7 +100,6 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
     const agentWorking = session != null
         ? activity !== 'idle'
         : live.some(s => s.source === WorkbookStatusSource.Agent && s.tone === WorkbookStatusTone.Progress);
-    const agentWaiting = activity === 'waiting';
     const [open, setOpen] = React.useState(false);
     const bubbleId = React.useId();
     const log = useWorkbookLog(props.workbookId, wobble && open);
@@ -147,10 +141,9 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
                     onClick={() => setOpen(o => !o)}
                 >
                     <Wobble className={styles.wobble} aria-hidden="true" mode={WobbleMode.Face} paused={props.paused}
-                        tuning={agentWaiting ? WOBBLE_AGENT_WAITING : agentWorking ? WOBBLE_AGENT_WORKING : undefined}
-                        gaze={agentWaiting ? undefined : props.gaze} lastInput={props.lastInput} />
-                    {(busy || agentWaiting) && <span className={styles.busy_dot} aria-hidden="true" data-testid="workbook-wobble-dot"
-                        data-state={agentWaiting ? 'waiting' : 'busy'} />}
+                        tuning={agentWorking ? WOBBLE_AGENT_WORKING : undefined}
+                        gaze={props.gaze} lastInput={props.lastInput} />
+                    {busy && <span className={styles.busy_dot} aria-hidden="true" data-testid="workbook-wobble-dot" data-state="busy" />}
                 </button>
             )}
             <span className={styles.status} role="status" aria-live="polite" data-testid="workbook-status"

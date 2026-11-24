@@ -26,7 +26,7 @@ import { VersionCheck } from '../host/version/version_check.js';
 import { WorkbookCommands } from '../workbook/scripts/workbook_commands.js';
 import { WorkbookViewModeProvider } from '../workbook/workbook_view_mode.js';
 import { WorkbookPage } from '../workbook/workbook_page.js';
-import { AgentSessionProvider } from '../agent/agent_session_provider.js';
+import { AgentProvider } from '../agent/agent_provider.js';
 import { WorkbookResultsProvider } from '../storage/workbook_results_provider.js';
 import { getGlobalLogger, LoggerProvider } from '../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
@@ -51,7 +51,7 @@ const LOG_CTX = 'app';
 const WorkbookProviders = (props: { children: React.ReactElement }) => (
     <RuntimeProvider loading={<AppLoadingPage pauseAfterSetup={false} progress={null} embeddedDatabaseStatus={IndicatorStatus.None} />}>
         <NativeWorkbookSync />
-        <AgentSessionProvider>
+        <AgentProvider>
             <WorkbookImportProvider>
                 <WorkbookViewModeProvider>
                     <WorkbookCommands>
@@ -64,7 +64,7 @@ const WorkbookProviders = (props: { children: React.ReactElement }) => (
                     </WorkbookCommands>
                 </WorkbookViewModeProvider>
             </WorkbookImportProvider>
-        </AgentSessionProvider>
+        </AgentProvider>
     </RuntimeProvider>
 );
 

@@ -5,18 +5,15 @@ import * as styles from './workbook_composer.module.css';
 import type { EditorView } from '@codemirror/view';
 
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
-import { TextArea } from '@akohn/dashql-react/components/text_input';
-import { CopyToClipboardAction, TextInputAction } from '@akohn/dashql-react/components/text_input_action';
 import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
-import { CodeIcon, PaperAirplaneIcon, SymbolIcon, SyncIcon } from '@akohn/dashql-react/components/symbol_icon';
-import { agentConnectCommandLines, ComposerMode, type ConnectHarness } from '../../agent/agent_connect.js';
-import type { AgentConnect } from '../../agent/agent_session_provider.js';
-import type { AgentSessionOutdated } from '@akohn/dashql/platform/session/agent_session_protocol';
+import { CodeIcon, PaperAirplaneIcon, SquareFillIcon, SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { AGENT_HARNESSES, ComposerMode, type AgentControls } from '../../agent/agent_provider.js';
+import { AgentDesktopNotice } from '../../agent/agent_desktop_notice.js';
 import { PromptEditor } from '../editor/prompt_editor.js';
-import { DashQLCompletionAbortEffect } from '../editor/dashql_processor.js';
+import { DashQLCompletionAbortEffect, DashQLCompletionDisabled } from '../editor/dashql_processor.js';
 import { insertMentionAtCursor } from '../editor/editor_focus.js';
 import { SCRIPT_REFERENCE_PREFIX } from './script_references.js';
-import { harnessLabel, type AgentActivity, type AgentSession } from '../../agent/agent_session.js';
+import { isAgentWorking, type AgentActivity, type AgentSession } from '../../agent/agent_session.js';
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { ExecuteConnectionGuard, WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { WorkbookInputCard } from '../inputs/workbook_input_card.js';
@@ -38,18 +35,8 @@ const NO_INPUTS: WorkbookInput[] = [];
 
 const SparklesFillIcon = SymbolIcon('sparkles_fill_16');
 
-/// The status of the line to connect while the page waits for the session. A server of another protocol answers: the
-/// command runs an older dashql-cli, or the page is older than dashql-cli.
-function connectStatus(outdated: AgentSessionOutdated | null): string {
-    switch (outdated) {
-        case 'server': return 'The session runs an older dashql-cli, stop it and run the command again';
-        case 'client': return 'The session runs a newer dashql-cli than this page, reload the page';
-        case null: return 'Run the command in the folder of your project, the session shows here';
-    }
-}
-
-/// The harnesses of the line to connect, in the order of their switch
-const CONNECT_HARNESSES: ConnectHarness[] = ['claude', 'codex'];
+/// A question in natural language: no SQL completion
+const QUESTION_ASSIST = DashQLCompletionDisabled.of(true);
 
 /// The parts of the prompt that handle a click themselves: the editor places its cursor, the controls act
 const PROMPT_CONTROLS = '.cm-editor, button, a, input, select, textarea, [role="button"]';
@@ -71,15 +58,16 @@ export interface WorkbookComposerProps {
     variant: WorkbookComposerVariant;
     /// The keyword case for completions
     keywordCase: core.buffers.formatting.KeywordCase;
-    /// Is the agent working on a question of the workbook? The frame turns in the gradient of the agent then, and holds
-    /// still in the color of attention while the agent waits for the user in the terminal.
+    /// Is the agent working on a question of the workbook? The frame turns in the gradient of the agent then.
     agentActivity?: AgentActivity['kind'];
-    /// The session of an agent in the terminal that the page follows
+    /// The conversation of the agent on the workbook
     session?: AgentSession | null;
-    /// The mode of the prompt and the line that connects an agent in the terminal, no switch to AI without
-    connect?: AgentConnect | null;
-    /// Called with the draft when the user sends it, the draft is cleared before
+    /// The mode of the prompt and the agent, no switch to AI without
+    agent?: AgentControls | null;
+    /// Called with a SQL draft when the user sends it, the draft is cleared before
     onSend: (text: string) => void;
+    /// Called with a question for the agent when the user sends it in AI, the draft is cleared before
+    onAsk?: (question: string) => void;
     /// Called with whether the draft is blank, once on mount and whenever that changes
     onDraftEmptyChange?: (empty: boolean) => void;
     /// The bar above the editor, e.g. the bar of Wobble. The inputs of a SQL draft follow it, the bar is hidden
@@ -199,10 +187,21 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
     const connectionAttention = React.useContext(WorkbookConnectionAttentionContext);
     const offlineWorkbookId = props.offlineWorkbookId ?? null;
     const inputsRef = React.useRef<HTMLDivElement>(null);
-    // In AI, the agent in the terminal writes the scripts: the prompt keeps its draft but takes nothing
-    const ai = props.connect?.mode === ComposerMode.Ai;
+    // In AI the draft is a question for the agent, the desktop app runs it. The web app has no agents.
+    const agent = props.agent ?? null;
+    const ai = agent?.mode === ComposerMode.Ai;
+    const askable = ai && agent?.available === true;
+    const working = isAgentWorking(props.session ?? null);
+    const { onAsk } = props;
     const send = React.useCallback(() => {
-        if (view == null || ai) return;
+        if (view == null) return;
+        if (ai) {
+            // One question at a time, the stop button stops the running one
+            if (!askable || working) return;
+            const question = takeComposerDraft(view);
+            if (question != null) onAsk?.(question.trim());
+            return;
+        }
         if (offlineWorkbookId != null) {
             connectionAttention?.request();
             return;
@@ -214,7 +213,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
         if (text != null) {
             onSend(text);
         }
-    }, [onSend, view, ai, offlineWorkbookId, connectionAttention]);
+    }, [onSend, onAsk, view, ai, askable, working, offlineWorkbookId, connectionAttention]);
     // A snippet replaces the draft right away, there is no script yet whose text could be compared
     const applySnippet = React.useCallback((text: string) => {
         if (view == null) return;
@@ -276,9 +275,8 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
     });
     React.useEffect(() => focusHero(view), [view]);
 
-    const session = props.session != null && props.session.connected ? props.session : null;
     const showDraftInputs = !ai && draftInputs.length > 0;
-    const blockedWorkbookId = offlineWorkbookId;
+    const blockedWorkbookId = ai ? null : offlineWorkbookId;
     const blocked = blockedWorkbookId != null;
     // A blocked button stays clickable, it pulses the connections that are not connected
     const sendButton = (
@@ -295,28 +293,45 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
             <PaperAirplaneIcon />
         </IconButton>
     );
-    const placeholder = hero ? 'select * from ...' : 'Write a query, press Enter to run it and Shift+Enter for a new line';
-    const connect = props.connect ?? null;
+    const placeholder = ai
+        ? 'Ask the agent about this workbook, press Enter to send it'
+        : hero ? 'select * from ...' : 'Write a query, press Enter to run it and Shift+Enter for a new line';
     const handleModeChange = React.useCallback((index: number) => {
-        connect?.setMode(index === 0 ? ComposerMode.Sql : ComposerMode.Ai);
-    }, [connect]);
+        agent?.setMode(index === 0 ? ComposerMode.Sql : ComposerMode.Ai);
+    }, [agent]);
     const handleHarnessChange = React.useCallback((index: number) => {
-        connect?.setHarness(CONNECT_HARNESSES[index]);
-    }, [connect]);
-    // Shown with every option on an indented line of its own, continued with backslashes so that a selection pastes
-    // into a POSIX shell, the copy button copies one line
-    const commandLines = ai && connect?.target != null ? agentConnectCommandLines(connect.harness, connect.target) : null;
-    const command = commandLines?.join(' ') ?? null;
-    const commandText = commandLines?.map((line, i) => i == 0 ? line : `  ${line}`).join(' \\\n') ?? '';
-    // The port and secret of the command, for the page tests that connect without reading the text
-    const connectPort = connect?.target != null ? new URL(connect.target.endpoint).port : undefined;
-    const statusId = React.useId();
+        agent?.setHarness(AGENT_HARNESSES[index].id);
+    }, [agent]);
+    const askButton = working ? (
+        <IconButton
+            variant={ButtonVariant.Default}
+            size={ButtonSize.Small}
+            aria-label="Stop the agent"
+            data-testid="composer-stop"
+            tooltipDirection="n"
+            onClick={props.session?.onStop}
+        >
+            <SquareFillIcon />
+        </IconButton>
+    ) : (
+        <IconButton
+            variant={hero ? ButtonVariant.Primary : ButtonVariant.Default}
+            size={ButtonSize.Small}
+            aria-label="Ask the agent"
+            data-testid="composer-send"
+            tooltipDirection="n"
+            disabled={empty}
+            onClick={handleSendClick}
+        >
+            <PaperAirplaneIcon />
+        </IconButton>
+    );
     return (
         <div
             className={styles.composer}
             data-variant={hero ? 'hero' : 'docked'}
             data-mode={ai ? 'ai' : 'sql'}
-            data-agent={props.agentActivity == null || props.agentActivity === 'idle' ? undefined : props.agentActivity === 'waiting' ? 'waiting' : 'working'}
+            data-agent={props.agentActivity == null || props.agentActivity === 'idle' ? undefined : 'working'}
             data-collapsed={props.collapsed ? '' : undefined}
         >
             {/* Empty without the bar of Wobble and inputs of the draft, the stylesheet hides it then */}
@@ -333,49 +348,26 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
             {/* The prompt shrinks into the bar while another view shows */}
             <div className={styles.composer_collapse} inert={props.collapsed} data-testid="composer-prompt">
                 <div className={styles.composer_collapse_body}>
-                    <div className={styles.composer_prompt} onMouseDown={ai ? undefined : handlePromptMouseDown}>
-                        {/* The line of the agent takes the place of the editor in AI, the editor keeps the draft for SQL */}
-                        <div hidden={ai}>
+                    <div className={styles.composer_prompt} onMouseDown={ai && !askable ? undefined : handlePromptMouseDown}>
+                        {/* The web app tells in place of the editor that agents run in the desktop app, the editor keeps
+                            the draft for SQL */}
+                        <div hidden={ai && !askable}>
                             <PromptEditor
                                 className={styles.composer_editor}
                                 scriptSession={scriptSession}
                                 placeholder={placeholder}
                                 keywordCase={props.keywordCase}
-                                readOnly={ai}
+                                readOnly={ai && !askable}
+                                assist={ai ? QUESTION_ASSIST : undefined}
                                 onSubmit={send}
                                 onTextChange={handleTextChange}
                                 onEditorUpdate={handleEditorUpdate}
                                 setView={handleView}
                             />
                         </div>
-                        {ai && connect != null && (
-                            <div className={styles.composer_connect} role="group" aria-label="Connect an agent in the terminal" data-testid="composer-connect" data-port={connectPort} data-secret={connect.target?.token}>
-                                <div id={statusId} className={styles.composer_connect_status} role="status" data-testid="composer-connect-status">
-                                    {session != null
-                                        ? `${harnessLabel(session.harness)} works on this workbook in the terminal, switch to SQL to edit the scripts yourself`
-                                        : connectStatus(connect.outdated)}
-                                </div>
-                                {/* The command is only copied, the buttons stay usable */}
-                                <TextArea
-                                    className={styles.composer_connect_command}
-                                    block
-                                    disabled
-                                    rows={commandLines?.length ?? 1}
-                                    value={commandText}
-                                    aria-label="Command"
-                                    aria-describedby={statusId}
-                                    data-testid="composer-connect-command"
-                                    leadingAction={
-                                        <TextInputAction aria-label="Use a new port" aria-labelledby="" data-testid="composer-connect-renew" onClick={connect.renewTarget}>
-                                            <SyncIcon />
-                                        </TextInputAction>
-                                    }
-                                    trailingAction={<CopyToClipboardAction value={command ?? ''} logContext="composer" ariaLabel="Copy the command" testId="composer-connect-copy" />}
-                                />
-                            </div>
-                        )}
+                        {ai && !askable && <AgentDesktopNotice />}
                         <div className={styles.composer_action_bar}>
-                            {connect != null && (
+                            {agent != null && (
                                 <SegmentedControl aria-label="Input mode" size={SegmentedControlSize.Small} onChange={handleModeChange}>
                                     <SegmentedControl.Button leadingVisual={CodeIcon} selected={!ai} data-testid="composer-mode" data-mode="sql">
                                         SQL
@@ -385,19 +377,31 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
                                     </SegmentedControl.Button>
                                 </SegmentedControl>
                             )}
-                            {/* In AI the switch of the harness takes the place of the snippets and Run, the connections stay left of it */}
-                            {ai && connect != null ? (
-                                <div className={styles.composer_trailing_actions}>
-                                    {props.agentConnectionsPicker ?? props.connectionPicker}
-                                    <SegmentedControl aria-label="Harness" size={SegmentedControlSize.Small} onChange={handleHarnessChange}>
-                                        <SegmentedControl.Button selected={connect.harness === 'claude'} data-testid="composer-connect-harness" data-harness="claude">
-                                            Claude Code
-                                        </SegmentedControl.Button>
-                                        <SegmentedControl.Button selected={connect.harness === 'codex'} data-testid="composer-connect-harness" data-harness="codex">
-                                            Codex
-                                        </SegmentedControl.Button>
-                                    </SegmentedControl>
-                                </div>
+                            {/* In AI the connections of the agent, the switch of the harness and Ask take the place of the
+                                snippets and Run */}
+                            {ai && agent != null ? (
+                                askable && (
+                                    <div className={styles.composer_trailing_actions}>
+                                        {props.agentConnectionsPicker ?? props.connectionPicker}
+                                        <SegmentedControl aria-label="Harness" size={SegmentedControlSize.Small} onChange={handleHarnessChange}>
+                                            {AGENT_HARNESSES.map(harness => {
+                                                const known = agent.harnesses.find(h => h.id === harness.id);
+                                                return (
+                                                    <SegmentedControl.Button
+                                                        key={harness.id}
+                                                        selected={agent.harness === harness.id}
+                                                        disabled={known != null && !known.available}
+                                                        data-testid="composer-agent-harness"
+                                                        data-harness={harness.id}
+                                                    >
+                                                        {harness.label}
+                                                    </SegmentedControl.Button>
+                                                );
+                                            })}
+                                        </SegmentedControl>
+                                        {askButton}
+                                    </div>
+                                )
                             ) : (
                                 <div className={styles.composer_trailing_actions}>
                                     {props.connectionPicker}

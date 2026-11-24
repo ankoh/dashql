@@ -12,8 +12,7 @@ import { LoggerProvider } from '../../host/logger_provider.js';
 import { WorkbookComposerVariant, type WorkbookComposerProps } from './workbook_composer.js';
 import { WorkbookPrompt, WorkbookPromptPlacement, type WorkbookPromptDependencies, type WorkbookPromptFeed, type WorkbookPromptHandle } from './workbook_prompt.js';
 import type { AgentSession, AgentSessionArgs, AgentTurn } from '../../agent/agent_session.js';
-import { ComposerMode } from '../../agent/agent_connect.js';
-import type { AgentConnect } from '../../agent/agent_session_provider.js';
+import { ComposerMode, type AgentControls } from '../../agent/agent_provider.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
@@ -32,9 +31,9 @@ describe('Workbook prompt', () => {
         /// The scripts of the workbook, and the workbook that the runtime holds after an action
         scripts: {} as ScriptDataMap,
         next: null as (WorkbookScripts & { scripts: ScriptDataMap }) | null,
-        /// The session of an agent in the terminal that the prompt gets, and what the prompt gave it
+        /// The conversation of the agent that the prompt gets, and what the prompt gave it
         session: null as AgentSession | null,
-        connect: null as AgentConnect | null,
+        agent: null as AgentControls | null,
         sessionArgs: null as AgentSessionArgs | null,
         submit: vi.fn(),
         view: null as ReturnType<typeof fakeView> | null,
@@ -47,7 +46,7 @@ describe('Workbook prompt', () => {
         useLiveScriptReader: () => (key: number) => promptState.next?.scripts[key] ?? null,
         useComposerCore: () => ({ instance: {}, catalog: {}, tableParameters: { attach: () => false }, connectorType: ConnectorType.HYPER }) as unknown as ReturnType<WorkbookPromptDependencies['useComposerCore']>,
         useAgentSession: (args: AgentSessionArgs) => { promptState.sessionArgs = args; return promptState.session; },
-        useAgentConnect: () => promptState.connect,
+        useAgentControls: () => promptState.agent,
         WorkbookComposer: (props: WorkbookComposerProps) => {
             promptState.composerProps = props;
             if (props.submitRef) props.submitRef.current = promptState.submit;
@@ -99,14 +98,14 @@ describe('Workbook prompt', () => {
         };
     }
 
-    /// The session of Claude Code in the terminal with its questions
+    /// The conversation of Claude Code with its questions
     function agentSession(turns: AgentTurn[] = []): AgentSession {
-        return { id: 's1', harness: 'claude', folder: '/agent', connected: true, ended: false, turns, onDismiss: vi.fn(), onShowScript: vi.fn() };
+        return { workbookId: 'workbook', harness: 'claude', turns, onDismiss: vi.fn(), onShowScript: vi.fn(), onStop: vi.fn() };
     }
     /// A question that the agent works on
     const question = (questionId: number, status: string | null = 'Edit scripts/1_alpha.sql'): AgentTurn => ({
         questionId,
-        question: { question: 'how many rows', status, waiting: null, interrupted: false, note: null, steps: [] },
+        question: { question: 'how many rows', status, interrupted: false, error: null, note: null, steps: [] },
         scripts: [],
     });
 
@@ -122,7 +121,7 @@ describe('Workbook prompt', () => {
         promptState.runScript.mockReset();
         promptState.submit.mockReset();
         promptState.session = null;
-        promptState.connect = null;
+        promptState.agent = null;
         promptState.sessionArgs = null;
         promptState.scripts = {};
         promptState.next = null;
@@ -273,7 +272,7 @@ describe('Workbook prompt', () => {
         expect(target).toHaveBeenCalledExactlyOnceWith('alpha');
     });
 
-    it('passes the session of an agent in the terminal to the bar and closes the greeting', async () => {
+    it('passes the conversation of the agent to the bar and closes the greeting', async () => {
         render(workbook());
         expect(promptState.barProps).toMatchObject({ workbookId: 'workbook', variant: 'prompt', session: null });
         expect(promptState.composerProps?.session).toBeNull();
@@ -307,16 +306,29 @@ describe('Workbook prompt', () => {
 
     it('greets an empty workbook again once the prompt switches back to SQL', () => {
         promptState.session = agentSession([question(1, null)]);
-        promptState.connect = { mode: ComposerMode.Ai } as AgentConnect;
+        promptState.agent = { mode: ComposerMode.Ai } as AgentControls;
         render(workbook());
         expect(greeting()).toBeNull();
         expect(promptState.composerProps?.variant).toBe(WorkbookComposerVariant.Docked);
 
-        // The tab still follows the session with its questions
-        promptState.connect = { mode: ComposerMode.Sql } as AgentConnect;
+        // The bar still shows the questions
+        promptState.agent = { mode: ComposerMode.Sql } as AgentControls;
         render(workbook());
         expect(greeting()).not.toBeNull();
         expect(promptState.composerProps?.variant).toBe(WorkbookComposerVariant.Hero);
         expect(promptState.barProps?.session).toBe(promptState.session);
+    });
+
+    it('asks the agent with the dialect of the next script and the names of the scripts', () => {
+        const ask = vi.fn();
+        promptState.agent = { mode: ComposerMode.Ai, ask } as unknown as AgentControls;
+        render(workbook(['1_alpha.sql']));
+        promptState.composerProps!.onAsk!('how many rows has :1_alpha');
+        expect(ask).toHaveBeenCalledExactlyOnceWith({
+            workbookId: 'workbook',
+            question: 'how many rows has :1_alpha',
+            dialect: expect.stringContaining('Hyper'),
+            scriptNames: ['1_alpha'],
+        });
     });
 });

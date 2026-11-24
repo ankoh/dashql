@@ -7,17 +7,17 @@ import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay
 import { ConnectionMenu } from '../workbook/scripts/script_connection_picker.js';
 import { useConnectionList, useConnections } from '@akohn/dashql-react/hooks';
 import { agentConnections } from './agent_connections.js';
-import type { AgentConnect } from './agent_session_provider.js';
+import type { AgentControls } from './agent_provider.js';
 
 interface Props {
     /// The workbook whose connections come first
     workbookId: string;
     /// The connections of the agent and how to change them
-    connect: Pick<AgentConnect, 'isConnectionAllowed' | 'toggleConnection'>;
+    connect: Pick<AgentControls, 'isConnectionAllowed' | 'toggleConnection'>;
 }
 
-/// The connections that the agent of the session may use, `2 / 4 connections`: the menu of the connections with a
-/// checkbox each, `dashql run` refuses the unticked ones
+/// The connections that the agent may use, `2 / 4 connections`: the menu of the connections with a checkbox each,
+/// `dashql run` refuses the unticked ones
 export const AgentConnectionsPicker: React.FC<Props> = (props) => {
     const [open, setOpen] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);

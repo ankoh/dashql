@@ -26,9 +26,9 @@ import { useLogger } from '../../host/logger_provider.js';
 import { WorkbookComposer, WorkbookComposerVariant, type WorkbookTableParameters } from './workbook_composer.js';
 import type { WorkbookFeedInsets } from './workbook_feed.js';
 import { agentActivity, type AgentFollowTarget } from '../../agent/agent_session.js';
-import { useAgentConnect, useAgentSession } from '../../agent/agent_session_provider.js';
+import { ComposerMode, useAgentControls, useAgentSession } from '../../agent/agent_provider.js';
 import { AgentConnectionsPicker } from '../../agent/agent_connections_picker.js';
-import { ComposerMode } from '../../agent/agent_connect.js';
+import { describeSqlDialect } from '../../agent/agent_prompt.js';
 import { agentLiveStatuses, diffAgentQuestions } from '../../agent/agent_workbook_status.js';
 import { WorkbookStatusBar, WorkbookStatusBarVariant, type WorkbookStatusBarPrompt } from '../status/workbook_status_bar.js';
 import { useLiveWorkbookStatuses, useWorkbookOutcomeTransitions } from '../status/workbook_status_store.js';
@@ -101,7 +101,7 @@ export interface WorkbookPromptDependencies {
     useLiveScriptReader: typeof useLiveScriptReader;
     useComposerCore: typeof useComposerCore;
     useAgentSession: typeof useAgentSession;
-    useAgentConnect: typeof useAgentConnect;
+    useAgentControls: typeof useAgentControls;
     WorkbookComposer: typeof WorkbookComposer;
     WorkbookStatusBar: typeof WorkbookStatusBar;
 }
@@ -114,7 +114,7 @@ const DEFAULT_DEPENDENCIES: WorkbookPromptDependencies = {
     useLiveScriptReader,
     useComposerCore,
     useAgentSession,
-    useAgentConnect,
+    useAgentControls,
     WorkbookComposer,
     WorkbookStatusBar,
 };
@@ -240,13 +240,16 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
         }
     }, [appendScript, runAppendedScript, logger]);
 
-    // The agent of a session in the terminal answers questions in the scripts of the workbook, the feed follows it
+    // The agent answers questions in the scripts of the workbook, the feed follows it
     const session = dependencies.useAgentSession({
         workbookScripts: props.workbookScripts,
         followScript: feed.follow,
         showScript: feed.show,
     });
-    const agentConnect = dependencies.useAgentConnect();
+    const agentControls = dependencies.useAgentControls();
+    const handleAsk = React.useCallback((question: string) => {
+        agentControls?.ask({ workbookId, question, dialect: describeSqlDialect(composerConnectorType), scriptNames });
+    }, [agentControls, workbookId, composerConnectorType, scriptNames]);
     // Every new question of the session follows the agent again
     const latestQuestionId = session != null && session.turns.length > 0 ? session.turns[session.turns.length - 1].questionId : null;
     React.useEffect(() => {
@@ -266,11 +269,10 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
         mention: name => targetScriptRef.current?.(name),
     }), [composerView]);
 
-    // An empty workbook greets the user with the composer in place of the feed, until the agent of a session works on a
-    // question. The tab follows its session after a switch back to SQL, the questions of the agent dock the composer
-    // in AI only. The composer stays at the same position in the tree so it keeps focus when the view docks it. The
-    // composer over another view is docked.
-    const agentTurns = agentConnect?.mode === ComposerMode.Sql ? 0 : session?.turns.length ?? 0;
+    // An empty workbook greets the user with the composer in place of the feed, until the agent works on a question.
+    // The questions of the agent dock the composer in AI only. The composer stays at the same position in the tree so it
+    // keeps focus when the view docks it. The composer over another view is docked.
+    const agentTurns = agentControls?.mode === ComposerMode.Sql ? 0 : session?.turns.length ?? 0;
     const landing = overFeed && props.workbookScripts.scriptOrder.length === 0 && agentTurns === 0;
     // The composer shrinks into the bar of Wobble and grows out of it on a click on the bar, the greeting shows it
     const collapsed = !landing && !props.expanded;
@@ -403,8 +405,9 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
                         keywordCase={keywordCase}
                         agentActivity={session != null ? agentActivity(session).kind : 'idle'}
                         session={session}
-                        connect={agentConnect}
+                        agent={agentControls}
                         onSend={handleSend}
+                        onAsk={handleAsk}
                         bar={statusBar(WorkbookStatusBarVariant.Prompt, togglePrompt)}
                         setView={setComposerView}
                         submitRef={submitRef}
@@ -424,8 +427,8 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
                                 testId="composer-connection-picker"
                             />
                         )}
-                        agentConnectionsPicker={agentConnect == null ? undefined : (
-                            <AgentConnectionsPicker workbookId={workbookId} connect={agentConnect} />
+                        agentConnectionsPicker={agentControls == null ? undefined : (
+                            <AgentConnectionsPicker workbookId={workbookId} connect={agentControls} />
                         )}
                     />}
                 </div>

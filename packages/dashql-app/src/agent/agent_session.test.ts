@@ -1,43 +1,36 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { agentActivity, agentDocumentTitle, agentSessionOf, formatAgentDuration, type AgentQuestion } from './agent_session.js';
+import { agentActivity, agentDocumentTitle, agentSessionOf, formatAgentDuration, harnessLabel, isAgentWorking, type AgentQuestion } from './agent_session.js';
 import { createAgentSessionState, reduceAgentSessionEvent } from '@akohn/dashql/platform/session/agent_session_state';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
 const workbook = {
-    scriptRefs: { '1_orders.sql': { scriptId: 7, fileName: '1_orders.sql' } },
+    scriptRefs: { 'orders.sql': { scriptId: 7, fileName: 'orders.sql' } },
 } as unknown as WorkbookScripts;
 
-describe('the session of an agent in the bar of a workbook', () => {
-    it('names the scripts that the agent touched and leaves out the dismissed turns', () => {
+describe('the conversation of the agent in the bar of a workbook', () => {
+    it('names the scripts that the agent changed and leaves out the dismissed turns', () => {
         const state = {
-            ...createAgentSessionState('codex', '/w', 's1'),
+            ...createAgentSessionState(),
+            harness: 'codex',
             turns: [
-                { turnId: 1, question: '', status: null, waiting: null, interrupted: false, note: 'done', files: [], steps: [] },
+                { turnId: 1, question: 'q1', status: null, interrupted: false, error: null, note: 'done', files: [], steps: [] },
                 {
-                    turnId: 2, question: 'top orders', status: 'Edit', waiting: null, interrupted: false, note: null, files: ['/w/scripts/1_orders.sql', 'scripts/1_orders.sql', 'other.sql'],
-                    steps: [{ label: 'Edit scripts/1_orders.sql', toolUseId: 't1', startedAt: 10, endedAt: null, failed: false }],
+                    turnId: 2, question: 'top orders', status: 'dashql edit orders', interrupted: false, error: null, note: null, files: ['orders.sql', 'gone.sql'],
+                    steps: [{ label: 'dashql edit orders', toolUseId: 't1', startedAt: 10, endedAt: null, failed: false }],
                 },
             ],
         };
-        const onDismiss = vi.fn();
-        const session = agentSessionOf({ state, connected: true }, workbook, new Set([1]), onDismiss, vi.fn());
-        expect(session).toMatchObject({ harness: 'codex', folder: '/w', connected: true });
+        const handlers = { onDismiss: vi.fn(), onShowScript: vi.fn(), onStop: vi.fn() };
+        const session = agentSessionOf('w1', state, workbook, new Set([1]), handlers);
+        expect(session).toMatchObject({ workbookId: 'w1', harness: 'codex' });
         expect(session.turns).toEqual([{
             questionId: 2,
-            question: { question: 'top orders', status: 'Edit', waiting: null, interrupted: false, note: null, steps: [{ label: 'Edit scripts/1_orders.sql', startedAt: 10, endedAt: null, failed: false }] },
-            scripts: [{ scriptKey: 7, scriptName: '1_orders' }],
+            question: { question: 'top orders', status: 'dashql edit orders', interrupted: false, error: null, note: null, steps: [{ label: 'dashql edit orders', startedAt: 10, endedAt: null, failed: false }] },
+            scripts: [{ scriptKey: 7, scriptName: 'orders' }],
         }]);
-        session.onDismiss(2);
-        expect(onDismiss).toHaveBeenCalledWith(2);
-    });
-
-    it('names a question that the harness did not tell and is no longer connected once the session ended', () => {
-        const state = { ...createAgentSessionState('claude', '/w', 's1'), ended: true, turns: [{ turnId: 1, question: '', status: null, waiting: null, interrupted: false, note: null, files: [], steps: [] }] };
-        const session = agentSessionOf({ state, connected: true }, workbook, new Set(), vi.fn(), vi.fn());
-        expect(session.connected).toBe(false);
-        expect(session.ended).toBe(true);
-        expect(session.turns[0].question.question).toBe('A question in the terminal');
+        session.onStop();
+        expect(handlers.onStop).toHaveBeenCalled();
     });
 
     it('tells the time of a step in a few characters', () => {
@@ -48,31 +41,32 @@ describe('the session of an agent in the bar of a workbook', () => {
         expect(formatAgentDuration(-5)).toBe('0.0 s');
     });
 
-    it('tells what the agent does: it waits for the user, a tool runs, it thinks, or nothing', () => {
-        const question: AgentQuestion = { question: 'q', status: 'Edit a.sql', waiting: null, interrupted: false, note: null, steps: [] };
-        const step = (endedAt: number | null) => ({ label: 'Edit a.sql', startedAt: 1, endedAt, failed: false });
-        const activity = (q: AgentQuestion, connected = true) => agentActivity({ connected, turns: [{ question: q }] });
+    it('tells what the agent does: a tool runs, it thinks, or nothing', () => {
+        const question: AgentQuestion = { question: 'q', status: 'dashql edit a', interrupted: false, error: null, note: null, steps: [] };
+        const step = (endedAt: number | null) => ({ label: 'dashql edit a', startedAt: 1, endedAt, failed: false });
+        const activity = (q: AgentQuestion) => agentActivity({ turns: [{ question: q }] });
         expect(activity(question)).toEqual({ kind: 'thinking' });
         expect(activity({ ...question, steps: [step(2)] })).toEqual({ kind: 'thinking' });
-        expect(activity({ ...question, steps: [step(2), step(null)] })).toEqual({ kind: 'tool', text: 'Edit a.sql' });
-        expect(activity({ ...question, steps: [step(null)], waiting: 'an approval' })).toEqual({ kind: 'waiting', text: 'an approval' });
+        expect(activity({ ...question, steps: [step(2), step(null)] })).toEqual({ kind: 'tool', text: 'dashql edit a' });
         expect(activity({ ...question, status: null })).toEqual({ kind: 'idle' });
-        // A session that the page doesn't reach does nothing
-        expect(activity(question, false)).toEqual({ kind: 'idle' });
+        expect(isAgentWorking({ turns: [{ question }] })).toBe(true);
+        expect(isAgentWorking(null)).toBe(false);
     });
 
-    it('marks the title of the browser tab while the agent works or waits for the user', () => {
-        // The turns of the state of the server have the fields of a question
+    it('marks the title of the window while the agent works', () => {
         const titleOf = (state: ReturnType<typeof createAgentSessionState>) =>
-            agentDocumentTitle('DashQL', agentActivity({ connected: !state.ended, turns: state.turns.map(question => ({ question })) }));
-        let state = createAgentSessionState('claude', '/w', 's1');
+            agentDocumentTitle('DashQL', agentActivity({ turns: state.turns.map(question => ({ question })) }));
+        let state = createAgentSessionState();
         expect(titleOf(state)).toBe('DashQL');
         state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q' });
-        expect(titleOf(state)).toBe('\u25CF DashQL');
-        state = reduceAgentSessionEvent(state, { event: 'Notification', notification: 'permission' });
-        expect(titleOf(state)).toBe('(!) DashQL');
-        expect(titleOf({ ...state, ended: true })).toBe('DashQL');
+        expect(titleOf(state)).toBe('● DashQL');
         state = reduceAgentSessionEvent(state, { event: 'Stop' });
         expect(titleOf(state)).toBe('DashQL');
+    });
+
+    it('names the harnesses as users know them', () => {
+        expect(harnessLabel('claude')).toBe('Claude Code');
+        expect(harnessLabel('opencode')).toBe('opencode');
+        expect(harnessLabel(null)).toBe('The agent');
     });
 });

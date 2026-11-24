@@ -9,8 +9,6 @@
 //
 // The pages run without WebGL, they have to work on machines without it.
 
-import assert from 'node:assert/strict';
-import http from 'node:http';
 import { join } from 'node:path';
 
 /// A page has to boot the core and Hyper
@@ -168,318 +166,26 @@ async function testAppWorkbook(page, navigate) {
     await scriptEditor(page, 'select 43 as answer').waitFor();
 }
 
-/// Wait until a condition in the test process holds, e.g. a request reached a server of the test
-async function waitUntil(condition, timeout = PAGE_TIMEOUT) {
-    const end = Date.now() + timeout;
-    while (!condition()) {
-        if (Date.now() > end) throw new Error('The condition did not hold in time');
-        await new Promise(resolve => setTimeout(resolve, 50));
-    }
-}
-
-/// A server of a session like the one of dashql connect. It speaks the protocol of the page, AGENT_SESSION_PROTOCOL
-/// of agent_session_protocol.ts, raise the default with it; `protocol: null` is a server older than the protocol.
-async function startSessionServer({ port = 0, token = 'secret', protocol = 8, id = 'session' } = {}) {
-    const streams = new Set();
-    let state = { id, harness: 'claude', folder: '/work', ended: false, turns: [], workbooks: [], version: 0 };
-    // The files that the page wrote into the copy of its workbook, in the order of the writes
-    const writes = [];
-    const broadcast = () => { for (const stream of streams) stream.write(`data: ${JSON.stringify(state)}\n\n`); };
-    // The copy, the state names it once it has its workbook file, like the server of dashql
-    const files = new Map();
-    // The events that the page posted for the runs that the server asked for, by run
-    const runEvents = new Map();
-    // The results that the page wrote into the cache of the session, with their bytes
-    const results = [];
-    // The connections that the page let the agent use, in the order it sent them
-    const connectionLists = [];
-    let clock = 0;
-    const announce = workbookId => {
-        const named = files.has('dashql-workbook.json')
-            ? [{ workbookId, files: [...files].map(([path, file]) => ({ path, size: file.body.length, mtimeMs: file.mtimeMs })) }]
-            : [];
-        state = { ...state, workbooks: named, version: state.version + 1 };
-        broadcast();
-    };
-    const server = http.createServer((request, response) => {
-        response.setHeader('Access-Control-Allow-Origin', request.headers.origin ?? '*');
-        if (protocol != null) {
-            response.setHeader('X-DashQL-Protocol', String(protocol));
-            response.setHeader('Access-Control-Expose-Headers', 'X-DashQL-Protocol');
-        }
-        if (request.method === 'OPTIONS') {
-            // The preflight of the server of dashql
-            return response.writeHead(204, {
-                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE',
-                'Access-Control-Allow-Headers': 'Authorization, Content-Type',
-                'Access-Control-Allow-Private-Network': 'true',
-            }).end();
-        }
-        const copy = `/v1/workbooks/${encodeURIComponent(token)}/`;
-        if ((request.method === 'PUT' || request.method === 'DELETE') && request.url.startsWith(copy)) {
-            const [workbookId, ...parts] = request.url.slice(copy.length).split('/').map(decodeURIComponent);
-            const chunks = [];
-            request.on('data', chunk => chunks.push(chunk));
-            request.on('end', () => {
-                const path = parts.join('/');
-                const body = Buffer.concat(chunks).toString('utf8');
-                writes.push({ method: request.method, workbookId, path, body });
-                if (request.method === 'PUT') files.set(path, { body, mtimeMs: ++clock });
-                else if (path.length > 0) files.delete(path);
-                else files.clear();
-                announce(workbookId);
-                response.writeHead(204).end();
-            });
-            return;
-        }
-        if (request.method === 'PUT' && request.url === `/v1/connections/${encodeURIComponent(token)}`) {
-            const chunks = [];
-            request.on('data', chunk => chunks.push(chunk));
-            request.on('end', () => {
-                connectionLists.push(JSON.parse(Buffer.concat(chunks).toString('utf8')).connections);
-                response.writeHead(204).end();
-            });
-            return;
-        }
-        if (request.method === 'PUT' && request.url.startsWith(`/v1/results/${encodeURIComponent(token)}/`)) {
-            // /v1/results/<token>/<workbook id>/<file>, the stored result of a script named after the script and its key
-            const [workbookId, name] = request.url.split('/').slice(4).map(decodeURIComponent);
-            const key = name.split('.').at(-3);
-            const chunks = [];
-            request.on('data', chunk => chunks.push(chunk));
-            request.on('end', () => {
-                results.push({ workbookId, name, key, bytes: Buffer.concat(chunks) });
-                response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ file: `/work/.dashql/workbooks/${workbookId}/results/${name}` }));
-            });
-            return;
-        }
-        const runs = `/v1/runs/${encodeURIComponent(token)}/`;
-        if (request.method === 'POST' && request.url.startsWith(runs)) {
-            const runId = decodeURIComponent(request.url.slice(runs.length));
-            const chunks = [];
-            request.on('data', chunk => chunks.push(chunk));
-            request.on('end', () => {
-                runEvents.get(runId)?.push(JSON.parse(Buffer.concat(chunks).toString('utf8')));
-                response.writeHead(runEvents.has(runId) ? 204 : 404).end();
-            });
-            return;
-        }
-        if (request.method === 'GET' && request.url.startsWith(copy)) {
-            const file = files.get(request.url.slice(copy.length).split('/').slice(1).map(decodeURIComponent).join('/'));
-            return file == null ? response.writeHead(404).end() : response.writeHead(200).end(file.body);
-        }
-        if (request.url !== `/v1/stream?token=${encodeURIComponent(token)}`) return response.writeHead(401).end();
-        response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' });
-        response.write(`data: ${JSON.stringify(state)}\n\n`);
-        streams.add(response);
-        request.on('close', () => streams.delete(response));
-    });
-    await new Promise(resolve => server.listen(port, '127.0.0.1', resolve));
-    return {
-        port: server.address().port,
-        writes,
-        runEvents,
-        results,
-        connectionLists,
-        push: next => {
-            state = { ...state, ...next, version: state.version + 1 };
-            broadcast();
-        },
-        /// The agent writes a file of the copy
-        agentWrites: (workbookId, path, body) => {
-            files.set(path, { body, mtimeMs: ++clock });
-            announce(workbookId);
-        },
-        /// dashql run asks the tab to run the copy of a workbook
-        askRun: run => {
-            runEvents.set(run.runId, []);
-            for (const stream of streams) stream.write(`event: run\ndata: ${JSON.stringify({ type: 'run', ...run })}\n\n`);
-        },
-        close: () => {
-            for (const stream of streams) stream.destroy();
-            return new Promise(resolve => server.close(resolve));
-        },
-    };
-}
-
-/// The switch to AI shows the line of `dashql connect`, the page waits on its port and secret and follows the session
-/// of the agent in the terminal: the bar shows the harness and its questions, the prompt switches between AI and SQL.
-async function testAppAgentSession(page, navigate) {
+/// The web app has no agents: AI tells the user to switch to the desktop app, the draft stays for SQL
+async function testAppAgentWeb(page, navigate) {
     await navigate('/');
-    // The page tries the port of the line before the server listens
-    await page.context().route(url => url.hostname === '127.0.0.1' && url.port !== new URL(page.url()).port, route => route.continue());
+    await waitForComposerSend(page);
+    const editor = page.locator('[data-testid="composer-prompt"] .cm-content');
+    await editor.click();
+    await page.keyboard.insertText('select 7 as answer');
+    // The completion of the draft would cover the switch
+    await page.keyboard.press('Escape');
     await page.locator('[data-testid="composer-mode"][data-mode="ai"]').click();
-    const line = page.getByTestId('composer-connect');
-    const session = await startSessionServer({ port: Number(await line.getAttribute('data-port')), token: await line.getAttribute('data-secret'), id: 'zero' });
-    try {
-        const steps = [{ label: 'dashql lint scripts/orders.sql', toolUseId: 't1', startedAt: Date.now(), endedAt: null, failed: false }];
-        const turn = { turnId: 1, question: 'how many orders', status: 'dashql lint scripts/orders.sql', waiting: null, interrupted: false, note: null, files: ['scripts/orders.sql'], steps };
-        session.push({ turns: [turn] });
-        await page.getByTestId('composer-connect-status').getByText(/Claude Code works on/).waitFor();
-        assert.equal(await page.getByTestId('composer-send').count(), 0);
-        await page.locator('[data-testid="workbook-agent-state"][data-state="working"]').waitFor();
-        // The title of the browser tab tells it to a user in the terminal next to it
-        await page.waitForFunction(() => document.title.startsWith('\u25CF '));
-        // The status line tells the step, the log stays closed and leaves the feed to the scripts of the agent
-        await page.getByRole('status').getByText('dashql lint scripts/orders.sql').first().waitFor();
-        assert.equal(await page.getByTestId('workbook-bubble').count(), 0);
-        // An approval in the terminal: the bar asks for attention instead of running
-        session.push({ turns: [{ ...turn, waiting: 'Claude needs your permission to use Bash' }] });
-        await page.locator('[data-testid="workbook-agent-state"][data-state="waiting"]').waitFor();
-        await page.getByRole('status').getByText(/Claude Code waits/).first().waitFor();
-        await page.waitForFunction(() => document.title.startsWith('(!) '));
-        session.push({ turns: [turn] });
-        await page.locator('[data-testid="workbook-agent-state"][data-state="working"]').waitFor();
-        // A click on Wobble shows the question in the log
-        await page.getByTestId('workbook-wobble').click();
-        await page.getByTestId('composer-agent-turn').getByText('how many orders').waitFor();
-
-        session.push({ turns: [{ ...turn, status: null, waiting: null, interrupted: false, note: 'There are 42 orders' }] });
-        await page.getByRole('note').getByText('There are 42 orders').waitFor();
-        await page.locator('[data-testid="workbook-agent-state"][data-state="connected"]').waitFor();
-        await page.waitForFunction(() => !document.title.startsWith('\u25CF ') && !document.title.startsWith('(!) '));
-
-        // SQL opens the prompt, the empty workbook greets again although the tab keeps the session
-        session.push({ ended: true });
-        await page.locator('[data-testid="composer-mode"][data-mode="sql"]').click();
-        await page.getByTestId('composer-connect').waitFor({ state: 'detached' });
-        await page.getByTestId('feed-landing-question').waitFor();
-        await page.getByTestId('composer-agent-turn').waitFor({ state: 'detached' });
-    } finally {
-        await session.close();
-    }
-
-    // A workbook with a script, the next session gets a copy of it
-    await sendFromComposer(page, 'select 42 as copied_answer');
-
-    // AI waits on a new port with a new secret, `dashql connect` starts the server there
-    await page.locator('[data-testid="composer-mode"][data-mode="ai"]').click();
-    await page.getByTestId('composer-connect-renew').click();
-    await page.locator('[data-testid="composer-connect-harness"][data-harness="codex"]').click();
-    // The port and secret of the command, its text is checked by the unit tests of the composer
-    const connect = page.getByTestId('composer-connect');
-    const port = Number(await connect.getAttribute('data-port'));
-    const secret = await connect.getAttribute('data-secret');
-    assert.ok(port > 0 && secret, `port ${port}, secret ${secret}`);
-    // An older dashql-cli answers on the port first: the page tells to run the command again
-    const outdated = await startSessionServer({ port, token: secret, protocol: null });
-    try {
-        await page.getByTestId('composer-connect-status').getByText(/older dashql-cli/).waitFor();
-    } finally {
-        await outdated.close();
-    }
-    const connected = await startSessionServer({ port, token: secret, id: 'first' });
-    try {
-        connected.push({ harness: 'codex' });
-        await page.getByTestId('composer-connect-status').getByText(/Codex works on/).waitFor();
-        // The page writes its workbook into the folder of the session: the old copy goes, the workbook file comes last
-        await waitUntil(() => connected.writes.some(write => write.path === 'dashql-workbook.json'));
-        const { writes } = connected;
-        // The catalogs of the connections of the agent follow the files of the workbook
-        const files = writes.filter(write => !write.path.startsWith('connections/'));
-        assert.equal(files[0].method, 'DELETE');
-        assert.equal(files[0].path, '');
-        assert.equal(files[files.length - 1].path, 'dashql-workbook.json');
-        assert.ok(files.some(write => write.path.startsWith('scripts/') && write.body.includes('select 42 as copied_answer')), JSON.stringify(files.map(write => write.path)));
-        assert.equal(new Set(writes.map(write => write.workbookId)).size, 1);
-        await waitUntil(() => writes.some(write => /^connections\/[^/]+\/dashql-catalog-relations\.sql$/.test(write.path)));
-        // A reload follows the same session and leaves the copy to the agent, also its catalogs
-        const written = writes.length;
-        await page.reload();
-        await page.getByTestId('composer-connect-status').getByText(/Codex works on/).waitFor();
-        connected.push({ turns: [] });
-        await page.waitForTimeout(500);
-        assert.equal(writes.length, written, JSON.stringify(writes.slice(written).map(write => write.path)));
-
-        // The agent has the workbook in AI, the editors of the scripts are read-only
-        const script = writes.find(write => write.path.startsWith('scripts/'));
-        await page.getByTestId('composer-connect-status').getByText(/switch to SQL/).waitFor();
-        await page.locator('.cm-content[aria-readonly="true"]').filter({ hasText: 'copied_answer' }).waitFor();
-
-        // SQL takes the workbook back on the same port: the user edits the script, the copy gets the edit
-        await page.locator('[data-testid="composer-mode"][data-mode="sql"]').click();
-        await scriptEditor(page, 'copied_answer').click();
-        await page.keyboard.press('End');
-        await page.keyboard.insertText(', 43 as more');
-        await waitUntil(() => writes.some(write => write.method === 'PUT' && write.path === script.path && write.body.includes('43 as more')));
-
-        // Meanwhile the edits of the agent wait and the tab runs nothing for it
-        connected.agentWrites(script.workbookId, script.path, '/* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "from_agent", "type": "quantitative"}}} */\nselect 7 as from_agent');
-        connected.askRun({ runId: 'r0', workbookId: script.workbookId, label: `.dashql/workbooks/${script.workbookId}`, scripts: [], refresh: false, rows: 3 });
-        await waitUntil(() => connected.runEvents.get('r0')?.some(event => event.type === 'run_finished'));
-        assert.match(connected.runEvents.get('r0').find(event => event.type === 'run_failed')?.error ?? '', /the user took the workbook back/);
-        await page.waitForTimeout(500);
-        assert.equal(await scriptEditor(page, 'from_agent').count(), 0);
-
-        // AI hands the workbook back, the page takes what the agent wrote meanwhile
-        await page.locator('[data-testid="composer-mode"][data-mode="ai"]').click();
-        await scriptEditor(page, 'from_agent').waitFor();
-        assert.equal(await page.getByTestId('diff-accept').count(), 0);
-
-        // dashql run asks the tab to run the workbook: the tab runs it, the feed shows the result, the events go back
-        // dashql vis asks for the charts of the run: the tab renders them as PNG before the run finishes
-        connected.askRun({ runId: 'r1', workbookId: script.workbookId, label: `.dashql/workbooks/${script.workbookId}`, scripts: [], refresh: true, rows: 3, chart: { width: 400, height: 300, scale: 1 } });
-        await waitUntil(() => connected.runEvents.get('r1').some(event => event.type === 'run_finished'));
-        const events = connected.runEvents.get('r1');
-        const done = events.find(event => event.type === 'script_done');
-        assert.ok(done != null, JSON.stringify(events));
-        assert.equal(done.script, script.path.split('/').pop());
-        assert.equal(done.rows, 1);
-        assert.equal(typeof done.table, 'string');
-        // The result has a key, its stored Parquet file went into the results of the workbook in the session before the
-        // event named it there
-        assert.match(done.key ?? '', /^[0-9a-f]{64}$/, JSON.stringify(done));
-        const uploaded = connected.results.find(result => result.key === done.key && result.workbookId === script.workbookId);
-        assert.ok(uploaded != null, JSON.stringify(connected.results.map(result => result.name)));
-        assert.ok(uploaded.name.startsWith(`${done.script.replace(/\.sql$/, '')}.${done.key}.`), uploaded.name);
-        assert.equal(uploaded.bytes.subarray(0, 4).toString('latin1'), 'PAR1');
-        assert.equal(uploaded.bytes.subarray(-4).toString('latin1'), 'PAR1');
-        assert.equal(done.file, `/work/.dashql/workbooks/${script.workbookId}/results/${uploaded.name}`);
-        assert.deepEqual(events[events.length - 1], { ...events[events.length - 1], type: 'run_finished', ok: 1, failed: 0, interrupted: false });
-        const chart = events.find(event => event.type === 'script_chart');
-        assert.ok(chart?.png != null, JSON.stringify(chart));
-        assert.equal(chart.script, done.script);
-        assert.deepEqual([chart.width, chart.height], [400, 300]);
-        assert.equal(Buffer.from(chart.png, 'base64').subarray(1, 4).toString('latin1'), 'PNG');
-        // The chart comes after the script that drew it, before the end of the run
-        assert.ok(events.indexOf(done) < events.indexOf(chart) && events.indexOf(chart) < events.length - 1, JSON.stringify(events.map(event => event.type)));
-        await waitForQuery(page);
-        // The feed shows the result of the run of the agent as one of its own: the card opens its chart, no play needed
-        const card = page.getByTestId('script-feed-item').filter({ has: scriptEditor(page, 'from_agent') });
-        await card.getByRole('tab', { name: 'Visualization', selected: true }).waitFor();
-
-        // The agent may use every connection, the user unticks one
-        await waitUntil(() => connected.connectionLists.length > 0);
-        const every = connected.connectionLists[connected.connectionLists.length - 1];
-        assert.ok(every.length > 0);
-        const picker = page.getByTestId('composer-agent-connections');
-        await picker.getByText(`${every.length} / ${every.length} connections`).waitFor();
-        await picker.click();
-        await page.locator(`[data-connection="${every[0].connectionId}"]`).click();
-        await waitUntil(() => {
-            const last = connected.connectionLists[connected.connectionLists.length - 1];
-            return last.length === every.length - 1 && !last.some(connection => connection.connectionId === every[0].connectionId);
-        });
-        await picker.getByText(`${every.length - 1} / ${every.length} connections`).waitFor();
-
-        // The harness ends the session: the page offers the line again, nothing tells of a lost session
-        connected.push({ ended: true });
-        await page.getByTestId('composer-connect-status').getByText(/Run the command/).waitFor();
-        assert.equal(await page.getByText('Lost the session of').count(), 0);
-    } finally {
-        await connected.close();
-    }
-    // The same line runs the next session on the same port, here with the other harness: the page follows it and copies
-    // the workbook again
-    const next = await startSessionServer({ port, token: secret, id: 'second' });
-    try {
-        await page.getByTestId('composer-connect-status').getByText(/Claude Code works on/).waitFor();
-        await waitUntil(() => next.writes.some(write => write.path === 'dashql-workbook.json'));
-        assert.equal(next.writes[0].method, 'DELETE');
-        assert.ok(next.writes.some(write => write.path.startsWith('scripts/') && write.body.includes('from_agent')), JSON.stringify(next.writes.map(write => write.path)));
-    } finally {
-        await next.close();
-    }
+    const notice = page.getByTestId('composer-agent-desktop');
+    await notice.waitFor();
+    if (!(await notice.textContent()).includes('desktop app')) throw new Error(`The notice tells ${await notice.textContent()}`);
+    if (await page.getByTestId('composer-agent-harness').count() !== 0) throw new Error('The web app offers harnesses');
+    if (await editor.isVisible()) throw new Error('The editor shows in AI');
+    await page.locator('[data-testid="composer-mode"][data-mode="sql"]').click();
+    await notice.waitFor({ state: 'detached' });
+    await waitForComposerSend(page);
+    await page.getByTestId('composer-send').click();
+    await scriptEditor(page, 'select 7 as answer').waitFor();
 }
 
 /// The storage of the workbook, the navbar and the color scheme
@@ -896,7 +602,7 @@ const PAGE_TESTS = [
     { name: 'app_greeter', options: DESKTOP, test: testAppGreeter },
     { name: 'app_wrapped_script', options: DESKTOP, test: testAppWrappedScript },
     { name: 'app_chrome', options: DESKTOP, test: testAppChrome },
-    { name: 'app_agent_session', options: DESKTOP, test: testAppAgentSession },
+    { name: 'app_agent_web', options: DESKTOP, test: testAppAgentWeb },
     { name: 'app_catalog', options: DESKTOP, test: testAppCatalogFollowsStatements },
     { name: 'app_shared_workbook', options: DESKTOP, test: testAppSharedWorkbook },
     { name: 'app_feed_scroll_position', options: DESKTOP, test: testAppFeedScrollPosition },
@@ -922,7 +628,7 @@ const RELEASE_MANIFEST = JSON.stringify({
 });
 
 /// Run the tests of the pages, `concurrency` of them at once.
-/// Every test has a browser context of its own, and the servers of the sessions listen on random ports.
+/// Every test has a browser context of its own.
 /// Returns the failures in the order of the tests, the seconds of every test, and the V8 coverage of the pages if
 /// `collectCoverage` is set.
 export async function runPageTests(browser, origin, { collectCoverage, concurrency = 1, outputs }) {
@@ -966,15 +672,7 @@ async function runPageTest(browser, origin, { name, options, test }, { collectCo
         return route.abort();
     });
     page.on('console', message => {
-        if (message.type() !== 'error') return;
-        // A page in AI waits on the server of a session that `dashql connect` starts later on another port of
-        // this machine, its attempts fail until then. Chrome names the request in the location of the message,
-        // Firefox in its text.
-        const text = message.text();
-        const source = /http:\/\/127\.0\.0\.1:\d+\/v1\/stream\S*/.exec(text)?.[0] ?? message.location().url;
-        const waiting = /^Failed to load resource|CORS request did not succeed/.test(text)
-            && source.startsWith('http://127.0.0.1:') && new URL(source).origin !== origin;
-        if (!waiting) errors.push(text);
+        if (message.type() === 'error') errors.push(message.text());
     });
     page.on('pageerror', error => errors.push(error.stack ?? error.message));
     const profiler = collectCoverage ? await context.newCDPSession(page) : null;

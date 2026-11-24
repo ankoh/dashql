@@ -11,30 +11,28 @@ import { getGlobalLogger, LoggerProvider } from '../../host/logger_provider.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-function agentSession(turns: AgentTurn[] = [], connected = true): AgentSession {
+function agentSession(turns: AgentTurn[] = []): AgentSession {
     return {
-        id: 'demo',
+        workbookId: 'w1',
         harness: 'claude',
-        folder: '/agent',
-        connected,
-        ended: false,
         turns,
         onDismiss: vi.fn(),
         onShowScript: vi.fn(),
+        onStop: vi.fn(),
     };
 }
 
 const working: AgentTurn = {
     questionId: 1,
     question: {
-        question: 'how many orders', status: 'dashql lint scripts/orders.sql', waiting: null, interrupted: false, note: null,
-        steps: [{ label: 'dashql lint scripts/orders.sql', startedAt: 0, endedAt: null, failed: false }],
+        question: 'how many orders', status: 'dashql lint orders', interrupted: false, error: null, note: null,
+        steps: [{ label: 'dashql lint orders', startedAt: 0, endedAt: null, failed: false }],
     },
     scripts: [],
 };
 const answered: AgentTurn = {
     questionId: 1,
-    question: { question: 'how many orders', status: null, waiting: null, interrupted: false, note: 'There are 42 orders', steps: [] },
+    question: { question: 'how many orders', status: null, interrupted: false, error: null, note: 'There are 42 orders', steps: [] },
     scripts: [],
 };
 
@@ -131,38 +129,18 @@ describe('Workbook status bar', () => {
     it('leaves the bubble closed while the agent works, the scripts of the agent below it stay visible', () => {
         render({ session: agentSession() });
         expect(bubble()).toBeNull();
-        expect(agentState()!.dataset.state).toBe('connected');
+        expect(agentState()!.dataset.state).toBe('idle');
         expect(agentState()!.textContent).toBe('Claude Code');
-        expect(agentState()!.title).toBe('Claude Code in /agent');
         render({ session: agentSession([working]) });
         expect(bubble()).toBeNull();
         expect(agentState()!.dataset.state).toBe('working');
         // A click shows the question of the agent in the log
         act(() => wobble().click());
         expect(container.querySelector('[data-testid="composer-agent"]')).not.toBeNull();
-        // The terminal stops the agent, the page only watches
-        expect(container.querySelector('[data-testid="workbook-agent-stop"]')).toBeNull();
+        // The log stops the question that runs
+        expect(container.querySelector('[data-testid="question-stop"]')).not.toBeNull();
         render({ session: agentSession([answered]) });
         expect(bubble()).not.toBeNull();
-    });
-
-    it('tells that the agent waits for the user in the terminal', () => {
-        const waiting: AgentTurn = { ...working, question: { ...working.question, waiting: 'Claude needs your permission to use Bash' } };
-        render({ session: agentSession([waiting]) });
-        expect(agentState()!.dataset.state).toBe('waiting');
-        expect(agentState()!.querySelector('[data-status]')).toBeNull();
-        // Wobble shows a steady dot in the color of attention instead of the pulse of a run
-        expect(busyDot()!.getAttribute('data-state')).toBe('waiting');
-        render({ session: agentSession([working]) });
-        expect(busyDot()?.getAttribute('data-state') ?? null).not.toBe('waiting');
-    });
-
-    it('tells that the page lost the session, and one that ended', () => {
-        render({ variant: WorkbookStatusBarVariant.Standalone, session: agentSession([], false) });
-        expect(container.querySelector<HTMLElement>('[data-testid="workbook-status-bar"]')!.dataset.variant).toBe('standalone');
-        expect(agentState()!.dataset.state).toBe('lost');
-        render({ variant: WorkbookStatusBarVariant.Standalone, session: { ...agentSession([], false), ended: true } });
-        expect(agentState()!.dataset.state).toBe('ended');
     });
 
     it('shows and hides the prompt below it on a click on the bar or its chevron', () => {

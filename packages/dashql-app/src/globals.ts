@@ -2,8 +2,6 @@
 export const DASHQL_BUILD_MODE: string = process.env.DASHQL_BUILD_MODE!;
 export const DASHQL_VERSION: string = process.env.DASHQL_VERSION!;
 export const DASHQL_GIT_COMMIT: string = process.env.DASHQL_GIT_COMMIT!;
-/// The version of @akohn/dashql-cli that the line of dashql connect runs, `latest` on the dev server
-export const DASHQL_CLI_VERSION: string = process.env.DASHQL_CLI_VERSION!;
 export const HYPERDB_WASM_VERSION: string = process.env.HYPERDB_WASM_VERSION!;
 
 /// The URL of the stable release manifest

@@ -68,12 +68,6 @@
     animation: dot_pulse 1.2s ease-in-out infinite;
 }
 
-/* The agent waits for the user in the terminal: a steady dot in the color of attention */
-.busy_dot[data-state="waiting"] {
-    background-color: var(--color_attention_fg);
-    animation: none;
-}
-
 /* What Wobble tells */
 .status {
     flex: 1 1 auto;
@@ -106,19 +100,6 @@
 /* The dots of the statuses, in the colors of the indicators of the scripts and of Execute All */
 .indicator {
     align-self: center;
-}
-
-/* The agent waits for the user in the terminal */
-.agent[data-state="waiting"] {
-    color: var(--color_attention_fg);
-}
-
-/* A steady dot, the dot of a working agent pulses */
-.waiting_dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background-color: var(--color_attention_fg);
 }
 
 @keyframes dot_pulse {

@@ -3,7 +3,7 @@ import * as styles from './agent_prompt_panel.module.css';
 
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
-import { ChevronRightIcon, SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { ChevronRightIcon, SquareFillIcon, SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
 import {
     agentActivity,
     formatAgentDuration,
@@ -15,6 +15,7 @@ import {
 
 const SparklesFillIcon = SymbolIcon('sparkles_fill_16');
 const CrossIcon = SymbolIcon('x_16');
+
 
 /// The final message of the agent as plain text, without the markers of the markdown that harnesses like to write
 export function plainAgentNote(note: string): string {
@@ -71,9 +72,8 @@ const AgentSteps: React.FC<{ steps: AgentStep[] }> = ({ steps }) => {
 const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded: boolean; onToggle: () => void }> = ({ turn, session, expanded, onToggle }) => {
     const { questionId, question } = turn;
     const working = question.status != null;
-    const waiting = working ? question.waiting : null;
-    const indicator = waiting != null ? IndicatorStatus.Blocked
-        : working ? IndicatorStatus.Running
+    const indicator = working ? IndicatorStatus.Running
+        : question.error != null ? IndicatorStatus.Failed
             : question.interrupted ? IndicatorStatus.Skip : IndicatorStatus.Succeeded;
     const note = React.useMemo(() => (question.note != null ? plainAgentNote(question.note) : null), [question.note]);
     const questionTextId = React.useId();
@@ -81,7 +81,7 @@ const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded
     return (
         <li
             className={styles.turn}
-            data-state={waiting != null ? 'waiting' : working ? 'working' : question.interrupted ? 'interrupted' : 'done'}
+            data-state={working ? 'working' : question.error != null ? 'failed' : question.interrupted ? 'interrupted' : 'done'}
             data-expanded={expanded ? '' : undefined}
             data-testid="composer-agent-turn"
         >
@@ -96,7 +96,7 @@ const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded
                 >
                     <ChevronRightIcon size={12} className={styles.turn_chevron} />
                     <span className={styles.turn_indicator}>
-                        <StatusIndicator status={indicator} width="12px" height="12px" fill={waiting != null ? 'var(--color_attention_fg)' : undefined} />
+                        <StatusIndicator status={indicator} width="12px" height="12px" />
                     </span>
                 </button>
                 {/* The question is text that users can select and copy, not a part of the button.
@@ -122,8 +122,17 @@ const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded
                         {script.scriptName}
                     </button>
                 ))}
-                {/* The terminal stops the agent, the page only watches */}
-                {!working && (
+                {working ? (
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
+                        aria-label="Stop the agent"
+                        data-testid="question-stop"
+                        onClick={session.onStop}
+                    >
+                        <SquareFillIcon size={12} />
+                    </IconButton>
+                ) : (
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
@@ -140,13 +149,9 @@ const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded
                     <AgentSteps steps={steps} />
                 </div>
             )}
-            {expanded && waiting != null && (
-                <div className={styles.turn_waiting} role="status" data-testid="composer-agent-waiting">
-                    Waits for you in the terminal: {waiting}
-                </div>
-            )}
             {expanded && !working && note != null && <div className={styles.turn_note} role="note">{note}</div>}
-            {expanded && question.interrupted && <div className={styles.turn_note} role="note">Stopped without an answer</div>}
+            {expanded && question.error != null && <div className={styles.turn_error} role="alert" data-testid="composer-agent-error">{question.error}</div>}
+            {expanded && question.interrupted && question.error == null && <div className={styles.turn_note} role="note">Stopped without an answer</div>}
         </li>
     );
 };
@@ -156,8 +161,8 @@ function isTurnExpandedByDefault(turn: AgentTurn, index: number, turns: readonly
     return index === turns.length - 1 || turn.question.status != null;
 }
 
-/// The log of the agent in the bubble of Wobble: the harness, the folder it works in and the questions of the session
-/// with their status lines, final messages, errors and the scripts the agent wrote.
+/// The log of the agent in the bubble of Wobble: the harness and the questions on the workbook with their steps, final
+/// messages, errors and the scripts the agent wrote.
 /// The questions scroll within a fixed height, each one expands and collapses.
 /// The scripts only show the edits of the agent.
 export const AgentPromptPanel: React.FC<{ session: AgentSession; onClose?: () => void }> = ({ session, onClose }) => {
@@ -187,14 +192,13 @@ export const AgentPromptPanel: React.FC<{ session: AgentSession; onClose?: () =>
         const list = turnsRef.current;
         if (list != null) atBottomRef.current = list.scrollHeight - list.scrollTop - list.clientHeight < 8;
     }, []);
-    const detail = session.ended ? 'ended the session' : !session.connected ? 'lost the session'
-        : activity === 'waiting' ? 'waits for you in the terminal' : activity !== 'idle' ? 'working' : `in ${session.folder}`;
+    const detail = activity !== 'idle' ? 'working' : 'on this workbook';
     return (
         <div className={styles.panel} role="region" aria-label="Agent" data-testid="composer-agent">
             <div className={styles.header}>
                 <SparklesFillIcon size={12} className={styles.header_icon} />
                 <span className={styles.header_title}>{harnessLabel(session.harness)}</span>
-                <span className={styles.header_dot} data-connected={session.connected ? '' : undefined} aria-hidden="true" />
+                <span className={styles.header_dot} data-connected="" aria-hidden="true" />
                 <span className={styles.header_detail} data-testid="composer-agent-detail">{detail}</span>
                 {onClose != null && (
                     <IconButton

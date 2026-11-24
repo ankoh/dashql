@@ -10,7 +10,7 @@ import { DashQLProcessorUpdateOut } from '../editor/completion/dashql_completion
 import { isCloudPreview, type ModifyWorkbookScripts, type ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { useSelectedScriptRef } from './script_selection.js';
-import { useAgentHasControl } from '../../agent/agent_session_provider.js';
+import { useAgentHasControl } from '../../agent/agent_provider.js';
 import { AppConfig, useAppConfig } from '../../config/app_config.js';
 import { useLogger } from '../../host/logger_provider.js';
 import { useDispatch, useOptionalRuntime, useScript, useWorkbook, useWorkbookDerived } from '@akohn/dashql-react/hooks';
@@ -67,7 +67,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     const scripts = dependencies.useWorkbook(props.workbookId);
     const modifyScripts = useDispatch({ workbook: props.workbookId });
     const runtime = useOptionalRuntime();
-    const agentHasControl = useAgentHasControl();
+    const agentHasControl = useAgentHasControl(props.workbookId);
     const readOnly = (scripts != null && isCloudPreview(scripts)) || agentHasControl;
     const extraExtensions = React.useMemo(() => [
         ...(props.lineWrapping ? LINE_WRAPPING_EXTENSIONS : []),

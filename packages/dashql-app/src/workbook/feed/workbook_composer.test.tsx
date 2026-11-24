@@ -14,8 +14,7 @@ import { DashQLCompletionStartEffect, DashQLProcessorPlugin } from '../editor/da
 import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 
 type Attention = NonNullable<React.ContextType<typeof WorkbookConnectionAttentionContext>>;
-import { ComposerMode, type ConnectHarness, DASHQL_CLI_COMMAND } from '../../agent/agent_connect.js';
-import type { AgentConnect } from '../../agent/agent_session_provider.js';
+import { ComposerMode, type AgentControls, type AgentHarness } from '../../agent/agent_provider.js';
 import type { AgentActivity } from '../../agent/agent_session.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -362,120 +361,106 @@ describe('Workbook composer', () => {
     });
 
     describe('AI', () => {
-        const TARGET = { endpoint: 'http://127.0.0.1:51234', token: 'k3x9' };
-        const RENEWED = { endpoint: 'http://127.0.0.1:60001', token: 'z7q2' };
         type Session = React.ComponentProps<typeof WorkbookComposer>['session'];
+        let onAsk: Mock;
+        beforeEach(() => {
+            onAsk = vi.fn();
+        });
 
-        /// The composer with the connect state of a provider
-        const Connected: React.FC<{ initial: ComposerMode; session?: Session; pickers?: boolean; outdated?: AgentConnect['outdated'] }> = ({ initial, session, pickers, outdated }) => {
+        /// The composer with the agent of a provider, of the desktop app or of the web app
+        const WithAgent: React.FC<{ initial: ComposerMode; available: boolean; session?: Session; pickers?: boolean }> = ({ initial, available, session, pickers }) => {
             const [mode, setMode] = React.useState(initial);
-            const [harness, setHarness] = React.useState<ConnectHarness>('claude');
-            const [target, setTarget] = React.useState(TARGET);
-            const connect: AgentConnect = {
-                mode, setMode, harness, setHarness, target, renewTarget: () => setTarget(RENEWED), outdated: outdated ?? null,
-                isConnectionAllowed: () => true, toggleConnection: () => { },
+            const [harness, setHarness] = React.useState<AgentHarness>('claude');
+            const agent: AgentControls = {
+                available, mode, setMode, harness, setHarness,
+                harnesses: [
+                    { id: 'claude', label: 'Claude Code', available: true },
+                    { id: 'codex', label: 'Codex', available: true },
+                    { id: 'opencode', label: 'opencode', available: false },
+                ],
+                isConnectionAllowed: () => true, toggleConnection: () => { }, ask: vi.fn(), stop: vi.fn(),
             };
             return (
-                <WorkbookComposer instance={dql} catalog={catalog} variant={WorkbookComposerVariant.Docked} session={session} connect={connect}
+                <WorkbookComposer instance={dql} catalog={catalog} variant={WorkbookComposerVariant.Docked} session={session} agent={agent}
                     connectionPicker={pickers ? <span data-testid="sql-picker" /> : undefined}
                     agentConnectionsPicker={pickers ? <span data-testid="agent-picker" /> : undefined}
                     snippetConnector={ConnectorType.HYPER} snippetRegistry={buildSnippetRegistry(dql, {})}
-                    keywordCase={core.buffers.formatting.KeywordCase.LOWER} onSend={onSend} setView={v => { view = v; }} />
+                    keywordCase={core.buffers.formatting.KeywordCase.LOWER} onSend={onSend} onAsk={onAsk} setView={v => { view = v; }} />
             );
         };
-        async function renderConnected(initial: ComposerMode, session?: Session, pickers = false, outdated: AgentConnect['outdated'] = null) {
-            act(() => root.render(<LoggerProvider><Connected initial={initial} session={session} pickers={pickers} outdated={outdated} /></LoggerProvider>));
+        async function renderAgent(initial: ComposerMode, available = true, session?: Session, pickers = false) {
+            act(() => root.render(<LoggerProvider><WithAgent initial={initial} available={available} session={session} pickers={pickers} /></LoggerProvider>));
             await vi.waitFor(() => expect(view).not.toBeNull());
             return view!;
         }
         const mode = (name: string) => container.querySelector<HTMLButtonElement>(`[data-testid="composer-mode"][data-mode="${name}"]`)!;
-        const commandField = () => container.querySelector<HTMLTextAreaElement>('[data-testid="composer-connect-command"]');
-        // The field shows an option on every indented line continued with a backslash, the command is the lines joined
-        const command = () => commandField()?.value.split(' \\\n').map(line => line.trim()).join(' ') ?? null;
+        const harnessButton = (name: string) => container.querySelector<HTMLButtonElement>(`[data-testid="composer-agent-harness"][data-harness="${name}"]`);
 
-        it('disables Run and the snippets and shows the line that launches a harness', async () => {
-            const editor = await renderConnected(ComposerMode.Sql);
-            act(() => type(editor, 'select 1'));
-            expect(command()).toBeNull();
+        it('asks the agent in the desktop app and keeps the snippets for SQL', async () => {
+            const editor = await renderAgent(ComposerMode.Sql);
             act(() => mode('ai').click());
             expect(container.querySelector(`.${styles.composer}`)!.getAttribute('data-mode')).toBe('ai');
-            expect(editor.state.readOnly).toBe(true);
-            expect(editor.contentDOM.getAttribute('contenteditable')).toBe('false');
-            // The line takes the place of the editor
-            expect(editor.dom.checkVisibility()).toBe(false);
-            // The switch of the harness takes the place of the snippets and Run
-            expect(container.querySelector('[data-testid="composer-send"]')).toBeNull();
-            expect(container.querySelector('[data-testid="composer-snippets"]')).toBeNull();
-            expect(container.querySelector('[data-testid="composer-connect-harness"]')!.closest(`.${styles.composer_trailing_actions}`)).not.toBeNull();
-            expect(command()).toBe(`${DASHQL_CLI_COMMAND} connect --launch claude --port 51234 --secret k3x9`);
-            const lines = commandField()!.value.split('\n');
-            expect(lines.length).toBeGreaterThan(1);
-            expect(lines.slice(0, -1).every(line => line.endsWith(' \\'))).toBe(true);
-            expect(lines.slice(1).every(line => line.startsWith('  '))).toBe(true);
-            expect(lines.map(line => line.trim().replace(/ \\$/, '')).join(' ')).toBe(command());
-            expect(commandField()!.rows).toBe(lines.length);
-            // The command is only copied, a new port and copy stay usable
-            expect(commandField()!.disabled).toBe(true);
-            expect(container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-renew"]')!.disabled).toBe(false);
-            expect(container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-copy"]')!.disabled).toBe(false);
-            expect(container.querySelector('[data-testid="composer-connect-status"]')!.textContent).toContain('Run the command');
-            // Enter sends nothing, the draft stays for SQL
-            act(() => press(editor, 'Enter'));
-            expect(onSend).not.toHaveBeenCalled();
-            act(() => mode('sql').click());
             expect(editor.state.readOnly).toBe(false);
-            expect(editor.state.doc.toString()).toBe('select 1');
             expect(editor.dom.checkVisibility()).toBe(true);
-            expect(sendButton().disabled).toBe(false);
-            expect(command()).toBeNull();
-            // The switch of the harness goes with AI
-            expect(container.querySelector('[data-testid="composer-connect-harness"]')).toBeNull();
-        });
-
-        it('switches the line between the harnesses, copies it and renews the port', async () => {
-            const writeText = vi.fn(() => Promise.resolve());
-            Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
-            await renderConnected(ComposerMode.Ai);
-            act(() => container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-harness"][data-harness="codex"]')!.click());
-            expect(command()).toBe(`${DASHQL_CLI_COMMAND} connect --launch codex --port 51234 --secret k3x9`);
-            await act(async () => container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-copy"]')!.click());
-            expect(writeText).toHaveBeenCalledWith(`${DASHQL_CLI_COMMAND} connect --launch codex --port 51234 --secret k3x9`);
-            act(() => container.querySelector<HTMLButtonElement>('[data-testid="composer-connect-renew"]')!.click());
-            expect(command()).toBe(`${DASHQL_CLI_COMMAND} connect --launch codex --port 60001 --secret z7q2`);
-        });
-
-        it('tells which side to update when the session speaks another protocol', async () => {
-            const status = () => container.querySelector('[data-testid="composer-connect-status"]')!.textContent;
-            await renderConnected(ComposerMode.Ai, undefined, false, 'server');
-            expect(status()).toContain('older dashql-cli');
-            await renderConnected(ComposerMode.Ai, undefined, false, 'client');
-            expect(status()).toContain('reload the page');
-        });
-
-        it('tells the harness of a connected session and keeps the SQL prompt open with it', async () => {
-            const session = { id: 's1', harness: 'codex', folder: '/w', connected: true, ended: false, turns: [], onDismiss: vi.fn(), onShowScript: vi.fn() };
-            const editor = await renderConnected(ComposerMode.Ai, session);
-            expect(container.querySelector('[data-testid="composer-connect-status"]')!.textContent).toContain('Codex');
-            act(() => mode('sql').click());
-            expect(editor.state.readOnly).toBe(false);
-            act(() => type(editor, 'select 2'));
+            expect(container.querySelector('[data-testid="composer-snippets"]')).toBeNull();
+            expect(sendButton().getAttribute('aria-label')).toBe('Ask the agent');
+            act(() => type(editor, 'how many orders are there?'));
             act(() => press(editor, 'Enter'));
-            expect(onSend).toHaveBeenCalledWith('select 2');
+            expect(onAsk).toHaveBeenCalledWith('how many orders are there?');
+            expect(onSend).not.toHaveBeenCalled();
+            expect(editor.state.doc.toString()).toBe('');
+            act(() => mode('sql').click());
+            expect(container.querySelector('[data-testid="composer-agent-harness"]')).toBeNull();
+            expect(container.querySelector('[data-testid="composer-snippets"]')).not.toBeNull();
+        });
+
+        it('switches the harness and leaves out the ones that the machine lacks', async () => {
+            await renderAgent(ComposerMode.Ai);
+            expect(harnessButton('claude')!.getAttribute('aria-current')).toBe('true');
+            expect(harnessButton('opencode')!.disabled).toBe(true);
+            act(() => harnessButton('codex')!.click());
+            expect(harnessButton('codex')!.closest(`.${styles.composer_trailing_actions}`)).not.toBeNull();
+        });
+
+        it('stops the agent instead of asking while it works', async () => {
+            const onStop = vi.fn();
+            const session: Session = {
+                workbookId: 'w1', harness: 'claude', onDismiss: vi.fn(), onShowScript: vi.fn(), onStop,
+                turns: [{ questionId: 1, question: { question: 'q', status: 'working', interrupted: false, error: null, note: null, steps: [] }, scripts: [] }],
+            };
+            const editor = await renderAgent(ComposerMode.Ai, true, session);
+            act(() => type(editor, 'next question'));
+            act(() => press(editor, 'Enter'));
+            expect(onAsk).not.toHaveBeenCalled();
+            act(() => container.querySelector<HTMLButtonElement>('[data-testid="composer-stop"]')!.click());
+            expect(onStop).toHaveBeenCalled();
+        });
+
+        it('tells the web app to switch to the desktop app and keeps the SQL draft', async () => {
+            const editor = await renderAgent(ComposerMode.Sql, false);
+            act(() => type(editor, 'select 1'));
+            act(() => mode('ai').click());
+            expect(container.querySelector('[data-testid="composer-agent-desktop"]')!.textContent).toContain('desktop app');
+            expect(editor.dom.checkVisibility()).toBe(false);
+            expect(container.querySelector('[data-testid="composer-agent-harness"]')).toBeNull();
+            expect(container.querySelector('[data-testid="composer-send"]')).toBeNull();
+            act(() => mode('sql').click());
+            expect(editor.state.doc.toString()).toBe('select 1');
+            expect(container.querySelector('[data-testid="composer-agent-desktop"]')).toBeNull();
         });
 
         it('shows the connections of the agent in place of the connection picker in AI', async () => {
-            await renderConnected(ComposerMode.Ai, undefined, true);
+            await renderAgent(ComposerMode.Ai, true, undefined, true);
             // The connections of the agent stand left of the switch of the harness
             const picker = container.querySelector('[data-testid="agent-picker"]')!;
-            const harness = container.querySelector('[data-testid="composer-connect-harness"]')!;
-            expect(picker.compareDocumentPosition(harness) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+            expect(picker.compareDocumentPosition(harnessButton('claude')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
             expect(container.querySelector('[data-testid="sql-picker"]')).toBeNull();
             act(() => mode('sql').click());
             expect(container.querySelector('[data-testid="agent-picker"]')).toBeNull();
             expect(container.querySelector('[data-testid="sql-picker"]')).not.toBeNull();
         });
 
-        it('has no switch without the connect state', async () => {
+        it('has no switch without the agent', async () => {
             await render();
             expect(container.querySelector('[data-testid="composer-mode"]')).toBeNull();
         });

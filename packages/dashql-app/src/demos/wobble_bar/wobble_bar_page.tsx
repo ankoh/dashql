@@ -16,17 +16,15 @@ import * as styles from './wobble_bar_page.module.css';
 const SURFACES = ['light', 'dark'] as const;
 const WORKBOOK_ID = 'demo';
 
-/// The session of Claude Code in the terminal as the feed hands it to the bar
-function fakeSession(turns: AgentTurn[], connected = true): AgentSession {
+/// The conversation of Claude Code as the prompt hands it to the bar
+function fakeSession(turns: AgentTurn[]): AgentSession {
     return {
-        id: 'demo',
+        workbookId: WORKBOOK_ID,
         harness: 'claude',
-        folder: '~/data/sales',
-        connected,
-        ended: false,
         turns,
         onDismiss: () => { },
         onShowScript: () => { },
+        onStop: () => { },
     };
 }
 
@@ -34,27 +32,27 @@ const SCRIPTS = [{ scriptKey: 2, scriptName: '2_region_growth' }];
 /// The time of the page, the steps started before it
 const NOW = Date.now();
 const STEPS = [
-    { label: 'Read scripts/2_region_growth.sql', startedAt: NOW - 14_000, endedAt: NOW - 13_800, failed: false },
-    { label: 'Edit scripts/2_region_growth.sql', startedAt: NOW - 9_000, endedAt: NOW - 8_700, failed: false },
-    { label: 'dashql lint scripts/2_region_growth.sql', startedAt: NOW - 8_000, endedAt: NOW - 7_400, failed: false },
-    { label: 'dashql run sales 2_region_growth.sql', startedAt: NOW - 6_000, endedAt: null, failed: false },
+    { label: 'dashql scripts', startedAt: NOW - 14_000, endedAt: NOW - 13_800, failed: false },
+    { label: 'Write input/2_region_growth.sql', startedAt: NOW - 9_000, endedAt: NOW - 8_700, failed: false },
+    { label: 'dashql edit 2_region_growth --file input/2_region_growth.sql', startedAt: NOW - 8_000, endedAt: NOW - 7_400, failed: false },
+    { label: 'dashql run 2_region_growth', startedAt: NOW - 6_000, endedAt: null, failed: false },
 ];
 const WORKING: AgentTurn = {
     questionId: 1,
-    question: { question: 'Which regions grew the most last quarter?', status: 'dashql run sales 2_region_growth.sql', waiting: null, interrupted: false, note: null, steps: STEPS },
+    question: { question: 'Which regions grew the most last quarter?', status: 'dashql run 2_region_growth', interrupted: false, error: null, note: null, steps: STEPS },
     scripts: SCRIPTS,
 };
-const WAITING: AgentTurn = {
+const FAILED: AgentTurn = {
     ...WORKING,
-    question: { ...WORKING.question, waiting: 'Claude needs your permission to use Bash' },
+    question: { ...WORKING.question, status: null, error: 'The harness exited with code 1: Invalid API key, run /login', steps: STEPS.map(step => ({ ...step, endedAt: step.endedAt ?? NOW })) },
 };
 const ANSWERED: AgentTurn = {
     questionId: 1,
     question: {
         question: 'Which regions grew the most last quarter?',
         status: null,
-        waiting: null,
         interrupted: false,
+        error: null,
         note: 'EMEA grew the most, 18% over the previous quarter. The script 2_region_growth compares the quarters.',
         steps: STEPS.map(step => ({ ...step, endedAt: step.endedAt ?? NOW })),
     },
@@ -64,11 +62,11 @@ const LONG_STATUS: AgentTurn = {
     questionId: 1,
     question: {
         question: 'Compare the revenue of every region and product over the last eight quarters',
-        status: 'Edit scripts/4_revenue_by_region_and_product_over_the_last_eight_quarters.sql',
-        waiting: null,
+        status: 'dashql edit 4_revenue_by_region_and_product_over_the_last_eight_quarters --file input/4_revenue.sql',
         interrupted: false,
+        error: null,
         note: null,
-        steps: [{ label: 'Edit scripts/4_revenue_by_region_and_product_over_the_last_eight_quarters.sql', startedAt: NOW - 2_000, endedAt: null, failed: false }],
+        steps: [{ label: 'dashql edit 4_revenue_by_region_and_product_over_the_last_eight_quarters --file input/4_revenue.sql', startedAt: NOW - 2_000, endedAt: null, failed: false }],
     },
     scripts: [],
 };
@@ -133,7 +131,7 @@ interface Situation {
     id: string;
     title: string;
     description: string;
-    /// The session of an agent in the terminal that works on the workbook
+    /// The conversation of the agent on the workbook
     session: AgentSession | null;
     /// What runs and what needs the user, besides the agent
     live?: WorkbookStatus[];
@@ -201,20 +199,6 @@ const SITUATIONS: Situation[] = [
         log: [...LOG, line('l6', WorkbookStatusSource.Cloud, T.Success, 'Published the workbook', null, 1)],
     },
     {
-        id: 'session',
-        title: 'An agent in the terminal',
-        description: 'Claude Code works on the workbook in its folder, the page watches. The prompt is closed.',
-        session: fakeSession([]),
-        log: LOG,
-    },
-    {
-        id: 'lost',
-        title: 'The session is lost',
-        description: 'The page no longer reaches the session, e.g. after the harness quit.',
-        session: fakeSession([], false),
-        log: LOG,
-    },
-    {
         id: 'working',
         title: 'The agent works',
         description: 'The agent leads what runs, a click on Wobble shows its question in the log.',
@@ -223,12 +207,11 @@ const SITUATIONS: Situation[] = [
         log: LOG,
     },
     {
-        id: 'waiting',
-        title: 'The agent waits for you',
-        description: 'The agent asks for an approval in the terminal, the bar asks for attention instead of running.',
-        session: fakeSession([WAITING]),
-        live: [line('w', WorkbookStatusSource.Agent, T.Attention, 'Claude Code waits for you in the terminal', 'Claude needs your permission to use Bash')],
-        log: LOG,
+        id: 'failed',
+        title: 'The agent failed',
+        description: 'The harness exited with an error, the log tells why.',
+        session: fakeSession([FAILED]),
+        log: [...LOG, line('l6', WorkbookStatusSource.Agent, T.Failed, 'The agent failed: Which regions grew the most last quarter?', 'The harness exited with code 1: Invalid API key, run /login')],
     },
     {
         id: 'answered',
@@ -306,28 +289,24 @@ function DemoPrompt(props: { situation: Situation }) {
     return (
         <WorkbookStatusContext.Provider value={store}>
             <div className={composerStyles.composer} data-variant={situation.landing ? 'hero' : 'docked'}
-                data-agent={activity === 'idle' ? undefined : activity === 'waiting' ? 'waiting' : 'working'}>
+                data-agent={activity === 'idle' ? undefined : 'working'}>
                 <div className={composerStyles.composer_bar}>
                     <WorkbookStatusBar workbookId={situationWorkbookId(situation)} variant={WorkbookStatusBarVariant.Prompt}
                         session={session} wobble={!situation.landing} gaze={{ pointer: true }} />
                 </div>
-                {session != null ? (
-                    <div className={composerStyles.composer_session}>Claude Code works on this workbook in the terminal</div>
-                ) : (
-                    <div className={composerStyles.composer_prompt}>
-                        <div className={`${composerStyles.composer_editor} ${styles.editor}`}>
-                            <span className={styles.editor_placeholder}>Write a query, press Enter to run it and Shift+Enter for a new line</span>
-                        </div>
-                        <div className={composerStyles.composer_action_bar}>
-                            <div className={composerStyles.composer_trailing_actions}>
-                                <span className={styles.connection}><span className={styles.connection_dot} />Hyper</span>
-                                <IconButton size={ButtonSize.Small} variant={ButtonVariant.Default} aria-label="Send" tooltipDirection="n">
-                                    <PaperAirplaneIcon />
-                                </IconButton>
-                            </div>
+                <div className={composerStyles.composer_prompt}>
+                    <div className={`${composerStyles.composer_editor} ${styles.editor}`}>
+                        <span className={styles.editor_placeholder}>{session != null ? 'Ask the agent about this workbook, press Enter to send it' : 'Write a query, press Enter to run it and Shift+Enter for a new line'}</span>
+                    </div>
+                    <div className={composerStyles.composer_action_bar}>
+                        <div className={composerStyles.composer_trailing_actions}>
+                            <span className={styles.connection}><span className={styles.connection_dot} />Hyper</span>
+                            <IconButton size={ButtonSize.Small} variant={ButtonVariant.Default} aria-label="Send" tooltipDirection="n">
+                                <PaperAirplaneIcon />
+                            </IconButton>
                         </div>
                     </div>
-                )}
+                </div>
             </div>
         </WorkbookStatusContext.Provider>
     );
