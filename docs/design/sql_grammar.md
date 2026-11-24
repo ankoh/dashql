@@ -72,13 +72,15 @@ When a user is typing an incomplete qualified name like `schema.table.`, the par
 DashQL splits the dot into two tokens in the scanner:
 
 - **`DOT`** — a dot followed by a non-whitespace character (the common case: `a.b`)
-- **`DOT_TRAILING`** — a dot followed by whitespace and no following identifier, unreserved keyword, or star
+- **`DOT_TRAILING`** — a dot followed by whitespace and no following identifier, unreserved keyword, or star, or a
+  dot followed right away by `)`, `]`, `,` or `;`
 
 The pattern `\.{space}` matches a possible trailing dot in the scanner; the space is not consumed
 (the location is trimmed to length 1). The lookahead filter keeps a normal dot when a name, a keyword that is no
 reserved one, or a star follows, so `schema. table` and `table. *` remain valid SQL. A reserved keyword after the
 whitespace ends the name, unlike in PostgreSQL: `select t. from t` is the trailing dot of `t` and a FROM clause, not
-the column `t.from`.
+the column `t.from`. A closing bracket or a separator ends the name without whitespace too, `sum(t.)` while an editor
+closes the parenthesis; an operator keeps the normal dot, it can follow the schema in `OPERATOR(pg_catalog.+)`.
 A helper rule `ext_dot_trailing` accepts either `DOT_TRAILING` or `DOT EOF` so both `a. ` and `a.<eof>` are covered.
 
 The grammar then accepts `ext_dot_trailing` as a `sql_indirection_el` (and in `sql_attrs`), producing an `OBJECT_EXT_TRAILING_DOT` node and the parse error "name has a trailing dot".

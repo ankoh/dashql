@@ -909,3 +909,412 @@ completion-snapshots:
               prefer-qualified: 0
               detail: "text · t"
       text: "."
+
+  - name: dot_in_call_before_paren
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select sum(t.) from t
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "t."}
+        - {id: 1, type: function, name: sum, text: "sum(t.)"}
+    cursor:
+      search:
+        text: 't.)'
+        index: 2
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: a
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "t."
+          objects:
+            - type: column
+              id: "256.65536.1:0.0"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.a
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+        - value: b
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "t."
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.b
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+        - value: name
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "t."
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.name
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "text · t"
+      text: "."
+
+  - name: dot_in_parens_before_paren
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select (t.) from t
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "t."}
+    cursor:
+      search:
+        text: 't.)'
+        index: 2
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: a
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "t."
+          objects:
+            - type: column
+              id: "256.65536.1:0.0"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.a
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+        - value: b
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "t."
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.b
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+        - value: name
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "t."
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.name
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "text · t"
+      text: "."
+
+  - name: dot_before_comma
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select t., b from t
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "t."}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+    cursor:
+      search:
+        text: 't.,'
+        index: 2
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: a
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "t."
+          objects:
+            - type: column
+              id: "256.65536.1:0.0"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.a
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+        - value: b
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "t."
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.b
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+        - value: name
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "t."
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.name
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "text · t"
+      text: "."
+
+  - name: dot_in_exists_before_paren
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select * from t where exists (select * from u where u.a = t.)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+        - {id: 1, type: colref/unresolved, text: "t."}
+    cursor:
+      search:
+        text: 't.)'
+        index: 2
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: a
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "t."
+          objects:
+            - type: column
+              id: "256.65536.1:0.0"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.a
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+        - value: b
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "t."
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.b
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+        - value: name
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "t."
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.name
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "text · t"
+      text: "."
+
+  - name: dot_name_in_call_before_paren
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select sum(t.a) from t, u
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 1, type: function, name: sum, text: "sum(t.a)"}
+    cursor:
+      search:
+        text: 't.a)'
+        index: 3
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: a
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+          location: "a"
+          location-qualified: "t.a"
+          objects:
+            - type: column
+              id: "256.65536.1:0.0"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+              qualified: t.a
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+        - value: name
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "a"
+          location-qualified: "t.a"
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.name
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "text · t"
+        - value: b
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "a"
+          location-qualified: "t.a"
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.b
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+      text: "a"
+
+  - name: dot_prefix_in_call_before_paren
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select sum(t.na) from t
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "t.na"}
+        - {id: 1, type: function, name: sum, text: "sum(t.na)"}
+    cursor:
+      search:
+        text: 't.na)'
+        index: 4
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: name
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "na"
+          location-qualified: "t.na"
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.name
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "text · t"
+        - value: a
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "na"
+          location-qualified: "t.na"
+          objects:
+            - type: column
+              id: "256.65536.1:0.0"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.a
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+        - value: b
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "na"
+          location-qualified: "t.na"
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.b
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+      text: "na"

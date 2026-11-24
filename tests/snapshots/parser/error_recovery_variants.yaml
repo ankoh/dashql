@@ -1714,7 +1714,7 @@ parser-snapshots:
       statements:
         - type: MERGE
           ast-begin: 0
-          ast-size: 23
+          ast-size: 28
           description:
             text: "merge into..lues (u.);"
             description-begin: 0
@@ -1793,9 +1793,25 @@ parser-snapshots:
                           - key: SQL_MERGE_ACTION_KIND
                             type: ENUM_SQL_MERGE_ACTION
                             value: INSERT
+                          - key: SQL_MERGE_ACTION_VALUES
+                            type: ARRAY
+                            text: "(u.)"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "u."
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "u."
+                                    children:
+                                      - type: NAME
+                                        text: "u"
+                                      - type: OBJECT_EXT_TRAILING_DOT
+                                        text: "."
+                                        children: []
         - type: INSERT
-          ast-begin: 23
-          ast-size: 4
+          ast-begin: 28
+          ast-size: 11
           description:
             text: "insert int..lues (u.);"
             description-begin: 0
@@ -1804,6 +1820,29 @@ parser-snapshots:
             type: OBJECT_SQL_INSERT
             text: "insert int..alues (u.)"
             children:
+              - key: SQL_INSERT_SOURCE
+                type: OBJECT_SQL_SELECT
+                text: "values (u.)"
+                children:
+                  - key: SQL_SELECT_VALUES
+                    type: ARRAY
+                    text: "values (u.)"
+                    children:
+                      - type: ARRAY
+                        text: "u."
+                        children:
+                          - type: OBJECT_SQL_COLUMN_REF
+                            text: "u."
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "u."
+                                children:
+                                  - type: NAME
+                                    text: "u"
+                                  - type: OBJECT_EXT_TRAILING_DOT
+                                    text: "."
+                                    children: []
               - key: SQL_INSERT_TARGET
                 type: OBJECT_SQL_TABLEREF
                 text: "t"
@@ -1815,8 +1854,8 @@ parser-snapshots:
                       - type: NAME
                         text: "t"
         - type: SELECT
-          ast-begin: 27
-          ast-size: 6
+          ast-begin: 39
+          ast-size: 10
           description:
             text: "select array[1, u.]"
             description-begin: 0
@@ -1838,18 +1877,30 @@ parser-snapshots:
                         children:
                           - key: SQL_ARRAY_EXPRESSION_VALUES
                             type: ARRAY
-                            text: "1, u.]"
+                            text: "1, u."
                             children:
                               - type: LITERAL_INTEGER
                                 text: "1"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "u."
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "u."
+                                    children:
+                                      - type: NAME
+                                        text: "u"
+                                      - type: OBJECT_EXT_TRAILING_DOT
+                                        text: "."
+                                        children: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected RRB'
-          text: ")"
-        - message: 'syntax error, unexpected RRB'
-          text: ")"
-        - message: 'syntax error, unexpected RSB'
-          text: "]"
+        - message: name has a trailing dot
+          text: "."
+        - message: name has a trailing dot
+          text: "."
+        - message: name has a trailing dot
+          text: "."
       line-breaks:
         - text: [75,76]
         - text: [102,103]

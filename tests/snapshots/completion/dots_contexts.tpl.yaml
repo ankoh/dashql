@@ -268,3 +268,99 @@ completion-snapshots:
         index: 2
     completions:
       limit: 5
+
+  # A dot right before the closing parenthesis of a call completes the columns of the table
+  - name: dot_in_call_before_paren
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select sum(t.) from t
+    cursor:
+      search:
+        text: 't.)'
+        index: 2
+    completions:
+      limit: 5
+
+  # A dot right before a closing parenthesis completes the columns of the table
+  - name: dot_in_parens_before_paren
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select (t.) from t
+    cursor:
+      search:
+        text: 't.)'
+        index: 2
+    completions:
+      limit: 5
+
+  # A dot right before a comma completes the columns of the table
+  - name: dot_before_comma
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select t., b from t
+    cursor:
+      search:
+        text: 't.,'
+        index: 2
+    completions:
+      limit: 5
+
+  # A dot right before the parenthesis that closes a subquery completes the columns of the outer table
+  - name: dot_in_exists_before_paren
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t where exists (select * from u where u.a = t.)
+    cursor:
+      search:
+        text: 't.)'
+        index: 2
+    completions:
+      limit: 5
+
+  # A qualified name right before a closing parenthesis completes the columns of its table, qualified with it
+  - name: dot_name_in_call_before_paren
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select sum(t.a) from t, u
+    cursor:
+      search:
+        text: 't.a)'
+        index: 3
+    completions:
+      limit: 5
+
+  # A qualified prefix right before a closing parenthesis completes after the dot
+  - name: dot_prefix_in_call_before_paren
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select sum(t.na) from t
+    cursor:
+      search:
+        text: 't.na)'
+        index: 4
+    completions:
+      limit: 5

@@ -181,6 +181,8 @@ fn next_symbol(lexer: &mut Lexer, out: &mut ScannedScript, lookahead: &mut VecDe
         (S_DOT, _) if current.location.end() < next.location.offset && !continues_name(&next) => {
             Symbol::new(S_DOT_TRAILING, current.location)
         }
+        // A closing bracket or a separator never continues a name, `sum(t.)` while the editor closes the parenthesis
+        (S_DOT, S_RRB | S_RSB | S_COMMA | S_SEMICOLON) => Symbol::new(S_DOT_TRAILING, current.location),
         _ => current,
     }
 }
@@ -1027,6 +1029,11 @@ mod tests {
         assert_eq!(kinds("a.from"), vec![S_IDENT, S_DOT, S_FROM, S_YYEOF]);
         assert_eq!(kinds("a. from"), vec![S_IDENT, S_DOT_TRAILING, S_FROM, S_YYEOF]);
         assert_eq!(kinds("a. ,"), vec![S_IDENT, S_DOT_TRAILING, S_COMMA, S_YYEOF]);
+        assert_eq!(kinds("(a.)"), vec![S_LRB, S_IDENT, S_DOT_TRAILING, S_RRB, S_YYEOF]);
+        assert_eq!(kinds("a.,b"), vec![S_IDENT, S_DOT_TRAILING, S_COMMA, S_IDENT, S_YYEOF]);
+        assert_eq!(kinds("a.;"), vec![S_IDENT, S_DOT_TRAILING, S_SEMICOLON, S_YYEOF]);
+        // An operator follows the dot of a schema in OPERATOR(pg_catalog.+)
+        assert_eq!(kinds("a.+"), vec![S_IDENT, S_DOT, S_PLUS, S_YYEOF]);
         let out = scan("a.\n", 0, 0);
         assert_eq!(out.line_breaks, vec![TextSpan::new(2, 1)]);
     }

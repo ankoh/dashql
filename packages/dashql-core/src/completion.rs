@@ -542,6 +542,18 @@ impl<'c, 'a> Completion<'c, 'a> {
         text.get(begin..end).unwrap_or_default()
     }
 
+    /// A symbol and the position of the cursor relative to it
+    fn symbol_location_at(&self, symbol_id: u32) -> Option<SymbolLocation> {
+        let symbols = self.symbols();
+        let text_offset = self.cursor.text_offset.min(self.text().len()) as u32;
+        Some(SymbolLocation {
+            symbol_id,
+            symbol: *symbols.get(symbol_id as usize)?,
+            text_offset,
+            relative_pos: crate::cursor::relative_position(symbols, text_offset, symbol_id),
+        })
+    }
+
     /// The location of a symbol as a text-based SymbolSpan
     fn symbol_location(symbol: &Symbol) -> SymbolSpan {
         SymbolSpan::new(symbol.location.offset, symbol.location.length)
@@ -753,7 +765,22 @@ impl<'c, 'a> Completion<'c, 'a> {
                 _ => false,
             };
 
-        let Some(target) = completion.target_symbol else { return completion };
+        let Some(mut target) = completion.target_symbol else { return completion };
+        // Right before a symbol that is not completed, `sum(t.|)` or `sum(t.c|)`, complete the symbol that ends at the
+        // cursor. Its predecessor tells whether that symbol follows a dot.
+        if !between_symbols
+            && target.relative_pos == RelativeSymbolPosition::BEGIN_OF_SYMBOL
+            && !target.is_dot()
+            && !is_symbol_kind_completable(target.symbol.kind)
+        {
+            if let Some(p) = previous_symbol
+                .filter(|p| p.relative_pos == RelativeSymbolPosition::END_OF_SYMBOL && p.symbol.kind != S_DOT_STAR_LA)
+            {
+                target = p;
+                completion.target_symbol = Some(p);
+                previous_symbol = p.symbol_id.checked_sub(1).and_then(|id| completion.symbol_location_at(id));
+            }
+        }
         if !between_symbols && target.is_dot() {
             match target.relative_pos {
                 RelativeSymbolPosition::AFTER_SYMBOL | RelativeSymbolPosition::END_OF_SYMBOL => {

@@ -95,58 +95,36 @@ completion-snapshots:
     completions:
       limit: 5
       strategy: COLUMN_REF
+      dot: 1
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - value: na
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
-          location: "n"
-          location-qualified: "n"
-          objects:
-            - type: column
-              id: "256.65536.1:1.0"
-              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: u.na
-              qualified-idx: 1
-              prefer-qualified: 0
-              detail: "integer · u"
         - value: name
           name-tags: [COLUMN_NAME]
-          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "n"
-          location-qualified: "n"
+          location-qualified: "x.n"
           objects:
             - type: column
               id: "256.65536.1:0.0"
-              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              candidate-tags: [DOT_RESOLUTION_COLUMN,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: x.name
               qualified-idx: 1
               prefer-qualified: 1
               detail: "integer · t"
-        - value: nb
+        - value: id
           name-tags: [COLUMN_NAME]
-          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "n"
-          location-qualified: "n"
+          location-qualified: "x.n"
           objects:
             - type: column
-              id: "256.65536.1:1.1"
-              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: u.nb
+              id: "256.65536.1:0.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: x.id
               qualified-idx: 1
-              prefer-qualified: 0
-              detail: "integer · u"
-        - value: n
-          candidate-tags: [IDENTITY]
-          location: "n"
-          location-qualified: "n"
-          objects: []
-        - value: name
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
-          location: "n"
-          location-qualified: "n"
-          objects: []
+              prefer-qualified: 1
+              detail: "integer · t"
       text: "n"
 
   - name: cte_hides_main_query_columns

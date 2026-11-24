@@ -73,7 +73,7 @@ pub struct LocationInfo {
 }
 
 /// The position of a text offset relative to a symbol
-fn relative_position(symbols: &[Symbol], text_offset: u32, symbol_id: u32) -> RelativeSymbolPosition {
+pub(crate) fn relative_position(symbols: &[Symbol], text_offset: u32, symbol_id: u32) -> RelativeSymbolPosition {
     let Some(symbol) = symbols.get(symbol_id as usize) else {
         return RelativeSymbolPosition::AFTER_SYMBOL;
     };

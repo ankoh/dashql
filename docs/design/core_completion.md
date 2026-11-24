@@ -71,6 +71,7 @@ The completion engine picks a *target symbol* — the symbol whose text the user
 1. If the cursor is **inside** a symbol, that symbol is the target.
 2. If the cursor is **between** two symbols (e.g. right after a comma), it checks whether the previous symbol ends exactly at the cursor. If so, the previous symbol becomes the target.
 3. Constants, operators, and punctuation are never completed — if the cursor lands on one, the engine falls back to the previous symbol or returns empty.
+   At the begin of such a symbol, `sum(t.|)` or `sum(t.c|)`, the symbol that ends at the cursor becomes the target before the dot detection, with its own predecessor, so that a dot before it still counts.
 
 ### Dot detection
 
