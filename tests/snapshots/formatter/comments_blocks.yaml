@@ -608,10 +608,7 @@ formatter-snapshots:
               select 1;
 
   - name: comment_crlf_block
-    input: |-
-      -- first line
-      -- second line
-      select 1
+    input: "-- first line\r\n-- second line\r\nselect 1"
     dialects:
       hyper:
         formatted:

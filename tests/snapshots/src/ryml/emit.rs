@@ -111,6 +111,17 @@ pub(super) fn scalar_style_choose(s: Option<&str>) -> ScalarStyle {
     }
 }
 
+/// The style that keeps the line breaks of a scalar. A YAML reader turns every line break of a plain, single-quoted or
+/// block scalar into `\n` (and a lone `\r` ends the line of a block literal), so a scalar with a carriage return is
+/// double-quoted with escapes. Unlike rapidyaml, which writes the carriage returns as they are.
+fn keep_line_breaks(s: &str, style: ScalarStyle) -> ScalarStyle {
+    if s.contains('\r') {
+        ScalarStyle::DoubleQuoted
+    } else {
+        style
+    }
+}
+
 /// `scalar_style_query_squo`
 fn scalar_style_query_squo(s: &str) -> bool {
     !s.contains("\n ") && !s.contains("\n\t")
@@ -482,7 +493,7 @@ impl Emitter {
     }
 
     fn flow_write_scalar(&mut self, s: &str, style: ScalarStyle) {
-        match style {
+        match keep_line_breaks(s, style) {
             ScalarStyle::SingleQuoted => self.write_scalar_squo(s, self.ilevel),
             ScalarStyle::DoubleQuoted => self.write_scalar_dquo(s),
             _ => self.write_scalar_plain(s, self.ilevel),
@@ -490,7 +501,7 @@ impl Emitter {
     }
 
     fn blck_write_scalar(&mut self, s: &str, style: ScalarStyle) {
-        match style {
+        match keep_line_breaks(s, style) {
             ScalarStyle::Plain | ScalarStyle::Auto => self.write_scalar_plain(s, self.ilevel),
             ScalarStyle::SingleQuoted => self.write_scalar_squo(s, self.ilevel),
             ScalarStyle::DoubleQuoted => self.write_scalar_dquo(s),
@@ -758,5 +769,16 @@ mod tests {
         let mut e = Emitter::new();
         e.write_scalar_literal(" a", 0);
         assert_eq!(e.out, "|2-\n   a");
+    }
+
+    #[test]
+    fn double_quotes_carriage_returns() {
+        for style in [ScalarStyle::Literal, ScalarStyle::Plain, ScalarStyle::SingleQuoted, ScalarStyle::Auto] {
+            let text = "select 1 -- one\r\n, 'a\rb'\n";
+            let yaml = emit_root(&Node::Scalar(Scalar::new(text, style)));
+            assert_eq!(yaml, "\"select 1 -- one\\r\\n, 'a\\rb'\\n\"\n");
+            let Some(Node::Scalar(read)) = crate::ryml::parse::parse(&yaml).unwrap() else { panic!("{yaml}") };
+            assert_eq!(read.as_str(), text);
+        }
     }
 }

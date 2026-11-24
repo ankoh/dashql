@@ -22,3 +22,6 @@ parser-snapshots:
   - name: unicode_identifiers
     input: |
       select abc, def, größe, Größe, "Größe", 名前, _x1$, xyz_column from tabelle_ü as alias_name
+  # CR and CRLF line breaks, also inside a comment and a string literal, a CRLF is one line break
+  - name: carriage_return_line_breaks
+    input: "select 1 -- one\r\n, 'a\rb' /* c\r\nd */\rfrom t\r\n\r\nwhere x;\rselect 2"
