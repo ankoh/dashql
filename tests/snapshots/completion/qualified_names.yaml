@@ -428,3 +428,139 @@ completion-snapshots:
           location-qualified: "limit"
           objects: []
       text: "limit"
+
+  - name: colref_schema_table_dot
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+        errors: []
+    editor:
+      input: |-
+        select sch.t. from sch.t
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "sch.t"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "sch.t."}
+    cursor:
+      search:
+        text: 'sch.t.'
+        index: 6
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: a
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "sch.t."
+          objects:
+            - type: column
+              id: "256.65536.1:0.0"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: sch.t.a
+              qualified-idx: 2
+              prefer-qualified: 0
+              detail: "integer · t"
+        - value: b
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "sch.t."
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: sch.t.b
+              qualified-idx: 2
+              prefer-qualified: 0
+              detail: "integer · t"
+      text: "."
+
+  - name: colref_database_schema_table_dot
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+        errors: []
+    editor:
+      input: |-
+        select db.sch.v. from db.sch.v
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "257.65537.1:1", text: "db.sch.v"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "db.sch.v."}
+    cursor:
+      search:
+        text: 'db.sch.v.'
+        index: 9
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: x
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "db.sch.v."
+          objects:
+            - type: column
+              id: "257.65537.1:1.0"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: db.sch.v.x
+              qualified-idx: 3
+              prefer-qualified: 0
+              detail: "integer · v"
+        - value: y
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "db.sch.v."
+          objects:
+            - type: column
+              id: "257.65537.1:1.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: db.sch.v.y
+              qualified-idx: 3
+              prefer-qualified: 0
+              detail: "integer · v"
+      text: "."
+
+  - name: colref_schema_table_dot_aliased
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+        errors: []
+    editor:
+      input: |-
+        select sch.t. from sch.t x
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "sch.t x"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "sch.t."}
+    cursor:
+      search:
+        text: 'sch.t.'
+        index: 6
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries: []
+      text: "."

@@ -115,3 +115,51 @@ completion-snapshots:
         index: 6
     completions:
       limit: 3
+
+  # A schema and a table before a dot complete the columns of the FROM item of the table
+  - name: colref_schema_table_dot
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+    editor:
+      input: |-
+        select sch.t. from sch.t
+    cursor:
+      search:
+        text: 'sch.t.'
+        index: 6
+    completions:
+      limit: 5
+
+  # A database, a schema and a table before a dot complete the columns of the FROM item of the table
+  - name: colref_database_schema_table_dot
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+    editor:
+      input: |-
+        select db.sch.v. from db.sch.v
+    cursor:
+      search:
+        text: 'db.sch.v.'
+        index: 9
+    completions:
+      limit: 5
+
+  # An aliased table has no schema-qualified name, its alias hides it
+  - name: colref_schema_table_dot_aliased
+    catalog:
+      script:
+        input: |-
+          create table sch.t (a int, b int); create table db.sch.v (x int, y int);
+    editor:
+      input: |-
+        select sch.t. from sch.t x
+    cursor:
+      search:
+        text: 'sch.t.'
+        index: 6
+    completions:
+      limit: 5

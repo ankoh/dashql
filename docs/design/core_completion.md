@@ -192,7 +192,7 @@ Given a name path like `a.b._`, the resolution depends on the strategy:
 
 **COLUMN_REF context:**
 - 1 sealed name (`a._`): resolves `a` as a table alias in the current naming scope, yielding its columns.
-- 2 sealed names (`a.b._`): resolves `a.b` as a qualified table, yielding columns.
+- 2 sealed names (`a.b._`): resolves `a.b` as a qualified table, yielding columns. It names the FROM item of a table without alias, with the schema of its table ref, as name resolution reads `a.b.c`; 3 sealed names (`d.a.b._`) add the database.
 
 The one-name alias case supports both catalog tables and CTE-backed relations, including script-local
 relations. CTE column lists such as `WITH t(a, b) AS (...)` override the source query's output names. It reads what
