@@ -179,10 +179,10 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
     }
 
     let mut edges: BTreeSet<DataflowEdge> = BTreeSet::new();
-    // The terminal node of a script
+    // The terminal node of a script: the node of its last statement, or the one node of a script that does not parse
     let terminal_of = |script: u32| -> Option<u32> {
         let meta = graph.scripts.as_ref()?.get(script as usize)?;
-        node_of.get(&(script, meta.terminal_statement_id)).copied()
+        node_of.get(&(script, meta.terminal_statement_id)).or_else(|| node_of.get(&(script, 0))).copied()
     };
 
     // Script references and attachments

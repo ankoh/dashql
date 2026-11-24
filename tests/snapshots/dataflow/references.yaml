@@ -760,6 +760,34 @@ dataflow-snapshots:
           name: broken
           route: [[280,56],[424,56]]
 
+  - name: ScriptOfStatementsThatDoesNotParse
+    scripts:
+      - name: broken
+        input: |
+          select from where 1;
+          select 1 as a;
+      - name: after
+        input: |
+          select * from :broken;
+    expected:
+      scripts:
+        - name: broken
+          statements:
+            - type: SELECT
+              text: "select from where 1"
+          box: [0,0,280,80]
+        - name: after
+          statements:
+            - type: SELECT
+              text: "select * f..om :broken"
+          box: [424,0,280,80]
+      edges:
+        - from: broken.0
+          to: after.0
+          kind: invalid
+          name: broken
+          route: [[280,56],[424,56]]
+
   - name: ClientFunctionCalls
     client_functions: tickets
     connections:

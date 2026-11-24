@@ -277,6 +277,17 @@ dataflow-snapshots:
         input: |
           select * from :broken;
 
+  # A script of several statements that does not parse is one statement too, a reference to it is invalid
+  - name: ScriptOfStatementsThatDoesNotParse
+    scripts:
+      - name: broken
+        input: |
+          select from where 1;
+          select 1 as a;
+      - name: after
+        input: |
+          select * from :broken;
+
   # A call that reads is scanned by the LOCAL connection, a script with a call that writes runs only on request, an
   # input feeds a call
   - name: ClientFunctionCalls
