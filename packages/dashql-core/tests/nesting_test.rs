@@ -2,6 +2,7 @@
 //! within the stack of the module. The parse tree is flat, but the analyzer, the formatter and the checks of client
 //! function calls walk parts of it recursively; in the module a stack overflow traps it. The tests run on a thread with
 //! half of the 1 MiB stack of the module, natively and unoptimized, whose frames are larger than those of the module.
+//! Left-deep chains (`1 + 1 + ...`) aren't limited by the parser, their trees grow deeper than any nesting.
 
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode};
 use dashql_core::analyzer::clfn_calls::MAX_VALUE_DEPTH;
@@ -136,4 +137,38 @@ fn a_value_of_a_client_function_nests_at_most_64_levels() {
         "[".repeat(MAX_VALUE_DEPTH),
         "]".repeat(MAX_VALUE_DEPTH)
     )));
+}
+
+/// The left-deep chains of a length: a chain builds a tree as deep as it is long, without growing the stack of the parser
+fn left_deep_chains(n: usize) -> Vec<(&'static str, String)> {
+    vec![
+        ("additions", format!("select 1{}", " + 1".repeat(n))),
+        ("concatenations", format!("select 'a'{}", " || 'a'".repeat(n))),
+        ("casts", format!("select x{} from t", "::int".repeat(n))),
+        ("subscripts", format!("select (x){} from t", "[1]".repeat(n))),
+        ("set operations", format!("select 1{}", " union all select 1".repeat(n))),
+        ("commented additions", format!("select 1{}", " -- c\n+ /* c */ 1".repeat(n))),
+    ]
+}
+
+#[test]
+fn left_deep_chains_beyond_the_depth_limit_are_analyzed_and_formatted() {
+    std::thread::Builder::new()
+        .stack_size(STACK_SIZE)
+        .spawn(|| {
+            let catalog = catalog();
+            let mut config = FormattingConfigT::default();
+            config.dialect = FormattingDialect::HYPER;
+            config.mode = FormattingMode::COMPACT;
+            for (name, text) in left_deep_chains(2 * MAX_STACK_DEPTH) {
+                assert_eq!(parse_errors(&catalog, &text), Vec::<String>::new(), "{name}");
+                let mut script = Script::new(&catalog);
+                script.replace_text(&text);
+                script.analyze(&catalog, true).unwrap_or_else(|e| panic!("{name}: {e:?}"));
+                script.format(&config, true).unwrap_or_else(|e| panic!("{name}: {e:?}"));
+            }
+        })
+        .unwrap()
+        .join()
+        .unwrap();
 }

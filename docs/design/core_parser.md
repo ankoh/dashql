@@ -52,8 +52,11 @@ state that shifts the error token and skips to the next statement. Recovering in
 stack at the limit, where no closing token could shift. The tree itself is flat, but the analyzer, the formatter and
 the checks of client function calls walk parts of it recursively on the 1 MiB stack of the module, where an overflow
 traps it; `packages/dashql-core/tests/nesting_test.rs` analyzes and formats every kind of nesting at the limit on half
-of that stack. A left-deep chain (`a + b + c`, `x::int::int`) builds a deep tree without growing the stack and is not
-limited.
+of that stack. A left-deep chain (`a + b + c`, `x::int::int`, `select 1 union all select 2 union all ...`) builds a deep
+tree without growing the stack and is not limited; the same test analyzes and formats chains of twice the limit. The
+tools of the snapshot tests are not that robust: the parser snapshot of a chain nests its YAML as deep as the tree, its
+encoder and the YAML reader recurse over it, and a chain of 1100 terms overflows the stack of a test thread there. Long
+chains are tested in `nesting_test.rs`, not in snapshots.
 
 ### Error recovery
 
