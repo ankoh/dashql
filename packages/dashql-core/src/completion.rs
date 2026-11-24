@@ -424,6 +424,8 @@ pub struct Completion<'c, 'a> {
     pub client_function_name: bool,
     /// Is the cursor at a name definition?
     pub at_definition: bool,
+    /// Is the target the name of a parameter, `:foo`?
+    at_parameter_name: bool,
     /// The FROM item (its table ref node) that the qualifier before a dot names, it qualifies the columns
     qualifier_source: Option<u32>,
     /// Is the cursor between symbols?
@@ -507,6 +509,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             dot_completion: false,
             client_function_name: false,
             at_definition: false,
+            at_parameter_name: false,
             qualifier_source: None,
             between_symbols: false,
             has_post_cursor_token: false,
@@ -881,6 +884,14 @@ impl<'c, 'a> Completion<'c, 'a> {
         }
 
         completion.has_post_cursor_token = completion.compute_has_post_cursor_token();
+        // The name of a parameter follows its colon right away
+        completion.at_parameter_name = !between_symbols
+            && target.symbol_id.checked_sub(1).and_then(|id| completion.symbols().get(id as usize)).is_some_and(
+                |colon| {
+                    colon.kind == S_COLON
+                        && colon.location.offset + colon.location.length == target.symbol.location.offset
+                },
+            );
 
         if completion.dot_completion {
             completion.find_candidates_for_name_path();
@@ -1053,8 +1064,9 @@ impl<'c, 'a> Completion<'c, 'a> {
                 None => Keyword::name_of(expected),
             };
             let Some(name) = name.filter(|n| !n.is_empty()).filter(|_| offers(expected)) else { continue };
-            // A passive hint is a keyword, not a name that happens to be spelled like one (`where a = by`)
-            if self.between_symbols && probe::takes_keyword_only_as_name(prefix, expected) {
+            // A passive hint is a keyword, not a name that happens to be spelled like one (`where a = by`), and so is
+            // the name of a parameter (`:for`)
+            if (self.between_symbols || self.at_parameter_name) && probe::takes_keyword_only_as_name(prefix, expected) {
                 continue;
             }
             keywords.push((expected, name));

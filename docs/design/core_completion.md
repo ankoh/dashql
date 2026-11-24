@@ -180,6 +180,7 @@ later statements.
 Keywords enter the candidate set via `add_expected_keywords_as_candidates()`.
 They are extracted from the parser state and get a +20 keyword-substring bonus (in `compute_candidate_score`) when both `EXPECTED_PARSER_SYMBOL` and `SUBSTRING_MATCH` are set, plus prevalence modifiers for common keywords.
 Outside of a SELECT, `FROM` is only offered when it matches the typed text, never as a proactive suggestion.
+The name of a parameter, right after its colon (`:fo`), takes no keyword that the grammar takes only as a name there (`probe::takes_keyword_only_as_name`, see the passive hints), which is every keyword after the colon.
 
 The scanner replaces some keywords with lookahead tokens by the token after them, e.g. `NULLS` before `FIRST` or `LAST` becomes `NULLS_LA` (`core_parser.md`). An expected lookahead token is offered as its keyword (`Keyword::of_lookahead_token`), once, and not if the keyword itself is expected too. At the cursor the next token is often not typed yet: when the probes read a keyword that does not fit but one of its lookahead tokens does, they take the lookahead token, so `order by a nulls ` expects `first` and `last`.
 

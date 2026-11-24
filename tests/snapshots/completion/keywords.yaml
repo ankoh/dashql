@@ -629,3 +629,37 @@ completion-snapshots:
           location-qualified: "li"
           objects: []
       text: "li"
+
+  - name: kw_parameter_name
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select * from t where a = :fo
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+      parameters:
+        - {kind: scalar, name: fo, text: ":fo"}
+    cursor:
+      search:
+        text: ':fo'
+        index: 3
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: fo
+          candidate-tags: [IDENTITY]
+          location: "fo"
+          location-qualified: "fo"
+          objects: []
+      text: "fo"
