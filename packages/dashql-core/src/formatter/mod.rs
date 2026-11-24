@@ -780,9 +780,14 @@ impl<'a> Formatter<'a> {
                 }
                 self.comma_join_on_overflow(&values, true)
             }
+            // The bounds of a frame break before `and`
             K::SQL_WINDOW_FRAME_BOUNDS => match *self.array_regs(node).as_slice() {
                 [bound] if bound != 0 => bound,
-                [from, to] if from != 0 && to != 0 => f.concat(&[f.text("between "), from, f.text(" and "), to]),
+                [from, to] if from != 0 && to != 0 => self.space_join(
+                    &[f.concat(&[f.text("between "), from]), f.concat(&[f.text("and "), to])],
+                    FormattingJoinPolicy::BreakOnOverflow,
+                    true,
+                ),
                 _ => self.format_unimplemented(node),
             },
             K::SQL_SELECT_VALUES => {

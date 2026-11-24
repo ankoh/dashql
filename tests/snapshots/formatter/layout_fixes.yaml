@@ -144,6 +144,98 @@ formatter-snapshots:
           setup: |-
             create schema some_schema;
 
+  - name: window_frame_breaks_between_bounds
+    input: |-
+      select sum(amount) over (w range between interval '7 days' preceding and interval '1 day' following) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select sum(amount) over (w range between interval '7 days' preceding and interval '1 day' following) from t;
+          - mode: compact
+            width: 50
+            expected: |-
+              select sum(amount) over (
+                w
+                  range between interval '7 days' preceding
+                    and interval '1 day' following
+              )
+              from t;
+          - mode: pretty
+            width: 50
+            expected: |-
+              select sum(amount) over (
+                w
+                  range between interval '7 days' preceding
+                    and interval '1 day' following
+              )
+              from t;
+
+  - name: window_frame_breaks_between_bounds_wide
+    input: |-
+      select sum(amount) over (w range between interval '7 days' preceding and interval '1 day' following) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select sum(amount) over (w range between interval '7 days' preceding and interval '1 day' following) from t;
+          - mode: compact
+            expected: |-
+              select sum(amount) over (w range between interval '7 days' preceding and interval '1 day' following) from t;
+          - mode: pretty
+            expected: |-
+              select sum(amount) over (w range between interval '7 days' preceding and interval '1 day' following)
+              from t;
+
+  - name: window_frame_breaks_before_exclusion
+    input: |-
+      select sum(amount) over (partition by customer_id order by created_at rows between unbounded preceding and current row exclude current row) from orders
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select sum(amount) over (partition by customer_id order by created_at rows between unbounded preceding and current row exclude current row) from orders;
+          - mode: compact
+            width: 50
+            expected: |-
+              select sum(amount) over (
+                partition by customer_id order by created_at
+                  rows between unbounded preceding
+                    and current row exclude current row
+              )
+              from orders;
+          - mode: pretty
+            width: 50
+            expected: |-
+              select sum(amount) over (
+                partition by customer_id order by created_at
+                  rows between unbounded preceding
+                    and current row exclude current row
+              )
+              from orders;
+
+  - name: window_frame_breaks_before_exclusion_wide
+    input: |-
+      select sum(amount) over (partition by customer_id order by created_at rows between unbounded preceding and current row exclude current row) from orders
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select sum(amount) over (partition by customer_id order by created_at rows between unbounded preceding and current row exclude current row) from orders;
+          - mode: compact
+            width: 160
+            expected: |-
+              select sum(amount) over (partition by customer_id order by created_at rows between unbounded preceding and current row exclude current row) from orders;
+          - mode: pretty
+            width: 160
+            expected: |-
+              select sum(amount) over (partition by customer_id order by created_at rows between unbounded preceding and current row exclude current row)
+              from orders;
+
   - name: list_in_broken_parentheses_aligned
     input: |-
       select name from products where category in ('electronics', 'household appliances', 'garden furniture', 'sporting goods') and price > 10
