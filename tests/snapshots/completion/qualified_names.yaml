@@ -564,3 +564,145 @@ completion-snapshots:
       relative: END_OF_SYMBOL
       entries: []
       text: "."
+
+  - name: colref_column_aliases_dot
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select x. from t as x(p, q)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t as x(p, q)"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "x."}
+    cursor:
+      search:
+        text: 'x.'
+        index: 2
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: name
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "x."
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: x.name
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "text · t"
+        - value: p
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "x."
+          objects:
+            - type: column
+              id: "256.65536.1:0.0"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: x.p
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "integer · t"
+        - value: q
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "x."
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: x.q
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "integer · t"
+      text: "."
+
+  - name: colref_column_aliases_qualified
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select a from t as x(p, q)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t as x(p, q)"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "a"}
+    cursor:
+      search:
+        text: 'a from'
+        index: 1
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: a
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+          location: "a"
+          location-qualified: "a"
+          objects:
+            - type: column
+              id: "256.65536.1:0.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+              qualified: x.p
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "integer · t"
+            - type: column
+              id: "256.65536.1:1.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG,EXACT_MATCH]
+              qualified: u.a
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · u"
+        - value: name
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "a"
+          location-qualified: "a"
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: x.name
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "text · t"
+        - value: a
+          candidate-tags: [IDENTITY]
+          location: "a"
+          location-qualified: "a"
+          objects: []
+        - value: abort
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "a"
+          location-qualified: "a"
+          objects: []
+        - value: absent
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "a"
+          location-qualified: "a"
+          objects: []
+      text: "a"

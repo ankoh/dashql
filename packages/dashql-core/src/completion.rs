@@ -2036,7 +2036,11 @@ impl<'c, 'a> Completion<'c, 'a> {
                     else {
                         continue;
                     };
-                    let column_name = column.column_name.text.clone();
+                    // The column aliases of the table ref rename the leading columns
+                    let column_name = table_ref
+                        .column_aliases
+                        .get(loc.column as usize)
+                        .map_or_else(|| column.column_name.text.clone(), |alias| alias.text.clone());
                     let Some(object) = self.candidate_objects.get_mut(co) else { continue };
                     match (join, &table_ref.alias) {
                         (Some(join), _) => {

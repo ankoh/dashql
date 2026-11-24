@@ -163,3 +163,35 @@ completion-snapshots:
         index: 6
     completions:
       limit: 5
+
+  # The column aliases of a table ref name its columns after a dot and in their qualified names
+  - name: colref_column_aliases_dot
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select x. from t as x(p, q)
+    cursor:
+      search:
+        text: 'x.'
+        index: 2
+    completions:
+      limit: 5
+
+  # A column renamed by a column alias of its table ref is qualified with that alias, x.p
+  - name: colref_column_aliases_qualified
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a from t as x(p, q)
+    cursor:
+      search:
+        text: 'a from'
+        index: 1
+    completions:
+      limit: 5

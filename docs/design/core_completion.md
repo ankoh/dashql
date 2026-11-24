@@ -255,7 +255,7 @@ Ties are broken lexicographically (case-insensitive, smaller name wins).
 
 `select_top_candidates()` extracts the top-k candidates from the scored heap.
 `qualify_top_candidates()` derives qualified names for the winners (e.g. `schema.table` instead of just `table`) when the catalog object prefers qualification.
-A column of a table ref that the cursor sees is qualified with the alias of the table ref. Outside of an aliased join, the alias of the join qualifies the columns of the FROM items inside it, `j.a` instead of `t.a`, with the name that the column aliases of the join give it. The table refs that the cursor doesn't see qualify nothing, the target of MERGE in a `WHEN NOT MATCHED` clause.
+A column of a table ref that the cursor sees is qualified with the alias of the table ref, with the name that the column aliases of the table ref give it (`x.p` in `from t as x(p, q)`). Outside of an aliased join, the alias of the join qualifies the columns of the FROM items inside it, `j.a` instead of `t.a`, with the name that the column aliases of the join give it. The table refs that the cursor doesn't see qualify nothing, the target of MERGE in a `WHEN NOT MATCHED` clause.
 
 ## Candidate info
 
