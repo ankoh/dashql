@@ -1,0 +1,147 @@
+diff-snapshots:
+  # A statement moves and is rewritten in another case and with other whitespace: the trees are equal, a MOVE
+  - name: move_with_case_and_whitespace_change
+    source: |
+      select a from t;
+      select b from u;
+      select c from w;
+
+    target: |
+      select b from u;
+      select c from w;
+      SELECT   a
+        FROM t;
+
+  # Statements of two kinds swap places and both change: each updates the statement in the other section
+  - name: swap_and_update_both
+    source: |
+      select a, b, c, d, e, f from t where x = 1;
+      select k from kept;
+      insert into u values (1, 2, 3, 4, 5, 6);
+
+    target: |
+      insert into u values (1, 2, 3, 4, 5, 7);
+      select k from kept;
+      select a, b, c, d, e, f from t where x = 2;
+
+  # Two statements of the same shape swap places and both change: every name differs, yet the shape is similar
+  # enough that each updates the statement in its own section
+  - name: swap_same_shape_updates_in_place
+    source: |
+      select a, b, c, d, e, f from t where x = 1;
+      select k from kept;
+      select g, h, i, j, l, m from u where y = 1;
+
+    target: |
+      select g, h, i, j, l, m from u where y = 2;
+      select k from kept;
+      select a, b, c, d, e, f from t where x = 2;
+
+  # A statement moves and changes too much for an UPDATE: DELETE in the old place, INSERT in the new one
+  - name: move_and_large_change
+    source: |
+      select a from t;
+      select k from kept;
+
+    target: |
+      select k from kept;
+      select a, b from t where x = 1;
+
+  # The comment before a moved statement changes: the statement is still a MOVE
+  - name: move_with_comment_changed
+    source: |
+      /* first */
+      select a from t;
+      select b from u;
+      select c from w;
+
+    target: |
+      select b from u;
+      select c from w;
+      /* first, now last */
+      select a from t;
+
+  # A changed statement and a new similar statement in the same place: the closer one is the UPDATE
+  - name: update_and_similar_insert
+    source: |
+      select a, b, c, d, e, f from t where x = 1;
+
+    target: |
+      select a, b, c, d, e, f from t where x = 1 and y = 2;
+      select a, b, c, d, e, f from t where x = 3;
+
+  # Every statement of a script changes: one UPDATE each
+  - name: update_every_statement
+    source: |
+      select a, b, c, d from t where x = 1;
+      select a, b, c, d from u where x = 1;
+      select a, b, c, d from w where x = 1;
+
+    target: |
+      select a, b, c, d from t where x = 2;
+      select a, b, c, d from u where x = 2;
+      select a, b, c, d from w where x = 2;
+
+  # A large insertion before and after the only kept statement
+  - name: large_insertion_around_kept
+    source: |
+      select k from kept;
+
+    target: |
+      create table t1 (a int);
+      create table t2 (a int);
+      create table t3 (a int);
+      create table t4 (a int);
+      create table t5 (a int);
+      select k from kept;
+      insert into t1 values (1);
+      insert into t2 values (2);
+      insert into t3 values (3);
+      insert into t4 values (4);
+      insert into t5 values (5);
+
+  # A large deletion around the only kept statement
+  - name: large_deletion_around_kept
+    source: |
+      create table t1 (a int);
+      create table t2 (a int);
+      create table t3 (a int);
+      create table t4 (a int);
+      select k from kept;
+      insert into t1 values (1);
+      insert into t2 values (2);
+      insert into t3 values (3);
+      insert into t4 values (4);
+
+    target: |
+      select k from kept;
+
+  # Two blocks of statements swap: the longer block is kept, the shorter one moves
+  - name: swap_blocks
+    source: |
+      select a1 from t;
+      select a2 from t;
+      select b1 from u;
+      select b2 from u;
+      select b3 from u;
+
+    target: |
+      select b1 from u;
+      select b2 from u;
+      select b3 from u;
+      select a1 from t;
+      select a2 from t;
+
+  # Statements interleaved anew: the longest common subsequence of every second statement is kept
+  - name: interleave_statements
+    source: |
+      select a from t;
+      select b from t;
+      select c from t;
+      select d from t;
+
+    target: |
+      select a from t;
+      select c from t;
+      select b from t;
+      select d from t;

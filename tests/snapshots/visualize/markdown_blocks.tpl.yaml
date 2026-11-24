@@ -158,3 +158,50 @@ visualize-snapshots:
            ```
         */
         SELECT 1 AS a, 'sql' AS lang, 'x' AS id;
+
+  # Autolinks follow the rules of links: unsafe schemes become spans, an email address gets mailto
+  - name: vis_markdown_autolinks
+    script:
+      input: |
+        /* @vis markdown
+           <HTTP://EXAMPLE.COM/x> <javascript:alert(1)> <ftp://host/x> <a.b@example.com>
+        */
+        SELECT 1 AS a;
+
+  # An image inside a link: a field in the URL of the link makes it a span, the image inside stays
+  - name: vis_markdown_image_in_link
+    script:
+      input: |
+        /* @vis markdown
+           [![{{a}}](https://example.com/a.png)](https://example.com/{{b}})
+           [![logo](https://example.com/b.png "Logo")](https://example.com)
+        */
+        SELECT 1 AS a, 2 AS b;
+
+  # A Setext heading of level two, and thematic breaks of stars and underscores
+  - name: vis_markdown_setext_h2_and_rules
+    script:
+      input: |
+        /* @vis markdown
+           Title {{a}}
+           ---
+
+           ***
+
+           ___
+        */
+        SELECT 1 AS a;
+
+  # A field inside an indented code block, and a list inside a block quote
+  - name: vis_markdown_indented_code_and_quoted_list
+    script:
+      input: |
+        /* @vis markdown
+           Code:
+
+               let x = {{a}};
+
+           > - {{b}}
+           > - two
+        */
+        SELECT 1 AS a, 2 AS b;

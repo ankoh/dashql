@@ -48,3 +48,47 @@ diff-snapshots:
       ;;
       select a from t;
       ;
+
+  # A statement that parses with an error is still a statement: the clause it lost is no change of the target
+  - name: statement_becomes_broken
+    source: |
+      select a, b, c, d, e, f from t where x = 1;
+      select k from kept;
+
+    target: |
+      select a, b, c, d, e, f from t where;
+      select k from kept;
+
+  # The semicolon between two statements is removed: the two statements become one broken statement
+  - name: statements_merged_by_missing_semicolon
+    source: |
+      select a from t;
+      select b from u;
+      select c from w;
+
+    target: |
+      select a from t
+      select b from u;
+      select c from w;
+
+  # A string that is not terminated swallows the rest of the target script
+  - name: unterminated_string_swallows_rest
+    source: |
+      select a from t where x = 'a';
+      select b from u;
+
+    target: |
+      select a from t where x = 'a;
+      select b from u;
+
+  # A block comment that is not terminated hides the statements after it
+  - name: unterminated_comment_hides_rest
+    source: |
+      select a from t;
+      select b from u;
+      select c from w;
+
+    target: |
+      select a from t;
+      /* select b from u;
+      select c from w;

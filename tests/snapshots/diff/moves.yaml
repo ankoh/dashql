@@ -1,0 +1,346 @@
+diff-snapshots:
+
+  - name: move_with_case_and_whitespace_change
+    source: |-
+      select a from t;
+      select b from u;
+      select c from w;
+    target: |-
+      select b from u;
+      select c from w;
+      SELECT   a
+        FROM t;
+    expected:
+      ops:
+        - code: MOVE
+          source-statement: 0
+          target-statement: 2
+          target-span: "SELECT   a\n  FROM t"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 0
+          target-span: "select b from u"
+        - code: KEEP
+          source-statement: 2
+          target-statement: 1
+          target-span: "select c from w"
+
+  - name: swap_and_update_both
+    source: |-
+      select a, b, c, d, e, f from t where x = 1;
+      select k from kept;
+      insert into u values (1, 2, 3, 4, 5, 6);
+    target: |-
+      insert into u values (1, 2, 3, 4, 5, 7);
+      select k from kept;
+      select a, b, c, d, e, f from t where x = 2;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 2
+          target-changes:
+            - text: "2"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 1
+          target-span: "select k from kept"
+        - code: UPDATE
+          source-statement: 2
+          target-statement: 0
+          target-changes:
+            - text: "7"
+
+  - name: swap_same_shape_updates_in_place
+    source: |-
+      select a, b, c, d, e, f from t where x = 1;
+      select k from kept;
+      select g, h, i, j, l, m from u where y = 1;
+    target: |-
+      select g, h, i, j, l, m from u where y = 2;
+      select k from kept;
+      select a, b, c, d, e, f from t where x = 2;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "g"
+            - text: "h"
+            - text: "i"
+            - text: "j"
+            - text: "l"
+            - text: "m"
+            - text: "u"
+            - text: "y"
+            - text: "2"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 1
+          target-span: "select k from kept"
+        - code: UPDATE
+          source-statement: 2
+          target-statement: 2
+          target-changes:
+            - text: "a"
+            - text: "b"
+            - text: "c"
+            - text: "d"
+            - text: "e"
+            - text: "f"
+            - text: "t"
+            - text: "x"
+            - text: "2"
+
+  - name: move_and_large_change
+    source: |-
+      select a from t;
+      select k from kept;
+    target: |-
+      select k from kept;
+      select a, b from t where x = 1;
+    expected:
+      ops:
+        - code: DELETE
+          source-statement: 0
+          source-span: "select a from t"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 0
+          target-span: "select k from kept"
+        - code: INSERT
+          target-statement: 1
+          target-span: "select a, ..here x = 1"
+
+  - name: move_with_comment_changed
+    source: |-
+      /* first */
+      select a from t;
+      select b from u;
+      select c from w;
+    target: |-
+      select b from u;
+      select c from w;
+      /* first, now last */
+      select a from t;
+    expected:
+      ops:
+        - code: MOVE
+          source-statement: 0
+          target-statement: 2
+          target-span: "select a from t"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 0
+          target-span: "select b from u"
+        - code: KEEP
+          source-statement: 2
+          target-statement: 1
+          target-span: "select c from w"
+
+  - name: update_and_similar_insert
+    source: |-
+      select a, b, c, d, e, f from t where x = 1;
+    target: |-
+      select a, b, c, d, e, f from t where x = 1 and y = 2;
+      select a, b, c, d, e, f from t where x = 3;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 1
+          target-changes:
+            - text: "3"
+        - code: INSERT
+          target-statement: 0
+          target-span: "select a, .. and y = 2"
+
+  - name: update_every_statement
+    source: |-
+      select a, b, c, d from t where x = 1;
+      select a, b, c, d from u where x = 1;
+      select a, b, c, d from w where x = 1;
+    target: |-
+      select a, b, c, d from t where x = 2;
+      select a, b, c, d from u where x = 2;
+      select a, b, c, d from w where x = 2;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "2"
+        - code: UPDATE
+          source-statement: 1
+          target-statement: 1
+          target-changes:
+            - text: "2"
+        - code: UPDATE
+          source-statement: 2
+          target-statement: 2
+          target-changes:
+            - text: "2"
+
+  - name: large_insertion_around_kept
+    source: |-
+      select k from kept;
+    target: |-
+      create table t1 (a int);
+      create table t2 (a int);
+      create table t3 (a int);
+      create table t4 (a int);
+      create table t5 (a int);
+      select k from kept;
+      insert into t1 values (1);
+      insert into t2 values (2);
+      insert into t3 values (3);
+      insert into t4 values (4);
+      insert into t5 values (5);
+    expected:
+      ops:
+        - code: INSERT
+          target-statement: 0
+          target-span: "create tab..t1 (a int)"
+        - code: INSERT
+          target-statement: 1
+          target-span: "create tab..t2 (a int)"
+        - code: INSERT
+          target-statement: 2
+          target-span: "create tab..t3 (a int)"
+        - code: INSERT
+          target-statement: 3
+          target-span: "create tab..t4 (a int)"
+        - code: INSERT
+          target-statement: 4
+          target-span: "create tab..t5 (a int)"
+        - code: KEEP
+          source-statement: 0
+          target-statement: 5
+          target-span: "select k from kept"
+        - code: INSERT
+          target-statement: 6
+          target-span: "insert int..values (1)"
+        - code: INSERT
+          target-statement: 7
+          target-span: "insert int..values (2)"
+        - code: INSERT
+          target-statement: 8
+          target-span: "insert int..values (3)"
+        - code: INSERT
+          target-statement: 9
+          target-span: "insert int..values (4)"
+        - code: INSERT
+          target-statement: 10
+          target-span: "insert int..values (5)"
+
+  - name: large_deletion_around_kept
+    source: |-
+      create table t1 (a int);
+      create table t2 (a int);
+      create table t3 (a int);
+      create table t4 (a int);
+      select k from kept;
+      insert into t1 values (1);
+      insert into t2 values (2);
+      insert into t3 values (3);
+      insert into t4 values (4);
+    target: |-
+      select k from kept;
+    expected:
+      ops:
+        - code: DELETE
+          source-statement: 0
+          source-span: "create tab..t1 (a int)"
+        - code: DELETE
+          source-statement: 1
+          source-span: "create tab..t2 (a int)"
+        - code: DELETE
+          source-statement: 2
+          source-span: "create tab..t3 (a int)"
+        - code: DELETE
+          source-statement: 3
+          source-span: "create tab..t4 (a int)"
+        - code: KEEP
+          source-statement: 4
+          target-statement: 0
+          target-span: "select k from kept"
+        - code: DELETE
+          source-statement: 5
+          source-span: "insert int..values (1)"
+        - code: DELETE
+          source-statement: 6
+          source-span: "insert int..values (2)"
+        - code: DELETE
+          source-statement: 7
+          source-span: "insert int..values (3)"
+        - code: DELETE
+          source-statement: 8
+          source-span: "insert int..values (4)"
+
+  - name: swap_blocks
+    source: |-
+      select a1 from t;
+      select a2 from t;
+      select b1 from u;
+      select b2 from u;
+      select b3 from u;
+    target: |-
+      select b1 from u;
+      select b2 from u;
+      select b3 from u;
+      select a1 from t;
+      select a2 from t;
+    expected:
+      ops:
+        - code: MOVE
+          source-statement: 0
+          target-statement: 3
+          target-span: "select a1 from t"
+        - code: MOVE
+          source-statement: 1
+          target-statement: 4
+          target-span: "select a2 from t"
+        - code: KEEP
+          source-statement: 2
+          target-statement: 0
+          target-span: "select b1 from u"
+        - code: KEEP
+          source-statement: 3
+          target-statement: 1
+          target-span: "select b2 from u"
+        - code: KEEP
+          source-statement: 4
+          target-statement: 2
+          target-span: "select b3 from u"
+
+  - name: interleave_statements
+    source: |-
+      select a from t;
+      select b from t;
+      select c from t;
+      select d from t;
+    target: |-
+      select a from t;
+      select c from t;
+      select b from t;
+      select d from t;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a from t"
+        - code: MOVE
+          source-statement: 1
+          target-statement: 2
+          target-span: "select b from t"
+        - code: KEEP
+          source-statement: 2
+          target-statement: 1
+          target-span: "select c from t"
+        - code: KEEP
+          source-statement: 3
+          target-statement: 3
+          target-span: "select d from t"

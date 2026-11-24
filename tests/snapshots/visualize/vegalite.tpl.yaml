@@ -193,3 +193,24 @@ visualize-snapshots:
       input: |
         /* @vis vegalite {"data": {"url": "https://example.com/data.csv"}} */
         SELECT 1 AS a;
+
+  # Only the data at the top of the spec is replaced, the data of a layer is kept
+  - name: vis_nested_data_kept
+    script:
+      input: |
+        /* @vis vegalite {"layer": [{"mark": "bar"}, {"data": {"values": [{"y": 1}]}, "mark": "rule"}]} */
+        SELECT 1 AS a;
+
+  # A field that is no string (a repeat reference) is kept as written
+  - name: vis_field_object_kept
+    script:
+      input: |
+        /* @vis vegalite {"repeat": ["a", "b"], "spec": {"mark": "bar", "encoding": {"x": {"field": {"repeat": "repeat"}}}}} */
+        SELECT 1 AS a, 2 AS b;
+
+  # In line comments, the end of a block comment inside a JSON string is text
+  - name: vis_block_comment_end_in_line_comment
+    script:
+      input: |
+        -- @vis vegalite {"title": "a */ b", "mark": "bar"}
+        SELECT 1 AS a;

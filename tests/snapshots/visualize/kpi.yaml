@@ -145,3 +145,21 @@ visualize-snapshots:
           "$sql": "SELECT 1 AS a"
         }
       }
+
+  - name: kpi_board_before_vis
+    script:
+      input: |
+        /* @board column=11
+           @vis kpi value=a */
+        SELECT 1 AS a;
+    dashboard:
+      column: 9
+      width: 3
+      height: 3
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        }
+      }

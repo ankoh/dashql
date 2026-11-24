@@ -44,3 +44,7 @@ trino-profile-snapshots:
   - name: handwritten_operator_summaries_query_info
     recording: handwritten_operator_summaries
     source: query-info
+  # The plan of a single stage from the final QueryInfo, without the estimates of its EXPLAIN plan
+  - name: select_one_query_info
+    recording: select_one
+    source: query-info

@@ -876,3 +876,8 @@ trino-progress-snapshots:
         entity: fragment
         index: 0
         status: succeeded
+
+  - name: handwritten_plan_shapes_without_polls
+    recording: handwritten_plan_shapes
+    fragments: []
+    updates: []

@@ -468,3 +468,73 @@ visualize-snapshots:
           "$sql": "SELECT 1 AS a"
         }
       }
+
+  - name: vis_nested_data_kept
+    script:
+      input: |
+        /* @vis vegalite {"layer": [{"mark": "bar"}, {"data": {"values": [{"y": 1}]}, "mark": "rule"}]} */
+        SELECT 1 AS a;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        },
+        "layer": [
+          {
+            "mark": "bar"
+          },
+          {
+            "data": {
+              "values": [
+                {
+                  "y": 1
+                }
+              ]
+            },
+            "mark": "rule"
+          }
+        ]
+      }
+
+  - name: vis_field_object_kept
+    script:
+      input: |
+        /* @vis vegalite {"repeat": ["a", "b"], "spec": {"mark": "bar", "encoding": {"x": {"field": {"repeat": "repeat"}}}}} */
+        SELECT 1 AS a, 2 AS b;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a, 2 AS b"
+        },
+        "repeat": [
+          "a",
+          "b"
+        ],
+        "spec": {
+          "mark": "bar",
+          "encoding": {
+            "x": {
+              "field": {
+                "repeat": "repeat"
+              }
+            }
+          }
+        }
+      }
+
+  - name: vis_block_comment_end_in_line_comment
+    script:
+      input: |
+        -- @vis vegalite {"title": "a */ b", "mark": "bar"}
+        SELECT 1 AS a;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        },
+        "title": "a */ b",
+        "mark": "bar"
+      }

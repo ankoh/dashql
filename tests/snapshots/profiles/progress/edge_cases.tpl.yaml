@@ -287,3 +287,89 @@ progress-snapshots:
         {"type":"updateSlot","time":1,"slot":2,"status":"running","stats":{"cpuTimeUs":2}},
         {"type":"updatePipeline","time":2,"pipeline":0,"stats":{"cpuTimeUs":100}}
       ]
+
+  # Rollups of pipeline roles and fragments
+  # A union in two pipelines: operators 0 and 1 scans, 2 union all, 3 execution target; slots 0 scan, 1 union
+  # (through), 2 execution target (sink), 3 scan, 4 union (through), 5 execution target (sink). The execution target
+  # is a sink in both pipelines, so its output is the sum of its sinks; the union passes tuples on in both
+  - name: sink_in_two_pipelines
+    plan: |-
+      {"operator":"executiontarget","operatorId":1,
+       "input":{"operator":"unionall","operatorId":2,
+         "inputs":[{"operator":"tablescan","operatorId":3},{"operator":"tablescan","operatorId":4}]},
+       "pipelines":[{"pipelineId":1,"operators":[3,2,1]},{"pipelineId":2,"operators":[4,2,1]}]}
+    events: |-
+      [
+        {"type":"updateSlot","time":1,"slot":0,"status":"succeeded","stats":{"tuplesOut":5}},
+        {"type":"updateSlot","time":1,"slot":1,"status":"succeeded","stats":{"tuplesIn":5,"tuplesOut":5}},
+        {"type":"updateSlot","time":1,"slot":2,"status":"succeeded","stats":{"tuplesIn":5,"tuplesOut":5}},
+        {"type":"updateSlot","time":2,"slot":3,"status":"succeeded","stats":{"tuplesOut":7}},
+        {"type":"updateSlot","time":2,"slot":4,"status":"succeeded","stats":{"tuplesIn":7,"tuplesOut":7}},
+        {"type":"updateSlot","time":2,"slot":5,"status":"succeeded","stats":{"tuplesIn":7,"tuplesOut":7}}
+      ]
+  # A pipeline inside a federate and a pipeline across it: operators 0 scan, 1 federate, 2 execution target;
+  # fragments 0 the hidden root (execution target), 1 the federate (scan and federate); slots 0 scan, 1 federate
+  # (sink), 2 federate (source), 3 execution target (sink). The pipeline inside the federate counts as a whole, also
+  # what is reported for the pipeline itself (40 µs), the pipeline across it with its slots, and its own report
+  # (1000 µs) reaches no fragment
+  - name: pipelines_inside_and_across_a_federate
+    plan: |-
+      {"operator":"executiontarget","operatorId":1,
+       "input":{"operator":"federate","operatorId":2,"inputs":[{"operator":"tablescan","operatorId":3}]},
+       "pipelines":[{"pipelineId":1,"operators":[3,2]},{"pipelineId":2,"operators":[2,1]}]}
+    events: |-
+      [
+        {"type":"updateSlot","time":1,"slot":0,"status":"succeeded","stats":{"cpuTimeUs":5}},
+        {"type":"updateSlot","time":1,"slot":1,"status":"succeeded","stats":{"cpuTimeUs":3}},
+        {"type":"updatePipeline","time":2,"pipeline":0,"stats":{"cpuTimeUs":40}},
+        {"type":"updateSlot","time":3,"slot":2,"status":"running","stats":{"cpuTimeUs":2}},
+        {"type":"updateSlot","time":3,"slot":3,"status":"running","stats":{"cpuTimeUs":1}},
+        {"type":"updatePipeline","time":4,"pipeline":1,"stats":{"cpuTimeUs":1000}}
+      ]
+  # The output of a fragment is the output of its root operator: the tuples that a pipeline reports do not reach the
+  # fragment while the root operator knows none, its status and times do
+  - name: fragment_output_from_root_operator_only
+    plan: |-
+      {"operator":"executiontarget","operatorId":1,"input":{"operator":"tablescan","operatorId":2},
+       "pipelines":[{"pipelineId":1,"operators":[2,1]}]}
+    events: |-
+      [
+        {"type":"updatePipeline","time":1,"pipeline":0,"status":"succeeded","stats":{"tuplesOut":10,"cpuTimeUs":4}},
+        {"type":"updateOperator","time":2,"operator":1,"stats":{"tuplesOut":9}}
+      ]
+  # The life of a query in four polls: nothing started, the first pipeline running, the first pipeline done and the
+  # second running, all done. Plan and slots of join_in_two_pipelines; statuses only, every change is an update
+  - name: lifecycle_statuses
+    plan: |-
+      {"operator":"executiontarget","operatorId":1,
+       "input":{"operator":"join","operatorId":2,
+         "left":{"operator":"tablescan","operatorId":3},
+         "right":{"operator":"tablescan","operatorId":4}},
+       "pipelines":[{"pipelineId":1,"operators":[3,2]},{"pipelineId":2,"operators":[4,2,1]}]}
+    events: |-
+      [
+        {"type":"updateSlot","time":1,"slot":0,"status":"pending"},
+        {"type":"updateSlot","time":1,"slot":1,"status":"pending"},
+        {"type":"updateSlot","time":1,"slot":2,"status":"pending"},
+        {"type":"updateSlot","time":1,"slot":3,"status":"pending"},
+        {"type":"updateSlot","time":1,"slot":4,"status":"pending"},
+        {"type":"updateSlot","time":2,"slot":0,"status":"running"},
+        {"type":"updateSlot","time":2,"slot":1,"status":"running"},
+        {"type":"updateSlot","time":3,"slot":0,"status":"succeeded"},
+        {"type":"updateSlot","time":3,"slot":1,"status":"succeeded"},
+        {"type":"updateSlot","time":3,"slot":2,"status":"running"},
+        {"type":"updateSlot","time":4,"slot":2,"status":"succeeded"},
+        {"type":"updateSlot","time":4,"slot":3,"status":"succeeded"},
+        {"type":"updateSlot","time":4,"slot":4,"status":"succeeded"}
+      ]
+  # A pipeline registered at runtime without slots stays unknown, the operators alone make the fragment run. Once the
+  # pipeline is reported, it counts as a pipeline of its fragment: its failure fails the fragment and the query
+  - name: register_pipeline_without_slots
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"registerPipeline","time":1,"engineId":"empty","fragment":0,"slots":[]},
+        {"type":"updateOperator","time":1,"operator":0,"status":"running","stats":{"tuplesOut":2}},
+        {"type":"updatePipeline","time":2,"pipeline":0,"status":"failed"}
+      ]

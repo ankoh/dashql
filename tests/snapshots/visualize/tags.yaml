@@ -284,3 +284,107 @@ visualize-snapshots:
           "$sql": "VALUES (1, 'a'), (2, 'b')"
         }
       }
+
+  - name: tags_kind_needs_whitespace
+    script:
+      input: |
+        /* @vis vegalite{"mark": "bar"}
+           @vis table */
+        SELECT 1 AS a;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        }
+      }
+
+  - name: tags_tab_after_kind
+    script:
+      input: |
+        /* @vis vegalite	{"mark": "bar"} */
+        SELECT 1 AS a;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        },
+        "mark": "bar"
+      }
+
+  - name: tags_board_on_the_line_of_vis
+    script:
+      input: |
+        /* @vis table @board width=3 height=2 */
+        SELECT 1 AS a;
+    dashboard:
+      width: 6
+      height: 6
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        }
+      }
+
+  - name: tags_table_args_ignored
+    script:
+      input: |
+        /* @vis table {"mark": "bar"} */
+        SELECT 1 AS a;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        }
+      }
+
+  - name: tags_explain_and_returning_skipped
+    script:
+      input: |
+        /* @vis table */
+        EXPLAIN SELECT 1 AS a;
+        /* @vis vegalite {"mark": "bar"} */
+        INSERT INTO t VALUES (1) RETURNING a;
+        /* @vis vegalite {"mark": "line"} */
+        SELECT 2 AS a;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 2 AS a"
+        },
+        "mark": "line"
+      }
+
+  - name: tags_parenthesized_query
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar"} */
+        (SELECT 1 AS a) ORDER BY a LIMIT 10;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "(SELECT 1 AS a) ORDER BY a LIMIT 10"
+        },
+        "mark": "bar"
+      }
+
+  - name: tags_last_statement_without_semicolon
+    script:
+      input: |
+        SELECT 0 AS a;
+        /* @vis vegalite {"mark": "bar"} */
+        SELECT 1 AS a
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        },
+        "mark": "bar"
+      }

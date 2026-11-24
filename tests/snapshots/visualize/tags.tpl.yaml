@@ -161,3 +161,63 @@ visualize-snapshots:
       input: |
         /* @vis table */
         VALUES (1, 'a'), (2, 'b');
+
+  # The kind of a @vis tag ends at whitespace: a spec right after the kind makes an unknown kind, the @vis table after
+  # it is the renderer
+  - name: tags_kind_needs_whitespace
+    script:
+      input: |
+        /* @vis vegalite{"mark": "bar"}
+           @vis table */
+        SELECT 1 AS a;
+
+  # Tabs separate the kind of a @vis tag from its spec like spaces
+  - name: tags_tab_after_kind
+    script:
+      input: |
+        /* @vis vegalite	{"mark": "bar"} */
+        SELECT 1 AS a;
+
+  # A tag starts at the start of a line: a @board after the kind of a @vis table is an arg of the table, which is
+  # ignored, and places nothing
+  - name: tags_board_on_the_line_of_vis
+    script:
+      input: |
+        /* @vis table @board width=3 height=2 */
+        SELECT 1 AS a;
+    dashboard:
+      width: 6
+      height: 6
+
+  # The args of @vis table are ignored, the statement is still a table
+  - name: tags_table_args_ignored
+    script:
+      input: |
+        /* @vis table {"mark": "bar"} */
+        SELECT 1 AS a;
+
+  # The rows of EXPLAIN and of INSERT ... RETURNING are not visualized, only the SELECT after them
+  - name: tags_explain_and_returning_skipped
+    script:
+      input: |
+        /* @vis table */
+        EXPLAIN SELECT 1 AS a;
+        /* @vis vegalite {"mark": "bar"} */
+        INSERT INTO t VALUES (1) RETURNING a;
+        /* @vis vegalite {"mark": "line"} */
+        SELECT 2 AS a;
+
+  # A query in parentheses with an ORDER BY after them is visualized as a whole
+  - name: tags_parenthesized_query
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar"} */
+        (SELECT 1 AS a) ORDER BY a LIMIT 10;
+
+  # The last statement of a script without a semicolon
+  - name: tags_last_statement_without_semicolon
+    script:
+      input: |
+        SELECT 0 AS a;
+        /* @vis vegalite {"mark": "bar"} */
+        SELECT 1 AS a

@@ -648,3 +648,170 @@ visualize-snapshots:
                 field: a
               - type: text
                 value: "\n"
+
+  - name: vis_markdown_autolinks
+    script:
+      input: |
+        /* @vis markdown
+           <HTTP://EXAMPLE.COM/x> <javascript:alert(1)> <ftp://host/x> <a.b@example.com>
+        */
+        SELECT 1 AS a;
+    markdown:
+      template: '<HTTP://EXAMPLE.COM/x> <javascript:alert(1)> <ftp://host/x> <a.b@example.com>'
+      fields: []
+      document:
+        type: document
+        children:
+          - type: paragraph
+            children:
+              - type: link
+                url: 'HTTP://EXAMPLE.COM/x'
+                children:
+                  - type: text
+                    value: 'HTTP://EXAMPLE.COM/x'
+              - type: text
+                value: " "
+              - type: span
+                children:
+                  - type: text
+                    value: 'javascript:alert(1)'
+              - type: text
+                value: " "
+              - type: span
+                children:
+                  - type: text
+                    value: 'ftp://host/x'
+              - type: text
+                value: " "
+              - type: link
+                url: 'mailto:a.b@example.com'
+                children:
+                  - type: text
+                    value: a.b@example.com
+
+  - name: vis_markdown_image_in_link
+    script:
+      input: |
+        /* @vis markdown
+           [![{{a}}](https://example.com/a.png)](https://example.com/{{b}})
+           [![logo](https://example.com/b.png "Logo")](https://example.com)
+        */
+        SELECT 1 AS a, 2 AS b;
+    markdown:
+      template: |-
+        [![{{a}}](https://example.com/a.png)](https://example.com/{{b}})
+        [![logo](https://example.com/b.png "Logo")](https://example.com)
+      fields:
+        - a
+        - b
+      document:
+        type: document
+        children:
+          - type: paragraph
+            children:
+              - type: span
+                children:
+                  - type: image
+                    url: 'https://example.com/a.png'
+                    children:
+                      - type: field
+                        field: a
+              - type: text
+                value: "\n"
+              - type: link
+                url: 'https://example.com'
+                children:
+                  - type: image
+                    url: 'https://example.com/b.png'
+                    title: Logo
+                    children:
+                      - type: text
+                        value: logo
+
+  - name: vis_markdown_setext_h2_and_rules
+    script:
+      input: |
+        /* @vis markdown
+           Title {{a}}
+           ---
+
+           ***
+
+           ___
+        */
+        SELECT 1 AS a;
+    markdown:
+      template: |-
+        Title {{a}}
+        ---
+
+        ***
+
+        ___
+      fields:
+        - a
+      document:
+        type: document
+        children:
+          - type: heading
+            level: 2
+            children:
+              - type: text
+                value: "Title "
+              - type: field
+                field: a
+          - type: thematicBreak
+          - type: thematicBreak
+
+  - name: vis_markdown_indented_code_and_quoted_list
+    script:
+      input: |
+        /* @vis markdown
+           Code:
+
+               let x = {{a}};
+
+           > - {{b}}
+           > - two
+        */
+        SELECT 1 AS a, 2 AS b;
+    markdown:
+      template: |-
+        Code:
+
+            let x = {{a}};
+
+        > - {{b}}
+        > - two
+      fields:
+        - a
+        - b
+      document:
+        type: document
+        children:
+          - type: paragraph
+            children:
+              - type: text
+                value: 'Code:'
+          - type: codeBlock
+            children:
+              - type: text
+                value: "let x = "
+              - type: field
+                field: a
+              - type: text
+                value: ";\n"
+          - type: blockquote
+            children:
+              - type: list
+                ordered: false
+                tight: true
+                children:
+                  - type: listItem
+                    children:
+                      - type: field
+                        field: b
+                  - type: listItem
+                    children:
+                      - type: text
+                        value: two

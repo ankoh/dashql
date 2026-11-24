@@ -343,3 +343,58 @@ visualize-snapshots:
           "$sql": "SELECT 1 AS a"
         }
       }
+
+  - name: board_zero_coordinates_full_width
+    script:
+      input: |
+        /* @vis table
+           @board row=0 column=0 width=12 */
+        SELECT 1 AS a;
+    dashboard:
+      row: 0
+      column: 0
+      width: 12
+      height: 6
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        }
+      }
+
+  - name: board_column_exact_fit
+    script:
+      input: |
+        /* @vis table
+           @board column=6 width=6 */
+        SELECT 1 AS a;
+    dashboard:
+      column: 6
+      width: 6
+      height: 6
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        }
+      }
+
+  - name: board_column_only
+    script:
+      input: |
+        /* @vis table
+           @board column=9 */
+        SELECT 1 AS a;
+    dashboard:
+      column: 6
+      width: 6
+      height: 6
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        }
+      }

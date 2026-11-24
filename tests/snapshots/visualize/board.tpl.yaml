@@ -220,3 +220,40 @@ visualize-snapshots:
       row: 1
       width: 4
       height: 6
+
+  # Zero is a valid row and column, a width of 12 fills the grid
+  - name: board_zero_coordinates_full_width
+    script:
+      input: |
+        /* @vis table
+           @board row=0 column=0 width=12 */
+        SELECT 1 AS a;
+    dashboard:
+      row: 0
+      column: 0
+      width: 12
+      height: 6
+
+  # A card that ends exactly at the edge of the grid stays in its column
+  - name: board_column_exact_fit
+    script:
+      input: |
+        /* @vis table
+           @board column=6 width=6 */
+        SELECT 1 AS a;
+    dashboard:
+      column: 6
+      width: 6
+      height: 6
+
+  # A column alone is moved left by the default width
+  - name: board_column_only
+    script:
+      input: |
+        /* @vis table
+           @board column=9 */
+        SELECT 1 AS a;
+    dashboard:
+      column: 6
+      width: 6
+      height: 6

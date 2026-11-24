@@ -95,3 +95,15 @@ visualize-snapshots:
     dashboard:
       width: 3
       height: 3
+
+  # A @board before the @vis kpi places the card with the size of a KPI card
+  - name: kpi_board_before_vis
+    script:
+      input: |
+        /* @board column=11
+           @vis kpi value=a */
+        SELECT 1 AS a;
+    dashboard:
+      column: 9
+      width: 3
+      height: 3

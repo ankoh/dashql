@@ -1,0 +1,261 @@
+diff-snapshots:
+
+  - name: operator_spelling_kept
+    source: |-
+      select a, b, c, d, e, f from t where x <> 1;
+    target: |-
+      select a, b, c, d, e, f from t where x != 1;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a, ..ere x != 1"
+
+  - name: boolean_literal_case
+    source: |-
+      select a, b, c, d, e, f from t where x = true;
+    target: |-
+      select a, b, c, d, e, f from t where x = TRUE;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a, ..e x = TRUE"
+
+  - name: interval_literal_case
+    source: |-
+      select a, b, c, d, e, f from t where x > interval '1' day;
+    target: |-
+      select a, b, c, d, e, f from t where x > INTERVAL '1' DAY;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a, ..AL '1' DAY"
+
+  - name: quoted_lowercase_name_is_unquoted
+    source: |-
+      select a, b from t;
+    target: |-
+      select "a", b from "t";
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select \"a\"..b from \"t\""
+
+  - name: update_integer_leading_zero
+    source: |-
+      select a, b, c, d, e, f from t where x = 7;
+    target: |-
+      select a, b, c, d, e, f from t where x = 007;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "007"
+
+  - name: update_literal_negated
+    source: |-
+      select a, b, c, d, e, f from t where x = 1;
+    target: |-
+      select a, b, c, d, e, f from t where x = -1;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "-1"
+
+  - name: update_cast_type
+    source: |-
+      select a, b, c, d, e, cast(f as int) from t;
+    target: |-
+      select a, b, c, d, e, cast(f as bigint) from t;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "bigint"
+
+  - name: update_in_list_value_added
+    source: |-
+      select a, b, c, d from t where x in (1, 2, 3);
+    target: |-
+      select a, b, c, d from t where x in (1, 2, 3, 4);
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "4"
+
+  - name: update_inside_cte
+    source: |-
+      with recent as (select a, b, c from t where day > 7) select a, b, c from recent;
+    target: |-
+      with recent as (select a, b, c from t where day > 30) select a, b, c from recent;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "30"
+
+  - name: update_window_order
+    source: |-
+      select a, b, c, row_number() over (partition by a order by b) from t;
+    target: |-
+      select a, b, c, row_number() over (partition by a order by c) from t;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "c"
+
+  - name: update_nested_boolean_expression
+    source: |-
+      select a, b, c from t where (x = 1 and (y = 2 or (z = 3 and w = 4)));
+    target: |-
+      select a, b, c from t where (x = 1 and (y = 2 or (z = 3 and w = 5)));
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "5"
+
+  - name: line_comment_inside_statement_changed
+    source: |-
+      select a, -- the first
+        b from t;
+    target: |-
+      select a, -- the first column of t
+        b from t;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a, ..  b from t"
+
+  - name: update_quoted_unicode_name
+    source: |-
+      select a, b, c, d, e, "Straße" from t;
+    target: |-
+      select a, b, c, d, e, "Strasse" from t;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "\"Strasse\""
+
+  - name: update_dml_update
+    source: |-
+      update t set a = 1, b = 2, c = 3 where id = 5;
+    target: |-
+      update t set a = 1, b = 2, c = 3 where id = 6;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "6"
+
+  - name: update_insert_row_added
+    source: |-
+      insert into t values (1, 'a'), (2, 'b'), (3, 'c');
+    target: |-
+      insert into t values (1, 'a'), (2, 'b'), (3, 'c'), (4, 'd');
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "4, 'd'"
+
+  - name: delete_to_update_statement
+    source: |-
+      delete from t where id = 5;
+    target: |-
+      update t set a = 1 where id = 5;
+    expected:
+      ops:
+        - code: DELETE
+          source-statement: 0
+          source-span: "delete fro..ere id = 5"
+        - code: INSERT
+          target-statement: 0
+          target-span: "update t s..ere id = 5"
+
+  - name: threshold_column_added_to_two
+    source: |-
+      select a, b from t;
+    target: |-
+      select a, b, c from t;
+    expected:
+      ops:
+        - code: DELETE
+          source-statement: 0
+          source-span: "select a, b from t"
+        - code: INSERT
+          target-statement: 0
+          target-span: "select a, .., c from t"
+
+  - name: threshold_column_added_to_three
+    source: |-
+      select a, b, c from t;
+    target: |-
+      select a, b, c, d from t;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "d"
+
+  - name: threshold_where_added_to_four_columns
+    source: |-
+      select a, b, c, d from t;
+    target: |-
+      select a, b, c, d from t where x = 1;
+    expected:
+      ops:
+        - code: DELETE
+          source-statement: 0
+          source-span: "select a, .., d from t"
+        - code: INSERT
+          target-statement: 0
+          target-span: "select a, ..here x = 1"
+
+  - name: threshold_where_added_to_five_columns
+    source: |-
+      select a, b, c, d, e from t;
+    target: |-
+      select a, b, c, d, e from t where x = 1;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "x = 1"

@@ -1,0 +1,162 @@
+diff-snapshots:
+  # The parser reads <> and != as the same operator: KEEP
+  - name: operator_spelling_kept
+    source: |
+      select a, b, c, d, e, f from t where x <> 1;
+
+    target: |
+      select a, b, c, d, e, f from t where x != 1;
+
+  # A boolean literal in another case is the same value: KEEP
+  - name: boolean_literal_case
+    source: |
+      select a, b, c, d, e, f from t where x = true;
+
+    target: |
+      select a, b, c, d, e, f from t where x = TRUE;
+
+  # An interval literal with its keywords in another case: KEEP
+  - name: interval_literal_case
+    source: |
+      select a, b, c, d, e, f from t where x > interval '1' day;
+
+    target: |
+      select a, b, c, d, e, f from t where x > INTERVAL '1' DAY;
+
+  # A quoted name in lower case is the unquoted name: the trees are equal, KEEP
+  - name: quoted_lowercase_name_is_unquoted
+    source: |
+      select a, b from t;
+
+    target: |
+      select "a", b from "t";
+
+  # Integers compare by their text: a leading zero is a change
+  - name: update_integer_leading_zero
+    source: |
+      select a, b, c, d, e, f from t where x = 7;
+
+    target: |
+      select a, b, c, d, e, f from t where x = 007;
+
+  # A literal that becomes negative: the sign is part of the changed span
+  - name: update_literal_negated
+    source: |
+      select a, b, c, d, e, f from t where x = 1;
+
+    target: |
+      select a, b, c, d, e, f from t where x = -1;
+
+  # The type of a cast changes
+  - name: update_cast_type
+    source: |
+      select a, b, c, d, e, cast(f as int) from t;
+
+    target: |
+      select a, b, c, d, e, cast(f as bigint) from t;
+
+  # A value appended to an IN list is an addition of the list
+  - name: update_in_list_value_added
+    source: |
+      select a, b, c, d from t where x in (1, 2, 3);
+
+    target: |
+      select a, b, c, d from t where x in (1, 2, 3, 4);
+
+  # A change inside a common table expression
+  - name: update_inside_cte
+    source: |
+      with recent as (select a, b, c from t where day > 7) select a, b, c from recent;
+
+    target: |
+      with recent as (select a, b, c from t where day > 30) select a, b, c from recent;
+
+  # The order of a window changes
+  - name: update_window_order
+    source: |
+      select a, b, c, row_number() over (partition by a order by b) from t;
+
+    target: |
+      select a, b, c, row_number() over (partition by a order by c) from t;
+
+  # A changed predicate deep in nested boolean expressions
+  - name: update_nested_boolean_expression
+    source: |
+      select a, b, c from t where (x = 1 and (y = 2 or (z = 3 and w = 4)));
+
+    target: |
+      select a, b, c from t where (x = 1 and (y = 2 or (z = 3 and w = 5)));
+
+  # A line comment inside a statement changes, the tree does not: KEEP
+  - name: line_comment_inside_statement_changed
+    source: |
+      select a, -- the first
+        b from t;
+
+    target: |
+      select a, -- the first column of t
+        b from t;
+
+  # A quoted non-ASCII name is renamed
+  - name: update_quoted_unicode_name
+    source: |
+      select a, b, c, d, e, "Straße" from t;
+
+    target: |
+      select a, b, c, d, e, "Strasse" from t;
+
+  # The value of an UPDATE statement changes
+  - name: update_dml_update
+    source: |
+      update t set a = 1, b = 2, c = 3 where id = 5;
+
+    target: |
+      update t set a = 1, b = 2, c = 3 where id = 6;
+
+  # A row appended to the VALUES of an INSERT
+  - name: update_insert_row_added
+    source: |
+      insert into t values (1, 'a'), (2, 'b'), (3, 'c');
+
+    target: |
+      insert into t values (1, 'a'), (2, 'b'), (3, 'c'), (4, 'd');
+
+  # A DELETE becomes an UPDATE of the same table: different statement kinds
+  - name: delete_to_update_statement
+    source: |
+      delete from t where id = 5;
+
+    target: |
+      update t set a = 1 where id = 5;
+
+  # The threshold of an UPDATE: a column added to two columns changes too much of the statement, DELETE + INSERT
+  - name: threshold_column_added_to_two
+    source: |
+      select a, b from t;
+
+    target: |
+      select a, b, c from t;
+
+  # The threshold of an UPDATE: a column added to three columns is the smallest such statement that updates
+  - name: threshold_column_added_to_three
+    source: |
+      select a, b, c from t;
+
+    target: |
+      select a, b, c, d from t;
+
+  # The threshold of an UPDATE: a where clause added to four columns changes too much, DELETE + INSERT
+  - name: threshold_where_added_to_four_columns
+    source: |
+      select a, b, c, d from t;
+
+    target: |
+      select a, b, c, d from t where x = 1;
+
+  # The threshold of an UPDATE: a where clause added to five columns updates, the whole clause is the change
+  - name: threshold_where_added_to_five_columns
+    source: |
+      select a, b, c, d, e from t;
+
+    target: |
+      select a, b, c, d, e from t where x = 1;

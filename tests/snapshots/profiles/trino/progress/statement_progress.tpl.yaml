@@ -22,3 +22,6 @@ trino-progress-snapshots:
   # query finishes
   - name: handwritten_operator_summaries
     recording: handwritten_operator_summaries
+  # A recording without statement polls: no fragments and no updates
+  - name: handwritten_plan_shapes_without_polls
+    recording: handwritten_plan_shapes
