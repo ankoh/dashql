@@ -2097,6 +2097,20 @@ impl<'c, 'a> Completion<'c, 'a> {
             }
         }
 
+        // The column list of an INSERT takes bare names only
+        if self.in_insert_column_list() {
+            for top in &self.top_candidates {
+                for &co in &top.catalog_objects {
+                    if let Some(object) = self.candidate_objects.get_mut(co) {
+                        if matches!(object.object, CandidateObjectRef::Column(_)) {
+                            object.prefer_qualified = false;
+                        }
+                    }
+                }
+            }
+            return;
+        }
+
         // Qualify column candidates with the aliases of the table refs that the cursor sees, an aliased join qualifies
         // the columns of the FROM items inside it with its alias
         let Some(analyzed) = self.analyzed() else { return };
@@ -2190,6 +2204,19 @@ impl<'c, 'a> Completion<'c, 'a> {
                 }
             }
         }
+    }
+
+    /// Is the cursor in the column list of an INSERT, also of the INSERT of a MERGE?
+    fn in_insert_column_list(&self) -> bool {
+        let Some(parsed) = self.cursor.script.parsed else { return false };
+        self.cursor.ast_path_to_root.iter().any(|&node| {
+            parsed.nodes.get(node as usize).is_some_and(|node| {
+                matches!(
+                    node.attribute_key(),
+                    AttributeKey::SQL_INSERT_COLUMNS | AttributeKey::SQL_MERGE_ACTION_COLUMNS
+                )
+            })
+        })
     }
 
     /// Derive keyword continuations of the top candidates

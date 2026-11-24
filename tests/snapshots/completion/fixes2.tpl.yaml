@@ -157,3 +157,19 @@ completion-snapshots:
         index: 6
     completions:
       limit: 5
+
+  # A column in the column list of INSERT with an aliased target is never qualified
+  - name: fix_insert_alias_column_list
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        insert into t as x (na) values (1)
+    cursor:
+      search:
+        text: '(na'
+        index: 3
+    completions:
+      limit: 5

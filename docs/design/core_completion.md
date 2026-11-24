@@ -261,6 +261,8 @@ Ties are broken lexicographically (case-insensitive, smaller name wins).
 `qualify_top_candidates()` derives qualified names for the winners (e.g. `schema.table` instead of just `table`) when the catalog object prefers qualification.
 A column of a table ref that the cursor sees is qualified with the alias of the table ref, with the name that the column aliases of the table ref give it (`x.p` in `from t as x(p, q)`). Outside of an aliased join, the alias of the join qualifies the columns of the FROM items inside it, `j.a` instead of `t.a`, with the name that the column aliases of the join give it. The table refs that the cursor doesn't see qualify nothing, the target of MERGE in a `WHEN NOT MATCHED` clause. A table that several table refs of the innermost scope read, a self-join `from t l join t r`, gives a column a catalog object for each of them, `l.name` and `r.name`, that prefer the qualified name; after a dot, the FROM item that the qualifier names qualifies the columns, `r.a` after `r.`.
 
+The column list of an INSERT, also of the INSERT of a MERGE, takes bare names only: its columns never prefer the qualified name, `insert into t as x (na` offers `name` and not `x.name`.
+
 ## Candidate info
 
 `CandidateInfo` is what the pane of a list shows about a candidate:
