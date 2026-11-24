@@ -1598,7 +1598,7 @@ planner-snapshots:
         - name: explain
           text-version: 1
           analyzed-text-version: 1
-          analyzed-catalog-revision: 2
+          analyzed-catalog-revision: 3
           cacheable: false
           terminal-statement-id: 3
           signature: "233fedba2c095dd7b8186f72a37338815d065676574a3999569dee42083fbdea"

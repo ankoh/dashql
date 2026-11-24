@@ -611,7 +611,7 @@ planner-snapshots:
         - name: queries
           text-version: 1
           analyzed-text-version: 1
-          analyzed-catalog-revision: 2
+          analyzed-catalog-revision: 3
           cacheable: false
           terminal-statement-id: 2
           signature: "4dccd8fe1109bd3a3d2ae14d3649eb265c10ff722d71d606a28ffc41ed601c14"

@@ -217,6 +217,22 @@ analyzer-snapshots:
         explain (analyze) create table z as select 1;
         explain create table w as select 1;
       catalog-id: 1
+      tables:
+        - catalog-id: "256.65536.1:0"
+          name: x
+          text: "create tab..s select 1"
+          columns:
+            - {catalog-id: "256.65536.1:0.0", name: '?column?'}
+        - catalog-id: "256.65536.1:1"
+          name: y
+          text: "create tab..s select 1"
+          columns:
+            - {catalog-id: "256.65536.1:1.0", name: '?column?'}
+        - catalog-id: "256.65536.1:2"
+          name: z
+          text: "create tab..s select 1"
+          columns:
+            - {catalog-id: "256.65536.1:2.0", name: '?column?'}
       touched-relations:
         - {statement-id: 0, name: x}
         - {statement-id: 1, name: y}
