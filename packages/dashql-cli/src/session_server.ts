@@ -94,12 +94,21 @@ function pathToken(url: URL): string | null {
     return parts[1] === 'v1' && routes.includes(parts[2] ?? '') ? decodePart(parts[3] ?? '') : null;
 }
 
+/// The path of a file of a workbook folder by its path in the folder, the parts of a URL without their escapes. Null
+/// for a file that the server doesn't hand out and for a path that leaves the folder: no part is `.` or `..` or holds a
+/// backslash, which Windows takes for a separator, or a NUL.
+function workbookFilePath(folder: string, parts: string[]): string | null {
+    const relative = parts.join('/');
+    if (!WORKBOOK_FILE.test(relative) || parts.some(part => part === '..' || part === '.' || /[\\\0]/.test(part))) return null;
+    const root = path.resolve(folder);
+    const file = path.resolve(root, ...parts);
+    return file.startsWith(root + path.sep) ? file : null;
+}
+
 /// A file of a workbook folder by its path in the folder, null unless the folder holds it and the server hands it out
 function workbookFile(folder: string, parts: string[]): string | null {
-    const relative = parts.join('/');
-    if (!WORKBOOK_FILE.test(relative) || parts.some(part => part === '..' || part === '.')) return null;
-    const file = path.resolve(folder, ...parts);
-    if (!file.startsWith(folder + path.sep)) return null;
+    const file = workbookFilePath(folder, parts);
+    if (file == null) return null;
     try {
         return statSync(file).isFile() ? file : null;
     } catch {
@@ -427,12 +436,12 @@ export async function startSessionServer(options: SessionServerOptions): Promise
                 response.writeHead(204).end();
                 return;
             }
-            const relative = (parts as string[]).join('/');
-            if (!WORKBOOK_FILE.test(relative) || parts.some(part => part === '..' || part === '.')) {
+            // The same files as the route of GET hands out, inside the folder of the copy
+            const file = workbookFilePath(copy, parts as string[]);
+            if (file == null) {
                 response.writeHead(400).end();
                 return;
             }
-            const file = path.join(copy, ...(parts as string[]));
             if (request.method === 'DELETE') {
                 rmSync(file, { force: true });
                 stampCopy(workbookId);

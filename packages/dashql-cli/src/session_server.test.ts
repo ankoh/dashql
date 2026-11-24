@@ -114,6 +114,10 @@ describe('the session server', () => {
         // Only the files of a workbook folder, only with the token, only into the folder of the copy
         expect((await fetchAgentSession(`${base}/secret.txt`, { method: 'PUT', body: 'no' })).status).toBe(400);
         expect((await fetchAgentSession(`${base}/scripts/..%2F..%2Fx.sql`, { method: 'PUT', body: 'no' })).status).toBe(400);
+        // A backslash is a separator on Windows
+        expect((await fetchAgentSession(`${base}/scripts/..%5C..%5Cx.sql`, { method: 'PUT', body: 'no' })).status).toBe(400);
+        expect((await fetchAgentSession(`${base}/scripts/..%5C..%5Cdashql-workbook.json`, { method: 'DELETE' })).status).toBe(400);
+        expect((await fetchAgentSession(`${base}/scripts/a%00.sql`, { method: 'PUT', body: 'no' })).status).toBe(400);
         expect((await fetchAgentSession(`http://127.0.0.1:${server.port}/v1/workbooks/${server.token}/..%2Fx/scripts/a.sql`, { method: 'PUT', body: 'no' })).status).toBe(400);
         expect((await fetchAgentSession(`http://127.0.0.1:${server.port}/v1/workbooks/wrong/w1/scripts/a.sql`, { method: 'PUT', body: 'no' })).status).toBe(401);
         // Only the files of a copy go out, only with the token
