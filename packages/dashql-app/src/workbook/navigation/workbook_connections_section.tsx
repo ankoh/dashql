@@ -10,7 +10,7 @@ import { PlusIcon } from '@akohn/dashql-react/components/symbol_icon';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { newConnectionFromParams, createAttachedConnectionParamsForConnector } from '@akohn/dashql/platform/connections/connection_params';
 import { CONNECTOR_INFOS, type ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { isCloudPreview, scriptsOnConnection, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { ATTACHABLE_CONNECTORS } from '../../connections/attached_connection.js';
 import { useCloudConnectionIds, useSetCloudConnection } from '../../connections/cloud_connection.js';
 import { useDeleteConnection } from '../../connections/connection_deletion.js';
@@ -75,25 +75,17 @@ export const WorkbookConnectionsSection: React.FC<Props> = ({ workbookScripts, o
         () => new Set(workbookConnectionRows.map(database => database.connectionId)),
         [workbookConnectionRows],
     );
+    // The runtime decides which workbooks keep a connection. The views of the connections and of the workbooks don't
+    // enter the callback, a change of them changes what the runtime answers: the tree asks again.
     const describeUsage = React.useCallback((connectionId: string): ConnectionUsage => {
-        const workbookIds = (connections.get(connectionId)?.workbooks ?? []).filter(workbookId => {
-            const scripts = scriptsRegistry.get(workbookId);
-            return scripts == null || (!scripts.ephemeral && !isCloudPreview(scripts));
-        });
-        const database = connections.get(connectionId);
-        const scriptsOf = (workbookId: string) => {
-            const scripts = scriptsRegistry.get(workbookId);
-            return scripts == null ? 0 : scriptsOnConnection(scripts, connectionId);
-        };
+        const usage = runtime.connectionUsage(connectionId);
         return {
-            workbookCount: workbookIds.length,
-            // The workbooks fall back to the embedded Hyper, every workbook that uses it keeps it
-            blockingWorkbookCount: database != null && database.embedded
-                ? workbookIds.length
-                : workbookIds.filter(workbookId => scriptsOf(workbookId) > 0).length,
+            workbookCount: usage.workbookCount,
+            blockingWorkbookCount: usage.blockingWorkbookCount,
             usedHere: workbookConnectionRows.some(database => database.connectionId === connectionId),
         };
-    }, [connections, workbookConnectionRows, scriptsRegistry]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [runtime, connections, workbookConnectionRows, scriptsRegistry]);
     const initiallyExpanded = React.useCallback((database: ConnectionState, _count: number) => (
         workbookConnectionRows.includes(database)
         && isConnectionInitiallyExpanded(database, workbookConnectionRows.length)
@@ -121,11 +113,11 @@ export const WorkbookConnectionsSection: React.FC<Props> = ({ workbookScripts, o
         // A blank name restores the default label
         rename: (connectionId, name) => runtime.dispatch({ connection: connectionId }, { kind: 'rename', value: { name } }),
         refreshCatalog: connectionId => runtime.refreshCatalog(connectionId, true),
-        // Delete a connection that no script uses, other than the embedded Hyper that workbooks fall back to. The
-        // workbooks whose new scripts default to the connection are detached from it first.
+        // Delete a connection that the runtime lets the user delete. The workbooks whose new scripts default to the
+        // connection are detached from it first.
         delete: connectionId => {
             const database = connections.get(connectionId);
-            if (database == null || database.embedded || describeUsage(connectionId).blockingWorkbookCount > 0) return;
+            if (database == null || !runtime.connectionUsage(connectionId).deletable) return;
             if (!window.confirm(`Delete the connection "${labelOf(database).text}"?`)) return;
             detachConnectionFromWorkbooks(connectionId)
                 .then(() => shutDownAndDeleteConnection(connectionId))

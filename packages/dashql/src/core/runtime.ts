@@ -104,6 +104,7 @@ export type {
     ConnectionAction,
     WorkbookAction,
     DispatchOutcome,
+    ConnectionUsageView,
     ChangeSet,
     SliceChange,
     HandleEffect,

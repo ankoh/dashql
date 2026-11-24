@@ -293,11 +293,14 @@ describe('the workbooks of the runtime', () => {
         expect(rt.connection(OTHER_CONNECTION_ID).workbooks).toEqual([workbook.workbookId]);
         // A connection that a workbook uses is never deleted
         expect(rt.dispatch({ connection: OTHER_CONNECTION_ID }, { kind: 'deleteConnection' }).ok).toBe(false);
+        // The workbook runs a script on the connection, it keeps the connection
+        expect(rt.connectionUsage(OTHER_CONNECTION_ID)).toEqual({ workbookCount: 1, blockingWorkbookCount: 1, deletable: false });
 
         // Without the workbook, the connections are free
         rt.deleteWorkbook(workbook.workbookId);
         expect(rt.store.get('workbook', workbook.workbookId)).toBeNull();
         expect(rt.connection(TEST_CONNECTION_ID).workbooks).toEqual([]);
+        expect(rt.connectionUsage(OTHER_CONNECTION_ID)).toEqual({ workbookCount: 0, blockingWorkbookCount: 0, deletable: true });
         expect(rt.dispatch({ connection: OTHER_CONNECTION_ID }, { kind: 'deleteConnection' }).ok).toBe(true);
     });
 

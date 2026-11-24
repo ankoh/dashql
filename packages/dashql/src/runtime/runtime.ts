@@ -439,6 +439,14 @@ export class Runtime {
         return await this.settled(this.live().replaceConnections([...sourceIds], targetId));
     }
 
+    /// How the workbooks use a connection and whether the user may delete it: ephemeral workbooks and previews of
+    /// published workbooks don't count, a workbook keeps the connection if it runs scripts on it, every workbook keeps
+    /// the embedded Hyper, which is never deleted. The caller detaches the workbooks whose pending connection it is
+    /// before it deletes the connection.
+    connectionUsage(connectionId: string): core.ConnectionUsageView {
+        return this.live().connectionUsage(connectionId);
+    }
+
     // The setups
 
     /// Set up a connection with its connector: the channel of its params or of the params of the options, then the

@@ -146,6 +146,28 @@ impl ConnectionReplacement {
     }
 }
 
+/// What a workbook that uses a connection is to the connection (`ConnectionRegistry::usage`)
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct WorkbookUse {
+    /// Is the workbook ephemeral or a read-only preview of a published workbook? It doesn't count.
+    pub transient: bool,
+    /// The scripts of the workbook that run on the connection, a workbook whose pending connection it is runs none
+    pub scripts: usize,
+}
+
+/// How the workbooks use a connection, and whether the user may delete it
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct ConnectionUsage {
+    /// The workbooks that use the connection, without the ephemeral ones and the previews of published workbooks
+    pub workbooks: usize,
+    /// The workbooks that keep the connection from being deleted: those that run scripts on it, every one for the
+    /// embedded Hyper, which the workbooks fall back to. A workbook whose pending connection it is lets go of it.
+    pub blocking_workbooks: usize,
+    /// May the user delete the connection? A registered connection other than the embedded Hyper that no workbook
+    /// keeps. The host detaches the workbooks whose pending connection it is before it deletes the connection.
+    pub deletable: bool,
+}
+
 /// The connections of a runtime. A runtime holds few connections, they are a list: a map would grow the module by its
 /// own code.
 pub struct ConnectionRegistry {
@@ -367,6 +389,28 @@ impl ConnectionRegistry {
         Ok(ConnectionReplacement { target: target.to_string(), sources: replaced })
     }
 
+    /// How the workbooks use a connection and whether the user may delete it. `use_of` tells what a workbook that uses
+    /// the connection is to it, none for a workbook that the host doesn't hold: it counts, but runs no script on it.
+    pub fn usage(&self, connection_id: &str, use_of: impl Fn(&str) -> Option<WorkbookUse>) -> ConnectionUsage {
+        let mut usage = ConnectionUsage::default();
+        let embedded = self
+            .get(connection_id)
+            .map(|connection| connection.state.try_borrow().map_or(true, |state| is_hyper_wasm_connection(&state)));
+        for workbook_id in self.workbooks_of(connection_id) {
+            let workbook = use_of(workbook_id).unwrap_or_default();
+            if workbook.transient {
+                continue;
+            }
+            usage.workbooks += 1;
+            // The workbooks fall back to the embedded Hyper, every workbook that uses it keeps it
+            if embedded == Some(true) || workbook.scripts > 0 {
+                usage.blocking_workbooks += 1;
+            }
+        }
+        usage.deletable = embedded == Some(false) && usage.blocking_workbooks == 0;
+        usage
+    }
+
     /// Apply an action to a query of the history of a connection. The id of a new query comes from `next_query_id`.
     pub fn apply_query(&mut self, connection_id: &str, action: QueryExecutionAction) -> Result<RegistryOutcome> {
         let history = self
@@ -427,6 +471,40 @@ mod tests {
         assert!(registry.get("t").is_none());
         assert_eq!(registry.ids(), ["h"]);
         assert!(registry.apply("t", ConnectionAction::Reset, 0.0).is_err());
+    }
+
+    #[test]
+    fn says_which_workbooks_keep_a_connection_from_being_deleted() {
+        let mut registry = ConnectionRegistry::new();
+        registry.insert(trino("t")).unwrap();
+        registry.insert(connection("h", ConnectorType::Hyper, false)).unwrap();
+        let ids = |ids: &[&str]| ids.iter().map(|id| id.to_string()).collect::<Vec<_>>();
+        registry.set_references(vec![
+            ("t".to_string(), ids(&["scripts", "pending", "ephemeral", "unknown"])),
+            ("h".to_string(), ids(&["pending", "preview"])),
+        ]);
+        let use_of = |workbook_id: &str| match workbook_id {
+            "scripts" => Some(WorkbookUse { transient: false, scripts: 2 }),
+            "pending" => Some(WorkbookUse { transient: false, scripts: 0 }),
+            "ephemeral" | "preview" => Some(WorkbookUse { transient: true, scripts: 1 }),
+            _ => None,
+        };
+        // A workbook that runs scripts on a connection keeps it, one whose pending connection it is doesn't
+        let usage = registry.usage("t", use_of);
+        assert_eq!(usage, ConnectionUsage { workbooks: 3, blocking_workbooks: 1, deletable: false });
+        // Every workbook keeps the embedded Hyper, which is never deleted
+        let usage = registry.usage("h", use_of);
+        assert_eq!(usage, ConnectionUsage { workbooks: 1, blocking_workbooks: 1, deletable: false });
+        // Workbooks that only fall back to a connection let go of it
+        registry.set_references(vec![("t".to_string(), ids(&["pending", "ephemeral", "unknown"]))]);
+        let usage = registry.usage("t", use_of);
+        assert_eq!(usage, ConnectionUsage { workbooks: 2, blocking_workbooks: 0, deletable: true });
+        assert_eq!(
+            registry.usage("h", use_of),
+            ConnectionUsage { workbooks: 0, blocking_workbooks: 0, deletable: false },
+            "the embedded Hyper stays"
+        );
+        assert!(!registry.usage("missing", use_of).deletable);
     }
 
     #[test]

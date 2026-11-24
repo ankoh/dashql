@@ -45,7 +45,9 @@ use dashql_core_runtime::compute::service::{AnalysisHandles, ComputeService};
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as RuntimeAnalyzeOptions;
 use dashql_core_runtime::compute::types::{OrderByConstraint, TableId};
 use dashql_core_runtime::compute::ComputationOutcome;
-use dashql_core_runtime::connections::registry::{ConnectionRegistry, RegistryOutcome, ReplacedConnection};
+use dashql_core_runtime::connections::registry::{
+    ConnectionRegistry, RegistryOutcome, ReplacedConnection, WorkbookUse,
+};
 use dashql_core_runtime::connections::sharing::{self, sanitize_connection_params_for_sharing};
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams};
 use dashql_core_runtime::host::LogLevel;
@@ -174,6 +176,18 @@ impl DispatchOutcome {
     fn failed(error: impl Into<String>) -> Self {
         DispatchOutcome { ok: false, changed: false, error: Some(error.into()), id: None }
     }
+}
+
+/// How the workbooks use a connection and whether the user may delete it (`connectionUsage`)
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct ConnectionUsageView {
+    /// The workbooks that use the connection, without the ephemeral ones and the previews of published workbooks
+    pub workbook_count: u32,
+    /// The workbooks that keep the connection from being deleted
+    pub blocking_workbook_count: u32,
+    /// May the user delete the connection? The workbooks whose pending connection it is are detached from it first.
+    pub deletable: bool,
 }
 
 /// A slice that changed since the host took the changes, its revision is null if it went
@@ -1119,6 +1133,27 @@ impl Runtime {
                 Some(outcome) => Ok(to_js(&outcome).map_err(JsValue::from)?.into()),
                 None => Ok(JsValue::NULL),
             }
+        })
+    }
+
+    /// How the workbooks use a connection and whether the user may delete it (`ConnectionRegistry::usage`): ephemeral
+    /// workbooks and previews of published workbooks don't count, a workbook keeps the connection if it runs scripts on
+    /// it, every workbook keeps the embedded Hyper, which is never deleted
+    #[wasm_bindgen(js_name = connectionUsage)]
+    pub fn connection_usage(&self, connection_id: &str) -> Result<Ts<ConnectionUsageView>, JsError> {
+        let registry =
+            self.connections.registry.try_borrow().map_err(|_| JsError::new("the connections are in use"))?;
+        let usage = registry.usage(connection_id, |workbook_id| {
+            let workbook = self.workbooks.get(workbook_id)?;
+            let held = workbook.try_borrow().ok()?;
+            let scripts =
+                held.scripts().iter().filter(|script| script.connection().connection_id == connection_id).count();
+            Some(WorkbookUse { transient: held.ephemeral() || held.is_read_only(), scripts })
+        });
+        to_js(&ConnectionUsageView {
+            workbook_count: usage.workbooks as u32,
+            blocking_workbook_count: usage.blocking_workbooks as u32,
+            deletable: usage.deletable,
         })
     }
 
