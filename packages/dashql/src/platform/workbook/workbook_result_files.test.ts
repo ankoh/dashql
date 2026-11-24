@@ -1,3 +1,4 @@
+import type * as arrow from 'apache-arrow';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { EmbeddedComputeDatabase } from '../embedded_database.js';
@@ -81,12 +82,34 @@ describe('the results of the workbooks', () => {
         expect((await r.readFile(WORKBOOK, 'a.k.00000001.parquet')).size).toBe(raw.length);
     });
 
+    const fakeDatabase = () => ({
+        registerExternalDirectory: vi.fn(async (_handle: FileSystemDirectoryHandle, path: string | undefined) => path!),
+        removeExternalDirectory: vi.fn(async (_path: string) => {}),
+        refreshExternalDirectory: vi.fn(async (_path: string) => {}),
+    });
+
+    it('creates no folder for a write that began before the workbook was unmounted', async () => {
+        const r = results();
+        const fake = fakeDatabase();
+        const database = fake as unknown as EmbeddedComputeDatabase;
+        // The write waits for the mount, the unmount comes first, e.g. of a workbook that is deleted
+        const written = r.writeTable(database, WORKBOOK, { numRows: 1 } as arrow.Table, 'a.k.00000001.parquet');
+        const unmounted = r.unmount(WORKBOOK);
+        await expect(written).rejects.toThrow('were unmounted');
+        await unmounted;
+        expect(fake.registerExternalDirectory).not.toHaveBeenCalled();
+        await expect((await root.getDirectoryHandle(STORAGE_WORKBOOKS_FOLDER, { create: true })).getDirectoryHandle(WORKBOOK)).rejects.toThrow();
+        // So does a mount that began before
+        const mounted = r.mount(database, WORKBOOK);
+        await r.unmount(WORKBOOK);
+        await expect(mounted).rejects.toThrow('were unmounted');
+        expect(fake.registerExternalDirectory).not.toHaveBeenCalled();
+        // A mount after the unmount mounts the results again, e.g. of a workbook that was replaced
+        await r.mount(database, WORKBOOK);
+        expect(fake.registerExternalDirectory).toHaveBeenCalledTimes(1);
+    });
+
     it('mounts the results of a workbook once per database and refreshes the mount after removals', async () => {
-        const fakeDatabase = () => ({
-            registerExternalDirectory: vi.fn(async (_handle: FileSystemDirectoryHandle, path: string | undefined) => path!),
-            removeExternalDirectory: vi.fn(async (_path: string) => {}),
-            refreshExternalDirectory: vi.fn(async (_path: string) => {}),
-        });
         const r = results();
         const first = fakeDatabase();
         const database = first as unknown as EmbeddedComputeDatabase;

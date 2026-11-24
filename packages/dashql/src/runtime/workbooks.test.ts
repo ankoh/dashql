@@ -9,6 +9,8 @@ import type { EmbeddedComputeDatabase } from '../platform/embedded_database.js';
 import { QueryType } from '../platform/query/query_execution_state.js';
 import type { WorkbookData } from '../platform/storage/storage_backend.js';
 import { tableFromArrays } from '../platform/testing/arrow_fixtures.js';
+import { memoryWorkbookResultFiles } from '../platform/testing/memory_workbook_result_files.js';
+import type { WorkbookResultFiles } from '../platform/workbook/workbook_result_files.js';
 import { createTestRuntime, restoreTestWorkbook, testCore, type TestRuntime } from './testing/test_runtime.js';
 import { TEST_CONNECTION_ID, TEST_WORKBOOK_ID, WorkbookTestBackend, WorkbookTestRegistry, testWorkbook } from '../platform/testing/workbook_test_backend.js';
 
@@ -310,8 +312,8 @@ describe('the workbooks of the runtime', () => {
             return ticket.queryId;
         }
 
-        async function setUp(storage: WorkbookTestBackend) {
-            const rt = runtime = await createTestRuntime({ storage, computeDatabase: {} as EmbeddedComputeDatabase });
+        async function setUp(storage: WorkbookTestBackend, results: WorkbookResultFiles | null = null) {
+            const rt = runtime = await createTestRuntime({ storage, computeDatabase: {} as EmbeddedComputeDatabase, results });
             await rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
             const removed = rt.addWorkbook(TEST_CONNECTION_ID, [['a.sql', 'select 1;']], { name: 'Removed' });
             const kept = rt.addWorkbook(TEST_CONNECTION_ID, [['b.sql', 'select 2;']], { name: 'Kept' });
@@ -337,6 +339,19 @@ describe('the workbooks of the runtime', () => {
             // The queries stay in the history of the connection
             expect(rt.connection(TEST_CONNECTION_ID).queriesFinishedOrdered).toContain(ofRemoved);
             expect(rt.store.get('workbook', kept)).not.toBeNull();
+        });
+
+        it('unmounts its results before its files go', async () => {
+            const storage = new WorkbookTestBackend();
+            const results = memoryWorkbookResultFiles();
+            const { rt, removed } = await setUp(storage, results);
+            const deletion = vi.spyOn(storage, 'deleteWorkbook');
+            results.unmount.mockClear();
+            await rt.removeWorkbook(removed);
+            // A write of a result that began before refuses to create the folder of the results again
+            expect(results.unmount).toHaveBeenCalledWith(removed);
+            expect(results.unmount.mock.invocationCallOrder[0]).toBeLessThan(deletion.mock.invocationCallOrder[0]);
+            expect(storage.workbooks.has(removed)).toBe(false);
         });
 
         it('keeps a workbook whose files the storage fails to delete', async () => {

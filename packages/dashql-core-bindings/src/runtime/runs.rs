@@ -225,13 +225,39 @@ impl Runs {
         holds.then(|| self.update(workbook_id, change))
     }
 
-    /// Forget the run of a workbook that was deleted or replaced: a run that holds it stops, the slice goes
+    /// Forget the run of a workbook that was deleted or replaced: a run that holds it stops, the slice goes, and the
+    /// attachments and results of the workbook leave the compute database once the unmounts settled
     pub fn forget(&self, workbook_id: &str) {
+        let unmounted = self.forget_and_unmount(workbook_id);
+        self.platform.spawn(Box::pin(unmounted));
+    }
+
+    /// Forget the run of a workbook like `forget`, the future settles once its attachments and results are unmounted.
+    /// A write of a result that began before refuses to mount them again (`WorkbookResultFiles`).
+    pub fn forget_and_unmount(&self, workbook_id: &str) -> impl Future<Output = ()> + 'static {
+        // The run stops first, so it starts no write of a result
+        let removed = {
+            let mut entries = self.entries.borrow_mut();
+            let position = entries.iter().position(|entry| entry.workbook_id == workbook_id);
+            position.map(|position| entries.remove(position))
+        };
+        if let Some(removed) = removed {
+            if let Some(held) = removed.held {
+                held.handle.cancel();
+            }
+            self.platform.changed(Slice::Runs, true);
+        }
         // The attachments of the workbook leave the compute database, a replaced workbook mounts them again
-        if self.platform.has_mounts() {
-            let unmount = self.platform.mounts_call("dropAttachments", &[JsValue::from_str(workbook_id)]);
-            let platform = self.platform.clone();
-            self.platform.spawn(Box::pin(async move {
+        let attachments = self
+            .platform
+            .has_mounts()
+            .then(|| self.platform.mounts_call("dropAttachments", &[JsValue::from_str(workbook_id)]));
+        // So do its results, a replaced workbook mounts them again
+        self.forget_stored_results(workbook_id);
+        let results = self.platform.has_results().then(|| self.platform.results_unmount(workbook_id));
+        let platform = self.platform.clone();
+        async move {
+            if let Some(unmount) = attachments {
                 if let Err(error) = unmount.await {
                     platform.log_on(
                         LogLevel::Warn,
@@ -240,14 +266,8 @@ impl Runs {
                         LOG_TARGET,
                     );
                 }
-            }));
-        }
-        // So do its results, a replaced workbook mounts them again
-        self.forget_stored_results(workbook_id);
-        if self.platform.has_results() {
-            let unmount = self.platform.results_unmount(workbook_id);
-            let platform = self.platform.clone();
-            self.platform.spawn(Box::pin(async move {
+            }
+            if let Some(unmount) = results {
                 if let Err(error) = unmount.await {
                     platform.log_on(
                         LogLevel::Warn,
@@ -256,18 +276,8 @@ impl Runs {
                         LOG_TARGET,
                     );
                 }
-            }));
+            }
         }
-        let removed = {
-            let mut entries = self.entries.borrow_mut();
-            let position = entries.iter().position(|entry| entry.workbook_id == workbook_id);
-            position.map(|position| entries.remove(position))
-        };
-        let Some(removed) = removed else { return };
-        if let Some(held) = removed.held {
-            held.handle.cancel();
-        }
-        self.platform.changed(Slice::Runs, true);
     }
 
     /// Read the entry of a workbook

@@ -45,7 +45,8 @@ export interface WorkbookResultFiles {
     /// Mount the results of a workbook in a database, refresh the mount after files were moved or removed
     mount(database: EmbeddedComputeDatabase, workbookId: string): Promise<void>;
     /// Remove the mount of the results of a workbook, e.g. one that was deleted. The mounts outlive a runtime, they
-    /// belong to the database.
+    /// belong to the database. A write or mount that began before fails instead of mounting the results again or
+    /// creating their folder, later ones mount them again, e.g. for a workbook that was replaced.
     unmount(workbookId: string): Promise<void>;
     /// The Parquet files of the results of a workbook, empty without a folder
     files(workbookId: string): Promise<ResultFileStat[]>;
@@ -102,7 +103,18 @@ export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = 
             throw error;
         }
     };
-    const requireDirectory = async (workbookId: string) => (await directory(workbookId, true))!;
+    /// The unmounts of each workbook. A write or mount that began before an unmount refuses to mount the results or to
+    /// create their folder: the workbook was deleted or replaced meanwhile, and its folder may be gone.
+    const unmounts = new Map<string, number>();
+    const unmountsOf = (workbookId: string) => unmounts.get(workbookId) ?? 0;
+    const checkMounted = (workbookId: string, since: number) => {
+        if (unmountsOf(workbookId) !== since) throw new Error(`The results of the workbook ${workbookId} were unmounted`);
+    };
+    /// The results folder of a workbook, created unless the workbook was unmounted since
+    const requireDirectory = async (workbookId: string, since: number = unmountsOf(workbookId)) => {
+        checkMounted(workbookId, since);
+        return (await directory(workbookId, true))!;
+    };
 
     const mounts = new Map<string, ResultMount>();
     let chain: Promise<unknown> = Promise.resolve();
@@ -115,7 +127,8 @@ export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = 
         const mount = mounts.get(workbookId);
         if (mount != null) mount.stale = true;
     };
-    const mount = (database: EmbeddedComputeDatabase, workbookId: string) => serialize(async () => {
+    const mount = (database: EmbeddedComputeDatabase, workbookId: string, since: number = unmountsOf(workbookId)) => serialize(async () => {
+        checkMounted(workbookId, since);
         const path = resultsMountPath(workbookId);
         let current = mounts.get(workbookId);
         if (current != null && current.database !== database) {
@@ -124,7 +137,7 @@ export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = 
             current = undefined;
         }
         if (current == null) {
-            await database.registerExternalDirectory(await requireDirectory(workbookId), path, 'readwrite');
+            await database.registerExternalDirectory(await requireDirectory(workbookId, since), path, 'readwrite');
             mounts.set(workbookId, { database, stale: false });
         } else if (current.stale) {
             // The refresh only lets the database forget the files that are gone, a result never reuses a name. The
@@ -138,7 +151,12 @@ export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = 
             }
         }
     });
-    const unmount = (workbookId: string) => serialize(async () => {
+    const unmount = (workbookId: string) => {
+        // The writes and mounts that began before refuse from now on, also those that wait for the operations before
+        unmounts.set(workbookId, unmountsOf(workbookId) + 1);
+        return removeMount(workbookId);
+    };
+    const removeMount = (workbookId: string) => serialize(async () => {
         const current = mounts.get(workbookId);
         if (current == null) return;
         mounts.delete(workbookId);
@@ -181,9 +199,10 @@ export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = 
             await dir.removeEntry(from);
         }
     };
-    /// Write a file under a transient name and move it in place once it is complete. A failed write leaves nothing.
-    const writeFile = async (workbookId: string, name: string, write: (temporary: string) => Promise<void>) => {
-        const dir = await requireDirectory(workbookId);
+    /// Write a file under a transient name and move it in place once it is complete. A failed write leaves nothing. A
+    /// workbook that was unmounted since the write began gets no folder.
+    const writeFile = async (workbookId: string, name: string, since: number, write: (temporary: string) => Promise<void>) => {
+        const dir = await requireDirectory(workbookId, since);
         const temporary = `${crypto.randomUUID()}${TRANSIENT_SUFFIX}`;
         const releaseTemporary = await pin(workbookId, temporary);
         let written = false;
@@ -217,8 +236,9 @@ export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = 
         },
         pin,
         writeTable: async (database, workbookId, table, name) => {
-            await mount(database, workbookId);
-            await writeFile(workbookId, name, temporary => copyArrowTableAsParquet(database, table, `${resultsMountPath(workbookId)}/${temporary}`));
+            const since = unmountsOf(workbookId);
+            await mount(database, workbookId, since);
+            await writeFile(workbookId, name, since, temporary => copyArrowTableAsParquet(database, table, `${resultsMountPath(workbookId)}/${temporary}`));
             return table.numRows;
         },
         readTable: async (database, workbookId, name) => {
@@ -246,10 +266,11 @@ export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = 
         },
         readFile: async (workbookId, name) => await (await (await requireDirectory(workbookId)).getFileHandle(name)).getFile(),
         importFile: async (workbookId, name, data, importOptions = {}) => {
-            const dir = await requireDirectory(workbookId);
+            const since = unmountsOf(workbookId);
+            const dir = await requireDirectory(workbookId, since);
             // The pipe closes the file once the stream ends, and aborts it if the stream fails, e.g. on a checksum that
             // differs
-            await writeFile(workbookId, name, async temporary => {
+            await writeFile(workbookId, name, since, async temporary => {
                 const source = importOptions.crc32 == null ? data.stream()
                     : data.stream().pipeThrough(crc32CheckStream(importOptions.crc32, () => `the imported result ${name}`));
                 await source.pipeTo(await (await dir.getFileHandle(temporary, { create: true })).createWritable());

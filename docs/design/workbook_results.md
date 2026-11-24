@@ -238,7 +238,9 @@ A script has at most one result, so a change of the scripts touches at most one 
   generation. A file that is read right now stays where it is and is garbage once the read ends: the script runs
   again.
 - Deleting a script leaves files of no script, garbage of the next lookup.
-- Deleting a workbook unmounts its results and removes its folder with them.
+- Deleting a workbook stops its run, unmounts its results and waits for the writes of results that run, then removes
+  its folder with them (`removeWorkbook`). A write or mount of the platform that began before the unmount fails instead
+  of creating the folder again, later ones mount the results again, e.g. of a workbook that was replaced.
 
 Only the lookup of a workbook and the end of a run remove garbage, the files that nobody pins and that are files of no
 script of the workbook, transient files, names that don't parse or older files of a script, e.g. those of a renamed

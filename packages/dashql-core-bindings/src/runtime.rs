@@ -1935,14 +1935,22 @@ impl Runtime {
         })
     }
 
-    /// Delete a workbook with its files: the storage deletes the files, then the workbook leaves the runtime like with
-    /// the action `deleteWorkbook`, with its run and the computations of the results of its queries. Rejects with what
-    /// the storage failed with, the workbook stays then.
+    /// Delete a workbook with its files: its run stops, its attachments and results leave the compute database and the
+    /// writes of results that run settle, then the storage deletes the files, then the workbook leaves the runtime like
+    /// with the action `deleteWorkbook`, with the computations of the results of its queries. A write of a result that
+    /// settled after the files went would create the folder of the results again. Rejects with what the storage failed
+    /// with, the workbook stays then and mounts its results again when it uses them.
     #[wasm_bindgen(js_name = removeWorkbook, unchecked_return_type = "Promise<void>")]
     pub fn remove_workbook(&self, workbook_id: String) -> Promise {
-        let deletion = self.workbooks.persistence.delete_workbook(&workbook_id);
+        let unmounted = self.runs.forget_and_unmount(&workbook_id);
+        let writes = self.connections.executor().map(|executor| executor.flush_result_writes());
         let workbooks = self.workbooks.clone();
         future_to_promise(async move {
+            unmounted.await;
+            if let Some(writes) = writes {
+                writes.await;
+            }
+            let deletion = workbooks.persistence.delete_workbook(&workbook_id);
             deletion.await.map_err(|error| error_value(&error))?;
             workbooks.delete(&workbook_id);
             Ok(JsValue::UNDEFINED)
