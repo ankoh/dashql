@@ -763,3 +763,11 @@ analyzer-snapshots:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
     script:
       input: create table z (a int primary key, b int check (b > 0), check (a > b))
+
+  # A name of a FROM item that no column has is the whole row of the item, also of a parent scope
+  - name: whole_row_reference
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select t, (select t from u limit 1), x from t

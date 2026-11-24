@@ -309,7 +309,7 @@ Results:
 
 ```rust
 enum ReferencedTable { Table(TableLoc), Cte(CteLoc), Subquery(ScopeId), Unresolved(..) }
-enum ColumnResolution { Unresolved, TableColumn(ColumnLoc), ScopeColumn { scope, column } }
+enum ColumnResolution { Unresolved, TableColumn(ColumnLoc), ScopeColumn { scope, column }, WholeRow }
 ```
 
 `TableLoc { entry, index }` and `ColumnLoc { table, column }` point into the declarations of an
@@ -318,7 +318,8 @@ entry: the script itself or any catalog entry.
 A table reference keeps its resolution on its `RelationExpression`: `resolved_table` (catalog ids) for a table of the
 script, a catalog entry or a table parameter, `resolved_cte` (a `CteLoc`) for a read of a CTE. Only an unqualified name
 reads a CTE, as in PostgreSQL. A column reference keeps `resolved_source`, the AST node of the FROM item it reads (a
-table reference or a derived table), none for an output column of its own scope. The packed buffers name the kind of
+table reference or a derived table), none for an output column of its own scope. `WholeRow` is the whole row of the
+FROM item at `resolved_source`, it has no column ids. The packed buffers name the kind of
 a table reference (`TableResolutionType` on a `TableReference`) and whether a column reference resolved (`resolved` on
 a `ColumnRefExpression`).
 
@@ -339,6 +340,9 @@ The rules follow PostgreSQL and Hyper:
 - **Join conditions** see the FROM items inside their join only, also from their subqueries
   (`SourceVisibility::Within` of the join, published in `NameScope::clauses`): `t join u on u.a = v.id, v` and
   `v, t join u on u.a = v.id` are an `INVALID_FROM_CLAUSE_REFERENCE`, as in PostgreSQL.
+- **Whole rows**: an unqualified name that no column has, also none of a parent scope, but that names a FROM item reads
+  the whole row of the item (`ColumnResolution::WholeRow`), as in PostgreSQL: `select t from t`. A FROM item with an
+  unknown schema may have the column, its column is inferred. `t.` with a trailing dot is a qualifier still.
 - **Output names in ORDER BY and GROUP BY**: a name of several output columns is a `COLUMN_REF_AMBIGUOUS` (PostgreSQL's
   `ORDER BY "a" is ambiguous`) if they read different values: `select a, b as a from t order by a`, but not
   `select a, t.a from t order by a`. Column refs are the same through the same column of the same FROM item, other

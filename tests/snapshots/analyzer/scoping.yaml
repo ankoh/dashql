@@ -1158,7 +1158,7 @@ analyzer-snapshots:
       expressions:
         - {id: 0, type: colref/local, scope: 0, column: 0, source: "generate_s..3) as g(x)", text: "x"}
         - {id: 1, type: colref/local, scope: 0, column: 0, source: "generate_s..3) as g(x)", text: "g.x"}
-        - {id: 2, type: colref/unresolved, text: "g"}
+        - {id: 2, type: colref/row, source: "generate_s..3) as g(x)", text: "g"}
         - {id: 3, type: function, name: generate_series, is-const: true, text: "generate_s..ries(1, 3)"}
         - {id: 4, type: literal/integer, is-const: true, text: "1"}
         - {id: 5, type: literal/integer, is-const: true, text: "3"}
@@ -3770,3 +3770,39 @@ analyzer-snapshots:
           sources:
             - {type: table, name: z, text: "z"}
           text: "create tab..k (a > b))"
+
+  - name: whole_row_reference
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select t, (select t from u limit 1), x from t
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/row, source: "t", text: "t"}
+        - {id: 1, type: colref/row, source: "t", text: "t"}
+        - {id: 2, type: colref/unresolved, text: "x"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 3, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          sources:
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: t, expression: 1}
+          text: "(select t ..u limit 1)"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: t, expression: 0}
+            - {name: '?', computed: true}
+            - {name: x, expression: 2}
+          text: "select t, .., x from t"

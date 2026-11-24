@@ -1663,6 +1663,45 @@ impl NameResolutionPass {
         }
     }
 
+    /// Resolve the unqualified column refs that name no column, but a FROM item, as the whole row of the FROM item, as
+    /// in PostgreSQL: `select t from t`. A column of the name wins, also one of a parent scope. A FROM item with an
+    /// unknown schema may have the column, its column is inferred.
+    fn resolve_whole_rows(&mut self, state: &mut AnalysisState, scope: ScopeId) {
+        let Some(exprs) = state.out.scope(scope).map(|s| s.expressions.clone()) else { return };
+        for expr in exprs {
+            if !self.is_open_column_ref(state, expr) {
+                continue;
+            }
+            let Some(expression) = state.out.expression(expr) else { continue };
+            let node_id = expression.ast_node_id;
+            let Some(column_ref) = expression.column_ref().filter(|c| c.column_name.table_alias.is_none()) else {
+                continue;
+            };
+            // `t.` is a qualifier without its column yet
+            if Self::has_trailing_dot(state, node_id) {
+                continue;
+            }
+            let name = column_ref.column_name.column_name.clone();
+            let visibility = self.visibility(expr);
+            let source = Self::lookup_source_in_scope_chain(state, scope, &name.text, node_id, visibility)
+                .filter(|source| !source.table.is_unresolved_relation())
+                .map(|source| source.ast_node_id);
+            let Some(source) = source else { continue };
+            if let Some(column_ref) = state.out.expression_mut(expr).and_then(Expression::column_ref_mut) {
+                column_ref.resolved = ColumnResolution::WholeRow;
+                column_ref.resolved_source = Some(source);
+            }
+            state.tag(&name, NameTag::TABLE_ALIAS);
+        }
+    }
+
+    /// Does the path of a column ref end with a dot?
+    fn has_trailing_dot(state: &AnalysisState, node_id: u32) -> bool {
+        let [path] = state.node(node_id).map_or([None], |n| attrs!(state.children(n), [K::SQL_COLUMN_REF_PATH]));
+        let path = path.map(|p| state.children(p)).unwrap_or_default();
+        path.iter().any(|n| n.node_type() == NodeType::OBJECT_EXT_TRAILING_DOT)
+    }
+
     /// Resolve qualified column refs whose qualifier is not a table in scope as field accesses of
     /// row-typed columns
     fn resolve_row_field_accesses(&mut self, state: &mut AnalysisState, scope: ScopeId) {
@@ -2201,6 +2240,7 @@ impl NameResolutionPass {
                 }
             }
             self.resolve_column_refs_from_parents(state, scope);
+            self.resolve_whole_rows(state, scope);
             self.resolve_row_field_accesses(state, scope);
             if let Some(s) = state.out.scope(scope) {
                 dfs.extend(s.child_scopes.iter().copied());
@@ -3269,7 +3309,7 @@ impl NameResolutionPass {
         let mut current = resolution;
         for _ in 0..256 {
             match current {
-                ColumnResolution::Unresolved => return None,
+                ColumnResolution::Unresolved | ColumnResolution::WholeRow => return None,
                 ColumnResolution::TableColumn(loc) => return Some(loc),
                 ColumnResolution::ScopeColumn { scope, column } => {
                     let column = state.out.scope(scope)?.output_columns.get(column as usize)?;

@@ -303,6 +303,10 @@ pub fn encode_script(script: &AnalyzedScript, scope_catalog: ScopeCatalog) -> No
                             m.plain("type", "colref/unresolved");
                         } else {
                             match &column_ref.resolved_ids {
+                                // The whole row of the FROM item
+                                None if column_ref.resolved == ColumnResolution::WholeRow => {
+                                    m.plain("type", "colref/row");
+                                }
                                 None => {
                                     m.plain("type", "colref/local");
                                     // A local column is an output column of a scope without a catalog column behind it

@@ -196,6 +196,8 @@ pub enum ColumnResolution {
     TableColumn(ColumnLoc),
     /// An output column of a scope
     ScopeColumn { scope: ScopeId, column: u32 },
+    /// The whole row of the FROM item that the column ref reads (`resolved_source`), as in PostgreSQL: `select t from t`
+    WholeRow,
 }
 
 impl ColumnResolution {
