@@ -373,3 +373,48 @@ formatter-snapshots:
     input: create temp bounded external stream if not exists s (x int) with (format => 'csv'); create buffered external stream s2 like t; create external stream s3 () (csv)
     dialects:
       hyper:
+
+  # UPDATE and MERGE, the clauses go on lines of their own in pretty mode, like those of DELETE
+  - name: coverage_update_from_where
+    input: update update_t as x set a = u.a, b = default from update_u as u where x.id = u.id returning x.a
+    dialects:
+      hyper:
+        validation:
+          setup: |-
+            create table update_t(id int, a int, b int default 7);
+            create table update_u(id int, a int);
+
+  - name: coverage_update_from_where_narrow
+    input: update update_t as x set a = u.a, b = default from update_u as u where x.id = u.id returning x.a
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 40
+          - mode: pretty
+            width: 40
+
+  - name: coverage_update_with_current_of
+    input: with v as (select 1 as a) update t set (a, b) = (select a, 2 from v), c = row(1) where current of c
+    dialects:
+      hyper:
+
+  - name: coverage_merge
+    input: merge into t as x using u on x.id = u.id when matched and u.deleted then delete when matched then do nothing when not matched by source and x.a > 0 then update set a = 0 when not matched by target and u.a is not null then insert (a) values (u.a) when not matched then insert values (default) returning *
+    dialects:
+      hyper:
+
+  - name: coverage_merge_narrow
+    input: merge into t as x using u on x.id = u.id when matched and u.deleted then delete when matched then do nothing when not matched by source and x.a > 0 then update set a = 0 when not matched by target and u.a is not null then insert (a) values (u.a) when not matched then insert values (default) returning *
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 60
+          - mode: pretty
+            width: 60
+
+  - name: coverage_prepare_update
+    input: prepare p(integer) as update t set x = $1 returning x
+    dialects:
+      hyper:

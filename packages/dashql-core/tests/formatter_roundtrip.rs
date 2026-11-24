@@ -17,10 +17,6 @@ const UNFORMATTABLE: &[&str] = &[
     "select somefunc(default);",
     // Empty ROW types now parse, but the formatter has no representation for them yet.
     "create table t (p row())",
-    // Statements that the formatter writes as placeholders
-    "UPDATE t SET x = 1 RETURNING x;",
-    "MERGE INTO t USING u ON t.x = u.x WHEN MATCHED THEN UPDATE SET y=u.y WHEN NOT MATCHED BY SOURCE THEN DELETE WHEN NOT MATCHED THEN INSERT (x,y) VALUES (u.x,u.y);",
-    "PREPARE p(integer) AS UPDATE t SET x=$1 RETURNING x;",
 ];
 
 /// Scripts whose formatted output spells a construct differently, with another tree of the same meaning

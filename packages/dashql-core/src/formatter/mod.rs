@@ -21,6 +21,7 @@ pub mod program;
 mod roles;
 mod select;
 mod transaction;
+mod update;
 
 pub use program::*;
 
@@ -878,6 +879,14 @@ impl<'a> Formatter<'a> {
             K::SQL_COPY_RELATION | K::SQL_CREATE_EXTERNAL_TABLE_NAME | K::SQL_CREATE_EXTERNAL_STREAM_NAME => {
                 self.format_qualified_name(node)
             }
+            // The lists of UPDATE and MERGE
+            K::SQL_UPDATE_ASSIGNMENTS
+            | K::SQL_UPDATE_FROM
+            | K::SQL_UPDATE_RETURNING
+            | K::SQL_MERGE_RETURNING
+            | K::SQL_MERGE_ACTION_TARGET
+            | K::SQL_MERGE_CLAUSES => self.format_comma_list(node, true),
+            K::SQL_MERGE_ACTION_COLUMNS | K::SQL_MERGE_ACTION_VALUES => self.format_comma_list(node, false),
             K::SQL_TEMP_NAME
             | K::SQL_CREATE_TABLE_NAME
             | K::SQL_FUNCTION_NAME
@@ -3169,7 +3178,10 @@ impl<'a> Formatter<'a> {
             if op_node.node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR
                 && ExpressionOperator(value_u8(op_node)) == ExpressionOperator::DEFAULT
             {
-                if !self.is_in_insert_values(node) && !self.is_assignment_value(node) {
+                if !self.is_in_insert_values(node)
+                    && !self.is_assignment_value(node)
+                    && !self.is_merge_insert_value(node)
+                {
                     return self.format_unimplemented(node);
                 }
                 return self.reg(op_node);
@@ -3290,6 +3302,11 @@ impl<'a> Formatter<'a> {
             NodeType::OBJECT_SQL_CREATE_AS => self.format_create_as(node),
             NodeType::OBJECT_SQL_VIEW => self.format_view(node),
             NodeType::OBJECT_SQL_CREATE_FUNCTION => self.format_create_function(node),
+            NodeType::OBJECT_SQL_UPDATE => self.format_update(node),
+            NodeType::OBJECT_SQL_MERGE => self.format_merge(node),
+            NodeType::OBJECT_SQL_MERGE_WHEN_CLAUSE => self.format_merge_when_clause(node),
+            NodeType::OBJECT_SQL_MERGE_ACTION => self.format_merge_action(node),
+            NodeType::ENUM_SQL_MERGE_ACTION | NodeType::ENUM_SQL_MERGE_MATCH => f.empty(),
             NodeType::OBJECT_SQL_COPY => self.format_copy(node),
             NodeType::OBJECT_SQL_COPY_OPTION => self.format_copy_option(node),
             NodeType::ENUM_SQL_COPY_OPTION => self.format_copy_option_kind(node),

@@ -1989,3 +1989,167 @@ formatter-snapshots:
               create buffered external stream s2 like t;
 
               create external stream s3 () (csv);
+
+  - name: coverage_update_from_where
+    input: |-
+      update update_t as x set a = u.a, b = default from update_u as u where x.id = u.id returning x.a
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              update update_t x set a = u.a, b = default from update_u u where x.id = u.id returning x.a;
+          - mode: compact
+            expected: |-
+              update update_t x set a = u.a, b = default from update_u u where x.id = u.id returning x.a;
+          - mode: pretty
+            expected: |-
+              update update_t x
+              set a = u.a, b = default
+              from update_u u
+              where x.id = u.id
+              returning x.a;
+        validation:
+          setup: |-
+            create table update_t(id int, a int, b int default 7);
+            create table update_u(id int, a int);
+
+  - name: coverage_update_from_where_narrow
+    input: |-
+      update update_t as x set a = u.a, b = default from update_u as u where x.id = u.id returning x.a
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              update update_t x set a = u.a, b = default from update_u u where x.id = u.id returning x.a;
+          - mode: compact
+            width: 40
+            expected: |-
+              update update_t x
+              set a = u.a, b = default
+              from update_u u
+              where x.id = u.id
+              returning x.a;
+          - mode: pretty
+            width: 40
+            expected: |-
+              update update_t x
+              set a = u.a, b = default
+              from update_u u
+              where x.id = u.id
+              returning x.a;
+
+  - name: coverage_update_with_current_of
+    input: |-
+      with v as (select 1 as a) update t set (a, b) = (select a, 2 from v), c = row(1) where current of c
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              with v as (select 1 as a) update t set (a, b) = (select a, 2 from v), c = row(1) where current of c;
+          - mode: compact
+            expected: |-
+              with v as (select 1 as a) update t set (a, b) = (select a, 2 from v), c = row(1) where current of c;
+          - mode: pretty
+            expected: |-
+              with v as (
+                select 1 as a
+              )
+              update t
+              set (a, b) = (
+                  select a, 2
+                  from v
+                ),
+                c = row(1)
+              where current of c;
+
+  - name: coverage_merge
+    input: |-
+      merge into t as x using u on x.id = u.id when matched and u.deleted then delete when matched then do nothing when not matched by source and x.a > 0 then update set a = 0 when not matched by target and u.a is not null then insert (a) values (u.a) when not matched then insert values (default) returning *
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              merge into t x using u on x.id = u.id when matched and u.deleted then delete when matched then do nothing when not matched by source and x.a > 0 then update set a = 0 when not matched and u.a is not null then insert (a) values (u.a) when not matched then insert values (default) returning *;
+          - mode: compact
+            expected: |-
+              merge into t x
+              using u
+              on x.id = u.id
+              when matched and u.deleted then delete
+              when matched then do nothing
+              when not matched by source and x.a > 0 then update set a = 0
+              when not matched and u.a is not null then insert (a) values (u.a)
+              when not matched then insert values (default)
+              returning *;
+          - mode: pretty
+            expected: |-
+              merge into t x
+              using u
+              on x.id = u.id
+              when matched and u.deleted then delete
+              when matched then do nothing
+              when not matched by source and x.a > 0 then update set a = 0
+              when not matched and u.a is not null then insert (a) values (u.a)
+              when not matched then insert values (default)
+              returning *;
+
+  - name: coverage_merge_narrow
+    input: |-
+      merge into t as x using u on x.id = u.id when matched and u.deleted then delete when matched then do nothing when not matched by source and x.a > 0 then update set a = 0 when not matched by target and u.a is not null then insert (a) values (u.a) when not matched then insert values (default) returning *
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              merge into t x using u on x.id = u.id when matched and u.deleted then delete when matched then do nothing when not matched by source and x.a > 0 then update set a = 0 when not matched and u.a is not null then insert (a) values (u.a) when not matched then insert values (default) returning *;
+          - mode: compact
+            width: 60
+            expected: |-
+              merge into t x
+              using u
+              on x.id = u.id
+              when matched and u.deleted then delete
+              when matched then do nothing
+              when not matched by source and x.a > 0 then
+                update set a = 0
+              when not matched and u.a is not null then
+                insert (a) values (u.a)
+              when not matched then insert values (default)
+              returning *;
+          - mode: pretty
+            width: 60
+            expected: |-
+              merge into t x
+              using u
+              on x.id = u.id
+              when matched and u.deleted then delete
+              when matched then do nothing
+              when not matched by source and x.a > 0 then
+                update set a = 0
+              when not matched and u.a is not null then
+                insert (a) values (u.a)
+              when not matched then insert values (default)
+              returning *;
+
+  - name: coverage_prepare_update
+    input: |-
+      prepare p(integer) as update t set x = $1 returning x
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              prepare p(integer) as update t set x = $1 returning x;
+          - mode: compact
+            expected: |-
+              prepare p(integer) as update t set x = $1 returning x;
+          - mode: pretty
+            expected: |-
+              prepare p(integer) as
+              update t
+              set x = $1
+              returning x;
