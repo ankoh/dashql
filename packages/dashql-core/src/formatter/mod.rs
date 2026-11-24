@@ -2865,7 +2865,7 @@ impl<'a> Formatter<'a> {
 
     fn format_cte(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [name, columns, statement, graph, secure, options] = attrs!(
+        let [name, columns, statement, graph, secure, materialized, options] = attrs!(
             self.children(node),
             [
                 K::SQL_CTE_NAME,
@@ -2873,6 +2873,7 @@ impl<'a> Formatter<'a> {
                 K::SQL_CTE_STATEMENT,
                 K::SQL_CTE_PROPERTY_GRAPH,
                 K::SQL_CTE_SECURE,
+                K::SQL_CTE_MATERIALIZED,
                 K::SQL_CTE_OPTIONS,
             ],
         );
@@ -2896,6 +2897,8 @@ impl<'a> Formatter<'a> {
             f.text(" as property graph ")
         } else if secure.is_some() {
             f.text(" as secure ")
+        } else if let Some(materialized) = materialized {
+            f.text(if is_true(Some(materialized)) { " as materialized " } else { " as not materialized " })
         } else {
             f.text(" as ")
         };

@@ -947,6 +947,7 @@ enum AttributeKey: uint16 {
     SQL_INSERT_ON_CONFLICT_TARGET_WHERE,
     SQL_INSERT_ON_CONFLICT_WHERE,
     SQL_ORDER_USING,
+    SQL_CTE_MATERIALIZED,
 }
 
 enum StatementType: uint8 {

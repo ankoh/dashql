@@ -214,25 +214,38 @@ sql_cte_list:
     ;
 
 sql_common_table_expr:
-    sql_name AS LRB sql_preparable_stmt RRB sql_cte_options {
+    sql_name AS sql_opt_materialized LRB sql_preparable_stmt RRB sql_cte_options {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CTE,
-            &[attr(Key::SQL_CTE_NAME, $1), attr(Key::SQL_CTE_STATEMENT, $4), attr(Key::SQL_CTE_OPTIONS, $6)],
+            &[
+                attr(Key::SQL_CTE_NAME, $1),
+                attr(Key::SQL_CTE_STATEMENT, $5),
+                attr(Key::SQL_CTE_OPTIONS, $7),
+                attr(Key::SQL_CTE_MATERIALIZED, $3),
+            ],
         )
     }
-  | sql_name LRB sql_name_list RRB AS LRB sql_preparable_stmt RRB sql_cte_options {
+  | sql_name LRB sql_name_list RRB AS sql_opt_materialized LRB sql_preparable_stmt RRB sql_cte_options {
       ctx.object(
           @$,
           NodeType::OBJECT_SQL_CTE,
           &[
               attr(Key::SQL_CTE_NAME, $1),
               attr(Key::SQL_CTE_COLUMNS, ctx.array(@3, $3)),
-              attr(Key::SQL_CTE_STATEMENT, $7),
-              attr(Key::SQL_CTE_OPTIONS, $9),
+              attr(Key::SQL_CTE_STATEMENT, $8),
+              attr(Key::SQL_CTE_OPTIONS, $10),
+              attr(Key::SQL_CTE_MATERIALIZED, $6),
           ],
       )
   }
+    ;
+
+// MATERIALIZED is true, NOT MATERIALIZED false, the default is not stored
+sql_opt_materialized:
+    MATERIALIZED        { bool_node(@$, true) }
+  | NOT MATERIALIZED    { bool_node(@$, false) }
+  | %empty              { null() }
     ;
 
 // The options of a common table expression, e.g. OPTIONS (identifier_resolution 'case_insensitive').

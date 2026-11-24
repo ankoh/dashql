@@ -17872,3 +17872,114 @@ parser-snapshots:
       comment-blocks: []
       comment-warnings: []
 
+  - name: select_cte_materialized
+    input: |-
+      with a as materialized (select 1), b(x) as not materialized (select 2) select * from a, b
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 28
+          description:
+            text: "with a as .. from a, b"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "with a as .. from a, b"
+            children:
+              - key: SQL_SELECT_WITH_CTES
+                type: ARRAY
+                text: "a as mater..(select 2)"
+                children:
+                  - type: OBJECT_SQL_CTE
+                    text: "a as mater..(select 1)"
+                    children:
+                      - key: SQL_CTE_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_CTE_STATEMENT
+                        type: OBJECT_SQL_SELECT
+                        text: "select 1"
+                        children:
+                          - key: SQL_SELECT_TARGETS
+                            type: ARRAY
+                            text: "1"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "1"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "1"
+                      - key: SQL_CTE_MATERIALIZED
+                        type: BOOL
+                        value: 1
+                  - type: OBJECT_SQL_CTE
+                    text: "b(x) as no..(select 2)"
+                    children:
+                      - key: SQL_CTE_NAME
+                        type: NAME
+                        text: "b"
+                      - key: SQL_CTE_COLUMNS
+                        type: ARRAY
+                        text: "x"
+                        children:
+                          - type: NAME
+                            text: "x"
+                      - key: SQL_CTE_STATEMENT
+                        type: OBJECT_SQL_SELECT
+                        text: "select 2"
+                        children:
+                          - key: SQL_SELECT_TARGETS
+                            type: ARRAY
+                            text: "2"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "2"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_CTE_MATERIALIZED
+                        type: BOOL
+                        value: 0
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from a, b"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "a"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "a"
+                        children:
+                          - type: NAME
+                            text: "a"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "b"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "b"
+                        children:
+                          - type: NAME
+                            text: "b"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+

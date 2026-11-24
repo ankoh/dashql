@@ -729,7 +729,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SELECT, expecting LRB or PROPERTY or SECURE'
+        - message: 'syntax error, unexpected SELECT'
           text: "select"
       line-breaks: []
       comments: []

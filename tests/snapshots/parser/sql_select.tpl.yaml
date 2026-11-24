@@ -952,3 +952,7 @@ parser-snapshots:
   - name: select_order_by_using
     input: |
       select * from t order by a using <, b using > nulls first, c using operator(pg_catalog.<)
+  # MATERIALIZED and NOT MATERIALIZED common table expressions
+  - name: select_cte_materialized
+    input: |
+      with a as materialized (select 1), b(x) as not materialized (select 2) select * from a, b

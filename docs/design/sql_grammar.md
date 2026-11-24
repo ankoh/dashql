@@ -46,6 +46,7 @@ Further PostgreSQL forms and their trees:
 
 - A sort key with `USING op` keeps its operator in `SQL_ORDER_USING`: an `ExpressionOperator`, an `OPERATOR` or the
   `ARRAY` of `OPERATOR(schema.op)`.
+- A common table expression `AS [NOT] MATERIALIZED` has the boolean `SQL_CTE_MATERIALIZED`, false for `NOT`.
 
 `SET a.b = v` with a single value is an `OBJECT_EXT_SET` with its key path and value, every other SET form
 an `OBJECT_SQL_SET` with its parameter (`SQL_SET_PARAMETER`, a `SessionParameter`) or variable (`SQL_SET_NAME`)

@@ -109,6 +109,7 @@
 %type<Node> sql_interval_second;
 %type<Node> sql_into_clause;
 %type<Node> sql_math_op;
+%type<Node> sql_opt_materialized;
 %type<Node> sql_name;
 %type<Node> sql_numeric;
 %type<Node> sql_opt_alias_clause;

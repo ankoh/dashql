@@ -7,3 +7,8 @@ formatter-snapshots:
         formatted:
           - mode: compact
             width: 40
+  # MATERIALIZED and NOT MATERIALIZED common table expressions
+  - name: coverage_cte_materialized
+    input: with a as materialized (select 1), b(x) as not materialized (select 2) select * from a, b
+    dialects:
+      hyper:
