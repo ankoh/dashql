@@ -972,11 +972,6 @@ impl<'a> Formatter<'a> {
         if base_reg == 0 {
             return self.format_unimplemented(node);
         }
-        // `t *`, a table with its descendant tables
-        let [name_star] = attrs!(self.children(node), [K::SQL_TABLEREF_NAME_STAR]);
-        if is_true(name_star) {
-            base_reg = f.concat(&[base_reg, f.text(" *")]);
-        }
         if is_true(only) {
             base_reg = f.concat(&[f.text("only "), base_reg]);
         }
