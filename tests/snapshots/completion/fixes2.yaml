@@ -322,3 +322,133 @@ completion-snapshots:
           location-qualified: "bet"
           objects: []
       text: "bet"
+
+  - name: fix_catalog_view_column
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create view myv as select a as mycol from t;
+        errors: []
+    editor:
+      input: |-
+        select myc from myv
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "myv"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "myc"}
+    cursor:
+      search:
+        text: 'myc'
+        index: 3
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: mycol
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "myc"
+          location-qualified: "myc"
+          objects:
+            - type: column
+              id: "256.65536.1:1.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: myv.mycol
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · myv"
+        - value: myc
+          candidate-tags: [IDENTITY]
+          location: "myc"
+          location-qualified: "myc"
+          objects: []
+        - value: by
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "myc"
+          location-qualified: "myc"
+          objects: []
+        - value: set
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "myc"
+          location-qualified: "myc"
+          objects: []
+        - value: abort
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "myc"
+          location-qualified: "myc"
+          objects: []
+      text: "myc"
+
+  - name: fix_script_view_column
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text);
+        errors: []
+    editor:
+      input: |-
+        create view myv as select a as mycol from t; select myc from myv
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.2:0"
+          name: myv
+          text: "create vie..col from t"
+          columns:
+            - {catalog-id: "256.65536.2:0.0", name: mycol}
+      touched-relations:
+        - {statement-id: 0, name: myv}
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 0, text: "t"}
+        - {type: name/internal, catalog-id: "256.65536.2:0", statement-id: 1, text: "myv"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", statement-id: 0, text: "a"}
+        - {id: 1, type: colref/unresolved, statement-id: 1, text: "myc"}
+    cursor:
+      search:
+        text: 'select myc'
+        index: 10
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: myc
+          candidate-tags: [IDENTITY]
+          location: "myc"
+          location-qualified: "myc"
+          objects: []
+        - value: mycol
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "myc"
+          location-qualified: "myc"
+          objects:
+            - type: column
+              id: "256.65536.2:0.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+              qualified: myv.mycol
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · myv"
+        - value: by
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "myc"
+          location-qualified: "myc"
+          objects: []
+        - value: set
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "myc"
+          location-qualified: "myc"
+          objects: []
+        - value: abort
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "myc"
+          location-qualified: "myc"
+          objects: []
+      text: "myc"

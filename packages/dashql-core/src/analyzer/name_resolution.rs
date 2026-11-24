@@ -729,6 +729,7 @@ impl NameResolutionPass {
             };
             // A generated name is no name of the script
             if column_name.id != state.out.empty_name {
+                state.tag(&column_name, NameTag::COLUMN_NAME);
                 state.resolve_name(&column_name, CatalogObjectRef::Column(loc));
             }
         }

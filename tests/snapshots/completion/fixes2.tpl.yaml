@@ -93,3 +93,35 @@ completion-snapshots:
         index: 3
     completions:
       limit: 5
+
+  # A column of a view of the catalog
+  - name: fix_catalog_view_column
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create view myv as select a as mycol from t;
+    editor:
+      input: |-
+        select myc from myv
+    cursor:
+      search:
+        text: 'myc'
+        index: 3
+    completions:
+      limit: 5
+
+  # A column of a view of the script
+  - name: fix_script_view_column
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text);
+    editor:
+      input: |-
+        create view myv as select a as mycol from t; select myc from myv
+    cursor:
+      search:
+        text: 'select myc'
+        index: 10
+    completions:
+      limit: 5
