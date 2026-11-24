@@ -172,13 +172,9 @@ test('the app runs Claude Code for a question: the agent calls the workbook with
         assert.deepEqual((await app.host.info()).harnesses.find(harness => harness.id === 'claude'), { id: 'claude', label: 'Claude Code', available: true });
         const first = await app.ask('w1', 'claude', 'How many orders?');
         assert.deepEqual(first[0], { event: 'UserPromptSubmit', prompt: 'How many orders?' });
-        assert.deepEqual(stepsOf(first), [
-            { status: 'dashql scripts', failed: false },
-            { status: 'Write input/orders.sql', failed: false },
-            { status: 'dashql edit orders --file input/orders.sql', failed: false },
-            // -p asks for nothing, a tool that the app does not allow is refused
-            { status: 'cat /etc/hostname', failed: true },
-        ]);
+        // The page tells the dashql commands from their calls, the host leaves out the steps that ran them and wrote
+        // their input. -p asks for nothing, a tool that the app does not allow is refused.
+        assert.deepEqual(stepsOf(first), [{ status: 'cat /etc/hostname', failed: true }]);
         assert.deepEqual(first.at(-1), { event: 'Stop', message: 'There are 42 orders.', error: null });
         assert.deepEqual(app.page.calls.map(({ workbookId, command, args, input }) => ({ workbookId, command, args, input })), [
             { workbookId: 'w1', command: 'scripts', args: {}, input: null },
