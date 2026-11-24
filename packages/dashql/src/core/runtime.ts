@@ -33,7 +33,6 @@ export type {
     RuntimeFolderStamps,
     RuntimeFileStamp,
     RuntimeWorkbookFolder,
-    StorageMergeOutcome,
     StorageMigrationOutcome,
     StorageVersions,
     WorkbookTableSchema,

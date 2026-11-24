@@ -110,13 +110,12 @@ adapters accordingly. The bridge type is declared in `packages/dashql-app/types/
 | Deep links | `dashql://` registered as protocol client and in `CFBundleURLTypes`; `open-url`, `second-instance` and cold-start argv go through `src/deep_link.ts`. It accepts `dashql://localhost`, `https://dashql.app` and `http://localhost:9002` links with exactly one `data`, `zip` or `workbook` parameter (legacy `session` and `notebook`), up to 64 KiB. `DeepLinkQueue` buffers links until the renderer asks for them. |
 | Dialogs | `dashql:open-directory` and a two-button `dashql:confirm` |
 | Filesystem | `dashql:fs` (exists, fileStamp, listFiles, mkdir, readDir, readFile, readTextFile, remove, rename, stat, writeFile, writeTextFile) for absolute paths without NUL; `fileStamp`, `listFiles` and `writeTextFile` return sizes and modification times; app wrapper `platform/electron_fs.ts` |
-| Folder grants | `dashql:fs` reaches only folders the user picked in `dashql:open-directory` (`src/folder_grants.ts`), stored as a JSON list of real paths in `userData/folder-grants.json`, and, while the app runs, the copies of the earlier profiles (see User Data Folder). Paths resolve through symbolic links and must stay inside a granted folder; the probes `exists`, `fileStamp` and `listFiles` report other paths as missing, the other operations reject them. A granted folder itself is never removed or renamed. On the first start with grants, `dashql:claim-workbook-folder` grants the workbook folders that the manifest already registers, if they hold `dashql-workbook.json`, `dashql-session.json` or `dashql-notebook.json`. |
+| Folder grants | `dashql:fs` reaches only folders the user picked in `dashql:open-directory` (`src/folder_grants.ts`), stored as a JSON list of real paths in `userData/folder-grants.json`. Paths resolve through symbolic links and must stay inside a granted folder; the probes `exists`, `fileStamp` and `listFiles` report other paths as missing, the other operations reject them. A granted folder itself is never removed or renamed. On the first start with grants, `dashql:claim-workbook-folder` grants the workbook folders that the manifest already registers, if they hold `dashql-workbook.json`, `dashql-session.json` or `dashql-notebook.json`. |
 | Workbook folder changes | No file watching; the renderer checks workbook folders on window focus and before script writes, see `native_file_sync.md` |
 | Open external | `shell.openExternal` for `https:` URLs only |
 | OAuth loopback | Node HTTP server in main (`src/oauth_loopback.ts`), used by Trino; Salesforce uses the deep-link relay (`oauth_salesforce.md`) |
 | Drag and drop | Renderer DOM drop events, as on the web |
 | Updates | `electron-updater` in main (`src/updater.ts`) |
-| Earlier profiles | `dashql:legacy-profiles` lists the copies of the storage of earlier user data folders once they are made, `dashql:legacy-profile-merged` removes a merged one, see User Data Folder |
 | Pending writes | Before a window closes and before the app quits, main sends `dashql:flush` and waits up to 5 s for `dashql:flushed`; the renderer flushes its storage writer through `onFlush` |
 | Agents | `AgentHost` (`src/agent/`) runs a harness of the machine for a question and serves the `dashql` commands of its agent on `127.0.0.1`: `dashql:agent-info`, `-ask`, `-stop`, `-forget`, `-write-file`, `-reply`, and the pushes `dashql:agent-event`, `-call`, `-call-cancel`. A window that reloads or closes stops its turns, quitting stops all of them. See `agent_integration.md` |
 
@@ -127,25 +126,14 @@ packaged `package.json` doesn't have), and Chromium keeps the origin private fil
 storage of `storage_layout.md`. The package was renamed from `@ankoh/dashql-electron` to `@ankoh/dashql-native` and to
 `@akohn/dashql-native`, and each rename started the app on an empty storage. The main process therefore pins the folder
 before anything uses it: `userData` is `<appData>/DashQL`, e.g. `~/Library/Application Support/DashQL`. A run that
-passes `--user-data-dir`, as the tests do, keeps its folder and merges nothing.
+passes `--user-data-dir`, as the tests do, keeps its folder and copies nothing.
 
-The storage of the earlier folders (`LEGACY_USER_DATA_FOLDERS` of `src/legacy_profiles.ts`) merges into the pinned one:
-
-1. Before the folder grants load, the grants of the earlier folders join `userData/folder-grants.json`, so the native
-   workbooks they registered stay reachable.
-2. After the main window opened, the main process copies the origin private file system of each earlier folder, oldest
-   first, into `userData/legacy-profiles/<name>/` (`src/legacy_profile_window.ts`): a hidden window of the origin
-   `app://bundle` in a session over the earlier folder (`session.fromPath`), which serves a blank page, so no code of
-   the app runs on the earlier storage. The main process reads the files through it in chunks and leaves the scratch
-   folders `instances/` and `exports/` behind. A complete copy gets `<name>.json` next to it, and the earlier folder a
-   `dashql-exported.json`, which keeps it from being copied again. A copy that fails is removed and made again at the
-   next start.
-3. The renderer asks for the copies at its startup, in the step "Apply Migrations" after the storage migration
-   (`packages/dashql-app/src/storage/storage_migration.ts`), stages each one in its OPFS folder `legacy-profiles/<name>`
-   and lets the core merge it (`mergeStorage`, see Versions and migrations of `storage_layout.md`). Then the main
-   process removes the copy. A profile that fails to merge is logged, its copy stays and merges at the next start.
-
-The earlier folders themselves stay as they are, a backup that the user may delete.
+If `<appData>/DashQL` doesn't exist yet, the main process first copies the newest earlier folder that exists
+(`LEGACY_USER_DATA_FOLDERS` of `src/legacy_user_data.ts`) to it, before anything uses the folder. The copy takes the
+whole folder, the origin private file system and `folder-grants.json` with it, and leaves out the lock files of
+Chromium. It lands in `DashQL.partial` first and is renamed when complete, an interrupted copy is made again at the next
+start. The storage of older folders doesn't merge, the earlier folders stay as they are, a backup that the user may
+delete.
 
 ## Build and Packaging
 

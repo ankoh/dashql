@@ -555,19 +555,6 @@ export class DashQL {
         return await this.bindings.Runtime.migrateStorage(root, log);
     }
 
-    /// The directory below a storage root where the platform stages the storage root of an earlier profile of the
-    /// desktop app, e.g. `legacy-profiles/ankoh-dashql-native`. Fails for a name that is no directory name.
-    public stagedProfileFolder(name: string): string {
-        return this.bindings.Runtime.stagedProfileFolder(name);
-    }
-
-    /// Merge the storage root that the platform staged in the folder of `stagedProfileFolder` into the storage root.
-    /// The staged root is migrated first and removed at the end, what the root holds wins. The caller migrated the root
-    /// and holds the locks of its manifest and its workbook tree.
-    public async mergeStorage(root: glue.RuntimeStorageRoot, source: string, log: glue.RuntimePlatform['log'] | null = null): Promise<glue.StorageMergeOutcome> {
-        return await this.bindings.Runtime.mergeStorage(root, source, log);
-    }
-
     /// Create the table parameters of a session, the tables that `:foo` in table position reads
     public createTableParameters(): DashQLTableParameters {
         return new DashQLTableParameters(new Ptr(TABLE_PARAMETERS_TYPE, this, new this.bindings.TableParameters()));

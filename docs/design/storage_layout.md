@@ -35,8 +35,7 @@ startup (see Versions and migrations).
 │   ├── snippets.hyper                         the snippets of the snippet search
 │   ├── <database>.hyper.dblog                 redo log of a database, see cloud.md
 │   └── logs/hyperd_<timestamp>.log            log files of its Hyper process
-├── exports/<export-id>/                       transient Parquet exports
-└── legacy-profiles/<name>/                    the storage of an earlier profile of the desktop app while it merges
+└── exports/<export-id>/                       transient Parquet exports
 ```
 
 | Path | Written by | Lifetime | Part of workbook bundles |
@@ -49,7 +48,6 @@ startup (see Versions and migrations).
 | `clouds/` | the embedded Hyper, when a local cloud attaches its database | until the connection of the local cloud is deleted | no |
 | `instances/<id>/` | `createHyperDBOPFSInstance` | one app window | no |
 | `exports/<id>/` | `exportArrowTableAsParquet` | one export | no |
-| `legacy-profiles/<name>/` | the storage migration of the desktop app, from a copy of its main process | until it merged | no |
 
 "Clear all data" drops the databases of the local clouds through the embedded Hyper, removes `workbooktree/`, resets the
 manifest, removes `workbooks/` with the results of the scripts, `connections/`, `shell/` and `clouds/`. It keeps
@@ -266,19 +264,6 @@ step the layout of its version. Steps are idempotent, because an interrupted mig
 of the core interrupt the migration at every write and run it again (`storage_migration_test.rs`). The step of version
 3 removes the catalogs that an interrupted run copied under fresh ids it doesn't plan again, a step that needs a fresh
 id fails without one.
-
-The desktop app merges the storage of its earlier user data folders into the storage after the migration
-(`electron.md`, User Data Folder). The app stages the storage of each earlier profile in `legacy-profiles/<name>` of
-the root (the folder of `stagedProfileFolder` of the core) and `mergeStorage` of the core (`storage_merge.rs`) merges
-it: the staged root is brought to the current storage version where it lies, then its connections and settings join
-the manifest, its workbooks the workbook tree in the folders of the same names (compared without case, the other
-folders are created, also empty ones), the files of its workbooks and connections and the files of `shell/` and
-`clouds/` the root, and the staged folder goes. What the root holds wins: a registered workbook, a listed connection,
-a setting, a file of the shell or the database of a cloud keeps its content. The ephemeral workbook of the staged root
-stays behind. Every write keeps what exists and the files of a workbook or a connection are copied before the tree or
-the manifest registers it, so an interrupted merge runs again from the start (`storage_migration_test.rs` interrupts it
-at every write). The profiles merge oldest first, so the earliest one wins. A staged folder that is left over shows in
-the cleanup of the internals.
 
 The migration runs before the storage backend is set up, without a runtime, over the storage root of the platform
 (`createStorageRoot` of `storage/storage_root.ts`: the files and directories of the OPFS root by path, and the native

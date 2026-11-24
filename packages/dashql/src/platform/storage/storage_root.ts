@@ -1,5 +1,4 @@
 import type * as core from '../../core/index.js';
-import { type FileSystem, joinPath } from '../file_system.js';
 
 /// The storage root of the app as the migrations of the runtime see it (`RuntimeStorageRoot` of the core): the files
 /// and directories of a directory handle by their paths, e.g. the origin private file system of the app or the root of
@@ -103,25 +102,4 @@ export function createStorageRoot(
         },
         nativeFolder,
     };
-}
-
-/// Copy a folder of a file system into a directory below a directory handle, e.g. the storage of an earlier profile
-/// of the desktop app that the main process copied out (docs/design/electron.md) into its staged folder of the OPFS
-/// root. The directory is created, files are replaced and empty folders come along.
-export async function copyFolderIntoDirectory(fs: FileSystem, from: string, root: FileSystemDirectoryHandle, to: string): Promise<void> {
-    let target = root;
-    for (const name of names(to)) target = await target.getDirectoryHandle(name, { create: true });
-    const copy = async (folder: string, dir: FileSystemDirectoryHandle): Promise<void> => {
-        for (const entry of await fs.readDir(folder)) {
-            const source = joinPath(folder, entry.name);
-            if (entry.isDirectory) {
-                await copy(source, await dir.getDirectoryHandle(entry.name, { create: true }));
-            } else if (entry.isFile) {
-                const writable = await (await dir.getFileHandle(entry.name, { create: true })).createWritable();
-                await writable.write(new Uint8Array(await fs.readFile(source)));
-                await writable.close();
-            }
-        }
-    };
-    await copy(from, target);
 }

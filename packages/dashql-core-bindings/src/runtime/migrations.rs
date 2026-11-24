@@ -13,7 +13,6 @@ use dashql_core_runtime::host::{HostError, LogLevel};
 use dashql_core_storage::storage::{FileStamp, FolderStamps};
 use dashql_core_storage::workbook_format::data::{STORAGE_VERSION, WORKBOOK_FORMAT_VERSION};
 use dashql_core_storage::workbook_format::migration::{migrate_stamped_folder, FolderHost, WorkbookMigrationResult};
-use dashql_core_storage::workbook_format::storage_merge::{merge_storage, staged_profile_folder, StorageMergeSummary};
 use dashql_core_storage::workbook_format::storage_migration::{
     migrate_storage, DirEntry, StorageMigrationSummary, StorageRootHost,
 };
@@ -47,31 +46,6 @@ impl From<StorageMigrationSummary> for StorageMigrationOutcome {
             workbooks: summary.workbooks,
             storage_version: STORAGE_VERSION,
             format_version: WORKBOOK_FORMAT_VERSION,
-        }
-    }
-}
-
-/// What a merge of a staged storage root into the storage root changed
-#[derive(Clone, Debug, Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct StorageMergeOutcome {
-    /// The storage steps that the migration of the staged root ran
-    pub steps: u32,
-    /// The workbook folders of the staged root that its migration brought to the current workbook format
-    pub migrated_workbooks: u32,
-    /// The workbooks that the storage root registers now
-    pub workbooks: u32,
-    /// The connections that the manifest of the storage root lists now
-    pub connections: u32,
-}
-
-impl From<StorageMergeSummary> for StorageMergeOutcome {
-    fn from(summary: StorageMergeSummary) -> Self {
-        StorageMergeOutcome {
-            steps: summary.migration.steps,
-            migrated_workbooks: summary.migration.workbooks,
-            workbooks: summary.workbooks,
-            connections: summary.connections,
         }
     }
 }
@@ -244,29 +218,6 @@ pub(crate) async fn migrate(root: JsValue, log: Option<Function>) -> Result<Stor
     }
     let root = JsStorageRoot { root, log };
     Ok(migrate_storage(&root).await?.into())
-}
-
-/// Merge the storage root that the platform staged in a directory below a storage root into it, see
-/// `workbook_format::storage_merge`, logging through a function of the platform
-pub(crate) async fn merge(
-    root: JsValue,
-    source: &str,
-    log: Option<Function>,
-) -> Result<StorageMergeOutcome, HostError> {
-    // Only a staged root merges, never the root itself or a folder of its layout
-    if staged_profile_folder(source.rsplit('/').next().unwrap_or_default())? != source {
-        return Err(HostError::new(format!("Not a staged storage root: {source}")));
-    }
-    if !root.is_object() {
-        return Err(HostError::new("the platform has no storage root to merge into"));
-    }
-    let root = JsStorageRoot { root, log };
-    Ok(merge_storage(&root, source).await?.into())
-}
-
-/// The directory below the storage root where the platform stages the storage root of an earlier profile
-pub(crate) fn staged_folder(name: &str) -> Result<String, HostError> {
-    staged_profile_folder(name)
 }
 
 /// Bring the folder of a workbook of the storage to the current workbook format, if the platform keeps it in a folder of

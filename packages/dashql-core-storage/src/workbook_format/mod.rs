@@ -20,7 +20,6 @@ pub mod query_results;
 pub mod restore;
 pub mod results;
 pub mod script_connections;
-pub mod storage_merge;
 pub mod storage_migration;
 pub mod tables;
 pub mod tree;

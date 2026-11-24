@@ -1664,36 +1664,6 @@ impl Runtime {
         })
     }
 
-    /// The directory below the storage root where the platform stages the storage root of an earlier profile to merge
-    /// it with `mergeStorage`, e.g. `legacy-profiles/ankoh-dashql-native`. Fails for a name that is no directory name.
-    #[wasm_bindgen(js_name = stagedProfileFolder)]
-    pub fn staged_profile_folder(name: &str) -> Result<String, JsError> {
-        migrations::staged_folder(name).map_err(|error| JsError::new(error.message()))
-    }
-
-    /// Merge the storage root that the platform staged in a directory below a storage root (`source`, the folder of
-    /// `stagedProfileFolder`) into the root, without a runtime: the desktop app merges the storage of its earlier
-    /// profiles at startup, after `migrateStorage` and before it sets up its storage. The staged root is brought to the
-    /// current storage version first and removed at the end, what the root holds wins. The platform holds the locks of
-    /// the manifest and the workbook tree meanwhile.
-    #[wasm_bindgen(js_name = mergeStorage, unchecked_return_type = "Promise<StorageMergeOutcome>")]
-    pub fn merge_storage(
-        #[wasm_bindgen(unchecked_param_type = "RuntimeStorageRoot")] root: JsValue,
-        source: String,
-        #[wasm_bindgen(
-            unchecked_param_type = "((level: 'debug' | 'info' | 'warn' | 'error', message: string, details: [string, string][], target: string) => void) | null"
-        )]
-        log: JsValue,
-    ) -> Promise {
-        let log = log.dyn_into::<Function>().ok();
-        future_to_promise(async move {
-            match migrations::merge(root, &source, log).await {
-                Ok(outcome) => Ok(to_js(&outcome).map_err(JsValue::from)?.into()),
-                Err(error) => Err(storage::error_value(&error)),
-            }
-        })
-    }
-
     /// The versions of the storage format of the module: the storage version of the manifest and the format version of
     /// workbook files
     #[wasm_bindgen(js_name = storageVersions, unchecked_return_type = "StorageVersions")]

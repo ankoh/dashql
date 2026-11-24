@@ -16,8 +16,6 @@ export const WORKBOOK_FILES = ["dashql-workbook.json", "dashql-session.json", "d
 export class FolderGrants {
     /// The saves, one after the other
     private saving: Promise<void> = Promise.resolve();
-    /// The folders of the app that the renderer may access while the app runs, they are never saved
-    private readonly ownRoots = new Set<string>();
 
     private constructor(
         private readonly file: string,
@@ -47,12 +45,6 @@ export class FolderGrants {
         await this.save();
     }
 
-    /// Grant a folder of the app while it runs, e.g. the copies of the storage of earlier profiles that the renderer
-    /// merges. The grant is not saved.
-    async grantForSession(folder: string): Promise<void> {
-        this.ownRoots.add(await realpath(folder));
-    }
-
     /// Grant a workbook folder that the storage registered before the grants existed
     async claimWorkbookFolder(folder: string): Promise<boolean> {
         if (!this.claimsOpen || !path.isAbsolute(folder)) return false;
@@ -75,7 +67,7 @@ export class FolderGrants {
     /// Symbolic links are resolved, a link in a granted folder cannot lead out of it.
     async resolve(target: string): Promise<string | null> {
         const real = await realTarget(path.resolve(target));
-        for (const root of [...this.roots, ...this.ownRoots]) {
+        for (const root of this.roots) {
             const relative = path.relative(root, real);
             if (relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative))) return real;
         }
@@ -84,7 +76,7 @@ export class FolderGrants {
 
     /// Is a real path a granted folder itself?
     isRoot(real: string): boolean {
-        return this.roots.has(real) || this.ownRoots.has(real);
+        return this.roots.has(real);
     }
 
     private save(): Promise<void> {
