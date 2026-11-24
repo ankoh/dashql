@@ -8,6 +8,10 @@ parser-snapshots:
   - name: special_functions_empty_parentheses
     input: |
       select current_date(), current_schema(), extract(), position(), substring(), extract, position, substring from t
+  # A parenthesized join with an alias, also with column names
+  - name: joined_table_alias
+    input: |
+      select * from (a join b using (id)) as j (x, y), (c cross join d) e
   # FETCH without a count is one row, with ONLY and with WITH TIES, unlike LIMIT 1 and LIMIT TRUE
   - name: fetch_first_row_without_count
     input: |
@@ -15,3 +19,12 @@ parser-snapshots:
       select * from t order by a fetch next row with ties;
       select * from t limit 1;
       select * from t limit true
+  # A join as the source of MERGE, with and without parentheses: the ON after the join is that of MERGE
+  - name: merge_joined_source
+    input: |
+      merge into t using (u join v on u.a = v.a) on t.a = u.a when matched then delete;
+      merge into t using u cross join v on t.a = u.a when matched then delete
+  # Joins on the right of a join: without parentheses the join after a CROSS or NATURAL join takes it as left input
+  - name: right_nested_joins
+    input: |
+      select * from a cross join (b join c on b.x = c.x), d natural join (e left join f using (x)), g join (h cross join i) on g.x = h.x

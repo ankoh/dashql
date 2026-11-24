@@ -338,6 +338,131 @@ parser-snapshots:
       comment-blocks: []
       comment-warnings: []
 
+  - name: joined_table_alias
+    input: |-
+      select * from (a join b using (id)) as j (x, y), (c cross join d) e
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 33
+          description:
+            text: "select * f.. join d) e"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f.. join d) e"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from (a jo.. join d) e"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "(a join b ..s j (x, y)"
+                    children:
+                      - key: SQL_TABLEREF_ALIAS
+                        type: OBJECT_SQL_ALIAS
+                        text: "as j (x, y)"
+                        children:
+                          - key: SQL_ALIAS_NAME
+                            type: NAME
+                            text: "j"
+                          - key: SQL_ALIAS_COLUMN_NAMES
+                            type: ARRAY
+                            text: "x, y"
+                            children:
+                              - type: NAME
+                                text: "x"
+                              - type: NAME
+                                text: "y"
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_JOINED_TABLE
+                        text: "(a join b ..sing (id))"
+                        children:
+                          - key: SQL_JOIN_USING
+                            type: ARRAY
+                            text: "(id)"
+                            children:
+                              - type: NAME
+                                text: "id"
+                          - key: SQL_JOIN_TYPE
+                            type: ENUM_SQL_JOIN_TYPE
+                            value: INNER
+                          - key: SQL_JOIN_INPUT
+                            type: ARRAY
+                            text: "a join b using (id)"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "a"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "b"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "b"
+                                    children:
+                                      - type: NAME
+                                        text: "b"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "(c cross join d) e"
+                    children:
+                      - key: SQL_TABLEREF_ALIAS
+                        type: NAME
+                        text: "e"
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_JOINED_TABLE
+                        text: "(c cross join d)"
+                        children:
+                          - key: SQL_JOIN_TYPE
+                            type: ENUM_SQL_JOIN_TYPE
+                            value: NONE
+                          - key: SQL_JOIN_INPUT
+                            type: ARRAY
+                            text: "c cross join d"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "c"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "c"
+                                    children:
+                                      - type: NAME
+                                        text: "c"
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "d"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "d"
+                                    children:
+                                      - type: NAME
+                                        text: "d"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
   - name: fetch_first_row_without_count
     input: |-
       select * from t offset 5 rows fetch first rows only;
@@ -523,6 +648,535 @@ parser-snapshots:
         - text: [52,53]
         - text: [105,106]
         - text: [130,131]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: merge_joined_source
+    input: |-
+      merge into t using (u join v on u.a = v.a) on t.a = u.a when matched then delete;
+      merge into t using u cross join v on t.a = u.a when matched then delete
+    expected:
+      statements:
+        - type: MERGE
+          ast-begin: 0
+          ast-size: 41
+          description:
+            text: "merge into..en delete;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_MERGE
+            text: "merge into..hen delete"
+            children:
+              - key: SQL_MERGE_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+              - key: SQL_MERGE_SOURCE
+                type: OBJECT_SQL_TABLEREF
+                text: "(u join v ..u.a = v.a)"
+                children:
+                  - key: SQL_TABLEREF_TABLE
+                    type: OBJECT_SQL_JOINED_TABLE
+                    text: "(u join v ..u.a = v.a)"
+                    children:
+                      - key: SQL_JOIN_ON
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "u.a = v.a"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "u.a = v.a"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "u.a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "u.a"
+                                    children:
+                                      - type: NAME
+                                        text: "u"
+                                      - type: NAME
+                                        text: "a"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "v.a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "v.a"
+                                    children:
+                                      - type: NAME
+                                        text: "v"
+                                      - type: NAME
+                                        text: "a"
+                      - key: SQL_JOIN_TYPE
+                        type: ENUM_SQL_JOIN_TYPE
+                        value: INNER
+                      - key: SQL_JOIN_INPUT
+                        type: ARRAY
+                        text: "u join v o.. u.a = v.a"
+                        children:
+                          - type: OBJECT_SQL_TABLEREF
+                            text: "u"
+                            children:
+                              - key: SQL_TABLEREF_NAME
+                                type: ARRAY
+                                text: "u"
+                                children:
+                                  - type: NAME
+                                    text: "u"
+                          - type: OBJECT_SQL_TABLEREF
+                            text: "v"
+                            children:
+                              - key: SQL_TABLEREF_NAME
+                                type: ARRAY
+                                text: "v"
+                                children:
+                                  - type: NAME
+                                    text: "v"
+              - key: SQL_MERGE_CONDITION
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "t.a = u.a"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "t.a = u.a"
+                    children:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "t.a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "t.a"
+                            children:
+                              - type: NAME
+                                text: "t"
+                              - type: NAME
+                                text: "a"
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "u.a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "u.a"
+                            children:
+                              - type: NAME
+                                text: "u"
+                              - type: NAME
+                                text: "a"
+              - key: SQL_MERGE_CLAUSES
+                type: ARRAY
+                text: "when match..hen delete"
+                children:
+                  - type: OBJECT_SQL_MERGE_WHEN_CLAUSE
+                    text: "when match..hen delete"
+                    children:
+                      - key: SQL_MERGE_WHEN_CLAUSE_KIND
+                        type: ENUM_SQL_MERGE_MATCH
+                        value: MATCHED
+                      - key: SQL_MERGE_WHEN_CLAUSE_ACTION
+                        type: OBJECT_SQL_MERGE_ACTION
+                        text: "delete"
+                        children:
+                          - key: SQL_MERGE_ACTION_KIND
+                            type: ENUM_SQL_MERGE_ACTION
+                            value: DELETE
+        - type: MERGE
+          ast-begin: 41
+          ast-size: 30
+          description:
+            text: "merge into..hen delete"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_MERGE
+            text: "merge into..hen delete"
+            children:
+              - key: SQL_MERGE_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+              - key: SQL_MERGE_SOURCE
+                type: OBJECT_SQL_TABLEREF
+                text: "u cross join v"
+                children:
+                  - key: SQL_TABLEREF_TABLE
+                    type: OBJECT_SQL_JOINED_TABLE
+                    text: "u cross join v"
+                    children:
+                      - key: SQL_JOIN_TYPE
+                        type: ENUM_SQL_JOIN_TYPE
+                        value: NONE
+                      - key: SQL_JOIN_INPUT
+                        type: ARRAY
+                        text: "u cross join v"
+                        children:
+                          - type: OBJECT_SQL_TABLEREF
+                            text: "u"
+                            children:
+                              - key: SQL_TABLEREF_NAME
+                                type: ARRAY
+                                text: "u"
+                                children:
+                                  - type: NAME
+                                    text: "u"
+                          - type: OBJECT_SQL_TABLEREF
+                            text: "v"
+                            children:
+                              - key: SQL_TABLEREF_NAME
+                                type: ARRAY
+                                text: "v"
+                                children:
+                                  - type: NAME
+                                    text: "v"
+              - key: SQL_MERGE_CONDITION
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "t.a = u.a"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "t.a = u.a"
+                    children:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "t.a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "t.a"
+                            children:
+                              - type: NAME
+                                text: "t"
+                              - type: NAME
+                                text: "a"
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "u.a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "u.a"
+                            children:
+                              - type: NAME
+                                text: "u"
+                              - type: NAME
+                                text: "a"
+              - key: SQL_MERGE_CLAUSES
+                type: ARRAY
+                text: "when match..hen delete"
+                children:
+                  - type: OBJECT_SQL_MERGE_WHEN_CLAUSE
+                    text: "when match..hen delete"
+                    children:
+                      - key: SQL_MERGE_WHEN_CLAUSE_KIND
+                        type: ENUM_SQL_MERGE_MATCH
+                        value: MATCHED
+                      - key: SQL_MERGE_WHEN_CLAUSE_ACTION
+                        type: OBJECT_SQL_MERGE_ACTION
+                        text: "delete"
+                        children:
+                          - key: SQL_MERGE_ACTION_KIND
+                            type: ENUM_SQL_MERGE_ACTION
+                            value: DELETE
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [81,82]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: right_nested_joins
+    input: |-
+      select * from a cross join (b join c on b.x = c.x), d natural join (e left join f using (x)), g join (h cross join i) on g.x = h.x
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 80
+          description:
+            text: "select * f.. g.x = h.x"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f.. g.x = h.x"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from a cro.. g.x = h.x"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "a cross jo..b.x = c.x)"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_JOINED_TABLE
+                        text: "a cross jo..b.x = c.x)"
+                        children:
+                          - key: SQL_JOIN_TYPE
+                            type: ENUM_SQL_JOIN_TYPE
+                            value: NONE
+                          - key: SQL_JOIN_INPUT
+                            type: ARRAY
+                            text: "a cross jo..b.x = c.x)"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "a"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "(b join c ..b.x = c.x)"
+                                children:
+                                  - key: SQL_TABLEREF_TABLE
+                                    type: OBJECT_SQL_JOINED_TABLE
+                                    text: "(b join c ..b.x = c.x)"
+                                    children:
+                                      - key: SQL_JOIN_ON
+                                        type: OBJECT_SQL_NARY_EXPRESSION
+                                        text: "b.x = c.x"
+                                        children:
+                                          - key: SQL_EXPRESSION_OPERATOR
+                                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                                            value: EQUAL
+                                          - key: SQL_EXPRESSION_ARGS
+                                            type: ARRAY
+                                            text: "b.x = c.x"
+                                            children:
+                                              - type: OBJECT_SQL_COLUMN_REF
+                                                text: "b.x"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "b.x"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "b"
+                                                      - type: NAME
+                                                        text: "x"
+                                              - type: OBJECT_SQL_COLUMN_REF
+                                                text: "c.x"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "c.x"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "c"
+                                                      - type: NAME
+                                                        text: "x"
+                                      - key: SQL_JOIN_TYPE
+                                        type: ENUM_SQL_JOIN_TYPE
+                                        value: INNER
+                                      - key: SQL_JOIN_INPUT
+                                        type: ARRAY
+                                        text: "b join c o.. b.x = c.x"
+                                        children:
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "b"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "b"
+                                                children:
+                                                  - type: NAME
+                                                    text: "b"
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "c"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "c"
+                                                children:
+                                                  - type: NAME
+                                                    text: "c"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "d natural ..using (x))"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_JOINED_TABLE
+                        text: "d natural ..using (x))"
+                        children:
+                          - key: SQL_JOIN_TYPE
+                            type: ENUM_SQL_JOIN_TYPE
+                            value: NATURAL_INNER
+                          - key: SQL_JOIN_INPUT
+                            type: ARRAY
+                            text: "d natural ..using (x))"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "d"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "d"
+                                    children:
+                                      - type: NAME
+                                        text: "d"
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "(e left jo..using (x))"
+                                children:
+                                  - key: SQL_TABLEREF_TABLE
+                                    type: OBJECT_SQL_JOINED_TABLE
+                                    text: "(e left jo..using (x))"
+                                    children:
+                                      - key: SQL_JOIN_USING
+                                        type: ARRAY
+                                        text: "(x)"
+                                        children:
+                                          - type: NAME
+                                            text: "x"
+                                      - key: SQL_JOIN_TYPE
+                                        type: ENUM_SQL_JOIN_TYPE
+                                        value: LEFT
+                                      - key: SQL_JOIN_INPUT
+                                        type: ARRAY
+                                        text: "e left joi.. using (x)"
+                                        children:
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "e"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "e"
+                                                children:
+                                                  - type: NAME
+                                                    text: "e"
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "f"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "f"
+                                                children:
+                                                  - type: NAME
+                                                    text: "f"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "g join (h .. g.x = h.x"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_JOINED_TABLE
+                        text: "g join (h .. g.x = h.x"
+                        children:
+                          - key: SQL_JOIN_ON
+                            type: OBJECT_SQL_NARY_EXPRESSION
+                            text: "g.x = h.x"
+                            children:
+                              - key: SQL_EXPRESSION_OPERATOR
+                                type: ENUM_SQL_EXPRESSION_OPERATOR
+                                value: EQUAL
+                              - key: SQL_EXPRESSION_ARGS
+                                type: ARRAY
+                                text: "g.x = h.x"
+                                children:
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "g.x"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "g.x"
+                                        children:
+                                          - type: NAME
+                                            text: "g"
+                                          - type: NAME
+                                            text: "x"
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "h.x"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "h.x"
+                                        children:
+                                          - type: NAME
+                                            text: "h"
+                                          - type: NAME
+                                            text: "x"
+                          - key: SQL_JOIN_TYPE
+                            type: ENUM_SQL_JOIN_TYPE
+                            value: INNER
+                          - key: SQL_JOIN_INPUT
+                            type: ARRAY
+                            text: "g join (h .. g.x = h.x"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "g"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "g"
+                                    children:
+                                      - type: NAME
+                                        text: "g"
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "(h cross join i)"
+                                children:
+                                  - key: SQL_TABLEREF_TABLE
+                                    type: OBJECT_SQL_JOINED_TABLE
+                                    text: "(h cross join i)"
+                                    children:
+                                      - key: SQL_JOIN_TYPE
+                                        type: ENUM_SQL_JOIN_TYPE
+                                        value: NONE
+                                      - key: SQL_JOIN_INPUT
+                                        type: ARRAY
+                                        text: "h cross join i"
+                                        children:
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "h"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "h"
+                                                children:
+                                                  - type: NAME
+                                                    text: "h"
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "i"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "i"
+                                                children:
+                                                  - type: NAME
+                                                    text: "i"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
       comments: []
       comment-blocks: []
       comment-warnings: []

@@ -39,10 +39,21 @@ fn is_valid(parsed: &ParsedScript) -> bool {
     parsed.errors.is_empty() && parsed.scanned.errors.is_empty()
 }
 
-/// The node types and attribute keys of a parsed script, sorted. Formatting must keep them, so that a clause
-/// that the formatter does not write fails the round trip, but it may reorder clauses.
-fn shape(parsed: &ParsedScript) -> Vec<(u16, u16)> {
-    let mut shape: Vec<_> = parsed.nodes.iter().map(|n| (n.node_type().0, n.attribute_key().0)).collect();
+/// The node types, attribute keys and depths of the nodes of a parsed script, sorted. Formatting must keep them, so
+/// that a clause that the formatter does not write, or a node that ends up under another parent, like the join of
+/// `a cross join (b join c on x)` without its parentheses, fails the round trip, but it may reorder clauses.
+fn shape(parsed: &ParsedScript) -> Vec<(u16, u16, usize)> {
+    // The nodes are in post-order, a parent follows its children
+    let depth = |mut id: usize| {
+        let mut d = 0;
+        while let Some(parent) = parsed.nodes.get(id).map(|n| n.parent() as usize).filter(|&p| p > id) {
+            d += 1;
+            id = parent;
+        }
+        d
+    };
+    let mut shape: Vec<_> =
+        parsed.nodes.iter().enumerate().map(|(i, n)| (n.node_type().0, n.attribute_key().0, depth(i))).collect();
     shape.sort_unstable();
     shape
 }

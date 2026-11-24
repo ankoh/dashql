@@ -300,18 +300,22 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select * from a join b join c on b.x = c.x on a.x = b.x left join d cross join e on d.y = a.y;
+              select * from a join (b join c on b.x = c.x) on a.x = b.x left join (d cross join e) on d.y = a.y;
           - mode: compact
             expected: |-
-              select * from a join b join c on b.x = c.x on a.x = b.x left join d cross join e on d.y = a.y;
+              select * from a join (b join c on b.x = c.x) on a.x = b.x left join (d cross join e) on d.y = a.y;
           - mode: pretty
             expected: |-
               select *
               from a
-                join b
-                    join c on b.x = c.x on a.x = b.x
-                left join d
-                    cross join e on d.y = a.y;
+                join (
+                    b
+                      join c on b.x = c.x
+                  ) on a.x = b.x
+                left join (
+                    d
+                      cross join e
+                  ) on d.y = a.y;
         validation:
           setup: |-
             create table a(x int, y int);

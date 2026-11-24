@@ -982,7 +982,12 @@ impl<'a> Formatter<'a> {
         let mut base_reg = 0;
         if let Some(table) = table {
             base_reg = self.reg(table);
-            if table.node_type() == NodeType::OBJECT_SQL_SELECT {
+            // A join takes an alias only in parentheses, `(a join b using (id)) j`. A join on the right of another join
+            // keeps its parentheses too, `a cross join b join c on x` is `(a cross join b) join c on x`.
+            if table.node_type() == NodeType::OBJECT_SQL_SELECT
+                || (table.node_type() == NodeType::OBJECT_SQL_JOINED_TABLE
+                    && (alias.is_some() || self.is_right_join_input(node)))
+            {
                 base_reg = f.parenthesized(base_reg);
             }
         } else if let Some(name) = name {
@@ -1026,6 +1031,15 @@ impl<'a> Formatter<'a> {
             base_reg = f.concat(&[base_reg, f.text(" "), sample_reg]);
         }
         base_reg
+    }
+
+    /// Is a table reference the right input of a join?
+    fn is_right_join_input(&self, table_ref: &Node) -> bool {
+        self.ast.get(table_ref.parent() as usize).is_some_and(|inputs| {
+            inputs.node_type() == NodeType::ARRAY
+                && inputs.attribute_key() == K::SQL_JOIN_INPUT
+                && self.children(inputs).last().is_some_and(|right| self.node_id(right) == self.node_id(table_ref))
+        })
     }
 
     fn format_into(&self, node: &'a Node) -> FmtReg {
