@@ -204,6 +204,25 @@ fn get_known_function_text(function: KnownFunction) -> &'static str {
     }
 }
 
+/// Is a known function called by its keyword alone, without parentheses?
+fn is_keyword_function(function: KnownFunction) -> bool {
+    use KnownFunction as F;
+    matches!(
+        function,
+        F::CURRENT_DATE
+            | F::CURRENT_TIME
+            | F::CURRENT_TIMESTAMP
+            | F::LOCALTIME
+            | F::LOCALTIMESTAMP
+            | F::CURRENT_ROLE
+            | F::CURRENT_USER
+            | F::SESSION_USER
+            | F::USER
+            | F::CURRENT_CATALOG
+            | F::CURRENT_SCHEMA
+    )
+}
+
 /// The value of an enum node
 fn value_u8(node: &Node) -> u8 {
     node.children_begin_or_value() as u8
@@ -2468,7 +2487,11 @@ impl<'a> Formatter<'a> {
 
         let call_body = f.concat(&call_parts);
         let mut result = if call_body == 0 {
-            if name.node_type() == NodeType::ENUM_SQL_KNOWN_FUNCTION {
+            // `current_date()` is `current_date`, but `extract()`, `position()` and `substring()` without their
+            // parentheses would be column references
+            if name.node_type() == NodeType::ENUM_SQL_KNOWN_FUNCTION
+                && is_keyword_function(KnownFunction(value_u8(name)))
+            {
                 name_reg
             } else {
                 f.concat(&[name_reg, f.text("()")])

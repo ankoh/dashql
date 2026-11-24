@@ -17,6 +17,12 @@ formatter-snapshots:
       hyper:
       trino:
 
+  # EXTRACT, POSITION and SUBSTRING keep their empty parentheses, CURRENT_DATE() is CURRENT_DATE
+  - name: coverage_special_functions_empty_parentheses
+    input: select current_date(), current_schema(), extract(), position(), substring() from t
+    dialects:
+      hyper:
+
   # FETCH without a count stays FETCH FIRST ROW, unlike LIMIT 1
   - name: coverage_fetch_first_row_without_count
     input: >-

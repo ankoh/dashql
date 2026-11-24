@@ -81,6 +81,23 @@ formatter-snapshots:
                 time '10:00:00+01'
               from t;
 
+  - name: coverage_special_functions_empty_parentheses
+    input: |-
+      select current_date(), current_schema(), extract(), position(), substring() from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select current_date, current_schema(), extract(), position(), substring() from t;
+          - mode: compact
+            expected: |-
+              select current_date, current_schema(), extract(), position(), substring() from t;
+          - mode: pretty
+            expected: |-
+              select current_date, current_schema(), extract(), position(), substring()
+              from t;
+
   - name: coverage_fetch_first_row_without_count
     input: |-
       select * from t offset 5 rows fetch first rows only; select * from t order by a fetch next row with ties; select * from t limit 1
