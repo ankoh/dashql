@@ -4,3 +4,6 @@
 %type<Node> explain_option_elem;
 %type<Node> explain_option_name;
 %type<Node> explain_option_arg;
+%type<NodeList> explain_keyword_options;
+%type<Node> explain_analyze_option;
+%type<Node> explain_verbose_option;

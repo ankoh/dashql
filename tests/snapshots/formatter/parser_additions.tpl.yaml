@@ -17,3 +17,13 @@ formatter-snapshots:
     input: insert into t as x (a) values (1) returning x.a
     dialects:
       hyper:
+  # The options of EXPLAIN without parentheses are written in the parenthesized list
+  - name: coverage_explain_analyze_keyword
+    input: explain analyze verbose select 1
+    dialects:
+      hyper:
+  # FORMAT ANALYZE as an option value
+  - name: coverage_explain_format_analyze
+    input: explain (format analyze) create table x as select 1
+    dialects:
+      hyper:

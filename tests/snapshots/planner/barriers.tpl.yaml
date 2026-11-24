@@ -109,6 +109,17 @@ planner-snapshots:
           explain (costs off) select 1;
           explain select * from a where id = 1;
 
+  # EXPLAIN ANALYZE without parentheses and FORMAT ANALYZE run their statement like EXPLAIN (ANALYZE)
+  - name: ExplainAnalyzeKeyword
+    catalog: |
+      create table a (id int);
+    scripts:
+      - name: queries
+        input: |
+          explain analyze insert into a values (1);
+          explain (analyze) insert into a values (2);
+          explain (format analyze) create table x as select 1;
+
   # DDL statements on unresolved targets
   - name: DdlOnUnresolvedTargets
     scripts:

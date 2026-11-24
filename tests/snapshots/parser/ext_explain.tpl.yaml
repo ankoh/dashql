@@ -80,3 +80,11 @@ parser-snapshots:
         ) as products
       from order_products
       group by order_id;
+  # The options of PostgreSQL without parentheses are the options of the parenthesized list
+  - name: explain_analyze_keyword
+    input: |
+      explain analyze select 1; explain analyse verbose select 1; explain verbose select 1
+  # FORMAT ANALYZE runs the statement too
+  - name: explain_format_analyze
+    input: |
+      explain (format analyze) create table x as select 1

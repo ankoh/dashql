@@ -48,6 +48,9 @@ Further PostgreSQL forms and their trees:
   `ARRAY` of `OPERATOR(schema.op)`.
 - A common table expression `AS [NOT] MATERIALIZED` has the boolean `SQL_CTE_MATERIALIZED`, false for `NOT`.
 - The alias of the target of an INSERT (`INSERT INTO t AS x`) is the `SQL_TABLEREF_ALIAS` of its table reference.
+- `EXPLAIN ANALYZE`, `EXPLAIN ANALYZE VERBOSE` and `EXPLAIN VERBOSE`, the options without parentheses, give the tree
+  of `EXPLAIN (ANALYZE, VERBOSE)`: an `OBJECT_SQL_GENERIC_OPTION` per keyword under `EXT_EXPLAIN_OPTIONS`, which the
+  formatter writes as the parenthesized list. `ANALYZE` is also an option value (`EXPLAIN (FORMAT ANALYZE)`).
 
 `SET a.b = v` with a single value is an `OBJECT_EXT_SET` with its key path and value, every other SET form
 an `OBJECT_SQL_SET` with its parameter (`SQL_SET_PARAMETER`, a `SessionParameter`) or variable (`SQL_SET_NAME`)

@@ -193,6 +193,47 @@ analyzer-snapshots:
             - {name: id, expression: 3}
           text: "select id ..rom events"
 
+  - name: touched_relations_explain_analyze
+    script:
+      input: |-
+        explain (format analyze) create table x as select 1;
+        explain analyze create table y as select 1;
+        explain (analyze) create table z as select 1;
+        explain create table w as select 1;
+      catalog-id: 1
+      touched-relations:
+        - {statement-id: 0, name: x}
+        - {statement-id: 1, name: y}
+        - {statement-id: 2, name: z}
+      errors: []
+      expressions:
+        - {id: 0, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, statement-id: 1, text: "1"}
+        - {id: 2, type: literal/integer, is-const: true, statement-id: 2, text: "1"}
+        - {id: 3, type: literal/integer, is-const: true, statement-id: 3, text: "1"}
+      constants:
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "1"}
+        - {expression: 2, text: "1"}
+        - {expression: 3, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - {name: '?', expression: 0}
+          text: "select 1"
+        - scope-id: 1
+          columns:
+            - {name: '?', expression: 1}
+          text: "select 1"
+        - scope-id: 2
+          columns:
+            - {name: '?', expression: 2}
+          text: "select 1"
+        - scope-id: 3
+          columns:
+            - {name: '?', expression: 3}
+          text: "select 1"
+
   - name: catalog_changes_catalog_columns
     catalog:
       script:

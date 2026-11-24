@@ -64,3 +64,39 @@ formatter-snapshots:
                 (1)
               returning x.a;
 
+  - name: coverage_explain_analyze_keyword
+    input: |-
+      explain analyze verbose select 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              explain (analyze, verbose) select 1;
+          - mode: compact
+            expected: |-
+              explain (analyze, verbose)
+              select 1;
+          - mode: pretty
+            expected: |-
+              explain (analyze, verbose)
+              select 1;
+
+  - name: coverage_explain_format_analyze
+    input: |-
+      explain (format analyze) create table x as select 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              explain (format analyze) create table x as select 1;
+          - mode: compact
+            expected: |-
+              explain (format analyze)
+              create table x as select 1;
+          - mode: pretty
+            expected: |-
+              explain (format analyze)
+              create table x as select 1;
+

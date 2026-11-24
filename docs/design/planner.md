@@ -224,7 +224,8 @@ inspected structurally through `EXT_EXPLAIN_OPTIONS` and the generic option
 key/value attributes, not by searching the whole SQL text. `analyze` and `analyse`
 enable execution unless their argument is an explicit boolean false; missing or
 unknown arguments are conservative. `format analyze` (including quoted values)
-also enables execution. Any enabling option wins over a disabling duplicate.
+also enables execution. `EXPLAIN ANALYZE` without parentheses parses to the tree of `EXPLAIN (ANALYZE)`.
+Any enabling option wins over a disabling duplicate.
 Execution-enabled EXPLAIN with a mutating body is a barrier with the warning
 `execution-enabled EXPLAIN with a mutating body cannot be safely classified`.
 Its nested DML target accesses remain WRITE, so the readers and writers of its

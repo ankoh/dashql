@@ -35,6 +35,13 @@
 explain_stmt:
     EXPLAIN explainable_stmt { ctx.object(@$, NodeType::OBJECT_EXT_EXPLAIN, &[attr(Key::EXT_EXPLAIN_STATEMENT, $2)]) }
   | EXPLAIN call_stmt { ctx.object(@$, NodeType::OBJECT_EXT_EXPLAIN, &[attr(Key::EXT_EXPLAIN_STATEMENT, $2)]) }
+  | EXPLAIN explain_keyword_options explainable_stmt {
+      ctx.object(
+          @$,
+          NodeType::OBJECT_EXT_EXPLAIN,
+          &[attr(Key::EXT_EXPLAIN_STATEMENT, $3), attr(Key::EXT_EXPLAIN_OPTIONS, ctx.array(@2, $2))],
+      )
+  }
   | EXPLAIN LRB explain_option_list RRB explainable_stmt {
       ctx.object(
           @$,
@@ -63,6 +70,29 @@ explainable_stmt:
   | sql_cmd_truncate_stmt { $1 }
   | sql_cmd_execute_stmt { $1 }
     ;
+// The options of PostgreSQL before the parenthesized list, `EXPLAIN ANALYZE VERBOSE`, give the tree of
+// `EXPLAIN (ANALYZE, VERBOSE)`
+explain_keyword_options:
+    explain_analyze_option                          { ctx.list(&[$1]) }
+  | explain_analyze_option explain_verbose_option   { ctx.list(&[$1, $2]) }
+  | explain_verbose_option                          { ctx.list(&[$1]) }
+    ;
+
+explain_analyze_option:
+    ANALYZE {
+        ctx.object(@$, NodeType::OBJECT_SQL_GENERIC_OPTION, &[attr(Key::SQL_GENERIC_OPTION_KEY, ctx.name_from_keyword(@1, $1))])
+    }
+  | ANALYSE {
+        ctx.object(@$, NodeType::OBJECT_SQL_GENERIC_OPTION, &[attr(Key::SQL_GENERIC_OPTION_KEY, ctx.name_from_keyword(@1, $1))])
+    }
+    ;
+
+explain_verbose_option:
+    VERBOSE {
+        ctx.object(@$, NodeType::OBJECT_SQL_GENERIC_OPTION, &[attr(Key::SQL_GENERIC_OPTION_KEY, ctx.name_from_keyword(@1, $1))])
+    }
+    ;
+
 explain_option_list:
     explain_option_elem                                     { ctx.list(&[$1]) }
   | explain_option_list COMMA explain_option_elem           {
@@ -92,6 +122,8 @@ explain_option_arg:
     TRUE_P                      { bool_node(@1, true) }
   | FALSE_P                     { bool_node(@1, false) }
   | ON                          { bool_node(@1, true) }
+  | ANALYZE                     { ctx.name_from_keyword(@1, $1) }
+  | ANALYSE                     { ctx.name_from_keyword(@1, $1) }
   | LRB sql_name_list RRB       { ctx.array(@$, $2) }
   | sql_descriptor_arg          { $1 }
   | sql_col_id                  { $1 }

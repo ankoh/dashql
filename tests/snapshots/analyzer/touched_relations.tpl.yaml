@@ -21,6 +21,14 @@ analyzer-snapshots:
         create temp table session_only (id int);
         create temporary view session_view as select id from events;
         select id into temp copied from events;
+  # An EXPLAIN that runs its CREATE TABLE AS creates the table: ANALYZE with and without parentheses and FORMAT ANALYZE
+  - name: touched_relations_explain_analyze
+    script:
+      input: |-
+        explain (format analyze) create table x as select 1;
+        explain analyze create table y as select 1;
+        explain (analyze) create table z as select 1;
+        explain create table w as select 1;
   # Relations against a catalog, star expansion resolves the catalog columns
   - name: catalog_changes_catalog_columns
     catalog:

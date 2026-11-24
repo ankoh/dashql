@@ -596,6 +596,85 @@ planner-snapshots:
       edges: []
       diagnostics: []
 
+  - name: ExplainAnalyzeKeyword
+    catalog: |
+      create table a (id int);
+    scripts:
+      - name: queries
+        input: |
+          explain analyze insert into a values (1);
+          explain (analyze) insert into a values (2);
+          explain (format analyze) create table x as select 1;
+    expected:
+      valid: true
+      scripts:
+        - name: queries
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 2
+          signature: "4dccd8fe1109bd3a3d2ae14d3649eb265c10ff722d71d606a28ffc41ed601c14"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: a
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: queries
+          statement-id: 0
+          type: EXPLAIN
+          sql: "explain analyze insert into a values (1)"
+          produces-output: true
+          barrier: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 1
+          script: queries
+          statement-id: 1
+          type: EXPLAIN
+          sql: "explain (analyze) insert into a values (2)"
+          produces-output: true
+          barrier: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 2
+          script: queries
+          statement-id: 2
+          type: EXPLAIN
+          sql: "explain (format analyze) create table x as select 1"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses: []
+      edges:
+        - from: 0
+          to: 1
+          reason: WRITE_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 0
+          to: 1
+          reason: BARRIER
+        - from: 1
+          to: 2
+          reason: BARRIER
+      diagnostics:
+        - node: 0
+          script: queries
+          error: false
+          message: execution-enabled EXPLAIN with a mutating body cannot be safely classified
+        - node: 1
+          script: queries
+          error: false
+          message: execution-enabled EXPLAIN with a mutating body cannot be safely classified
+        - node: 2
+          script: queries
+          error: false
+          message: execution-enabled EXPLAIN with a mutating body cannot be safely classified
+
   - name: DdlOnUnresolvedTargets
     scripts:
       - name: queries

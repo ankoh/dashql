@@ -1247,3 +1247,186 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: explain_analyze_keyword
+    input: |-
+      explain analyze select 1; explain analyse verbose select 1; explain verbose select 1
+    expected:
+      statements:
+        - type: EXPLAIN
+          ast-begin: 0
+          ast-size: 8
+          description:
+            text: "explain an.. select 1;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_EXT_EXPLAIN
+            text: "explain an..e select 1"
+            children:
+              - key: EXT_EXPLAIN_STATEMENT
+                type: OBJECT_SQL_SELECT
+                text: "select 1"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "1"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "1"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: LITERAL_INTEGER
+                            text: "1"
+              - key: EXT_EXPLAIN_OPTIONS
+                type: ARRAY
+                text: "analyze"
+                children:
+                  - type: OBJECT_SQL_GENERIC_OPTION
+                    text: "analyze"
+                    children:
+                      - key: SQL_GENERIC_OPTION_KEY
+                        type: NAME
+                        text: "analyze"
+        - type: EXPLAIN
+          ast-begin: 8
+          ast-size: 10
+          description:
+            text: "explain an.. select 1;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_EXT_EXPLAIN
+            text: "explain an..e select 1"
+            children:
+              - key: EXT_EXPLAIN_STATEMENT
+                type: OBJECT_SQL_SELECT
+                text: "select 1"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "1"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "1"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: LITERAL_INTEGER
+                            text: "1"
+              - key: EXT_EXPLAIN_OPTIONS
+                type: ARRAY
+                text: "analyse verbose"
+                children:
+                  - type: OBJECT_SQL_GENERIC_OPTION
+                    text: "analyse"
+                    children:
+                      - key: SQL_GENERIC_OPTION_KEY
+                        type: NAME
+                        text: "analyse"
+                  - type: OBJECT_SQL_GENERIC_OPTION
+                    text: "verbose"
+                    children:
+                      - key: SQL_GENERIC_OPTION_KEY
+                        type: NAME
+                        text: "verbose"
+        - type: EXPLAIN
+          ast-begin: 18
+          ast-size: 8
+          description:
+            text: "explain ve..e select 1"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_EXT_EXPLAIN
+            text: "explain ve..e select 1"
+            children:
+              - key: EXT_EXPLAIN_STATEMENT
+                type: OBJECT_SQL_SELECT
+                text: "select 1"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "1"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "1"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: LITERAL_INTEGER
+                            text: "1"
+              - key: EXT_EXPLAIN_OPTIONS
+                type: ARRAY
+                text: "verbose"
+                children:
+                  - type: OBJECT_SQL_GENERIC_OPTION
+                    text: "verbose"
+                    children:
+                      - key: SQL_GENERIC_OPTION_KEY
+                        type: NAME
+                        text: "verbose"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: explain_format_analyze
+    input: |-
+      explain (format analyze) create table x as select 1
+    expected:
+      statements:
+        - type: EXPLAIN
+          ast-begin: 0
+          ast-size: 12
+          description:
+            text: "explain (f..s select 1"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_EXT_EXPLAIN
+            text: "explain (f..s select 1"
+            children:
+              - key: EXT_EXPLAIN_STATEMENT
+                type: OBJECT_SQL_CREATE_AS
+                text: "create tab..s select 1"
+                children:
+                  - key: SQL_CREATE_AS_NAME
+                    type: ARRAY
+                    text: "x"
+                    children:
+                      - type: NAME
+                        text: "x"
+                  - key: SQL_CREATE_AS_STATEMENT
+                    type: OBJECT_SQL_SELECT
+                    text: "select 1"
+                    children:
+                      - key: SQL_SELECT_TARGETS
+                        type: ARRAY
+                        text: "1"
+                        children:
+                          - type: OBJECT_SQL_RESULT_TARGET
+                            text: "1"
+                            children:
+                              - key: SQL_RESULT_TARGET_VALUE
+                                type: LITERAL_INTEGER
+                                text: "1"
+              - key: EXT_EXPLAIN_OPTIONS
+                type: ARRAY
+                text: "(format analyze)"
+                children:
+                  - type: OBJECT_SQL_GENERIC_OPTION
+                    text: "format analyze"
+                    children:
+                      - key: SQL_GENERIC_OPTION_KEY
+                        type: NAME
+                        text: "format"
+                      - key: SQL_GENERIC_OPTION_VALUE
+                        type: NAME
+                        text: "analyze"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
