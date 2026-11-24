@@ -90,7 +90,7 @@ This generates/updates `tests/snapshots/formatter/<category>.yaml` from all `.tp
 ## 4) Snapshot tests
 
 No test needs a registration: the first two read every `tests/snapshots/formatter/*.yaml`, the round trip every
-`tests/snapshots/parser/*.yaml`.
+`tests/snapshots/parser/*.yaml` and the Hyper cases of the parser (`packages/dashql-parser/src/parser/hyper_cases.rs`).
 
 ### Snapshot equality
 Target:
@@ -114,8 +114,9 @@ This ensures both textual snapshot checks and executable SQL validation are cove
 Target:
 - `//packages/dashql-core:formatter_roundtrip_test` (`packages/dashql-core/tests/formatter_roundtrip.rs`)
 
-Every error-free script of the parser snapshots (`tests/snapshots/parser/*.yaml`) must be fully formattable, and its
-output must parse without errors again, to a tree with the same node types and attribute keys. Formatting the output
+Every error-free script of the parser snapshots (`tests/snapshots/parser/*.yaml`) and every Hyper case of the parser
+(`packages/dashql-parser/src/parser/hyper_cases.rs`) must be fully formattable, and its output must parse without
+errors again, to a tree with the same node types and attribute keys. Formatting the output
 a second time must not change it. The same holds with comments between all symbols of the scripts, and every comment must be printed once.
 
 ## 5) Add a JS API formatting test (recommended)

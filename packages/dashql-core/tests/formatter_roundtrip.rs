@@ -1,8 +1,10 @@
-//! Formats the scripts of the parser snapshots and checks the output against the parser.
+//! Formats the scripts of the parser snapshots and the Hyper cases of the parser and checks the output against the
+//! parser.
 //!
-//! Every script of the parser snapshots that parses without errors must be fully formattable, and its
-//! formatted output must parse without errors again, to a tree with the same nodes. The output must also be stable
-//! when it is formatted a second time.
+//! Every script of the parser snapshots that parses without errors, and every Hyper case of the parser
+//! (`packages/dashql-parser/src/parser/hyper_cases.rs`), must be fully formattable, and its formatted output must
+//! parse without errors again, to a tree with the same nodes. The output must also be stable when it is formatted a
+//! second time.
 
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode};
 use dashql_core::formatter::Formatter;
@@ -11,10 +13,16 @@ use dashql_parser::scanner::scan;
 use dashql_snapshots::load_category;
 use std::sync::Arc;
 
-/// Scripts that the formatter rejects on purpose
+// The Hyper cases of the parser, the positive cases of its grammar tests
+#[path = "../../dashql-parser/src/parser/hyper_cases.rs"]
+mod hyper_cases;
+
+/// Scripts that the formatter rejects on purpose, of the parser snapshots and the Hyper cases of the parser. The
+/// formatter reports them as not fully formatted.
 const UNFORMATTABLE: &[&str] = &[
-    // DEFAULT is only formatted as a value of an INSERT
+    // DEFAULT is only formatted as a value of INSERT and MERGE and of assignments
     "select somefunc(default);",
+    "values (default)",
 ];
 
 /// Scripts whose formatted output spells a construct differently, with another tree of the same meaning
@@ -23,6 +31,7 @@ const RESPELLED: &[&str] = &[
     "select cast(a as text array)",
     "create table t (ps array(row(x int)), qs row(x int)[])",
     "select cast(json_parse(payload) as array(json)) as entries from event_stream",
+    "select cast(array[1, 2] as array(integer))",
 ];
 
 /// Does the script parse without scanner and parser errors?
@@ -48,20 +57,33 @@ fn config(mode: FormattingMode) -> FormattingConfigT {
     config
 }
 
+/// The scripts of the round trip: the error-free scripts of the parser snapshots and the Hyper cases of the parser,
+/// with their names, without the scripts that the formatter rejects on purpose
+fn corpus() -> Vec<(String, String, ParsedScript)> {
+    let snapshots =
+        load_category("parser").unwrap().into_iter().filter_map(|case| Some((case.trial_name(), case.input()?)));
+    let hyper = hyper_cases::CASES.iter().map(|&(name, sql)| (format!("hyper_cases::{name}"), sql.to_string()));
+    let mut scripts = Vec::new();
+    for (name, input) in snapshots.chain(hyper) {
+        let parsed = parse(Arc::new(scan(&input, 0, 2)));
+        if is_valid(&parsed) && !UNFORMATTABLE.contains(&input.trim()) {
+            scripts.push((name, input, parsed));
+        }
+    }
+    scripts
+}
+
 #[test]
 fn formatted_parser_snapshots_parse_again() {
     let mut failures = Vec::new();
     let mut checked = 0;
-    for case in load_category("parser").unwrap() {
-        let Some(input) = case.input() else { continue };
-        let parsed = parse(Arc::new(scan(&input, 0, 2)));
-        if !is_valid(&parsed) || UNFORMATTABLE.contains(&input.trim()) {
-            continue;
-        }
+    let scripts = corpus();
+    assert!(scripts.iter().any(|(name, ..)| name.starts_with("hyper_cases::")), "no Hyper cases");
+    for (name, input, parsed) in &scripts {
         for mode in [FormattingMode::INLINE, FormattingMode::COMPACT, FormattingMode::PRETTY] {
             checked += 1;
             let config = config(mode);
-            let mut formatter = Formatter::new(&parsed);
+            let mut formatter = Formatter::new(parsed);
             let formatted = formatter.format(&config);
             if !formatter.is_fully_formatted() {
                 let nodes: Vec<_> = formatter
@@ -69,21 +91,21 @@ fn formatted_parser_snapshots_parse_again() {
                     .iter()
                     .map(|&n| format!("{:?}", parsed.nodes[n as usize].node_type().variant_name()))
                     .collect();
-                failures.push(format!("{}: unformattable {nodes:?} in {input:?}", case.trial_name()));
+                failures.push(format!("{name}: unformattable {nodes:?} in {input:?}"));
                 continue;
             }
             let reparsed = parse(Arc::new(scan(&formatted, 0, 2)));
             if !is_valid(&reparsed) {
-                failures.push(format!("{}: output does not parse: {formatted:?} of {input:?}", case.trial_name()));
+                failures.push(format!("{name}: output does not parse: {formatted:?} of {input:?}"));
                 continue;
             }
-            if shape(&reparsed) != shape(&parsed) && !RESPELLED.contains(&input.trim()) {
-                failures.push(format!("{}: output changes the tree: {formatted:?} of {input:?}", case.trial_name()));
+            if shape(&reparsed) != shape(parsed) && !RESPELLED.contains(&input.trim()) {
+                failures.push(format!("{name}: output changes the tree: {formatted:?} of {input:?}"));
                 continue;
             }
             let again = Formatter::new(&reparsed).format(&config);
             if again != formatted {
-                failures.push(format!("{}: unstable output {formatted:?} then {again:?}", case.trial_name()));
+                failures.push(format!("{name}: unstable output {formatted:?} then {again:?}"));
             }
         }
     }
@@ -126,10 +148,8 @@ fn inject_comments(input: &str, injection: Injection) -> String {
 fn formatted_comments_stay_in_place() {
     let mut failures = Vec::new();
     let mut checked = 0;
-    for case in load_category("parser").unwrap() {
-        let Some(input) = case.input() else { continue };
-        let parsed = parse(Arc::new(scan(&input, 0, 2)));
-        if !is_valid(&parsed) || UNFORMATTABLE.contains(&input.trim()) || RESPELLED.contains(&input.trim()) {
+    for (name, input, parsed) in corpus() {
+        if RESPELLED.contains(&input.trim()) {
             continue;
         }
         for injection in [Injection::BlockBefore, Injection::LineBefore, Injection::LineAfter] {
@@ -144,7 +164,7 @@ fn formatted_comments_stay_in_place() {
                 checked += 1;
                 let config = config(mode);
                 let formatted = Formatter::new(&parsed_commented).format(&config);
-                let name = format!("{} {injection:?} {mode:?}", case.trial_name());
+                let name = format!("{name} {injection:?} {mode:?}");
                 if let Some(n) = (0..markers).find(|n| formatted.matches(&format!("k{n}k")).count() != 1) {
                     failures.push(format!("{name}: comment k{n}k is not printed once in {formatted:?}"));
                     continue;

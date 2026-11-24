@@ -41,6 +41,12 @@ rust_library(
     ],
 )
 
+# The Hyper cases of the grammar tests, the formatter round trip of the core formats them too
+exports_files(
+    ["src/parser/hyper_cases.rs"],
+    visibility = ["//packages/dashql-core:__pkg__"],
+)
+
 rust_test(
     name = "dashql_parser_unit_tests",
     size = "small",

@@ -94,12 +94,14 @@ rust_test(
     ],
 )
 
-# Formats every script of the parser snapshots without syntax errors: the formatter must be able to represent every
-# node and its output must parse again.
+# Formats every script of the parser snapshots without syntax errors and the Hyper cases of the parser: the formatter
+# must be able to represent every node and its output must parse again.
 rust_test(
     name = "formatter_roundtrip_test",
     size = "small",
     srcs = ["tests/formatter_roundtrip.rs"],
+    # The test reads the Hyper cases of the parser as a module of its own
+    compile_data = ["//packages/dashql-parser:src/parser/hyper_cases.rs"],
     data = ["//tests/snapshots/parser:files"],
     edition = "2021",
     deps = [
