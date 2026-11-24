@@ -136,6 +136,133 @@ parser-snapshots:
       comment-blocks: []
       comment-warnings: []
 
+  - name: set_key_path
+    input: |-
+      SET global.experimental_sequences = on;
+      SET a.b.c = ('d'.e = 1, f = (g.h = [2]));
+    expected:
+      statements:
+        - type: SET
+          ast-begin: 0
+          ast-size: 6
+          description:
+            text: "SET global..nces = on;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_EXT_SET
+            text: "SET global..ences = on"
+            children:
+              - key: EXT_SET_VARARGS
+                type: OBJECT_EXT_VARARG_FIELD
+                text: "global.exp..ences = on"
+                children:
+                  - key: EXT_VARARG_FIELD_KEY
+                    type: NAME
+                    text: "global"
+                  - key: EXT_VARARG_FIELD_VALUE
+                    type: OBJECT_EXT_VARARG_FIELD
+                    text: "experiment..ences = on"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "experiment.._sequences"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: BOOL
+                        value: 1
+        - type: SET
+          ast-begin: 6
+          ast-size: 23
+          description:
+            text: "SET a.b.c ..h = [2]));"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_EXT_SET
+            text: "SET a.b.c ...h = [2]))"
+            children:
+              - key: EXT_SET_VARARGS
+                type: OBJECT_EXT_VARARG_FIELD
+                text: "a.b.c = ('...h = [2]))"
+                children:
+                  - key: EXT_VARARG_FIELD_KEY
+                    type: NAME
+                    text: "a"
+                  - key: EXT_VARARG_FIELD_VALUE
+                    type: OBJECT_EXT_VARARG_FIELD
+                    text: "b.c = ('d'...h = [2]))"
+                    children:
+                      - key: EXT_VARARG_FIELD_KEY
+                        type: NAME
+                        text: "b"
+                      - key: EXT_VARARG_FIELD_VALUE
+                        type: OBJECT_EXT_VARARG_FIELD
+                        text: "c = ('d'.e...h = [2]))"
+                        children:
+                          - key: EXT_VARARG_FIELD_KEY
+                            type: NAME
+                            text: "c"
+                          - key: EXT_VARARG_FIELD_VALUE
+                            type: ARRAY
+                            text: "('d'.e = 1...h = [2]))"
+                            children:
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "'d'.e = 1"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: LITERAL_STRING
+                                    text: "'d'"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: OBJECT_EXT_VARARG_FIELD
+                                    text: "e = 1"
+                                    children:
+                                      - key: EXT_VARARG_FIELD_KEY
+                                        type: NAME
+                                        text: "e"
+                                      - key: EXT_VARARG_FIELD_VALUE
+                                        type: LITERAL_INTEGER
+                                        text: "1"
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "f = (g.h = [2])"
+                                children:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: NAME
+                                    text: "f"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: ARRAY
+                                    text: "(g.h = [2])"
+                                    children:
+                                      - type: OBJECT_EXT_VARARG_FIELD
+                                        text: "g.h = [2]"
+                                        children:
+                                          - key: EXT_VARARG_FIELD_KEY
+                                            type: NAME
+                                            text: "g"
+                                          - key: EXT_VARARG_FIELD_VALUE
+                                            type: OBJECT_EXT_VARARG_FIELD
+                                            text: "h = [2]"
+                                            children:
+                                              - key: EXT_VARARG_FIELD_KEY
+                                                type: NAME
+                                                text: "h"
+                                              - key: EXT_VARARG_FIELD_VALUE
+                                                type: OBJECT_EXT_VARARG_ARRAY
+                                                text: "[2]"
+                                                children:
+                                                  - key: EXT_VARARG_ARRAY_VALUES
+                                                    type: ARRAY
+                                                    text: "[2]"
+                                                    children:
+                                                      - type: LITERAL_INTEGER
+                                                        text: "2"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [39,40]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
   - name: set_3
     input: |-
       SET variable = (

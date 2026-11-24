@@ -62,7 +62,9 @@ SESSION` is the default and not recorded. The formatter writes the `OBJECT_EXT_S
 `OBJECT_SQL_SET` variable after `to`, like PostgreSQL's deparser, so that a single value stays an `OBJECT_SQL_SET`;
 only values that `to` does not take, a column reference or a function call first, follow `=`. `RESET` is an
 `OBJECT_SQL_RESET` that holds another one with the variable (`SQL_RESET_ARG`) or the parameter
-(`SQL_RESET_PARAMETER`).
+(`SQL_RESET_PARAMETER`). A key path of a vararg field, in `SET` and in the fields of a value, nests the fields:
+`a.b = v` is the `OBJECT_EXT_VARARG_FIELD` of `a` whose value is the field `b = v`, which the formatter writes as the
+path again.
 
 ## Trailing Dots
 

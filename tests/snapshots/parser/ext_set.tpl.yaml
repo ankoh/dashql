@@ -14,6 +14,11 @@ parser-snapshots:
         ),
         'andarrays' = [43, 44]
       );
+  # Parse SET with key paths: every key of a path is a field whose value is the field of the next key
+  - name: set_key_path
+    input: |
+      SET global.experimental_sequences = on;
+      SET a.b.c = ('d'.e = 1, f = (g.h = [2]));
   # Parse SET with function call in value
   - name: set_3
     input: |

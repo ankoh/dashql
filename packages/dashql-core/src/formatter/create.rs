@@ -652,6 +652,10 @@ impl<'a> Formatter<'a> {
         let f = &self.fmt;
         let [key, value] = attrs!(self.children(node), [K::EXT_VARARG_FIELD_KEY, K::EXT_VARARG_FIELD_VALUE]);
         let (Some(key), Some(value)) = (key, value) else { return self.format_unimplemented(node) };
+        // A field as value is the rest of a key path, `a.b = v`
+        if value.node_type() == NodeType::OBJECT_EXT_VARARG_FIELD {
+            return f.concat(&[self.reg(key), f.text("."), self.reg(value)]);
+        }
         f.concat(&[self.reg(key), f.text(" = "), self.reg(value)])
     }
 

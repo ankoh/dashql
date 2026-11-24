@@ -311,15 +311,18 @@ pub fn negate(ctx: &ParseContext, loc: SymbolSpan, loc_minus: SymbolSpan, value:
     )
 }
 
-/// A vararg field. Every level wraps the value, not the inner level.
+/// A vararg field. A key path nests the fields: `a.b = v` is the field `a` whose value is the field `b = v`, every
+/// field spans the text from its key to the value.
 pub fn vararg_field(ctx: &ParseContext, loc: SymbolSpan, path: NodeList, value: Node) -> Node {
     let mut root = value;
     let keys = ctx.state.borrow().lists_snapshot(path);
+    let end = loc.offset().wrapping_add(loc.length());
     for key in keys.into_iter().rev() {
+        let begin = key.symbol_span().offset();
         root = ctx.object(
-            loc,
+            SymbolSpan::new(begin, end.wrapping_sub(begin)),
             NodeType::OBJECT_EXT_VARARG_FIELD,
-            &[attr(Key::EXT_VARARG_FIELD_KEY, key), attr(Key::EXT_VARARG_FIELD_VALUE, value)],
+            &[attr(Key::EXT_VARARG_FIELD_KEY, key), attr(Key::EXT_VARARG_FIELD_VALUE, root)],
         );
     }
     root

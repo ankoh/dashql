@@ -147,6 +147,12 @@ formatter-snapshots:
     dialects:
       hyper:
 
+  # A key path names a field of a field, in the variable and in the fields of a value
+  - name: coverage_set_key_path
+    input: SET global.experimental_sequences = on; SET global.parallel = -1; SET a.b.c = ('d'.e = 1, f = (g.h = [2]))
+    dialects:
+      hyper:
+
   # The values of a variable follow `to`, `=` only for a single value and for values that `to` does not take
   - name: coverage_set_to_values
     input: SET search_path TO public, 'other'; SET a.b = 'x', 2; SET LOCAL timezone = 'UTC'; SET SESSION enable_x TO on; SET ratio TO -1.5; SET a = b, 2
