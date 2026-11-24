@@ -2,12 +2,12 @@
 // workbook, the `dashql` commands of its agent call the page through the agent server, see
 // docs/design/agent_integration.md. main.ts binds it to the windows, nothing here needs Electron.
 import {execFile} from "node:child_process";
-import {chmod, mkdir, readFile, rm, writeFile} from "node:fs/promises";
+import {chmod, mkdir, readFile, rename, rm, writeFile} from "node:fs/promises";
 import path from "node:path";
 
 import {AgentServer, type AgentCallPart, type AgentCallRequest} from "./agent_server.js";
 import {harnessArgs, harnessInfo, HARNESSES, INPUT_FOLDER, isHarness, resolveLoginShellPath, resolveProgram, spawnHarness, type HarnessRun} from "./harness.js";
-import type {AgentEvent, AgentHarness} from "./readers.js";
+import {isPlumbingStep, type AgentEvent, type AgentHarness} from "./readers.js";
 
 /// A call of a `dashql` command as the page gets it
 export interface AgentCall extends AgentCallRequest {
@@ -55,6 +55,10 @@ const FILE_NAME = /^[A-Za-z0-9_][A-Za-z0-9_.@-]{0,254}$/;
 const MAX_PROMPT_BYTES = 1024 * 1024;
 /// The ids of sessions of the harnesses that a state file may hold, a session becomes an argument
 const SESSION_ID = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,255}$/;
+/// The largest conversation that the page keeps in the folder of a workbook
+const MAX_CONVERSATION_BYTES = 4 * 1024 * 1024;
+/// The file of the conversation as the page shows it, next to the sessions of the harnesses in state.json
+const CONVERSATION_FILE = "conversation.json";
 
 /// The state of the folder of a workbook: the session of every harness, which the next question resumes
 interface WorkbookState {
@@ -131,6 +135,8 @@ export class AgentHost {
     #calls = new Map<number, PendingCall>();
     #nextCallId = 1;
     #closed = false;
+    /// The writes of the conversations that run, by workbook, forget waits for them
+    #conversationWrites = new Map<string, Promise<void>>();
 
     constructor(options: AgentHostOptions) {
         this.#options = options;
@@ -224,7 +230,11 @@ export class AgentHost {
                 env,
                 killGraceMs: this.#options.killGraceMs,
                 sink: {
-                    tool: (event) => page.event(workbookId, event),
+                    // The page tells the `dashql` commands itself, from their calls
+                    tool: (event) => {
+                        if (!isPlumbingStep(event.status)) page.event(workbookId, event);
+                    },
+                    say: (text) => page.event(workbookId, {event: "Say", text}),
                     session: (id) => {
                         if (!SESSION_ID.test(id) || id === newSession) return;
                         newSession = id;
@@ -315,11 +325,46 @@ export class AgentHost {
         await turn.ended;
     }
 
-    /// Stop the turn of a workbook and forget its conversations
+    /// Stop the turn of a workbook and forget its conversations: the one that the page shows and the sessions of the
+    /// harnesses, the next question starts a new conversation
     async forget(workbookId: string): Promise<void> {
         const folder = this.folderOf(workbookId);
         await this.stop(workbookId);
+        await this.#conversationWrites.get(workbookId);
         await rm(folder, {recursive: true, force: true});
+    }
+
+    /// The conversation of a workbook as the page kept it, null without one. The page reads what it wrote.
+    async readConversation(workbookId: string): Promise<unknown> {
+        const file = path.join(this.folderOf(workbookId), CONVERSATION_FILE);
+        try {
+            return JSON.parse(await readFile(file, "utf8"));
+        } catch {
+            return null;
+        }
+    }
+
+    /// Keep the conversation of a workbook as the page shows it, plain JSON that the page reads again
+    async writeConversation(workbookId: string, conversation: unknown): Promise<void> {
+        const folder = this.folderOf(workbookId);
+        const text = JSON.stringify(conversation);
+        if (typeof text !== "string" || conversation === null || typeof conversation !== "object" || Buffer.byteLength(text) > MAX_CONVERSATION_BYTES) {
+            throw new Error("Rejected conversation");
+        }
+        const before = this.#conversationWrites.get(workbookId) ?? Promise.resolve();
+        const write = before.then(async () => {
+            await mkdir(folder, {recursive: true, mode: 0o700});
+            const file = path.join(folder, CONVERSATION_FILE);
+            const temporary = `${file}.tmp`;
+            await writeFile(temporary, `${text}\n`, {mode: 0o600});
+            await rename(temporary, file);
+        });
+        const settled = write.catch(() => {});
+        this.#conversationWrites.set(workbookId, settled);
+        void settled.then(() => {
+            if (this.#conversationWrites.get(workbookId) === settled) this.#conversationWrites.delete(workbookId);
+        });
+        await write;
     }
 
     /// Stop the turns of a page that went away

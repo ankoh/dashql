@@ -16,7 +16,7 @@ function agentSession(turns: AgentTurn[] = []): AgentSession {
         workbookId: 'w1',
         harness: 'claude',
         turns,
-        onDismiss: vi.fn(),
+        onReset: vi.fn(),
         onShowScript: vi.fn(),
         onStop: vi.fn(),
     };
@@ -25,8 +25,8 @@ function agentSession(turns: AgentTurn[] = []): AgentSession {
 const working: AgentTurn = {
     questionId: 1,
     question: {
-        question: 'how many orders', status: 'dashql lint orders', interrupted: false, error: null, note: null,
-        steps: [{ label: 'dashql lint orders', startedAt: 0, endedAt: null, failed: false }],
+        question: 'how many orders', status: 'Check orders', interrupted: false, error: null, note: null,
+        steps: [{ kind: 'tool', label: 'Check orders', startedAt: 0, endedAt: null, failed: false }],
     },
     scripts: [],
 };
@@ -126,7 +126,7 @@ describe('Workbook status bar', () => {
         expect(bubble()).toBeNull();
     });
 
-    it('leaves the bubble closed while the agent works, the scripts of the agent below it stay visible', () => {
+    it('leaves the bubble closed while the agent works and keeps the conversation out of the log', () => {
         render({ session: agentSession() });
         expect(bubble()).toBeNull();
         expect(agentState()!.dataset.state).toBe('idle');
@@ -134,13 +134,23 @@ describe('Workbook status bar', () => {
         render({ session: agentSession([working]) });
         expect(bubble()).toBeNull();
         expect(agentState()!.dataset.state).toBe('working');
-        // A click shows the question of the agent in the log
+        // The log is only the log, the conversation is in the prompt
         act(() => wobble().click());
-        expect(container.querySelector('[data-testid="composer-agent"]')).not.toBeNull();
-        // The log stops the question that runs
-        expect(container.querySelector('[data-testid="question-stop"]')).not.toBeNull();
+        expect(bubble()).not.toBeNull();
+        expect(container.querySelector('[data-testid="composer-agent"]')).toBeNull();
         render({ session: agentSession([answered]) });
         expect(bubble()).not.toBeNull();
+    });
+
+    it('shows the conversation on a click on the agent', () => {
+        const onShowAgent = vi.fn();
+        render({ session: agentSession([answered]) });
+        expect(agentState()!.tagName).toBe('SPAN');
+        render({ session: agentSession([answered]), onShowAgent });
+        expect(agentState()!.tagName).toBe('BUTTON');
+        act(() => agentState()!.click());
+        expect(onShowAgent).toHaveBeenCalledOnce();
+        expect(bubble()).toBeNull();
     });
 
     it('shows and hides the prompt below it on a click on the bar or its chevron', () => {

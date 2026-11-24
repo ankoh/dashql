@@ -31,6 +31,8 @@ contextBridge.exposeInMainWorld("dashqlElectron", {
         }),
         stop: async (workbookId) => await ipcRenderer.invoke("dashql:agent-stop", workbookId),
         forget: async (workbookId) => await ipcRenderer.invoke("dashql:agent-forget", workbookId),
+        readConversation: async (workbookId) => await ipcRenderer.invoke("dashql:agent-read-conversation", workbookId),
+        writeConversation: async (workbookId, conversation) => await ipcRenderer.invoke("dashql:agent-write-conversation", workbookId, conversation),
         onEvent: (listener) => listen("dashql:agent-event", listener),
         onCall: (listener) => listen("dashql:agent-call", listener),
         onCallCancel: (listener) => listen("dashql:agent-call-cancel", listener),

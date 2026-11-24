@@ -13,9 +13,10 @@ export interface AgentScript {
     scriptName: string;
 }
 
-/// A use of a tool by the agent
+/// A step of the agent: a use of a tool or a text between its tools
 export interface AgentStep {
-    /// What the tool does, in one line
+    kind: 'tool' | 'text';
+    /// What the tool does, in one line, or the text of the agent
     label: string;
     /// When it started, in ms since the epoch
     startedAt: number;
@@ -36,7 +37,7 @@ export interface AgentQuestion {
     error: string | null;
     /// The final message of the agent
     note: string | null;
-    /// The uses of tools, oldest first
+    /// The uses of tools and the texts of the agent, oldest first
     steps: AgentStep[];
 }
 
@@ -47,8 +48,8 @@ export interface AgentTurn {
     scripts: AgentScript[];
 }
 
-/// The conversation of the agent on a workbook, as the bar of the workbook shows it. The desktop app runs a harness of
-/// the machine for every question, the agent works on the workbook through the `dashql` commands
+/// The conversation of the agent on a workbook, as the prompt of the workbook shows it. The desktop app runs a harness
+/// of the machine for every question, the agent works on the workbook through the `dashql` commands
 /// (docs/design/agent_integration.md).
 export interface AgentSession {
     workbookId: string;
@@ -56,8 +57,8 @@ export interface AgentSession {
     harness: string | null;
     /// The questions, oldest first
     turns: AgentTurn[];
-    /// Dismiss the final message of a question
-    onDismiss: (questionId: number) => void;
+    /// Start a new conversation: forget the questions and the session of the harness
+    onReset: () => void;
     /// Scroll to a script that the agent wrote
     onShowScript: (scriptKey: number) => void;
     /// Stop the question that runs
@@ -91,9 +92,6 @@ export function agentDocumentTitle(title: string, activity: AgentActivity): stri
     return activity.kind === 'idle' ? title : `● ${title}`;
 }
 
-/// The step of a shell command that runs scripts with `dashql run` or `dashql vis`
-export const DASHQL_RUN = /(^|[\s/])dashql (run|vis)\b/;
-
 /// A duration in a few characters: `0.4 s`, `12 s`, `2 min 5 s`
 export function formatAgentDuration(ms: number): string {
     const seconds = Math.max(0, ms) / 1000;
@@ -124,16 +122,15 @@ export interface AgentSessionArgs {
     showScript: (scriptKey: number) => void;
 }
 
-/// The conversation as the bar of a workbook shows it: the scripts that the agent changed are the scripts of the
-/// workbook with their names, the dismissed turns are gone
+/// The conversation as the prompt of a workbook shows it: the scripts that the agent changed are the scripts of the
+/// workbook with their names
 export function agentSessionOf(
     workbookId: string,
     state: AgentSessionState,
     workbookScripts: WorkbookScripts,
-    dismissed: ReadonlySet<number>,
-    handlers: Pick<AgentSession, 'onDismiss' | 'onShowScript' | 'onStop'>,
+    handlers: Pick<AgentSession, 'onReset' | 'onShowScript' | 'onStop'>,
 ): AgentSession {
-    const turns: AgentTurn[] = state.turns.filter(turn => !dismissed.has(turn.turnId)).map(turn => {
+    const turns: AgentTurn[] = state.turns.map(turn => {
         const scripts: AgentScript[] = [];
         for (const fileName of turn.files) {
             const ref = workbookScripts.scriptRefs[fileName];
@@ -149,7 +146,7 @@ export function agentSessionOf(
                 interrupted: turn.interrupted,
                 error: turn.error,
                 note: turn.note,
-                steps: turn.steps.map(step => ({ label: step.label, startedAt: step.startedAt, endedAt: step.endedAt, failed: step.failed })),
+                steps: turn.steps.map(step => ({ kind: step.kind, label: step.label, startedAt: step.startedAt, endedAt: step.endedAt, failed: step.failed })),
             },
             scripts,
         };

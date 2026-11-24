@@ -9,7 +9,7 @@ const workbook = {
 } as unknown as WorkbookScripts;
 
 describe('the conversation of the agent in the bar of a workbook', () => {
-    it('names the scripts that the agent changed and leaves out the dismissed turns', () => {
+    it('names the scripts that the agent changed', () => {
         const state = {
             ...createAgentSessionState(),
             harness: 'codex',
@@ -17,18 +17,19 @@ describe('the conversation of the agent in the bar of a workbook', () => {
                 { turnId: 1, question: 'q1', status: null, interrupted: false, error: null, note: 'done', files: [], steps: [] },
                 {
                     turnId: 2, question: 'top orders', status: 'dashql edit orders', interrupted: false, error: null, note: null, files: ['orders.sql', 'gone.sql'],
-                    steps: [{ label: 'dashql edit orders', toolUseId: 't1', startedAt: 10, endedAt: null, failed: false }],
+                    steps: [{ kind: 'tool' as const, label: 'Write orders', toolUseId: 'call:1', startedAt: 10, endedAt: null, failed: false }],
                 },
             ],
         };
-        const handlers = { onDismiss: vi.fn(), onShowScript: vi.fn(), onStop: vi.fn() };
-        const session = agentSessionOf('w1', state, workbook, new Set([1]), handlers);
+        const handlers = { onReset: vi.fn(), onShowScript: vi.fn(), onStop: vi.fn() };
+        const session = agentSessionOf('w1', state, workbook, handlers);
         expect(session).toMatchObject({ workbookId: 'w1', harness: 'codex' });
-        expect(session.turns).toEqual([{
+        expect(session.turns.map(turn => turn.questionId)).toEqual([1, 2]);
+        expect(session.turns[1]).toEqual({
             questionId: 2,
-            question: { question: 'top orders', status: 'dashql edit orders', interrupted: false, error: null, note: null, steps: [{ label: 'dashql edit orders', startedAt: 10, endedAt: null, failed: false }] },
+            question: { question: 'top orders', status: 'dashql edit orders', interrupted: false, error: null, note: null, steps: [{ kind: 'tool', label: 'Write orders', startedAt: 10, endedAt: null, failed: false }] },
             scripts: [{ scriptKey: 7, scriptName: 'orders' }],
-        }]);
+        });
         session.onStop();
         expect(handlers.onStop).toHaveBeenCalled();
     });
@@ -43,7 +44,7 @@ describe('the conversation of the agent in the bar of a workbook', () => {
 
     it('tells what the agent does: a tool runs, it thinks, or nothing', () => {
         const question: AgentQuestion = { question: 'q', status: 'dashql edit a', interrupted: false, error: null, note: null, steps: [] };
-        const step = (endedAt: number | null) => ({ label: 'dashql edit a', startedAt: 1, endedAt, failed: false });
+        const step = (endedAt: number | null) => ({ kind: 'tool' as const, label: 'dashql edit a', startedAt: 1, endedAt, failed: false });
         const activity = (q: AgentQuestion) => agentActivity({ turns: [{ question: q }] });
         expect(activity(question)).toEqual({ kind: 'thinking' });
         expect(activity({ ...question, steps: [step(2)] })).toEqual({ kind: 'thinking' });

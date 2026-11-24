@@ -368,7 +368,7 @@ describe('Workbook composer', () => {
         });
 
         /// The composer with the agent of a provider, of the desktop app or of the web app
-        const WithAgent: React.FC<{ initial: ComposerMode; available: boolean; session?: Session; pickers?: boolean }> = ({ initial, available, session, pickers }) => {
+        const WithAgent: React.FC<{ initial: ComposerMode; available: boolean; session?: Session; pickers?: boolean; conversation?: React.ReactNode }> = ({ initial, available, session, pickers, conversation }) => {
             const [mode, setMode] = React.useState(initial);
             const [harness, setHarness] = React.useState<AgentHarness>('claude');
             const agent: AgentControls = {
@@ -378,18 +378,18 @@ describe('Workbook composer', () => {
                     { id: 'codex', label: 'Codex', available: true },
                     { id: 'opencode', label: 'opencode', available: false },
                 ],
-                isConnectionAllowed: () => true, toggleConnection: () => { }, ask: vi.fn(), stop: vi.fn(),
+                isConnectionAllowed: () => true, toggleConnection: () => { }, ask: vi.fn(), stop: vi.fn(), reset: vi.fn(),
             };
             return (
-                <WorkbookComposer instance={dql} catalog={catalog} variant={WorkbookComposerVariant.Docked} session={session} agent={agent}
+                <WorkbookComposer instance={dql} catalog={catalog} variant={WorkbookComposerVariant.Docked} session={session} agent={agent} conversation={conversation}
                     connectionPicker={pickers ? <span data-testid="sql-picker" /> : undefined}
                     agentConnectionsPicker={pickers ? <span data-testid="agent-picker" /> : undefined}
                     snippetConnector={ConnectorType.HYPER} snippetRegistry={buildSnippetRegistry(dql, {})}
                     keywordCase={core.buffers.formatting.KeywordCase.LOWER} onSend={onSend} onAsk={onAsk} setView={v => { view = v; }} />
             );
         };
-        async function renderAgent(initial: ComposerMode, available = true, session?: Session, pickers = false) {
-            act(() => root.render(<LoggerProvider><WithAgent initial={initial} available={available} session={session} pickers={pickers} /></LoggerProvider>));
+        async function renderAgent(initial: ComposerMode, available = true, session?: Session, pickers = false, conversation?: React.ReactNode) {
+            act(() => root.render(<LoggerProvider><WithAgent initial={initial} available={available} session={session} pickers={pickers} conversation={conversation} /></LoggerProvider>));
             await vi.waitFor(() => expect(view).not.toBeNull());
             return view!;
         }
@@ -414,6 +414,15 @@ describe('Workbook composer', () => {
             expect(container.querySelector('[data-testid="composer-snippets"]')).not.toBeNull();
         });
 
+        it('shows the conversation between the bar and the editor in AI only', async () => {
+            const editor = await renderAgent(ComposerMode.Ai, true, undefined, false, <div data-testid="conversation" />);
+            const conversation = () => container.querySelector('[data-testid="conversation"]');
+            expect(conversation()).not.toBeNull();
+            expect(conversation()!.compareDocumentPosition(editor.dom) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+            act(() => mode('sql').click());
+            expect(conversation()).toBeNull();
+        });
+
         it('switches the harness and leaves out the ones that the machine lacks', async () => {
             await renderAgent(ComposerMode.Ai);
             expect(harnessButton('claude')!.getAttribute('aria-current')).toBe('true');
@@ -425,7 +434,7 @@ describe('Workbook composer', () => {
         it('stops the agent instead of asking while it works', async () => {
             const onStop = vi.fn();
             const session: Session = {
-                workbookId: 'w1', harness: 'claude', onDismiss: vi.fn(), onShowScript: vi.fn(), onStop,
+                workbookId: 'w1', harness: 'claude', onReset: vi.fn(), onShowScript: vi.fn(), onStop,
                 turns: [{ questionId: 1, question: { question: 'q', status: 'working', interrupted: false, error: null, note: null, steps: [] }, scripts: [] }],
             };
             const editor = await renderAgent(ComposerMode.Ai, true, session);

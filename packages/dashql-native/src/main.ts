@@ -716,6 +716,14 @@ if (!hasSingleInstanceLock) {
         if (!isTrustedRenderer(event.senderFrame?.url) || typeof workbookId !== "string") throw new Error("Rejected agent request");
         await agentHost?.forget(workbookId);
     });
+    ipcMain.handle("dashql:agent-read-conversation", async (event, workbookId: unknown) => {
+        if (!isTrustedRenderer(event.senderFrame?.url) || typeof workbookId !== "string") throw new Error("Rejected agent request");
+        return await agentHost?.readConversation(workbookId) ?? null;
+    });
+    ipcMain.handle("dashql:agent-write-conversation", async (event, workbookId: unknown, conversation: unknown) => {
+        if (!isTrustedRenderer(event.senderFrame?.url) || typeof workbookId !== "string") throw new Error("Rejected agent request");
+        await requireAgentHost().writeConversation(workbookId, conversation);
+    });
     ipcMain.on("dashql:agent-reply", (event, reply: unknown) => {
         if (!isTrustedRenderer(event.senderFrame?.url) || reply === null || typeof reply !== "object") return;
         agentHost?.reply(agentPageOf(event.sender), reply as {callId: unknown});

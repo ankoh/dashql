@@ -7,6 +7,7 @@ import { useLogger } from '../../host/logger_provider.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from '../../workbook/status/workbook_status.js';
 import { agentLiveStatuses } from '../../agent/agent_workbook_status.js';
 import { agentActivity, type AgentSession, type AgentTurn } from '../../agent/agent_session.js';
+import { AgentPromptPanel } from '../../agent/agent_prompt_panel.js';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
 import { PaperAirplaneIcon } from '@akohn/dashql-react/components/symbol_icon';
@@ -22,7 +23,7 @@ function fakeSession(turns: AgentTurn[]): AgentSession {
         workbookId: WORKBOOK_ID,
         harness: 'claude',
         turns,
-        onDismiss: () => { },
+        onReset: () => { },
         onShowScript: () => { },
         onStop: () => { },
     };
@@ -32,14 +33,14 @@ const SCRIPTS = [{ scriptKey: 2, scriptName: '2_region_growth' }];
 /// The time of the page, the steps started before it
 const NOW = Date.now();
 const STEPS = [
-    { label: 'dashql scripts', startedAt: NOW - 14_000, endedAt: NOW - 13_800, failed: false },
-    { label: 'Write input/2_region_growth.sql', startedAt: NOW - 9_000, endedAt: NOW - 8_700, failed: false },
-    { label: 'dashql edit 2_region_growth --file input/2_region_growth.sql', startedAt: NOW - 8_000, endedAt: NOW - 7_400, failed: false },
-    { label: 'dashql run 2_region_growth', startedAt: NOW - 6_000, endedAt: null, failed: false },
+    { kind: 'tool' as const, label: 'List the scripts', startedAt: NOW - 14_000, endedAt: NOW - 13_800, failed: false },
+    { kind: 'text' as const, label: 'I compare the revenue of the last two quarters per region.', startedAt: NOW - 12_000, endedAt: NOW - 12_000, failed: false },
+    { kind: 'tool' as const, label: 'Write 2_region_growth', startedAt: NOW - 8_000, endedAt: NOW - 7_400, failed: false },
+    { kind: 'tool' as const, label: 'Run 2_region_growth', startedAt: NOW - 6_000, endedAt: null, failed: false },
 ];
 const WORKING: AgentTurn = {
     questionId: 1,
-    question: { question: 'Which regions grew the most last quarter?', status: 'dashql run 2_region_growth', interrupted: false, error: null, note: null, steps: STEPS },
+    question: { question: 'Which regions grew the most last quarter?', status: 'Run 2_region_growth', interrupted: false, error: null, note: null, steps: STEPS },
     scripts: SCRIPTS,
 };
 const FAILED: AgentTurn = {
@@ -62,11 +63,11 @@ const LONG_STATUS: AgentTurn = {
     questionId: 1,
     question: {
         question: 'Compare the revenue of every region and product over the last eight quarters',
-        status: 'dashql edit 4_revenue_by_region_and_product_over_the_last_eight_quarters --file input/4_revenue.sql',
+        status: 'Write 4_revenue_by_region_and_product_over_the_last_eight_quarters',
         interrupted: false,
         error: null,
         note: null,
-        steps: [{ label: 'dashql edit 4_revenue_by_region_and_product_over_the_last_eight_quarters --file input/4_revenue.sql', startedAt: NOW - 2_000, endedAt: null, failed: false }],
+        steps: [{ kind: 'tool' as const, label: 'Write 4_revenue_by_region_and_product_over_the_last_eight_quarters', startedAt: NOW - 2_000, endedAt: null, failed: false }],
     },
     scripts: [],
 };
@@ -294,6 +295,7 @@ function DemoPrompt(props: { situation: Situation }) {
                     <WorkbookStatusBar workbookId={situationWorkbookId(situation)} variant={WorkbookStatusBarVariant.Prompt}
                         session={session} wobble={!situation.landing} gaze={{ pointer: true }} />
                 </div>
+                {session != null && session.turns.length > 0 && <AgentPromptPanel session={session} onHide={() => { }} />}
                 <div className={composerStyles.composer_prompt}>
                     <div className={`${composerStyles.composer_editor} ${styles.editor}`}>
                         <span className={styles.editor_placeholder}>{session != null ? 'Ask the agent about this workbook, press Enter to send it' : 'Write a query, press Enter to run it and Shift+Enter for a new line'}</span>
@@ -319,7 +321,7 @@ function WobbleBarPage(): React.ReactElement {
         <div className={styles.root} data-surface={surface}>
             <div className={styles.header}>
                 <h1 className={styles.title}>Wobble Bar</h1>
-                <p className={styles.subtitle}>Wobble tells the status of the workbook on the prompt of the feed and below the other views. A click on Wobble opens the log.</p>
+                <p className={styles.subtitle}>Wobble tells the status of the workbook on the prompt of the feed and below the other views. A click on Wobble opens the log, the conversation with the agent is in the prompt.</p>
                 <div className={styles.controls}>
                     <SegmentedControl aria-label="Color scheme" size={SegmentedControlSize.Small} onChange={index => setSurface(SURFACES[index])}>
                         {SURFACES.map(value => (

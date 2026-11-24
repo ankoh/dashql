@@ -1,10 +1,12 @@
-/* The log of the agent, the bubble of Wobble owns the surface around it */
+/* The conversation with the agent between the bar of Wobble and the editor of the prompt, it collapses with the
+   prompt */
 .panel {
     display: flex;
     flex-direction: column;
     gap: 6px;
     min-height: 0;
-    padding: 10px 8px 10px 14px;
+    padding: 6px 8px 8px 12px;
+    border-bottom: 1px solid var(--color_border);
     color: var(--color_fg_muted);
     font-size: var(--font_size_small);
 }
@@ -26,26 +28,17 @@
     font-weight: 500;
 }
 
-/* The connection and its detail are right-aligned like the counts in the headers of the cards */
-.header_dot {
-    flex: none;
-    margin-left: auto;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--color_attention_fg);
-}
-
-.header_dot[data-connected] {
-    background: var(--color_success_fg);
-}
-
 .header_detail {
+    flex: 1;
     min-width: 0;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
     color: var(--color_fg_muted);
+}
+
+.header_action {
+    flex: none;
 }
 
 /* The questions scroll within a fixed height instead of pushing the composer off the page */
@@ -56,7 +49,7 @@
     margin: 0;
     padding: 0;
     list-style: none;
-    max-height: min(420px, 40vh);
+    max-height: min(360px, 35vh);
     overflow-y: auto;
     overscroll-behavior: contain;
 }
@@ -132,7 +125,8 @@
 
 /* The texts of a turn can be selected and copied, the root disables the selection elsewhere */
 .turn_question,
-.turn_note {
+.turn_note,
+.step_text {
     -webkit-user-select: text;
     user-select: text;
 }
@@ -217,12 +211,106 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* The final message of the agent with its line breaks */
+/* What the agent says between its tools, quieter than its answer */
+.step_text {
+    padding: 2px 0;
+    color: var(--color_fg_muted);
+    font-family: var(--font_family);
+    font-size: var(--font_size_small);
+    font-style: italic;
+    line-height: 18px;
+    overflow-wrap: anywhere;
+}
+
+/* The answer of the agent, Markdown that the core compiled */
 .turn_note {
+    padding: 2px 0 2px 36px;
+    color: var(--color_fg);
+    font-size: var(--font_size_body);
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.turn_note[data-plain],
+.step_text[data-plain] {
+    white-space: pre-wrap;
+}
+
+.turn_note > :first-child,
+.step_text > :first-child {
+    margin-top: 0;
+}
+
+.turn_note > :last-child,
+.step_text > :last-child {
+    margin-bottom: 0;
+}
+
+.turn_note p,
+.step_text p {
+    margin: 0 0 6px;
+}
+
+.turn_note ul,
+.turn_note ol {
+    margin: 0 0 6px;
+    padding-left: 20px;
+}
+
+.turn_note h1,
+.turn_note h2,
+.turn_note h3,
+.turn_note h4 {
+    margin: 8px 0 4px;
+    font-size: var(--font_size_body);
+    font-weight: 600;
+}
+
+.turn_note code,
+.step_text code {
+    padding: 0 3px;
+    border-radius: 3px;
+    background: var(--color_bg_subtle);
+    font-family: var(--font_family_mono);
+    font-size: 11px;
+}
+
+.turn_note pre {
+    margin: 0 0 6px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    background: var(--color_bg_subtle);
+    overflow-x: auto;
+}
+
+.turn_note pre code {
+    padding: 0;
+    background: none;
+}
+
+.turn_note a {
+    color: var(--color_accent_fg);
+}
+
+/* The agent thinks between its tools, the harness tells nothing then */
+.turn_thinking,
+.turn_stopped {
     padding-left: 36px;
     color: var(--color_fg_muted);
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
+}
+
+.turn_thinking {
+    animation: thinking 1.6s ease-in-out infinite;
+}
+
+@keyframes thinking {
+    50% { opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .turn_thinking {
+        animation: none;
+    }
 }
 
 /* Why a question failed, e.g. the harness exited with an error */

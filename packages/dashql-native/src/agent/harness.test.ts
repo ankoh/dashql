@@ -76,7 +76,7 @@ describe("a run of a harness", () => {
         const program = script(dir, "claude", `#!/bin/sh\npwd > cwd.txt\nprintf '%s\\n' '${lines.map(line => JSON.stringify(line)).join("' '")}'\n`);
         const tools: ToolEvent[] = [];
         const sessions: string[] = [];
-        const run = spawnHarness({harness: "claude", program, args: [], cwd: dir, env: {PATH: "/usr/bin:/bin"}, sink: {tool: event => tools.push(event), session: id => sessions.push(id)}});
+        const run = spawnHarness({harness: "claude", program, args: [], cwd: dir, env: {PATH: "/usr/bin:/bin"}, sink: {tool: event => tools.push(event), say: () => {}, session: id => sessions.push(id)}});
         expect(await run.done).toEqual({message: "Done", error: null, stopped: false});
         expect(sessions).toEqual(["c-1"]);
         expect(tools.map(tool => tool.event)).toEqual(["PreToolUse", "PostToolUse"]);
@@ -86,13 +86,13 @@ describe("a run of a harness", () => {
     test("tells a harness that failed with the end of its stderr", async () => {
         const dir = tempDir();
         const program = script(dir, "codex", "#!/bin/sh\necho 'error: unexpected argument' >&2\nexit 2\n");
-        const run = spawnHarness({harness: "codex", program, args: [], cwd: dir, env: {}, sink: {tool: () => {}, session: () => {}}});
+        const run = spawnHarness({harness: "codex", program, args: [], cwd: dir, env: {}, sink: {tool: () => {}, say: () => {}, session: () => {}}});
         expect((await run.done).error).toBe("The harness exited with code 2: error: unexpected argument");
     });
 
     test("tells a program that does not start", async () => {
         const dir = tempDir();
-        const run = spawnHarness({harness: "codex", program: path.join(dir, "missing"), args: [], cwd: dir, env: {}, sink: {tool: () => {}, session: () => {}}});
+        const run = spawnHarness({harness: "codex", program: path.join(dir, "missing"), args: [], cwd: dir, env: {}, sink: {tool: () => {}, say: () => {}, session: () => {}}});
         expect((await run.done).error).toMatch(/^Cannot start .*missing/);
     });
 
@@ -104,7 +104,7 @@ trap '' TERM
 sh -c 'trap "" TERM; echo $$ > child.pid; while true; do sleep 1; done' &
 while true; do sleep 1; done
 `);
-        const run = spawnHarness({harness: "opencode", program, args: [], cwd: dir, env: {PATH: "/usr/bin:/bin"}, killGraceMs: 200, sink: {tool: () => {}, session: () => {}}});
+        const run = spawnHarness({harness: "opencode", program, args: [], cwd: dir, env: {PATH: "/usr/bin:/bin"}, killGraceMs: 200, sink: {tool: () => {}, say: () => {}, session: () => {}}});
         const pidFile = path.join(dir, "child.pid");
         for (let i = 0; i < 100 && !existsSync(pidFile); ++i) await new Promise(resolve => setTimeout(resolve, 50));
         const child = Number(readFileSync(pidFile, "utf8"));

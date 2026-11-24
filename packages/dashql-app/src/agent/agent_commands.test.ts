@@ -6,7 +6,7 @@ import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { testRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
 
-import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, runAgentCommand, scriptFileName, type AgentCall, type AgentCommandHost } from './agent_commands.js';
+import { describeAgentCall, EXIT_FAILED, EXIT_OK, EXIT_USAGE, runAgentCommand, scriptFileName, type AgentCall, type AgentCommandHost } from './agent_commands.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;
@@ -46,6 +46,18 @@ async function call(command: string, args: Record<string, unknown> = {}, input: 
 }
 
 describe('the dashql commands of the agent', () => {
+    it('tells what a call does in one line', () => {
+        expect(describeAgentCall({ command: 'scripts', args: {} })).toBe('List the scripts');
+        expect(describeAgentCall({ command: 'edit', args: { script: 'scripts/orders.sql' } })).toBe('Write orders');
+        expect(describeAgentCall({ command: 'read', args: {} })).toBe('Read a script');
+        expect(describeAgentCall({ command: 'run', args: { scripts: [] } })).toBe('Run all scripts');
+        expect(describeAgentCall({ command: 'run', args: { scripts: ['a', 'b.sql', 3] } })).toBe('Run a, b');
+        expect(describeAgentCall({ command: 'catalog', args: { connection: 'hyper' } })).toBe('Look up the tables of hyper');
+        expect(describeAgentCall({ command: 'catalog', args: {} })).toBe('Look up the tables');
+        expect(describeAgentCall({ command: 'vis', args: { script: 'chart' } })).toBe('Check the chart of chart');
+        expect(describeAgentCall({ command: 'teleport', args: {} })).toBe('dashql teleport');
+    });
+
     it('names a script by its display name or its file', () => {
         expect(scriptFileName('orders')).toBe('orders.sql');
         expect(scriptFileName('orders.sql')).toBe('orders.sql');

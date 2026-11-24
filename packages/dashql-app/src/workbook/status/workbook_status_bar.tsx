@@ -2,7 +2,6 @@ import * as React from 'react';
 import * as styles from './workbook_status_bar.module.css';
 
 import { Wobble, WobbleMode, type WobbleGaze, type WobbleTuning } from '../../agent/wobble.js';
-import { AgentPromptPanel } from '../../agent/agent_prompt_panel.js';
 import { agentActivity, harnessLabel, type AgentActivity, type AgentSession } from '../../agent/agent_session.js';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { ChevronDownIcon, ChevronUpIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
@@ -26,9 +25,10 @@ export enum WorkbookStatusBarVariant {
 export interface WorkbookStatusBarProps {
     workbookId: string;
     variant: WorkbookStatusBarVariant;
-    /// The session of an agent that works on the workbook, only the feed has it. Without, the bar shows no agent and
-    /// the log no questions.
+    /// The conversation of the agent on the workbook, only the feed has it. Without, the bar shows no agent.
     session?: AgentSession | null;
+    /// Show the conversation with the agent in the prompt, a click on the agent at the right end does
+    onShowAgent?: () => void;
     /// Show Wobble with the log? The landing view greets with its own Wobble, the bar only tells the status then.
     wobble?: boolean;
     /// What the eyes of Wobble look at, e.g. the caret of the composer
@@ -52,17 +52,51 @@ export interface WorkbookStatusBarPrompt {
 /// The parts of the bar that handle a click themselves
 const BAR_CONTROLS = 'button, a, input, select, textarea, [role="button"]';
 
-/// The agent at the right end of the bar: the harness of the latest question, a stop button while it works
-function AgentState(props: { session: AgentSession; activity: AgentActivity['kind'] }) {
+/// The agent at the right end of the bar: the harness of the latest question, a click shows the conversation
+function AgentState(props: { session: AgentSession; activity: AgentActivity['kind']; onShow?: () => void }) {
     const { session } = props;
     const working = props.activity !== 'idle';
-    return (
-        <span className={styles.agent} title={harnessLabel(session.harness)}
-            data-testid="workbook-agent-state" data-state={working ? 'working' : 'idle'}>
+    const content = (
+        <>
             <StatusDot className={styles.indicator} status={working ? IndicatorStatus.Running : IndicatorStatus.None} />
             {harnessLabel(session.harness)}
-        </span>
+        </>
     );
+    if (props.onShow == null) {
+        return (
+            <span className={styles.agent} title={harnessLabel(session.harness)}
+                data-testid="workbook-agent-state" data-state={working ? 'working' : 'idle'}>
+                {content}
+            </span>
+        );
+    }
+    return (
+        <button type="button" className={styles.agent} aria-label={`Show the conversation with ${harnessLabel(session.harness)}`}
+            data-testid="workbook-agent-state" data-state={working ? 'working' : 'idle'} onClick={props.onShow}>
+            {content}
+        </button>
+    );
+}
+
+/// How long Wobble keeps its happy eyes for an answer of the agent
+const ANSWER_JOY_MS = 1200;
+
+/// The time of the latest answer of the agent on the clock of `performance.now()`, null before one. A question that
+/// failed or that the user stopped is no answer.
+function useAgentAnsweredAt(session: AgentSession | null): () => number | null {
+    const answeredAt = React.useRef<number | null>(null);
+    const working = React.useRef(new Set<number>());
+    React.useEffect(() => {
+        const before = working.current;
+        const now = new Set<number>();
+        for (const turn of session?.turns ?? []) {
+            const { question } = turn;
+            if (question.status != null) now.add(turn.questionId);
+            else if (before.has(turn.questionId) && question.error == null && !question.interrupted) answeredAt.current = performance.now();
+        }
+        working.current = now;
+    }, [session]);
+    return React.useCallback(() => answeredAt.current, []);
 }
 
 /// A record of the log of the workbook in one short line, as the log window shows it: the time, the level, the message
@@ -88,12 +122,22 @@ const WOBBLE_AGENT_WORKING: Partial<WobbleTuning> = { wobble: 0.04, wobbleSpeed:
 /// The bar of Wobble. Wobble leads it and tells the status of the workbook next to it: what runs, what needs the user,
 /// else what happened last. The dot of Wobble tells that something runs, a failure is red, the status has no dot of its
 /// own. The agent sits at the right end.
-/// A click on Wobble opens a dark bubble above the bar with the questions of the agent and the log of the workbook: the
-/// records of the log of the app that belong to the workbook, the same that the log window shows.
-/// It opens only on a click: the bubble covers the end of the feed, where the scripts of an agent appear while it works,
-/// and the status line tells the step of the agent. A dot pulses at the top right of Wobble while anything runs.
+/// A click on Wobble opens a dark bubble above the bar with the log of the workbook: the records of the log of the app
+/// that belong to the workbook, the same that the log window shows. The conversation with the agent is in the prompt,
+/// the agent at the right end shows it. Wobble reads along while the agent works and is happy when it answered.
+/// A dot pulses at the top right of Wobble while anything runs.
 export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactElement {
     const session = props.session ?? null;
+    // Wobble is happy while the user types and when the agent answered
+    const answeredAt = useAgentAnsweredAt(session);
+    const { lastInput } = props;
+    const wobbleInput = React.useCallback(() => {
+        const input = lastInput?.() ?? null;
+        const answered = answeredAt();
+        // The answer holds the eyes longer than a keystroke, Wobble takes it as input that goes on for a while
+        const joy = answered == null || performance.now() - answered > ANSWER_JOY_MS ? null : performance.now();
+        return input == null ? joy : joy == null ? input : Math.max(input, joy);
+    }, [lastInput, answeredAt]);
     const wobble = props.wobble ?? true;
     const { status, live, busy } = useWorkbookStatus(props.workbookId);
     const activity = session != null ? agentActivity(session).kind : 'idle';
@@ -115,7 +159,6 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
         const list = logRef.current;
         if (list != null) list.scrollTop = list.scrollHeight;
     }, [newest, open]);
-    const agentTurns = session != null && session.turns.length > 0;
     // A click on the background of the bar shows or hides the prompt, Wobble, the log and the controls keep theirs
     const prompt = props.prompt ?? null;
     const handleBarClick = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
@@ -142,7 +185,7 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
                 >
                     <Wobble className={styles.wobble} aria-hidden="true" mode={WobbleMode.Face} paused={props.paused}
                         tuning={agentWorking ? WOBBLE_AGENT_WORKING : undefined}
-                        gaze={props.gaze} lastInput={props.lastInput} />
+                        gaze={props.gaze} lastInput={wobbleInput} />
                     {busy && <span className={styles.busy_dot} aria-hidden="true" data-testid="workbook-wobble-dot" data-state="busy" />}
                 </button>
             )}
@@ -155,7 +198,7 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
             </span>
             {session != null && (
                 <div className={styles.agent_controls}>
-                    <AgentState session={session} activity={activity} />
+                    <AgentState session={session} activity={activity} onShow={props.onShowAgent} />
                 </div>
             )}
             {prompt != null && (
@@ -181,12 +224,11 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
                             <XIcon size={14} />
                         </IconButton>
                     </div>
-                    {agentTurns && <AgentPromptPanel session={session} />}
                     {log.length > 0 ? (
                         <ol ref={logRef} className={styles.log} aria-label="Log of the workbook">
                             {log.map((record, i) => <LogLine key={i} record={record} selected={i === selected && selectedRecord != null} onSelect={() => setSelected(i)} />)}
                         </ol>
-                    ) : !agentTurns && (
+                    ) : (
                         <div className={styles.empty} data-testid="workbook-bubble-empty">
                             Nothing logged yet. The runs of the scripts, the agent, attachments and publishes of the workbook show up here.
                         </div>

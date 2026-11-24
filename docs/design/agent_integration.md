@@ -53,14 +53,18 @@ flowchart LR
    `bin/` of the folder first on the `PATH`. It resumes the session of the harness that the folder keeps for the
    workbook, so a follow-up question continues the conversation.
 3. It reads the stream of the harness line by line (`readers.ts`) and sends the events of the turn to the page:
-   `UserPromptSubmit` with the question first, `PreToolUse` and `PostToolUse` per tool, exactly one `Stop` last, with
-   the final message, an error, or `interrupted` when the user stopped the turn.
+   `UserPromptSubmit` with the question first, `PreToolUse` and `PostToolUse` per tool, `Say` with every text of the
+   agent between its tools, exactly one `Stop` last, with the final message, an error, or `interrupted` when the user
+   stopped the turn. The tools that run `dashql` and the writes of Claude Code into `input/` are left out
+   (`isPlumbingStep`): the page tells those steps itself.
 4. The agent runs `dashql` commands. Each one is a call that the main process passes to the page, the page answers on
-   the live workbook and the answer goes back as text (see [The commands](#the-commands)).
+   the live workbook and the answer goes back as text (see [The commands](#the-commands)). Every call is a step of the
+   turn with a line of the page (`describeAgentCall`: `Write orders`, `Run orders, customers`), failed when its exit
+   code is not 0.
 5. The page folds the events into the conversation of the workbook (`reduceAgentSessionEvent` of
-   `platform/session/agent_session_state.ts`): the turns with their steps, the scripts that the agent changed, the
-   final message. The log of Wobble shows them (`agent_prompt_panel.tsx`), the feed follows the agent to the scripts
-   that it edits and runs.
+   `platform/session/agent_session_state.ts`): the turns with their steps and texts, the scripts that the agent
+   changed, the answer. The prompt shows them above its editor (see [The page](#the-page)), the feed follows the agent
+   to the scripts that it edits and runs.
 
 **Stop.** The stop button of the prompt or of the turn calls `agent.stop(workbookId)`: SIGTERM to the process group of
 the harness, SIGKILL after 3 s, and the turn ends with `Stop {interrupted: true}`. A window that reloads or closes stops
@@ -101,6 +105,7 @@ ticks more.
 ```
 session.json        the address and the token of the server of the main process, readable by the user only
 state.json          the session of every harness on the workbook, a follow-up question resumes it
+conversation.json   the conversation as the page shows it (`AgentSessionFile`), the page reads it after a reload
 bin/dashql          the dashql of the agent: the bundled binary with --session <folder>/session.json
 AGENTS.md           the instructions and the guide, for Codex and opencode
 CLAUDE.md           one line, Claude Code gets the instructions in its system prompt
@@ -110,8 +115,12 @@ results/            the stored results that `dashql run` names
 charts/             the PNGs of `dashql vis`
 ```
 
-The state goes to `dashql` as an argument of the shim, not through the environment. `agent.forget` removes the folder
-when the user deletes the workbook.
+The state goes to `dashql` as an argument of the shim, not through the environment. The page keeps its conversation
+in the folder with `agent.writeConversation`, a short while after every change, and reads it with
+`agent.readConversation` when it first shows the workbook; the main process only checks its size. The conversation
+and the sessions of the harnesses live and die together: `agent.forget` removes the folder when the user starts a new
+conversation or deletes the workbook, so the page never shows a conversation that the harness forgot or hides one
+that the next question resumes.
 
 ## The harnesses
 
@@ -154,9 +163,22 @@ when the user deletes the workbook.
 - **The prompt** (`workbook/feed/workbook_composer.tsx`) takes SQL in SQL and a question in AI, without SQL completion.
   In AI it shows the connections of the agent, the switch of the harness and Ask, Stop while the agent works. The web
   app shows `AgentDesktopNotice` in place of the editor, with the disk image of the latest release.
-- **The bar of Wobble** shows the harness and what the agent does, the log in its bubble the turns with their steps,
-  final messages, errors and the scripts the agent changed (`agent_prompt_panel.tsx`, `agent_workbook_status.ts`). The
-  title of the window starts with `●` while an agent works.
+- **The conversation** (`agent_prompt_panel.tsx`) is in the prompt in AI, between the bar of Wobble and the editor,
+  and collapses with the prompt. Every question shows its steps with their times, the texts of the agent between
+  them, `Thinking…` while the harness tells nothing, then the answer, the error or that the user stopped it, and the
+  scripts that the agent changed, which scroll the feed to them. The texts and the answer are Markdown that the core
+  compiles (`compileMarkdown`: no raw HTML, no unsafe links), images show their alt text. The latest question is
+  expanded, the older ones collapse to their question. The user hides the conversation, a new question and a click on
+  the agent at the right end of the bar show it again. New conversation calls `agent.forget`.
+- **The feed holds only the scripts.** The questions are not entries of the feed: the feed is the folder of the
+  scripts, the agent shows up there only through the scripts it writes and runs.
+- **The bar of Wobble** tells what the agent does in its status line (`agent_workbook_status.ts`) and the harness at
+  its right end. Wobble reads along while the agent works and squints happily when it answered; its bubble is the log
+  of the workbook, which notes when questions start and end. The title of the window starts with `●` while an agent
+  works.
+- **The prompt of the harness** (`buildAgentPrompt`) answers a question for data in the scripts, with a run, and a
+  question for an explanation in text; the agent keeps its texts between the steps short and ends with its answer in
+  Markdown.
 
 ## Adding a command
 

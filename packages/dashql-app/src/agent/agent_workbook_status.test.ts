@@ -14,7 +14,7 @@ function sessionWith(question: Partial<AgentQuestion>): AgentSession {
             question: { question: 'how many orders', status: 'working', interrupted: false, error: null, note: null, steps: [], ...question },
             scripts: [],
         }],
-        onDismiss: vi.fn(),
+        onReset: vi.fn(),
         onShowScript: vi.fn(),
         onStop: vi.fn(),
     };
@@ -25,7 +25,7 @@ describe('the statuses of the agent in the bar of a workbook', () => {
         const harness = harnessLabel('claude');
         const live = (question: Partial<AgentQuestion>) => agentLiveStatuses(sessionWith(question), 0).map(({ tone, text, detail }) => ({ tone, text, detail }));
         expect(live({})).toEqual([{ tone: WorkbookStatusTone.Progress, text: expect.stringContaining(harness), detail: 'thinking' }]);
-        const running = { label: 'dashql edit orders', startedAt: 1, endedAt: null, failed: false };
+        const running = { kind: 'tool' as const, label: 'dashql edit orders', startedAt: 1, endedAt: null, failed: false };
         expect(live({ steps: [running] })).toEqual([{ tone: WorkbookStatusTone.Progress, text: expect.stringContaining(harness), detail: 'dashql edit orders' }]);
         // A tool that ended leaves the agent thinking, the last tool is no longer what it does
         expect(live({ status: 'dashql edit orders', steps: [{ ...running, endedAt: 2 }] })[0].detail).toBe('thinking');

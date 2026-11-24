@@ -5,6 +5,7 @@ import * as styles from './workbook_prompt.module.css';
 import type { EditorView } from '@codemirror/view';
 import { useAppConfig } from '../../config/app_config.js';
 import { AgentGreeting } from '../../agent/agent_greeting.js';
+import { AgentPromptPanel } from '../../agent/agent_prompt_panel.js';
 import type { WobbleTuning } from '../../agent/wobble.js';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
@@ -250,11 +251,14 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
     const handleAsk = React.useCallback((question: string) => {
         agentControls?.ask({ workbookId, question, dialect: describeSqlDialect(composerConnectorType), scriptNames });
     }, [agentControls, workbookId, composerConnectorType, scriptNames]);
-    // Every new question of the session follows the agent again
+    // Every new question of the session follows the agent again and shows the conversation that the user hid
     const latestQuestionId = session != null && session.turns.length > 0 ? session.turns[session.turns.length - 1].questionId : null;
+    const [conversationHidden, setConversationHidden] = React.useState(false);
     React.useEffect(() => {
+        setConversationHidden(false);
         if (latestQuestionId != null) feed.followAgent();
     }, [latestQuestionId, feed]);
+    const hideConversation = React.useCallback(() => setConversationHidden(true), []);
     // The agent tells what it works on, its questions go to the log
     const agentLive = React.useMemo(() => agentLiveStatuses(session, Date.now()), [session]);
     useLiveWorkbookStatuses(workbookId, 'agent', agentLive);
@@ -290,6 +294,12 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
             },
         };
     }, [landing, collapsed, onExpandedChange]);
+    // The agent at the right end of the bar shows the conversation: the prompt in AI, grown out of the bar
+    const showAgent = React.useCallback(() => {
+        agentControls?.setMode(ComposerMode.Ai);
+        setConversationHidden(false);
+        if (collapsed) onExpandedChange?.(true);
+    }, [agentControls, collapsed, onExpandedChange]);
     React.useEffect(() => {
         if (collapsed || !focusOnExpand.current) return;
         focusOnExpand.current = false;
@@ -357,6 +367,7 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
             variant={variant}
             prompt={prompt}
             session={readOnly ? null : session}
+            onShowAgent={readOnly ? undefined : showAgent}
             wobble={!landing}
             gaze={dockGaze}
             lastInput={composerLastInput}
@@ -409,6 +420,9 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
                         onSend={handleSend}
                         onAsk={handleAsk}
                         bar={statusBar(WorkbookStatusBarVariant.Prompt, togglePrompt)}
+                        conversation={session != null && session.turns.length > 0 && !conversationHidden && !landing
+                            ? <AgentPromptPanel session={session} onHide={hideConversation} />
+                            : undefined}
                         setView={setComposerView}
                         submitRef={submitRef}
                         scriptNames={scriptNames}

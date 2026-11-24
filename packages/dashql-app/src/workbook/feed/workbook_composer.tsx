@@ -73,6 +73,8 @@ export interface WorkbookComposerProps {
     /// The bar above the editor, e.g. the bar of Wobble. The inputs of a SQL draft follow it, the bar is hidden
     /// while it is empty.
     bar?: React.ReactNode;
+    /// The conversation with the agent, between the bar and the editor in AI. It collapses with the prompt.
+    conversation?: React.ReactNode;
     /// Receives the editor view once it is mounted
     setView?: (view: EditorView | null) => void;
     /// Receives the send function of the composer, e.g. for global key bindings
@@ -348,6 +350,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
             {/* The prompt shrinks into the bar while another view shows */}
             <div className={styles.composer_collapse} inert={props.collapsed} data-testid="composer-prompt">
                 <div className={styles.composer_collapse_body}>
+                    {ai && props.conversation}
                     <div className={styles.composer_prompt} onMouseDown={ai && !askable ? undefined : handlePromptMouseDown}>
                         {/* The web app tells in place of the editor that agents run in the desktop app, the editor keeps
                             the draft for SQL */}

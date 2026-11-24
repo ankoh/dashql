@@ -1,19 +1,20 @@
 import {describe, expect, test} from "vitest";
 
-import {createReader, errorMessage, statusLine, toolStatus, type AgentHarness, type ToolEvent} from "./readers.js";
+import {createReader, errorMessage, isPlumbingStep, statusLine, toolStatus, type AgentHarness, type ToolEvent} from "./readers.js";
 
 /// Read the lines of a harness, the tools and sessions it told and its outcome
 function read(harness: AgentHarness, lines: unknown[], exitCode: number | null = 0, stderr = "", folder = "/w/x") {
     const reader = createReader(harness, folder);
     const tools: ToolEvent[] = [];
     const sessions: string[] = [];
-    for (const line of lines) reader.line(typeof line === "string" ? line : JSON.stringify(line), {tool: event => tools.push(event), session: id => sessions.push(id)});
-    return {tools, sessions, outcome: reader.finish(exitCode, stderr)};
+    const said: string[] = [];
+    for (const line of lines) reader.line(typeof line === "string" ? line : JSON.stringify(line), {tool: event => tools.push(event), say: text => said.push(text), session: id => sessions.push(id)});
+    return {tools, sessions, said, outcome: reader.finish(exitCode, stderr)};
 }
 
 describe("the reader of Claude Code", () => {
     test("tells the session of init, the steps of the tools and the result", () => {
-        const {tools, sessions, outcome} = read("claude", [
+        const {tools, sessions, said, outcome} = read("claude", [
             // Hooks run before the conversation exists
             {type: "system", subtype: "hook_started", session_id: "c-0"},
             {type: "system", subtype: "init", session_id: "c-1"},
@@ -35,6 +36,7 @@ describe("the reader of Claude Code", () => {
             {event: "PostToolUse", status: "Write input/orders.sql", toolUseId: "toolu_2", error: "Permission denied"},
         ]);
         expect(outcome).toEqual({message: "There are 42 orders.", error: null});
+        expect(said).toEqual(["Looking at the schema"]);
     });
 
     test("tells why a run failed", () => {
@@ -51,7 +53,7 @@ describe("the reader of Claude Code", () => {
 
 describe("the reader of Codex", () => {
     test("tells the thread, the commands, the changes of files and the last message", () => {
-        const {tools, sessions, outcome} = read("codex", [
+        const {tools, sessions, said, outcome} = read("codex", [
             {type: "thread.started", thread_id: "t-1"},
             {type: "turn.started"},
             {type: "item.started", item: {id: "item_0", type: "command_execution", command: "bash -lc 'dashql catalog'", status: "in_progress"}},
@@ -73,6 +75,7 @@ describe("the reader of Codex", () => {
             {event: "PostToolUse", status: "Edit notes.md", toolUseId: "item_2"},
         ]);
         expect(outcome).toEqual({message: "Wrote orders.\nIt counts them.", error: null});
+        expect(said).toEqual(["Wrote orders.\nIt counts them."]);
     });
 
     test("tells why a turn failed, also from the JSON body of a failed API call", () => {
@@ -90,7 +93,7 @@ describe("the reader of opencode", () => {
     test("tells the session, the tools and the text of the last step without tools", () => {
         const session = "ses_494719016ffe85dkDMj0FPRbHK";
         const event = (type: string, part: object) => ({type, sessionID: session, part});
-        const {tools, sessions, outcome} = read("opencode", [
+        const {tools, sessions, said, outcome} = read("opencode", [
             event("step_start", {type: "step-start"}),
             event("text", {type: "text", text: "Looking at the schema"}),
             event("tool_use", {type: "tool", tool: "bash", callID: "call_1", state: {status: "completed", input: {command: "dashql catalog"}}}),
@@ -109,6 +112,7 @@ describe("the reader of opencode", () => {
             {event: "PostToolUse", status: "rm -rf /", toolUseId: "call_2", error: "denied by the rules"},
         ]);
         expect(outcome).toEqual({message: "There are 42 orders.", error: null});
+        expect(said).toEqual(["Looking at the schema", "Let me look.", "There are 42 orders."]);
     });
 
     test("tells the error of a run", () => {
@@ -126,4 +130,18 @@ test("status lines are the first line, cut, with paths relative to the folder", 
     expect(toolStatus("apply_patch", {command: "*** Begin Patch\n*** Add File: /w/x/a.sql\n*** End Patch"}, "/w/x")).toBe("apply_patch a.sql");
     expect(toolStatus("TodoWrite", {todos: []}, "/w/x")).toBe("TodoWrite");
     expect(errorMessage("plain")).toBe("plain");
+});
+
+describe("the steps that the page tells itself", () => {
+    test("are the dashql commands and the texts of scripts in input/", () => {
+        expect(isPlumbingStep("dashql scripts")).toBe(true);
+        expect(isPlumbingStep("dashql edit orders <<'EOF'")).toBe(true);
+        expect(isPlumbingStep("dashql")).toBe(true);
+        expect(isPlumbingStep("Write input/orders.sql")).toBe(true);
+        expect(isPlumbingStep("Edit input/orders.sql")).toBe(true);
+        expect(isPlumbingStep("dashqlx run")).toBe(false);
+        expect(isPlumbingStep("ls input/")).toBe(false);
+        expect(isPlumbingStep("Write notes.md")).toBe(false);
+        expect(isPlumbingStep("for s in a b; do dashql run $s; done")).toBe(false);
+    });
 });

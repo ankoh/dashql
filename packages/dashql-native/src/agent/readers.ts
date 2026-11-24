@@ -10,6 +10,7 @@ export type AgentEvent =
     | {event: "UserPromptSubmit"; prompt: string}
     | {event: "PreToolUse"; status: string; toolUseId: string | null}
     | {event: "PostToolUse"; status: string; toolUseId: string | null; error?: string | null}
+    | {event: "Say"; text: string}
     | {event: "Stop"; message?: string | null; error?: string | null; interrupted?: boolean};
 
 /// A step of a tool, the readers tell its start and its end
@@ -19,6 +20,8 @@ export type ToolEvent = Extract<AgentEvent, {event: "PreToolUse" | "PostToolUse"
 export interface ReaderSink {
     /// A tool started or ended
     tool(event: ToolEvent): void;
+    /// A text of the agent, between its tools or its final message
+    say(text: string): void;
     /// The id of the session of the harness, to resume it with the next question
     session(id: string): void;
 }
@@ -109,6 +112,12 @@ function shortPaths(line: string, folder: string): string {
     return line.replace(new RegExp(`^cd\\s+(["']?)${escaped.slice(0, -1)}/?\\1\\s*&&\\s*`), "").split(prefix).join("");
 }
 
+/// Is a step one that the page tells better itself? The page answers every `dashql` command with a step of its own,
+/// and Claude Code writes the texts of scripts into `input/` for them.
+export function isPlumbingStep(status: string): boolean {
+    return /^dashql(\s|$)/.test(status) || /^(Write|Edit|MultiEdit) input\//.test(status);
+}
+
 /// What a tool does, in one line: the command of a shell, else the tool with its file, pattern, query, URL or
 /// description, else the tool
 export function toolStatus(tool: string, input: unknown, folder: string): string {
@@ -155,6 +164,11 @@ export class ClaudeReader implements HarnessReader {
             }
             case "assistant":
                 for (const block of asArray(field(event, "message", "content"))) {
+                    if (text(block, "type") === "text") {
+                        const said = text(block, "text");
+                        if (said !== null && said.trim().length > 0) sink.say(said);
+                        continue;
+                    }
                     if (text(block, "type") !== "tool_use") continue;
                     const id = text(block, "id");
                     const status = toolStatus(text(block, "name") ?? "tool", field(block, "input"), this.folder);
@@ -244,7 +258,11 @@ export class CodexReader implements HarnessReader {
             case "item.completed": {
                 const item = event.item;
                 if (text(item, "type") === "agent_message") {
-                    this.#message = text(item, "text") ?? this.#message;
+                    const said = text(item, "text");
+                    if (said !== null) {
+                        this.#message = said;
+                        if (said.trim().length > 0) sink.say(said);
+                    }
                     break;
                 }
                 const status = this.#stepOf(item);
@@ -308,7 +326,10 @@ export class OpencodeReader implements HarnessReader {
                 break;
             case "text": {
                 const value = text(event, "part", "text");
-                if (value !== null && value.trim().length > 0) this.#texts.push(value);
+                if (value !== null && value.trim().length > 0) {
+                    this.#texts.push(value);
+                    sink.say(value);
+                }
                 break;
             }
             case "tool_use": {

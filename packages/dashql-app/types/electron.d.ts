@@ -50,6 +50,7 @@ type DashQLAgentEvent =
     | {event: 'UserPromptSubmit'; prompt: string}
     | {event: 'PreToolUse'; status: string; toolUseId: string | null}
     | {event: 'PostToolUse'; status: string; toolUseId: string | null; error?: string | null}
+    | {event: 'Say'; text: string}
     | {event: 'Stop'; message?: string | null; error?: string | null; interrupted?: boolean};
 
 /// A call of a `dashql` command of the agent, the page answers it with reply
@@ -76,8 +77,12 @@ interface DashQLAgentBridge {
     ask(request: {workbookId: string; harness: DashQLAgentHarness; prompt: string; question: string}): Promise<void>;
     /// Stop the turn of a workbook
     stop(workbookId: string): Promise<void>;
-    /// Stop the turn of a workbook and forget its conversations
+    /// Stop the turn of a workbook and forget its conversations, the kept one and the sessions of the harnesses
     forget(workbookId: string): Promise<void>;
+    /// The conversation of a workbook as the page kept it, null without one
+    readConversation(workbookId: string): Promise<unknown>;
+    /// Keep the conversation of a workbook in its folder, plain JSON
+    writeConversation(workbookId: string, conversation: unknown): Promise<void>;
     onEvent(listener: (event: {workbookId: string; event: DashQLAgentEvent}) => void): () => void;
     onCall(listener: (call: DashQLAgentCall) => void): () => void;
     onCallCancel(listener: (callId: number) => void): () => void;

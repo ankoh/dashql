@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act } from '@akohn/dashql-react/testing/react_act';
+import { act, waitForRender } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { fakeScript } from '@akohn/dashql-react/testing/fake_models';
@@ -100,7 +100,7 @@ describe('Workbook prompt', () => {
 
     /// The conversation of Claude Code with its questions
     function agentSession(turns: AgentTurn[] = []): AgentSession {
-        return { workbookId: 'workbook', harness: 'claude', turns, onDismiss: vi.fn(), onShowScript: vi.fn(), onStop: vi.fn() };
+        return { workbookId: 'workbook', harness: 'claude', turns, onReset: vi.fn(), onShowScript: vi.fn(), onStop: vi.fn() };
     }
     /// A question that the agent works on
     const question = (questionId: number, status: string | null = 'Edit scripts/1_alpha.sql'): AgentTurn => ({
@@ -319,7 +319,39 @@ describe('Workbook prompt', () => {
         expect(promptState.barProps?.session).toBe(promptState.session);
     });
 
-    it('asks the agent with the dialect of the next script and the names of the scripts', () => {
+    it('shows the conversation above the editor until the user hides it, a new question shows it again', async () => {
+        const setMode = vi.fn();
+        promptState.agent = { mode: ComposerMode.Ai, setMode } as unknown as AgentControls;
+        const onExpandedChange = vi.fn();
+        promptState.session = agentSession([question(1, null)]);
+        render(workbook(['1_alpha.sql']), vi.fn(), onlineConn, WorkbookPromptPlacement.Feed, true, onExpandedChange);
+        const conversation = () => promptState.composerProps?.conversation as React.ReactElement<{ session: AgentSession; onHide: () => void }> | undefined;
+        expect(conversation()?.props.session).toBe(promptState.session);
+        act(() => conversation()!.props.onHide());
+        expect(conversation()).toBeUndefined();
+        // The agent at the right end of the bar shows it again, in AI
+        act(() => promptState.barProps!.onShowAgent!());
+        expect(setMode).toHaveBeenCalledWith(ComposerMode.Ai);
+        expect(conversation()).toBeDefined();
+        expect(onExpandedChange).not.toHaveBeenCalled();
+        act(() => conversation()!.props.onHide());
+        promptState.session = agentSession([question(1, null), question(2)]);
+        expect(conversation()).toBeUndefined();
+        render(workbook(['1_alpha.sql']), vi.fn(), onlineConn, WorkbookPromptPlacement.Feed, true, onExpandedChange);
+        // The effect of the new question shows it, its update renders after the scope of act
+        await waitForRender(() => expect(conversation()?.props.session).toBe(promptState.session));
+    });
+
+    it('grows the prompt out of the bar to show the conversation', () => {
+        promptState.agent = { mode: ComposerMode.Sql, setMode: vi.fn() } as unknown as AgentControls;
+        promptState.session = agentSession([question(1, null)]);
+        const onExpandedChange = vi.fn();
+        render(workbook(['1_alpha.sql']), vi.fn(), onlineConn, WorkbookPromptPlacement.Feed, false, onExpandedChange);
+        act(() => promptState.barProps!.onShowAgent!());
+        expect(onExpandedChange).toHaveBeenCalledExactlyOnceWith(true);
+    });
+
+        it('asks the agent with the dialect of the next script and the names of the scripts', () => {
         const ask = vi.fn();
         promptState.agent = { mode: ComposerMode.Ai, ask } as unknown as AgentControls;
         render(workbook(['1_alpha.sql']));

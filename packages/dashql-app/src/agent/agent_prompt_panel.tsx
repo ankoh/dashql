@@ -1,32 +1,19 @@
 import * as React from 'react';
 import * as styles from './agent_prompt_panel.module.css';
 
-import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
-import { ChevronRightIcon, SquareFillIcon, SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { ChevronDownIcon, ChevronRightIcon, SquareFillIcon, SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { MarkdownText } from '@akohn/dashql-react/components/visualization/markdown_view';
+import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import {
-    agentActivity,
     formatAgentDuration,
-    harnessLabel,
     type AgentSession,
     type AgentStep,
     type AgentTurn,
 } from './agent_session.js';
 
 const SparklesFillIcon = SymbolIcon('sparkles_fill_16');
-const CrossIcon = SymbolIcon('x_16');
-
-
-/// The final message of the agent as plain text, without the markers of the markdown that harnesses like to write
-export function plainAgentNote(note: string): string {
-    return note
-        .replace(/^#{1,6}\s+/gm, '')
-        .replace(/\*\*(.+?)\*\*/g, '$1')
-        .replace(/__(.+?)__/g, '$1')
-        .replace(/`([^`\n]+)`/g, '$1')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim();
-}
 
 /// The time now, every second while `ticking`, for the time of the steps that run
 function useNow(ticking: boolean): number {
@@ -40,12 +27,28 @@ function useNow(ticking: boolean): number {
     return now;
 }
 
-/// The steps of a turn: what every tool did and how long it took. The feed shows the scripts that a step runs.
+/// A text of the agent as Markdown, compiled by the core: no raw HTML, no unsafe links, no images. Without the core the
+/// text shows as it is.
+const AgentMarkdown: React.FC<{ text: string; className: string; testId?: string }> = ({ text, className, testId }) => {
+    const core = useOptionalRuntime()?.core ?? null;
+    const document = React.useMemo(() => core?.compileMarkdown(text) ?? null, [core, text]);
+    if (document == null) return <div className={className} data-plain="" data-testid={testId}>{text}</div>;
+    return <MarkdownText className={className} document={document} data-testid={testId} />;
+};
+
+/// The steps of a turn: what every tool did and how long it took, and what the agent said between its tools
 const AgentSteps: React.FC<{ steps: AgentStep[] }> = ({ steps }) => {
     const now = useNow(steps.some(step => step.endedAt == null));
     return (
         <ol className={styles.steps} aria-label="Steps" data-testid="composer-agent-steps">
             {steps.map((step, index) => {
+                if (step.kind === 'text') {
+                    return (
+                        <li key={index} className={styles.step} data-state="text" data-testid="composer-agent-step">
+                            <AgentMarkdown text={step.label} className={styles.step_text} />
+                        </li>
+                    );
+                }
                 const running = step.endedAt == null;
                 const status = running ? IndicatorStatus.Running : (step.failed ? IndicatorStatus.Failed : IndicatorStatus.Succeeded);
                 return (
@@ -68,14 +71,13 @@ const AgentSteps: React.FC<{ steps: AgentStep[] }> = ({ steps }) => {
 
 /// A question of the workbook with the answer of the agent.
 /// A collapsed turn shows the question in one line. An expanded turn shows the question, the steps of the agent and the
-/// final message in full.
+/// answer in full.
 const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded: boolean; onToggle: () => void }> = ({ turn, session, expanded, onToggle }) => {
-    const { questionId, question } = turn;
+    const { question } = turn;
     const working = question.status != null;
     const indicator = working ? IndicatorStatus.Running
         : question.error != null ? IndicatorStatus.Failed
             : question.interrupted ? IndicatorStatus.Skip : IndicatorStatus.Succeeded;
-    const note = React.useMemo(() => (question.note != null ? plainAgentNote(question.note) : null), [question.note]);
     const questionTextId = React.useId();
     const { steps } = question;
     return (
@@ -122,7 +124,7 @@ const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded
                         {script.scriptName}
                     </button>
                 ))}
-                {working ? (
+                {working && (
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
@@ -132,16 +134,6 @@ const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded
                     >
                         <SquareFillIcon size={12} />
                     </IconButton>
-                ) : (
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        size={ButtonSize.Small}
-                        aria-label="Dismiss the answer"
-                        data-testid="question-dismiss"
-                        onClick={() => session.onDismiss(questionId)}
-                    >
-                        <CrossIcon size={14} />
-                    </IconButton>
                 )}
             </div>
             {expanded && steps.length > 0 && (
@@ -149,9 +141,14 @@ const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded
                     <AgentSteps steps={steps} />
                 </div>
             )}
-            {expanded && !working && note != null && <div className={styles.turn_note} role="note">{note}</div>}
+            {expanded && working && (steps.length === 0 || steps[steps.length - 1].endedAt != null) && (
+                <div className={styles.turn_thinking} data-testid="composer-agent-thinking">Thinking…</div>
+            )}
+            {expanded && !working && question.note != null && (
+                <AgentMarkdown text={question.note} className={styles.turn_note} testId="composer-agent-answer" />
+            )}
             {expanded && question.error != null && <div className={styles.turn_error} role="alert" data-testid="composer-agent-error">{question.error}</div>}
-            {expanded && question.interrupted && question.error == null && <div className={styles.turn_note} role="note">Stopped without an answer</div>}
+            {expanded && question.interrupted && question.error == null && question.note == null && <div className={styles.turn_stopped} role="note">Stopped without an answer</div>}
         </li>
     );
 };
@@ -161,24 +158,24 @@ function isTurnExpandedByDefault(turn: AgentTurn, index: number, turns: readonly
     return index === turns.length - 1 || turn.question.status != null;
 }
 
-/// The log of the agent in the bubble of Wobble: the harness and the questions on the workbook with their steps, final
-/// messages, errors and the scripts the agent wrote.
-/// The questions scroll within a fixed height, each one expands and collapses.
-/// The scripts only show the edits of the agent.
-export const AgentPromptPanel: React.FC<{ session: AgentSession; onClose?: () => void }> = ({ session, onClose }) => {
-    const activity = agentActivity(session).kind;
+/// The conversation with the agent above the editor of the prompt in AI: the questions on the workbook with the steps
+/// of the agent, its texts between the steps, its answers, errors and the scripts it wrote. The feed holds only the
+/// scripts. The questions scroll within a fixed height, each one expands and collapses. A new conversation forgets the
+/// questions and the session of the harness.
+export const AgentPromptPanel: React.FC<{ session: AgentSession; onHide?: () => void }> = ({ session, onHide }) => {
     // The turns that the user expanded or collapsed
     const [toggled, setToggled] = React.useState<ReadonlyMap<number, boolean>>(() => new Map());
     const toggle = React.useCallback((questionId: number, expanded: boolean) => {
         setToggled(prev => new Map(prev).set(questionId, expanded));
     }, []);
-    // The turns scroll within a fixed height, a new question scrolls them to the bottom, a new step of the latest
-    // question while the user stays at the bottom
+    // The turns scroll within a fixed height, a new question scrolls them to the bottom, a new step or answer of the
+    // latest question while the user stays at the bottom
     const turnsRef = React.useRef<HTMLUListElement>(null);
     const atBottomRef = React.useRef(true);
     const latestTurn = session.turns.length > 0 ? session.turns[session.turns.length - 1] : null;
     const latestQuestionId = latestTurn?.questionId ?? null;
     const latestSteps = latestTurn?.question.steps.length ?? 0;
+    const latestDone = latestTurn?.question.status == null;
     React.useLayoutEffect(() => {
         const list = turnsRef.current;
         if (list != null) list.scrollTop = list.scrollHeight;
@@ -187,47 +184,55 @@ export const AgentPromptPanel: React.FC<{ session: AgentSession; onClose?: () =>
     React.useLayoutEffect(() => {
         const list = turnsRef.current;
         if (list != null && atBottomRef.current) list.scrollTop = list.scrollHeight;
-    }, [latestSteps]);
+    }, [latestSteps, latestDone]);
     const onTurnsScroll = React.useCallback(() => {
         const list = turnsRef.current;
         if (list != null) atBottomRef.current = list.scrollHeight - list.scrollTop - list.clientHeight < 8;
     }, []);
-    const detail = activity !== 'idle' ? 'working' : 'on this workbook';
     return (
-        <div className={styles.panel} role="region" aria-label="Agent" data-testid="composer-agent">
+        <section className={styles.panel} aria-label="Conversation with the agent" data-testid="composer-agent">
             <div className={styles.header}>
+                {/* The bar of Wobble above tells the harness and what it does */}
                 <SparklesFillIcon size={12} className={styles.header_icon} />
-                <span className={styles.header_title}>{harnessLabel(session.harness)}</span>
-                <span className={styles.header_dot} data-connected="" aria-hidden="true" />
-                <span className={styles.header_detail} data-testid="composer-agent-detail">{detail}</span>
-                {onClose != null && (
+                <span className={styles.header_title}>Conversation</span>
+                <span className={styles.header_detail} data-testid="composer-agent-detail">
+                    {session.turns.length === 1 ? '1 question' : `${session.turns.length} questions`}
+                </span>
+                <Button
+                    className={styles.header_action}
+                    variant={ButtonVariant.Invisible}
+                    size={ButtonSize.Small}
+                    data-testid="composer-agent-reset"
+                    onClick={session.onReset}
+                >
+                    New conversation
+                </Button>
+                {onHide != null && (
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
-                        aria-label="Close the agent log"
-                        data-testid="composer-agent-close"
-                        onClick={onClose}
+                        aria-label="Hide the conversation"
+                        data-testid="composer-agent-hide"
+                        onClick={onHide}
                     >
-                        <CrossIcon size={14} />
+                        <ChevronDownIcon size={16} />
                     </IconButton>
                 )}
             </div>
-            {session.turns.length > 0 && (
-                <ul ref={turnsRef} className={styles.turns} aria-label="Questions" onScroll={onTurnsScroll}>
-                    {session.turns.map((turn, index, turns) => {
-                        const expanded = toggled.get(turn.questionId) ?? isTurnExpandedByDefault(turn, index, turns);
-                        return (
-                            <AgentTurnItem
-                                key={turn.questionId}
-                                turn={turn}
-                                session={session}
-                                expanded={expanded}
-                                onToggle={() => toggle(turn.questionId, !expanded)}
-                            />
-                        );
-                    })}
-                </ul>
-            )}
-        </div>
+            <ul ref={turnsRef} className={styles.turns} aria-label="Questions" onScroll={onTurnsScroll}>
+                {session.turns.map((turn, index, turns) => {
+                    const expanded = toggled.get(turn.questionId) ?? isTurnExpandedByDefault(turn, index, turns);
+                    return (
+                        <AgentTurnItem
+                            key={turn.questionId}
+                            turn={turn}
+                            session={session}
+                            expanded={expanded}
+                            onToggle={() => toggle(turn.questionId, !expanded)}
+                        />
+                    );
+                })}
+            </ul>
+        </section>
     );
 };

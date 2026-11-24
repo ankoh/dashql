@@ -141,6 +141,24 @@
     cursor: default;
 }
 
+/* The agent shows the conversation in the prompt on a click */
+button.agent,
+.bar[data-prompt] button.agent {
+    appearance: none;
+    height: 22px;
+    border: none;
+    border-radius: 4px;
+    background: none;
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+button.agent:hover {
+    background-color: var(--color_bg_hover);
+    color: var(--color_fg);
+}
+
 /* The log above the bar at its left edge, over Wobble. Dark in both color schemes like the chrome: the tokens
    resolve to their dark values inside. */
 .bubble {

@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { createAgentSessionState, reduceAgentSessionEvent, type AgentSessionEvent, type AgentSessionState } from '@akohn/dashql/platform/session/agent_session_state';
+import { agentSessionFile, createAgentSessionState, parseAgentSessionFile, reduceAgentSessionEvent, type AgentSessionEvent, type AgentSessionState } from '@akohn/dashql/platform/session/agent_session_state';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
@@ -9,13 +9,15 @@ import { Store } from '../utils/store.js';
 import { useLogger } from '../host/logger_provider.js';
 import { useAppFlavor } from '../config/flavor_provider.js';
 import { useWorkbookResults } from '../storage/workbook_results_provider.js';
-import { agentDocumentTitle, agentSessionOf, DASHQL_RUN, isAgentWorking, type AgentSession, type AgentSessionArgs } from './agent_session.js';
+import { agentDocumentTitle, agentSessionOf, isAgentWorking, type AgentSession, type AgentSessionArgs } from './agent_session.js';
 import { defaultAgentConnectionIds, isAgentConnectionAllowed, type AgentConnectionChoices } from './agent_connections.js';
-import { EXIT_FAILED, runAgentCommand, type AgentCommandHost, type AgentFollowTarget } from './agent_commands.js';
+import { describeAgentCall, EXIT_FAILED, EXIT_OK, runAgentCommand, type AgentCommandHost, type AgentFollowTarget } from './agent_commands.js';
 import { buildAgentPrompt } from './agent_prompt.js';
 import { collectReferencedScripts } from './agent_script_references.js';
 
 const LOG_CTX = 'agent';
+/// How long the page waits after a change of a conversation before it keeps it, the changes of a step come in bursts
+const KEEP_DELAY_MS = 300;
 
 /// What the prompt of a workbook takes: SQL that runs, or a question for the agent
 export enum ComposerMode {
@@ -99,6 +101,8 @@ export interface AgentControls {
     ask: (request: AgentQuestionRequest) => void;
     /// Stop the question that runs on a workbook
     stop: (workbookId: string) => void;
+    /// Start a new conversation on a workbook: stop its question, forget its questions and the sessions of the harnesses
+    reset: (workbookId: string) => void;
 }
 
 /// The conversations of the workbooks by workbook id
@@ -151,6 +155,49 @@ export const AgentProvider: React.FC<React.PropsWithChildren<{ bridge?: DashQLAg
         });
     }, [conversations]);
 
+    // The desktop app keeps the conversation of a workbook in its folder: the page reads it when it first shows the
+    // workbook and keeps every change, a reload shows the conversation that the next question resumes
+    const loads = React.useRef(new Map<string, Promise<void>>());
+    const kept = React.useRef(new Map<string, AgentSessionState>());
+    const keepTimers = React.useRef(new Map<string, ReturnType<typeof setTimeout>>());
+    const load = React.useCallback((workbookId: string) => {
+        if (bridge == null || loads.current.has(workbookId)) return;
+        loads.current.set(workbookId, bridge.readConversation(workbookId).then(value => {
+            const read = parseAgentSessionFile(value);
+            if (read == null || read.turns.length === 0) return;
+            kept.current.set(workbookId, read);
+            // A question that started before the read keeps the conversation that the page shows
+            conversations.update(prev => prev.has(workbookId) ? prev : new Map(prev).set(workbookId, read));
+        }).catch(error => logger.warn('Cannot read the conversation of the agent', { workbookId, error: stringifyError(error) }, LOG_CTX)));
+    }, [bridge, conversations, logger]);
+    React.useEffect(() => {
+        if (bridge == null) return;
+        const timers = keepTimers.current;
+        const keep = (workbookId: string) => {
+            timers.delete(workbookId);
+            const state = conversations.current.get(workbookId);
+            if (state == null || state === kept.current.get(workbookId) || state.turns.length === 0) return;
+            kept.current.set(workbookId, state);
+            bridge.writeConversation(workbookId, agentSessionFile(state))
+                .catch(error => logger.warn('Cannot keep the conversation of the agent', { workbookId, error: stringifyError(error) }, LOG_CTX));
+        };
+        const off = conversations.subscribe(() => {
+            for (const [workbookId, state] of conversations.current) {
+                // A conversation is kept once the page read the kept one, it would replace it else
+                const read = loads.current.get(workbookId);
+                if (read == null || state === kept.current.get(workbookId) || timers.has(workbookId)) continue;
+                timers.set(workbookId, setTimeout(() => void read.then(() => keep(workbookId)), KEEP_DELAY_MS));
+            }
+        });
+        return () => {
+            off();
+            for (const [workbookId, timer] of timers) {
+                clearTimeout(timer);
+                keep(workbookId);
+            }
+        };
+    }, [bridge, conversations, logger]);
+
     // The harnesses of the machine
     const [harnesses, setHarnesses] = React.useState<AgentControls['harnesses']>([]);
     React.useEffect(() => {
@@ -192,6 +239,7 @@ export const AgentProvider: React.FC<React.PropsWithChildren<{ bridge?: DashQLAg
         };
     }, [runtime]);
     const show = React.useCallback((workbookId: string, entry: ShownWorkbook) => {
+        load(workbookId);
         shown.current.set(workbookId, [...(shown.current.get(workbookId) ?? []), entry]);
         refreshDefaultConnectionsRef.current();
         return () => {
@@ -200,7 +248,7 @@ export const AgentProvider: React.FC<React.PropsWithChildren<{ bridge?: DashQLAg
             else shown.current.delete(workbookId);
             refreshDefaultConnectionsRef.current();
         };
-    }, []);
+    }, [load]);
     const [choices, setChoices] = React.useState<AgentConnectionChoices>(readTabChoices);
     const isConnectionAllowed = React.useCallback(
         (connectionId: string) => isAgentConnectionAllowed(connectionId, choices, defaultConnectionIds),
@@ -239,9 +287,16 @@ export const AgentProvider: React.FC<React.PropsWithChildren<{ bridge?: DashQLAg
         const offCall = bridge.onCall(call => {
             const controller = new AbortController();
             calls.set(call.callId, controller);
+            // The call is a step of the turn, the page tells it better than the shell command that ran it
+            const step = { status: describeAgentCall(call), toolUseId: `call:${call.callId}` };
+            reduce(call.workbookId, { event: 'PreToolUse', ...step });
+            let error = '';
             const reply = {
                 out: (text: string) => bridge.reply({ callId: call.callId, out: text }),
-                err: (text: string) => bridge.reply({ callId: call.callId, err: text }),
+                err: (text: string) => {
+                    error += text;
+                    bridge.reply({ callId: call.callId, err: text });
+                },
             };
             logger.info('The agent calls a command', { workbookId: call.workbookId, command: call.command }, LOG_CTX);
             runAgentCommand(host, call, reply, controller.signal)
@@ -251,6 +306,8 @@ export const AgentProvider: React.FC<React.PropsWithChildren<{ bridge?: DashQLAg
                 })
                 .then(exit => {
                     calls.delete(call.callId);
+                    const failure = error.trim().split('\n')[0]?.replace(/^error: /, '') || 'failed';
+                    reduce(call.workbookId, { event: 'PostToolUse', ...step, ...(exit !== EXIT_OK ? { error: failure } : {}) });
                     bridge.reply({ callId: call.callId, exit });
                 });
         });
@@ -285,6 +342,27 @@ export const AgentProvider: React.FC<React.PropsWithChildren<{ bridge?: DashQLAg
     const stop = React.useCallback((workbookId: string) => {
         bridge?.stop(workbookId).catch(error => logger.warn('Cannot stop the agent', { workbookId, error: stringifyError(error) }, LOG_CTX));
     }, [bridge, logger]);
+    const reset = React.useCallback((workbookId: string) => {
+        if (bridge == null) return;
+        const timer = keepTimers.current.get(workbookId);
+        if (timer != null) clearTimeout(timer);
+        keepTimers.current.delete(workbookId);
+        logger.info('Starting a new conversation of the agent', { workbookId }, LOG_CTX);
+        // The page forgets the conversation at once, the Stop of a question that ran ends no turn then
+        const forget = () => {
+            kept.current.delete(workbookId);
+            conversations.update(prev => {
+                if (!prev.has(workbookId)) return prev;
+                const next = new Map(prev);
+                next.delete(workbookId);
+                return next;
+            });
+        };
+        forget();
+        bridge.forget(workbookId)
+            .then(forget)
+            .catch(error => logger.warn('Cannot forget the conversation of the agent', { workbookId, error: stringifyError(error) }, LOG_CTX));
+    }, [bridge, conversations, logger]);
 
     // A workbook that the user deleted takes its conversations along
     React.useEffect(() => {
@@ -295,6 +373,8 @@ export const AgentProvider: React.FC<React.PropsWithChildren<{ bridge?: DashQLAg
             const ids = new Set(list.workbooks.map(workbook => workbook.workbookId));
             for (const workbookId of conversations.current.keys()) {
                 if (ids.has(workbookId)) continue;
+                loads.current.delete(workbookId);
+                kept.current.delete(workbookId);
                 void bridge.forget(workbookId).catch(() => { });
                 conversations.update(prev => {
                     const next = new Map(prev);
@@ -316,7 +396,8 @@ export const AgentProvider: React.FC<React.PropsWithChildren<{ bridge?: DashQLAg
         toggleConnection,
         ask,
         stop,
-    }), [bridge, prompt, updatePrompt, harnesses, isConnectionAllowed, toggleConnection, ask, stop]);
+        reset,
+    }), [bridge, prompt, updatePrompt, harnesses, isConnectionAllowed, toggleConnection, ask, stop, reset]);
     const value = React.useMemo<AgentContext>(() => ({ controls, conversations, show }), [controls, conversations, show]);
     return (
         <AGENT_CTX.Provider value={value}>
@@ -328,7 +409,6 @@ export const AgentProvider: React.FC<React.PropsWithChildren<{ bridge?: DashQLAg
 
 const NO_SUBSCRIPTION = () => () => { };
 const NO_CONVERSATIONS: Conversations = new Map();
-const NO_TURNS: ReadonlySet<number> = new Set();
 
 /// The conversations of the workbooks
 function useConversations(): Conversations {
@@ -362,8 +442,8 @@ export function useAgentHasControl(workbookId: string | null): boolean {
     return state != null && state.turns.some(turn => turn.status != null);
 }
 
-/// The conversation of the agent on a workbook for its bar, null before the first question. The feed follows the agent
-/// to the latest script it touched while it works.
+/// The conversation of the agent on a workbook for its prompt, null before the first question. The commands of the
+/// agent follow it in the feed to the scripts that they edit and run.
 export function useAgentSession(args: AgentSessionArgs): AgentSession | null {
     const context = React.useContext(AGENT_CTX);
     const conversations = useConversations();
@@ -374,31 +454,16 @@ export function useAgentSession(args: AgentSessionArgs): AgentSession | null {
     followRef.current = followScript;
     React.useEffect(() => context?.show(workbookId, { follow: (scriptKey, target) => followRef.current(scriptKey, target) }), [context, workbookId]);
     const state = conversations.get(workbookId) ?? null;
-    const [dismissedOf, setDismissed] = React.useState<{ workbookId: string; turns: ReadonlySet<number> }>(() => ({ workbookId, turns: new Set() }));
-    const dismissed = dismissedOf.workbookId === workbookId ? dismissedOf.turns : NO_TURNS;
     const stop = context?.controls.stop;
+    const reset = context?.controls.reset;
     const handlers = React.useMemo(() => ({
-        onDismiss: (questionId: number) => setDismissed(prev => ({
-            workbookId,
-            turns: new Set(prev.workbookId === workbookId ? prev.turns : []).add(questionId),
-        })),
+        onReset: () => reset?.(workbookId),
         onShowScript: showScript,
         onStop: () => stop?.(workbookId),
-    }), [workbookId, showScript, stop]);
-    const session = React.useMemo(
-        () => state == null ? null : agentSessionOf(workbookId, state, args.workbookScripts, dismissed, handlers),
-        [workbookId, state, args.workbookScripts, dismissed, handlers],
+    }), [workbookId, showScript, stop, reset]);
+    return React.useMemo(
+        () => state == null || state.turns.length === 0 ? null : agentSessionOf(workbookId, state, args.workbookScripts, handlers),
+        [workbookId, state, args.workbookScripts, handlers],
     );
-    // A run of the agent follows the agent to the results
-    const latest = session?.turns[session.turns.length - 1];
-    const followedScript = latest?.question.status != null ? latest.scripts[latest.scripts.length - 1] : undefined;
-    const followedKey = followedScript?.scriptKey;
-    const version = state?.version;
-    const followLatest = React.useEffectEvent(() => {
-        if (followedScript == null || latest == null) return;
-        followScript(followedScript.scriptKey, DASHQL_RUN.test(latest.question.status ?? '') ? 'result' : 'script');
-    });
-    React.useEffect(() => followLatest(), [version, followedKey]);
-    return session;
 }
 

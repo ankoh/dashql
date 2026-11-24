@@ -52,9 +52,9 @@ function fakeClaude(dir: string): void {
 printf '%s\\n' "$@" > "$PWD/args.txt"
 case "$*" in *sleep*) trap '' TERM; while true; do sleep 1; done;; esac
 echo '{"type":"system","subtype":"init","session_id":"c-1"}'
-echo '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"dashql scripts"}}]}}'
+echo '{"type":"assistant","message":{"content":[{"type":"text","text":"I list the scripts."},{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"dashql scripts"}},{"type":"tool_use","id":"t2","name":"Bash","input":{"command":"ls"}}]}}'
 OUT=$(dashql scripts 2>&1)
-echo '{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":"ok"}]}}'
+echo '{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":"ok"},{"type":"tool_result","tool_use_id":"t2","content":"ok"}]}}'
 printf '{"type":"result","subtype":"success","result":"scripts: %s"}\\n' "$OUT"
 `);
 }
@@ -128,8 +128,10 @@ describe("the agent host", () => {
         expect(host.isRunning("w1")).toBe(false);
         expect(page.events).toEqual([
             {event: "UserPromptSubmit", prompt: "How many orders?"},
-            {event: "PreToolUse", status: "dashql scripts", toolUseId: "t1"},
-            {event: "PostToolUse", status: "dashql scripts", toolUseId: "t1"},
+            // The page tells the dashql commands from their calls
+            {event: "Say", text: "I list the scripts."},
+            {event: "PreToolUse", status: "ls", toolUseId: "t2"},
+            {event: "PostToolUse", status: "ls", toolUseId: "t2"},
             {event: "Stop", message: "scripts: orders.sql", error: null},
         ]);
         expect(page.calls).toEqual([{callId: 1, workbookId: "w1", command: "scripts", args: {rest: []}, input: null}]);
@@ -204,6 +206,28 @@ describe("the agent host", () => {
         await expect(host.writeFile(new FakePage(), {workbookId: "w1", kind: "chart", name: "x.png", data})).rejects.toThrow(/No question runs/);
         await host.forget("w1");
         await stopped;
+        expect(existsSync(path.join(root, "workbooks", "w1"))).toBe(false);
+    });
+
+    test("keeps the conversation of the page and forgets it with the sessions", async () => {
+        const {root, host, page} = setup();
+        expect(await host.readConversation("w1")).toBeNull();
+        await Promise.all([
+            host.writeConversation("w1", {harness: "claude", turns: [{turnId: 1}]}),
+            host.writeConversation("w1", {harness: "claude", turns: [{turnId: 1}, {turnId: 2}]}),
+        ]);
+        expect(await host.readConversation("w1")).toEqual({harness: "claude", turns: [{turnId: 1}, {turnId: 2}]});
+        const file = path.join(root, "workbooks", "w1", "conversation.json");
+        expect(statSync(file).mode & 0o777).toBe(0o600);
+        await expect(host.writeConversation("w1", "text")).rejects.toThrow(/Rejected conversation/);
+        await expect(host.writeConversation("../w1", {turns: []})).rejects.toThrow(/workbook id/);
+        await expect(host.writeConversation("w1", {turns: ["x".repeat(5 * 1024 * 1024)]})).rejects.toThrow(/Rejected conversation/);
+        const stopped = page.stopped();
+        await host.ask({workbookId: "w1", harness: "claude", prompt: "the prompt", question: "q"}, page);
+        await stopped;
+        expect(existsSync(path.join(root, "workbooks", "w1", "state.json"))).toBe(true);
+        await host.forget("w1");
+        expect(await host.readConversation("w1")).toBeNull();
         expect(existsSync(path.join(root, "workbooks", "w1"))).toBe(false);
     });
 });

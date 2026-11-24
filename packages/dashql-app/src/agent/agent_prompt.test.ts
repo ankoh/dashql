@@ -14,6 +14,8 @@ describe('the prompt of a question for the agent', () => {
         expect(prompt).toContain('`dashql scripts`');
         expect(prompt).toContain('`dashql edit <script>`, into a new script');
         expect(prompt).toContain('do not recap your steps');
+        expect(prompt).toContain('asks for an explanation');
+        expect(prompt).toContain('your answer in Markdown');
         expect(prompt.endsWith('\n\nQuestion:\ntop customers')).toBe(true);
         expect(prompt).not.toContain('targets these scripts');
     });

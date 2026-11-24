@@ -117,7 +117,7 @@ adapters accordingly. The bridge type is declared in `packages/dashql-app/types/
 | Drag and drop | Renderer DOM drop events, as on the web |
 | Updates | `electron-updater` in main (`src/updater.ts`) |
 | Pending writes | Before a window closes and before the app quits, main sends `dashql:flush` and waits up to 5 s for `dashql:flushed`; the renderer flushes its storage writer through `onFlush` |
-| Agents | `AgentHost` (`src/agent/`) runs a harness of the machine for a question and serves the `dashql` commands of its agent on `127.0.0.1`: `dashql:agent-info`, `-ask`, `-stop`, `-forget`, `-write-file`, `-reply`, and the pushes `dashql:agent-event`, `-call`, `-call-cancel`. A window that reloads or closes stops its turns, quitting stops all of them. See `agent_integration.md` |
+| Agents | `AgentHost` (`src/agent/`) runs a harness of the machine for a question and serves the `dashql` commands of its agent on `127.0.0.1`: `dashql:agent-info`, `-ask`, `-stop`, `-forget`, `-read-conversation`, `-write-conversation`, `-write-file`, `-reply`, and the pushes `dashql:agent-event`, `-call`, `-call-cancel`. A window that reloads or closes stops its turns, quitting stops all of them. See `agent_integration.md` |
 
 ## User Data Folder
 

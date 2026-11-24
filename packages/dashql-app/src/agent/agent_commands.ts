@@ -574,6 +574,44 @@ async function visCommand(host: AgentCommandHost, call: AgentCall, reply: AgentR
     return problems.length > 0 ? EXIT_FAILED : EXIT_OK;
 }
 
+/// The name of a script that a call names, as the feed shows it, null without one
+function namedScript(args: Record<string, unknown>, name: string): string | null {
+    const value = args[name];
+    return typeof value === 'string' && value.length > 0 ? scriptDisplayName(scriptFileName(value)) : null;
+}
+
+/// What a call does, in one line for the steps of the turn: the page tells the `dashql` commands of the agent better
+/// than the shell command that ran them
+export function describeAgentCall(call: Pick<AgentCall, 'command' | 'args'>): string {
+    const script = namedScript(call.args, 'script') ?? 'a script';
+    switch (call.command) {
+        case 'scripts':
+            return 'List the scripts';
+        case 'read':
+            return `Read ${script}`;
+        case 'edit':
+            return `Write ${script}`;
+        case 'move':
+            return `Move ${script}`;
+        case 'catalog': {
+            const connection = typeof call.args.connection === 'string' && call.args.connection.length > 0 ? call.args.connection : null;
+            return connection == null ? 'Look up the tables' : `Look up the tables of ${connection}`;
+        }
+        case 'lint':
+            return `Check ${script}`;
+        case 'format':
+            return `Format ${script}`;
+        case 'run': {
+            const names = Array.isArray(call.args.scripts) ? call.args.scripts.filter((name): name is string => typeof name === 'string' && name.length > 0) : [];
+            return names.length === 0 ? 'Run all scripts' : `Run ${names.map(name => scriptDisplayName(scriptFileName(name))).join(', ')}`;
+        }
+        case 'vis':
+            return `Check the chart of ${script}`;
+        default:
+            return `dashql ${call.command}`;
+    }
+}
+
 /// Answer a call of the agent: the text goes to `reply`, resolves with the exit code. A command that fails says why on
 /// stderr.
 export async function runAgentCommand(host: AgentCommandHost, call: AgentCall, reply: AgentReplyStream, signal: AbortSignal): Promise<number> {
