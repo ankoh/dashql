@@ -125,3 +125,136 @@ planner-snapshots:
               kind: invalid
               errors:
                 - 'gone.sql writes with a data-modifying WITH, bar.sql can only read a query that writes nothing'
+
+  - name: CopyFromWritesCopyToReads
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: load
+        input: |
+          copy t from '/tmp/t.csv';
+      - name: read
+        input: |
+          select * from t;
+      - name: unload
+        input: |
+          copy t to '/tmp/t2.csv';
+      - name: query
+        input: |
+          copy (select * from t) to '/tmp/t3.csv';
+    expected:
+      valid: true
+      scripts:
+        - name: load
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "66826441db4290fbcee089343a5dac035d72f6d44517c5d8977554081c815e14"
+        - name: read
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "9fab1e38cd08d2b25d23cb6d5ac07d6cebd82346aaf4d7073e7e49bd25cb4d61"
+        - name: unload
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "d821b0f8386e441f8d7a862631c68a6cce879789e6eb6192d311dfa5fc33df46"
+        - name: query
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 0
+          signature: "d372ac7ad077091cf3f3be02e2b4812b205bea5e63429a2e757c9ab62502d4a0"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: t
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: load
+          statement-id: 0
+          type: COPY
+          sql: "copy t from '/tmp/t.csv'"
+          produces-output: false
+          barrier: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 1
+          script: read
+          statement-id: 0
+          type: SELECT
+          sql: "select * from t"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 2
+          script: unload
+          statement-id: 0
+          type: COPY
+          sql: "copy t to '/tmp/t2.csv'"
+          produces-output: false
+          barrier: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+        - id: 3
+          script: query
+          statement-id: 0
+          type: COPY
+          sql: "copy (select * from t) to '/tmp/t3.csv'"
+          produces-output: false
+          barrier: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 0
+          to: 1
+          reason: BARRIER
+        - from: 0
+          to: 2
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 0
+          to: 2
+          reason: BARRIER
+        - from: 0
+          to: 3
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 2
+          reason: BARRIER
+        - from: 2
+          to: 3
+          reason: BARRIER
+      diagnostics:
+        - node: 0
+          script: load
+          error: false
+          message: unsupported statement effects; backend session semantics are not guaranteed
+        - node: 2
+          script: unload
+          error: false
+          message: unsupported statement effects; backend session semantics are not guaranteed
+        - node: 3
+          script: query
+          error: false
+          message: unsupported statement effects; backend session semantics are not guaranteed

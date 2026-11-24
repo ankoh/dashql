@@ -18,7 +18,8 @@ use crate::hash::{HashMap, HashSet};
 use crate::table_parameters::{TableParameterLookup, TABLE_PARAMETERS_ENTRY_ID};
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType, NameTag, SemanticNodeMarkerType};
 use dashql_buffers::parser::{
-    AttributeKey as K, GroupByItemType, JoinType, KnownFunction, MergeMatch, Node, NodeType, StatementType, SymbolSpan,
+    AttributeKey as K, CopyDirection, GroupByItemType, JoinType, KnownFunction, MergeMatch, Node, NodeType, StatementType,
+    SymbolSpan,
 };
 use dashql_parser::attrs;
 use std::ops::Range;
@@ -2712,6 +2713,40 @@ impl NameResolutionPass {
                         }
                     }
                 }
+                self.merge_child_states(node_state, node);
+                self.create_scope(state, node_state, node_id);
+            }
+
+            // COPY of a relation writes it when it loads (FROM) and reads it when it unloads (TO), its scope resolves
+            // it. COPY of a query reads what the query reads.
+            NodeType::OBJECT_SQL_COPY => {
+                let [relation, direction] = attrs!(state.children(node), [K::SQL_COPY_RELATION, K::SQL_COPY_DIRECTION]);
+                let (Some(relation), Some(name)) = (relation, state.read_qualified_table_name(relation)) else {
+                    self.merge_child_states(node_state, node);
+                    return;
+                };
+                let loads =
+                    direction.is_some_and(|d| CopyDirection(d.children_begin_or_value() as u8) == CopyDirection::FROM);
+                let id = state.out.table_references.len() as TableRefId;
+                let relation_id = state.node_id(relation);
+                state.out.table_references.push(TableReference {
+                    table_reference_id: ExternalObjectId::new(state.entry_id, id),
+                    ast_node_id: relation_id,
+                    location: Some(*relation.symbol_span()),
+                    ast_statement_id: None,
+                    ast_scope_root: None,
+                    alias: None,
+                    column_aliases: Vec::new(),
+                    inner: Some(RelationExpression {
+                        table_name: name,
+                        resolved_table: None,
+                        resolved_alternatives: Vec::new(),
+                        resolved_cte: None,
+                    }),
+                    role: if loads { TableRole::Write } else { TableRole::Read },
+                });
+                node_state.table_references.push(id);
+                state.mark(relation_id, SemanticNodeMarkerType::TABLE_REFERENCE);
                 self.merge_child_states(node_state, node);
                 self.create_scope(state, node_state, node_id);
             }

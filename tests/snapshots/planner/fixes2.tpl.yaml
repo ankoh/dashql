@@ -26,3 +26,21 @@ planner-snapshots:
       - name: bar
         input: |
           select count(*) from :gone;
+
+  # COPY FROM writes its table, COPY TO reads it, both are barriers
+  - name: CopyFromWritesCopyToReads
+    catalog: |
+      create table t (a int);
+    scripts:
+      - name: load
+        input: |
+          copy t from '/tmp/t.csv';
+      - name: read
+        input: |
+          select * from t;
+      - name: unload
+        input: |
+          copy t to '/tmp/t2.csv';
+      - name: query
+        input: |
+          copy (select * from t) to '/tmp/t3.csv';

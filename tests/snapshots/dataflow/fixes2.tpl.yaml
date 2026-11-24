@@ -1,0 +1,13 @@
+dataflow-snapshots:
+  # A load writes its table, the read of the table follows it
+  - name: CopyLoadFlowsIntoRead
+    scripts:
+      - name: setup
+        input: |
+          create table t (a int);
+      - name: load
+        input: |
+          copy t from '/tmp/t.csv';
+      - name: read
+        input: |
+          select * from t;
