@@ -1,243 +1,65 @@
-load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
-load("@aspect_bazel_lib//lib:tar.bzl", "mtree_mutate", "mtree_spec", "tar")
-load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_test")
-load("@aspect_rules_js//npm:defs.bzl", "npm_package")
-load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
-load("@npm//:vite/package_json.bzl", vite_bin = "bin")
-load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
-load("@rules_shell//shell:sh_test.bzl", "sh_test")
-load("//bazel:eslint.bzl", "eslint_test")
-
-# dashql, the command line tool of DashQL on @akohn/dashql, see README.md:
+# `dashql`, the commands of an agent that the desktop app runs for a question. Every command but `guide` and `help` is a
+# call of the page of the workbook through the server of the app, see docs/design/agent_integration.md. The binary
+# ships only inside DashQL.app (Contents/Resources/bin/dashql); a session file of the app names the server:
 #
-# bazel run //packages/dashql-cli:dashql -- lint <file.sql|dir|->...
-# bazel run //packages/dashql-cli:dashql -- format [--write|--check] <file.sql|dir|->...
-# bazel run //packages/dashql-cli:dashql -- run <workbook-dir> [<script>...]
+# bazel run //packages/dashql-cli:dashql -- guide
+# bazel run //packages/dashql-cli:dashql -- --session <folder>/session.json scripts
+
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
+load("//bazel:macos_packaging.bzl", "platform_binary")
+load("//bazel:rust_safety.bzl", "rust_safety_test")
+load("//bazel:rustfmt.bzl", "rustfmt_test")
 
 package(default_visibility = ["//visibility:private"])
 
-_SOURCES = glob(["src/**/*.ts"])
-
-_MODULES = glob(
-    ["src/**/*.ts"],
-    exclude = ["src/**/*.test.ts"],
-)
-
-# @akohn/dashql is a source package, its imports come from here. `run` reaches all of it, `lint` and `format` only the
-# bindings, with their SQL support in src/sql_*.ts. The generated packages that it imports come with its source package,
-# resolved through the aliases of vite.config.mjs and vitest.config.mjs and the paths of tsconfig.bazel.json.
-_DEPENDENCIES = [
-    "//:node_modules/@akohn/dashql",
-    "//:node_modules/@akohn/hyperdb-edge",
-    "//:node_modules/@bufbuild/protobuf",
-    "//:node_modules/apache-arrow",
-    "//:node_modules/flatbuffers",
-    "//:node_modules/hyperdb-wasm",
-    "//:node_modules/immutable",
-    "//:node_modules/vega-lite",
-]
-
-# The command as one module for Node, the Wasm of the core stays a file of the package @akohn/dashql
-vite_bin.vite(
-    name = "bundle",
-    srcs = _MODULES + [
-        "package.json",
-        "vite.config.mjs",
-        "//:node_modules/vite",
-    ] + _DEPENDENCIES,
-    args = ["build", "--config", "vite.config.mjs"],
-    chdir = "packages/dashql-cli",
-    outs = ["dist/dashql.js"],
-    # The agent tests run it with Node like an installation, see //tests/agents
-    visibility = ["//tests/agents:__pkg__"],
-)
-
-js_binary(
+rust_binary(
     name = "dashql",
-    data = [
-        "package.json",
-        ":bundle",
-        # The Wasm of the core, @akohn/dashql/wasm
-        "//:node_modules/@akohn/dashql",
-        # The embedded Hyper of `run`, loaded only there with its Wasm file
-        "//:node_modules/hyperdb-wasm",
-    ],
-    entry_point = "dist/dashql.js",
+    srcs = glob(["src/**/*.rs"]),
+    crate_name = "dashql_cli",
+    crate_root = "src/main.rs",
+    edition = "2021",
+    lint_config = "//bazel:rust_safety_lints",
     visibility = ["//visibility:public"],
-)
-
-copy_to_bin(
-    name = "typecheck_inputs",
-    srcs = _SOURCES + [
-        "package.json",
-        "tsconfig.bazel.json",
+    deps = [
+        "@core_crates//:httparse",
+        "@core_crates//:serde_json",
     ],
 )
 
-typescript_bin.tsc_test(
-    name = "tsc_typecheck_test",
-    size = "small",
-    args = ["--project", "tsconfig.bazel.json"],
-    chdir = "packages/dashql-cli",
-    data = [
-        ":typecheck_inputs",
-        "//:node_modules/@types/node",
-        "//:node_modules/vitest",
-    ] + _DEPENDENCIES,
+# The binary in each architecture's DashQL.app, Contents/Resources/bin/dashql
+platform_binary(
+    name = "dashql_aarch64",
+    binary = ":dashql",
+    platform = "//bazel/platforms:aarch64_macos",
+    tags = ["manual"],
+    target_compatible_with = ["@platforms//os:macos"],
+    visibility = ["//packages/dashql-native:__pkg__"],
 )
 
-# The commands with the process of a test: arguments, files, stdin, the output and the exit codes. dashql run starts the
-# embedded Hyper in many tests, about 35 seconds on a workstation, more on a runner of CI
-vitest_bin.vitest_test(
+platform_binary(
+    name = "dashql_x86_64",
+    binary = ":dashql",
+    platform = "//bazel/platforms:x86_64_macos",
+    tags = ["manual"],
+    target_compatible_with = ["@platforms//os:macos"],
+    visibility = ["//packages/dashql-native:__pkg__"],
+)
+
+# The command line, the session file, the calls against a fake server of the app, the usage and the guide
+rust_test(
     name = "test",
-    size = "medium",
-    args = [
-        "run",
-        "--config",
-        "vitest.config.mjs",
-    ],
-    chdir = "packages/dashql-cli",
-    data = _SOURCES + [
-        "package.json",
-        "vitest.config.mjs",
-        "//:node_modules/vitest",
-    ] + _DEPENDENCIES,
-)
-
-# dashql as the user calls it: the bundle, its exit codes, stdin and the invoking directory
-js_test(
-    name = "binary_test",
     size = "small",
-    data = [":dashql"],
-    entry_point = "test/binary_test.mjs",
-    env = {"DASHQL_BINARY": "$(rootpath :dashql)"},
+    crate = ":dashql",
 )
 
-# The manifest on npm: the npm version of the build (DASHQL_VERSION_NPM) as the version of the package and of its
-# dependency on @akohn/dashql, the version in npm/package.json is not used. CI publishes both packages of every build
-# that it deploys, and the page names the command line tool of its own build, see //packages/dashql:npm_manifest
-genrule(
-    name = "npm_manifest",
-    srcs = [
-        "npm/package.json",
-        "@dashql_app_version//:version.env",
-    ],
-    outs = ["npm_manifest/package.json"],
-    cmd = """
-        VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_NPM"{print $$2}' "$(location @dashql_app_version//:version.env)")
-        sed -E \\
-            -e 's/^(  "version": )"[^"]*"/\\1"'"$${VERSION}"'"/' \\
-            -e 's/("@akohn\\/dashql": )"[^"]*"/\\1"'"$${VERSION}"'"/' \\
-            "$(location npm/package.json)" > $@
-        grep -qF "  \\"version\\": \\"$${VERSION}\\"," $@
-        grep -qF "\\"@akohn/dashql\\": \\"$${VERSION}\\"" $@
-    """,
+# Clippy with the safety lints, see //bazel:rust_safety.bzl
+rust_safety_test(
+    name = "clippy_test",
+    deps = [":dashql"],
 )
 
-# The package on npm: the bundle with the stamped manifest, `npx -y @akohn/dashql-cli connect ...` runs it.
-# @akohn/dashql and hyperdb-wasm stay dependencies, the bundle reads their Wasm files from their packages.
-genrule(
-    name = "npm_files",
-    srcs = [
-        ":bundle",
-        ":npm_manifest",
-        "README.md",
-        "//:LICENSE",
-        "//:NOTICE",
-    ],
-    outs = [
-        "npm_package_files/dist/dashql.js",
-        "npm_package_files/package.json",
-        "npm_package_files/README.md",
-        "npm_package_files/LICENSE",
-        "npm_package_files/NOTICE",
-    ],
-    cmd = " && ".join([
-        "cp $(location :bundle) $(RULEDIR)/npm_package_files/dist/dashql.js",
-        "cp $(location :npm_manifest) $(RULEDIR)/npm_package_files/package.json",
-        "cp $(location README.md) $(RULEDIR)/npm_package_files/README.md",
-        "cp $(location //:LICENSE) $(RULEDIR)/npm_package_files/LICENSE",
-        "cp $(location //:NOTICE) $(RULEDIR)/npm_package_files/NOTICE",
-    ]),
+# rustfmt of the Rust files of the package, see //bazel:rustfmt.bzl
+rustfmt_test(
+    name = "rustfmt_test",
+    srcs = glob(["**/*.rs"]),
 )
-
-npm_package(
-    name = "npm_package",
-    package = "@akohn/dashql-cli",
-    srcs = [":npm_files"],
-    include_transitive_sources = False,
-    include_transitive_types = False,
-    replace_prefixes = {"npm_package_files/": ""},
-)
-
-mtree_spec(
-    name = "npm_tarball_mtree",
-    srcs = [":npm_package"],
-)
-
-mtree_mutate(
-    name = "npm_mtree",
-    mtree = ":npm_tarball_mtree",
-    strip_prefix = "packages/dashql-cli/npm_package",
-    package_dir = "package",
-)
-
-tar(
-    name = "npm_tarball",
-    srcs = [":npm_package"],
-    mtree = ":npm_mtree",
-    out = "dashql-cli.tgz",
-    compress = "gzip",
-    args = ["--format=ustar", "--uid=0", "--gid=0", "--uname=root", "--gname=root"],
-)
-
-# The package on npm depends on the versions that the bundle was built with. A js_test takes the files of its own
-# package, the manifests of the root and of @akohn/dashql on npm are copied here.
-genrule(
-    name = "npm_package_test_manifests",
-    srcs = [
-        "//:package.json",
-        "//packages/dashql:npm_manifest",
-    ],
-    outs = [
-        "npm_manifests/root_package.json",
-        "npm_manifests/dashql_package.json",
-    ],
-    cmd = " && ".join([
-        "cp $(location //:package.json) $(RULEDIR)/npm_manifests/root_package.json",
-        "cp $(location //packages/dashql:npm_manifest) $(RULEDIR)/npm_manifests/dashql_package.json",
-    ]),
-)
-
-js_test(
-    name = "npm_package_test",
-    size = "small",
-    data = [
-        ":bundle",
-        ":npm_manifest",
-        "npm_manifests/dashql_package.json",
-        "npm_manifests/root_package.json",
-    ],
-    entry_point = "test/npm_package_test.mjs",
-    env = {
-        "NPM_PACKAGE_JSON": "$(rootpath :npm_manifest)",
-        "DASHQL_PACKAGE_JSON": "$(rootpath npm_manifests/dashql_package.json)",
-        "ROOT_PACKAGE_JSON": "$(rootpath npm_manifests/root_package.json)",
-        "DASHQL_BUNDLE": "$(rootpath :bundle)",
-    },
-)
-
-# The snippets of the app are what dashql format prints, in the dialect of their engine
-sh_test(
-    name = "example_snippets_formatted_test",
-    size = "small",
-    srcs = ["test/check_example_snippets.sh"],
-    args = ["$(rootpath :dashql)"],
-    data = [
-        ":dashql",
-        "//:example_snippets",
-    ],
-)
-
-# ESLint with the rules of the root eslint.config.mjs, see docs/agents/build_bazel_targets.md
-eslint_test()

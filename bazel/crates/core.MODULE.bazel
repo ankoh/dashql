@@ -1,5 +1,5 @@
 # Crate universe @core_crates of the Rust core (//packages/dashql-{parser,core,snapshots,core-bindings,shell-wasm}) and
-# the dashql command line tool built on it (//packages/dashql-cli).
+# the dashql command line tool of the agents of the desktop app (//packages/dashql-cli).
 # Isolated from @crates because the core is built natively (tests, snapshotter, benchmarks) and for
 # wasm32, and its pins (wasm-bindgen, serde_json) conflict with the native crates.
 #
@@ -12,14 +12,11 @@ crate_core = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate"
 
 crate_core.spec(package = "flatbuffers", version = "=25.12.19")
 
-# The agent server and its command line tool (//packages/dashql-cli)
+# base64 of the storage and the runtime
 crate_core.spec(package = "base64", version = "=0.23.1")
-crate_core.spec(package = "futures-util", default_features = False, features = ["sink", "std"], version = "=0.3.34")
-crate_core.spec(package = "getrandom", version = "=0.4.3")
+
+# The answers of the server of the app to the command line tool (//packages/dashql-cli)
 crate_core.spec(package = "httparse", version = "=1.10.1")
-crate_core.spec(package = "libc", version = "=0.2.191")
-crate_core.spec(package = "tokio", features = ["io-util", "macros", "net", "process", "rt", "signal", "sync", "time"], version = "=1.54.1")
-crate_core.spec(package = "tokio-tungstenite", default_features = False, features = ["handshake"], version = "=0.30.0")
 
 # Arrow in the runtime (//packages/dashql-core-runtime): results, the catalog loader, the connectors, the computations;
 # and in the shell (//packages/dashql-core-shell): the previews of results in the terminal

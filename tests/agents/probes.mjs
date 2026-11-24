@@ -1,74 +1,13 @@
 // The probes of the agent integration tests: a server on loopback, a script that tries to reach it, and a hook that
 // runs the script and logs what it saw.
 import { spawn } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import net from 'node:net';
 import { join, resolve } from 'node:path';
 
 /// The Node binary itself: in a js_test of Bazel, process.execPath is a wrapper that needs the environment of the test,
 /// which a harness doesn't pass to its hooks
 const NODE = process.env.JS_BINARY__NODE_BINARY ? resolve(process.env.JS_BINARY__NODE_BINARY) : process.execPath;
-
-/// The command `dashql` as an installation has it: Node runs the bundle of //packages/dashql-cli:bundle. The launcher
-/// of a js_binary needs the environment of Bazel, which a harness doesn't pass to the commands of the agent.
-export function writeDashQLCommand(dir) {
-    mkdirSync(join(dir, 'bin'), { recursive: true });
-    const command = join(dir, 'bin', 'dashql');
-    writeFileSync(command, `#!/bin/bash
-exec ${JSON.stringify(NODE)} ${JSON.stringify(resolve(process.env.DASHQL_BUNDLE))} "$@"
-`);
-    chmodSync(command, 0o755);
-    return command;
-}
-
-/// Follow the server of `dashql connect` on a port, from before it listens until it ends: resolves with the last state
-/// that it sent
-export async function followDashQLSession(port, token) {
-    const base = `http://127.0.0.1:${port}`;
-    let response = null;
-    for (let i = 0; i < 300 && response == null; ++i) {
-        try {
-            response = await fetch(`${base}/v1/stream?token=${token}`);
-        } catch {
-            await new Promise(done => setTimeout(done, 100));
-        }
-    }
-    if (response == null || !response.ok) throw new Error(`no server of dashql connect on port ${port}`);
-    let state = null;
-    let rest = '';
-    const decoder = new TextDecoder();
-    try {
-        for await (const chunk of response.body) {
-            rest += decoder.decode(chunk, { stream: true });
-            let end;
-            while ((end = rest.indexOf('\n\n')) >= 0) {
-                const message = rest.slice(0, end);
-                rest = rest.slice(end + 2);
-                const data = message.split('\n').filter(line => line.startsWith('data: ')).map(line => line.slice(6)).join('\n');
-                if (data.length > 0) state = JSON.parse(data);
-            }
-        }
-    } catch {
-        // The server ended the stream with the session
-    }
-    return state;
-}
-
-/// The turns of the state of a session with only the fields that `expected` names, the steps as their label and whether
-/// they failed: compare it with `expected`, fields that the session model adds don't matter
-export function pickTurns(turns, expected) {
-    return turns.map((turn, i) =>
-        Object.fromEntries(Object.keys(expected[i] ?? {}).map(key => [key, key === 'steps' ? turn.steps.map(({ label, failed }) => ({ label, failed })) : turn[key]])));
-}
-
-/// A port that is free right now
-export async function freePort() {
-    const server = net.createServer();
-    await new Promise(done => server.listen(0, '127.0.0.1', done));
-    const { port } = server.address();
-    await new Promise(done => server.close(done));
-    return port;
-}
 
 /// A server on loopback that the probes connect to
 export async function startLoopbackTarget() {
@@ -193,11 +132,4 @@ export function stopSessionServer(dir) {
         events: existsSync(events) ? readFileSync(events, 'utf8').trim().split('\n') : [],
         log: existsSync(log) ? readFileSync(log, 'utf8') : '',
     };
-}
-
-/// A SQL file with a parse error for `dashql lint`
-export function writeBrokenScript(dir) {
-    const script = join(dir, 'broken.sql');
-    writeFileSync(script, 'select * from;\n');
-    return script;
 }

@@ -74,10 +74,9 @@ bazel build //tools/datasets:datasets
 # Upload missing test datasets to data.dashql.app (requires R2 key)
 bazel run //tools/datasets:sync
 
-# Build and test the npm packages
-bazel build --config=release //packages/dashql:npm_tarball //packages/dashql-cli:npm_tarball
-bazel test --config=release //packages/dashql:all \
-    //packages/dashql-cli:npm_package_test //packages/dashql-cli:binary_test
+# Build and test the npm package
+bazel build --config=release //packages/dashql:npm_tarball
+bazel test --config=release //packages/dashql:all
 
 ```
 
@@ -92,8 +91,7 @@ bazel test --config=release //packages/dashql:all \
     - Any commit pushed to the branch `dev` deploys to [dev.dashql.app](https://dev.dashql.app), for integrations under development
 - Native apps and update bundles are published to **get.dashql.app**
 - We're maintaining release manifests under [get.dashql.app/stable.json](https://get.dashql.app/stable.json) and [get.dashql.app/latest.json](https://get.dashql.app/latest.json)
-- The npm packages `@akohn/dashql` and `@akohn/dashql-cli` are published for the branches `main`, `stable`, `dev`
-- The app references these published npm packages for the agent integration
+- The npm package `@akohn/dashql` is published for the branches `main`, `stable`, `dev`
 - Hosted test datasets are published to **data.dashql.app** (R2 bucket `dashql-data`)
     - Built hermetically by `//tools/datasets` (hash-pinned sources -> DuckDB CLI) and mirrored with `bazel run //tools/datasets:sync`
     - Immutable versioned paths `data.dashql.app/<dataset>/v<version>/<file>.parquet`, plus a mutable `data.dashql.app/index.json` registry

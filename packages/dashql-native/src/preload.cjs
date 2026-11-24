@@ -12,7 +12,36 @@ ipcRenderer.on("dashql:flush", async (_event, requestId) => {
     }
 });
 
+/// Listen to a channel of the main process, returns the function that stops listening
+function listen(channel, listener) {
+    const handler = (_event, value) => listener(value);
+    ipcRenderer.on(channel, handler);
+    return () => ipcRenderer.removeListener(channel, handler);
+}
+
 contextBridge.exposeInMainWorld("dashqlElectron", {
+    // The agents, see docs/design/agent_integration.md: the page passes a harness of a fixed set and the question
+    agent: {
+        info: async () => await ipcRenderer.invoke("dashql:agent-info"),
+        ask: async (request) => await ipcRenderer.invoke("dashql:agent-ask", {
+            workbookId: request.workbookId,
+            harness: request.harness,
+            prompt: request.prompt,
+            question: request.question,
+        }),
+        stop: async (workbookId) => await ipcRenderer.invoke("dashql:agent-stop", workbookId),
+        forget: async (workbookId) => await ipcRenderer.invoke("dashql:agent-forget", workbookId),
+        onEvent: (listener) => listen("dashql:agent-event", listener),
+        onCall: (listener) => listen("dashql:agent-call", listener),
+        onCallCancel: (listener) => listen("dashql:agent-call-cancel", listener),
+        reply: (reply) => ipcRenderer.send("dashql:agent-reply", {callId: reply.callId, out: reply.out, err: reply.err, exit: reply.exit}),
+        writeFile: async (file) => await ipcRenderer.invoke("dashql:agent-write-file", {
+            workbookId: file.workbookId,
+            kind: file.kind,
+            name: file.name,
+            data: new Uint8Array(file.data),
+        }),
+    },
     claimWorkbookFolder: async (path) => await ipcRenderer.invoke("dashql:claim-workbook-folder", path),
     confirm: async (options) => await ipcRenderer.invoke("dashql:confirm", options),
     fs: {

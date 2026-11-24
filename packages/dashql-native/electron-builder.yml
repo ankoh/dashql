@@ -14,6 +14,13 @@ extraResources:
     to: renderer
   - from: dashql_native_napi.node
     to: dashql_native_napi.node
+  # The dashql command that the agents call, docs/design/agent_integration.md
+  - from: bin/dashql
+    to: bin/dashql
+# The app runs no Node of its own outside the utility process: ELECTRON_RUN_AS_NODE does not turn the signed app into
+# a Node for whoever starts it
+electronFuses:
+  runAsNode: false
 mac:
   artifactName: DashQL-${version}-${arch}.${ext}
   category: public.app-category.developer-tools

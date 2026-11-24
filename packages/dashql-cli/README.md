@@ -1,366 +1,49 @@
-# dashql-cli
+# dashql
 
-`dashql`, the command line tool of DashQL on `@akohn/dashql`. It runs the logic of the app in Node, so an agent in a
-harness gets the answers of the app (`docs/design/dashql_runtime.md`):
+`dashql` is the command line tool of the agents of the DashQL desktop app. The app runs a harness of the machine
+(Claude Code, Codex or opencode) for a question that the user asks in a workbook, and the agent works on that workbook
+with these commands. They read and change the workbook that the window shows and run its scripts there, on the
+connections of the user. The design is in [docs/design/agent_integration.md](../../docs/design/agent_integration.md).
 
-- **`dashql lint`** lints SQL files on disk.
-- **`dashql format`** pretty prints SQL files on disk.
-- **`dashql run`** runs the scripts of a workbook folder on Trino and the embedded Hyper, results go into the results of the workbook.
-- **`dashql catalog`** prints the tables of the connections of a workbook folder as `CREATE TABLE` statements.
-- **`dashql vis`** checks the chart of a script against its result and renders it as PNG.
-- **`dashql connect`** launches Claude Code or Codex and shows its session live in the tab of DashQL that gave the
-  command, see below.
-- **`dashql session`** shows the session of an agent harness in DashQL, see below.
-- **`dashql describe`** tells an agent how to work on the workbooks of DashQL and lists the workbooks that the tabs of
-  DashQL copied into the folder, see below.
+The binary ships only inside DashQL.app, as `Contents/Resources/bin/dashql`. It is not published anywhere else.
 
-```
-bazel run //packages/dashql-cli:dashql -- lint examples/snippets/hyper
-bazel run //packages/dashql-cli:dashql -- format --write extensions/d360-api/snippets
+## Calls
+
+Every command but `guide` and `help` is a call of the page of the workbook. The app writes a session file into the
+folder of the workbook (`session.json`: the address of its server on `127.0.0.1`, a token and the workbook id) and puts
+a `bin/dashql` first on the `PATH` of the harness that passes it:
+
+```sh
+dashql --session <folder>/session.json scripts
 ```
 
-Vite bundles the command with the sources of the runtime into one module for Node (`dist/dashql.js`,
-`//packages/dashql-cli:bundle`). The core stays a package next to it, the command reads its Wasm file from there.
-`lint`, `format` and `run` need Node 22 or later.
+`dashql` posts the command with its arguments to `/v1/call` of the server and prints the answer as it streams: text for
+stdout and stderr, then the exit code. Exit codes: 0 when the command succeeded, 1 when it failed, 2 on usage errors and
+when DashQL is not running or runs no question on the workbook.
 
-On npm the command is `@akohn/dashql-cli` (`npx -y @akohn/dashql-cli <command>`): `//packages/dashql-cli:npm_tarball`
-packs the bundle with the metadata of `npm/package.json`, which depends on `@akohn/dashql` and `hyperdb-wasm`. The
-build stamps the version of the commit (`0.0.20-latest.125.ged768a7d4` from main) into the package and into its dependency on
-`@akohn/dashql`, and `:npm_package_test` keeps the dependencies those of the build. CI publishes both packages with every
-deploy, `@akohn/dashql` first, before the pages that name this version, see the top-level `README.md`.
+## Commands
 
-## dashql lint
+| Command | Does |
+|---|---|
+| `guide` | How to work on DashQL with these commands, read it first |
+| `scripts` | The scripts in the order of the feed, the connections and the attachments |
+| `read <script>` | The text of a script |
+| `edit <script> [--file <file>] [--connection <id>]` | Replace or create a script with the text of the file or of stdin |
+| `move <script> (--before <script> \| --after <script> \| --first \| --last)` | Move a script in the feed |
+| `catalog [<connection>]` | The tables that you can query, as `CREATE TABLE` statements |
+| `lint <script>` | Check a script without running it |
+| `format <script>` | Pretty print a script in place |
+| `run [<script>...] [--refresh] [--rows <n>]` | Run scripts in DashQL, print their first rows (10, up to 10000) and the files of their results |
+| `vis <script> [--width <n>] [--height <n>] [--refresh]` | Check the chart of a script against its result and render it as PNG |
+| `help` | The usage |
 
-```
-dashql lint [--schema <file.sql>]... [--debug] <file.sql|dir|->...
-```
+The command table in `src/commands.rs` makes the usage, the guide is `src/guide.rs`.
 
-Relative paths are resolved against the directory you invoke Bazel from. Directories are searched recursively for
-`*.sql` files, the generated catalog files of workbooks (`dashql-catalog-relations.sql`, `dashql-catalog-functions.sql`, `dashql-catalog-changes.sql`) are skipped.
-Symlinks are followed, except links back into a directory that is being searched.
-`-` reads a script from stdin:
+## Development
 
-```
-echo "select 1 +;" | bazel run //packages/dashql-cli:dashql -- lint -
-```
-
-### What it does
-
-Every script is scanned, parsed and analyzed by dashql-core (`src/sql_lint.ts` over the bindings of `@akohn/dashql`), and only the scripts with
-diagnostics are printed. Scripts
-are not executed.
-
-### Output
-
-```
-broken.sql
-  2:27  error    parse    syntax error, unexpected SEMICOLON
-        │ select a from t where a = ;
-        │                           ^
-
-3 files, 1 error, 0 warnings
-```
-
-Diagnostics show the line and column (in code points), the severity, the stage (`scan`, `parse`, `analyze`, or
-`failure` if processing failed) and the source line. Colors are used when stdout is a terminal (`NO_COLOR` and
-`FORCE_COLOR` are honored). `--debug` adds how long dashql-core took.
-
-The exit code is 0 without errors (warnings are fine), 1 with errors and 2 on usage or I/O errors.
-
-### Schemas
-
-Scripts are analyzed on their own, names resolve only against what the script declares itself.
-`--schema` adds a script with `CREATE TABLE` statements to the catalog, so that ambiguous or mistyped columns of those
-tables are reported. Schema scripts are checked first, a schema with errors is not added.
-
-The parser accepts some incomplete statements (e.g. a `FROM` or `WHERE` without anything after it) so the editor can
-complete them. They are not reported.
-
-## dashql format
-
-```
-dashql format [--write|--check] [--dialect hyper|trino] <file.sql|dir|->...
-```
-
-Paths work like those of `dashql lint`. Every script is formatted by dashql-core (`src/sql_format.ts` over the bindings of `@akohn/dashql`) in the
-pretty mode with lowercase
-keywords, a width of 120 and an indentation of 4, and printed to stdout. `--write` rewrites the files that change and
-`--check` only names them. Both end with a summary. `--dialect` is `hyper` by default, Trino scripts need `trino`, where
-types and time literals are spelled differently.
-
-A script with errors isn't formatted. Neither is one with a statement the formatter doesn't know, or one whose output
-doesn't parse. These scripts are reported on stderr and stay as they are, the others are still formatted.
-
-The exit code is 0 if all scripts could be formatted (with `--check`: are formatted), 1 otherwise and 2 on usage or I/O
-errors.
-
-## dashql move
-
-```
-dashql move <workbook-dir> <script> (--before <script> | --after <script> | --first | --last)
-```
-
-Moves a script of a workbook folder in the feed: the order of the scripts in `dashql-workbook.json`, which the feed of
-DashQL shows. A script is named like `orders`, `orders.sql` or `scripts/orders.sql`; a script that the workbook file
-doesn't list fails. The other fields of the file stay, the command prints the new order. The tab of a session takes
-the order of a workbook that it copied (`docs/design/agent_session.md`), and puts a new script of the agent where the
-workbook file lists it, at the end without an entry. Agents move scripts with it instead of editing the list of the
-workbook file, which they get wrong.
-
-## dashql init
-
-```
-dashql init [<dir>]
-```
-
-Sets up a folder as a workspace of DashQL, the folder of its files: its workspace file `dashql-workspace.json`, which
-marks it, and a `.gitignore` that ignores it. The `.dashql/` of this folder by default, else the named folder itself,
-which must be new or empty; a `.dashql/` from before the workspace file, whose `.gitignore` ignores all of it, gets the
-file. `init` and `connect` are the only
-commands that set up a workspace; `describe`, `run` and `vis` take one with `--workspace`, `.dashql/` of the
-invoking directory by default, a copy of a workbook of a tab the workspace that holds it, and fail on a folder that is
-no workspace, so a wrong path fails instead of running
-outside the tab of a session. Only the user runs it: the guide tells the agent not to, Claude Code asks before it runs it, and the error of
-a folder that is no workspace names no command to the agent.
-
-## dashql run
-
-```
-dashql run [-w <dir>] [--rows <n>] [--refresh] [--plain] [--verbose] <workbook-dir> [<script>...]
-```
-
-Runs the scripts of a workbook folder (a folder with `dashql-workbook.json` and `scripts/`) on their connections like
-the Run of the workbook in DashQL, with the runtime of the app (`runWorkbook`): all scripts by default, the
-named ones with the scripts they reference otherwise. Scripts are named by their file names (`a.sql` or
-`scripts/a.sql`). The scripts are analyzed and planned together. A `:foo` of a script on the same connection becomes a
-common table expression, a `:foo` of a script on the embedded Hyper that runs on Trino is materialized as Parquet file
-and scanned. Scripts of different connections run at the same time, a connection runs as many statements at once as
-in the app (Trino and the embedded Hyper one). The run stops at the first statement that fails and cancels the
-statements that run beside it.
-
-### Output
-
-Where the output goes decides what it looks like. On a terminal, `run` shows a live view: what settled is printed once
-and stays in the scrollback, a region below it shows the connections that are set up, the running scripts with the
-phase, the progress and the rows that their engine reports, and the scripts that wait, with the scripts they wait for.
-The region is drawn again in place, there is no full-screen view and no input. A cursor hidden while it draws comes
-back however the process ends.
-
-```
-dashql run tpch · 4 scripts
-✓ trino localhost:8080  ready  0.2 s
-✓ nations.sql  25 rows  0.3 s
-  nationkey Int64, name Utf8, region Utf8
-  …
-⠼ orders.sql    RUNNING  ███████░░░░░   58%  1.2M rows  3.4 s
-· lineitem.sql  waits for orders.sql
-```
-
-Agents, pipes and files get plain lines, so does a terminal with `--plain` or `TERM=dumb`: nothing while the scripts
-run, a few lines per script once it settled, and a summary. No escape sequences, no lines drawn again.
-
-```
-nations.sql  ok  25 rows  0.3 s
-  nationkey Int64, name Utf8, region Utf8
-  nationkey | name      | region
-  ----------+-----------+--------
-  0         | ALGERIA   | AFRICA
-  1         | ARGENTINA | AMERICA
-  … 23 more
-  .dashql/workbooks/ab12…/results/nations.5f0e…c2.019aa52e1c4f0b7d2e10.parquet
-broken.sql  failed  0.4 s
-  line 1:8: Column 'nope' cannot be resolved
-  │ select nope from orders
-  │        ^^^^
-customers.sql  not run  the run stopped
-
-1 ok, 1 failed, 1 not run
-```
-
-Every result shows its schema, its row count, its first rows (`--rows`, 10 by default) and its Parquet file in the
-results of the workbook, relative to the invoking directory if it is below it. A failure shows the message of the engine
-and, if it names a position, the line of the statement that was sent. The lines are in the order the scripts settle,
-which differs from the order of the workbook when scripts run at the same time. A script that didn't run says why:
-its connection could not be set up, it follows such a script, the run stopped or was interrupted. Referenced scripts
-that are not named show up only when they fail. `--verbose` prints the log of the runtime to stderr.
-
-- **The files of DashQL.** The workspace, with the layout of the storage of the app (`docs/design/storage_layout.md`):
-  the attachments of a workbook in `workbooks/<id>/attachments/`, mirrored from the folder before the run, its stored
-  results in `workbooks/<id>/results/` (`<script>.<key>.<gen>.parquet`, one per script), and a folder per run of the embedded Hyper in `instances/`, removed at its end or by the next
-  run once its process is gone. Nothing is searched for and nothing comes from the environment. Everything of a
-  project stays in its `.dashql/`, which commands in the sandbox of a harness may write, next to the session of
-  `dashql connect`. It is a root of its own, the app keeps its files in the storage of the browser.
-- **Reused results.** A script whose stored result has its current key is not run again unless a script it follows
-  runs, like in the app; the result then says `reused` and its connection is not needed. `--refresh` runs every script. The
-  workbook folder is not written.
-- **The workspace.** `--workspace <dir>`, `-w` for short, is the folder of the files of DashQL, `.dashql/` of the
-  invoking directory by default, a workspace that `dashql init` or `dashql connect` set up: a folder without
-  `dashql-workspace.json` fails, so does the folder of a project around a workspace and one that a relative path or
-  the default names after a `cd`. A named workspace holds the files directly, with no `.dashql/` inside. A copy of a
-  workbook of a tab, `workbooks/<workbook id>` of a workspace, takes the workspace that holds it, without
-  `--workspace`. `run` reads the session of `dashql connect` there from its workspace file, `dashql-workspace.json`,
-  and nowhere else.
-- **Runs in the tab.** While a session runs in the workspace, a copy of a workbook that its tab made
-  (`workbooks/<workbook id>` of the workspace) runs in the tab: `run` asks the server of
-  the session, the tab runs the scripts with its own runtime on its connections that the agent may use, as far as the
-  browser reaches them, the feed of the tab shows the run, and the events come back and print as above. A result comes
-  with its first `--rows` rows, its row count and, for a result with a key, its Parquet file, which the tab writes into
-  `workbooks/<id>/results/` of the workspace. The run fails when no tab follows the session; Ctrl-C asks the tab to stop it
-  (`docs/design/agent_integration.md`, "Runs in the tab"). Every other workbook folder fails with a hint while the
-  session runs, so nothing runs outside the tab; without a session a workbook folder runs in the process, a copy only
-  with the workspace of its session. A session runs while its server answers: one that a `dashql connect` that was
-  killed left in the workspace file counts as none, like at the start of `connect`.
-- **Connections.** Trino with basic auth and the embedded Hyper. `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD`
-  override the user and the password of the workbook. They stay in memory, the workbook keeps its params.
-  A local cloud on the embedded Hyper attaches the databases of its clouds folder in the root, like in the app.
-  Connections with OAuth, Salesforce and remote Hyper servers are refused before their first statement, they run only
-  in the tab. The
-  connections that statements run on are set up and checked with `select 1` before the first statement, all at once.
-  The scripts of a connection that can't be set up don't run, nor do the scripts that follow them; the others do.
-- **The embedded Hyper** is the build of `hyperdb-wasm` for Node, loaded only by `run`. It runs on Node 24: Node 24.15
-  and later have every WebAssembly feature it needs, earlier versions of Node 24 get the flag for exnref from the
-  command itself. Without it the scripts on Trino still run and nothing is written.
-- **Interrupts.** The first Ctrl-C cancels the running queries, reports the scripts as cancelled or not run and
-  removes the folder of the instance, the second one ends the process.
-- **Syntax errors first.** Before the run, `run` prints the scripts that it runs with the errors of their scanner and
-  parser, as `dashql lint` prints them. It doesn't resolve names, a script reads the tables of its connection and the
-  results of other scripts. The run goes on, a script with an error fails at its statement.
-- **Network.** `run` reaches the connections, so a harness approves it by prefix (`dashql run`).
-
-The exit code is 0 if all scripts ran, 1 if a script failed or didn't run, 2 on usage errors or a folder without a
-workbook and 130 when interrupted.
-
-## dashql connect
-
-```
-npx -y --registry=https://registry.npmjs.org/ --min-release-age=0 @akohn/dashql-cli@<version> connect --launch <claude|codex> --port <port> --secret <secret> [--folder <dir>] [--command <program>] [-- <argument>...]
-```
-
-The AI side of the prompt of DashQL shows this line with a port and a secret that the tab picked, and waits for a
-server there. `connect` is the one way to attach a harness to DashQL, and one session runs in a folder: a second
-`connect` fails while the server of the first answers, the folder of one whose server is gone goes. It picks the id of
-the session, a new UUID, starts the server of the session on `127.0.0.1:<port>` with the secret as its token, and launches the harness in the
-terminal with hooks that send its events there: Claude Code with `--settings`, Codex with `-c hooks={…}`; nothing is
-written to `~/.claude` or `~/.codex`. Codex shows the new hooks for review at its start. The hooks call this `dashql`
-again with the workspace in their arguments (`session hook <event> --harness <name> --workspace <folder>/.dashql`), nothing
-goes through the environment. When the harness exits, `connect` ends the session and stops the server
-and exits with the code of the harness, also when the terminal closes (SIGHUP) or the process is asked to stop
-(SIGTERM): it ends the harness first. A port that is taken fails before the harness starts, the tab gives a new one.
-The arguments after `--` go to the harness, `--command` launches another program than `claude` or `codex` on the
-`PATH`.
-
-The agent knows how to work on DashQL from the start, it needs no command to learn it: Claude Code gets the guide of
-`dashql describe` with a preface (`CONNECTED_AGENT_GUIDE`: the user started it from DashQL, a request about data is a
-request to the workbooks) in its system prompt (`--append-system-prompt`), Codex in the output of the hook at the start,
-which the harness puts into the context of the agent. That hook also gives both the workspace that the commands
-take, the folder where the tab copies its workbook, and the workbooks and the connections of the session. The settings
-of Claude Code let it run the commands of `dashql` that it needs and edit the copies of the session in
-`.dashql/workbooks/` without asking (`permissions.allow`: `Bash(dashql describe:*)`, `catalog`, `run`, `vis`, `move`,
-`lint`, `format`, and `Edit(./.dashql/workbooks/**)`), not the workspace file; `dashql init` and everything else asks as the user configured it,
-and Codex keeps its sandbox. `//tests/agents` runs `connect` with Claude Code and Codex and a fake model:
-the events of a turn, the guide in the system prompt, `dashql` and a script of the copy without approval, a file of the
-project only with one, and a run of a workbook folder of the project fails. The agent of a harness that `npx`
-launched has no `dashql` on its path: `connect` writes one into the workspace (`.dashql/bin/dashql`,
-a shell script that runs this `dashql`) and puts that folder first on the `PATH` of the harness, the only variable it
-sets. Not on Windows.
-
-The workspace of the session is the `.dashql/` of the folder of the harness (`--folder`, else the invoking directory),
-and the session works in its root. Without `--folder` in the home folder, as in a fresh terminal, `connect` fails, so
-the agent doesn't get every file of the user; `--folder ~` still runs there. It names itself in the workspace file, `.dashql/dashql-workspace.json` (`session`):
-the address and the token of the server for the hooks and the commands, readable by the user
-only, and the connections that the agent may use, removed when the session ends. The copies of the workbooks of the tab
-are the workbooks of the workspace, `.dashql/workbooks/<workbook id>/`, and go when the session ends; the stored results
-and the mirrored attachments of runs without a session stay. The tab writes the workbook that it shows into the session once the server answers, with the
-catalogs of the connections that the agent may use, and the agent works on that copy; its changed scripts come back
-into the tab with their text (`docs/design/agent_session.md`). `describe` takes the workspace, `--workspace
-<folder>/.dashql`; `catalog`, `run` and `vis` take a copy, `<folder>/.dashql/workbooks/<workbook id>`, and find the
-session in the workspace file of the workspace that holds it. While it runs, `run` and `vis` refuse
-every workbook folder that is no copy of the session, in `.dashql/` or outside of it, so a run of the agent never
-silently runs outside the tab.
-
-## dashql catalog
-
-```
-dashql catalog [--max-chars <n>] <workbook-dir> [<connection>...]
-```
-
-Prints the tables of connections as `CREATE TABLE` statements with the types of their columns: the named connections
-by id or name, else the connections of the workbook file and the ones with catalog files. Each comes with a line of its
-name, id, connector, the number of its scripts and tables, and for a copy whether the tab lets the agent use it. The embedded
-Hyper lists the attachments of the workbook as `:name`. The tables come from the catalog files of the folder,
-`connections/<id>/dashql-catalog-relations.sql` and `dashql-catalog-functions.sql`: the tab writes the relations into its
-copies for every connection that the agent may use and again when the catalog of a connection changed; a published
-workbook carries them. The output of a connection stops after `--max-chars` characters (100000), with the path of the
-file to grep. Nothing goes over the server of the session for it.
-
-## dashql vis
-
-```
-dashql vis [-w <dir>] [--out <file.png>] [--width <n>] [--height <n>] [--scale <n>] [--refresh] <workbook-dir>
-           <script>
-```
-
-Checks the chart of a script, the `@vis` tag above its last query (`docs/design/vis_comments.md`), and gets it as PNG.
-The check is local: the core compiles the script and names the renderer and the Vega-Lite spec, Vega-Lite compiles the
-spec in Node. `vis` runs the script like `dashql run` (in the tab for a copy of a tab, a reused result is not run again)
-and takes the columns of the result from the event of the run, without its rows. It prints the renderer, the rows and
-the columns, and the problems: the errors and warnings of Vega-Lite, fields of the encodings that are no columns of the
-result nor made by a transform, and sizes that DashQL decides (`chartSpecProblems` of
-`platform/workbook/chart_config.ts`), and the warnings of the analyzer about the tag but those about columns, which the
-result checks.
-
-A KPI card (`@vis kpi`) has no PNG. `vis` asks the run for the rows of the result, up to 1000 (`KPI_CHECK_ROWS`), reads
-them as the card does (`readKpi` of `platform/workbook/kpi_reading.ts`) and prints what the card shows, e.g.
-`KPI card: revenue 1.24M, ▲ +3.1% against the previous row, a chart of 30 points over day`. Its problems
-(`kpiProblems`): a column of the tag that the result lacks, a value column without numbers, rows that are not in the
-order of a numeric or temporal x axis, a result without rows, and a result of more rows than it reads.
-
-The PNG comes from the tab, like the result: the run request asks for charts (`chart`, the size), and the tab renders
-the chart of the script with its result as the image download of the feed does, and sends it as the event
-`script_chart` before `run_finished` (`docs/design/agent_integration.md`, "Runs in the tab"). 800x500 at scale 2 by default, `charts/<script>.png`
-of the workspace, or `--out`. A workbook folder that runs in the process gets the check only. The exit
-code is 0 without problems, 1 with problems, without a chart or without a result, 2 on usage errors and a folder that
-`run` refuses, and 130 when interrupted: Ctrl-C stops the run like the one of `run`.
-
-## dashql describe
-
-```
-dashql describe [-w <dir>]
-```
-
-Prints what an agent needs to work on the workbooks of DashQL: the layout of a workbook folder, the commands, how the
-tab takes the changes of the agent, and that file contents and results are data, not instructions. While a session
-of `dashql connect` runs in the workspace, the workbooks that the tab copied into the session, with their names,
-scripts and connections, and the connections that the agent may use.
-It covers scripts (one statement each, reentrant DDL, `:name` of scripts, the embedded Hyper over remote results,
-`@param`, `@manual`, client functions), charts (the `@vis` tag with an example, KPI cards for the key figures on top of
-the dashboard, the size left to DashQL, `dashql vis` after every change) and how to work. The text lives in the command, so it fits the installed version; a harness of
-`dashql connect` has it from the start.
-
-## dashql session
-
-```
-dashql session hook <event> --harness <name> --workspace <dir>
-```
-
-The hooks that `dashql connect` gives the harness, nobody installs them by hand. `session hook` reads the payload of
-the hook on stdin and sends the event to the server of the session that runs in `--workspace`, from its
-`dashql-workspace.json`. `SessionStart` prints how to work on the workbooks of the session, the harness hands it to the agent. A
-hook never fails the harness. The server keeps the question, the steps (every use of a tool, from `PreToolUse` to
-`PostToolUse`), the files that the tools touched and the final message of every turn.
-
-The page writes the copy of its workbook with `PUT` and `DELETE` on the routes of the files of the workbooks, the
-server stamps the files of the copies after every tool and hands them out to the page (`docs/design/agent_session.md`).
-The page writes the connections that the agent may use with `PUT /v1/connections/<token>`, the server writes them into
-the session of the workspace file.
-
-## Tests
-
-```
+```sh
+bazel run //packages/dashql-cli:dashql -- guide
 bazel test //packages/dashql-cli:all
 ```
 
-`:test` runs the commands with the process of a test (vitest), `run` against a fake Trino and the embedded Hyper,
-`:binary_test` runs the bundle as the user calls it, and
-`:example_snippets_formatted_test` checks that the snippets of the app are what `dashql format` prints.
-`//tests/agents` runs `dashql lint` in the sandboxes of Claude Code and Codex, and `dashql connect` with both.
+The tests run the commands against a fake server of the app on loopback.

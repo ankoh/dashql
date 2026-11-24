@@ -7,6 +7,8 @@ import {brotliDecompress} from "node:zlib";
 
 import {app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, protocol, shell, utilityProcess, type IpcMainEvent, type WebContents} from "electron";
 
+import {AgentHost, type AgentPage} from "./agent/agent_host.js";
+import {HARNESSES, isHarness} from "./agent/harness.js";
 import {APP_ORIGIN, APP_RESPONSE_HEADERS, contentHeadersFor, isBrotliWasm, isTrustedRendererUrl, parseRendererDevOrigin, resolveAppRequest} from "./app_protocol.js";
 import {DeepLinkQueue, parseDeepLink, parseDeepLinksFromCommandLine} from "./deep_link.js";
 import {writeFileAtomically} from "./atomic_write.js";
@@ -49,6 +51,11 @@ let mainWindow: BrowserWindow | null = null;
 let updater: ElectronUpdater | null = null;
 const oauthLoopbacks = new Map<number, OAuthLoopbackServer>();
 let nextOAuthLoopbackId = 1;
+/// The agents of the app, null without a `dashql` command for them
+let agentHost: AgentHost | null = null;
+/// The page of a window for the agents, its turns stop when it reloads or closes
+const agentPages = new WeakMap<WebContents, AgentPage>();
+const watchedAgentContents = new WeakSet<WebContents>();
 
 if (process.argv.some((arg) => arg.endsWith("-test") || arg.includes("-test="))) {
     app.disableHardwareAcceleration();
@@ -375,6 +382,49 @@ async function runNativeAddonTest(): Promise<void> {
     }
 }
 
+/// The `dashql` command that the agents call: in the bundle of the app, or the one that an unpackaged app was started
+/// with, `--dashql-cli=<path>` (scripts/run_electron.sh). Without it, the agents are unavailable.
+function dashqlBinary(): string | null {
+    if (app.isPackaged) return path.join(process.resourcesPath, "bin", "dashql");
+    const arg = process.argv.find((value) => value.startsWith("--dashql-cli="));
+    return arg === undefined ? null : path.resolve(arg.slice("--dashql-cli=".length));
+}
+
+function requireAgentHost(): AgentHost {
+    if (agentHost === null) throw new Error("This build of DashQL runs no agents");
+    return agentHost;
+}
+
+/// The page of a window for the agents: it gets the events of its turns and the calls of their agents
+function agentPageOf(contents: WebContents): AgentPage {
+    const page = agentPages.get(contents);
+    if (page !== undefined) return page;
+    const send = (channel: string, value: unknown) => {
+        if (!contents.isDestroyed()) contents.send(channel, value);
+    };
+    const created: AgentPage = {
+        event: (workbookId, event) => send("dashql:agent-event", {workbookId, event}),
+        call: (call) => send("dashql:agent-call", call),
+        cancelCall: (callId) => send("dashql:agent-call-cancel", callId),
+    };
+    agentPages.set(contents, created);
+    // A page that reloads or closes stops its turns, the new page knows nothing of them
+    if (!watchedAgentContents.has(contents)) {
+        watchedAgentContents.add(contents);
+        const detach = () => {
+            const current = agentPages.get(contents);
+            agentPages.delete(contents);
+            if (current !== undefined) void agentHost?.detach(current);
+        };
+        contents.once("destroyed", detach);
+        contents.on("render-process-gone", detach);
+        contents.on("did-start-navigation", (details) => {
+            if (details.isMainFrame && !details.isSameDocument) detach();
+        });
+    }
+    return created;
+}
+
 function isTrustedRenderer(url: string | undefined): boolean {
     return isTrustedRendererUrl(url, rendererDevOrigin);
 }
@@ -427,6 +477,8 @@ async function quitDashQL(install: boolean): Promise<void> {
     if (quitState !== "running") return;
     quitState = "quitting";
     await Promise.all(BrowserWindow.getAllWindows().map(flushRenderer));
+    // No harness outlives the app
+    await agentHost?.close().catch((error) => console.error("Failed to stop the agents", error));
     nativeProxy?.close();
     nativeProxy = null;
     if (install && updater !== null) updater.install();
@@ -654,6 +706,37 @@ if (!hasSingleInstanceLock) {
         await installUpdate();
     });
 
+    // The agents, see docs/design/agent_integration.md. The page names a harness of a fixed set and passes the
+    // question, never a command.
+    const binary = dashqlBinary();
+    if (binary !== null) agentHost = new AgentHost({root: path.join(app.getPath("userData"), "agent"), dashqlBinary: binary});
+    ipcMain.handle("dashql:agent-info", async (event) => {
+        if (!isTrustedRenderer(event.senderFrame?.url)) throw new Error("Rejected agent request");
+        return await agentHost?.info() ?? {harnesses: HARNESSES.map(({id, label}) => ({id, label, available: false}))};
+    });
+    ipcMain.handle("dashql:agent-ask", async (event, request: unknown) => {
+        if (!isTrustedRenderer(event.senderFrame?.url) || request === null || typeof request !== "object") throw new Error("Rejected agent request");
+        const {workbookId, harness, prompt, question} = request as Record<string, unknown>;
+        if (typeof workbookId !== "string" || !isHarness(harness) || typeof prompt !== "string" || typeof question !== "string") throw new Error("Rejected agent request");
+        await requireAgentHost().ask({workbookId, harness, prompt, question}, agentPageOf(event.sender));
+    });
+    ipcMain.handle("dashql:agent-stop", async (event, workbookId: unknown) => {
+        if (!isTrustedRenderer(event.senderFrame?.url) || typeof workbookId !== "string") throw new Error("Rejected agent request");
+        await agentHost?.stop(workbookId);
+    });
+    ipcMain.handle("dashql:agent-forget", async (event, workbookId: unknown) => {
+        if (!isTrustedRenderer(event.senderFrame?.url) || typeof workbookId !== "string") throw new Error("Rejected agent request");
+        await agentHost?.forget(workbookId);
+    });
+    ipcMain.on("dashql:agent-reply", (event, reply: unknown) => {
+        if (!isTrustedRenderer(event.senderFrame?.url) || reply === null || typeof reply !== "object") return;
+        agentHost?.reply(agentPageOf(event.sender), reply as {callId: unknown});
+    });
+    ipcMain.handle("dashql:agent-write-file", async (event, file: unknown) => {
+        if (!isTrustedRenderer(event.senderFrame?.url) || file === null || typeof file !== "object") throw new Error("Rejected agent request");
+        return await requireAgentHost().writeFile(agentPageOf(event.sender), file as {workbookId: unknown; kind: unknown; name: unknown; data: unknown});
+    });
+
     ipcMain.handle("dashql:native-proxy-request", async (event, request: NativeProxyRequest) => {
         if (!isTrustedRenderer(event.senderFrame?.url)) {
             throw new Error("Rejected native proxy request from an untrusted frame");
@@ -709,7 +792,7 @@ if (!hasSingleInstanceLock) {
 
     app.on("before-quit", (event) => {
         if (quitState === "quitting") return;
-        // Stop the agent server first, quitDashQL quits again
+        // Write what the windows hold and stop the agents first, quitDashQL quits again
         event.preventDefault();
         void quitDashQL(false);
     });

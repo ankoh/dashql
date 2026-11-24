@@ -35,19 +35,26 @@ alias(
     visibility = ["//packages/hyperdb-edge:__pkg__"],
 )
 
+# The agents of the app: the agent host of the main process of the desktop app and the dashql command that it ships,
+# see docs/design/agent_integration.md
+_DASHQL_APP = [
+    "//packages/dashql-cli:dashql",
+    "//packages/dashql-native:compile",
+    "//packages/dashql-native:package_json",
+]
+
 js_test(
     name = "claude_code_sandbox_test",
     size = "medium",
     data = [
+        "dashql_app.mjs",
         "fake_anthropic.mjs",
         "probes.mjs",
-        "//packages/dashql-cli:bundle",
-        "//:node_modules/@akohn/dashql",
         ":claude",
-    ],
+    ] + _DASHQL_APP,
     entry_point = "claude_code_sandbox_test.mjs",
     env = {
-        "DASHQL_BUNDLE": "$(rootpath //packages/dashql-cli:bundle)",
+        "DASHQL_BINARY": "$(rootpath //packages/dashql-cli:dashql)",
         "CLAUDE_BINARY": "$(rootpath :claude)",
     },
     # The binary of the harness stays in its repository, js_test copies only sources of this package
@@ -61,16 +68,15 @@ js_test(
     name = "codex_sandbox_test",
     size = "medium",
     data = [
+        "dashql_app.mjs",
         "fake_openai.mjs",
         "probes.mjs",
-        "//packages/dashql-cli:bundle",
-        "//:node_modules/@akohn/dashql",
         ":codex",
         ":codex_files",
-    ],
+    ] + _DASHQL_APP,
     entry_point = "codex_sandbox_test.mjs",
     env = {
-        "DASHQL_BUNDLE": "$(rootpath //packages/dashql-cli:bundle)",
+        "DASHQL_BINARY": "$(rootpath //packages/dashql-cli:dashql)",
         "CODEX_BINARY": "$(rootpath :codex)",
     },
     # The binary and the resources of the harness stay in its repository, js_test copies only sources of this package

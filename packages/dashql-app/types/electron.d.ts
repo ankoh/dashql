@@ -9,6 +9,9 @@ interface DashQLStartupResult {
 type DashQLFileStamp = import('@akohn/dashql/platform/electron_fs').FileStamp;
 
 interface DashQLElectronBridge {
+    /// The agents of the app: harnesses of the machine that the main process runs headless for a question, and the
+    /// calls of their `dashql` commands, see docs/design/agent_integration.md
+    agent?: DashQLAgentBridge;
     /// Claim the access to a workbook folder that the storage registered before the app granted folders.
     /// Accepted once, on the first start with folder grants, for a folder that holds a workbook file.
     claimWorkbookFolder(path: string): Promise<boolean>;
@@ -42,6 +45,50 @@ interface DashQLElectronBridge {
         install(): Promise<void>;
         onStatus(listener: (status: DashQLElectronUpdateStatus) => void): () => void;
     };
+}
+
+/// A harness that the app can run
+type DashQLAgentHarness = 'claude' | 'codex' | 'opencode';
+
+/// What a turn of a harness did, in the order of the turn: UserPromptSubmit first, Stop last
+type DashQLAgentEvent =
+    | {event: 'UserPromptSubmit'; prompt: string}
+    | {event: 'PreToolUse'; status: string; toolUseId: string | null}
+    | {event: 'PostToolUse'; status: string; toolUseId: string | null; error?: string | null}
+    | {event: 'Stop'; message?: string | null; error?: string | null; interrupted?: boolean};
+
+/// A call of a `dashql` command of the agent, the page answers it with reply
+interface DashQLAgentCall {
+    callId: number;
+    workbookId: string;
+    command: string;
+    args: Record<string, unknown>;
+    input: string | null;
+}
+
+/// A part of the answer of a call: text for stdout or stderr, the exit code ends the call
+interface DashQLAgentReply {
+    callId: number;
+    out?: string;
+    err?: string;
+    exit?: number;
+}
+
+interface DashQLAgentBridge {
+    /// The harnesses and whether the machine has them
+    info(): Promise<{harnesses: Array<{id: DashQLAgentHarness; label: string; available: boolean}>}>;
+    /// Start a turn on a workbook: `question` is what the user asked, `prompt` what the harness gets
+    ask(request: {workbookId: string; harness: DashQLAgentHarness; prompt: string; question: string}): Promise<void>;
+    /// Stop the turn of a workbook
+    stop(workbookId: string): Promise<void>;
+    /// Stop the turn of a workbook and forget its conversations
+    forget(workbookId: string): Promise<void>;
+    onEvent(listener: (event: {workbookId: string; event: DashQLAgentEvent}) => void): () => void;
+    onCall(listener: (call: DashQLAgentCall) => void): () => void;
+    onCallCancel(listener: (callId: number) => void): () => void;
+    reply(reply: DashQLAgentReply): void;
+    /// Write a file of a call into the folder of the workbook, returns its path relative to the folder
+    writeFile(file: {workbookId: string; kind: 'chart' | 'result'; name: string; data: Uint8Array}): Promise<string>;
 }
 
 interface DashQLOAuthLoopbackResult {

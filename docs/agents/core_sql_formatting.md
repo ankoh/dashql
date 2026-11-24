@@ -20,7 +20,7 @@ This guide documents the standard workflow to add or improve SQL formatter behav
     measures a name with the text up to the next possible break, so a name breaks only where its command gives it no
     break before it: commands put their names and actions in clauses of their own (`drop table if exists` and the
     names, `truncate` and the relations, `alter table t` and the actions) instead of after their keywords.
-11. To try a change on real scripts, run `bazel run //packages/dashql-cli:dashql -- format <file.sql|dir|->`.
+11. To try a change on real scripts, run `bazel run //tools/sql_format -- <file.sql|dir|->`.
 
 Example: for `OBJECT_SQL_ORDER`, read attributes like `SQL_ORDER_VALUE`, `SQL_ORDER_DIRECTION`, and `SQL_ORDER_NULLRULE`, then render the order item text used by `order by` clauses.
 

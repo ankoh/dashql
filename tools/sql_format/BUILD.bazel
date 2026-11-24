@@ -1,0 +1,50 @@
+# `sql_format`: pretty prints SQL files with the native dashql-core, as the editor of DashQL formats a script, with
+# lowercase keywords, 120 columns and an indentation of 4. The format gates of the snippets run it.
+#
+# bazel run //tools/sql_format -- --write examples/snippets/hyper examples/snippets/d360
+# bazel run //tools/sql_format -- --write --dialect trino examples/snippets/trino
+# bazel run //tools/sql_format -- --check <file.sql|dir|->...
+
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load("//bazel:rustfmt.bzl", "rustfmt_test")
+
+package(default_visibility = ["//visibility:private"])
+
+rust_binary(
+    name = "sql_format",
+    srcs = glob(["src/**/*.rs"]),
+    crate_root = "src/main.rs",
+    edition = "2021",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//packages/dashql-core:dashql_core",
+        "//packages/dashql-parser:dashql_parser",
+        "//proto/fb:dashql_buffers_rs",
+    ],
+)
+
+# The arguments, the inputs (files, directories, stdin), the dialects, --write and --check
+rust_test(
+    name = "test",
+    size = "small",
+    crate = ":sql_format",
+)
+
+# The snippets of the app are what sql_format prints, in the dialect of their engine
+sh_test(
+    name = "example_snippets_formatted_test",
+    size = "small",
+    srcs = ["tests/check_example_snippets.sh"],
+    args = ["$(rootpath :sql_format)"],
+    data = [
+        ":sql_format",
+        "//:example_snippets",
+    ],
+)
+
+# rustfmt of the Rust files of the package, see //bazel:rustfmt.bzl
+rustfmt_test(
+    name = "rustfmt_test",
+    srcs = glob(["**/*.rs"]),
+)

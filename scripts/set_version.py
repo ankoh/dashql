@@ -4,8 +4,7 @@ Usage: bazel run //scripts:set_version [-- <version>]
 
 Without a version it takes the one of the app: `git describe --tags --long` as in bazel/versioning.bzl, `v0.0.18` and
 247 commits give `0.0.19-dev.247`, a commit with a tag gives `0.0.18`. It writes the version of the root, of the desktop
-app and of the two packages on npm, and the dependency of @akohn/dashql-cli on @akohn/dashql. Only those lines change,
-the formatting of the files stays.
+app and of the package on npm. Only those lines change, the formatting of the files stays.
 """
 
 import os
@@ -18,7 +17,6 @@ FILES = [
     ("package.json", ["version"]),
     ("packages/dashql-native/package.json", ["version"]),
     ("packages/dashql/npm/package.json", ["version"]),
-    ("packages/dashql-cli/npm/package.json", ["version", "@akohn/dashql"]),
 ]
 
 SEMVER = re.compile(r"^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$")

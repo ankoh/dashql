@@ -3,23 +3,19 @@
 // or carry the events of the session to a server that a SessionStart hook started, and a prefix rule of the execution
 // policy lets a command out of the sandbox.
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { after, before, test } from 'node:test';
 
 import { functionCall, functionCallOutputs, message, startFakeOpenAI } from './fake_openai.mjs';
+import { startDashQLApp, stepsOf } from './dashql_app.mjs';
 import {
-    followDashQLSession,
-    freePort,
-    pickTurns,
     readHookLog,
     requireLinuxSandboxTools,
     runHarness,
     startLoopbackTarget,
     stopSessionServer,
-    writeBrokenScript,
-    writeDashQLCommand,
     writeHook,
     writeProbe,
     writeSessionHook,
@@ -28,7 +24,6 @@ import {
 
 const CODEX = resolve(process.env.CODEX_BINARY);
 const ROOT = mkdtempSync(join(process.env.TEST_TMPDIR ?? tmpdir(), 'codex-'));
-const DASHQL = writeDashQLCommand(ROOT);
 const HOOK_EVENTS = ['SessionStart', 'PostToolUse', 'Stop'];
 
 let target;
@@ -41,8 +36,21 @@ before(async () => {
 
 after(() => target?.close());
 
-/// Run `codex exec` with a fake model that calls exec_command once, or `dashql connect` on a port that runs it
-async function runCodex(dir, { command, sandbox = 'workspace-write', hook = null, hookEvents = HOOK_EVENTS, allowPrefix = null, escalate = false, env = {}, connectPort = null }) {
+/// The config of Codex with the fake model
+function writeCodexConfig(codexHome, model) {
+    writeFileSync(join(codexHome, 'config.toml'), `model = "fake-model"
+model_provider = "fake"
+
+[model_providers.fake]
+name = "fake"
+base_url = "${model.url}/v1"
+wire_api = "responses"
+env_key = "FAKE_API_KEY"
+`);
+}
+
+/// Run `codex exec` with a fake model that calls exec_command once
+async function runCodex(dir, { command, sandbox = 'workspace-write', hook = null, hookEvents = HOOK_EVENTS, allowPrefix = null, escalate = false, env = {} }) {
     const codexHome = join(dir, 'codex');
     const work = join(dir, 'work');
     mkdirSync(join(codexHome, 'rules'), { recursive: true });
@@ -55,15 +63,7 @@ async function runCodex(dir, { command, sandbox = 'workspace-write', hook = null
             })]
             : [message('done')],
     });
-    writeFileSync(join(codexHome, 'config.toml'), `model = "fake-model"
-model_provider = "fake"
-
-[model_providers.fake]
-name = "fake"
-base_url = "${model.url}/v1"
-wire_api = "responses"
-env_key = "FAKE_API_KEY"
-`);
+    writeCodexConfig(codexHome, model);
     if (hook != null) {
         writeFileSync(join(codexHome, 'hooks.json'), JSON.stringify({
             hooks: Object.fromEntries(hookEvents.map(event => [event, [{ hooks: [{ type: 'command', command: hook.includes('{event}') ? hook.replaceAll('{event}', event) : `${hook} ${event}` }] }]])),
@@ -77,16 +77,13 @@ env_key = "FAKE_API_KEY"
 `);
     }
     try {
-        const exec = [
+        const args = [
             'exec', '--skip-git-repo-check', '--json', '--sandbox', sandbox,
             // Codex skips user hooks until a user trusted them in /hooks
-            ...(hook != null || connectPort != null ? ['--dangerously-bypass-hook-trust'] : []),
+            ...(hook != null ? ['--dangerously-bypass-hook-trust'] : []),
             'run the probe',
         ];
-        const [program, args] = connectPort == null
-            ? [CODEX, exec]
-            : [DASHQL, ['connect', '--launch', 'codex', '--command', CODEX, '--port', String(connectPort), '--secret', 's3cret', '--', ...exec]];
-        const output = await runHarness(program, args, {
+        const output = await runHarness(CODEX, args, {
             cwd: work,
             env: { PATH: '/usr/bin:/bin', HOME: join(dir, 'home'), CODEX_HOME: codexHome, FAKE_API_KEY: 'fake', ...env },
         });
@@ -149,32 +146,53 @@ test('a server that SessionStart starts gets the events of the hooks, not the co
     for (const event of ['started', ...HOOK_EVENTS]) assert.ok(events.includes(event), `${event} in ${JSON.stringify(events)}, server: ${log}`);
 });
 
-test('dashql lint runs in workspace-write', async () => {
-    const dir = caseDir('lint');
-    mkdirSync(join(dir, 'work'));
-    const { commands } = await runCodex(dir, { command: `${DASHQL} lint ${writeBrokenScript(join(dir, 'work'))}` });
-    assert.equal(commands.length, 1);
-    assert.match(commands[0], /1 file, 1 error/);
-});
+test('the app runs Codex for a question: the agent calls the workbook with dashql, the next question resumes', async () => {
+    const dir = caseDir('app');
+    const codexHome = join(dir, 'codex');
+    mkdirSync(codexHome, { recursive: true });
+    const root = join(dir, 'agent');
+    // The agent lists the scripts and passes a script to edit on stdin, then answers. The second question gets an
+    // answer at once.
+    const calls = [
+        functionCall('exec_command', { cmd: 'dashql scripts' }),
+        functionCall('exec_command', { cmd: "dashql edit orders <<'EOF'\nselect count(*) from orders\nEOF" }),
+    ];
+    const model = await startFakeOpenAI({
+        turn: (_request, index) => index < calls.length ? [calls[index]] : [message(index === calls.length ? 'There are 42 orders.' : 'Per day too.')],
+    });
+    writeCodexConfig(codexHome, model);
+    const app = startDashQLApp({
+        root,
+        env: { PATH: '/usr/bin:/bin', HOME: join(dir, 'home'), CODEX_HOME: codexHome, FAKE_API_KEY: 'fake' },
+        searchPath: [dirname(CODEX), '/usr/bin', '/bin'].join(':'),
+        answer: call => call.command === 'scripts' ? 'orders.sql\n' : `${call.args.script}.sql changed\n`,
+    });
+    try {
+        const first = await app.ask('w1', 'codex', 'How many orders?');
+        assert.deepEqual(first[0], { event: 'UserPromptSubmit', prompt: 'How many orders?' });
+        assert.deepEqual(first.at(-1), { event: 'Stop', message: 'There are 42 orders.', error: null });
+        // The sandbox of workspace-write with network access lets dashql reach the app
+        assert.deepEqual(stepsOf(first), [
+            { status: 'dashql scripts', failed: false },
+            { status: "dashql edit orders <<'EOF'", failed: false },
+        ]);
+        assert.deepEqual(app.page.calls.map(({ workbookId, command, args, input }) => ({ workbookId, command, args, input })), [
+            { workbookId: 'w1', command: 'scripts', args: {}, input: null },
+            { workbookId: 'w1', command: 'edit', args: { script: 'orders' }, input: 'select count(*) from orders\n' },
+        ]);
+        const outputs = model.requests.flatMap(functionCallOutputs).map(item => String(item.output));
+        assert.ok(outputs.some(output => output.includes('orders.sql changed')), JSON.stringify(outputs));
+        // Codex reads the guide from the AGENTS.md of the folder of the workbook
+        assert.ok(model.requests.some(request => JSON.stringify(request.input ?? '').includes('dashql scripts')), 'the guide is in no request');
+        const state = JSON.parse(readFileSync(join(root, 'workbooks', 'w1', 'state.json'), 'utf8'));
+        assert.equal(typeof state.sessions.codex, 'string');
 
-test('the hooks of dashql connect show the session in DashQL: the question, what the agent ran and its answer', async () => {
-    const dir = caseDir('dashql_session');
-    const port = await freePort();
-    const following = followDashQLSession(port, 's3cret');
-    const { commands } = await runCodex(dir, { command: 'echo hello from scripts/orders.sql', connectPort: port });
-    assert.deepEqual(commands, ['hello from scripts/orders.sql']);
-    const state = await following;
-    assert.equal(state.harness, 'codex');
-    // A step starts with PreToolUse and ends with the PostToolUse of the same tool use id
-    const steps = state.turns.flatMap(turn => turn.steps);
-    assert.equal(steps.length, 1, JSON.stringify(steps));
-    assert.equal(typeof steps[0].toolUseId, 'string');
-    assert.ok(steps[0].startedAt <= steps[0].endedAt, JSON.stringify(steps));
-    const turns = [{
-        question: 'run the probe',
-        note: 'done',
-        files: ['scripts/orders.sql'],
-        steps: [{ label: 'echo hello from scripts/orders.sql', failed: false }],
-    }];
-    assert.deepEqual(pickTurns(state.turns, turns), turns);
+        // The next question continues the thread
+        const second = await app.ask('w1', 'codex', 'And per day?');
+        assert.deepEqual(second.at(-1), { event: 'Stop', message: 'Per day too.', error: null });
+        assert.ok(JSON.stringify(model.requests.at(-1).input).includes('How many orders?'), 'the second question does not resume the first');
+    } finally {
+        await app.close();
+        await model.close();
+    }
 });

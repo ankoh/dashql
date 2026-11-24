@@ -3,10 +3,12 @@ set -euo pipefail
 
 RUNFILES_ROOT="${RUNFILES_DIR:-$0.runfiles}"
 WORKSPACE_ROOT="${RUNFILES_ROOT}/_main"
-USAGE="usage: package_macos.sh <arm64|x64> <addon-path> <rlocation of version.env>"
+USAGE="usage: package_macos.sh <arm64|x64> <addon-path> <rlocation of version.env> <dashql-path>"
 ARCH="${1:?${USAGE}}"
 ADDON_PATH="${2:?${USAGE}}"
 VERSION_ENV="${RUNFILES_ROOT}/${3:?${USAGE}}"
+# The dashql command of the agents, Contents/Resources/bin/dashql, signed like the other binaries of the bundle
+DASHQL_CLI_PATH="${4:?${USAGE}}"
 case "${ARCH}" in
     arm64|x64) ;;
     *) echo "unsupported macOS architecture: ${ARCH}" >&2; exit 1 ;;
@@ -14,7 +16,7 @@ esac
 STAGE="${TMPDIR:-/tmp}/dashql-native-package-$$"
 trap 'chmod -R u+w "${STAGE}" 2>/dev/null || true; rm -rf "${STAGE}"' EXIT
 
-mkdir -p "${STAGE}/dist" "${STAGE}/renderer"
+mkdir -p "${STAGE}/dist" "${STAGE}/renderer" "${STAGE}/bin"
 cp -R "${WORKSPACE_ROOT}/packages/dashql-native/dist/." "${STAGE}/dist/"
 cp "${WORKSPACE_ROOT}/NOTICE" "${STAGE}/NOTICE"
 cp "${WORKSPACE_ROOT}/packages/dashql-native/src/preload.cjs" "${STAGE}/preload.cjs"
@@ -26,6 +28,8 @@ cp "${WORKSPACE_ROOT}/packages/dashql-native/Entitlements.plist" "${STAGE}/Entit
 cp "${WORKSPACE_ROOT}/misc/logo-dashql-glyphs/app_icons_mac.icns" "${STAGE}/icon.icns"
 cp -R "${WORKSPACE_ROOT}/packages/dashql-app/electron_deploy/." "${STAGE}/renderer/"
 cp "${ADDON_PATH}" "${STAGE}/dashql_native_napi.node"
+cp "${DASHQL_CLI_PATH}" "${STAGE}/bin/dashql"
+chmod 755 "${STAGE}/bin/dashql"
 chmod -R u+w "${STAGE}"
 ln -s "${WORKSPACE_ROOT}/node_modules" "${STAGE}/node_modules"
 

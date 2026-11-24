@@ -66,8 +66,8 @@ bazel build //...
 | `//packages/dashql:bundle` | `dist/` of `@akohn/dashql` on npm: the modules as JavaScript (Vite, preserved modules) with their declarations, the generated packages inlined, see `packages/dashql/npm/build.mjs` |
 | `//packages/dashql:npm_package` | The npm package directory of `@akohn/dashql` (`npm/package.json`) |
 | `//packages/dashql:npm_tarball` | The npm archive of `@akohn/dashql` at `bazel-bin/packages/dashql/dashql.tgz` |
-| `//packages/dashql-cli:npm_tarball` | CLI npm archive at `bazel-bin/packages/dashql-cli/dashql-cli.tgz`, `npx -y @akohn/dashql-cli` |
-| `//packages/dashql-cli:dashql` | The `dashql` command line tool on `@akohn/dashql`, bundled for Node with Vite from its sources: `lint` and `format` for SQL files, `run` for the scripts of a workbook folder on Trino and the embedded Hyper, `catalog` and `vis` (the tables of a workbook, its charts checked here and rendered as PNG by the tab), `connect` for the live view of an agent session, with `session hook` for the hooks that it gives the harness |
+| `//packages/dashql-cli:dashql` | The `dashql` of the agents of the desktop app (Rust): the commands that an agent runs for a question, each a call of the page of the workbook through the server of the app, see `docs/design/agent_integration.md`; `:dashql_aarch64` and `:dashql_x86_64` for the macOS bundle |
+| `//tools/sql_format` | Pretty prints SQL files with the native dashql-core, `--write` and `--check`, see "Formatting SQL Scripts" |
 
 `mac_package_arm64`, `mac_package_x86_64`, `pack` and `vacuum` produce their outputs when they run, not when they are
 built: use `bazel run`. The macOS packages land in `dist/electron/<arch>/`.
@@ -126,11 +126,8 @@ bazel test //...
 | `//packages/dashql/test/browser:all` | The tests of the bindings in Chromium and Firefox, and the bindings of the package on npm with a browser worker |
 | `//tests/hyper:smoke_test` | Native Tableau Hyper API integration test |
 | `//packages/dashql-native:test` | Electron host unit tests |
-| `//packages/dashql-cli:test` | `dashql` tests in Node: the commands with the process of a test, arguments, files, stdin, output and exit codes, `run` and `vis` against a fake Trino and the embedded Hyper, `catalog`, the session server and the folder of a session |
-| `//packages/dashql-cli:tsc_typecheck_test` | Type check of the command line tool and its tests, with the types of Node |
-| `//packages/dashql-cli:example_snippets_formatted_test` | The example snippets of the app are what `dashql format` prints, in the dialect of their engine |
-| `//packages/dashql-cli:binary_test` | `dashql` as the user calls it: the bundle, its exit codes, stdin and the invoking directory |
-| `//packages/dashql-cli:npm_package_test` | The package on npm (`npm/package.json`) depends on `@akohn/dashql` and hyperdb-wasm of the build, the bundle runs as its command |
+| `//packages/dashql-cli:all` | `dashql`: the command line, the session file, the calls against a fake server of the app with their streamed answers and exit codes, the usage and the guide; Clippy with the safety lints and rustfmt |
+| `//tools/sql_format:all` | `sql_format`: the arguments, the inputs, the dialects, `--write` and `--check`; `example_snippets_formatted_test`: the example snippets of the app are what it prints, in the dialect of their engine |
 | `//packages/dashql-react:all` | Type check of `@akohn/dashql-react` against the sources of `@akohn/dashql`, and the boundary test of its imports (React, apache-arrow, `@akohn/dashql`, the libraries of the components, vitest in tests and `src/testing/`; components reach neither the hooks nor the runtime). Its tests run in the browser tests of the app |
 | `//packages/dashql:tsc_typecheck_test` | Type check of `@akohn/dashql` against the WebWorker lib, without the DOM and without the types of Node |
 | `//packages/dashql:tsc_typecheck_tests_test` | Type check of the tests and test helpers of the runtime and of the platform (`src/*/testing/`), with the globals of vitest |
@@ -156,12 +153,12 @@ bazel test //...
 | `//packages/dashql-mcp:all` | The MCP server (a Cloudflare Worker with an MCP App that frames `/embed`): type check against the WebWorker lib, and the Worker in Node with the client of the MCP SDK. Deployed with `wrangler deploy --env <channel>`, see `packages/dashql-mcp/README.md` |
 | `//packages/dashql-org:check` | `astro check` of the website |
 | `//tests/trino:trino_assumptions_test` | Checks the Trino API assumptions of the query progress model against a live Trino (manual, local only) |
-| `//tests/agents:claude_code_sandbox_test` | Claude Code with a fake model: what a command in its sandbox and its hooks can reach, the ways out of the sandbox, a session server of hooks, `dashql lint` in the sandbox, the events of a turn under `dashql connect`, `dashql connect` with the guide in the system prompt and the tools it allows, see `docs/design/agent_integration_tests.md`. Downloads the binary of Claude Code; on Linux it needs bubblewrap and socat |
+| `//tests/agents:claude_code_sandbox_test` | Claude Code with a fake model: what a command in its sandbox and its hooks can reach, the ways out of the sandbox, a session server of hooks, a question that the agent host of the desktop app runs with a fake page: the calls of `dashql`, the guide in the system prompt, the tools it allows, resume, see `docs/design/agent_integration_tests.md`. Downloads the binary of Claude Code; on Linux it needs bubblewrap and socat |
 | `//tests/agents:hyperdb_edge_claude_code_test` | hyperdb-edge in Claude Code with a fake model: `describe` and `run` in the sandbox, a database and files in the workspace, errors, rules by prefix, the skill, see `docs/wip/hyperdb_edge.md`. Needs what `claude_code_sandbox_test` needs |
 | `//tests/agents:hyperdb_edge_codex_test` | hyperdb-edge in Codex with a fake model: `describe` and `run` in `workspace-write` without network, `describe` in `read-only`, the skill, see `docs/wip/hyperdb_edge.md` |
 | `//tests/agents:hyperdb_edge_tool_runner_test` | The tools of hyperdb-edge in the Tool Runner of the Anthropic SDK with a fake model: their schemas, the calls of one turn in order, errors, `max_rows`, see `docs/wip/hyperdb_edge.md` |
 | `//tests/agents:hyperdb_edge_agent_sdk_test` | The tools of hyperdb-edge in the Claude Agent SDK with a fake model and the pinned Claude Code: their schemas without built-in tools, the calls of one turn in order, errors, `allowedTools`, see `docs/wip/hyperdb_edge.md` |
-| `//tests/agents:codex_sandbox_test` | Codex with a fake model: its sandbox modes, its hooks, an `allow` rule and a request to escalate, a session server of hooks, `dashql lint` in the sandbox, the events of a turn under `dashql connect`, see `docs/design/agent_integration_tests.md`. Downloads the binary of Codex |
+| `//tests/agents:codex_sandbox_test` | Codex with a fake model: its sandbox modes, its hooks, an `allow` rule and a request to escalate, a session server of hooks, a question that the agent host of the desktop app runs with a fake page: the calls of `dashql`, `AGENTS.md`, resume, see `docs/design/agent_integration_tests.md`. Downloads the binary of Codex |
 
 ### Trino (manual, local only)
 
@@ -577,23 +574,15 @@ bazel test //packages/dashql-parser:all //tests/snapshots:parser_snapshot_test
 git diff tests/snapshots/parser/
 ```
 
-### Checking SQL Scripts
+### Formatting SQL Scripts
 
-`dashql lint` (`//packages/dashql-cli:dashql`) scans, parses and analyzes SQL scripts with dashql-core and prints
-their errors and warnings. Use it to check scripts you write, see `packages/dashql-cli/README.md`.
-
-```bash
-bazel run //packages/dashql-cli:dashql -- lint path/to/script.sql path/to/dir
-echo "select 1 +;" | bazel run //packages/dashql-cli:dashql -- lint -
-# Resolve names against CREATE TABLE statements
-bazel run //packages/dashql-cli:dashql -- lint --schema schema.sql query.sql
-```
-
-`dashql format` pretty prints them with the same core, to stdout or with `--write` in place. `--check` only names the
-files that aren't formatted, and `--dialect trino` formats Trino scripts.
+`sql_format` (`//tools/sql_format`) pretty prints SQL scripts with dashql-core as the editor of DashQL formats them, to
+stdout or with `--write` in place. `--check` only names the files that aren't formatted, and `--dialect trino` formats
+Trino scripts. A script with syntax errors is reported and stays as it is.
 
 ```bash
-bazel run //packages/dashql-cli:dashql -- format --write extensions/d360-api/snippets
+bazel run //tools/sql_format -- --write extensions/d360-api/snippets
+echo "SELECT  1" | bazel run //tools/sql_format -- -
 ```
 
 ### Before Committing
@@ -617,7 +606,7 @@ crate universe, and each universe keeps its `Cargo.lock` under `bazel/crates/<un
 | Universe | Specs | Used by |
 |---|---|---|
 | `@crates` | `bazel/crates/native.MODULE.bazel` | `dashql-native/proxy`, `tools/pack`, `tools/datasets` |
-| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-runtime`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-core-bindings`, `tests/snapshots` |
+| `@core_crates` | `bazel/crates/core.MODULE.bazel` | `dashql-parser`, `dashql-core`, `dashql-core-runtime`, `dashql-core-shell`, `dashql-core-profile`, `dashql-dataflow`, `dashql-core-bindings`, `dashql-cli`, `tests/snapshots` |
 
 To add or change a dependency, edit the spec, reference the crate from the BUILD file as
 `@<universe>//:<crate>`, and build. Bazel re-resolves the lockfile on the next build. To upgrade crates

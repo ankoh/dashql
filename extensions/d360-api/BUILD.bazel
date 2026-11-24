@@ -70,13 +70,13 @@ sh_test(
     ] + glob(["clfn/spec/*.yaml"]),
 )
 
-# The snippets are what `dashql format` prints: bazel run //packages/dashql-cli:dashql -- format --write extensions/d360-api/snippets
+# The snippets are what sql_format prints: bazel run //tools/sql_format -- --write extensions/d360-api/snippets
 sh_test(
     name = "snippets_formatted_test",
     size = "small",
     srcs = ["clfn/tests/check_snippets.sh"],
-    args = ["$(rootpath //packages/dashql-cli:dashql)"],
-    data = ["//packages/dashql-cli:dashql"] + glob(["snippets/**/*.sql"]),
+    args = ["$(rootpath //tools/sql_format)"],
+    data = ["//tools/sql_format"] + glob(["snippets/**/*.sql"]),
 )
 
 # The core reads the spec: every documented example and snippet passes the checks, and completion offers exactly what

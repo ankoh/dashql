@@ -66,9 +66,8 @@ jobs:
                       echo "publish=false" >> "${GITHUB_OUTPUT}"
                   fi
 
-    # The pages and the desktop app show `npx ... @akohn/dashql-cli@<version of the build>`, so the packages of the build
-    # are on npm before either goes out. Trusted publishing: npm takes the OIDC token of the run, there is no npm token,
-    # and it checks the calling workflow (on_push_main.yml, on_push_dev.yml, on_push_tag.yml), see the README.
+    # @akohn/dashql of the build. Trusted publishing: npm takes the OIDC token of the run, there is no npm token, and it
+    # checks the calling workflow (on_push_main.yml, on_push_dev.yml, on_push_tag.yml), see the README.
     npm_publish:
         name: npm
         needs: [tip]
@@ -90,27 +89,21 @@ jobs:
                   name: dashql_npm
                   path: ${{ runner.temp }}/npm
 
-            - uses: actions/download-artifact@v8
-              with:
-                  name: dashql_cli_npm
-                  path: ${{ runner.temp }}/npm
-
-            # @akohn/dashql first, the command line tool depends on its exact version. A version that is on npm already
-            # is the same build (the version carries the dist-tag and the commit), a re-run skips it. The build names
-            # the version after the dist-tag (npm_tag of build_trusted.yml, bazel/versioning.bzl) and the dist-tag is
-            # read back from it: 0.0.20-latest.125.ged768a7d4 is latest, 0.0.20-dev.125.ged768a7d4 dev, 0.0.19 stable.
-            - name: Publish @akohn/dashql and @akohn/dashql-cli
+            # A version that is on npm already is the same build (the version carries the dist-tag and the commit), a
+            # re-run skips it. The build names the version after the dist-tag (npm_tag of build_trusted.yml,
+            # bazel/versioning.bzl) and the dist-tag is read back from it: 0.0.20-latest.125.ged768a7d4 is latest,
+            # 0.0.20-dev.125.ged768a7d4 dev, 0.0.19 stable.
+            - name: Publish @akohn/dashql
               id: publish
               env:
                   NPM_DIR: ${{ runner.temp }}/npm
               run: |
                   set -euo pipefail
                   echo "npm $(npm --version)"
-                  for tarball in dashql.tgz dashql-cli.tgz; do
+                  for tarball in dashql.tgz; do
                       manifest="$(tar -xzOf "${NPM_DIR}/${tarball}" package/package.json)"
                       name="$(node -e 'const m = JSON.parse(process.argv[1]); console.log(m.name)' "${manifest}")"
                       version="$(node -e 'const m = JSON.parse(process.argv[1]); console.log(m.version)' "${manifest}")"
-                      # Both packages carry the version of the build, //packages/dashql-cli:npm_package_test
                       echo "version=${version}" >> "${GITHUB_OUTPUT}"
                       tag="stable"
                       if [[ "${version}" == *-* ]]; then
@@ -126,10 +119,8 @@ jobs:
 
     # The gate of the pages and the desktop app, right before they go out. When it times out, "Re-run failed jobs" runs
     # it and the deploys again, days later perhaps (the artifacts are kept 7 days), while tip and npm_publish keep their
-    # results of the first attempt. So it asks again:
-    # - whether the commit is still the tip of main: a re-run must not put an older page over a newer one,
-    # - whether npm serves both packages of the build: npm has accepted them, but its CDN can serve the metadata of a
-    #   package without the new version for a while, and npx of the page would not find it (--prefer-online, no cache).
+    # results of the first attempt. So it asks again whether the commit is still the tip of main: a re-run must not put
+    # an older page over a newer one.
     deploy_gate:
         name: Gate deploy
         needs: [npm_publish]
@@ -158,25 +149,6 @@ jobs:
                       fi
                   fi
                   echo "deploy=true" >> "${GITHUB_OUTPUT}"
-
-            - uses: actions/setup-node@v6
-              if: steps.tip.outputs.deploy == 'true'
-              with:
-                  node-version: '24'
-
-            - name: Wait until npm serves the packages of the build
-              if: steps.tip.outputs.deploy == 'true'
-              env:
-                  VERSION: ${{ needs.npm_publish.outputs.version }}
-              run: |
-                  set -euo pipefail
-                  for name in @akohn/dashql @akohn/dashql-cli; do
-                      until [[ "$(npm view "${name}@${VERSION}" version --prefer-online --registry=https://registry.npmjs.org/ 2>/dev/null || true)" == "${VERSION}" ]]; do
-                          echo "npm does not serve ${name}@${VERSION} yet"
-                          sleep 10
-                      done
-                      echo "npm serves ${name}@${VERSION}"
-                  done
 
     desktop_release:
         name: Electron Release

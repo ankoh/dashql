@@ -2,23 +2,19 @@
 // The model calls Bash once, e.g. with a probe that connects to a server on loopback, and hooks run the same probe or
 // carry the events of the session to a server that a SessionStart hook started.
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { after, before, test } from 'node:test';
 
 import { startFakeAnthropic, text, toolResults, toolUse } from './fake_anthropic.mjs';
+import { startDashQLApp, stepsOf } from './dashql_app.mjs';
 import {
-    followDashQLSession,
-    freePort,
-    pickTurns,
     readHookLog,
     requireLinuxSandboxTools,
     runHarness,
     startLoopbackTarget,
     stopSessionServer,
-    writeBrokenScript,
-    writeDashQLCommand,
     writeHook,
     writeProbe,
     writeSessionHook,
@@ -27,7 +23,6 @@ import {
 
 const CLAUDE = resolve(process.env.CLAUDE_BINARY);
 const ROOT = mkdtempSync(join(process.env.TEST_TMPDIR ?? tmpdir(), 'claude-code-'));
-const DASHQL = writeDashQLCommand(ROOT);
 const HOOK_EVENTS = ['SessionStart', 'PostToolUse', 'Stop'];
 
 let target;
@@ -143,128 +138,64 @@ test('a server that SessionStart starts gets the events of the hooks, not the co
     for (const event of ['started', ...HOOK_EVENTS]) assert.ok(events.includes(event), `${event} in ${JSON.stringify(events)}, server: ${log}`);
 });
 
-test('dashql lint runs in the sandbox', async () => {
-    const dir = caseDir('lint');
-    mkdirSync(join(dir, 'work'));
-    const { output } = await runClaude(dir, { command: `${DASHQL} lint ${writeBrokenScript(join(dir, 'work'))}` });
-    assert.match(output, /1 file, 1 error/);
-});
-
-/// The environment of Claude Code with the fake model, PATH without a dashql: connect puts its own in front
-function claudeEnv(home, model) {
-    return {
-        PATH: '/usr/bin:/bin',
-        HOME: home,
-        ANTHROPIC_BASE_URL: model.url,
-        ANTHROPIC_API_KEY: 'sk-fake',
-        CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
-        DISABLE_AUTOUPDATER: '1',
-    };
-}
-
-test('the hooks of dashql connect show the session in DashQL: the question, what the agent ran and its answer', async () => {
-    const dir = caseDir('dashql_session');
+test('the app runs Claude Code for a question: the agent calls the workbook with dashql, the next question resumes', async () => {
+    const dir = caseDir('app');
     const home = join(dir, 'home');
-    const work = join(dir, 'work');
     mkdirSync(home, { recursive: true });
-    mkdirSync(work, { recursive: true });
-    const model = await startFakeAnthropic({
-        turn: request => toolResults(request).length === 0
-            ? [toolUse('Bash', { command: 'echo hello from scripts/orders.sql', description: 'probe' })]
-            : [text('done')],
-    });
-    const port = await freePort();
-    try {
-        const following = followDashQLSession(port, 's3cret');
-        await runHarness(DASHQL, [
-            'connect', '--launch', 'claude', '--command', CLAUDE, '--port', String(port), '--secret', 's3cret',
-            '--', '-p', 'run the probe', '--output-format', 'stream-json', '--verbose', '--allowedTools', 'Bash',
-        ], { cwd: work, env: claudeEnv(home, model) });
-        const state = await following;
-        assert.equal(state.harness, 'claude');
-        assert.equal(state.ended, true);
-        // A step starts with PreToolUse and ends with the PostToolUse of the same tool use id
-        const steps = state.turns.flatMap(turn => turn.steps);
-        assert.equal(steps.length, 1, JSON.stringify(steps));
-        assert.equal(typeof steps[0].toolUseId, 'string');
-        assert.ok(steps[0].startedAt <= steps[0].endedAt, JSON.stringify(steps));
-        const turns = [{
-            question: 'run the probe',
-            note: 'done',
-            files: ['scripts/orders.sql'],
-            steps: [{ label: 'echo hello from scripts/orders.sql', failed: false }],
-        }];
-        assert.deepEqual(pickTurns(state.turns, turns), turns);
-    } finally {
-        await model.close();
-    }
-});
-
-test('dashql connect gives Claude Code the guide of DashQL and lets it run dashql and edit the workbooks without asking', async () => {
-    const dir = caseDir('connect');
-    const home = join(dir, 'home');
-    const work = join(dir, 'work');
-    mkdirSync(home, { recursive: true });
-    // A workbook folder of the project, outside of the session
-    mkdirSync(join(work, 'mine', 'scripts'), { recursive: true });
-    writeFileSync(join(work, 'mine', 'dashql-workbook.json'), JSON.stringify({ name: 'Mine', connections: [], scripts: [{ name: 'a.sql' }, { name: 'b.sql' }] }));
-    // The model runs dashql, runs the workbook of the project, tries to make it a workspace of its own and run it there,
-    // writes a script of a copy and checks it, and writes a file of the project, one after the other. The folder of the
-    // session goes with the session, the lint reads the script.
-    const script = join(work, '.dashql', 'workbooks', 'w1', 'scripts', 'orders.sql');
+    const root = join(dir, 'agent');
+    const input = join(root, 'workbooks', 'w1', 'input', 'orders.sql');
+    // The agent lists the scripts, writes a script into the input folder and passes it to edit, tries a command that
+    // the app does not allow, and answers. The second question gets an answer at once.
     const calls = [
-        toolUse('Bash', { command: `dashql describe --workspace ${join(work, '.dashql')}`, description: 'read the guide' }),
-        toolUse('Bash', { command: `dashql run --workspace ${join(work, '.dashql')} mine`, description: 'run the workbook of the project' }),
-        toolUse('Bash', { command: 'dashql init mine', description: 'set up the workbook of the project' }),
-        toolUse('Bash', { command: 'dashql run --workspace mine mine', description: 'run it in its own workspace' }),
-        toolUse('Write', { file_path: script, content: 'select 1\n' }),
-        toolUse('Bash', { command: `dashql lint ${script}`, description: 'check the script' }),
-        toolUse('Bash', { command: 'dashql move mine b --first', description: 'move a script in the feed' }),
-        toolUse('Write', { file_path: join(work, 'notes.md'), content: 'notes\n' }),
+        toolUse('Bash', { command: 'dashql scripts', description: 'list the scripts' }),
+        toolUse('Write', { file_path: input, content: 'select count(*) from orders\n' }),
+        toolUse('Bash', { command: 'dashql edit orders --file input/orders.sql', description: 'write the script' }),
+        toolUse('Bash', { command: 'cat /etc/hostname', description: 'look around' }),
     ];
     const model = await startFakeAnthropic({
-        turn: request => {
-            const results = (request.messages ?? []).flatMap(message => Array.isArray(message.content) ? message.content : []).filter(block => block.type === 'tool_result');
-            return results.length < calls.length ? [calls[results.length]] : [text('done')];
-        },
+        turn: (_request, index) => index < calls.length ? [calls[index]] : [text(index === calls.length ? 'There are 42 orders.' : 'Per day too.')],
     });
-    const port = await freePort();
+    const app = startDashQLApp({
+        root,
+        env: {
+            PATH: '/usr/bin:/bin',
+            HOME: home,
+            ANTHROPIC_BASE_URL: model.url,
+            ANTHROPIC_API_KEY: 'sk-fake',
+            CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
+            DISABLE_AUTOUPDATER: '1',
+        },
+        searchPath: [dirname(CLAUDE), '/usr/bin', '/bin'].join(':'),
+        answer: call => call.command === 'scripts' ? 'orders.sql\n' : `${call.args.script}.sql changed\n`,
+    });
     try {
-        // No --allowedTools: a tool that the settings of dashql connect don't allow needs an approval, which -p never gives
-        const output = await runHarness(DASHQL, [
-            'connect', '--launch', 'claude', '--command', CLAUDE, '--port', String(port), '--secret', 's3cret',
-            '--', '-p', 'how many orders', '--output-format', 'stream-json', '--verbose',
-        ], { cwd: work, env: claudeEnv(home, model) });
-        const results = output.split('\n').filter(line => line.startsWith('{')).map(line => JSON.parse(line))
-            .flatMap(event => event.type === 'user' && Array.isArray(event.message?.content) ? event.message.content : [])
-            .filter(block => block.type === 'tool_result');
-        assert.equal(results.length, calls.length, JSON.stringify(results));
-        const content = result => Array.isArray(result.content) ? result.content.map(block => block.text ?? '').join('') : String(result.content);
-        // dashql runs without asking, from the dashql that connect puts on the path
-        assert.equal(results[0].is_error === true, false, content(results[0]));
-        assert.match(content(results[0]), /DashQL/);
-        // While the session runs in the workspace, dashql runs nothing outside its tab
-        assert.equal(results[1].is_error, true, content(results[1]));
-        assert.match(content(results[1]), /would run outside the tab/);
-        assert.equal(existsSync(join(work, '.dashql', 'cache')), false);
-        // Only the user sets up a workspace: dashql init needs an approval, and the folder that it did not set up is no
-        // workspace to run in
-        assert.equal(results[2].is_error, true, content(results[2]));
-        assert.equal(existsSync(join(work, 'mine', '.gitignore')), false);
-        assert.equal(results[3].is_error, true, content(results[3]));
-        assert.match(content(results[3]), /mine is no workspace of DashQL/);
-        // A script of the copy is written without asking, a file of the project needs an approval
-        assert.equal(results[4].is_error === true, false, content(results[4]));
-        assert.match(content(results[5]), /1 file, 0 errors/);
-        // The agent moves scripts in the feed without asking
-        assert.equal(results[6].is_error === true, false, content(results[6]));
-        assert.deepEqual(JSON.parse(readFileSync(join(work, 'mine', 'dashql-workbook.json'), 'utf8')).scripts, [{ name: 'b.sql' }, { name: 'a.sql' }]);
-        assert.equal(results[7].is_error, true, content(results[7]));
-        assert.equal(existsSync(join(work, '.dashql', 'workbooks')), false);
-        assert.equal(existsSync(join(work, 'notes.md')), false);
-        // The guide is in the system prompt of the main conversation
-        assert.ok(model.requests.some(request => JSON.stringify(request.system ?? '').includes('DashQL')), 'the guide is in no system prompt');
+        assert.deepEqual((await app.host.info()).harnesses.find(harness => harness.id === 'claude'), { id: 'claude', label: 'Claude Code', available: true });
+        const first = await app.ask('w1', 'claude', 'How many orders?');
+        assert.deepEqual(first[0], { event: 'UserPromptSubmit', prompt: 'How many orders?' });
+        assert.deepEqual(stepsOf(first), [
+            { status: 'dashql scripts', failed: false },
+            { status: 'Write input/orders.sql', failed: false },
+            { status: 'dashql edit orders --file input/orders.sql', failed: false },
+            // -p asks for nothing, a tool that the app does not allow is refused
+            { status: 'cat /etc/hostname', failed: true },
+        ]);
+        assert.deepEqual(first.at(-1), { event: 'Stop', message: 'There are 42 orders.', error: null });
+        assert.deepEqual(app.page.calls.map(({ workbookId, command, args, input }) => ({ workbookId, command, args, input })), [
+            { workbookId: 'w1', command: 'scripts', args: {}, input: null },
+            { workbookId: 'w1', command: 'edit', args: { script: 'orders' }, input: 'select count(*) from orders\n' },
+        ]);
+        // The guide of dashql is in the system prompt of the main conversation
+        assert.ok(model.requests.some(request => JSON.stringify(request.system ?? '').includes('dashql scripts')), 'the guide is in no system prompt');
+        const state = JSON.parse(readFileSync(join(root, 'workbooks', 'w1', 'state.json'), 'utf8'));
+        assert.equal(typeof state.sessions.claude, 'string');
+
+        // The next question continues the conversation
+        const second = await app.ask('w1', 'claude', 'And per day?');
+        assert.deepEqual(second.at(-1), { event: 'Stop', message: 'Per day too.', error: null });
+        const resumed = model.requests.filter(request => request.tools?.some(tool => tool.name === 'Bash')).at(-1);
+        assert.ok(JSON.stringify(resumed.messages).includes('How many orders?'), 'the second question does not resume the first');
     } finally {
+        await app.close();
         await model.close();
     }
 });
