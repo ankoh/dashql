@@ -126,8 +126,9 @@ workbook that holds scripts stopped before its promotion was written, the restor
 file per script named `<script>.<key>.<gen>.parquet`, and the transient files of runs (`<uuid>.transient.parquet`).
 Workbooks never share results. hyperdb-wasm mounts the folder read-write at `/mnt/external/results/<id>`. A native
 workbook keeps its results here as well, next to the mirror of its attachments: a workbook that moves to a native
-folder keeps them (`relocateWorkbookToNative` removes only its workbook file, scripts and attachments from
-`workbooks/<id>/`). A `.dashql` file carries the results
+folder keeps them, and so does a workbook that a native folder of the same id replaces (`relocateWorkbookToNative` and
+`registerNativeWorkbook` remove only its workbook file, scripts and attachments from `workbooks/<id>/`; the keys of the
+results tell whether they fit the scripts of the folder). A `.dashql` file carries the results
 of its scripts when the export asks for them, an import adds them to the folder (see Exported and Published Results in
 `workbook_results.md`). Up to storage version 9 the app kept one query result cache for every workbook in `cache/`;
 the migration to version 10 removes it.

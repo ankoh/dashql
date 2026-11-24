@@ -282,6 +282,31 @@ describe('CompositeStorageBackend V2 flat routing', () => {
         expect(composite.getWorkbookLocation(TEST_WORKBOOK_ID)).toEqual({ type: StorageBackendType.Native, nativePath: dir });
     });
 
+    it('keeps the results of an OPFS workbook that a native folder replaces', async () => {
+        const dir = '/tmp/selected-results';
+        const native = new NativeStorageBackend(dir, ELECTRON_FILE_SYSTEM);
+        await native.initialize();
+        await native.saveWorkbookManifest(TEST_WORKBOOK_ID, { ...testWorkbook(), storageType: StorageBackendType.Native, nativePath: dir });
+        await native.saveScript(TEST_WORKBOOK_ID, '01_query.sql', 'SELECT 2');
+        const files = new Map<string, string | ArrayBuffer>();
+        const dirs = new Set<string>();
+        const opfs = new OPFSStorageBackend(dql, async () => new OPFSDirectoryMock('', files, dirs) as unknown as FileSystemDirectoryHandle);
+        const composite = new CompositeStorageBackend(dql, opfs, new TestLogger());
+        await composite.initialize();
+        await composite.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
+        await composite.saveScript(TEST_WORKBOOK_ID, '01_query.sql', 'SELECT 1');
+        const result = `workbooks/${TEST_WORKBOOK_ID}/results/01_query.${'0'.repeat(64)}.${'0'.repeat(20)}.parquet`;
+        dirs.add(`workbooks/${TEST_WORKBOOK_ID}/results`);
+        files.set(result, 'parquet');
+
+        await composite.registerNativeWorkbook(dir, TEST_WORKBOOK_ID);
+
+        // The files of the old workbook left the origin private file system, the results stay, their keys tell whether
+        // they fit the scripts of the folder
+        expect([...files.keys()].filter(path => path.startsWith(`workbooks/${TEST_WORKBOOK_ID}/`))).toEqual([result]);
+        expect(await composite.loadScripts(TEST_WORKBOOK_ID)).toEqual([{ name: '01_query.sql', sql: 'SELECT 2' }]);
+    });
+
     it('registers a native folder in place of an OPFS workbook and drops the files of the old one', async () => {
         const dir = '/tmp/selected';
         const native = new NativeStorageBackend(dir, ELECTRON_FILE_SYSTEM);

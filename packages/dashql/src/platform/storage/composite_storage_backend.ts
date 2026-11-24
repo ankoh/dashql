@@ -424,7 +424,8 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
     /// Register a native workbook folder in place under an id (`NativeWorkbookRegistry` of the runtime). The runtime
     /// validated the folder and seeded the catalogs of its connections before, and migrates the folder of an older
     /// version and reconciles the file lists of its workbook file with its files after. A workbook of the origin private
-    /// file system that the folder replaces loses its files once the folder is registered.
+    /// file system that the folder replaces loses its files once the folder is registered, the stored results of its
+    /// scripts stay: the results of a native workbook live in the origin private file system (`workbook_results.md`).
     async registerNativeWorkbook(dir: string, workbookId: string): Promise<void> {
         const replaced = this.locations.get(workbookId);
         const native = new NativeStorageBackend(dir, ELECTRON_FILE_SYSTEM);
@@ -435,7 +436,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
         });
         this.nativeCache.set(workbookId, native);
         if (replaced?.type === StorageBackendType.OPFS) {
-            await this.opfs.deleteWorkbookFiles(workbookId);
+            await this.opfs.deleteWorkbookFiles(workbookId, { keepResults: true });
         }
     }
 
