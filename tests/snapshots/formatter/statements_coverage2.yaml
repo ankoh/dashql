@@ -1,0 +1,1226 @@
+formatter-snapshots:
+
+  - name: coverage_update_recursive_cte
+    input: |-
+      with recursive r(n) as (select 1 union all select n + 1 from r where n < 3) update t set a = r.n from r where t.id = r.n
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              with recursive r (n) as (select 1 union all select n + 1 from r where n < 3) update t set a = r.n from r where t.id = r.n;
+          - mode: compact
+            expected: |-
+              with recursive r (n) as (select 1 union all select n + 1 from r where n < 3)
+              update t
+              set a = r.n
+              from r
+              where t.id = r.n;
+          - mode: pretty
+            expected: |-
+              with recursive r (n) as (
+                select 1
+                union all
+                select n + 1
+                from r
+                where n < 3
+              )
+              update t
+              set a = r.n
+              from r
+              where t.id = r.n;
+
+  - name: coverage_update_only_star
+    input: |-
+      update only t set a = 1; update t * set a = 2
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              update only t set a = 1;
+
+              update t * set a = 2;
+          - mode: compact
+            expected: |-
+              update only t set a = 1;
+
+              update t * set a = 2;
+          - mode: pretty
+            expected: |-
+              update only t
+              set a = 1;
+
+              update t *
+              set a = 2;
+
+  - name: coverage_update_in_cte
+    input: |-
+      with u as (update t set a = 1 returning a) select * from u
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              with u as (update t set a = 1 returning a) select * from u;
+          - mode: compact
+            expected: |-
+              with u as (update t set a = 1 returning a) select * from u;
+          - mode: pretty
+            expected: |-
+              with u as (
+                update t
+                set a = 1
+                returning a
+              )
+              select *
+              from u;
+
+  - name: coverage_data_modifying_ctes
+    input: |-
+      with d as (delete from t where a < 0 returning *), i as (insert into u select * from d returning id) update v set n = n + 1 where id in (select id from i)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              with d as (delete from t where a < 0 returning *), i as (insert into u select * from d returning id) update v set n = n + 1 where id in (select id from i);
+          - mode: compact
+            expected: |-
+              with d as (delete from t where a < 0 returning *), i as (insert into u select * from d returning id)
+              update v
+              set n = n + 1
+              where id in (select id from i);
+          - mode: pretty
+            expected: |-
+              with d as (
+                  delete from t
+                  where a < 0
+                  returning *
+                ),
+                i as (
+                  insert into u
+                  select *
+                  from d
+                  returning id
+                )
+              update v
+              set n = n + 1
+              where id in (
+                select id
+                from i
+              );
+
+  - name: coverage_update_assignments_narrow
+    input: |-
+      update some_table set first_column = first_column + 1, second_column = 'some text value', third_column = null where id = 42
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              update some_table set first_column = first_column + 1, second_column = 'some text value', third_column = null where id = 42;
+          - mode: compact
+            width: 40
+            expected: |-
+              update some_table
+              set first_column = first_column + 1,
+                second_column = 'some text value',
+                third_column = null
+              where id = 42;
+          - mode: pretty
+            width: 40
+            expected: |-
+              update some_table
+              set first_column = first_column + 1,
+                second_column = 'some text value',
+                third_column = null
+              where id = 42;
+
+  - name: coverage_update_row_assignment_narrow
+    input: |-
+      update some_table set (first_column, second_column) = (select other_first, other_second from other_table where other_table.id = some_table.id) where some_table.id > 0
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              update some_table set (first_column, second_column) = (select other_first, other_second from other_table where other_table.id = some_table.id) where some_table.id > 0;
+          - mode: compact
+            width: 50
+            expected: |-
+              update some_table
+              set (first_column, second_column) = (
+                select other_first, other_second
+                from other_table
+                where other_table.id = some_table.id
+              )
+              where some_table.id > 0;
+          - mode: pretty
+            width: 50
+            expected: |-
+              update some_table
+              set (first_column, second_column) = (
+                select other_first, other_second
+                from other_table
+                where other_table.id = some_table.id
+              )
+              where some_table.id > 0;
+
+  - name: coverage_update_from_join_narrow
+    input: |-
+      update update_j as t set amount = o.amount + p.amount from update_o as o join update_p as p on o.id = p.other_id where t.id = o.id and p.kind = 'x'
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              update update_j t set amount = o.amount + p.amount from update_o o join update_p p on o.id = p.other_id where t.id = o.id and p.kind = 'x';
+          - mode: compact
+            width: 50
+            expected: |-
+              update update_j t
+              set amount = o.amount + p.amount
+              from update_o o
+                join update_p p on o.id = p.other_id
+              where t.id = o.id and p.kind = 'x';
+          - mode: pretty
+            width: 50
+            expected: |-
+              update update_j t
+              set amount = o.amount + p.amount
+              from update_o o
+                join update_p p on o.id = p.other_id
+              where t.id = o.id and p.kind = 'x';
+        validation:
+          setup: |-
+            create table update_j(id int, amount int);
+            create table update_o(id int, amount int);
+            create table update_p(other_id int, amount int, kind text);
+
+  - name: coverage_update_where_exists_narrow
+    input: |-
+      update update_e set flag = true where exists (select 1 from update_f where update_f.id = update_e.id and update_f.kind in ('a', 'b'))
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              update update_e set flag = true where exists (select 1 from update_f where update_f.id = update_e.id and update_f.kind in ('a', 'b'));
+          - mode: compact
+            width: 50
+            expected: |-
+              update update_e
+              set flag = true
+              where exists (
+                select 1
+                from update_f
+                where update_f.id = update_e.id
+                  and update_f.kind in ('a', 'b')
+              );
+          - mode: pretty
+            width: 50
+            expected: |-
+              update update_e
+              set flag = true
+              where exists (
+                select 1
+                from update_f
+                where update_f.id = update_e.id
+                  and update_f.kind in ('a', 'b')
+              );
+        validation:
+          setup: |-
+            create table update_e(id int, flag bool);
+            create table update_f(id int, kind text);
+
+  - name: coverage_update_width_fits
+    input: |-
+      update t set a = 1 where b = 2 returning c
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              update t set a = 1 where b = 2 returning c;
+          - mode: compact
+            width: 44
+            expected: |-
+              update t set a = 1 where b = 2 returning c;
+          - mode: pretty
+            width: 44
+            expected: |-
+              update t
+              set a = 1
+              where b = 2
+              returning c;
+
+  - name: coverage_update_width_one_over
+    input: |-
+      update t set a = 1 where b = 2 returning c
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              update t set a = 1 where b = 2 returning c;
+          - mode: compact
+            width: 43
+            expected: |-
+              update t
+              set a = 1
+              where b = 2
+              returning c;
+          - mode: pretty
+            width: 43
+            expected: |-
+              update t
+              set a = 1
+              where b = 2
+              returning c;
+
+  - name: coverage_update_indent_zero
+    input: |-
+      update some_table set first_column = 1, second_column = (select max(x) from other_table) where id = 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              update some_table set first_column = 1, second_column = (select max(x) from other_table) where id = 1;
+          - mode: compact
+            indent: 0
+            width: 40
+            expected: |-
+              update some_table
+              set first_column = 1,
+              second_column = (
+              select max(x) from other_table
+              )
+              where id = 1;
+          - mode: pretty
+            indent: 0
+            width: 40
+            expected: |-
+              update some_table
+              set first_column = 1,
+              second_column = (
+              select max(x)
+              from other_table
+              )
+              where id = 1;
+
+  - name: coverage_update_comments
+    input: |-
+      update t /* target */ set a = 1, -- the a
+        b = 2 /* the b */
+      -- only some rows
+      where id = 1 -- the id
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              update t set a = 1, b = 2 where id = 1;
+          - mode: compact
+            expected: |-
+              update t
+              set /* target */ a = 1, -- the a
+                b = 2
+              where /* the b */
+              -- only some rows
+              id = 1; -- the id
+          - mode: pretty
+            expected: |-
+              update t
+              set /* target */ a = 1, -- the a
+                b = 2
+              where /* the b */
+              -- only some rows
+              id = 1; -- the id
+
+  - name: coverage_update_validated
+    input: |-
+      update update_v set (a, b) = (b, a), c = (select max(id) from update_v) where id in (1, 2) returning a, b, c
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              update update_v set (a, b) = (b, a), c = (select max(id) from update_v) where id in (1, 2) returning a, b, c;
+          - mode: compact
+            expected: |-
+              update update_v set (a, b) = (b, a), c = (select max(id) from update_v) where id in (1, 2) returning a, b, c;
+          - mode: pretty
+            expected: |-
+              update update_v
+              set (a, b) = (b, a),
+                c = (
+                  select max(id)
+                  from update_v
+                )
+              where id in (1, 2)
+              returning a, b, c;
+        validation:
+          setup: |-
+            create table update_v(id int, a int, b int, c int);
+
+  - name: coverage_update_precedence
+    input: |-
+      update update_q set a = (b + c) * a, b = b - (c - a), c = -(-c), d = not (a = b or c = a) returning (a + b) * c, a + b * c
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              update update_q set a = (b + c) * a, b = b - (c - a), c = -(-c), d = not (a = b or c = a) returning (a + b) * c, a + b * c;
+          - mode: compact
+            expected: |-
+              update update_q
+              set a = (b + c) * a, b = b - (c - a), c = -(-c), d = not (a = b or c = a)
+              returning (a + b) * c, a + b * c;
+          - mode: pretty
+            expected: |-
+              update update_q
+              set a = (b + c) * a, b = b - (c - a), c = -(-c), d = not (a = b or c = a)
+              returning (a + b) * c, a + b * c;
+        validation:
+          setup: |-
+            create table update_q(a int, b int, c int, d bool);
+
+  - name: coverage_update_quoted_names
+    input: |-
+      update "Some Table" as "select" set "from" = 1, "Mixed" = "select"."where" where "select"."group" is null
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              update "Some Table" "select" set "from" = 1, "Mixed" = "select"."where" where "select"."group" is null;
+          - mode: compact
+            expected: |-
+              update "Some Table" "select" set "from" = 1, "Mixed" = "select"."where" where "select"."group" is null;
+          - mode: pretty
+            expected: |-
+              update "Some Table" "select"
+              set "from" = 1, "Mixed" = "select"."where"
+              where "select"."group" is null;
+
+  - name: coverage_merge_subquery_source_cte
+    input: |-
+      with s as (select 1 as id, 2 as a) merge into t using (select id, a from s where a > 0) as src on t.id = src.id when matched then update set a = src.a, b = src.a * 2 when not matched then insert (id, a) values (src.id, src.a)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              with s as (select 1 as id, 2 as a) merge into t using (select id, a from s where a > 0) src on t.id = src.id when matched then update set a = src.a, b = src.a * 2 when not matched then insert (id, a) values (src.id, src.a);
+          - mode: compact
+            expected: |-
+              with s as (select 1 as id, 2 as a)
+              merge into t
+              using (select id, a from s where a > 0) src
+              on t.id = src.id
+              when matched then update set a = src.a, b = src.a * 2
+              when not matched then insert (id, a) values (src.id, src.a);
+          - mode: pretty
+            expected: |-
+              with s as (
+                select 1 as id, 2 as a
+              )
+              merge into t
+              using (
+                select id, a
+                from s
+                where a > 0
+              ) src
+              on t.id = src.id
+              when matched then update set a = src.a, b = src.a * 2
+              when not matched then insert (id, a) values (src.id, src.a);
+
+  - name: coverage_merge_recursive_returning
+    input: |-
+      with recursive r as (select 1 as id) merge into t using r on t.id = r.id when not matched by source then update set a = default returning merge_action(), t.*
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              with recursive r as (select 1 as id) merge into t using r on t.id = r.id when not matched by source then update set a = default returning merge_action(), t.*;
+          - mode: compact
+            expected: |-
+              with recursive r as (select 1 as id)
+              merge into t
+              using r
+              on t.id = r.id
+              when not matched by source then update set a = default
+              returning merge_action(), t.*;
+          - mode: pretty
+            expected: |-
+              with recursive r as (
+                select 1 as id
+              )
+              merge into t
+              using r
+              on t.id = r.id
+              when not matched by source then update set a = default
+              returning merge_action(), t.*;
+
+  - name: coverage_merge_source_join
+    input: |-
+      merge into t using (u join v on u.id = v.id) on t.id = u.id when matched then update set a = v.a
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              merge into t using u join v on u.id = v.id on t.id = u.id when matched then update set a = v.a;
+          - mode: compact
+            expected: |-
+              merge into t using u join v on u.id = v.id on t.id = u.id when matched then update set a = v.a;
+          - mode: pretty
+            expected: |-
+              merge into t
+              using u
+                join v on u.id = v.id
+              on t.id = u.id
+              when matched then update set a = v.a;
+
+  - name: coverage_merge_source_values
+    input: |-
+      merge into t using (values (1, 'a'), (2, 'b')) as v(id, name) on t.id = v.id when not matched then insert (id, name) values (v.id, v.name)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              merge into t using (values (1, 'a'), (2, 'b')) v(id, name) on t.id = v.id when not matched then insert (id, name) values (v.id, v.name);
+          - mode: compact
+            expected: |-
+              merge into t
+              using (values (1, 'a'), (2, 'b')) v(id, name)
+              on t.id = v.id
+              when not matched then insert (id, name) values (v.id, v.name);
+          - mode: pretty
+            expected: |-
+              merge into t
+              using (
+                values
+                  (1, 'a'),
+                  (2, 'b')
+              ) v(id, name)
+              on t.id = v.id
+              when not matched then insert (id, name) values (v.id, v.name);
+
+  - name: coverage_merge_long_when_condition
+    input: |-
+      merge into target_table as t using source_table as s on t.id = s.id when matched and s.deleted and t.version < s.version and t.locked is false then delete when matched then update set version = s.version, payload = s.payload, updated_at = now()
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              merge into target_table t using source_table s on t.id = s.id when matched and s.deleted and t.version < s.version and t.locked is false then delete when matched then update set version = s.version, payload = s.payload, updated_at = now();
+          - mode: compact
+            width: 50
+            expected: |-
+              merge into target_table t
+              using source_table s
+              on t.id = s.id
+              when matched and s.deleted
+                  and t.version < s.version
+                  and t.locked is false then
+                delete
+              when matched then
+                update set version = s.version,
+                  payload = s.payload, updated_at = now();
+          - mode: pretty
+            width: 50
+            expected: |-
+              merge into target_table t
+              using source_table s
+              on t.id = s.id
+              when matched and s.deleted
+                  and t.version < s.version
+                  and t.locked is false then
+                delete
+              when matched then
+                update set version = s.version,
+                  payload = s.payload,
+                  updated_at = now();
+
+  - name: coverage_merge_long_when_condition_idempotent
+    input: |-
+      merge into target_table t
+      using source_table s
+      on t.id = s.id
+      when matched and s.deleted
+          and t.version < s.version
+          and t.locked is false then
+        delete
+      when matched then
+        update set version = s.version,
+          payload = s.payload,
+          updated_at = now();
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              merge into target_table t using source_table s on t.id = s.id when matched and s.deleted and t.version < s.version and t.locked is false then delete when matched then update set version = s.version, payload = s.payload, updated_at = now();
+          - mode: compact
+            expected: |-
+              merge into target_table t
+              using source_table s
+              on t.id = s.id
+              when matched and s.deleted and t.version < s.version and t.locked is false then delete
+              when matched then update set version = s.version, payload = s.payload, updated_at = now();
+          - mode: pretty
+            width: 50
+            expected: |-
+              merge into target_table t
+              using source_table s
+              on t.id = s.id
+              when matched and s.deleted
+                  and t.version < s.version
+                  and t.locked is false then
+                delete
+              when matched then
+                update set version = s.version,
+                  payload = s.payload,
+                  updated_at = now();
+
+  - name: coverage_merge_insert_values_narrow
+    input: |-
+      merge into target_table as t using source_table as s on t.id = s.id and t.version < s.version when matched and s.deleted then delete when not matched then insert (id, version) values (s.id, s.version)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              merge into target_table t using source_table s on t.id = s.id and t.version < s.version when matched and s.deleted then delete when not matched then insert (id, version) values (s.id, s.version);
+          - mode: compact
+            width: 34
+            expected: |-
+              merge into target_table t
+              using source_table s
+              on t.id = s.id
+                and t.version < s.version
+              when matched and s.deleted then
+                delete
+              when not matched then
+                insert (id, version) values (
+                  s.id, s.version
+                );
+          - mode: pretty
+            width: 34
+            expected: |-
+              merge into target_table t
+              using source_table s
+              on t.id = s.id
+                and t.version < s.version
+              when matched and s.deleted then
+                delete
+              when not matched then
+                insert (id, version) values (
+                  s.id,
+                  s.version
+                );
+
+  - name: coverage_merge_indent_four
+    input: |-
+      with s as (select 1 as id) merge into t using s on t.id = s.id when matched and t.a > 0 then update set a = t.a + 1, b = 2 when not matched then insert (id) values (s.id)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              with s as (select 1 as id) merge into t using s on t.id = s.id when matched and t.a > 0 then update set a = t.a + 1, b = 2 when not matched then insert (id) values (s.id);
+          - mode: compact
+            indent: 4
+            width: 40
+            expected: |-
+              with s as (select 1 as id)
+              merge into t
+              using s
+              on t.id = s.id
+              when matched and t.a > 0 then
+                  update set a = t.a + 1, b = 2
+              when not matched then
+                  insert (id) values (s.id);
+          - mode: pretty
+            indent: 4
+            width: 40
+            expected: |-
+              with s as (
+                  select 1 as id
+              )
+              merge into t
+              using s
+              on t.id = s.id
+              when matched and t.a > 0 then
+                  update set a = t.a + 1, b = 2
+              when not matched then
+                  insert (id) values (s.id);
+
+  - name: coverage_merge_comments
+    input: |-
+      merge into t -- the target
+      using u on t.id = u.id
+      /* delete */ when matched then delete
+      when not matched then -- insert
+        insert values (u.id)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              merge into t using u on t.id = u.id when matched then delete when not matched then insert values (u.id);
+          - mode: compact
+            expected: |-
+              merge into t -- the target
+              using u
+              on t.id = u.id
+              /* delete */ when matched then delete
+              when not matched then
+                -- insert
+                insert values (u.id);
+          - mode: pretty
+            expected: |-
+              merge into t -- the target
+              using u
+              on t.id = u.id
+              /* delete */ when matched then delete
+              when not matched then
+                -- insert
+                insert values (u.id);
+
+  - name: coverage_prepare_merge_delete_insert
+    input: |-
+      prepare pm(int) as merge into t using u on t.id = $1 when matched then delete; prepare pd as delete from t where id = 1; prepare pi(text) as insert into t values ($1)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              prepare pm(integer) as merge into t using u on t.id = $1 when matched then delete;
+
+              prepare pd as delete from t where id = 1;
+
+              prepare pi(text) as insert into t values ($1);
+          - mode: compact
+            expected: |-
+              prepare pm(integer) as merge into t using u on t.id = $1 when matched then delete;
+
+              prepare pd as delete from t where id = 1;
+
+              prepare pi(text) as insert into t values ($1);
+          - mode: pretty
+            expected: |-
+              prepare pm(integer) as
+              merge into t
+              using u
+              on t.id = $1
+              when matched then delete;
+
+              prepare pd as
+              delete from t
+              where id = 1;
+
+              prepare pi(text) as
+              insert into t
+              values
+                ($1);
+
+  - name: coverage_prepare_query_narrow
+    input: |-
+      prepare some_statement(integer, text) as select some_column, other_column from some_table where some_column = $1 and other_column = $2
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              prepare some_statement(integer, text) as select some_column, other_column from some_table where some_column = $1 and other_column = $2;
+          - mode: compact
+            width: 50
+            expected: |-
+              prepare some_statement(integer, text) as
+              select some_column, other_column
+              from some_table
+              where some_column = $1 and other_column = $2;
+          - mode: pretty
+            width: 50
+            expected: |-
+              prepare some_statement(integer, text) as
+              select some_column, other_column
+              from some_table
+              where some_column = $1 and other_column = $2;
+
+  - name: coverage_execute_arguments_narrow
+    input: |-
+      execute some_statement(1 + 2, 'some text argument', first_name => 'value', second_name := now())
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              execute some_statement(1 + 2, 'some text argument', first_name => 'value', second_name => now());
+          - mode: compact
+            width: 40
+            expected: |-
+              execute some_statement(
+                1 + 2, 'some text argument',
+                first_name => 'value',
+                second_name => now()
+              );
+          - mode: pretty
+            width: 40
+            expected: |-
+              execute some_statement(
+                1 + 2,
+                'some text argument',
+                first_name => 'value',
+                second_name => now()
+              );
+
+  - name: coverage_execute_comments
+    input: |-
+      execute p( -- the arguments
+        1, /* second */ 'x',
+        y => 2 -- named
+      )
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              execute p(1, 'x', y => 2);
+          - mode: compact
+            expected: |-
+              execute p( -- the arguments
+                1, /* second */ 'x', y => 2 -- named
+              );
+          - mode: pretty
+            expected: |-
+              execute p( -- the arguments
+                1, /* second */ 'x', y => 2 -- named
+              );
+
+  - name: coverage_explain_update_merge
+    input: |-
+      explain update t set a = 1 where b = 2; explain (analyze, verbose) merge into t using u on t.id = u.id when matched then delete
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              explain update t set a = 1 where b = 2;
+
+              explain (analyze, verbose) merge into t using u on t.id = u.id when matched then delete;
+          - mode: compact
+            expected: |-
+              explain update t set a = 1 where b = 2;
+
+              explain (analyze, verbose)
+              merge into t using u on t.id = u.id when matched then delete;
+          - mode: pretty
+            expected: |-
+              explain update t
+              set a = 1
+              where b = 2;
+
+              explain (analyze, verbose)
+              merge into t
+              using u
+              on t.id = u.id
+              when matched then delete;
+
+  - name: coverage_dialect_types_in_statements
+    input: |-
+      prepare p(integer[], varchar(10)[]) as update t set a = cast($1 as text[]), b = $2 returning cast(a as int[][]); merge into t using u on t.id = u.id when matched then update set a = cast(u.a as int[])
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              prepare p(integer[], varchar(10)[]) as update t set a = cast($1 as text[]), b = $2 returning cast(a as integer[][]);
+
+              merge into t using u on t.id = u.id when matched then update set a = cast(u.a as integer[]);
+          - mode: compact
+            expected: |-
+              prepare p(integer[], varchar(10)[]) as update t set a = cast($1 as text[]), b = $2 returning cast(a as integer[][]);
+
+              merge into t using u on t.id = u.id when matched then update set a = cast(u.a as integer[]);
+          - mode: pretty
+            expected: |-
+              prepare p(integer[], varchar(10)[]) as
+              update t
+              set a = cast($1 as text[]), b = $2
+              returning cast(a as integer[][]);
+
+              merge into t
+              using u
+              on t.id = u.id
+              when matched then update set a = cast(u.a as integer[]);
+      trino:
+        formatted:
+          - mode: inline
+            expected: |-
+              prepare p(array(integer), array(varchar(10))) as update t set a = cast($1 as array(text)), b = $2 returning cast(a as array(array(integer)));
+
+              merge into t using u on t.id = u.id when matched then update set a = cast(u.a as array(integer));
+          - mode: compact
+            expected: |-
+              prepare p(array(integer), array(varchar(10))) as
+              update t set a = cast($1 as array(text)), b = $2 returning cast(a as array(array(integer)));
+
+              merge into t using u on t.id = u.id when matched then update set a = cast(u.a as array(integer));
+          - mode: pretty
+            expected: |-
+              prepare p(array(integer), array(varchar(10))) as
+              update t
+              set a = cast($1 as array(text)), b = $2
+              returning cast(a as array(array(integer)));
+
+              merge into t
+              using u
+              on t.id = u.id
+              when matched then update set a = cast(u.a as array(integer));
+
+  - name: coverage_grant_width_fits
+    input: |-
+      grant select on table t to bob with grant option
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              grant select on table t to bob with grant option;
+          - mode: compact
+            width: 50
+            expected: |-
+              grant select on table t to bob with grant option;
+          - mode: pretty
+            width: 50
+            expected: |-
+              grant select on table t to bob with grant option;
+
+  - name: coverage_grant_width_one_over
+    input: |-
+      grant select on table t to bob with grant option
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              grant select on table t to bob with grant option;
+          - mode: compact
+            width: 49
+            expected: |-
+              grant select
+                on table t
+                to bob
+                with grant option;
+          - mode: pretty
+            width: 49
+            expected: |-
+              grant select
+                on table t
+                to bob
+                with grant option;
+
+  - name: coverage_grant_very_narrow
+    input: |-
+      grant select (first_column, second_column, third_column), insert, update on table some_schema.some_table to some_user, other_user
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              grant select (first_column, second_column, third_column), insert, update on table some_schema.some_table to some_user, other_user;
+          - mode: compact
+            width: 30
+            expected: |-
+              grant select (
+                  first_column,
+                  second_column,
+                  third_column
+                ), insert, update
+                on table some_schema
+                  .some_table
+                to some_user, other_user;
+          - mode: pretty
+            width: 30
+            expected: |-
+              grant select (
+                  first_column,
+                  second_column,
+                  third_column
+                ),
+                insert,
+                update
+                on table some_schema
+                  .some_table
+                to some_user, other_user;
+
+  - name: coverage_grant_revoke_comments
+    input: |-
+      grant select, -- reading
+        insert /* writing */ on table t to bob;
+      revoke /* all of it */ all on t from bob -- bob leaves
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              grant select, insert on table t to bob;
+
+              revoke all on table t from bob;
+          - mode: compact
+            expected: |-
+              grant select, -- reading
+                insert
+                on /* writing */ table t
+                to bob;
+
+              revoke /* all of it */ all on table t from bob; -- bob leaves
+          - mode: pretty
+            expected: |-
+              grant select, -- reading
+                insert
+                on /* writing */ table t
+                to bob;
+
+              revoke /* all of it */ all on table t from bob; -- bob leaves
+
+  - name: coverage_create_role_comments
+    input: |-
+      create role r with login -- may log in
+        password 'pw' /* secret */ connection limit 5
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create role r with login password 'pw' connection limit 5;
+          - mode: compact
+            expected: |-
+              create role r
+                with login -- may log in
+                  password 'pw' /* secret */ connection limit 5;
+          - mode: pretty
+            expected: |-
+              create role r
+                with login -- may log in
+                  password 'pw' /* secret */ connection limit 5;
+
+  - name: coverage_drop_comments
+    input: |-
+      drop table t1, -- the first
+        t2 /* the second */ cascade
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              drop table t1, t2 cascade;
+          - mode: compact
+            expected: |-
+              drop table t1, -- the first
+                t2 cascade; /* the second */
+          - mode: pretty
+            expected: |-
+              drop table t1, -- the first
+                t2 cascade; /* the second */
+
+  - name: coverage_create_schema_comments
+    input: |-
+      create schema s
+        -- a table
+        create table t (a int)
+        /* a view */ create view v as select a from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create schema s create table t (a integer) create view v as select a from t;
+          - mode: compact
+            expected: |-
+              create schema s
+                -- a table
+                create table t (a integer)
+                /* a view */ create view v as select a from t;
+          - mode: pretty
+            expected: |-
+              create schema s
+                -- a table
+                create table t (a integer)
+                /* a view */ create view v as
+                select a
+                from t;
+
+  - name: coverage_declare_cursor_comments
+    input: |-
+      declare c -- the cursor
+        scroll cursor with hold for /* the query */ select a from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              declare c scroll cursor with hold for select a from t;
+          - mode: compact
+            expected: |-
+              declare c -- the cursor
+              scroll cursor with hold for
+              /* the query */ select a from t;
+          - mode: pretty
+            expected: |-
+              declare c -- the cursor
+              scroll cursor with hold for
+              /* the query */ select a
+              from t;
+
+  - name: coverage_fetch_comments
+    input: |-
+      fetch /* direction */ forward 5 -- count
+        from c
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              fetch forward 5 from c;
+          - mode: compact
+            expected: |-
+              fetch /* direction */ forward 5 -- count
+              from c;
+          - mode: pretty
+            expected: |-
+              fetch /* direction */ forward 5 -- count
+              from c;
+
+  - name: coverage_copy_comments
+    input: |-
+      copy t (a, -- the a
+        b) from 'data.csv' with (format csv, /* a header */ header)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              copy t (a, b) from 'data.csv' with (format csv, header);
+          - mode: compact
+            expected: |-
+              copy t (
+                a, -- the a
+                b
+              )
+                from 'data.csv'
+                with (format csv, /* a header */ header);
+          - mode: pretty
+            expected: |-
+              copy t (
+                a, -- the a
+                b
+              )
+                from 'data.csv'
+                with (format csv, /* a header */ header);
+
+  - name: coverage_copy_to_comments
+    input: |-
+      copy (select a from t) -- the query
+      to 'out.csv' /* the file */ with (format => 'csv')
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              copy (select a from t) to 'out.csv' with (format => 'csv');
+          - mode: compact
+            expected: |-
+              copy (select a from t) -- the query
+                to 'out.csv'
+                with /* the file */ (format => 'csv');
+          - mode: pretty
+            expected: |-
+              copy (
+                select a
+                from t
+              ) -- the query
+                to 'out.csv'
+                with /* the file */ (format => 'csv');
+
+  - name: coverage_copy_query_cte_narrow
+    input: |-
+      copy (with x as (select some_column from some_table where some_column > 0) select some_column from x) to 'out.csv' with (format => 'csv', header => true)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              copy (with x as (select some_column from some_table where some_column > 0) select some_column from x) to 'out.csv' with (format => 'csv', header => true);
+          - mode: compact
+            width: 50
+            expected: |-
+              copy (
+                with x as (
+                  select some_column
+                  from some_table
+                  where some_column > 0
+                )
+                select some_column from x
+              )
+                to 'out.csv'
+                with (format => 'csv', header => true);
+          - mode: pretty
+            width: 50
+            expected: |-
+              copy (
+                with x as (
+                  select some_column
+                  from some_table
+                  where some_column > 0
+                )
+                select some_column
+                from x
+              )
+                to 'out.csv'
+                with (format => 'csv', header => true);
+
+  - name: coverage_function_inout_constref_volatile
+    input: |-
+      create function f(inout a int, in out b int, constref c int) returns table(x int) with set semantics keep when empty volatile language sql as 'select 1'
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create function f(inout a integer, inout b integer, constref c integer) returns table(x integer) with set semantics keep when empty volatile language sql as 'select 1';
+          - mode: compact
+            expected: |-
+              create function f(inout a integer, inout b integer, constref c integer)
+                returns table(x integer) with set semantics keep when empty
+                volatile language sql as 'select 1';
+          - mode: pretty
+            expected: |-
+              create function f(inout a integer, inout b integer, constref c integer)
+                returns table(x integer) with set semantics keep when empty
+                volatile language sql as 'select 1';
+
+  - name: coverage_table_like_storage_indexes
+    input: |-
+      create table t (like u including storage excluding indexes including comments)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create table t (like u including storage excluding indexes including comments);
+          - mode: compact
+            expected: |-
+              create table t (like u including storage excluding indexes including comments);
+          - mode: pretty
+            expected: |-
+              create table t (like u including storage excluding indexes including comments);

@@ -1,0 +1,286 @@
+formatter-snapshots:
+
+  - name: coverage_semantic_view_narrow
+    input: |-
+      select * from semantic_view(sales_model dimensions region, product_category as category measures sum(amount) as total_amount, count(*) as orders facts f where region <> 'unknown')
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from semantic_view(sales_model dimensions region, product_category as category measures sum(amount) as total_amount, count(*) as orders facts f where region <> 'unknown');
+          - mode: compact
+            width: 50
+            expected: |-
+              select *
+              from semantic_view(
+                sales_model dimensions region,
+                  product_category as category
+                measures sum(amount) as total_amount,
+                  count(*) as orders
+                facts f
+                where region <> 'unknown'
+              );
+          - mode: pretty
+            width: 50
+            expected: |-
+              select *
+              from semantic_view(
+                sales_model dimensions region,
+                  product_category as category
+                measures sum(amount) as total_amount,
+                  count(*) as orders
+                facts f
+                where region <> 'unknown'
+              );
+
+  - name: coverage_table_ref_options_narrow
+    input: |-
+      select * from some_table with options (first_option := 1, second_option => 'some value'), table(some_function(1, 2)) with options (third_option := true) as r
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from some_table with options (first_option => 1, second_option => 'some value'), some_function(1, 2) with options (third_option => true) r;
+          - mode: compact
+            width: 40
+            expected: |-
+              select *
+              from some_table with options (
+                  first_option => 1,
+                    second_option => 'some value'
+                ),
+                some_function(1, 2) with options (
+                  third_option => true
+                ) r;
+          - mode: pretty
+            width: 40
+            expected: |-
+              select *
+              from some_table with options (
+                  first_option => 1,
+                    second_option => 'some value'
+                ),
+                some_function(1, 2) with options (
+                  third_option => true
+                ) r;
+
+  - name: coverage_relation_arguments_narrow
+    input: |-
+      select * from some_function(table(some_table) as s partition by (first_key, second_key) order by (first_key desc), descriptor(first_column, second_column integer))
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from some_function(table(some_table) as s partition by (first_key, second_key) order by (first_key desc), descriptor(first_column, second_column integer));
+          - mode: compact
+            width: 50
+            expected: |-
+              select *
+              from some_function(
+                table(some_table) as s
+                    partition by (first_key, second_key)
+                    order by (first_key desc),
+                  descriptor(
+                    first_column, second_column integer
+                  )
+              );
+          - mode: pretty
+            width: 50
+            expected: |-
+              select *
+              from some_function(
+                table(some_table) as s
+                    partition by (first_key, second_key)
+                    order by (first_key desc),
+                  descriptor(
+                    first_column, second_column integer
+                  )
+              );
+
+  - name: coverage_lambda_long_body
+    input: |-
+      select array_transform(some_array, lambda element: case when element > 100 then element / 100 else element * 100 end) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select array_transform(some_array, lambda element: case when element > 100 then element / 100 else element * 100 end) from t;
+          - mode: compact
+            width: 50
+            expected: |-
+              select array_transform(
+                some_array,
+                  lambda element: case
+                    when element > 100 then element / 100
+                    else element * 100 end
+              )
+              from t;
+          - mode: pretty
+            width: 50
+            expected: |-
+              select array_transform(
+                some_array,
+                  lambda element: case
+                    when element > 100 then element / 100
+                    else element * 100
+                  end
+              )
+              from t;
+
+  - name: coverage_lambda_comments
+    input: |-
+      select array_filter(a, lambda x: -- the element
+        x > 1 /* positive */) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select array_filter(a, lambda x: x > 1) from t;
+          - mode: compact
+            expected: |-
+              select array_filter(
+                a,
+                  lambda x:
+                  -- the element
+                  x > 1
+              )
+              from /* positive */ t;
+          - mode: pretty
+            expected: |-
+              select array_filter(
+                a,
+                  lambda x:
+                  -- the element
+                  x > 1
+              )
+              from /* positive */ t;
+
+  - name: coverage_case_chain_long
+    input: |-
+      select case status when 'new' then 1 when 'open' then 2 when 'pending' then 3 when 'resolved' then 4 when 'closed' then 5 else 0 end as status_rank, case when a > 0 then 'positive' when a < 0 then 'negative' end from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select case status when 'new' then 1 when 'open' then 2 when 'pending' then 3 when 'resolved' then 4 when 'closed' then 5 else 0 end as status_rank, case when a > 0 then 'positive' when a < 0 then 'negative' end from t;
+          - mode: compact
+            width: 50
+            expected: |-
+              select case status when 'new' then 1
+                  when 'open' then 2 when 'pending' then 3
+                  when 'resolved' then 4 when 'closed' then 5
+                  else 0 end as status_rank,
+                case when a > 0 then 'positive'
+                  when a < 0 then 'negative' end
+              from t;
+          - mode: pretty
+            width: 50
+            expected: |-
+              select case status
+                  when 'new' then 1
+                  when 'open' then 2
+                  when 'pending' then 3
+                  when 'resolved' then 4
+                  when 'closed' then 5
+                  else 0
+                end as status_rank,
+                case
+                  when a > 0 then 'positive'
+                  when a < 0 then 'negative'
+                end
+              from t;
+        validation:
+          setup: |-
+            create table t(status text, a int);
+
+  - name: coverage_window_frame_narrow
+    input: |-
+      select sum(amount) over (partition by customer_id, region order by order_date desc nulls last rows between 3 preceding and current row exclude current row) as rolling_sum from orders
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select sum(amount) over (partition by customer_id, region order by order_date desc nulls last rows between 3 preceding and current row exclude current row) as rolling_sum from orders;
+          - mode: compact
+            width: 50
+            expected: |-
+              select sum(amount) over (
+                partition by customer_id, region
+                  order by order_date desc nulls last
+                  rows between 3 preceding and current row
+                  exclude current row
+              ) as rolling_sum
+              from orders;
+          - mode: pretty
+            width: 50
+            expected: |-
+              select sum(amount) over (
+                partition by customer_id, region
+                  order by order_date desc nulls last
+                  rows between 3 preceding and current row
+                  exclude current row
+              ) as rolling_sum
+              from orders;
+        validation:
+          setup: |-
+            create table orders(customer_id int, region text, order_date date, amount int);
+
+  - name: coverage_string_escapes
+    input: |-
+      select E'tab\there', e'\\', E'two''quotes', U&'d\0061t\+000061', 'back\slash', N'national', ''''
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select E'tab\there', e'\\', E'two''quotes', U&'d\0061t\+000061', 'back\slash', N'national', '''';
+          - mode: compact
+            expected: |-
+              select E'tab\there', e'\\', E'two''quotes', U&'d\0061t\+000061', 'back\slash', N'national', '''';
+          - mode: pretty
+            expected: |-
+              select E'tab\there', e'\\', E'two''quotes', U&'d\0061t\+000061', 'back\slash', N'national', '''';
+
+  - name: coverage_quoted_identifiers_needed
+    input: |-
+      select "order"."select", "with space", "UPPER", "1st", "a.b", "x""y" from "order" where "select" is not null
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select "order"."select", "with space", "UPPER", "1st", "a.b", "x""y" from "order" where "select" is not null;
+          - mode: compact
+            expected: |-
+              select "order"."select", "with space", "UPPER", "1st", "a.b", "x""y" from "order" where "select" is not null;
+          - mode: pretty
+            expected: |-
+              select "order"."select", "with space", "UPPER", "1st", "a.b", "x""y"
+              from "order"
+              where "select" is not null;
+        validation:
+          setup: |-
+            create table "order"("select" int, "with space" int, "UPPER" int, "1st" int, "a.b" int, "x""y" int);
+
+  - name: coverage_json_query_empty_object
+    input: |-
+      select json_query('{}', '$.a' with unconditional wrapper empty object on empty empty object on error)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select json_query('{}', '$.a' with unconditional wrapper empty object on empty empty object on error);
+          - mode: compact
+            expected: |-
+              select json_query('{}', '$.a' with unconditional wrapper empty object on empty empty object on error);
+          - mode: pretty
+            expected: |-
+              select json_query('{}', '$.a' with unconditional wrapper empty object on empty empty object on error);

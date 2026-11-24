@@ -1,0 +1,98 @@
+formatter-snapshots:
+
+  # Semantic views, table reference options and relation arguments that do not fit
+  - name: coverage_semantic_view_narrow
+    input: select * from semantic_view(sales_model dimensions region, product_category as category measures sum(amount) as total_amount, count(*) as orders facts f where region <> 'unknown')
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 50
+          - mode: pretty
+            width: 50
+
+  - name: coverage_table_ref_options_narrow
+    input: select * from some_table with options (first_option := 1, second_option => 'some value'), table(some_function(1, 2)) with options (third_option := true) as r
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 40
+          - mode: pretty
+            width: 40
+
+  - name: coverage_relation_arguments_narrow
+    input: select * from some_function(table(some_table) as s partition by (first_key, second_key) order by (first_key desc), descriptor(first_column, second_column integer))
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 50
+          - mode: pretty
+            width: 50
+
+  # A lambda with a CASE as its body that does not fit
+  - name: coverage_lambda_long_body
+    input: |-
+      select array_transform(some_array, lambda element: case when element > 100 then element / 100 else element * 100 end) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 50
+          - mode: pretty
+            width: 50
+
+  # A line comment after the colon of a lambda goes on a line of its own before the body, a block comment after the
+  # last argument in front of the next node
+  - name: coverage_lambda_comments
+    input: |-
+      select array_filter(a, lambda x: -- the element
+        x > 1 /* positive */) from t
+    dialects:
+      hyper:
+
+  # A simple and a searched CASE with many branches
+  - name: coverage_case_chain_long
+    input: select case status when 'new' then 1 when 'open' then 2 when 'pending' then 3 when 'resolved' then 4 when 'closed' then 5 else 0 end as status_rank, case when a > 0 then 'positive' when a < 0 then 'negative' end from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 50
+          - mode: pretty
+            width: 50
+        validation:
+          setup: create table t(status text, a int);
+
+  # A window with a partition, an order, a frame and an exclusion that does not fit
+  - name: coverage_window_frame_narrow
+    input: select sum(amount) over (partition by customer_id, region order by order_date desc nulls last rows between 3 preceding and current row exclude current row) as rolling_sum from orders
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 50
+          - mode: pretty
+            width: 50
+        validation:
+          setup: create table orders(customer_id int, region text, order_date date, amount int);
+
+  # Strings with escapes, Unicode escapes and prefixes are printed as written
+  - name: coverage_string_escapes
+    input: select E'tab\there', e'\\', E'two''quotes', U&'d\0061t\+000061', 'back\slash', N'national', ''''
+    dialects:
+      hyper:
+
+  # Quoted identifiers that need their quotes keep them
+  - name: coverage_quoted_identifiers_needed
+    input: select "order"."select", "with space", "UPPER", "1st", "a.b", "x""y" from "order" where "select" is not null
+    dialects:
+      hyper:
+        validation:
+          setup: create table "order"("select" int, "with space" int, "UPPER" int, "1st" int, "a.b" int, "x""y" int);
+
+  - name: coverage_json_query_empty_object
+    input: select json_query('{}', '$.a' with unconditional wrapper empty object on empty empty object on error)
+    dialects:
+      hyper:
