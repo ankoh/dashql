@@ -16,6 +16,11 @@ interface DashQLElectronBridge {
     /// The file system, see packages/dashql/src/platform/electron_fs.ts
     fs: import('@akohn/dashql/platform/electron_fs').ElectronFsBridge;
     getInitialDeepLinks(): Promise<Array<{type: "event" | "workbook" | "zip"; value: string}>>;
+    /// The storage of the earlier profiles of the app, copied out of their user data folders and not merged yet, oldest
+    /// first. Resolves once the main process copied them. See docs/design/electron.md.
+    legacyProfiles?(): Promise<Array<{name: string; path: string}>>;
+    /// The storage of an earlier profile merged, the main process removes its copy
+    legacyProfileMerged(name: string): Promise<void>;
     getRuntimeCapabilities(): Promise<unknown>;
     nativeProxyRequest(request: unknown): Promise<unknown>;
     onDeepLink(listener: (link: {type: "event" | "workbook" | "zip"; value: string}) => void): () => void;

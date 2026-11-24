@@ -113,7 +113,7 @@ fn message(error: &HostError) -> &str {
 }
 
 /// Read the manifest, None if the storage has none
-async fn read_manifest<H: StorageRootHost>(host: &H) -> Result<Option<JsonObject>, HostError> {
+pub(crate) async fn read_manifest<H: StorageRootHost>(host: &H) -> Result<Option<JsonObject>, HostError> {
     let Some(text) = host.read_text(MANIFEST_FILE).await? else {
         return Ok(None);
     };
@@ -125,7 +125,7 @@ async fn read_manifest<H: StorageRootHost>(host: &H) -> Result<Option<JsonObject
 }
 
 /// Write the manifest
-async fn write_manifest<H: StorageRootHost>(host: &H, manifest: &JsonObject) -> Result<(), HostError> {
+pub(crate) async fn write_manifest<H: StorageRootHost>(host: &H, manifest: &JsonObject) -> Result<(), HostError> {
     host.write_text(MANIFEST_FILE, &to_pretty_text(&Value::Object(manifest.clone()))).await
 }
 
@@ -198,7 +198,11 @@ fn manifest_folder_entries(manifest: &JsonObject) -> Vec<FolderEntry> {
 }
 
 /// Read a directory of the workbook tree with its subdirectories
-async fn read_tree_directory<H: StorageRootHost>(host: &H, path: &str, name: &str) -> Result<TreeDirectory, HostError> {
+pub(crate) async fn read_tree_directory<H: StorageRootHost>(
+    host: &H,
+    path: &str,
+    name: &str,
+) -> Result<TreeDirectory, HostError> {
     let mut directory = TreeDirectory { name: name.to_string(), folder_file: None, directories: Vec::new() };
     for entry in host.list(path).await?.unwrap_or_default() {
         let child = format!("{path}/{}", entry.name);

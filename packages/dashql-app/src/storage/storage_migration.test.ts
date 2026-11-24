@@ -68,7 +68,57 @@ describe('storage migration', () => {
 
     it('migrates to the versions of the app', async () => {
         const outcome = await migrateStorageWithCore(new TestLogger(), async () => dql, root);
-        expect(outcome).toEqual({ steps: 0, workbooks: 0, storageVersion: STORAGE_VERSION, formatVersion: WORKBOOK_FORMAT_VERSION });
+        expect(outcome).toEqual({ steps: 0, workbooks: 0, storageVersion: STORAGE_VERSION, formatVersion: WORKBOOK_FORMAT_VERSION, mergedProfiles: 0 });
+    });
+
+    it('merges the storage of the earlier profiles of the desktop app', async () => {
+        // The copies that the main process made of the origin private file systems of two earlier profiles
+        const older = '/appdata/DashQL/legacy-profiles/ankoh-dashql-native';
+        const newer = '/appdata/DashQL/legacy-profiles/akohn-dashql-native';
+        const fs = globalThis.dashqlElectron!.fs;
+        const put = (path: string, text: string) => fs.writeFile(path, new TextEncoder().encode(text));
+        const workbook = (workbookId: string, ephemeral: boolean) => JSON.stringify({
+            formatVersion: WORKBOOK_FORMAT_VERSION, workbookId, connections: [], scripts: [], attachments: [], metadata: ephemeral ? { ephemeral: true } : {},
+        });
+        await put(`${older}/dashql-manifest.json`, JSON.stringify({ storageVersion: 9, connections: [{ id: DB_A, params: WASM }], appSettings: { keywordCase: 'upper' } }));
+        await put(`${older}/workbooktree/My Workbooks/dashql-folder.json`, JSON.stringify({ workbooks: [{ path: SESSION_A }] }));
+        await fs.mkdir(`${older}/workbooktree/Empty`, { recursive: true });
+        await put(`${older}/workbooks/${SESSION_A}/dashql-workbook.json`, workbook(SESSION_A, false));
+        await put(`${older}/workbooks/${SESSION_A}/attachments/a.parquet`, 'PAR1');
+        await put(`${newer}/dashql-manifest.json`, JSON.stringify({ storageVersion: STORAGE_VERSION, appSettings: { keywordCase: 'lower' } }));
+        await put(`${newer}/workbooktree/My Workbooks/dashql-folder.json`, JSON.stringify({ workbooks: [{ path: SESSION_B }] }));
+        await put(`${newer}/workbooks/${SESSION_B}/dashql-workbook.json`, workbook(SESSION_B, true));
+        const merged: string[] = [];
+        Object.assign(globalThis.dashqlElectron!, {
+            legacyProfiles: async () => [{ name: 'ankoh-dashql-native', path: older }, { name: 'akohn-dashql-native', path: newer }],
+            legacyProfileMerged: async (name: string) => { merged.push(name); },
+        });
+
+        const outcome = await migrateStorageWithCore(new TestLogger(), async () => dql, root);
+        expect(outcome.mergedProfiles).toBe(1);
+        expect(merged).toEqual(['ankoh-dashql-native', 'akohn-dashql-native']);
+        // The older profile merged first and wins, the ephemeral workbook of the newer one stays behind
+        expect(json('dashql-manifest.json')).toEqual({ storageVersion: STORAGE_VERSION, connections: [{ id: DB_A, params: WASM }], appSettings: { keywordCase: 'upper' } });
+        expect(json('workbooktree/My Workbooks/dashql-folder.json')).toEqual({ workbooks: [{ path: SESSION_A }] });
+        expect(dirs.has('workbooktree/Empty')).toBe(true);
+        expect(text(`workbooks/${SESSION_A}/attachments/a.parquet`)).toBe('PAR1');
+        expect([...files.keys()].filter(file => file.startsWith(`workbooks/${SESSION_B}`))).toEqual([]);
+        expect([...files.keys(), ...dirs].filter(path => path.startsWith('legacy-profiles'))).toEqual([]);
+    });
+
+    it('starts without a profile whose copy fails to merge', async () => {
+        const merged: string[] = [];
+        Object.assign(globalThis.dashqlElectron!, {
+            // The core refuses a name that is no folder name
+            legacyProfiles: async () => [{ name: '..', path: '/appdata/DashQL/legacy-profiles/ankoh-dashql-native' }],
+            legacyProfileMerged: async (name: string) => { merged.push(name); },
+        });
+        const logger = new TestLogger();
+        const outcome = await migrateStorageWithCore(logger, async () => dql, root);
+        expect(outcome.mergedProfiles).toBe(0);
+        // The copy stays with the main process and merges at the next start
+        expect(merged).toEqual([]);
+        expect(json('dashql-manifest.json')).toEqual({ storageVersion: STORAGE_VERSION });
     });
 
     it('stamps a fresh storage with the current version', async () => {

@@ -30,6 +30,8 @@ contextBridge.exposeInMainWorld("dashqlElectron", {
         writeTextFile: async (path, data) => await ipcRenderer.invoke("dashql:fs", "writeTextFile", path, data),
     },
     getInitialDeepLinks: async () => await ipcRenderer.invoke("dashql:get-initial-deep-links"),
+    legacyProfiles: async () => await ipcRenderer.invoke("dashql:legacy-profiles"),
+    legacyProfileMerged: async (name) => await ipcRenderer.invoke("dashql:legacy-profile-merged", name),
     getRuntimeCapabilities: async () => {
         const versions = await ipcRenderer.invoke("dashql:runtime-capabilities");
         return {

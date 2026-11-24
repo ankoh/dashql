@@ -57,7 +57,7 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
             setMigrationStatus(IndicatorStatus.Running);
             try {
                 const migrated = await migrateStorage(logger, setupCore);
-                setMigrationStatus(migrated.steps + migrated.workbooks > 0 ? IndicatorStatus.Succeeded : IndicatorStatus.Skip);
+                setMigrationStatus(migrated.steps + migrated.workbooks + migrated.mergedProfiles > 0 ? IndicatorStatus.Succeeded : IndicatorStatus.Skip);
             } catch (error) {
                 logger.error("Failed to migrate the storage", { error: stringifyError(error) }, "storage_provider");
                 setMigrationStatus(IndicatorStatus.Failed);

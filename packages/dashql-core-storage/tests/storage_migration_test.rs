@@ -15,6 +15,7 @@ use dashql_core_storage::workbook_format::data::{STORAGE_VERSION, WORKBOOK_FORMA
 use dashql_core_storage::workbook_format::migration::{
     migrate_folder, migrate_stamped_folder, FolderHost, WorkbookMigrationResult,
 };
+use dashql_core_storage::workbook_format::storage_merge::{merge_storage, StorageMergeSummary};
 use dashql_core_storage::workbook_format::storage_migration::{
     migrate_storage, plan_connection_migration, run_storage_migration_step, DirEntry, MigratingSession,
     StorageMigrationSummary, StorageRootHost, STORAGE_MIGRATION_STEPS,
@@ -1135,4 +1136,193 @@ fn stops_at_a_target_version_and_leaves_unusable_folders_untouched() {
         block_on(migrate_folder(&MemoryFolder::default(), WORKBOOK_FORMAT_VERSION)).unwrap(),
         WorkbookMigrationResult::Missing
     );
+}
+
+// Merges of the storage roots of earlier profiles
+
+const STAGED: &str = "legacy-profiles/@ankoh-dashql-native";
+
+/// A workbook file of the current format
+fn workbook_file(workbook_id: &str, ephemeral: bool) -> String {
+    let metadata = if ephemeral { json!({ "ephemeral": true }) } else { json!({}) };
+    json!({
+        "formatVersion": WORKBOOK_FORMAT_VERSION, "workbookId": workbook_id, "connections": [], "scripts": [],
+        "attachments": [], "metadata": metadata,
+    })
+    .to_string()
+}
+
+/// A root that the app migrated at its first start, with the storage of an earlier profile staged below it: storage
+/// version 9 with a query result cache, a connection with a catalog, a workbook in a folder, the ephemeral workbook of
+/// the greeter, an empty folder, the files of the shell and the database of a local cloud
+fn staged_storage() -> FakeRoot {
+    let root = storage();
+    root.migrate().unwrap();
+    let at = |path: &str| format!("{STAGED}/{path}");
+    root.set(
+        &at("dashql-manifest.json"),
+        json!({
+            "storageVersion": 9,
+            "connections": [{ "id": DB_A, "params": wasm(), "createdAt": "t" }],
+            "appSettings": { "keywordCase": "upper" },
+        })
+        .to_string(),
+    );
+    root.dir(STAGED);
+    for dir in ["workbooktree", "workbooktree/My Workbooks", "workbooktree/Empty", "workbooks", "cache", "shell"] {
+        root.dir(&at(dir));
+    }
+    root.set(&at("workbooktree/dashql-folder.json"), json!({ "workbooks": [{ "path": SESSION_C }] }).to_string());
+    root.set(
+        &at("workbooktree/My Workbooks/dashql-folder.json"),
+        json!({ "workbooks": [{ "path": SESSION_A }] }).to_string(),
+    );
+    for (id, ephemeral) in [(SESSION_A, false), (SESSION_C, true)] {
+        root.dir(&at(&format!("workbooks/{id}")));
+        root.set(&at(&format!("workbooks/{id}/dashql-workbook.json")), workbook_file(id, ephemeral));
+    }
+    root.dir(&at(&format!("workbooks/{SESSION_A}/scripts")));
+    root.set(&at(&format!("workbooks/{SESSION_A}/scripts/1_a.sql")), "SELECT 1");
+    root.dir(&at(&format!("connections/{DB_A}")));
+    root.set(&at(&format!("connections/{DB_A}/dashql-catalog-relations.sql")), "CREATE TABLE a(id int);");
+    root.set(&at("cache/r.parquet"), "cached");
+    root.set(&at("shell/salesforce-login-history.json"), "[1]");
+    root.dir(&at("clouds"));
+    root.set(&at("clouds/local.hyper"), "staged cloud");
+    root.fs.borrow_mut().ops = 0;
+    root
+}
+
+impl FakeRoot {
+    fn merge(&self, source: &str) -> Result<StorageMergeSummary, HostError> {
+        block_on(merge_storage(self, source))
+    }
+}
+
+#[test]
+fn merges_a_staged_storage_into_a_fresh_root() {
+    let root = staged_storage();
+    let merged = root.merge(STAGED).unwrap();
+    assert_eq!(merged.migration, summary(1, 0));
+    assert_eq!((merged.workbooks, merged.connections), (1, 1));
+
+    let manifest = root.json("dashql-manifest.json");
+    assert_eq!(manifest["storageVersion"], json!(STORAGE_VERSION));
+    assert_eq!(manifest_connection_ids(&root), [DB_A]);
+    assert_eq!(manifest["appSettings"], json!({ "keywordCase": "upper" }));
+    assert_eq!(
+        root.json("workbooktree/My Workbooks/dashql-folder.json"),
+        json!({ "workbooks": [{ "path": SESSION_A }] })
+    );
+    // The empty folder comes along, the ephemeral workbook of the greeter stays behind
+    assert!(root.dirs_starting_with("workbooktree/Empty").len() == 1);
+    assert_eq!(root.text("workbooktree/dashql-folder.json"), None);
+    assert!(root.files_starting_with(&format!("workbooks/{SESSION_C}")).is_empty());
+    assert_eq!(root.text(&format!("workbooks/{SESSION_A}/scripts/1_a.sql")).as_deref(), Some("SELECT 1"));
+    assert_eq!(
+        root.text(&format!("connections/{DB_A}/dashql-catalog-relations.sql")).as_deref(),
+        Some("CREATE TABLE a(id int);")
+    );
+    assert_eq!(root.text("shell/salesforce-login-history.json").as_deref(), Some("[1]"));
+    assert_eq!(root.text("clouds/local.hyper").as_deref(), Some("staged cloud"));
+    // The staged root goes, with the cache that its migration removed
+    assert!(root.files_starting_with("legacy-profiles").is_empty());
+    assert!(root.dirs_starting_with(STAGED).is_empty());
+    assert!(root.files_starting_with("cache").is_empty());
+}
+
+#[test]
+fn keeps_what_the_root_holds_and_adds_the_rest() {
+    let root = staged_storage();
+    let other_params = trino("https://trino", "");
+    root.set(
+        "dashql-manifest.json",
+        json!({
+            "storageVersion": STORAGE_VERSION,
+            "connections": [{ "id": DB_A, "params": other_params, "createdAt": "t" }],
+            "appSettings": { "keywordCase": "lower" },
+        })
+        .to_string(),
+    );
+    root.dir("workbooktree");
+    root.dir("workbooktree/my workbooks");
+    root.set(
+        "workbooktree/my workbooks/dashql-folder.json",
+        json!({ "workbooks": [{ "path": SESSION_B }] }).to_string(),
+    );
+    root.dir(&format!("workbooks/{SESSION_B}"));
+    root.set(&format!("workbooks/{SESSION_B}/dashql-workbook.json"), workbook_file(SESSION_B, false));
+    root.set(&format!("connections/{DB_A}/dashql-catalog-relations.sql"), "CREATE TABLE kept(id int);");
+    root.dir("clouds");
+    root.set("clouds/local.hyper", "own cloud");
+    // The staged root registers the workbook of the root too, with other files, and a native workbook and a second
+    // connection and setting
+    let at = |path: &str| format!("{STAGED}/{path}");
+    root.set(
+        &at("workbooktree/My Workbooks/dashql-folder.json"),
+        json!({ "workbooks": [{ "path": SESSION_B }, { "path": SESSION_A }, { "path": "native-1", "storageType": "native", "nativePath": NATIVE_DIR }] })
+            .to_string(),
+    );
+    root.dir(&at(&format!("workbooks/{SESSION_B}")));
+    root.set(&at(&format!("workbooks/{SESSION_B}/dashql-workbook.json")), workbook_file(SESSION_B, true));
+    root.set(&at(&format!("workbooks/{SESSION_B}/scripts/1_b.sql")), "SELECT 2");
+    let mut staged = root.json(&at("dashql-manifest.json"));
+    staged["connections"].as_array_mut().unwrap().push(json!({ "id": DB_B, "params": wasm(), "createdAt": "t" }));
+    staged["appSettings"]["agentWorkbooks"] = json!([SESSION_A]);
+    root.set(&at("dashql-manifest.json"), staged.to_string());
+
+    let merged = root.merge(STAGED).unwrap();
+    assert_eq!((merged.workbooks, merged.connections), (2, 1));
+
+    let manifest = root.json("dashql-manifest.json");
+    assert_eq!(manifest_connection_ids(&root), [DB_A, DB_B]);
+    assert_eq!(manifest["connections"][0]["params"], other_params);
+    assert_eq!(manifest["appSettings"], json!({ "keywordCase": "lower", "agentWorkbooks": [SESSION_A] }));
+    assert_eq!(
+        root.json("workbooktree/my workbooks/dashql-folder.json"),
+        json!({ "workbooks": [
+            { "path": SESSION_B },
+            { "path": SESSION_A },
+            { "path": "native-1", "storageType": "native", "nativePath": NATIVE_DIR },
+        ] })
+    );
+    assert!(root.dirs_starting_with("workbooktree/My Workbooks").is_empty());
+    assert_eq!(root.json(&format!("workbooks/{SESSION_B}/dashql-workbook.json"))["metadata"], json!({}));
+    assert_eq!(root.text(&format!("workbooks/{SESSION_B}/scripts/1_b.sql")), None);
+    assert_eq!(
+        root.text(&format!("connections/{DB_A}/dashql-catalog-relations.sql")).as_deref(),
+        Some("CREATE TABLE kept(id int);")
+    );
+    assert_eq!(root.text("clouds/local.hyper").as_deref(), Some("own cloud"));
+    assert!(root.fs.borrow().logs.iter().any(
+        |(level, message)| *level == LogLevel::Warn && message == "Keeping the database of a cloud of the storage"
+    ));
+}
+
+#[test]
+fn merges_nothing_without_a_staged_root() {
+    let root = storage();
+    root.migrate().unwrap();
+    let before = snapshot(&root);
+    assert_eq!(root.merge(STAGED).unwrap(), StorageMergeSummary::default());
+    assert!(snapshot(&root) == before);
+}
+
+#[test]
+fn repeats_a_merge_that_failed_at_any_operation_to_the_same_storage() {
+    let reference = staged_storage();
+    reference.merge(STAGED).unwrap();
+    let expected = snapshot(&reference);
+    let total = reference.fs.borrow().ops;
+    assert!(total > 10);
+    for op in 0..total {
+        let root = staged_storage();
+        root.fs.borrow_mut().fail_at = Some(op);
+        // A failed removal of the query result cache is passed over, the other failures stop the merge
+        let _ = root.merge(STAGED);
+        root.fs.borrow_mut().fail_at = None;
+        root.merge(STAGED).unwrap_or_else(|error| panic!("operation {op}: {}", error.message()));
+        let actual = snapshot(&root);
+        assert!(actual == expected, "operation {op}: {:#?}", diff(&actual, &expected));
+    }
 }

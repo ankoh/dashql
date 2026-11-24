@@ -11,6 +11,8 @@ import {APP_ORIGIN, APP_RESPONSE_HEADERS, contentHeadersFor, isBrotliWasm, isTru
 import {DeepLinkQueue, parseDeepLink, parseDeepLinksFromCommandLine} from "./deep_link.js";
 import {writeFileAtomically} from "./atomic_write.js";
 import {FolderGrants} from "./folder_grants.js";
+import {openLegacyProfile} from "./legacy_profile_window.js";
+import {copiedLegacyProfiles, exportLegacyProfiles, LEGACY_EXPORT_FOLDER, mergeLegacyFolderGrants, removeLegacyProfile, USER_DATA_FOLDER} from "./legacy_profiles.js";
 import {GrpcTestServer, GRPC_TEST_REQUEST, GRPC_TEST_STREAM_BODY, GRPC_TEST_UNARY_RESPONSE} from "./grpc_test_server.js";
 import {NativeProxyService, type NativeProxyRequest, validateNativeProxyRequest} from "./native_proxy.js";
 import {OAuthLoopbackServer} from "./oauth_loopback.js";
@@ -26,6 +28,15 @@ protocol.registerSchemesAsPrivileged([
         },
     },
 ]);
+
+// Electron names the user data folder after the package, which was renamed, so the app pins it and merges the storage
+// of the earlier folders (docs/design/electron.md). Tests and runs that pass --user-data-dir keep their folder and
+// merge nothing.
+const pinnedUserData = !app.commandLine.hasSwitch("user-data-dir");
+if (pinnedUserData) app.setPath("userData", path.join(app.getPath("appData"), USER_DATA_FOLDER));
+/// Resolves once the storage of the earlier profiles was copied out, the renderer merges it at its startup
+let exportedLegacyProfiles: () => void = () => {};
+const legacyExport = new Promise<void>((resolve) => { exportedLegacyProfiles = resolve; });
 
 const moduleDirectory = path.dirname(fileURLToPath(import.meta.url));
 const rendererRoot = process.env.DASHQL_ELECTRON_RENDERER ?? path.join(process.resourcesPath, "renderer");
@@ -472,7 +483,22 @@ if (!hasSingleInstanceLock) {
     });
 
     // The renderer reaches the folders that the user picked, see FolderGrants
-    const folderGrants = FolderGrants.load(path.join(app.getPath("userData"), FOLDER_GRANTS_FILE));
+    // The native workbooks that the earlier profiles registered stay granted
+    const grantsFile = path.join(app.getPath("userData"), FOLDER_GRANTS_FILE);
+    const folderGrants = (pinnedUserData
+        ? mergeLegacyFolderGrants(app.getPath("appData"), grantsFile, FOLDER_GRANTS_FILE).catch((error) => console.error("Failed to merge the folder grants of earlier profiles", error))
+        : Promise.resolve()).then(() => FolderGrants.load(grantsFile));
+
+    // The renderer merges the storage of the earlier profiles at its startup and reports each merged one
+    ipcMain.handle("dashql:legacy-profiles", async (event) => {
+        if (!isTrustedRenderer(event.senderFrame?.url)) throw new Error("Rejected profile request");
+        await legacyExport;
+        return pinnedUserData ? await copiedLegacyProfiles(app.getPath("userData")) : [];
+    });
+    ipcMain.handle("dashql:legacy-profile-merged", async (event, name: unknown) => {
+        if (!isTrustedRenderer(event.senderFrame?.url) || typeof name !== "string") throw new Error("Rejected profile request");
+        if (!pinnedUserData || !(await removeLegacyProfile(app.getPath("userData"), name))) throw new Error("Rejected profile request");
+    });
 
     ipcMain.handle("dashql:open-directory", async (event, title: unknown) => {
         if (!isTrustedRenderer(event.senderFrame?.url) || typeof title !== "string") throw new Error("Rejected directory request");
@@ -653,6 +679,19 @@ if (!hasSingleInstanceLock) {
         nativeProxy = startNativeProxy();
         await nativeProxy.ready();
         const window = await createWindow(testMode);
+        // The hidden windows of the copies open after the main window, the last window to close quits the app outside
+        // of macOS. The renderer waits for the copies before it merges them.
+        if (pinnedUserData && testMode === null) {
+            const userData = app.getPath("userData");
+            void exportLegacyProfiles(app.getPath("appData"), userData, openLegacyProfile, (message, details) => console.log(message, details))
+                .then(async (profiles) => {
+                    if (profiles.length > 0) await (await folderGrants).grantForSession(path.join(userData, LEGACY_EXPORT_FOLDER));
+                })
+                .catch((error) => console.error("Failed to copy the storage of earlier profiles", error))
+                .finally(exportedLegacyProfiles);
+        } else {
+            exportedLegacyProfiles();
+        }
         if (testMode === null) void updater?.check().catch((error) => console.error("Update check failed", error));
         if (testMode === "startup") {
             await runStartupSmokeTest(window);

@@ -112,6 +112,8 @@ export async function findOPFSCleanupCandidates(
     // Without Web Locks there is no telling which instance folders are alive, they are left alone
     const heldLocks = locks == null ? null : new Set(((await locks.query()).held ?? []).map(lock => lock.name));
     const candidates: OPFSCleanupCandidate[] = [];
+    // The folder where the desktop app stages the storage of its earlier profiles, see storage_migration.ts
+    const stagedProfiles = instance.stagedProfileFolder('profile').split('/')[0];
     const add = (path: string[], directory: boolean, reason: string, guard: OPFSCleanupCandidate['guard'] = null, lockName: string | null = null) => {
         candidates.push({ path, directory, reason, guard, lockName });
     };
@@ -164,7 +166,10 @@ export async function findOPFSCleanupCandidates(
                 add([name], true, 'Files of the browser tests');
                 break;
             default:
-                if (name.startsWith(HYPER_LEGACY_INSTANCE_PREFIX) && isUuid(name.slice(HYPER_LEGACY_INSTANCE_PREFIX.length))) {
+                // The desktop app copies the storage of an earlier profile there again at its next start
+                if (name === stagedProfiles) {
+                    add([name], true, 'Storage of an earlier profile that did not merge');
+                } else if (name.startsWith(HYPER_LEGACY_INSTANCE_PREFIX) && isUuid(name.slice(HYPER_LEGACY_INSTANCE_PREFIX.length))) {
                     if (heldLocks != null && !heldLocks.has(name)) add([name], true, 'Database of an earlier version', null, name);
                 } else {
                     add([name], true, UNUSED);
