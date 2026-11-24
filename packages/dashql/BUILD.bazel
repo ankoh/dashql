@@ -8,24 +8,21 @@ load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 load("//bazel:eslint.bzl", "eslint_test")
 load(":glue.bzl", "dashql_wasm_glue")
 
-# DashQL in TypeScript, shared by the app (//packages/dashql-app) and the command line tool (//packages/dashql-cli), see
+# DashQL in TypeScript, shared by the app (//packages/dashql-app) and the hosts in Node, see
 # docs/design/dashql_runtime.md. Three folders of src/ with the rules of test/boundary_test.mjs:
 #
 # - src/core: the bindings of the core module (the Wasm of //packages/dashql-core-bindings), the generated packages of the
 #   core module (@akohn/dashql-wasm, @akohn/dashql-flatbuffers) are folders of Bazel next to them,
-# - src/platform: the platforms of the runtime, the storage, the connector clients and the support of the command line
-#   tool, on the bindings,
+# - src/platform: the platforms of the runtime, the storage and the connector clients, on the bindings,
 # - src/runtime: the facade over the runtime of the core module (createRuntime), the store of its views and the adapters
 #   that build the platform of the core from the objects of the platform.
 #
-# A source package, nothing is compiled: the app, the command line tool and the tests bundle and run the TypeScript
-# itself. Linked as //:node_modules/@akohn/dashql with the generated Wasm, the dev server of the app reads src/ directly.
+# A source package, nothing is compiled: the app and the tests bundle and run the TypeScript itself. Linked as //:node_modules/@akohn/dashql with the generated Wasm, the dev server of the app reads src/ directly.
 # :npm_tarball is the package on npm (npm/package.json): the modules as JavaScript with their declarations, the generated
 # packages inlined.
 
 package(default_visibility = ["//visibility:public"])
 
-# The package on npm of the command line tool depends on this version, //packages/dashql-cli:npm_package_test
 exports_files([
     "npm/package.json",
     "package.json",
@@ -319,7 +316,7 @@ genrule(
 )
 
 # The version of the package is the npm version of the build (DASHQL_VERSION_NPM), not the one in npm/package.json: CI
-# publishes every build that it deploys, and the page names the command line tool of its own build
+# publishes every build that it deploys
 genrule(
     name = "npm_manifest",
     srcs = [

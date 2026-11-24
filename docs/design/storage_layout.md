@@ -176,18 +176,11 @@ empty `logs/` folder at startup, before the instance settings apply.
 
 ## The root of Node
 
-The command line tool keeps its files in a folder of its own with the same layout: `workbooks/<id>/results/`,
-`workbooks/<id>/attachments/` and `instances/<id>/`. The folder is the workspace that the command takes
-(the one that holds a copy of a tab, else `--workspace`, `.dashql/` of the invoking directory by default), which `dashql init` or `dashql connect` set up, the
-folder that also holds the session of `dashql connect`, in its workspace file and with its copies in `workbooks/`
-(`docs/design/agent_session.md`). The files of a project stay in the project, where the commands in the sandbox of a
-harness may write; the workspace ignores itself. The modules of the
-runtime reach it through the handles of
+A runtime in Node keeps its files in a folder of its own with the same layout: `workbooks/<id>/results/`,
+`workbooks/<id>/attachments/` and `instances/<id>/`. The modules of the runtime reach it through the handles of
 `node/node_directory_handle.ts` instead of `navigator.storage`, and the Node build of hyperdb-wasm mounts it at `/mnt/fs`,
-so the Hyper paths are the ones of the browser. `dashql run` mirrors the attachments of a workbook folder into it and
-removes its instance folder when it ends. It is not the root of the app: a viewer that shows results of the command line
-tool copies them into its own storage. The Web Locks of its stored results span one process, see
-`docs/design/dashql_runtime.md`.
+so the Hyper paths are the ones of the browser. It is not the root of the app. The Web Locks of its stored results span
+one process, see `docs/design/dashql_runtime.md`.
 
 ## Native workbooks
 

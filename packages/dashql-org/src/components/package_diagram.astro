@@ -95,8 +95,7 @@ const cards: DiagramCard[] = [
                 y: 290,
                 width: lastColumnWidth,
                 height: 140,
-                badge: 'npm',
-                lines: [{ text: 'dashql-cli' }, { text: 'The dashql command', tone: 'accent' }, { text: 'Lints, formats and runs SQL' }, { text: 'Live sessions of agents' }],
+                lines: [{ text: 'dashql-cli' }, { text: 'The dashql of agents', tone: 'accent' }, { text: 'Rust, in the desktop app' }, { text: 'Calls the open workbook' }],
             },
         ],
     },
@@ -311,12 +310,12 @@ const edges: DiagramEdge[] = [
     // The apps and tools
     { from: 'dashql-org', to: 'dashql-app', path: 'M352 360 H392' },
     { from: 'dashql-native', to: 'dashql-app', path: 'M740 360 H700' },
+    { from: 'dashql-native', to: 'dashql-cli', path: 'M1048 360 H1088' },
     { from: 'dashql-org', to: 'dashql-react', path: 'M198 430 V474 H440 V552' },
     { from: 'dashql-app', to: 'dashql-react', path: 'M520 430 V552' },
     // The app shares its trunk to dashql with the lane to hyperdb-wasm, the one edge that crosses another
     { from: 'dashql-app', to: 'dashql', path: 'M640 430 V464 H800 V552' },
     { from: 'dashql-app', to: 'hyperdb-wasm', path: `M640 430 V464 H1386 V912 H${column[3] + lastColumnWidth}` },
-    { from: 'dashql-cli', to: 'dashql', path: `M${lastColumnCenter} 430 V484 H980 V552` },
     // The TypeScript packages
     { from: 'dashql-react', to: 'dashql', path: 'M700 636 H740' },
     { from: 'dashql', to: 'hyperdb-edge', path: 'M1048 636 H1088' },
@@ -359,7 +358,7 @@ const arrow = `${diagram}-arrow`;
         dashql-org takes the brand assets of the app, and the desktop app dashql-native wraps the bundle of dashql-app in Electron. The website
         builds on dashql-react, the hooks, models, components and design tokens. The app builds on dashql-react, on dashql, the runtime in
         TypeScript published on npm as @akohn/dashql, and on hyperdb-wasm, the embedded Hyper of its web connections and its embed. The
-        command line tool dashql-cli builds on dashql, and so does dashql-react. dashql binds the core module dashql_core.wasm and the
+        desktop app bundles dashql-cli, the Rust command that the agents of its questions call. dashql-react builds on dashql. dashql binds the core module dashql_core.wasm and the
         dataflow layout dashql_dataflow.wasm, runs Hyper on hyperdb-wasm and checks the WebAssembly features of Node with hyperdb-edge, which
         is built on hyperdb-wasm too. The core module links the Rust crates dashql-core-bindings, dashql-core-shell, dashql-core-storage,
         dashql-core-runtime, dashql-core-profile, dashql-core and dashql-parser. The bindings use all of them. The storage builds on the

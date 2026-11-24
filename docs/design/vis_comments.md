@@ -134,7 +134,7 @@ visualization) and leaves a column it doesn't name null. `readKpi` of `@akohn/da
 picks the columns of the result and reads the card from its rows: the core knows the output columns of a query only
 when no `*` hides them, the result always has them, and the reading goes through every value, so it is TypeScript (see
 Compilation and rendering). The card of `@akohn/dashql-react` (`components/visualization/kpi_view`) draws the reading,
-`dashql vis` prints it for an agent and checks it (`kpiProblems`, see `packages/dashql-cli/README.md`).
+`dashql vis` prints it for an agent and checks it (`kpiProblems`, see `docs/design/agent_integration.md`).
 
 The tag is named after the KPI card of dashboards. `metric` would read well too, but it is the name of a defined
 measure in semantic layers, which a card that shows a column of a query is not.

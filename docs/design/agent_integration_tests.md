@@ -3,19 +3,19 @@
 The integrations with agent harnesses rest on assumptions about their sandboxes: what a command of the agent can
 reach, where hooks run, what an approval by prefix allows. The tests in `//tests/agents` run the real harnesses, Claude
 Code and Codex, with a fake model, so they check those assumptions on every machine that runs them, without model calls
-and in CI: the sandbox, the hooks, the ways out of the sandbox, a session server of hooks, `dashql lint` and `dashql
-connect`. `dashql run` in the sandboxes and opencode are planned.
+and in CI: the sandbox, the hooks, the ways out of the sandbox, and a question as the desktop app runs it
+([agent_integration.md](agent_integration.md)). opencode is planned.
 
 | Part | State |
 |---|---|
 | Harness binaries from npm, pinned and verified (`//bazel:external_agent_harnesses.bzl`) | Claude Code 2.1.325, Codex 0.169.0 |
 | Fake Messages API of Anthropic (`tests/agents/fake_anthropic.mjs`), fake Responses API of OpenAI (`tests/agents/fake_openai.mjs`) | Done |
-| `//tests/agents:claude_code_sandbox_test`: loopback from a command with and without the sandbox and from hooks, `excludedCommands`, a request to leave the sandbox with and without a rule, a session server, `dashql lint`, `dashql connect`: the events of a turn in its server, the guide in the system prompt, `dashql` and the copies without approval, other files only with one | Done |
-| `//tests/agents:codex_sandbox_test`: `workspace-write`, hooks in `workspace-write` and `read-only`, an `allow` rule, a request to escalate, a session server, `dashql lint`, `dashql connect`: the events of a turn in its server | Done |
+| `//tests/agents:claude_code_sandbox_test`: loopback from a command with and without the sandbox and from hooks, `excludedCommands`, a request to leave the sandbox with and without a rule, a session server; a question that the app runs: the calls of `dashql scripts` and `dashql edit --file input/…` reach the page, the guide in the system prompt, other commands refused, the next question resumes | Done |
+| `//tests/agents:codex_sandbox_test`: `workspace-write`, hooks in `workspace-write` and `read-only`, an `allow` rule, a request to escalate, a session server; a question that the app runs: the calls reach the page with the network of `workspace-write`, `AGENTS.md`, the next question resumes | Done |
 | `//tests/agents:hyperdb_edge_claude_code_test` and `hyperdb_edge_codex_test`: hyperdb-edge in both sandboxes, see [hyperdb_edge.md](../wip/hyperdb_edge.md#harness-tests) | Done |
 | `//tests/agents:hyperdb_edge_tool_runner_test` and `hyperdb_edge_agent_sdk_test`: the tools of hyperdb-edge in the Tool Runner and the Claude Agent SDK, see [hyperdb_edge.md](../wip/hyperdb_edge.md#in-process-tools). The fake Messages API follows the message threads of the Tool Runner | Done |
-| The hooks of `dashql connect` in both harnesses: its server holds the question, the command and the final message | Done |
-| `dashql run` in both sandboxes outside a session: the embedded Hyper, its root in the workspace, `.dashql/` | Planned |
+| A question through `AgentHost` of `packages/dashql-native` (compiled, without Electron) with a fake page (`tests/agents/dashql_app.mjs`) that answers the calls of the Rust `dashql` | Done |
+| A question in Electron through the IPC of the page | Planned |
 | opencode | Planned |
 | The job `agent_integration` of `build_trusted.yml` and `build_untrusted.yml` | Added; the first run on GitHub failed on AppArmor (see [Findings](#findings)), the fix not yet run |
 
@@ -79,13 +79,14 @@ Claude Code, the ways out of the sandbox for one command:
 | `dangerouslyDisableSandbox: true` with `sandbox.allowUnsandboxedCommands = false` | ignored, runs in the sandbox |
 | `allowed_domains: ["127.0.0.1"]` from the model | loopback stays blocked |
 
-So an agent asks the two harnesses differently for `dashql run`: Claude Code with `dangerouslyDisableSandbox` and a
-rule for the command (the "always" of an approval), Codex without a request and an `allow` rule.
+Every `dashql` command calls the app on loopback. The app runs Codex in `workspace-write` with the network on, its
+sandbox can't allow only loopback. Claude Code in `-p` runs a command in its sandbox only when the settings of the user
+turn the sandbox on; then `dashql` needs `sandbox.excludedCommands` or a rule for it, see Open of
+[agent_integration.md](agent_integration.md#open).
 
 **A session server.** A `SessionStart` hook that starts a server on loopback (in the background, its output
 redirected) keeps it for the session in both harnesses: the `PostToolUse` and `Stop` hooks reach it, a command of the
-agent in the sandbox doesn't. That is the transport of the live view without a menu bar app. **`dashql lint`** (Node running
-the bundle of `//packages/dashql-cli:bundle`, as an installation does) runs in both sandboxes.
+agent in the sandbox doesn't.
 
 **AppArmor on Ubuntu.** Ubuntu confines `/usr/bin/bwrap` with the profiles `bwrap` and `unpriv_bwrap`
 (`/etc/apparmor.d/bwrap-userns-restrict`): a child of bwrap may create a user namespace but gets no capabilities in
@@ -96,15 +97,13 @@ CAP_SYS_ADMIN): Permission denied`, while commands outside the sandbox and hooks
 its own bubblewrap and isn't affected. The CI job removes the two profiles; a user of Ubuntu needs the same, or a rule in
 `/etc/apparmor.d/local/unpriv_bwrap`.
 
-Hooks run outside the sandbox in both harnesses, so they are the way out of it for the live view: the hooks of `dashql
-connect` carry the events of the agent to its server, while the commands of the agent work on files. The test checks loopback;
-DNS and listening were checked by hand. Writing outside the workspace isn't checked yet, the `HOME` of the test is
+Hooks run outside the sandbox in both harnesses. The app reads the events of a turn from the output of the harness
+instead, it needs no hooks. The test checks loopback; DNS and listening were checked by hand. Writing outside the workspace isn't checked yet, the `HOME` of the test is
 below the temporary folder, which the sandbox may allow.
 
 ## Next
 
-- **`dashql run` in the sandboxes:** outside a session the embedded Hyper starts there, its root is the workspace, the
-  `.dashql/` of the project, which the sandboxes may write.
+- **Electron:** a question through the IPC of a window, with a fake harness on the `PATH` that calls `dashql edit`.
 - **opencode:** its plugins run in its process and see every event.
 - **CI:** the job `agent_integration` installs `bubblewrap` and `socat` on `ubuntu-26.04`, lifts the restriction of
   unprivileged user namespaces of Ubuntu, removes the AppArmor profiles `bwrap` and `unpriv_bwrap`, and runs

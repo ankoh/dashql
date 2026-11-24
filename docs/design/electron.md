@@ -118,6 +118,7 @@ adapters accordingly. The bridge type is declared in `packages/dashql-app/types/
 | Updates | `electron-updater` in main (`src/updater.ts`) |
 | Earlier profiles | `dashql:legacy-profiles` lists the copies of the storage of earlier user data folders once they are made, `dashql:legacy-profile-merged` removes a merged one, see User Data Folder |
 | Pending writes | Before a window closes and before the app quits, main sends `dashql:flush` and waits up to 5 s for `dashql:flushed`; the renderer flushes its storage writer through `onFlush` |
+| Agents | `AgentHost` (`src/agent/`) runs a harness of the machine for a question and serves the `dashql` commands of its agent on `127.0.0.1`: `dashql:agent-info`, `-ask`, `-stop`, `-forget`, `-write-file`, `-reply`, and the pushes `dashql:agent-event`, `-call`, `-call-cancel`. A window that reloads or closes stops its turns, quitting stops all of them. See `agent_integration.md` |
 
 ## User Data Folder
 
@@ -159,7 +160,10 @@ The earlier folders themselves stay as they are, a backup that the user may dele
   extra resources, the app uses the hardened runtime, and
   `Entitlements.plist` allows JIT, unsigned executable memory, disabled library validation, network client
   access and user-selected file access.
-- The addon is built per architecture (`//packages/dashql-native/proxy:addon_aarch64`, `:addon_x86_64`).
+- The addon is built per architecture (`//packages/dashql-native/proxy:addon_aarch64`, `:addon_x86_64`), and so is the
+  `dashql` of the agents (`//packages/dashql-cli:dashql_aarch64`, `:dashql_x86_64`), which ships as
+  `Contents/Resources/bin/dashql`. An unpackaged app gets it with `--dashql-cli=<path>` from `scripts/run_electron.sh`.
+- The fuse `runAsNode` is off (`electronFuses` of `electron-builder.yml`).
 - Only macOS is packaged.
 
 ## Signing and Notarization

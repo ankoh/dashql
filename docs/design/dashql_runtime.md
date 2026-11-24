@@ -9,22 +9,22 @@ over the crate `dashql_core_runtime`, see [dashql_core.md](dashql_core.md).
 TypeScript holds one facade over it, `Runtime` of `packages/dashql/src/runtime/runtime.ts`. The facade builds the
 platform object that the Rust runtime calls for its I/O, owns the handle table of the JavaScript objects that Rust
 names by number, keeps the store of the views that the app reads, and has typed commands where a caller needs more than
-the module returns. The app, the shell of Hyper, the command line tool and the tests hold the same class.
+the module returns. The app, the shell of Hyper and the tests hold the same class.
 
 This document describes the runtime from the outside in: the package, the platform, the seam between TypeScript and
 Rust, the app, Node, and the tests.
 
 ## The package `@akohn/dashql`
 
-`packages/dashql` is one source package, `@akohn/dashql`. Nothing in it is compiled: the app, the command line tool and
-the tests bundle and run its TypeScript. It is linked as `//:node_modules/@akohn/dashql` for Bazel, and mapped in the
+`packages/dashql` is one source package, `@akohn/dashql`. Nothing in it is compiled: the app and the tests bundle and run
+its TypeScript. It is linked as `//:node_modules/@akohn/dashql` for Bazel, and mapped in the
 root `tsconfig.json` and the Vite config of the app for editors and the dev server. Its three folders of `src/`:
 
 | Folder | Imported as | Holds |
 |---|---|---|
 | `src/core` | `@akohn/dashql`, `/buffers`, `/browser-worker`, `/batch-worker`; the Wasm and its glue as `/wasm`, `/dataflow-wasm`, `/wasm/glue` | The bindings of the core module: the API over the Wasm (`api.ts`), the `Runtime` class of the module (`runtime.ts`), the batch worker, `readFlatBuffer` and `FlatBufferCache` (`flatbuffer_view.ts`), the generated FlatBuffers |
 | `src/runtime` | `@akohn/dashql/runtime/<path>` | The facade (`runtime.ts`), the store of the views (`store/`), the view projections, and the adapters that build the platform object of the module from the objects of the platform |
-| `src/platform` | `@akohn/dashql/platform/<path>` | The platforms of the browser, the desktop app and Node; the storage backends (OPFS, the composite of OPFS and native workbook folders, native folders) and the storage root, the stored results of the workbooks (`platform/workbook/`), the embedded Hyper (`platform/hyperdb/`), HTTP, the logger, OAuth, the connector clients and channels, the types of the views as the app reads them, UI helpers that more than the app uses, and the session support that the command line tool shares with the app |
+| `src/platform` | `@akohn/dashql/platform/<path>` | The platforms of the browser, the desktop app and Node; the storage backends (OPFS, the composite of OPFS and native workbook folders, native folders) and the storage root, the stored results of the workbooks (`platform/workbook/`), the embedded Hyper (`platform/hyperdb/`), HTTP, the logger, OAuth, the connector clients and channels, the types of the views as the app reads them, UI helpers that more than the app uses, and the conversation of the agent on a workbook (`platform/session/`) |
 
 Only the generated parts are outputs of Bazel, folders in `dependencies/` of `bazel-bin/packages/dashql`, and the
 sources import them by name: `@akohn/dashql-wasm` (`:dep_wasm`, the wasm-bindgen glue and the Wasm of the core and of
@@ -120,7 +120,7 @@ of the module that the runtime builds from it):
 | `computeDatabase` | no | A provider, `() => Promise<EmbeddedComputeDatabase>`: the runtime calls it when a computation, a run or the stored results first need the database and waits until the platform set it up. `runtime.computeDatabase` (`compute_database.ts`) wraps it: it is `ready` once the provider resolved, until a call fails, and the app reads that (`useComputeReady`) |
 | `results` | no | The `WorkbookResultFiles` of the stored results of the scripts (`createWorkbookResultFiles`, `platform/workbook/workbook_result_files.ts`), the runtime adapts it to `RuntimeResults` |
 | `archives` | no | A factory over the handle table that reads and writes `.dashql` archives (`createRuntimeArchives` of `workbook_archives.ts`: zip.js, Parquet through the embedded Hyper) |
-| `catalogLoader` | no | Run the catalog loader, true by default. `dashql run` and most tests turn it off |
+| `catalogLoader` | no | Run the catalog loader, true by default. Most tests turn it off |
 | `queryCommands` | no | Stand in for `execute`, `cancel` and `watchProfile` of the facade, e.g. in the tests of components. The services of the runtime keep the executor of the module |
 | `settings` | no | The timings and limits that a host may choose (`RuntimeSettings`): the pause before the background analyses, the heartbeat and the query timeout of the catalog loader, the internal queries a history keeps. The defaults are those of DashQL, read once when the runtime is created |
 
@@ -205,7 +205,7 @@ A parent lists the ids of its children, not their revisions: a keystroke changes
    computation; a refreshed token of a connection; the releases of handles; and the slices that were busy or that the
    host asked for again. Everything else is urgent: actions, setups, workbooks, runs, the storage.
 2. The store flushes at the end of the task when urgent, before the next frame otherwise (`RuntimeStore.changed` over
-   the `UpdateScheduler`). `flush()` flushes at once, e.g. for the command line tool and the tests.
+   the `UpdateScheduler`). `flush()` flushes at once, e.g. for the commands of an agent and the tests.
 3. `takeChanges()` returns the marked slices, `{ kind, id, revision }` with a null revision for a slice that is gone,
    and the effects on handles (`runtime/changes.rs` of the bindings). A marked slice moves: a script, a query, a
    computation, a run and the storage with the revision of their object, which tells the objects of a mark that
@@ -340,13 +340,13 @@ is a typed method with its contract rather than a generated table, the app reads
 The app calls the module only through the facade, which also passes on the commands that need nothing of it:
 `allocateId`, `catalogRelationsFile`, `bindHyperLink`, `revealConnectionSecrets`, `exportConnection`,
 `exportedResults`, `withStoredResult`, `dropImport`, `checkWorkbookFolders` and `answerExternalChange`;
-`//packages/dashql-app:component_boundary_test` fails on a `runtime.module` in a module of the app. The command line
-tool and the tests reach the module (`runtime.module`) for the rest, e.g. `runCatalogLoader`, `resultKeys`,
+`//packages/dashql-app:component_boundary_test` fails on a `runtime.module` in a module of the app. The tests reach the
+module (`runtime.module`) for the rest, e.g. `runCatalogLoader`, `resultKeys`,
 `migrateWorkbookFolder`, `queryProgressRecording` and `followQueryProgress`.
 
 **Reported runs.** `runWorkbookReported` (`src/runtime/workbook_run_report.ts`) runs the scripts of a workbook and
-reports what happens as `RunEvent`s (`src/platform/workbook/run_events.ts`): `dashql run` prints them, and a tab that
-runs a workbook for the agent of a session sends them back to `dashql run` (`docs/design/agent_integration.md`, "Runs in the tab").
+reports what happens as `RunEvent`s (`src/platform/workbook/run_events.ts`): the page prints them for the `dashql run`
+and `dashql vis` of an agent (`docs/design/agent_integration.md`).
 The core decides the report (`workbook_run/report.rs` of the core runtime): which scripts a run that names them reports
 (`runScripts`), what a connection is called in the events (`runConnectionLabel`), and how the run ended for its scripts
 (`finishRunReport`); the facade keeps the events in order and the timings.
@@ -498,18 +498,14 @@ The editors tell the runtime which scripts they show (`showScript`, `hideScript`
 analyzed right away, the other shown ones once the changes pause, see
 [dashql_core.md](dashql_core.md#workbooks-and-scripts).
 
-## Node and the command line tool
+## Node
 
-The Node `dashql` (`packages/dashql-cli`, see its [README](../../packages/dashql-cli/README.md)) runs on the same
-runtime: `dashql run` creates a runtime over `createNodePlatform` with a `NativeStorageBackend` of the workbook folder,
-the embedded Hyper as its compute database and its stored results, and the catalog loader off; it restores the folder with
-`restoreWorkbook`, sets up its connections with `setupConnection` (the credentials of the environment as
-`channelParams`, never written), runs with `runWorkbook` and a listener of script events, and reads the progress from
-the `query` views. `lint` and `format` use the bindings and no runtime (`sql_lint.ts`, `sql_format.ts` and `sql_report.ts` of the command
-line tool), and `run` mirrors the attachments of a workbook folder into the root of Node (`attachment_mirror.ts`).
+The runtime runs in Node over `createNodePlatform` (`runtime/node/node_platform.ts`), e.g. in the tests of the
+runtime: a `NativeStorageBackend` of a workbook folder, the embedded Hyper as its compute database and its stored
+results, and the catalog loader off.
 
-- **The root of Node.** The CLI brings a folder with the layout of the origin private file system
-  ([storage_layout.md](storage_layout.md)): the workspace, the one of a copy of a tab, `--workspace` or `.dashql/` of the invoking directory.
+- **The root of Node.** A host in Node brings a folder with the layout of the origin private file system
+  ([storage_layout.md](storage_layout.md)).
   `useNodeRoot` of `platform/node/node_hyperdb.ts` hands the modules that keep files `NodeDirectoryHandle`s over
   `node:fs` (`platform/node/node_directory_handle.ts`) through `setOPFSRootProvider`, and the Node build of
   `hyperdb-wasm` mounts the root at `/mnt/fs` like OPFS. Instance folders are held by a pid file in Node
@@ -520,10 +516,7 @@ line tool), and `run` mirrors the attachments of a workbook folder into the root
   `checkWasmFeatures` of `@akohn/hyperdb-edge` enables with `v8.setFlagsFromString` before the engine compiles: a flag
   on the command line would break approving the command by its prefix, and the worker of the engine gets the flag
   too. Node 22 can't run it (V8 rejects the tables), nor can Bun or Safari
-  (JavaScriptCore has no memory64). The CLI loads `hyperdb-wasm` only in commands that need it, so the commands without
-  Hyper run on Node 22 (`engines: node >=22`).
-- **Agent sessions.** The server of `dashql connect` and the folder of a session are in
-  [agent_session.md](agent_session.md).
+  (JavaScriptCore has no memory64).
 
 ## The package on npm
 

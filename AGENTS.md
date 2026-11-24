@@ -35,8 +35,8 @@ start with `packages/` or `extensions/`.
   `design/hyper_links.md`, `misc/setup_hyperd.md`
 - Client functions: `design/client_functions.md`, `design/extensions.md`, `design/extensions/api_survey.md`, the Data
   360 extension in `extensions/d360-api/clfn/docs/` (`overview.md`, `functions.md`, `api_notes.md`)
-- Agents: `design/agent_integration.md` (start here), `design/agent_session.md`, `design/agent_integration_tests.md`,
-  `wip/agent_session.md` (planned), `packages/dashql-cli/README.md` (the `dashql` commands)
+- Agents: `design/agent_integration.md` (start here: the desktop app runs a harness per question, the agent calls the
+  page with `dashql`), `design/agent_integration_tests.md`, `packages/dashql-cli/README.md` (the `dashql` commands)
 - hyperdb-edge: `wip/hyperdb_edge.md`, `wip/hyperdb_edge_stores.md`
 - Website: `agents/architecture_diagrams.md` (the style of the architecture diagrams of dashql.org, for new ones)
 - Hosts and embeds: `design/electron.md` (desktop app), `design/app_csp.md`, `design/document_isolation_policy.md`,
