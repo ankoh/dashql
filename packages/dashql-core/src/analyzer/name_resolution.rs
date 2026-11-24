@@ -1971,14 +1971,21 @@ impl NameResolutionPass {
     }
 
     /// The columns of an unqualified star: the columns of the FROM items in FROM order, a join with USING or NATURAL
-    /// has its join columns once, before the other columns of its inputs
+    /// has its join columns once, before the other columns of its inputs. RETURNING of UPDATE, DELETE and MERGE lists
+    /// the target first, then the relations that they read, as in PostgreSQL.
     fn star_columns(&self, state: &AnalysisState, scope: &NameScope) -> Vec<ScopeColumn> {
+        let node = state.node(scope.ast_node_id);
+        let [update_target, delete_target, merge_target] = node.map_or([None; 3], |node| {
+            attrs!(state.children(node), [K::SQL_UPDATE_TARGET, K::SQL_DELETE_TARGET, K::SQL_MERGE_TARGET])
+        });
+        let target = update_target.or(delete_target).or(merge_target).map(|t| state.node_id(t));
         // The `excluded` row of ON CONFLICT is no FROM item
         let flat = || {
             let sources = scope.sources.iter().filter(|s| !Self::is_insert_excluded(state, s));
-            sources.flat_map(|source| Self::source_columns(state, source)).collect()
+            let (targets, reads): (Vec<_>, Vec<_>) = sources.partition(|s| Some(s.ast_node_id) == target);
+            targets.into_iter().chain(reads).flat_map(|source| Self::source_columns(state, source)).collect()
         };
-        let Some(node) = state.node(scope.ast_node_id) else { return flat() };
+        let Some(node) = node else { return flat() };
         let [from] = attrs!(state.children(node), [K::SQL_SELECT_FROM]);
         let Some(from) = from.filter(|n| n.node_type() == NodeType::ARRAY) else { return flat() };
         let mut columns = Vec::new();

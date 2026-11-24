@@ -366,7 +366,8 @@ The rules follow PostgreSQL and Hyper:
   not laterally, as in PostgreSQL: neither their column refs, the conditions of their joins (a clause
   `SourceVisibility::Except` of the target around the read relations), nor a function in FROM and a lateral derived
   table among them (`BeforeExcept`). The conditions, the values and
-  RETURNING of UPDATE, DELETE and MERGE see the target and the read relations; the source of INSERT sees no target.
+  RETURNING of UPDATE, DELETE and MERGE see the target and the read relations, its `*` lists the columns of the target
+  first, then those of the read relations; the source of INSERT sees no target.
   A `WHEN NOT MATCHED [BY TARGET]` clause of MERGE sees the source only, a `WHEN NOT MATCHED BY SOURCE` clause the
   target only, also from its subqueries (`SourceVisibility::Except` and `Only` of the target), `t.b` of the relation
   that a clause doesn't see is an invalid reference to a FROM-clause entry. The scope publishes

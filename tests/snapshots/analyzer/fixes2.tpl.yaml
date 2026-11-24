@@ -9,3 +9,19 @@ analyzer-snapshots:
       input: |-
         select * from t where a = 1 and abs(b) > 2;
         select * from u where c = 3 and abs(a) > 4
+
+  # RETURNING * of UPDATE ... FROM lists the columns of the target first, then those of the read relations
+  - name: update_from_returning_star_target_first
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: with x as (update t set b = 1 from u where u.a = t.a returning *) select * from x
+
+  # RETURNING * of DELETE ... USING lists the columns of the target first, then those of the read relations
+  - name: delete_using_returning_star_target_first
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: with x as (delete from v using w where v.id = w.id returning *) select * from x
