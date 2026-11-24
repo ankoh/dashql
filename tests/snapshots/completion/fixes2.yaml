@@ -712,6 +712,66 @@ completion-snapshots:
               detail: "text · t"
       text: "."
 
+  - name: fix_catalog_table_over_keyword
+    catalog:
+      script:
+        input: |-
+          create table orders (id int, amount int);
+        errors: []
+    editor:
+      input: |-
+        select * from ord
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/unresolved, text: "ord"}
+    cursor:
+      search:
+        text: 'ord'
+        index: 3
+    completions:
+      limit: 5
+      strategy: TABLE_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: orders
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "ord"
+          location-qualified: "ord"
+          objects:
+            - type: table
+              id: "256.65536.1:0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: orders
+              qualified-idx: 0
+              prefer-qualified: 0
+              detail: "2 columns"
+              columns: ["id integer","amount integer"]
+        - value: order
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "ord"
+          location-qualified: "ord"
+          objects: []
+        - value: ordinality
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "ord"
+          location-qualified: "ord"
+          objects: []
+        - value: ord
+          candidate-tags: [IDENTITY]
+          location: "ord"
+          location-qualified: "ord"
+          objects: []
+        - value: password
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+          location: "ord"
+          location-qualified: "ord"
+          objects: []
+      text: "ord"
+
   - name: fix_on_conflict_excluded_dot
     catalog:
       script:

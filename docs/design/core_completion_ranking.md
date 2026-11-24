@@ -26,7 +26,7 @@ The base score is the maximum across all name tags the candidate carries (a name
 
 Expected grammar symbols at the cursor position are extracted by `probe::parse_until_with_snapshot`.
 Keywords have no base score from the name-scoring table.
-Instead, they receive an extra +20 keyword-substring bonus when both `EXPECTED_PARSER_SYMBOL` and `SUBSTRING_MATCH` are set — i.e. the user is typing toward a keyword the grammar accepts here. This levels the playing field with name-index candidates.
+Instead, they receive an extra +17 keyword-substring bonus when both `EXPECTED_PARSER_SYMBOL` and `SUBSTRING_MATCH` are set — i.e. the user is typing toward a keyword the grammar accepts here. This levels the playing field with name-index candidates, but even with the highest prevalence (+4) a keyword stays below a likely name of the catalog (20 + 2): `select * from ord` offers the table `orders` before the keyword `order`.
 
 Keywords also carry a prevalence tier reflecting how commonly they appear in SQL:
 
@@ -44,7 +44,7 @@ After the base score, tags contribute additive modifiers:
 | Tag                                                  | Modifier | When it fires                                                |
 |------------------------------------------------------|----------|--------------------------------------------------------------|
 | `SUBSTRING_MATCH`                                    | +30      | User's input appears as a substring of the candidate name    |
-| `EXPECTED_PARSER_SYMBOL` ∧ `SUBSTRING_MATCH` (combo) | +20      | Substring-matched expected keyword (applied on top of `SUBSTRING_MATCH`) |
+| `EXPECTED_PARSER_SYMBOL` ∧ `SUBSTRING_MATCH` (combo) | +17      | Substring-matched expected keyword (applied on top of `SUBSTRING_MATCH`) |
 | `EXACT_MATCH`                                        | +15      | User's input is exactly equal to the candidate name          |
 | `IN_NAME_SCOPE`                                      | +10      | Candidate is reachable through the current naming scope      |
 | `PREFIX_MATCH`                                       | +5       | User's input is a prefix of the candidate name               |
@@ -60,7 +60,7 @@ After the base score, tags contribute additive modifiers:
 | `SUFFIX_INCOMPATIBLE`                                | -15      | Candidate shifts but the next real post-cursor token rejects it (mid-statement noise) |
 
 The `SUFFIX_*` tags come from the suffix probe (see `core_completion.md`).
-The penalty is large enough to bury an otherwise-strong keyword (e.g. `FROM` with the keyword-substring bonus +20 + `KEYWORD_A` +4 + `SUBSTRING_MATCH` +30 = 54 → 39) but not large enough to remove it from the candidate set, so users editing in a partly-broken statement still see all options.
+The penalty is large enough to bury an otherwise-strong keyword (e.g. `FROM` with the keyword-substring bonus +17 + `KEYWORD_A` +4 + `SUBSTRING_MATCH` +30 = 51 → 36) but not large enough to remove it from the candidate set, so users editing in a partly-broken statement still see all options.
 Only `SUFFIX_DEPTH_MANY` carries a bonus today; `SUFFIX_DEPTH_ONE` is tagged but contributes zero, so single-token-suffix candidates rank with the rest of the k=1-compatible keywords.
 The bonus on `MANY` is intentionally small (+1) so that legitimately-fitting keywords don't outrank substring-matching catalog identifiers.
 
@@ -95,7 +95,9 @@ The constants are chosen so that these relations hold; nothing in the code asser
 - An unlikely name that is a substring match outweighs a likely name that isn't (`10 + 30 > 20`).
 - Being in scope outweighs being a prefix (`10 > 5`).
 - An exact match outweighs being in scope (`15 > 10`).
-- A likely catalog name with `THROUGH_CATALOG` outranks an expected keyword with substring bonus alone (`20+2 > 20`).
+- A likely catalog name with `THROUGH_CATALOG` outranks an expected keyword with substring bonus and any prevalence
+  (`20+2 > 17+4`), and a likely name of the script one with substring bonus and a prevalence of `KEYWORD_C` or
+  lower (`20 > 17+2`).
 
 ## Worked examples
 
@@ -115,10 +117,10 @@ The in-scope column ranks first. The table ranks below the identity candidate be
 
 | Candidate       | Base | SUBSTRING | PREFIX | KEYWORD_SUBSTRING_BONUS | KEYWORD_A | IN_SCOPE | Total |
 |-----------------|------|-----------|--------|--------------------|-----------|----------|-------|
-| `from` (keyword)| 0    | 30        | 5      | 20                 | 4         | 0        | **59**|
+| `from` (keyword)| 0    | 30        | 5      | 17                 | 4         | 0        | **56**|
 | `from_sql` (col)| 20   | 30        | 5      | 0                  | 0         | 10       | **65**|
 
-`KEYWORD_SUBSTRING_BONUS` is the +20 combo bonus that fires when both `EXPECTED_PARSER_SYMBOL` and `SUBSTRING_MATCH` are set.
+`KEYWORD_SUBSTRING_BONUS` is the +17 combo bonus that fires when both `EXPECTED_PARSER_SYMBOL` and `SUBSTRING_MATCH` are set.
 The column still wins here because it is in scope.
 But once the user completes the full word `from`, the exact match modifier fires:
 
@@ -126,7 +128,7 @@ But once the user completes the full word `from`, the exact match modifier fires
 
 | Candidate       | Base | SUBSTRING | PREFIX | EXACT | KEYWORD_SUBSTRING_BONUS | KEYWORD_A | IN_SCOPE | Total |
 |-----------------|------|-----------|--------|-------|--------------------|-----------|----------|-------|
-| `from` (keyword)| 0    | 30        | 5      | 15    | 20                 | 4         | 0        | **74**|
+| `from` (keyword)| 0    | 30        | 5      | 15    | 17                 | 4         | 0        | **71**|
 | `from_sql` (col)| 20   | 30        | 5      | 0     | 0                  | 0         | 10       | **65**|
 
 The keyword `from` now wins.
@@ -147,7 +149,7 @@ The identity candidate's score varies by context to avoid suppressing strong con
 | Definition position  | max   | User is naming something new — always preserve their text        |
 | DEFAULT strategy     | max   | Context is ambiguous — play it safe                              |
 | TABLE_REF strategy   | 50    | Any substring-matching catalog table (≥52) wins                  |
-| TABLE_REF_ALIAS      | 50    | Prefix-matching keywords (e.g. WHERE=59) win over alias text     |
+| TABLE_REF_ALIAS      | 50    | Prefix-matching keywords (e.g. WHERE=56) win over alias text     |
 | COLUMN_REF strategy  | 59    | In-scope substring-matching columns (≥60) win                    |
 
 At **definition positions** (detected via AST attribute keys like `SQL_CREATE_TABLE_NAME`, `SQL_RESULT_TARGET_NAME`, `SQL_CTE_NAME`, etc.), name-index search is also suppressed entirely — no catalog suggestions appear.
@@ -159,13 +161,13 @@ In TABLE_REF (identity=50):
 - Non-matching table: 20 + 2 = 22 < 50, identity wins ✓
 
 In TABLE_REF_ALIAS (identity=50):
-- Prefix-matching keyword (WHERE): KEYWORD_SUBSTRING_BONUS(20) + SUBSTRING(30) + PREFIX(5) + KEYWORD_A(4) = 59 > 50 ✓
+- Prefix-matching keyword (WHERE): KEYWORD_SUBSTRING_BONUS(17) + SUBSTRING(30) + PREFIX(5) + KEYWORD_A(4) = 56 > 50 ✓
 - Non-matching keyword: 0 < 50, identity wins ✓
 
 In COLUMN_REF (identity=59):
 - In-scope column with substring match: 20 + 30 + 10 = 60 > 59 ✓
 - Out-of-scope column prefix-only: 20 + 30 + 5 = 55 < 59, identity wins ✓
-- Best keyword (KEYWORD_A + KEYWORD_SUBSTRING_BONUS + substring + prefix): 4 + 20 + 30 + 5 = 59, tie broken lexicographically
+- Best keyword (KEYWORD_A + KEYWORD_SUBSTRING_BONUS + substring + prefix): 4 + 17 + 30 + 5 = 56 < 59, identity wins ✓
 
 ## Definition positions
 

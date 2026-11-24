@@ -194,8 +194,8 @@ completion-snapshots:
           location: "sa"
           location-qualified: "sa"
           objects: []
-        - value: disable
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+        - value: sa
+          candidate-tags: [IDENTITY]
           location: "sa"
           location-qualified: "sa"
           objects: []
@@ -627,6 +627,11 @@ completion-snapshots:
           location: "gro"
           location-qualified: "gro"
           objects: []
+        - value: gro
+          candidate-tags: [IDENTITY]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
         - value: aggregate
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "gro"
@@ -639,11 +644,6 @@ completion-snapshots:
           objects: []
         - value: program
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
-          location: "gro"
-          location-qualified: "gro"
-          objects: []
-        - value: gro
-          candidate-tags: [IDENTITY]
           location: "gro"
           location-qualified: "gro"
           objects: []

@@ -613,13 +613,13 @@ completion-snapshots:
           location: "oth"
           location-qualified: "oth"
           objects: []
-        - value: nothing
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+        - value: oth
+          candidate-tags: [IDENTITY]
           location: "oth"
           location-qualified: "oth"
           objects: []
-        - value: oth
-          candidate-tags: [IDENTITY]
+        - value: nothing
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "oth"
           location-qualified: "oth"
           objects: []
@@ -741,12 +741,12 @@ completion-snapshots:
           location: "fi"
           location-qualified: "fi"
           objects: []
-        - value: configuration
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+        - value: fi
+          candidate-tags: [IDENTITY]
           location: "fi"
           location-qualified: "fi"
           objects: []
-        - value: definer
+        - value: configuration
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "fi"
           location-qualified: "fi"

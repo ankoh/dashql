@@ -58,13 +58,22 @@ completion-snapshots:
               prefer-qualified: 0
               detail: "2 columns"
               columns: ["apple integer","juice0 integer"]
-        - value: set
-          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+        - value: similar_name_1
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "s"
           location-qualified: "s"
-          objects: []
-        - value: sample
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          objects:
+            - type: table
+              id: "256.65536.1:1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+              qualified: similar_name_1
+              qualified-idx: 0
+              prefer-qualified: 0
+              detail: "1 column"
+              columns: ["juice1 integer"]
+        - value: set
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "s"
           location-qualified: "s"
           objects: []

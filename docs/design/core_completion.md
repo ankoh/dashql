@@ -105,7 +105,7 @@ The cursor's `CursorContext` determines the active strategy (`Completion::new`):
 Expected grammar symbols at the cursor position are extracted by `probe::parse_until_with_snapshot`, which runs the LR automaton up to the cursor's symbol and collects all valid next tokens with the driver's LAC (look-ahead correction) check, `lac_check`.
 The same call also returns a `PrefixSnapshot` of the LR state stack (state numbers only — the probes run the automaton without grammar actions, so semantic values aren't needed); the suffix probe reuses that snapshot to avoid re-parsing the prefix.
 Keywords bypass the candidate registration and enter the result heap directly.
-They receive a +20 keyword-substring bonus when both `EXPECTED_PARSER_SYMBOL` and `SUBSTRING_MATCH` are set on the candidate, plus a prevalence modifier for common keywords (e.g. `SELECT` +4, `AS` +2).
+They receive a +17 keyword-substring bonus when both `EXPECTED_PARSER_SYMBOL` and `SUBSTRING_MATCH` are set on the candidate, plus a prevalence modifier for common keywords (e.g. `SELECT` +4, `AS` +2).
 
 ### Suffix probe
 
@@ -180,7 +180,7 @@ later statements.
 ### Keyword candidates
 
 Keywords enter the candidate set via `add_expected_keywords_as_candidates()`.
-They are extracted from the parser state and get a +20 keyword-substring bonus (in `compute_candidate_score`) when both `EXPECTED_PARSER_SYMBOL` and `SUBSTRING_MATCH` are set, plus prevalence modifiers for common keywords.
+They are extracted from the parser state and get a +17 keyword-substring bonus (in `compute_candidate_score`) when both `EXPECTED_PARSER_SYMBOL` and `SUBSTRING_MATCH` are set, plus prevalence modifiers for common keywords.
 Outside of a SELECT, `FROM` is only offered when it matches the typed text, never as a proactive suggestion.
 The name of a parameter, right after its colon (`:fo`), takes no keyword that the grammar takes only as a name there (`probe::takes_keyword_only_as_name`, see the passive hints), which is every keyword after the colon.
 

@@ -622,8 +622,8 @@ completion-snapshots:
           location: "li"
           location-qualified: "li"
           objects: []
-        - value: cardinality
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+        - value: li
+          candidate-tags: [IDENTITY]
           location: "li"
           location-qualified: "li"
           objects: []

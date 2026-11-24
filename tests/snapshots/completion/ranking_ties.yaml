@@ -402,11 +402,19 @@ completion-snapshots:
           location: "nam"
           location-qualified: "nam"
           objects: []
-        - value: rename
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+        - value: names
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "nam"
           location-qualified: "nam"
-          objects: []
+          objects:
+            - type: column
+              id: "256.65536.1:0.3"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: t.names
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
       text: "nam"
 
   - name: quoted_special_chars_column

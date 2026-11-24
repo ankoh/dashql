@@ -190,6 +190,22 @@ completion-snapshots:
     completions:
       limit: 5
 
+  # A table of the catalog outranks a keyword that the text is a prefix of
+  - name: fix_catalog_table_over_keyword
+    catalog:
+      script:
+        input: |-
+          create table orders (id int, amount int);
+    editor:
+      input: |-
+        select * from ord
+    cursor:
+      search:
+        text: 'ord'
+        index: 3
+    completions:
+      limit: 5
+
   # The columns of `excluded` after a dot in ON CONFLICT DO UPDATE
   - name: fix_on_conflict_excluded_dot
     catalog:

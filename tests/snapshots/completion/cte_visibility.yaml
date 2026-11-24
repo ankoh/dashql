@@ -44,12 +44,12 @@ completion-snapshots:
           location: "fi"
           location-qualified: "fi"
           objects: []
-        - value: configuration
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+        - value: fi
+          candidate-tags: [IDENTITY]
           location: "fi"
           location-qualified: "fi"
           objects: []
-        - value: definer
+        - value: configuration
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "fi"
           location-qualified: "fi"
@@ -466,6 +466,20 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
+        - value: local_t
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "loc"
+          location-qualified: "loc"
+          objects:
+            - type: table
+              id: "256.65536.1:0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+              qualified: local_t
+              qualified-idx: 0
+              prefer-qualified: 0
+              detail: "1 column"
+              columns: ["x integer"]
         - value: local
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "loc"
@@ -482,11 +496,6 @@ completion-snapshots:
           location-qualified: "loc"
           objects: []
         - value: location
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
-          location: "loc"
-          location-qualified: "loc"
-          objects: []
-        - value: lock
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "loc"
           location-qualified: "loc"
@@ -521,11 +530,6 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - value: local
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "loc"
-          location-qualified: "loc"
-          objects: []
         - value: local_t
           name-tags: [TABLE_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
@@ -540,6 +544,11 @@ completion-snapshots:
               prefer-qualified: 0
               detail: "1 column"
               columns: ["x integer"]
+        - value: local
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "loc"
+          location-qualified: "loc"
+          objects: []
         - value: localtime
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "loc"

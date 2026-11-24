@@ -112,8 +112,8 @@ completion-snapshots:
           location: "str"
           location-qualified: "str"
           objects: []
-        - value: constraints
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+        - value: str
+          candidate-tags: [IDENTITY]
           location: "str"
           location-qualified: "str"
           objects: []

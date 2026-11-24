@@ -36,18 +36,36 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
+        - value: CaSeSeNsItIvE_TaBlE
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "cas"
+          location-qualified: "cas"
+          objects:
+            - type: table
+              id: "256.65536.1:0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+              qualified: '"CaSeSeNsItIvE_TaBlE"'
+              qualified-idx: 0
+              prefer-qualified: 0
+              detail: "1 column"
+              columns: ["a integer"]
+        - value: casesensitive_table
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "cas"
+          location-qualified: "cas"
+          objects:
+            - type: table
+              id: "256.65536.1:1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+              qualified: casesensitive_table
+              qualified-idx: 0
+              prefer-qualified: 0
+              detail: "1 column"
+              columns: ["a integer"]
         - value: cast
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "cas"
-          location-qualified: "cas"
-          objects: []
-        - value: cascade
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "cas"
-          location-qualified: "cas"
-          objects: []
-        - value: cascaded
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "cas"
           location-qualified: "cas"
           objects: []
@@ -94,14 +112,30 @@ completion-snapshots:
           location: "cas"
           location-qualified: "cas"
           objects: []
-        - value: case
-          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+        - value: Casesensitive
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "cas"
           location-qualified: "cas"
-          objects: []
-        - value: cast
-          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          objects:
+            - type: column
+              id: "256.65536.1:0.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+              qualified: foo0."Casesensitive"
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo0"
+        - value: casesensitive
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "cas"
           location-qualified: "cas"
-          objects: []
+          objects:
+            - type: column
+              id: "256.65536.1:1.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+              qualified: foo1.casesensitive
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo1"
       text: "cas"
