@@ -8,8 +8,9 @@ import { canInitWorkspace, DEFAULT_WORKSPACE, initWorkspace, isWorkspace } from 
 export const INIT_USAGE = `Usage: dashql init [<dir>]
 
 Sets up a folder as a workspace of DashQL, the folder of its files with its dashql-workspace.json, which ignores
-itself: .dashql/ of this folder by default, else a new or empty folder. catalog, describe, run and vis take the workspace with --workspace, .dashql/ by
-default, and fail on a folder that is no workspace. dashql connect sets up the .dashql/ of its folder itself.`;
+itself: .dashql/ of this folder by default, else a new or empty folder. describe, run and vis take the workspace with
+--workspace, .dashql/ by default, and fail on a folder that is no workspace. dashql connect sets up the .dashql/ of its
+folder itself.`;
 
 /// Run `init` with the arguments after it, returns the exit code
 export function runInit(args: string[], cli: CliProcess): number {
