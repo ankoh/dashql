@@ -18,8 +18,8 @@ use crate::hash::{HashMap, HashSet};
 use crate::table_parameters::{TableParameterLookup, TABLE_PARAMETERS_ENTRY_ID};
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType, NameTag, SemanticNodeMarkerType};
 use dashql_buffers::parser::{
-    AttributeKey as K, CopyDirection, GroupByItemType, JoinType, KnownFunction, MergeMatch, Node, NodeType, StatementType,
-    SymbolSpan,
+    AttributeKey as K, CopyDirection, GroupByItemType, JoinType, KnownFunction, MergeMatch, Node, NodeType,
+    StatementType, SymbolSpan,
 };
 use dashql_parser::attrs;
 use std::ops::Range;
