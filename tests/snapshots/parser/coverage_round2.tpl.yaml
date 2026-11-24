@@ -1,0 +1,234 @@
+parser-snapshots:
+  # Every spelling of the wrapper of JSON_QUERY, WITHOUT gives its own enum value
+  - name: json_query_wrapper_forms
+    input: |
+      select json_query(j, '$.a' without wrapper), json_query(j, '$' without array wrapper), json_query(j, '$' with array wrapper),
+        json_query(j, '$' with unconditional wrapper), json_query(j, '$' with unconditional array wrapper), json_query(j, '$' with conditional wrapper)
+      from t
+  # The behaviors TRUE, FALSE and EMPTY OBJECT, both behaviors of JSON_VALUE with a default, and a bare QUOTE
+  - name: json_behaviors_true_false_empty_object
+    input: |
+      select json_exists(j, '$.a' true on error), json_exists(j, '$.b' false on error), json_exists(j, '$.c'),
+        json_query(j, '$.d' empty object on empty empty object on error), json_query(j, '$.e' quote),
+        json_value(j, '$.f' default 0 on empty default -1 on error)
+      from t
+  # WITHOUT UNIQUE KEYS of a JSON_OBJECT and WITH UNIQUE of JSON()
+  - name: json_unique_key_forms
+    input: |
+      select json_object('a': 1 without unique keys), json_object('b': 2 null on null without unique), json(doc with unique) from t
+  # Named fields of a ROW constructor: with AS, a bare label and a named argument
+  - name: row_constructor_field_names
+    input: |
+      select row(1 as a, 2 b, c => 3, 4), row(t.x as "X") from t
+  # Generic types with a schema, with modifiers and as an array
+  - name: generic_type_qualified_names
+    input: |
+      select cast(a as pg_catalog.int4), b::s.money_t(10, 2), c::public.t[], d::a.b.c from t
+  # A subquery as a table argument, with a correlation name, a partition and an order, also as a named argument
+  - name: relation_arg_subquery
+    input: |
+      select * from f(table(select a, b from t) as s partition by (a) order by (b desc)), g(input => table(select 1))
+  # The rarer spellings of numeric and character types
+  - name: type_numeric_character_spellings
+    input: |
+      select cast(a as dec), cast(b as dec(10, 2)), cast(c as double precision), cast(d as national character varying(10)),
+        cast(e as national char(3)), cast(f as nchar varying), cast(g as nchar(2)) from t
+  # Typed literals whose value is a positional parameter
+  - name: typed_literal_parameters
+    input: |
+      select timestamp $1, date $2, interval $3 day, interval ? hour to minute, mytype ?, interval(3) '1 second' from t
+  # != is the same NOT_EQUALS as <>, also without spaces
+  - name: operator_bang_equals
+    input: |
+      select a != b, a!=b, a<>b from t where a != 1
+  # The ampersand, the pipe and the exclamation mark as operators of quantified comparisons
+  - name: quantified_single_char_operators
+    input: |
+      select a & any (array[1]), a | all (select b from u), a ! some (array[2]) from t
+  # GLOB and ILIKE as operators of quantified comparisons, with and without NOT
+  - name: quantified_glob_ilike
+    input: |
+      select a glob any (array['x*']), a not glob all (array['y*']), a not ilike any (array['z']), a ilike all (select p from u) from t
+  # CURRENT_SCHEMA with and without parentheses
+  - name: current_schema_call
+    input: |
+      select current_schema(), current_schema from t
+  # TRIM with only FROM, and with the characters before FROM and a list after it
+  - name: trim_from_forms
+    input: |
+      select trim(from a), trim('x' from a, b), trim(trailing from a) from t
+  # Indirection after a scalar subquery, ARRAY and UNIQUE over subqueries
+  - name: subquery_indirection_and_constructors
+    input: |
+      select (select array[1, 2])[1], (select row(1, 2) as r).r, array(select 1), unique (select 1)
+  # NTH_VALUE with FROM FIRST and FROM LAST and a null treatment
+  - name: nth_value_from_first
+    input: |
+      select nth_value(a, 2) from first ignore nulls over w, nth_value(a, 3) from last respect nulls over (order by b) from t window w as (order by b)
+  # FETCH NEXT without a count, a signed count, and an OFFSET with ROW and ROWS
+  - name: fetch_and_offset_row_forms
+    input: |
+      select * from t order by a fetch next row with ties;
+      select * from t offset 2 row fetch first -1 rows only;
+      select * from t fetch first +2.5 rows only;
+      select * from t offset 5 rows
+  # SELECT INTO an unlogged table and into a table with the TABLE keyword
+  - name: select_into_unlogged_and_table
+    input: |
+      select 1 into unlogged table u;
+      select 2 into table t2;
+      select 3 into local temporary t3
+  # NATURAL FULL JOIN without OUTER and NATURAL INNER JOIN
+  - name: natural_full_and_inner_join
+    input: |
+      select * from a natural full join b natural inner join c
+  # ONLY with a table name in parentheses and a descendant star
+  - name: only_parenthesized_and_descendant_star
+    input: |
+      select * from only (c), d *
+  # LATERAL function calls with column definitions and ROWS FROM with ordinality
+  - name: lateral_function_column_definitions
+    input: |
+      select * from t, lateral f(t.a) as x(a int, b text), lateral rows from (g(1) as (c int), h(2)) with ordinality as y
+  # Sample counts with PERCENT, a modulo and a row count, with bounds
+  - name: tablesample_explicit_units
+    input: |
+      select * from t tablesample bernoulli (10 percent) repeatable (7), u tablesample system (2.5%), v tablesample reservoir (100 rows between 5 rows and unbounded rows)
+  # TEMP aggregates, operators and types
+  - name: create_temp_definitions
+    input: |
+      create temp aggregate a(int) (sfunc = f, stype = int);
+      create temporary aggregate b (basetype = int, sfunc = f, stype = int);
+      create temp operator === (procedure = f, leftarg = int);
+      create temp type ty (input = i, output = o);
+      create temporary type t2
+  # Relation options of CREATE INDEX with a namespace, with and without a value
+  - name: index_reloptions_qualified
+    input: |
+      create index i on t (a) with (toast.autovacuum_enabled = false, toast.fillfactor, fillfactor = 70, deduplicate_items)
+  # VALIDATE DATABASE with options and a local database
+  - name: validate_database_options
+    input: |
+      validate database db with (a = 'b', c = default);
+      validate local database d2
+  # NONE as the argument of a definition
+  - name: definition_arg_none
+    input: |
+      create type t (input = i, subscript = none)
+  # Renaming foreign tables, materialized views and text search objects
+  - name: rename_foreign_materialized_text_search
+    input: |
+      alter foreign table f rename to g;
+      alter foreign table if exists only f rename column a to b;
+      alter materialized view if exists mv rename to mv2;
+      alter materialized view if exists mv rename a to b;
+      alter text search parser p rename to p2;
+      alter text search template tp rename to tp2;
+      alter text search configuration c rename to c2
+  # ASSUMED REFERENCES of a column and ASSUMED FOREIGN KEY of a table
+  - name: assumed_foreign_keys
+    input: |
+      create table t (a int assumed references u (a) match full on delete cascade, b int, assumed foreign key (b) references u (b) not deferrable)
+  # DROP USER with IF EXISTS
+  - name: drop_user_if_exists
+    input: |
+      drop user if exists a, b
+  # FETCH and MOVE with FORWARD ALL, BACKWARD ALL and signed counts
+  - name: fetch_forward_all_and_signed_counts
+    input: |
+      fetch forward all from c;
+      move backward all in c;
+      fetch -2 c;
+      fetch +3 from c;
+      move absolute -1 in c
+  # MERGE and DELETE after a WITH clause
+  - name: with_merge_and_delete
+    input: |
+      with s as (select 1 as a) merge into t using s on t.a = s.a when matched then delete;
+      with d as (select 1) delete from t using d where t.a = 1 returning *
+  # LOCAL TEMPORARY tables, also of CREATE TABLE AS
+  - name: create_local_temporary_table
+    input: |
+      create local temporary table t (a int);
+      create local temp table if not exists u as select 1 with no data
+  # Function parameters whose name comes before the mode, a column type and a variadic array
+  - name: function_parameter_name_before_mode
+    input: |
+      create function f(a in int, b out text, c inout int default 1, r t.col%type, variadic d int[]) returns int as 'x' language sql
+  # EXTERNAL SECURITY DEFINER and INVOKER of a function
+  - name: function_external_security
+    input: |
+      create function f() returns int as 'select 1' language sql external security definer;
+      create function g() returns int as 'select 1' language sql external security invoker
+  # A dollar sign inside and at the end of an identifier
+  - name: scanner_dollar_in_identifiers
+    input: |
+      select a$b, x$1, c$ from t$
+  # A tagged dollar quote after an identifier is part of the identifier, tags are case-sensitive
+  - name: scanner_dollar_tag_after_identifier
+    input: |
+      select a$tag$b, $A$ x $a$ y $A$ from t
+  # A positional parameter with whitespace between the dollar sign and the number
+  - name: scanner_dollar_space_number
+    input: |
+      select $ 1 from t
+  # Hexadecimal, binary and underscore integer forms are an integer followed by a label
+  - name: scanner_integer_followed_by_identifier
+    input: |
+      select 0x1F, 1_000, 0b101, 1abc
+  # A second decimal point starts another number
+  - name: scanner_decimal_twice
+    input: |
+      select 1.2.3
+  # Comment markers inside literals and quoted identifiers are no comments
+  - name: scanner_comment_markers_in_literals
+    input: |
+      select '/* not a comment */', "-- not a comment", $$/* nor this$$, 'it''s -- still' from t -- real
+  # An operator ends before a comment that starts inside it, a star and a slash without a comment are an operator
+  - name: scanner_operator_before_block_comment
+    input: |
+      select 2 */* c */ 3, 4 */ 5
+  # A question mark is a parameter, not the JSON operator: `j ?` is a typed literal, `?|` the parameter and the operator |
+  - name: scanner_question_mark_between_operands
+    input: |
+      select j ? 'a', j ?| array['a'] from t
+  # Prefix operators past the depth limit drop the statement, the next one survives
+  - name: recovery_nesting_too_deep_prefix_operators
+    input: |
+      select - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 1;
+      select 2
+  # An error in the arguments of a CALL, the next statement survives
+  - name: recovery_call_arguments
+    input: |
+      call d360.f(a => , b => 1);
+      select 1
+  # An error in the action of a MERGE
+  - name: recovery_merge_action
+    input: |
+      merge into t using u on t.a = u.a when matched then update set a = ;
+      select 2
+  # An error in the parameters of CREATE FUNCTION
+  - name: recovery_function_parameters
+    input: |
+      create function f(a int, , b text) returns int as 'x' language sql;
+      select 3
+  # Errors in several expressions of one statement, each one is replaced
+  - name: recovery_several_expressions
+    input: |
+      select (1 +), (2 *), f(3 -), 4 from t
+  # An error in a clause of a JSON function
+  - name: recovery_json_function_clause
+    input: |
+      select json_value(doc, '$' returning) from t;
+      select 4
+  # A cast without its type and an unclosed array type: the recovery drops FROM, the table name becomes a label
+  - name: recovery_typecast_missing_type
+    input: |
+      select a:: from t;
+      select a::int[ from t;
+      select 5
+  # An error in a window definition
+  - name: recovery_window_definition
+    input: |
+      select 1 from t window w as (partition by);
+      select 6
