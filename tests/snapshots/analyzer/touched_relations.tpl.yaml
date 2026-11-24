@@ -68,3 +68,11 @@ analyzer-snapshots:
         create schema s;
         alter schema s rename to o;
         drop schema o cascade;
+
+  # An EXPLAIN that runs a CREATE TABLE AS declares the table, as it touches it
+  - name: explain_analyze_create_table_as_declares
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: explain (analyze) create table z1 as select a from t; select a from z1; explain create table z2 as select a from t; select a from z2

@@ -336,6 +336,19 @@ impl NameResolutionPass {
             .is_some_and(|s| s.statement_type == StatementType::EXPLAIN)
     }
 
+    /// Does an EXPLAIN statement run a `CREATE TABLE AS` declaration, with `analyze`? The same rule as for the relations
+    /// that the statement touches (`touched_relations.rs`).
+    fn explain_creates(state: &AnalysisState, statement_id: Option<u32>, declaration: &Node) -> bool {
+        let root =
+            statement_id.and_then(|id| state.parsed.statements.get(id as usize)).and_then(|s| state.node(s.root));
+        let Some(root) = root.filter(|_| declaration.node_type() == NodeType::OBJECT_SQL_CREATE_AS) else {
+            return false;
+        };
+        let [options, body] = attrs!(state.children(root), [K::EXT_EXPLAIN_OPTIONS, K::EXT_EXPLAIN_STATEMENT]);
+        body.is_some_and(|body| state.node_id(body) == state.node_id(declaration))
+            && crate::touched_relations::explain_executes(state.parsed, options)
+    }
+
     /// Apply an `ALTER` to the declaration of the script, later statements read the table as the statement leaves it. A
     /// table that the script doesn't declare stays what the catalog says, the connection answers once the statement ran. A
     /// table of `CREATE TABLE AS` gets its columns later, its actions wait for them.
@@ -593,8 +606,10 @@ impl NameResolutionPass {
         select_node: &Node,
     ) {
         let declaration_id = state.node_id(declaration_node);
-        // EXPLAIN describes a declaration, publishing it would create a phantom catalog producer
-        if Self::is_explain(state, state.find_statement_id(declaration_id)) {
+        // EXPLAIN describes a declaration, publishing it would create a phantom catalog producer. An EXPLAIN that runs a
+        // `CREATE TABLE AS` creates the table, as for the relations that the statement touches.
+        let statement_id = state.find_statement_id(declaration_id);
+        if Self::is_explain(state, statement_id) && !Self::explain_creates(state, statement_id, declaration_node) {
             return;
         }
         let Some(table_name) = state.read_qualified_table_name(name_node) else { return };

@@ -343,7 +343,9 @@ The rules follow PostgreSQL and Hyper:
   expressions if their texts are. The column ref stays unresolved.
 - **Script tables** resolve to the last declaration of the name before the referencing statement. An
   `ALTER` declares a new version, see `catalog_updates.md`. A statement before all declarations of the name, also the
-  declaring statement itself, reads the table of the catalog, or an unresolved one.
+  declaring statement itself, reads the table of the catalog, or an unresolved one. An `EXPLAIN` that runs a
+  `CREATE TABLE AS` (`analyze`) declares the table, as for the relations that it touches, other `EXPLAIN`s declare
+  nothing.
 - **Columns of `CREATE TABLE`** keep their declaration order, column aliases rename by position.
 - **Output columns** of a derived table keep their positions: unnamed outputs are named as PostgreSQL
   does, by the function name or `?column?`. A column ref is named by its last name: `s.t.a` by the column `a`, the

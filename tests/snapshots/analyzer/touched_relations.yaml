@@ -376,3 +376,61 @@ analyzer-snapshots:
         - {statement-id: 1, name: o.}
         - {statement-id: 2, name: o.}
       errors: []
+
+  - name: explain_analyze_create_table_as_declares
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: explain (analyze) create table z1 as select a from t; select a from z1; explain create table z2 as select a from t; select a from z2
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.2:0"
+          name: z1
+          text: "create tab..t a from t"
+          columns:
+            - {catalog-id: "256.65536.2:0.0", name: a}
+      touched-relations:
+        - {statement-id: 0, name: z1}
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 0, text: "t"}
+        - {type: name/internal, catalog-id: "256.65536.2:0", statement-id: 1, text: "z1"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 2, text: "t"}
+        - {type: name/unresolved, statement-id: 3, text: "z2"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", statement-id: 0, text: "a"}
+        - {id: 1, type: colref/internal, catalog: "256.65536.2:0.0", source: "z1", statement-id: 1, text: "a"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", statement-id: 2, text: "a"}
+        - {id: 3, type: colref/unresolved, statement-id: 3, text: "a"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 0}
+          text: "select a from t"
+        - scope-id: 1
+          sources:
+            - {type: table, name: z1, text: "z1"}
+          columns:
+            - {name: a, expression: 1}
+          text: "select a from z1"
+        - scope-id: 2
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 2}
+          text: "select a from t"
+        - scope-id: 3
+          sources:
+            - {type: unresolved, name: z2, text: "z2"}
+          columns:
+            - {name: a, expression: 3}
+          text: "select a from z2"
+      inferred-tables:
+        - name: z2
+          confidence: confident
+          columns:
+            - {name: a, confidence: confident}
