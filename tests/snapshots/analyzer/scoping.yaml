@@ -3796,8 +3796,8 @@ analyzer-snapshots:
         - {id: 0, type: colref/internal, catalog: "256.65536.2:0.0", source: "z", statement-id: 0, text: "a"}
         - {id: 1, type: colref/unresolved, statement-id: 0, text: "x"}
         - {id: 2, type: colref/internal, catalog: "256.65536.2:0.1", source: "z", statement-id: 1, text: "b"}
-        - {id: 3, type: literal/integer, is-const: true, text: "2"}
-        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+        - {id: 3, type: literal/integer, is-const: true, statement-id: 0, text: "2"}
+        - {id: 4, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
       constants:
         - {expression: 3, text: "2"}
         - {expression: 4, text: "1"}
