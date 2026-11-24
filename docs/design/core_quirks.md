@@ -102,6 +102,8 @@ entry when you find another one. The headings name where the behavior lives.
   stay `OTHER`.
 - **Rollups.** A fragment is its own work, without its child fragments (Trino stage statistics), the
   query sums all fragments. An operator in a sink slot only produces the output of its sink slots.
+  A pipeline that crosses fragments (a Hyper pipeline through a federate) counts with its slots, each in the
+  fragment of its operator, so what is reported for the pipeline itself reaches no fragment (`compute_effective`).
   Input events for entities that do not exist are dropped silently (`apply_event`).
 - **Trino plans** (`parse_trino_plan`). A fragment that several remote sources read hangs below the
   first one only. The root fragment is a stage like the others and draws a contour. The stage

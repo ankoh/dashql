@@ -273,3 +273,17 @@ progress-snapshots:
         {"type":"updatePipeline","time":2,"pipeline":1,"status":"skipped"},
         {"type":"updateSlot","time":2,"slot":2,"status":"failed"}
       ]
+  # A pipeline across a federate: every slot counts in the fragment of its operator, once. The federate fragment
+  # (scan and federate) has 8 µs CPU and succeeded, the hidden root fragment (execution target) 2 µs and runs, the
+  # query 10 µs. What is reported for the pipeline itself reaches no fragment.
+  - name: pipeline_across_fragments
+    plan: |-
+      {"operator":"executiontarget","operatorId":1,"input":{"operator":"federate","operatorId":2,"inputs":[{"operator":"tablescan","operatorId":3}]},
+       "pipelines":[{"pipelineId":1,"operators":[3,2,1]}]}
+    events: |-
+      [
+        {"type":"updateSlot","time":1,"slot":0,"status":"succeeded","stats":{"cpuTimeUs":5}},
+        {"type":"updateSlot","time":1,"slot":1,"status":"succeeded","stats":{"cpuTimeUs":3}},
+        {"type":"updateSlot","time":1,"slot":2,"status":"running","stats":{"cpuTimeUs":2}},
+        {"type":"updatePipeline","time":2,"pipeline":0,"stats":{"cpuTimeUs":100}}
+      ]

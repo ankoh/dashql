@@ -10,7 +10,10 @@
 //! - the query from all fragments, tuples out from the fragments without parent.
 //!
 //! The state of a fragment is its own work, without its child fragments, like the stage statistics of Trino.
-//! Every operator belongs to one fragment only and every pipeline to one fragment, so nothing is counted twice.
+//! Every operator belongs to one fragment only and every slot to one fragment, so nothing is counted twice: a
+//! pipeline whose slots all lie in its fragment counts as a whole, a pipeline that crosses into other fragments (a
+//! Hyper pipeline through a federate) counts with its slots, each in the fragment of its operator, and what is
+//! reported for the pipeline itself reaches no fragment. A pipeline without fragment rolls up to its operators only.
 //! A status is rolled up over the children that know theirs.
 
 use super::{Entities, EntityState, Stats, Status};
@@ -160,11 +163,31 @@ pub(super) fn compute_effective(model: &QueryProfile, reported: &Entities) -> En
         })
         .collect();
 
-    // Fragments from their pipelines, the operators fill what no pipeline knows
+    // Fragments from their pipelines, the operators fill what no pipeline knows.
+    // A pipeline that crosses fragments adds its slots to the fragments of their operators instead.
     let mut pipelines_of: Vec<Vec<usize>> = vec![Vec::new(); model.fragments.len()];
+    let mut slots_of: Vec<Vec<usize>> = vec![Vec::new(); model.fragments.len()];
     for (p, pipeline) in model.pipelines.iter().enumerate() {
-        if let Some(pipelines) = pipeline.fragment.and_then(|f| pipelines_of.get_mut(f as usize)) {
-            pipelines.push(p);
+        let Some(fragment) = pipeline.fragment else {
+            continue;
+        };
+        let slot_fragment = |s: u32| {
+            model
+                .slots
+                .get(s as usize)
+                .and_then(|slot| model.operators.get(slot.operator as usize)?.fragment)
+                .unwrap_or(fragment)
+        };
+        if pipeline.slots.iter().all(|&s| slot_fragment(s) == fragment) {
+            if let Some(pipelines) = pipelines_of.get_mut(fragment as usize) {
+                pipelines.push(p);
+            }
+        } else {
+            for &s in &pipeline.slots {
+                if let Some(slots) = slots_of.get_mut(slot_fragment(s) as usize) {
+                    slots.push(s as usize);
+                }
+            }
         }
     }
     out.fragments = Vec::with_capacity(model.fragments.len());
@@ -172,6 +195,9 @@ pub(super) fn compute_effective(model: &QueryProfile, reported: &Entities) -> En
         let (mut by_pipelines, mut by_operators) = (Rollup::default(), Rollup::default());
         for &p in pipelines_of.get(f).map(Vec::as_slice).unwrap_or_default() {
             by_pipelines.add(&state(&out.pipelines, p));
+        }
+        for &s in slots_of.get(f).map(Vec::as_slice).unwrap_or_default() {
+            by_pipelines.add(&state(&out.slots, s));
         }
         for &o in &fragment.operators {
             by_operators.add(&state(&out.operators, o as usize));
