@@ -352,6 +352,7 @@ enum NameTag: uint8 {
 enum AnalyzerErrorType: uint8 {
     COLUMN_REF_AMBIGUOUS,
     DUPLICATE_TABLE_ALIAS,
+    /// Not produced, kept for the values after it
     UNSUPPORTED_VIS_KEY,
     INVALID_DASHBOARD_LAYOUT,
     MALFORMED_COMMENT_TAG,
