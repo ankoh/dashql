@@ -11,6 +11,7 @@ import { StorageBackendType } from '../platform/storage/storage_backend.js';
 import { WorkbookTestRegistry, TEST_WORKBOOK_ID, testWorkbook } from '../platform/testing/workbook_test_backend.js';
 import { fsStore, makeFsMock, resetFsStore } from '../platform/testing/test_fs_mock.js';
 import { getOPFSRoot } from '../platform/opfs_root.js';
+import { OPFSDirectoryMock } from '../platform/testing/opfs_mock.js';
 import { ELECTRON_FILE_SYSTEM } from '../platform/electron_fs.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -211,6 +212,28 @@ describe('CompositeStorageBackend V2 flat routing', () => {
         expect(registry.scripts.has(TEST_WORKBOOK_ID)).toBe(false);
         expect(await backend.loadScripts(TEST_WORKBOOK_ID)).toEqual([{ name: '01_query.sql', sql: 'SELECT 1' }]);
         await expect(backend.relocateWorkbookToNative(TEST_WORKBOOK_ID, '/tmp/again')).rejects.toThrow('is not an OPFS workbook');
+    });
+
+    it('keeps the results of a workbook that moves to a native folder in the origin private file system', async () => {
+        const dir = '/tmp/relocated-results';
+        const files = new Map<string, string | ArrayBuffer>();
+        const dirs = new Set<string>();
+        const opfs = new OPFSStorageBackend(dql, async () => new OPFSDirectoryMock('', files, dirs) as unknown as FileSystemDirectoryHandle);
+        const composite = new CompositeStorageBackend(dql, opfs, new TestLogger());
+        await composite.initialize();
+        await composite.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
+        await composite.saveScript(TEST_WORKBOOK_ID, '01_query.sql', 'SELECT 1');
+        await composite.saveDataFile(TEST_WORKBOOK_ID, 'a.parquet', new Uint8Array([1, 2, 3]));
+        const result = `workbooks/${TEST_WORKBOOK_ID}/results/01_query.${'0'.repeat(64)}.${'0'.repeat(20)}.parquet`;
+        dirs.add(`workbooks/${TEST_WORKBOOK_ID}/results`);
+        files.set(result, 'parquet');
+
+        await composite.relocateWorkbookToNative(TEST_WORKBOOK_ID, dir);
+
+        expect(fsStore.files.get(`${dir}/scripts/01_query.sql`)).toBe('SELECT 1');
+        // The workbook file, the scripts and the attachments left the origin private file system, the results stay
+        expect([...files.keys()].filter(path => path.startsWith(`workbooks/${TEST_WORKBOOK_ID}/`))).toEqual([result]);
+        expect(composite.getWorkbookLocation(TEST_WORKBOOK_ID)).toEqual({ type: StorageBackendType.Native, nativePath: dir });
     });
 
     it('registers a native folder in place of an OPFS workbook and drops the files of the old one', async () => {

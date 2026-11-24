@@ -442,7 +442,8 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
     ///   3. Verify the copy; on failure throw without touching OPFS.
     ///   4. Flip the OPFS registry entry to `location=native, nativePath=dir` and persist the
     ///      workbook manifest's `storageType`/`nativePath`.
-    ///   5. Delete the OPFS copy of the workbook's files (NOT the registry entry).
+    ///   5. Delete the OPFS copy of the workbook's files (NOT the registry entry). The stored results of its scripts
+    ///      stay, the results of a native workbook live in OPFS (`workbook_results.md`).
     ///
     /// On any failure before step 4 the OPFS copy is left fully intact, so the caller can recover.
     async relocateWorkbookToNative(uuid: string, dir: string): Promise<void> {
@@ -478,8 +479,8 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
         this.setTree(applyWorkbookTreeChange(this.core, this.tree, { kind: 'upsert', entry: { path: uuid, storageType: StorageBackendType.Native, nativePath: dir } }));
         this.nativeCache.set(uuid, native);
 
-        // 5. Now it's safe to drop the OPFS copy of the files (registry entry stays).
-        await this.opfs.deleteWorkbookFiles(uuid);
+        // 5. Now it's safe to drop the OPFS copy of the files (registry entry and results stay).
+        await this.opfs.deleteWorkbookFiles(uuid, { keepResults: true });
         this.logger.info('relocated workbook to native storage', { workbookId: uuid, dir }, LOG_CTX);
     }
 }

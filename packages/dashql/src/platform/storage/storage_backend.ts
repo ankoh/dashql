@@ -158,7 +158,7 @@ export interface WorkbookRegistryBackend extends StorageBackend {
     /// Delete a folder, its workbooks move to the parent folder
     deleteFolder(path: string[]): Promise<void>;
     /// Delete a workbook's files only, leaving the registry entry intact.
-    deleteWorkbookFiles(workbookId: string): Promise<void>;
+    deleteWorkbookFiles(workbookId: string, options?: DeleteWorkbookFilesOptions): Promise<void>;
 
     /// Load the whole manifest. A manifest without connections was written before connections were
     /// global, the `connections` field is then left absent.
@@ -175,6 +175,13 @@ export interface WorkbookRegistryBackend extends StorageBackend {
     createConnectionFolder(connectionId: string): Promise<void>;
     /// Delete all files of a connection
     deleteConnectionFiles(connectionId: string): Promise<void>;
+}
+
+/// What `deleteWorkbookFiles` leaves
+export interface DeleteWorkbookFilesOptions {
+    /// Keep the stored results of the scripts (`results/`), e.g. of a workbook that moved to a native folder: the
+    /// results of a native workbook stay in the origin private file system (`workbook_results.md`)
+    keepResults?: boolean;
 }
 
 /// Does a backend own the workbook registry?

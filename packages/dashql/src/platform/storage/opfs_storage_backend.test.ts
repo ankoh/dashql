@@ -57,6 +57,26 @@ describe('OPFSStorageBackend V2 flat storage', () => {
         files.set(`workbooks/${TEST_WORKBOOK_ID}/scripts/dashql-draft.sql`, 'SELECT 1');
         await expect(backend.loadScripts(TEST_WORKBOOK_ID)).rejects.toThrow('dashql-draft.sql is not supported');
     });
+    it('deletes the files of a workbook and keeps its results on request', async () => {
+        await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
+        await backend.saveScript(TEST_WORKBOOK_ID, '01_query.sql', 'SELECT 1');
+        await backend.saveDataFile(TEST_WORKBOOK_ID, 'a.parquet', new Uint8Array([1, 2, 3]));
+        const result = `workbooks/${TEST_WORKBOOK_ID}/results/01_query.${'0'.repeat(64)}.${'0'.repeat(20)}.parquet`;
+        dirs.add(`workbooks/${TEST_WORKBOOK_ID}/results`);
+        files.set(result, 'parquet');
+
+        await backend.deleteWorkbookFiles(TEST_WORKBOOK_ID, { keepResults: true });
+        expect([...files.keys()].filter(path => path.startsWith(`workbooks/${TEST_WORKBOOK_ID}/`))).toEqual([result]);
+        expect([...dirs].filter(path => path.startsWith(`workbooks/${TEST_WORKBOOK_ID}/`))).toEqual([`workbooks/${TEST_WORKBOOK_ID}/results`]);
+        // The registry entry stays
+        expect(await backend.listWorkbooks()).toEqual([{ path: TEST_WORKBOOK_ID, storageType: 'opfs' }]);
+        // A workbook without files is no error
+        await backend.deleteWorkbookFiles('99999999-0000-4000-8000-000000000000', { keepResults: true });
+
+        await backend.deleteWorkbookFiles(TEST_WORKBOOK_ID);
+        expect([...files.keys()].filter(path => path.startsWith(`workbooks/${TEST_WORKBOOK_ID}/`))).toEqual([]);
+    });
+
     it('starts a new storage with the folder My Workbooks and keeps it deleted once', async () => {
         expect(JSON.parse(files.get('workbooktree/My Workbooks/dashql-folder.json') as string)).toEqual({ workbooks: [] });
         expect((await backend.loadWorkbookTree()).folders.map(folder => folder.name)).toEqual(['My Workbooks']);

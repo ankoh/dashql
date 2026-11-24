@@ -1,6 +1,7 @@
 import { type WorkbookRegistryBackend, type ConnectionEntry, STORAGE_CONNECTIONS_FOLDER, type WorkbookData, type ScriptData, type WorkbookEntry, type StorageManifest, type AppSettings, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_WORKBOOKS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SHELL_FOLDER } from './storage_backend.js';
-import { type DataFile, type DataFileContent, STORAGE_ATTACHMENTS_FOLDER } from './storage_backend.js';
+import { type DataFile, type DataFileContent, type DeleteWorkbookFilesOptions, STORAGE_ATTACHMENTS_FOLDER } from './storage_backend.js';
 import type * as core from '../../core/index.js';
+import { RESULTS_FOLDER } from '../workbook/workbook_result_files.js';
 import { sleep } from '../utils/sleep.js';
 import { getOPFSRoot } from '../opfs_root.js';
 import { HYPER_CLOUDS_DIRECTORY } from '../hyperdb/hyperdb_opfs_instance.js';
@@ -179,11 +180,29 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
         await this.removeWorkbookEntry(workbookId);
     }
 
-    /// Delete a workbook's files only, leaving the registry entry intact.
-    async deleteWorkbookFiles(workbookId: string): Promise<void> {
+    /// Delete a workbook's files only, leaving the registry entry intact. With `keepResults` the stored results of its
+    /// scripts stay.
+    async deleteWorkbookFiles(workbookId: string, options: DeleteWorkbookFilesOptions = {}): Promise<void> {
         const relativePath = this.workbookRelPath(workbookId);
         const root = this.ensureInitialized();
 
+        if (options.keepResults) {
+            const workbookDir = await this.getWorkbookDir(relativePath, false).catch((error) => {
+                if (isMissingDirectory(error)) return null;
+                throw error;
+            });
+            if (workbookDir == null) return;
+            const names: string[] = [];
+            for await (const [name] of workbookDir.entries()) {
+                if (name !== RESULTS_FOLDER) names.push(name);
+            }
+            for (const name of names) {
+                await workbookDir.removeEntry(name, { recursive: true }).catch((error) => {
+                    if (domErrorName(error) !== 'NotFoundError') throw error;
+                });
+            }
+            return;
+        }
         try {
             // Navigate to the parent directory, then remove the workbook entry
             const parts = relativePath.split('/').filter(p => p);
