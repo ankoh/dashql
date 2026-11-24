@@ -32,3 +32,8 @@ formatter-snapshots:
     input: create table t (a boolean default 1 is of (integer), b boolean default 1 is not of (text))
     dialects:
       hyper:
+  # INTO TEMP is a temporary table
+  - name: coverage_select_into_temp
+    input: select 1 into temp a
+    dialects:
+      hyper:

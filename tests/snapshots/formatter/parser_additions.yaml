@@ -116,3 +116,20 @@ formatter-snapshots:
             expected: |-
               create table t (a boolean default 1 is of (integer), b boolean default 1 is not of (text));
 
+  - name: coverage_select_into_temp
+    input: |-
+      select 1 into temp a
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1 into temporary a;
+          - mode: compact
+            expected: |-
+              select 1 into temporary a;
+          - mode: pretty
+            expected: |-
+              select 1
+              into temporary a;
+

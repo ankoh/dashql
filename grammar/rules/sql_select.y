@@ -273,8 +273,8 @@ sql_preparable_stmt:
 // Redundancy here is needed to avoid shift/reduce conflicts,
 // since TEMP is not a reserved word.  See also OptTemp.
 sql_opt_temp_table_name:
-    TEMPORARY sql_opt_table sql_qualified_name          { into_node(ctx, @$, enum_node(@1, TempType::DEFAULT), $3) }
-  | TEMP sql_opt_table sql_qualified_name               { into_node(ctx, @$, enum_node(@1, TempType::DEFAULT), $3) }
+    TEMPORARY sql_opt_table sql_qualified_name          { into_node(ctx, @$, enum_node(@1, TempType::LOCAL), $3) }
+  | TEMP sql_opt_table sql_qualified_name               { into_node(ctx, @$, enum_node(@1, TempType::LOCAL), $3) }
   | LOCAL TEMPORARY sql_opt_table sql_qualified_name    { into_node(ctx, @$, enum_node(@1, TempType::LOCAL), $4) }
   | LOCAL TEMP sql_opt_table sql_qualified_name         { into_node(ctx, @$, enum_node(@1, TempType::LOCAL), $4) }
   | GLOBAL TEMPORARY sql_opt_table sql_qualified_name   { into_node(ctx, @$, enum_node(@1, TempType::GLOBAL), $4) }

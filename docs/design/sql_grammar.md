@@ -53,6 +53,7 @@ Further PostgreSQL forms and their trees:
   formatter writes as the parenthesized list. `ANALYZE` is also an option value (`EXPLAIN (FORMAT ANALYZE)`).
 - `IS [NOT] OF` is an `OBJECT_SQL_TYPETEST_EXPRESSION` in every expression, also in the restricted expressions of a
   column default.
+- `INTO TEMP` and `INTO TEMPORARY` of SELECT are local temporary tables (`TempType::LOCAL`), like `CREATE TEMP TABLE`.
 
 `SET a.b = v` with a single value is an `OBJECT_EXT_SET` with its key path and value, every other SET form
 an `OBJECT_SQL_SET` with its parameter (`SQL_SET_PARAMETER`, a `SessionParameter`) or variable (`SQL_SET_NAME`)

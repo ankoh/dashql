@@ -17983,3 +17983,151 @@ parser-snapshots:
       comment-blocks: []
       comment-warnings: []
 
+  - name: select_into_temp
+    input: |-
+      select 1 into temp a; select 1 into temporary table b; select 1 into local temp c; select 1 into global temp d
+    expected:
+      statements:
+        - type: SELECT_INTO
+          ast-begin: 0
+          ast-size: 8
+          description:
+            text: "select 1 i..to temp a;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1 i..nto temp a"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+              - key: SQL_SELECT_INTO
+                type: OBJECT_SQL_INTO
+                text: "temp a"
+                children:
+                  - key: SQL_TEMP_TYPE
+                    type: ENUM_SQL_TEMP_TYPE
+                    value: LOCAL
+                  - key: SQL_TEMP_NAME
+                    type: ARRAY
+                    text: "a"
+                    children:
+                      - type: NAME
+                        text: "a"
+        - type: SELECT_INTO
+          ast-begin: 8
+          ast-size: 8
+          description:
+            text: "select 1 i..y table b;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1 i..ry table b"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+              - key: SQL_SELECT_INTO
+                type: OBJECT_SQL_INTO
+                text: "temporary table b"
+                children:
+                  - key: SQL_TEMP_TYPE
+                    type: ENUM_SQL_TEMP_TYPE
+                    value: LOCAL
+                  - key: SQL_TEMP_NAME
+                    type: ARRAY
+                    text: "b"
+                    children:
+                      - type: NAME
+                        text: "b"
+        - type: SELECT_INTO
+          ast-begin: 16
+          ast-size: 8
+          description:
+            text: "select 1 i..al temp c;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1 i..cal temp c"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+              - key: SQL_SELECT_INTO
+                type: OBJECT_SQL_INTO
+                text: "local temp c"
+                children:
+                  - key: SQL_TEMP_TYPE
+                    type: ENUM_SQL_TEMP_TYPE
+                    value: LOCAL
+                  - key: SQL_TEMP_NAME
+                    type: ARRAY
+                    text: "c"
+                    children:
+                      - type: NAME
+                        text: "c"
+        - type: SELECT_INTO
+          ast-begin: 24
+          ast-size: 8
+          description:
+            text: "select 1 i..bal temp d"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1 i..bal temp d"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+              - key: SQL_SELECT_INTO
+                type: OBJECT_SQL_INTO
+                text: "global temp d"
+                children:
+                  - key: SQL_TEMP_TYPE
+                    type: ENUM_SQL_TEMP_TYPE
+                    value: GLOBAL
+                  - key: SQL_TEMP_NAME
+                    type: ARRAY
+                    text: "d"
+                    children:
+                      - type: NAME
+                        text: "d"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
