@@ -878,6 +878,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                         | Key::SQL_TEMP_TYPE
                         | Key::SQL_SELECT_ROW_LOCKING
                         | Key::SQL_TABLE_CONSTRAINT_REFERENCES_NAME
+                        | Key::SQL_COLUMN_CONSTRAINT_REFERENCES_NAME
                 ) || matches!(
                     ast.node_type(),
                     NodeType::OBJECT_SQL_GRAPH_TABLE | NodeType::OBJECT_SQL_PROPERTY_GRAPH

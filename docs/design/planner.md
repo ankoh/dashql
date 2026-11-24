@@ -240,8 +240,8 @@ the backend SQL of the node is the plain statement text.
 
 Views are not expanded into underlying declarations yet. Reads and writes through
 views, unresolved physical relations, ambiguous references, unsupported statements,
-and recognized session/locking/constraint/graph effects such as `GRAPH_TABLE`
-create barriers against all earlier and later nodes of their connection. Such
+and recognized session/locking/constraint/graph effects such as `GRAPH_TABLE` or a foreign key (`REFERENCES` as
+table or column constraint) create barriers against all earlier and later nodes of their connection. Such
 barriers have warnings and run in session order, they don't invalidate the graph.
 Stale inputs and malformed SQL invalidate it.
 

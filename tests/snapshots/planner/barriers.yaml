@@ -2075,3 +2075,64 @@ planner-snapshots:
           to: 5
           reason: SEQUENCE
       diagnostics: []
+
+  - name: ReferencesConstraints
+    catalog: |
+      create table t (a int primary key);
+    scripts:
+      - name: s
+        input: |
+          create table u (a int, foreign key (a) references t (a));
+          create table v (a int references t (a));
+    expected:
+      valid: true
+      scripts:
+        - name: s
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 3
+          cacheable: false
+          terminal-statement-id: 1
+          signature: "95c9346b3236085e52de4c51f4b3aced41a9a5c4c6b4b60fd6df657b37ac5577"
+      entities:
+        - catalog-id: '256.65536.8589934592'
+          type: TABLE
+          name: u
+        - catalog-id: '256.65536.8589934593'
+          type: TABLE
+          name: v
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: s
+          statement-id: 0
+          type: CREATE_TABLE
+          sql: "create table u (a int, foreign key (a) references t (a))"
+          produces-output: false
+          barrier: true
+          accesses:
+            - entity: '256.65536.8589934592'
+              mode: DDL
+        - id: 1
+          script: s
+          statement-id: 1
+          type: CREATE_TABLE
+          sql: "create table v (a int references t (a))"
+          produces-output: false
+          barrier: true
+          accesses:
+            - entity: '256.65536.8589934593'
+              mode: DDL
+      edges:
+        - from: 0
+          to: 1
+          reason: BARRIER
+      diagnostics:
+        - node: 0
+          script: s
+          error: false
+          message: 'unsupported session, locking, constraint, or graph effects'
+        - node: 1
+          script: s
+          error: false
+          message: 'unsupported session, locking, constraint, or graph effects'
