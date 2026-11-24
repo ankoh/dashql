@@ -71,14 +71,16 @@ export function options(args: string[], flags: ReadonlySet<string> = new Set()):
     return { positional, named, set, rest: [] };
 }
 
-/// Send an event to the server of a session
+/// Send an event to the server of a session, rejects when the server did not take it
 async function postSessionEvent(target: SessionTarget, event: AgentSessionEvent): Promise<void> {
-    await fetchAgentSession(`${target.endpoint}/v1/events`, {
+    const response = await fetchAgentSession(`${target.endpoint}/v1/events`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${target.token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(event),
         signal: AbortSignal.timeout(2000),
     });
+    await response.body?.cancel();
+    if (!response.ok) throw new Error(`the server answered ${response.status}`);
 }
 
 async function hook(args: string[], cli: CliProcess): Promise<number> {

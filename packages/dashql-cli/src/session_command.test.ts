@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { connectedSessionStart, runSession } from './session_command.js';
+import { readSession, writeSession } from './session_folder.js';
 import { startSessionServer } from './session_server.js';
 import { runWith } from './test_process.js';
 
@@ -36,6 +37,20 @@ describe('dashql session hook', () => {
                 turns: [{ turnId: 1, question: 'how many orders', status: null, note: '42', files: ['a.sql'] }],
             });
         } finally {
+            await server.close();
+        }
+    });
+
+    it('tells when the server did not take the event, and still exits with 0', async () => {
+        const server = await startSessionServer({ harness: 'claude', folder: W, session: SESSION });
+        const entry = readSession(WS)!;
+        try {
+            writeSession(WS, { ...entry, token: 'wrong' });
+            const refused = await hook('Stop', { session_id: 'c1', cwd: W });
+            expect(refused.code).toBe(0);
+            expect(refused.stderr).toBe('dashql: the session did not take the event: Error: the server answered 401\n');
+        } finally {
+            writeSession(WS, entry);
             await server.close();
         }
     });
