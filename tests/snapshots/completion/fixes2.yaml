@@ -1,0 +1,162 @@
+completion-snapshots:
+
+  - name: fix_merge_on_dot_at_eof
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        merge into t x using u y on x.a = y.
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t x"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u y"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t x", text: "x.a"}
+        - {id: 1, type: colref/unresolved, text: "y."}
+    cursor:
+      search:
+        text: 'y.'
+        index: 2
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: a
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "y."
+          objects:
+            - type: column
+              id: "256.65536.1:1.0"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: y.a
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "integer · u"
+        - value: c
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "y."
+          objects:
+            - type: column
+              id: "256.65536.1:1.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: y.c
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "integer · u"
+      text: "."
+
+  - name: fix_merge_on_dot_column_at_eof
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        merge into t x using u y on x.a = y.c
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t x"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u y"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t x", text: "x.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u y", text: "y.c"}
+    cursor:
+      search:
+        text: 'y.c'
+        index: 3
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: c
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+          location: "c"
+          location-qualified: "y.c"
+          objects:
+            - type: column
+              id: "256.65536.1:1.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+              qualified: y.c
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "integer · u"
+      text: "c"
+
+  - name: fix_merge_on_column_at_eof
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        merge into t x using u y on x.a = c
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t x"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u y"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t x", text: "x.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u y", text: "c"}
+    cursor:
+      search:
+        text: '= c'
+        index: 3
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: c
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+          location: "c"
+          location-qualified: "c"
+          objects:
+            - type: column
+              id: "256.65536.1:1.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+              qualified: y.c
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "integer · u"
+        - value: c
+          candidate-tags: [IDENTITY]
+          location: "c"
+          location-qualified: "c"
+          objects: []
+        - value: case
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "c"
+          location-qualified: "c"
+          objects: []
+        - value: cast
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "c"
+          location-qualified: "c"
+          objects: []
+        - value: cache
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "c"
+          location-qualified: "c"
+          objects: []
+      text: "c"

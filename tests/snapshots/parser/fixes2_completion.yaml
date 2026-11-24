@@ -1,0 +1,153 @@
+parser-snapshots:
+
+  - name: merge_eof_after_condition_dot
+    input: |-
+      merge into t x using u y on x.a = y.
+    expected:
+      statements:
+        - type: MERGE
+          ast-begin: 0
+          ast-size: 20
+          description:
+            text: "merge into..n x.a = y."
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_MERGE
+            text: "merge into..n x.a = y."
+            children:
+              - key: SQL_MERGE_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t x"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+                  - key: SQL_TABLEREF_ALIAS
+                    type: NAME
+                    text: "x"
+              - key: SQL_MERGE_SOURCE
+                type: OBJECT_SQL_TABLEREF
+                text: "u y"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "u"
+                    children:
+                      - type: NAME
+                        text: "u"
+                  - key: SQL_TABLEREF_ALIAS
+                    type: NAME
+                    text: "y"
+              - key: SQL_MERGE_CONDITION
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "x.a = y."
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "x.a = y."
+                    children:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "x.a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "x.a"
+                            children:
+                              - type: NAME
+                                text: "x"
+                              - type: NAME
+                                text: "a"
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "y."
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "y."
+                            children:
+                              - type: NAME
+                                text: "y"
+                              - type: OBJECT_EXT_TRAILING_DOT
+                                text: "."
+                                children: []
+      scanner-errors: []
+      parser-errors:
+        - message: name has a trailing dot
+          text: "."
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: merge_eof_partial_when
+    input: |-
+      merge into t using u on t.a = u.a wh
+    expected:
+      statements:
+        - type: MERGE
+          ast-begin: 0
+          ast-size: 14
+          description:
+            text: "merge into..a = u.a wh"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_MERGE
+            text: "merge into..a = u.a wh"
+            children:
+              - key: SQL_MERGE_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+              - key: SQL_MERGE_SOURCE
+                type: OBJECT_SQL_TABLEREF
+                text: "u"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "u"
+                    children:
+                      - type: NAME
+                        text: "u"
+              - key: SQL_MERGE_CONDITION
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "t.a = u.a wh"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "t.a = u.a wh"
+                    children:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "t.a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "t.a"
+                            children:
+                              - type: NAME
+                                text: "t"
+                              - type: NAME
+                                text: "a"
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected identifier literal'
+          text: "wh"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

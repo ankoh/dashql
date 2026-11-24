@@ -1,0 +1,10 @@
+parser-snapshots:
+  # A MERGE at the end of the input before its WHEN clauses, after a dot in its condition
+  - name: merge_eof_after_condition_dot
+    input: |-
+      merge into t x using u y on x.a = y.
+
+  # A MERGE with a partial WHEN at the end of the input
+  - name: merge_eof_partial_when
+    input: |-
+      merge into t using u on t.a = u.a wh

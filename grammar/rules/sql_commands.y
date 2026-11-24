@@ -1267,6 +1267,22 @@ sql_cmd_merge_stmt:
             ),
         )
     }
+    // The end of the input before the WHEN clauses still reduces the MERGE, so that its tables stay table refs and
+    // the column refs of its condition complete while the condition is typed, `merge into t x using u y on x.a = y.`
+    | sql_optional_with_clause MERGE INTO sql_cmd_relation_expr_opt_alias USING sql_table_ref ON sql_expression_node EOF {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_MERGE,
+            ctx.concat2(
+                $1,
+                &[
+                    attr(Key::SQL_MERGE_TARGET, $4),
+                    attr(Key::SQL_MERGE_SOURCE, $6),
+                    attr(Key::SQL_MERGE_CONDITION, $8),
+                ],
+            ),
+        )
+    }
     ;
 
 sql_cmd_numeric_only_list:

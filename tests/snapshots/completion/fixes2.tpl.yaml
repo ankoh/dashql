@@ -1,0 +1,48 @@
+completion-snapshots:
+  # A dot after the source alias of a MERGE before its WHEN clauses, at the end of the input
+  - name: fix_merge_on_dot_at_eof
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        merge into t x using u y on x.a = y.
+    cursor:
+      search:
+        text: 'y.'
+        index: 2
+    completions:
+      limit: 5
+
+  # A column after the source alias of a MERGE before its WHEN clauses, at the end of the input
+  - name: fix_merge_on_dot_column_at_eof
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        merge into t x using u y on x.a = y.c
+    cursor:
+      search:
+        text: 'y.c'
+        index: 3
+    completions:
+      limit: 5
+
+  # A column in the ON condition of a MERGE before its WHEN clauses, at the end of the input
+  - name: fix_merge_on_column_at_eof
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        merge into t x using u y on x.a = c
+    cursor:
+      search:
+        text: '= c'
+        index: 3
+    completions:
+      limit: 5
