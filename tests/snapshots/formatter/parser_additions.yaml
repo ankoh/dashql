@@ -1,0 +1,25 @@
+formatter-snapshots:
+
+  - name: coverage_order_by_using
+    input: |-
+      select * from t order by a using <, b using > nulls first, c using operator(pg_catalog.<)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from t order by a using <, b using > nulls first, c using operator(pg_catalog.<);
+          - mode: compact
+            width: 40
+            expected: |-
+              select *
+              from t
+              order by a using <,
+                b using > nulls first,
+                c using operator(pg_catalog.<);
+          - mode: pretty
+            expected: |-
+              select *
+              from t
+              order by a using <, b using > nulls first, c using operator(pg_catalog.<);
+

@@ -948,3 +948,7 @@ parser-snapshots:
   - name: select_not_null_type_elements
     input: |
       select cast(row(1) as row(x integer not null)), cast(array[1] as array(integer not null)) from f() as (y integer not null)
+  # ORDER BY with the sort operators of USING, a plain one and a qualified one, with a null rule
+  - name: select_order_by_using
+    input: |
+      select * from t order by a using <, b using > nulls first, c using operator(pg_catalog.<)

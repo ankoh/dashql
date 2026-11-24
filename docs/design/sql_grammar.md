@@ -42,6 +42,11 @@ action (`SQL_INSERT_ON_CONFLICT_ACTION`, an `InsertConflictAction`: `DO_NOTHING`
 the `OBJECT_SQL_ASSIGNMENT`s of UPDATE (`SQL_INSERT_ON_CONFLICT_ASSIGNMENTS`) and the condition
 (`SQL_INSERT_ON_CONFLICT_WHERE`). Hyper doesn't run it.
 
+Further PostgreSQL forms and their trees:
+
+- A sort key with `USING op` keeps its operator in `SQL_ORDER_USING`: an `ExpressionOperator`, an `OPERATOR` or the
+  `ARRAY` of `OPERATOR(schema.op)`.
+
 `SET a.b = v` with a single value is an `OBJECT_EXT_SET` with its key path and value, every other SET form
 an `OBJECT_SQL_SET` with its parameter (`SQL_SET_PARAMETER`, a `SessionParameter`) or variable (`SQL_SET_NAME`)
 and its values (`SQL_SET_ARGS`), both with `SQL_SET_LOCAL` for `SET LOCAL` (`ctx.set`, `ext_set.y`). `SET

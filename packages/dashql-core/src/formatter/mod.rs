@@ -704,9 +704,10 @@ impl<'a> Formatter<'a> {
             | K::SQL_GRAPH_PROPERTIES_COLUMNS
             | K::SQL_GRAPH_PROPERTIES_EXCLUDE
             | K::SQL_GRAPH_TABLE_COLUMNS => self.format_comma_list(node, false),
-            K::SQL_SUBQUERY_OPERATOR | K::SQL_DEFINITION_ARG_VALUE | K::SQL_EXPRESSION_OPERATOR => {
-                self.format_operator_path(node)
-            }
+            K::SQL_SUBQUERY_OPERATOR
+            | K::SQL_DEFINITION_ARG_VALUE
+            | K::SQL_EXPRESSION_OPERATOR
+            | K::SQL_ORDER_USING => self.format_operator_path(node),
             K::SQL_TABLE_CONSTRAINT_ATTRIBUTES
             | K::SQL_TABLE_CONSTRAINT_KEY_ACTIONS
             | K::SQL_COLUMN_CONSTRAINT_KEY_ACTIONS
@@ -1456,9 +1457,9 @@ impl<'a> Formatter<'a> {
     // -----------------------------------------------------------------------------------------
 
     fn format_order(&self, node: &'a Node) -> FmtReg {
-        let [value, all, direction, nullrule] = attrs!(
+        let [value, all, direction, using, nullrule] = attrs!(
             self.children(node),
-            [K::SQL_ORDER_VALUE, K::SQL_ORDER_ALL, K::SQL_ORDER_DIRECTION, K::SQL_ORDER_NULLRULE]
+            [K::SQL_ORDER_VALUE, K::SQL_ORDER_ALL, K::SQL_ORDER_DIRECTION, K::SQL_ORDER_USING, K::SQL_ORDER_NULLRULE]
         );
         let mut parts = match (value, all) {
             (Some(value), None) => vec![self.reg(value)],
@@ -1468,6 +1469,14 @@ impl<'a> Formatter<'a> {
         };
         if let Some(direction) = direction {
             parts.push(self.reg(direction));
+        }
+        // `order by a using <`
+        if let Some(using) = using {
+            let using_reg = self.reg(using);
+            if using_reg == 0 {
+                return self.format_unimplemented(node);
+            }
+            parts.push(self.fmt.concat(&[self.fmt.text("using "), using_reg]));
         }
         if let Some(nullrule) = nullrule {
             parts.push(self.reg(nullrule));

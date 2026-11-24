@@ -317,7 +317,11 @@ sql_sortby:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_ORDER,
-            &[attr(Key::SQL_ORDER_VALUE, ctx.expression($1)), attr(Key::SQL_ORDER_NULLRULE, $4)],
+            &[
+                attr(Key::SQL_ORDER_VALUE, ctx.expression($1)),
+                attr(Key::SQL_ORDER_USING, $3),
+                attr(Key::SQL_ORDER_NULLRULE, $4),
+            ],
         )
     }
   | sql_a_expr sql_opt_asc_desc sql_opt_nulls_order {

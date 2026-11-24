@@ -1,0 +1,9 @@
+formatter-snapshots:
+  # ORDER BY with the sort operators of USING, the null rule follows the operator
+  - name: coverage_order_by_using
+    input: select * from t order by a using <, b using > nulls first, c using operator(pg_catalog.<)
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 40
