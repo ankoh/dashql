@@ -1345,8 +1345,9 @@ impl<'c, 'a> Completion<'c, 'a> {
     }
 
     /// The name scopes around the cursor with the FROM items that the column refs of the cursor can see in them.
-    /// The innermost scope comes first, a correlation barrier hides all scopes above it. In the innermost scope, a
-    /// clause can restrict them, a WHEN NOT MATCHED clause of MERGE sees no target.
+    /// The innermost scope comes first, a correlation barrier hides all scopes above it. In the innermost scope, the
+    /// clauses that name resolution publishes restrict them: a WHEN NOT MATCHED clause of MERGE and the FROM items of
+    /// UPDATE see no target, RETURNING of INSERT sees no `excluded`.
     fn visible_scopes(analyzed: &AnalyzedScript, cursor: &ScriptCursor) -> Vec<(ScopeId, SourceVisibility)> {
         let name_scopes = &cursor.name_scopes;
         let mut visible = Vec::with_capacity(name_scopes.len());

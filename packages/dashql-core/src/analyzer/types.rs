@@ -508,7 +508,8 @@ pub enum SourceVisibility {
     None,
     /// The FROM item of a table ref node only, a WHEN NOT MATCHED BY SOURCE clause of MERGE sees the target only
     Only(u32),
-    /// The FROM items except the one of a table ref node, a WHEN NOT MATCHED clause of MERGE sees no target
+    /// The FROM items except the one of a table ref node, a WHEN NOT MATCHED clause of MERGE and the relations that
+    /// UPDATE, DELETE and MERGE read see no target, the column refs of INSERT outside of DO UPDATE no `excluded`
     Except(u32),
     /// The FROM items before a table ref node except the one of another, a lateral FROM item of UPDATE, DELETE and
     /// MERGE sees no target
@@ -562,7 +563,8 @@ pub struct ScopeJoinColumn {
     pub column: ScopeColumn,
 }
 
-/// A clause of a scope whose column refs see only some FROM items of the scope
+/// A clause of a scope whose column refs see other FROM items of the scope than the clause around it. The innermost
+/// clause around a node decides.
 #[derive(Clone, Copy, Debug)]
 pub struct ScopeClause {
     /// The AST node id of the clause
@@ -624,7 +626,10 @@ pub struct NameScope {
     /// The parenthesized joins with an alias, an outer join before the joins inside it. The FROM items inside them stay
     /// the sources.
     pub joins: Vec<ScopeJoin>,
-    /// The clauses whose column refs see only some FROM items, the WHEN NOT MATCHED clauses of MERGE
+    /// The clauses whose column refs see only some FROM items: the `ON` conditions of joins, the WHEN NOT MATCHED
+    /// clauses of MERGE, the relations that UPDATE, DELETE and MERGE read, and an INSERT with ON CONFLICT DO UPDATE
+    /// with the values and the condition of DO UPDATE inside of it, which see `excluded`. Name resolution and
+    /// completion read them through [`NameScope::visibility_at`].
     pub clauses: Vec<ScopeClause>,
 }
 
@@ -639,9 +644,15 @@ impl NameScope {
         self.source(name).is_some() || self.joins.iter().any(|join| &*join.name == name)
     }
 
-    /// The FROM items of the scope that an AST node in it sees, all of them outside of a restricting clause
+    /// The FROM items of the scope that an AST node in it sees, all of them outside of a restricting clause. The
+    /// innermost clause around the node decides, it precedes the clauses around it in the post-order AST: the
+    /// condition of a join in the FROM items of UPDATE sees the FROM items of its join.
     pub fn visibility_at(&self, ast: &[Node], node_id: u32) -> SourceVisibility {
-        let clause = self.clauses.iter().find(|clause| is_within(ast, node_id, clause.ast_node_id));
+        let clause = self
+            .clauses
+            .iter()
+            .filter(|clause| is_within(ast, node_id, clause.ast_node_id))
+            .min_by_key(|clause| clause.ast_node_id);
         clause.map_or(SourceVisibility::All, |clause| clause.visibility)
     }
 

@@ -206,6 +206,9 @@ analyzer-snapshots:
           sources:
             - {type: table, name: x, text: "t as x"}
             - {type: table, name: excluded, text: "on conflic.. = x.b + 1"}
+          clauses:
+            - {sources: except, text: "insert int..g x.a, x.b"}
+            - {sources: all, text: "b = x.b + 1"}
           columns:
             - {name: a, expression: 1}
             - {name: b, expression: 2}
@@ -358,6 +361,10 @@ analyzer-snapshots:
           sources:
             - {type: table, name: t, text: "t"}
             - {type: table, name: excluded, text: "on conflic..excluded.b"}
+          clauses:
+            - {sources: except, text: "insert int..eturning a"}
+            - {sources: all, text: "b = exclud..ed.b + t.b"}
+            - {sources: all, text: "t.b < excluded.b"}
           columns:
             - {name: a, expression: 7}
           text: "insert int..eturning a"
@@ -401,6 +408,9 @@ analyzer-snapshots:
           sources:
             - {type: table, name: t, text: "t"}
             - {type: table, name: excluded, text: "on conflic.. b = b + 1"}
+          clauses:
+            - {sources: except, text: "insert int.. b = b + 1"}
+            - {sources: all, text: "b = b + 1"}
           text: "insert int.. b = b + 1"
 
   - name: insert_on_conflict_excluded_visibility
@@ -465,6 +475,9 @@ analyzer-snapshots:
           sources:
             - {type: table, name: t, text: "t"}
             - {type: table, name: excluded, text: "on conflic...c from u)"}
+          clauses:
+            - {sources: except, text: "insert int..xcluded.a)"}
+            - {sources: all, text: "(a, b) = (...c from u)"}
           columns:
             - {name: a, table-column: "256.65536.1:0.0"}
             - {name: b, table-column: "256.65536.1:0.1"}
@@ -529,6 +542,9 @@ analyzer-snapshots:
           sources:
             - {type: table, name: t, text: "t"}
             - {type: table, name: excluded, text: "on conflic..excluded.z"}
+          clauses:
+            - {sources: except, text: "insert int..excluded.z"}
+            - {sources: all, text: "z = excluded.z"}
           text: "insert int..excluded.z"
 
   - name: insert_on_conflict_unresolved_target
@@ -567,6 +583,9 @@ analyzer-snapshots:
           sources:
             - {type: unresolved, name: missing, text: "missing"}
             - {type: unresolved, name: excluded, text: "on conflic..excluded.r"}
+          clauses:
+            - {sources: except, text: "insert int..excluded.r"}
+            - {sources: all, text: "q = excluded.r"}
           text: "insert int..excluded.r"
       inferred-tables:
         - name: missing
@@ -600,6 +619,8 @@ analyzer-snapshots:
           sources:
             - {type: table, name: u, text: "u"}
             - {type: table, name: t, text: "t"}
+          clauses:
+            - {sources: except, text: "u"}
           text: "delete fro.. and c > 0"
 
   - name: delete_correlated_exists
@@ -772,6 +793,8 @@ analyzer-snapshots:
           sources:
             - {type: table, name: u, text: "u"}
             - {type: table, name: t, text: "t"}
+          clauses:
+            - {sources: except, text: "u"}
           text: "update t s.. t.a = u.a"
 
   - name: update_from_shared_column
@@ -796,6 +819,8 @@ analyzer-snapshots:
           sources:
             - {type: table, name: u, text: "u"}
             - {type: table, name: t, text: "t"}
+          clauses:
+            - {sources: except, text: "u"}
           text: "update t s.. t.a = u.a"
 
   - name: update_correlated_subquery
@@ -977,6 +1002,8 @@ analyzer-snapshots:
           sources:
             - {type: cte, name: s, scope: 0, text: "s"}
             - {type: table, name: t, text: "t"}
+          clauses:
+            - {sources: except, text: "s"}
           text: "with s as .. t.a = s.a"
 
   - name: merge_update_insert
@@ -1009,6 +1036,7 @@ analyzer-snapshots:
             - {type: table, name: t, text: "t"}
             - {type: table, name: u, text: "u"}
           clauses:
+            - {sources: except, text: "u"}
             - {sources: except, text: "when not m..(u.a, u.c)"}
           text: "merge into..(u.a, u.c)"
 
@@ -1055,6 +1083,8 @@ analyzer-snapshots:
           sources:
             - {type: table, name: tgt, text: "t as tgt"}
             - {type: subquery, name: src, scope: 0, text: "(select a,.. 0) as src"}
+          clauses:
+            - {sources: except, text: "(select a,.. 0) as src"}
           text: "merge into.. b = src.c"
 
   - name: merge_unresolved_target_returning
@@ -1086,6 +1116,7 @@ analyzer-snapshots:
             - {type: unresolved, name: m, text: "missing m"}
             - {type: table, name: u, text: "u"}
           clauses:
+            - {sources: except, text: "u"}
             - {sources: except, text: "when not m..(u.a, u.c)"}
           columns:
             - {name: k, expression: 4}
@@ -1142,6 +1173,7 @@ analyzer-snapshots:
             - {type: table, name: t, text: "t"}
             - {type: table, name: u, text: "u"}
           clauses:
+            - {sources: except, text: "u"}
             - {sources: except, text: "when not m..ues (a, c)"}
             - {sources: only, text: "when not m..hen delete"}
           text: "merge into..hen delete"
@@ -1199,6 +1231,7 @@ analyzer-snapshots:
             - {type: table, name: t, text: "t"}
             - {type: table, name: u, text: "u"}
           clauses:
+            - {sources: except, text: "u"}
             - {sources: except, text: "when not m..values (a)"}
             - {sources: only, text: "when not m..hen delete"}
           text: "merge into..hen delete"
@@ -1235,6 +1268,7 @@ analyzer-snapshots:
             - {type: unresolved, name: m, text: "missing m"}
             - {type: unresolved, name: o, text: "other o"}
           clauses:
+            - {sources: except, text: "other o"}
             - {sources: except, text: "when not m..s (o.k, n)"}
             - {sources: only, text: "when not m..hen delete"}
           text: "merge into..hen delete"
@@ -1297,6 +1331,7 @@ analyzer-snapshots:
             - {type: table, name: t, text: "t"}
             - {type: table, name: u, text: "u"}
           clauses:
+            - {sources: except, text: "u"}
             - {sources: except, text: "when not m..lues (t.b)"}
             - {sources: only, text: "when not m..hen delete"}
           text: "merge into..hen delete"
@@ -1333,6 +1368,7 @@ analyzer-snapshots:
             - {type: unresolved, name: m, text: "missing m"}
             - {type: unresolved, name: o, text: "other o"}
           clauses:
+            - {sources: except, text: "other o"}
             - {sources: except, text: "when not m.. (m.extra)"}
             - {sources: only, text: "when not m..hen delete"}
           text: "merge into..hen delete"
@@ -1385,6 +1421,9 @@ analyzer-snapshots:
           sources:
             - {type: unresolved, name: missing, text: "missing"}
             - {type: unresolved, name: excluded, text: "on conflic..excluded.r"}
+          clauses:
+            - {sources: except, text: "insert int..excluded.s"}
+            - {sources: all, text: "q = excluded.r"}
           columns:
             - {name: s, expression: 1}
           text: "insert int..excluded.s"
@@ -1427,6 +1466,8 @@ analyzer-snapshots:
             - {type: table, name: u, text: "u"}
             - {type: subquery, name: g, scope: 0, text: "generate_s.. t.b) as g"}
             - {type: table, name: t, text: "t"}
+          clauses:
+            - {sources: except, text: "u, generat.. t.b) as g"}
           text: "update t s.. t.b) as g"
 
   - name: update_from_lateral_target_invisible
@@ -1465,6 +1506,8 @@ analyzer-snapshots:
             - {type: table, name: u, text: "u"}
             - {type: subquery, name: s, scope: 0, text: "lateral (s..x = t.a) s"}
             - {type: table, name: t, text: "t"}
+          clauses:
+            - {sources: except, text: "u, lateral..x = t.a) s"}
           text: "update t s..x = t.a) s"
 
   - name: update_from_join_condition_target_invisible
@@ -1498,6 +1541,7 @@ analyzer-snapshots:
             - {type: table, name: t, text: "t"}
           clauses:
             - {sources: within, text: "v.id = u.c.. v.x = t.a"}
+            - {sources: except, text: "u join v o.. v.x = t.a"}
           text: "update t s.. t.a = u.a"
 
   - name: delete_using_function_target_invisible
@@ -1531,6 +1575,8 @@ analyzer-snapshots:
           sources:
             - {type: subquery, name: g, scope: 0, text: "generate_s.. m.n) as g"}
             - {type: unresolved, name: m, text: "missing m"}
+          clauses:
+            - {sources: except, text: "generate_s.. m.n) as g"}
           text: "delete fro..re m.k = g"
       inferred-tables:
         - name: missing
@@ -1567,6 +1613,8 @@ analyzer-snapshots:
           sources:
             - {type: table, name: t, text: "t"}
             - {type: subquery, name: g, scope: 0, text: "generate_s..(1, t.b) g"}
+          clauses:
+            - {sources: except, text: "generate_s..(1, t.b) g"}
           text: "merge into..hen delete"
 
   - name: update_schema_qualified_target
@@ -1695,6 +1743,8 @@ analyzer-snapshots:
           sources:
             - {type: table, name: t, text: "t"}
             - {type: cte, name: s, scope: 0, text: "s"}
+          clauses:
+            - {sources: except, text: "s"}
           text: "with s as ..et b = s.c"
 
   - name: insert_recursive_cte_source
@@ -1822,6 +1872,8 @@ analyzer-snapshots:
           sources:
             - {type: table, name: t2, text: "t as t2"}
             - {type: table, name: t, text: "t"}
+          clauses:
+            - {sources: except, text: "t as t2"}
           text: "update t s..t.a = t2.b"
 
   - name: update_from_target_name_twice
@@ -1846,4 +1898,6 @@ analyzer-snapshots:
         - scope-id: 0
           sources:
             - {type: table, name: t, text: "t"}
+          clauses:
+            - {sources: except, text: "t"}
           text: "update t s..= 1 from t"

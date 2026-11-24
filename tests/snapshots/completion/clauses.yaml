@@ -1214,6 +1214,376 @@ completion-snapshots:
           objects: []
       text: "a"
 
+  - name: clause_update_from_join_hides_target
+    catalog:
+      script:
+        input: |-
+          create table t (id int, name text, x int); create table s (id int, sv int); create table u (id int, note text);
+        errors: []
+    editor:
+      input: |-
+        update t set x = 1 from s join u on u.id = n
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "s"}
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:2.0", source: "u", text: "u.id"}
+        - {id: 1, type: colref/unresolved, text: "n"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.2", source: "t", text: "x"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 3, text: "1"}
+    cursor:
+      search:
+        text: '= n'
+        index: 3
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: note
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "n"
+          location-qualified: "n"
+          objects:
+            - type: column
+              id: "256.65536.1:2.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: u.note
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "text · u"
+        - value: n
+          candidate-tags: [IDENTITY]
+          location: "n"
+          location-qualified: "n"
+          objects: []
+        - value: name
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "n"
+          location-qualified: "n"
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: t.name
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "text · t"
+        - value: name
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "n"
+          location-qualified: "n"
+          objects: []
+        - value: names
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "n"
+          location-qualified: "n"
+          objects: []
+      text: "n"
+
+  - name: clause_update_from_join_hides_target_alias
+    catalog:
+      script:
+        input: |-
+          create table t (id int, name text, x int); create table s (id int, sv int); create table u (id int, note text);
+        errors: []
+    editor:
+      input: |-
+        update t set x = 1 from s join u on u.id = t.
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "s"}
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:2.0", source: "u", text: "u.id"}
+        - {id: 1, type: colref/unresolved, text: "t."}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.2", source: "t", text: "x"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 3, text: "1"}
+    cursor:
+      search:
+        text: 't.'
+        index: 2
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries: []
+      text: "."
+
+  - name: clause_delete_using_join_hides_target
+    catalog:
+      script:
+        input: |-
+          create table t (id int, name text, x int); create table s (id int, sv int); create table u (id int, note text);
+        errors: []
+    editor:
+      input: |-
+        delete from t using s join u on u.id = n
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "s"}
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:2.0", source: "u", text: "u.id"}
+        - {id: 1, type: colref/unresolved, text: "n"}
+    cursor:
+      search:
+        text: '= n'
+        index: 3
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: note
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "n"
+          location-qualified: "n"
+          objects:
+            - type: column
+              id: "256.65536.1:2.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: u.note
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "text · u"
+        - value: n
+          candidate-tags: [IDENTITY]
+          location: "n"
+          location-qualified: "n"
+          objects: []
+        - value: name
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "n"
+          location-qualified: "n"
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: t.name
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "text · t"
+        - value: name
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "n"
+          location-qualified: "n"
+          objects: []
+        - value: names
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "n"
+          location-qualified: "n"
+          objects: []
+      text: "n"
+
+  - name: clause_update_from_subquery_hides_target
+    catalog:
+      script:
+        input: |-
+          create table t (id int, name text, x int); create table s (id int, sv int); create table u (id int, note text);
+        errors: []
+    editor:
+      input: |-
+        update t set x = 1 from s join u on u.id = (select n)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "s"}
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "n"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:2.0", source: "u", text: "u.id"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.2", source: "t", text: "x"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 3, text: "1"}
+    cursor:
+      search:
+        text: 'select n'
+        index: 8
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: note
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "n"
+          location-qualified: "n"
+          objects:
+            - type: column
+              id: "256.65536.1:2.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: u.note
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "text · u"
+        - value: n
+          candidate-tags: [IDENTITY]
+          location: "n"
+          location-qualified: "n"
+          objects: []
+        - value: name
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "n"
+          location-qualified: "n"
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: t.name
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "text · t"
+        - value: name
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "n"
+          location-qualified: "n"
+          objects: []
+        - value: names
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "n"
+          location-qualified: "n"
+          objects: []
+      text: "n"
+
+  - name: clause_insert_returning_hides_excluded
+    catalog:
+      script:
+        input: |-
+          create table t (id int primary key, name text, x int);
+        errors: []
+    editor:
+      input: |-
+        insert into t values (1) on conflict (id) do update set x = 1 returning excluded.
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      inserts:
+        - target-ref: 0
+          source: "values (1)"
+          returning: true
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "excluded."}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "id"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.2", source: "t", text: "x"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 3, text: "1"}
+        - {expression: 4, text: "1"}
+    cursor:
+      search:
+        text: 'excluded.'
+        index: 9
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries: []
+      text: "."
+
+  - name: clause_insert_do_update_sees_excluded
+    catalog:
+      script:
+        input: |-
+          create table t (id int primary key, name text, x int);
+        errors: []
+    editor:
+      input: |-
+        insert into t values (1) on conflict (id) do update set x = excluded.
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      inserts:
+        - target-ref: 0
+          source: "values (1)"
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "excluded."}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "id"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.2", source: "t", text: "x"}
+        - {id: 3, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 3, text: "1"}
+    cursor:
+      search:
+        text: 'excluded.'
+        index: 9
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: id
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "excluded."
+          objects:
+            - type: column
+              id: "256.65536.1:0.0"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.id
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+        - value: name
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "excluded."
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.name
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "text · t"
+        - value: x
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "excluded."
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.x
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+      text: "."
+
   - name: clause_select_join_alias_qualifies_columns
     catalog:
       script:

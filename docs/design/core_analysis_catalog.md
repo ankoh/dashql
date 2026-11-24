@@ -363,20 +363,23 @@ The rules follow PostgreSQL and Hyper:
   of an expression subquery.
 - **DML targets** are table references with the role `Write`: the target of INSERT, DELETE, UPDATE and MERGE. The
   FROM items of UPDATE, the USING items of DELETE and the source of MERGE are read. They don't see the target, also
-  not laterally, as in PostgreSQL: neither the conditions of their joins (`SourceVisibility::Except` of the target)
-  nor a function in FROM and a lateral derived table among them (`BeforeExcept`). The conditions, the values and
+  not laterally, as in PostgreSQL: neither their column refs, the conditions of their joins (a clause
+  `SourceVisibility::Except` of the target around the read relations), nor a function in FROM and a lateral derived
+  table among them (`BeforeExcept`). The conditions, the values and
   RETURNING of UPDATE, DELETE and MERGE see the target and the read relations; the source of INSERT sees no target.
   A `WHEN NOT MATCHED [BY TARGET]` clause of MERGE sees the source only, a `WHEN NOT MATCHED BY SOURCE` clause the
   target only, also from its subqueries (`SourceVisibility::Except` and `Only` of the target), `t.b` of the relation
   that a clause doesn't see is an invalid reference to a FROM-clause entry. The scope publishes
-  these clauses in `NameScope::clauses`, `NameScope::visibility_at` names what a node in them sees, for completion.
+  these clauses in `NameScope::clauses`, and `NameScope::visibility_at` names what a node in them sees, the innermost
+  clause around the node decides: name resolution and completion read the FROM items of a column ref there.
   The columns that UPDATE and MERGE write, the SET targets and the INSERT columns of MERGE, are column refs that bind
   to the target only, also when a read relation has a column of the same name; the column of a target that the
   catalog doesn't know is inferred for it. The explicit columns of INSERT bind to its target after resolution.
   `ON CONFLICT` of INSERT binds the columns of its conflict target and the SET targets of `DO UPDATE` like the written
   columns of UPDATE. `DO UPDATE` adds `excluded`, the row proposed for insertion, as a FROM item of the INSERT scope
   with the table of the target (its AST node is the `OBJECT_SQL_INSERT_ON_CONFLICT`), and only the values and the
-  condition of `DO UPDATE` and their subqueries see it (`SourceVisibility::Except` of the others): an unqualified
+  condition of `DO UPDATE` and their subqueries see it (the INSERT is a clause `SourceVisibility::Except` of
+  `excluded`, the values and the condition of `DO UPDATE` are clauses inside of it that see all): an unqualified
   column of both is ambiguous there, as in PostgreSQL, RETURNING and the index predicate don't see `excluded`,
   `excluded.a` and `excluded.*` are invalid references there, and `RETURNING *` lists the columns of the target.
 - **`*` over a join** lists the `USING` and `NATURAL` columns once, first, then the other columns of

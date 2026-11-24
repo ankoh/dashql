@@ -319,6 +319,102 @@ completion-snapshots:
     completions:
       limit: 3
 
+  # The FROM items of UPDATE don't see the target: the condition of a join in them offers no column of the target
+  - name: clause_update_from_join_hides_target
+    catalog:
+      script:
+        input: |-
+          create table t (id int, name text, x int); create table s (id int, sv int); create table u (id int, note text);
+    editor:
+      input: |-
+        update t set x = 1 from s join u on u.id = n
+    cursor:
+      search:
+        text: '= n'
+        index: 3
+    completions:
+      limit: 5
+
+  # The FROM items of UPDATE don't see the target, the target alias completes no columns in the condition of a join
+  - name: clause_update_from_join_hides_target_alias
+    catalog:
+      script:
+        input: |-
+          create table t (id int, name text, x int); create table s (id int, sv int); create table u (id int, note text);
+    editor:
+      input: |-
+        update t set x = 1 from s join u on u.id = t.
+    cursor:
+      search:
+        text: 't.'
+        index: 2
+    completions:
+      limit: 5
+
+  # The USING items of DELETE don't see the target: the condition of a join in them offers no column of the target
+  - name: clause_delete_using_join_hides_target
+    catalog:
+      script:
+        input: |-
+          create table t (id int, name text, x int); create table s (id int, sv int); create table u (id int, note text);
+    editor:
+      input: |-
+        delete from t using s join u on u.id = n
+    cursor:
+      search:
+        text: '= n'
+        index: 3
+    completions:
+      limit: 5
+
+  # The subqueries of the FROM items of UPDATE don't see the target either
+  - name: clause_update_from_subquery_hides_target
+    catalog:
+      script:
+        input: |-
+          create table t (id int, name text, x int); create table s (id int, sv int); create table u (id int, note text);
+    editor:
+      input: |-
+        update t set x = 1 from s join u on u.id = (select n)
+    cursor:
+      search:
+        text: 'select n'
+        index: 8
+    completions:
+      limit: 5
+
+  # RETURNING of INSERT doesn't see `excluded`, its alias completes no columns there
+  - name: clause_insert_returning_hides_excluded
+    catalog:
+      script:
+        input: |-
+          create table t (id int primary key, name text, x int);
+    editor:
+      input: |-
+        insert into t values (1) on conflict (id) do update set x = 1 returning excluded.
+    cursor:
+      search:
+        text: 'excluded.'
+        index: 9
+    completions:
+      limit: 5
+
+  # The values of DO UPDATE see `excluded`, its alias completes the columns of the target
+  - name: clause_insert_do_update_sees_excluded
+    catalog:
+      script:
+        input: |-
+          create table t (id int primary key, name text, x int);
+    editor:
+      input: |-
+        insert into t values (1) on conflict (id) do update set x = excluded.
+    cursor:
+      search:
+        text: 'excluded.'
+        index: 9
+    completions:
+      limit: 5
+
   # Outside of an aliased join, the alias of the join qualifies the columns of the FROM items inside it
   - name: clause_select_join_alias_qualifies_columns
     catalog:
