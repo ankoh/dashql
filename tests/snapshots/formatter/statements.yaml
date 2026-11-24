@@ -92,7 +92,7 @@ formatter-snapshots:
               select *
               from external(
                   'https://data.dashql.app/tpch-0.001/v1/region.parquet',
-                      format => 'parquet'
+                  format => 'parquet'
               );
           - mode: pretty
             indent: 4
@@ -102,7 +102,7 @@ formatter-snapshots:
               select *
               from external(
                   'https://data.dashql.app/tpch-0.001/v1/region.parquet',
-                      format => 'parquet'
+                  format => 'parquet'
               );
 
   - name: create_table_as_with_no_data_on_own_line
@@ -1033,33 +1033,33 @@ formatter-snapshots:
             expected: |-
               insert into customer_profiles(
                 customer_id, first_name, last_name, email_address, phone_number, created_at,
-                  updated_at
+                updated_at
               )
               values (
                 1, 'Ada', 'Lovelace', 'ada@example.com', '+44 20 7946 0000',
-                  current_timestamp, current_timestamp
+                current_timestamp, current_timestamp
               );
           - mode: pretty
             width: 80
             expected: |-
               insert into customer_profiles(
                 customer_id,
-                  first_name,
-                  last_name,
-                  email_address,
-                  phone_number,
-                  created_at,
-                  updated_at
+                first_name,
+                last_name,
+                email_address,
+                phone_number,
+                created_at,
+                updated_at
               )
               values
                 (
                   1,
-                    'Ada',
-                    'Lovelace',
-                    'ada@example.com',
-                    '+44 20 7946 0000',
-                    current_timestamp,
-                    current_timestamp
+                  'Ada',
+                  'Lovelace',
+                  'ada@example.com',
+                  '+44 20 7946 0000',
+                  current_timestamp,
+                  current_timestamp
                 );
         validation:
           setup: |-

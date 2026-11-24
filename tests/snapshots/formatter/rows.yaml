@@ -246,14 +246,14 @@ formatter-snapshots:
             expected: |-
               select row(
                   first_value_column, second_value_column, third_value_column, fourth_value_column, fifth_value_column,
-                    sixth_value_column
+                  sixth_value_column
                 ), (first_value_column, second_value_column, third_value_column, fourth_value_column, fifth_value_column)
               from wide;
           - mode: pretty
             expected: |-
               select row(
                   first_value_column, second_value_column, third_value_column, fourth_value_column, fifth_value_column,
-                    sixth_value_column
+                  sixth_value_column
                 ),
                 (first_value_column, second_value_column, third_value_column, fourth_value_column, fifth_value_column)
               from wide;
@@ -275,7 +275,7 @@ formatter-snapshots:
               select cast(
                 NULL as row(
                   first_field_name TEXT, second_field_name integer, third_field_name numeric(38, 18),
-                    fourth_field_name row(nested_field TEXT)
+                  fourth_field_name row(nested_field TEXT)
                 )
               );
           - mode: pretty
@@ -283,9 +283,9 @@ formatter-snapshots:
               select cast(
                 NULL as row(
                   first_field_name TEXT,
-                    second_field_name integer,
-                    third_field_name numeric(38, 18),
-                    fourth_field_name row(nested_field TEXT)
+                  second_field_name integer,
+                  third_field_name numeric(38, 18),
+                  fourth_field_name row(nested_field TEXT)
                 )
               );
         validation:

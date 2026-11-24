@@ -12,7 +12,10 @@ This guide documents the standard workflow to add or improve SQL formatter behav
 6. The formatter visits the nodes in post-order (the order of the node array), so the regs of the children are already computed (if we can format them).
 7. Every node gets a document, also the arrays and enums whose parent prints them: `format_array` picks the layout of an array by its attribute key (an array without a key by the key of its parent, like the qualified names in a list of names), and an enum that its parent prints gets the empty document.
 8. Commands lay out their clauses with `format_command_clauses`: on one line if the command fits, otherwise every clause after the first on an indented line of its own. Queries and data changes (SELECT, INSERT, UPDATE, DELETE, MERGE) put every clause on a line of its own in pretty mode instead.
-9. To try a change on real scripts, run `bazel run //packages/dashql-cli:dashql -- format <file.sql|dir|->`.
+9. Lists (`comma_join`, `FormattingProgram::list`) indent the lines after their breaks once more when they follow
+   text on their line (`select a,\n  b`). In parentheses that break, a list starts its line, so its items line up,
+   the first one too.
+10. To try a change on real scripts, run `bazel run //packages/dashql-cli:dashql -- format <file.sql|dir|->`.
 
 Example: for `OBJECT_SQL_ORDER`, read attributes like `SQL_ORDER_VALUE`, `SQL_ORDER_DIRECTION`, and `SQL_ORDER_NULLRULE`, then render the order item text used by `order by` clauses.
 

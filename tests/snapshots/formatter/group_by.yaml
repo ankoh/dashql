@@ -146,7 +146,7 @@ formatter-snapshots:
               from sales
               group by grouping sets(
                 (region, segment, channel), (region, segment), region,
-                  cube(channel, segment), rollup(region, channel), ()
+                cube(channel, segment), rollup(region, channel), ()
               );
           - mode: pretty
             width: 80
@@ -155,11 +155,11 @@ formatter-snapshots:
               from sales
               group by grouping sets(
                 (region, segment, channel),
-                  (region, segment),
-                  region,
-                  cube(channel, segment),
-                  rollup(region, channel),
-                  ()
+                (region, segment),
+                region,
+                cube(channel, segment),
+                rollup(region, channel),
+                ()
               );
         validation:
           setup: |-

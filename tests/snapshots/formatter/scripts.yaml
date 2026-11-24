@@ -297,7 +297,7 @@ formatter-snapshots:
               a > 0 -- strictly
                 and coalesce(
                     b, -- the b
-                      c
+                    c
                   ) < 1;
 
               select 2;
@@ -312,7 +312,7 @@ formatter-snapshots:
               a > 0 -- strictly
                 and coalesce(
                     b, -- the b
-                      c
+                    c
                   ) < 1;
 
               select 2;

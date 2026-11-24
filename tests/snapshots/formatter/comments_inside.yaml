@@ -16,8 +16,8 @@ formatter-snapshots:
               from t
               where a in (
                 1, /* two */ 2,
-                  3, -- three
-                  4
+                3, -- three
+                4
               );
           - mode: pretty
             expected: |-
@@ -25,9 +25,9 @@ formatter-snapshots:
               from t
               where a in (
                 1,
-                  /* two */ 2,
-                  3, -- three
-                  4
+                /* two */ 2,
+                3, -- three
+                4
               );
         validation:
           setup: |-
@@ -80,14 +80,14 @@ formatter-snapshots:
             expected: |-
               select coalesce(
                 a, -- the fallback
-                  b, /* last */ c
+                b, /* last */ c
               )
               from t;
           - mode: pretty
             expected: |-
               select coalesce(
                 a, -- the fallback
-                  b, /* last */ c
+                b, /* last */ c
               )
               from t;
         validation:

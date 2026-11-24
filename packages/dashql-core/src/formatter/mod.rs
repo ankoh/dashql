@@ -583,29 +583,20 @@ impl<'a> Formatter<'a> {
         reg
     }
 
-    fn comma_separators(&self) -> (FmtReg, FmtReg) {
+    /// A comma-separated list
+    fn comma_join(&self, items: &[FmtReg], policy: Option<FormattingJoinPolicy>, indent_after_breaks: bool) -> FmtReg {
         let f = &self.fmt;
-        let inline_separator = f.text(", ");
         let break_separator = f.concat(&[f.text(","), f.break_()]);
-        (inline_separator, break_separator)
+        f.list(items, f.text(", "), break_separator, policy, indent_after_breaks)
     }
 
     fn format_comma_list(&self, node: &Node, indent_after_breaks: bool) -> FmtReg {
-        let parts = self.array_regs(node);
-        let (inline_separator, break_separator) = self.comma_separators();
-        self.fmt.join(&parts, inline_separator, break_separator, None, indent_after_breaks)
+        self.comma_join(&self.array_regs(node), None, indent_after_breaks)
     }
 
-    /// A comma-separated join that breaks on overflow
+    /// A comma-separated list that breaks on overflow
     fn comma_join_on_overflow(&self, items: &[FmtReg], indent_after_breaks: bool) -> FmtReg {
-        let (inline_separator, break_separator) = self.comma_separators();
-        self.fmt.join(
-            items,
-            inline_separator,
-            break_separator,
-            Some(FormattingJoinPolicy::BreakOnOverflow),
-            indent_after_breaks,
-        )
+        self.comma_join(items, Some(FormattingJoinPolicy::BreakOnOverflow), indent_after_breaks)
     }
 
     /// A space-separated join
@@ -774,9 +765,7 @@ impl<'a> Formatter<'a> {
             | K::SQL_CREATE_FUNCTION_WITH_OPTIONS
             | K::SQL_FUNCTION_RETURN_TYPE_ATTRIBUTES => self.format_comma_list(node, false),
             K::EXT_EXPLAIN_EXPRESSIONS => {
-                let parts = self.array_regs(node);
-                let (inline_separator, break_separator) = self.comma_separators();
-                f.join(&parts, inline_separator, break_separator, Some(FormattingJoinPolicy::ForceBreak), false)
+                self.comma_join(&self.array_regs(node), Some(FormattingJoinPolicy::ForceBreak), false)
             }
             K::EXT_VARARG_FIELD_VALUE | K::SQL_FUNCTION_ARG_VALUE => self.format_vararg_object(node),
             K::SQL_GENERIC_OPTION_VALUE => f.parenthesized(self.format_comma_list(node, true)),
@@ -803,8 +792,7 @@ impl<'a> Formatter<'a> {
                 }
                 let policy = self.pretty_policy(FormattingJoinPolicy::BreakOnOverflow);
                 let indent_after_breaks = !self.is_pretty();
-                let (inline_separator, break_separator) = self.comma_separators();
-                f.join(&rows, inline_separator, break_separator, Some(policy), indent_after_breaks)
+                self.comma_join(&rows, Some(policy), indent_after_breaks)
             }
             // The privileges, roles and names of GRANT, REVOKE and the commands of roles
             K::SQL_GRANT_PRIVILEGES
@@ -1524,9 +1512,7 @@ impl<'a> Formatter<'a> {
     /// `(m1, m2, ...)` of a type with modifiers
     fn format_type_modifiers(&self, modifiers: &'a Node) -> FmtReg {
         let values: Vec<FmtReg> = self.children(modifiers).iter().map(|m| self.reg(m)).collect();
-        let (inline_separator, break_separator) = self.comma_separators();
-        let joined = self.fmt.join(&values, inline_separator, break_separator, None, true);
-        self.fmt.parenthesized(joined)
+        self.fmt.parenthesized(self.comma_join(&values, None, true))
     }
 
     fn format_numeric_type(&self, node: &'a Node) -> FmtReg {

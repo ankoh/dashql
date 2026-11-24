@@ -198,8 +198,7 @@ formatter-snapshots:
               select order_id,
                 raw_sql_aggregate(
                   descriptor(output array(row(product_name text, available_quantity numeric(38, 18)))),
-                    'collect_list(named_struct(''product_name'', {0}, ''available_quantity'', {1}))', product_name,
-                    available_quantity
+                  'collect_list(named_struct(''product_name'', {0}, ''available_quantity'', {1}))', product_name, available_quantity
                 ) as products
               from order_products
               group by order_id;
@@ -209,8 +208,7 @@ formatter-snapshots:
               select order_id,
                 raw_sql_aggregate(
                   descriptor(output array(row(product_name text, available_quantity numeric(38, 18)))),
-                    'collect_list(named_struct(''product_name'', {0}, ''available_quantity'', {1}))', product_name,
-                    available_quantity
+                  'collect_list(named_struct(''product_name'', {0}, ''available_quantity'', {1}))', product_name, available_quantity
                 ) as products
               from order_products
               group by order_id;

@@ -71,8 +71,7 @@ impl<'a> Formatter<'a> {
                 }
                 parts.push(reg);
             }
-            let (inline_separator, break_separator) = self.comma_separators();
-            element_block = f.parenthesized(f.join(&parts, inline_separator, break_separator, None, false));
+            element_block = f.parenthesized(self.comma_join(&parts, None, false));
         }
         let mut statement = f.concat(&[header, f.text(" "), element_block]);
         if let Some(options) = options {
@@ -677,8 +676,7 @@ impl<'a> Formatter<'a> {
         if let [item] = items[..] {
             return f.concat(&[f.text("["), item, f.text("]")]);
         }
-        let (inline_separator, break_separator) = self.comma_separators();
-        f.bracketed_list(f.join(&items, inline_separator, break_separator, None, false))
+        f.bracketed_list(self.comma_join(&items, None, false))
     }
 
     pub(super) fn format_set(&self, node: &'a Node) -> FmtReg {

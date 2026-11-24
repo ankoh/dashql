@@ -49,7 +49,7 @@ formatter-snapshots:
               select *
               from some_table with options (
                   first_option => 1,
-                    second_option => 'some value'
+                  second_option => 'some value'
                 ),
                 some_function(1, 2) with options (
                   third_option => true
@@ -60,7 +60,7 @@ formatter-snapshots:
               select *
               from some_table with options (
                   first_option => 1,
-                    second_option => 'some value'
+                  second_option => 'some value'
                 ),
                 some_function(1, 2) with options (
                   third_option => true
@@ -81,11 +81,11 @@ formatter-snapshots:
               select *
               from some_function(
                 table(some_table) as s
-                    partition by (first_key, second_key)
-                    order by (first_key desc),
-                  descriptor(
-                    first_column, second_column integer
-                  )
+                  partition by (first_key, second_key)
+                  order by (first_key desc),
+                descriptor(
+                  first_column, second_column integer
+                )
               );
           - mode: pretty
             width: 50
@@ -93,11 +93,11 @@ formatter-snapshots:
               select *
               from some_function(
                 table(some_table) as s
-                    partition by (first_key, second_key)
-                    order by (first_key desc),
-                  descriptor(
-                    first_column, second_column integer
-                  )
+                  partition by (first_key, second_key)
+                  order by (first_key desc),
+                descriptor(
+                  first_column, second_column integer
+                )
               );
 
   - name: coverage_lambda_long_body
@@ -114,9 +114,9 @@ formatter-snapshots:
             expected: |-
               select array_transform(
                 some_array,
-                  lambda element: case
-                    when element > 100 then element / 100
-                    else element * 100 end
+                lambda element: case
+                  when element > 100 then element / 100
+                  else element * 100 end
               )
               from t;
           - mode: pretty
@@ -124,10 +124,10 @@ formatter-snapshots:
             expected: |-
               select array_transform(
                 some_array,
-                  lambda element: case
-                    when element > 100 then element / 100
-                    else element * 100
-                  end
+                lambda element: case
+                  when element > 100 then element / 100
+                  else element * 100
+                end
               )
               from t;
 
@@ -145,18 +145,18 @@ formatter-snapshots:
             expected: |-
               select array_filter(
                 a,
-                  lambda x:
-                  -- the element
-                  x > 1
+                lambda x:
+                -- the element
+                x > 1
               )
               from /* positive */ t;
           - mode: pretty
             expected: |-
               select array_filter(
                 a,
-                  lambda x:
-                  -- the element
-                  x > 1
+                lambda x:
+                -- the element
+                x > 1
               )
               from /* positive */ t;
 

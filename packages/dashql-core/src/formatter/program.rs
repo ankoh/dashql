@@ -103,6 +103,9 @@ pub struct FormattingOperation<'a> {
     pub join_policy: FormattingJoinPolicy,
     /// Parentheses or brackets that break also break an all-or-none join inside, with one item per line
     pub break_list: bool,
+    /// Is the join a list of items, like the arguments of a call? A list in parentheses that break starts its line, so
+    /// the items after its breaks line up with its first one, without the hanging indentation.
+    pub list: bool,
 }
 
 /// The options for rendering a formatting program
@@ -287,6 +290,30 @@ impl<'a> FormattingProgram<'a> {
         join_policy: Option<FormattingJoinPolicy>,
         indent_after_breaks: bool,
     ) -> FmtReg {
+        self.new_join(items, inline_separator, break_separator, join_policy, indent_after_breaks, false)
+    }
+
+    /// Join the items of a list, see `FormattingOperation::list`
+    pub fn list(
+        &self,
+        items: &[FmtReg],
+        inline_separator: FmtReg,
+        break_separator: FmtReg,
+        join_policy: Option<FormattingJoinPolicy>,
+        indent_after_breaks: bool,
+    ) -> FmtReg {
+        self.new_join(items, inline_separator, break_separator, join_policy, indent_after_breaks, true)
+    }
+
+    fn new_join(
+        &self,
+        items: &[FmtReg],
+        inline_separator: FmtReg,
+        break_separator: FmtReg,
+        join_policy: Option<FormattingJoinPolicy>,
+        indent_after_breaks: bool,
+        list: bool,
+    ) -> FmtReg {
         let filtered: Vec<FmtReg> = items.iter().copied().filter(|&i| i != 0).collect();
         match filtered.as_slice() {
             [] => return self.empty(),
@@ -305,6 +332,7 @@ impl<'a> FormattingProgram<'a> {
             break_separator,
             indent_after_breaks,
             join_policy: selected_policy,
+            list,
             ..Default::default()
         })
     }
@@ -779,6 +807,62 @@ fn append_generated_text(output: &mut String, text: &str) {
     }
 }
 
+/// A join to render
+#[derive(Clone, Copy, Debug)]
+struct JoinRendering {
+    /// The join document
+    reg: FmtReg,
+    /// The indentation of the join
+    indentation: usize,
+    /// Indent the lines after the breaks if the join wants it? Not for a list that starts its line.
+    hanging: bool,
+}
+
+/// Push the steps that render a join: inline if it fits, otherwise broken by its policy
+fn push_join(
+    stack: &mut Vec<RenderCommand>,
+    doc: &FormattingOperation,
+    join: JoinRendering,
+    line_width: usize,
+    force_inline: bool,
+    program: &[FormattingOperation],
+    options: &FormattingRenderOptions,
+) {
+    if force_inline
+        || (doc.join_policy != FormattingJoinPolicy::ForceBreak
+            && join_fits_inline(
+                remaining_inline_width(options.max_width, line_width) - trailing_inline_width(stack, program) as isize,
+                doc,
+                join.indentation,
+                program,
+                options,
+            ))
+    {
+        push_rendered_join(stack, doc, join.indentation, doc.inline_separator);
+        return;
+    }
+    let hanging = join.hanging && doc.indent_after_breaks;
+    let indent = join.indentation + if hanging { options.indentation_width } else { 0 };
+    match doc.join_policy {
+        FormattingJoinPolicy::BreakAllOrNone | FormattingJoinPolicy::ForceBreak => {
+            push_rendered_join(stack, doc, indent, doc.break_separator);
+        }
+        FormattingJoinPolicy::BreakOnOverflow => {
+            if let Some(&first) = doc.children.first() {
+                if doc.children.len() > 1 {
+                    stack.push(RenderCommand {
+                        kind: RendererOpCode::JoinNextBreakOnOverflow,
+                        reg: join.reg,
+                        indentation: indent,
+                        next_index: 1,
+                    });
+                }
+                stack.push(RenderCommand::format(first, indent));
+            }
+        }
+    }
+}
+
 fn render(
     program: &[FormattingOperation],
     root: FmtReg,
@@ -899,40 +983,8 @@ fn render(
             }
             FormattingOpCode::Concat => push_docs(&mut stack, &doc.children, command.indentation),
             FormattingOpCode::Join => {
-                if force_inline
-                    || (doc.join_policy != FormattingJoinPolicy::ForceBreak
-                        && join_fits_inline(
-                            remaining_inline_width(options.max_width, line.width)
-                                - trailing_inline_width(&stack, program) as isize,
-                            doc,
-                            command.indentation,
-                            program,
-                            options,
-                        ))
-                {
-                    push_rendered_join(&mut stack, doc, command.indentation, doc.inline_separator);
-                } else {
-                    let indent =
-                        command.indentation + if doc.indent_after_breaks { options.indentation_width } else { 0 };
-                    match doc.join_policy {
-                        FormattingJoinPolicy::BreakAllOrNone | FormattingJoinPolicy::ForceBreak => {
-                            push_rendered_join(&mut stack, doc, indent, doc.break_separator);
-                        }
-                        FormattingJoinPolicy::BreakOnOverflow => {
-                            if let Some(&first) = doc.children.first() {
-                                if doc.children.len() > 1 {
-                                    stack.push(RenderCommand {
-                                        kind: RendererOpCode::JoinNextBreakOnOverflow,
-                                        reg: command.reg,
-                                        indentation: indent,
-                                        next_index: 1,
-                                    });
-                                }
-                                stack.push(RenderCommand::format(first, indent));
-                            }
-                        }
-                    }
-                }
+                let join = JoinRendering { reg: command.reg, indentation: command.indentation, hanging: true };
+                push_join(&mut stack, doc, join, line.width, force_inline, program, options);
             }
             FormattingOpCode::Indent => {
                 if let Some(child) = get_only_child(doc) {
@@ -966,18 +1018,18 @@ fn render(
                 stack.push(RenderCommand { kind: close, reg: 0, indentation: command.indentation, next_index: 0 });
                 if let Some(child) = get_only_child(doc) {
                     let indentation = command.indentation + options.indentation_width;
-                    let list = program.get(child as usize).filter(|list| {
-                        doc.break_list
-                            && !render_flat
-                            && list.code == FormattingOpCode::Join
-                            && list.join_policy == FormattingJoinPolicy::BreakAllOrNone
-                    });
-                    if let Some(list) = list {
-                        let indentation =
-                            indentation + if list.indent_after_breaks { options.indentation_width } else { 0 };
-                        push_rendered_join(&mut stack, list, indentation, list.break_separator);
-                    } else {
-                        stack.push(RenderCommand::format(child, indentation));
+                    // The content of parentheses that break starts its line, so the items of a list in them line up
+                    let join =
+                        program.get(child as usize).filter(|join| !render_flat && join.code == FormattingOpCode::Join);
+                    match join {
+                        Some(list) if doc.break_list && list.join_policy == FormattingJoinPolicy::BreakAllOrNone => {
+                            push_rendered_join(&mut stack, list, indentation, list.break_separator);
+                        }
+                        Some(list) if list.list => {
+                            let rendering = JoinRendering { reg: child, indentation, hanging: false };
+                            push_join(&mut stack, list, rendering, line.width, force_inline, program, options);
+                        }
+                        _ => stack.push(RenderCommand::format(child, indentation)),
                     }
                 }
             }
@@ -997,7 +1049,7 @@ mod tests {
     fn comma_list<'a>(f: &FormattingProgram<'a>, items: &[&'a str], policy: Option<FormattingJoinPolicy>) -> FmtReg {
         let regs: Vec<FmtReg> = items.iter().map(|i| f.text(i)).collect();
         let break_separator = f.concat(&[f.text(","), f.break_()]);
-        f.join(&regs, f.text(", "), break_separator, policy, true)
+        f.list(&regs, f.text(", "), break_separator, policy, true)
     }
 
     #[test]
@@ -1051,9 +1103,13 @@ mod tests {
         let list = comma_list(&f, &["a", "b"], Some(FormattingJoinPolicy::ForceBreak));
         assert_eq!(f.render(list, &options(FormattingMode::COMPACT, 120)), "a,\n  b");
         assert_eq!(f.render(list, &options(FormattingMode::INLINE, 120)), "a, b");
-        // A forced break inside a parenthesis breaks the parenthesis as well
+        // A forced break inside a parenthesis breaks the parenthesis as well, the items of the list line up
         let parens = f.parenthesized(list);
-        assert_eq!(f.render(parens, &options(FormattingMode::COMPACT, 120)), "(\n  a,\n    b\n)");
+        assert_eq!(f.render(parens, &options(FormattingMode::COMPACT, 120)), "(\n  a,\n  b\n)");
+        // Other joins keep their hanging indentation there
+        let items = [f.text("a"), f.text("b")];
+        let join = f.join(&items, f.text(" "), f.break_(), Some(FormattingJoinPolicy::ForceBreak), true);
+        assert_eq!(f.render(f.parenthesized(join), &options(FormattingMode::COMPACT, 120)), "(\n  a\n    b\n)");
     }
 
     #[test]

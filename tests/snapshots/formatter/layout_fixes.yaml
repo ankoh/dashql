@@ -1,0 +1,61 @@
+formatter-snapshots:
+
+  - name: list_in_broken_parentheses_aligned
+    input: |-
+      select name from products where category in ('electronics', 'household appliances', 'garden furniture', 'sporting goods') and price > 10
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select name from products where category in ('electronics', 'household appliances', 'garden furniture', 'sporting goods') and price > 10;
+          - mode: compact
+            width: 50
+            expected: |-
+              select name
+              from products
+              where category in (
+                  'electronics', 'household appliances',
+                  'garden furniture', 'sporting goods'
+                ) and price > 10;
+          - mode: pretty
+            width: 50
+            expected: |-
+              select name
+              from products
+              where category in (
+                  'electronics',
+                  'household appliances',
+                  'garden furniture',
+                  'sporting goods'
+                )
+                and price > 10;
+        validation:
+          setup: |-
+            create table products(name text, category text, price int);
+
+  - name: call_arguments_in_broken_parentheses_aligned
+    input: |-
+      select some_function(first_argument_value, second_argument_value, third_argument_value, fourth_argument_value) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select some_function(first_argument_value, second_argument_value, third_argument_value, fourth_argument_value) from t;
+          - mode: compact
+            width: 50
+            expected: |-
+              select some_function(
+                first_argument_value, second_argument_value,
+                third_argument_value, fourth_argument_value
+              )
+              from t;
+          - mode: pretty
+            width: 50
+            expected: |-
+              select some_function(
+                first_argument_value, second_argument_value,
+                third_argument_value, fourth_argument_value
+              )
+              from t;

@@ -80,14 +80,14 @@ formatter-snapshots:
             expected: |-
               select array[
                 first_value_column, second_value_column, third_value_column, fourth_value_column, fifth_value_column,
-                  sixth_value_column
+                sixth_value_column
               ]
               from wide;
           - mode: pretty
             expected: |-
               select array[
                 first_value_column, second_value_column, third_value_column, fourth_value_column, fifth_value_column,
-                  sixth_value_column
+                sixth_value_column
               ]
               from wide;
         validation:
