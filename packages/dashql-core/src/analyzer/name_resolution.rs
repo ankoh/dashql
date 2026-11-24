@@ -3242,25 +3242,17 @@ impl NameResolutionPass {
         self.resolve_names(state);
         self.publish_join_columns(state);
 
-        // Assign statement ids, the objects are ordered by their AST nodes
-        if let Some(first) = state.parsed.statements.first() {
+        // Assign statement ids. The objects are not ordered by their AST nodes: every morsel of the scan adds the
+        // column refs, then the function calls, then the constants, so every node looks up its statement
+        if !state.parsed.statements.is_empty() {
             let statements = &state.parsed.statements;
             let assign = |nodes: &mut dyn Iterator<Item = (u32, &mut Option<u32>)>| {
-                let mut statement_id = 0usize;
-                let mut statement_begin = first.nodes_begin;
-                let mut statement_end = statement_begin + first.node_count;
                 for (ast_node_id, statement) in nodes {
-                    while statement_end <= ast_node_id && statement_id < statements.len() {
-                        statement_id += 1;
-                        let Some(next) = statements.get(statement_id) else { break };
-                        statement_begin = next.nodes_begin;
-                        statement_end = statement_begin + next.node_count;
-                    }
-                    if statement_id == statements.len() {
-                        break;
-                    }
-                    if statement_begin <= ast_node_id {
-                        *statement = Some(statement_id as u32);
+                    // The statements are ordered by their nodes, find the last one that begins at or before the node
+                    let next = statements.partition_point(|s| s.nodes_begin <= ast_node_id);
+                    let Some(i) = next.checked_sub(1) else { continue };
+                    if statements.get(i).is_some_and(|s| ast_node_id < s.nodes_begin + s.node_count) {
+                        *statement = Some(i as u32);
                     }
                 }
             };

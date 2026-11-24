@@ -1,0 +1,47 @@
+analyzer-snapshots:
+
+  - name: statement_ids_of_constants_in_earlier_statements
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: |-
+        select * from t where a = 1 and abs(b) > 2;
+        select * from u where c = 3 and abs(a) > 4
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 0, text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", statement-id: 1, text: "u"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", statement-id: 0, text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", statement-id: 0, text: "b"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", statement-id: 1, text: "c"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", statement-id: 1, text: "a"}
+        - {id: 4, type: function, name: abs, statement-id: 0, text: "abs(b)"}
+        - {id: 5, type: function, name: abs, statement-id: 1, text: "abs(a)"}
+        - {id: 6, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
+        - {id: 7, type: literal/integer, is-const: true, statement-id: 0, text: "2"}
+        - {id: 8, type: literal/integer, is-const: true, statement-id: 1, text: "3"}
+        - {id: 9, type: literal/integer, is-const: true, statement-id: 1, text: "4"}
+      constants:
+        - {expression: 6, text: "1"}
+        - {expression: 7, text: "2"}
+        - {expression: 8, text: "3"}
+        - {expression: 9, text: "4"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+          text: "select * f..abs(b) > 2"
+        - scope-id: 1
+          sources:
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: a, table-column: "256.65536.1:1.0"}
+            - {name: c, table-column: "256.65536.1:1.1"}
+          text: "select * f..abs(a) > 4"

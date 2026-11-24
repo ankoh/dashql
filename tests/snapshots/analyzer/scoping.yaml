@@ -2062,7 +2062,7 @@ analyzer-snapshots:
         - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", statement-id: 0, text: "b"}
         - {id: 2, type: colref/internal, catalog: "256.65536.2:0.0", source: "tt", statement-id: 1, text: "a"}
         - {id: 3, type: colref/internal, catalog: "256.65536.2:0.1", source: "tt", statement-id: 1, text: "n"}
-        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+        - {id: 4, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
       constants:
         - {expression: 4, text: "1"}
       name-scopes:

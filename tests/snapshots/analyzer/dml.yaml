@@ -508,8 +508,8 @@ analyzer-snapshots:
         - {id: 0, type: colref/unresolved, statement-id: 0, text: "z"}
         - {id: 1, type: colref/unresolved, statement-id: 1, text: "excluded.z"}
         - {id: 2, type: colref/unresolved, statement-id: 1, text: "z"}
-        - {id: 3, type: literal/integer, is-const: true, text: "1"}
-        - {id: 4, type: literal/integer, is-const: true, text: "2"}
+        - {id: 3, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
+        - {id: 4, type: literal/integer, is-const: true, statement-id: 0, text: "2"}
         - {id: 5, type: literal/integer, is-const: true, statement-id: 1, text: "1"}
         - {id: 6, type: literal/integer, is-const: true, statement-id: 1, text: "2"}
       constants:

@@ -28,9 +28,9 @@ analyzer-snapshots:
         - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", statement-id: 1, text: "c"}
         - {id: 2, type: colref/catalog, catalog: "256.65536.1:2.0", source: "v", statement-id: 2, text: "id"}
         - {id: 3, type: colref/catalog, catalog: "256.65536.1:2.1", source: "v", statement-id: 2, text: "x"}
-        - {id: 4, type: literal/integer, is-const: true, text: "5"}
-        - {id: 5, type: literal/integer, is-const: true, text: "1"}
-        - {id: 6, type: literal/integer, is-const: true, text: "1"}
+        - {id: 4, type: literal/integer, is-const: true, statement-id: 0, text: "5"}
+        - {id: 5, type: literal/integer, is-const: true, statement-id: 1, text: "1"}
+        - {id: 6, type: literal/integer, is-const: true, statement-id: 1, text: "1"}
         - {id: 7, type: literal/integer, is-const: true, statement-id: 2, text: "1"}
         - {id: 8, type: literal/integer, is-const: true, statement-id: 2, text: "2"}
         - {id: 9, type: literal/integer, is-const: true, statement-id: 2, text: "1"}
@@ -362,8 +362,8 @@ analyzer-snapshots:
         - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", statement-id: 0, text: "b"}
         - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", statement-id: 1, text: "a"}
         - {id: 4, type: colref/unresolved, statement-id: 1, text: "a"}
-        - {id: 5, type: literal/integer, is-const: true, text: "1"}
-        - {id: 6, type: literal/integer, is-const: true, text: "2"}
+        - {id: 5, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
+        - {id: 6, type: literal/integer, is-const: true, statement-id: 0, text: "2"}
         - {id: 7, type: literal/integer, is-const: true, statement-id: 1, text: "1"}
       constants:
         - {expression: 5, text: "1"}
@@ -1036,7 +1036,7 @@ analyzer-snapshots:
         - {id: 1, type: colref/internal, catalog: "256.65536.2:0.0", source: "g", statement-id: 0, text: "a"}
         - {id: 2, type: colref/internal, catalog: "256.65536.2:0.0", source: "g", statement-id: 1, text: "a"}
         - {id: 3, type: colref/internal, catalog: "256.65536.2:0.1", source: "g", statement-id: 1, text: "b"}
-        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+        - {id: 4, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
       constants:
         - {expression: 4, text: "1"}
       name-scopes:

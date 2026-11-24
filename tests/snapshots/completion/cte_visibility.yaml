@@ -757,7 +757,7 @@ completion-snapshots:
         - {type: name/unresolved, statement-id: 1, text: "my_"}
       expressions:
         - {id: 0, type: colref/unresolved, statement-id: 1, text: "x"}
-        - {id: 1, type: literal/integer, is-const: true, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
       constants:
         - {expression: 1, text: "1"}
       inferred-tables:

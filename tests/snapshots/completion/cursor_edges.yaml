@@ -432,7 +432,7 @@ completion-snapshots:
         - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 1, text: "t"}
       expressions:
         - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", statement-id: 1, text: "a"}
-        - {id: 1, type: literal/integer, is-const: true, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
         - {id: 2, type: literal/integer, is-const: true, statement-id: 2, text: "2"}
       constants:
         - {expression: 1, text: "1"}

@@ -1032,7 +1032,7 @@ analyzer-snapshots:
         - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.2", source: "sales", statement-id: 1, text: "date"}
         - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "sales", statement-id: 1, text: "revenue"}
         - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.2", source: "sales", statement-id: 1, text: "date"}
-        - {id: 4, type: function, name: sum, text: "sum(revenue)"}
+        - {id: 4, type: function, name: sum, statement-id: 0, text: "sum(revenue)"}
         - {id: 5, type: function, name: sum, statement-id: 1, text: "sum(revenue)"}
       name-scopes:
         - scope-id: 0
@@ -1103,8 +1103,8 @@ analyzer-snapshots:
         - {id: 5, type: colref/catalog, catalog: "256.65536.1:0.1", source: "sales", statement-id: 1, text: "revenue"}
         - {id: 6, type: colref/catalog, catalog: "256.65536.1:0.2", source: "sales", statement-id: 1, text: "date"}
         - {id: 7, type: colref/catalog, catalog: "256.65536.1:0.1", source: "sales", statement-id: 2, text: "revenue"}
-        - {id: 8, type: function, name: sum, text: "sum(revenue)"}
-        - {id: 9, type: function, name: sum, text: "sum(revenue)"}
+        - {id: 8, type: function, name: sum, statement-id: 0, text: "sum(revenue)"}
+        - {id: 9, type: function, name: sum, statement-id: 1, text: "sum(revenue)"}
         - {id: 10, type: function, name: sum, statement-id: 2, text: "sum(revenue)"}
       name-scopes:
         - scope-id: 0

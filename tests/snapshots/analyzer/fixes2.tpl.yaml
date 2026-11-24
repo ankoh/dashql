@@ -1,0 +1,11 @@
+analyzer-snapshots:
+
+  # The function calls and constants of an earlier statement keep their statement id after a later statement
+  - name: statement_ids_of_constants_in_earlier_statements
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: |-
+        select * from t where a = 1 and abs(b) > 2;
+        select * from u where c = 3 and abs(a) > 4

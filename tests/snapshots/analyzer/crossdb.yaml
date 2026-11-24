@@ -136,7 +136,7 @@ analyzer-snapshots:
       expressions:
         - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "db1.schema1.A", statement-id: 0, text: "a"}
         - {id: 1, type: colref/unresolved, statement-id: 1, text: "c"}
-        - {id: 2, type: literal/integer, is-const: true, text: "1"}
+        - {id: 2, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
         - {id: 3, type: literal/integer, is-const: true, statement-id: 1, text: "1"}
       constants:
         - {expression: 2, text: "1"}

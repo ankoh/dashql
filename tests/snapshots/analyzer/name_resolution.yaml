@@ -2306,8 +2306,8 @@ analyzer-snapshots:
         - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", statement-id: 0, text: "b"}
         - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", statement-id: 0, text: "b"}
         - {id: 3, type: colref/internal, catalog: "256.65536.2:0.3", source: "m as mm(w, x, y, z)", statement-id: 1, text: "z"}
-        - {id: 4, type: function, name: count, text: "count(*)"}
-        - {id: 5, type: literal/integer, is-const: true, text: "1"}
+        - {id: 4, type: function, name: count, statement-id: 0, text: "count(*)"}
+        - {id: 5, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
       constants:
         - {expression: 5, text: "1"}
       name-scopes:

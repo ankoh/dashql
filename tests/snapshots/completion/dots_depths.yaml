@@ -1135,8 +1135,8 @@ completion-snapshots:
         - {type: name/internal, catalog-id: "256.65536.1:0", statement-id: 1, text: "myv"}
       expressions:
         - {id: 0, type: colref/unresolved, statement-id: 1, text: "myv."}
-        - {id: 1, type: literal/integer, is-const: true, text: "1"}
-        - {id: 2, type: literal/integer, is-const: true, text: "2"}
+        - {id: 1, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
+        - {id: 2, type: literal/integer, is-const: true, statement-id: 0, text: "2"}
       constants:
         - {expression: 1, text: "1"}
         - {expression: 2, text: "2"}
