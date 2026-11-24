@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './workbook_feed_page.module.css';
 
-import { LinkIcon, PaperAirplaneIcon, PaperclipIcon, SquareFillIcon, SymbolIcon, ThreeBarsIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { LinkIcon, PaperclipIcon, SymbolIcon, ThreeBarsIcon } from '@akohn/dashql-react/components/symbol_icon';
 import * as ActionList from '@akohn/dashql-react/components/action_list';
 import * as actionMenuStyles from '../../app/action_menu.module.css';
 
@@ -29,11 +29,11 @@ import { WorkbookViewMode, defaultViewOfViewMode, useWorkbookViewMode, viewModeO
 import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
 import { PanelResizeHandle } from '@akohn/dashql-react/components/panel_resize_handle';
 import { useWorkbookExecution, useWorkbookShown } from '@akohn/dashql-react/hooks';
-import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { WorkbookConnectionButtons } from './workbook_connection_buttons.js';
+import { WorkbookExecutionControls, useSkippedRunAttention } from './workbook_execution_controls.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import { ConnectionOverviewPage } from '../../connections/connection_overview_page.js';
 import { CloudOverviewPage } from '../../cloud/cloud_overview_page.js';
@@ -55,7 +55,6 @@ const NextViewIcon = SymbolIcon('chevron_right_12');
 // The bookmark of the view that the workbook opens in, octicons
 const DefaultViewIcon = SymbolIcon('bookmark_16');
 const DefaultViewSetIcon = SymbolIcon('bookmark_filled_16');
-const CloseIcon = SymbolIcon('x_16');
 // The octicons show the sidebar on the right, flipped it sits on the left like the workbench
 const CollapseSidebarIcon = SymbolIcon('sidebar_collapse_16');
 const ExpandSidebarIcon = SymbolIcon('sidebar_expand_16');
@@ -94,45 +93,19 @@ const BarSeparator = ({ className }: { className?: string }) => (
     <div className={classNames(styles.bar_separator, className)} role="separator" aria-orientation="vertical" data-testid="workbook-bar-separator" />
 );
 
-export interface WorkbookFeedPageDependencies {
-    WorkbookFeed: typeof WorkbookFeed;
-    WorkbookPrompt: typeof WorkbookPrompt;
-    ScriptEditorDialog: typeof ScriptEditorDialog;
-    WorkbookWorkbenchSidebar: typeof WorkbookWorkbenchSidebar;
-    useWorkbenchHidden: typeof useWorkbenchHidden;
-    ConnectionOverviewPage: typeof ConnectionOverviewPage;
-    CloudOverviewPage: typeof CloudOverviewPage;
-    WorkbookNavigationDrawer: typeof WorkbookNavigationDrawer;
-    Dashboard: typeof Dashboard;
-    DataflowCanvas: typeof DataflowCanvas;
-    WorkbookURLShareOverlay: typeof WorkbookURLShareOverlay;
-    WorkbookFileSaveOverlay: typeof WorkbookFileSaveOverlay;
-    WorkbookConnectionButtons: typeof WorkbookConnectionButtons;
-    useWorkbookViewMode: typeof useWorkbookViewMode;
-    useWorkbookExecution: typeof useWorkbookExecution;
-    useWorkbookShown: typeof useWorkbookShown;
-    CloudWorkbookLoadingCard: typeof CloudWorkbookLoadingCard;
-}
+type FeedProps = React.ComponentProps<typeof WorkbookFeed>;
+type PromptProps = React.ComponentProps<typeof WorkbookPrompt>;
+type DashboardProps = React.ComponentProps<typeof Dashboard>;
+type DataflowProps = React.ComponentProps<typeof DataflowCanvas>;
+type EditorDialogProps = React.ComponentProps<typeof ScriptEditorDialog>;
+type WorkbenchProps = React.ComponentProps<typeof WorkbookWorkbenchSidebar>;
 
-const DEFAULT_DEPENDENCIES: WorkbookFeedPageDependencies = {
-    WorkbookFeed,
-    WorkbookPrompt,
-    ScriptEditorDialog,
-    WorkbookWorkbenchSidebar,
-    useWorkbenchHidden,
-    ConnectionOverviewPage,
-    CloudOverviewPage,
-    WorkbookNavigationDrawer,
-    Dashboard,
-    DataflowCanvas,
-    WorkbookURLShareOverlay,
-    WorkbookFileSaveOverlay,
-    WorkbookConnectionButtons,
-    useWorkbookViewMode,
-    useWorkbookExecution,
-    useWorkbookShown,
-    CloudWorkbookLoadingCard,
-};
+const renderFeed = (props: FeedProps) => <WorkbookFeed {...props} />;
+const renderPrompt = (props: PromptProps) => <WorkbookPrompt {...props} />;
+const renderDashboard = (props: DashboardProps) => <Dashboard {...props} />;
+const renderDataflow = (props: DataflowProps) => <DataflowCanvas {...props} />;
+const renderEditorDialog = (props: EditorDialogProps) => <ScriptEditorDialog {...props} />;
+const renderWorkbench = (props: WorkbenchProps) => <WorkbookWorkbenchSidebar {...props} />;
 
 interface Props {
     workbookScripts: WorkbookScripts;
@@ -142,11 +115,27 @@ interface Props {
     /// The connections that the scripts of the workbook run on
     scriptConnections?: ReadonlyMap<string, ConnectionState>;
     active: boolean;
-    dependencies?: WorkbookFeedPageDependencies;
+    // The heavy parts of the page are slots with the real views as defaults. A test shows stand-ins: they need
+    // editors, charts, the layout of the dataflow or the storage of the app.
+    /// The feed of the scripts
+    feed?: (props: FeedProps) => React.ReactNode;
+    /// The prompt over the views
+    prompt?: (props: PromptProps) => React.ReactNode;
+    /// The dashboard
+    dashboard?: (props: DashboardProps) => React.ReactNode;
+    /// The canvas of the dataflow
+    dataflow?: (props: DataflowProps) => React.ReactNode;
+    /// The editor dialog of a script of the dataflow
+    editorDialog?: (props: EditorDialogProps) => React.ReactNode;
+    /// The workbench next to the views and in the drawer
+    workbench?: (props: WorkbenchProps) => React.ReactNode;
 }
 
 export const WorkbookFeedPage: React.FC<Props> = (props) => {
-    const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
+    const {
+        feed = renderFeed, prompt = renderPrompt, dashboard = renderDashboard, dataflow = renderDataflow,
+        editorDialog = renderEditorDialog, workbench: workbenchSlot = renderWorkbench,
+    } = props;
     // The composer of the prompt renames the references in its draft, also for renames in the feed and the dataflow
     const draftRenameRef = React.useRef<RenameDraftReferences | null>(null);
     // The script that the editor dialog of the dataflow shows. It belongs to the workbook it was opened in and closes
@@ -181,7 +170,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const closeOverview = React.useCallback(() => setOverview(null), []);
     // The toggle of the bar hides the workbench. It stays mounted while hidden and keeps its folders, sections and
     // scroll positions. A workbook just imported, e.g. from a dropped file, hides it.
-    const [sidebarHidden, setSidebarHidden] = dependencies.useWorkbenchHidden(props.workbookScripts.workbookId);
+    const [sidebarHidden, setSidebarHidden] = useWorkbenchHidden(props.workbookScripts.workbookId);
     const navigationDrawerTriggerRef = React.useRef<HTMLButtonElement>(null);
     // The menu of the workbook actions; Share as URL opens at the menu button, Export .dashql at the button that
     // opened it
@@ -206,36 +195,12 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     // A connection that is connecting holds the run, it would join a moment later
     const scriptConnectionsIdle = runConnections.length > 0 && runConnections.every(connection =>
         connection.connectionHealth !== ConnectionHealth.CONNECTING && (connection.queriesActiveOrdered?.length ?? 0) === 0);
-    const execution = dependencies.useWorkbookExecution(props.workbookScripts.workbookId);
+    const execution = useWorkbookExecution(props.workbookScripts.workbookId);
     // The workbook shows the stored results of its scripts once it is shown (docs/design/workbook_results.md)
-    dependencies.useWorkbookShown(props.workbookScripts.workbookId);
-    const run = execution.state;
-    const [executionDetailsOpen, setExecutionDetailsOpen] = React.useState(false);
-    React.useEffect(() => setExecutionDetailsOpen(false), [props.workbookScripts.workbookId]);
+    useWorkbookShown(props.workbookScripts.workbookId);
+    useSkippedRunAttention(props.workbookScripts.workbookId, execution);
     React.useEffect(() => setOverview(null), [props.workbookScripts.workbookId]);
-    const executeRef = React.useRef<HTMLButtonElement>(null);
-    const progress = run ? `${run.completedScripts}/${run.totalScripts}` : '';
-    const skipped = run != null && run.skippedScripts > 0 ? ` · ${run.skippedScripts} need a connection` : '';
-    const statusText = !run ? '' : run.phase === 'planning' ? 'Planning...'
-        : run.phase === 'stopping' ? `Stopping · ${progress} completed`
-            : run.phase === 'failed' ? `${progress} completed${skipped}`
-                : run.phase === 'cancelled' ? `Stopped · ${progress} completed`
-                    : run.phase === 'succeeded' ? (skipped ? `${progress} completed${skipped}` : `${progress} succeeded`) : `${progress} completed${skipped}`;
-    // A run that skipped scripts points at the connections that they need once it settles, nothing opens by itself. A
-    // run that settled before the page mounted doesn't, e.g. when the workbook is opened again.
-    const settledWithSkips = (run?.phase === 'succeeded' || run?.phase === 'failed') && run.skippedScripts > 0;
-    const sawRun = React.useRef(false);
-    React.useEffect(() => { sawRun.current = false; }, [props.workbookScripts.workbookId]);
-    React.useEffect(() => { if (execution.busy) sawRun.current = true; }, [execution.busy]);
-    const requestAttention = connectionAttention?.request;
-    React.useEffect(() => {
-        if (settledWithSkips && sawRun.current) {
-            sawRun.current = false;
-            requestAttention?.();
-        }
-    }, [settledWithSkips, requestAttention]);
-    const skippedTitle = run != null && run.skippedFiles.length > 0 ? `Need a connection: ${run.skippedFiles.join(', ')}` : undefined;
-    const { mode, setMode } = dependencies.useWorkbookViewMode();
+    const { mode, setMode } = useWorkbookViewMode();
     // The greeter has nothing to run or share until a script promotes its workbook, it switches the views like any other
     const ephemeral = props.workbookScripts.ephemeral;
     // A read-only look at a published workbook is imported before it is shared
@@ -380,17 +345,15 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const overlayInsetRef = React.useRef(overlayInset);
     overlayInsetRef.current = overlayInset;
     const readOverlayInset = React.useCallback(() => overlayInsetRef.current, []);
-    const workbench = (closeAfterSelection: boolean) => (
-        <dependencies.WorkbookWorkbenchSidebar
-            workbookScripts={props.workbookScripts}
-            closeAfterSelection={closeAfterSelection ? () => setNavigationDrawerOpen(false) : undefined}
-            openOverviewId={overviewConnectionId}
-            onOpenOverview={setOverviewConnectionId}
-            openCloudId={cloudOverviewId}
-            onOpenCloud={setCloudOverviewId}
-            onOpenScript={openScript}
-        />
-    );
+    const workbench = (closeAfterSelection: boolean) => workbenchSlot({
+        workbookScripts: props.workbookScripts,
+        closeAfterSelection: closeAfterSelection ? () => setNavigationDrawerOpen(false) : undefined,
+        openOverviewId: overviewConnectionId,
+        onOpenOverview: setOverviewConnectionId,
+        openCloudId: cloudOverviewId,
+        onOpenCloud: setCloudOverviewId,
+        onOpenScript: openScript,
+    });
 
     return (
         <WorkbookReadOnlyContext.Provider value={preview}>
@@ -419,90 +382,92 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                     >
                         {cloudLoading && (
                             <div className={styles.loading_layer}>
-                                <dependencies.CloudWorkbookLoadingCard />
+                                <CloudWorkbookLoadingCard />
                             </div>
                         )}
                         <div className={feedActive ? styles.feed_layer : styles.feed_layer_hidden}>
-                            <dependencies.WorkbookFeed
-                                workbookScripts={props.workbookScripts}
-                                modifyWorkbookScripts={props.modifyWorkbookScripts}
-                                draftRenameRef={draftRenameRef}
-                                active={feedActive}
-                                revealRequest={revealRequest}
-                                attachRef={attachRef}
-                                bottomInset={feedBottomInset.current}
-                                promptRef={promptRef}
-                                handleRef={feedRef}
-                                onInsets={setFeedInsets}
-                                conn={props.connection}
-                                scriptConnections={props.scriptConnections}
-                            />
+                            {feed({
+                                workbookScripts: props.workbookScripts,
+                                modifyWorkbookScripts: props.modifyWorkbookScripts,
+                                draftRenameRef,
+                                active: feedActive,
+                                revealRequest,
+                                attachRef,
+                                bottomInset: feedBottomInset.current,
+                                promptRef,
+                                handleRef: feedRef,
+                                onInsets: setFeedInsets,
+                                conn: props.connection,
+                                scriptConnections: props.scriptConnections,
+                            })}
                         </div>
                         {overviewConnectionId != null && !cloudLoading && (
-                            <dependencies.ConnectionOverviewPage
+                            <ConnectionOverviewPage
                                 connectionId={overviewConnectionId}
                                 onClose={closeOverview}
                             />
                         )}
                         {cloudOverviewId != null && !cloudLoading && (
-                            <dependencies.CloudOverviewPage
+                            <CloudOverviewPage
                                 key={cloudOverviewId}
                                 connectionId={cloudOverviewId}
                                 onClose={closeOverview}
                             />
                         )}
                         {dashboardActive && !overviewActive && !cloudLoading && (
-                            <dependencies.Dashboard
-                                workbookScripts={props.workbookScripts}
-                                modifyWorkbookScripts={props.modifyWorkbookScripts}
-                                scriptConnections={scriptConnections}
-                                draftRenameRef={draftRenameRef}
-                                revealRequest={dashboardReveal}
-                            />
+                            dashboard({
+                                workbookScripts: props.workbookScripts,
+                                modifyWorkbookScripts: props.modifyWorkbookScripts,
+                                scriptConnections,
+                                draftRenameRef,
+                                revealRequest: dashboardReveal,
+                            })
                         )}
                         {dataflowActive && !overviewActive && !cloudLoading && (
                             <div className={styles.dataflow_layout}>
                                 <div className={styles.dataflow_canvas}>
-                                    <dependencies.DataflowCanvas
-                                        key={props.workbookScripts.workbookId}
-                                        workbookScripts={props.workbookScripts}
-                                        modifyWorkbookScripts={props.modifyWorkbookScripts}
-                                        scriptConnections={scriptConnections}
-                                        draftRenameRef={draftRenameRef}
-                                        onInspect={inspectScript}
-                                        revealRequest={dataflowReveal}
-                                        bottomInset={readOverlayInset}
-                                    />
+                                    <React.Fragment key={props.workbookScripts.workbookId}>
+                                        {dataflow({
+                                            workbookScripts: props.workbookScripts,
+                                            modifyWorkbookScripts: props.modifyWorkbookScripts,
+                                            scriptConnections,
+                                            draftRenameRef,
+                                            onInspect: inspectScript,
+                                            revealRequest: dataflowReveal,
+                                            bottomInset: readOverlayInset,
+                                        })}
+                                    </React.Fragment>
                                 </div>
                                 {showDetails && (
-                                    <dependencies.ScriptEditorDialog
-                                        key={details.scriptId}
-                                        workbookScripts={props.workbookScripts}
-                                        modifyWorkbookScripts={props.modifyWorkbookScripts}
-                                        scriptKey={details.scriptId}
-                                        scriptConnections={scriptConnections}
-                                        draftRenameRef={draftRenameRef}
-                                        onNavigateToScript={inspectScript}
-                                        onClose={closeDetails}
-                                    />
+                                    <React.Fragment key={details.scriptId}>
+                                        {editorDialog({
+                                            workbookScripts: props.workbookScripts,
+                                            modifyWorkbookScripts: props.modifyWorkbookScripts,
+                                            scriptKey: details.scriptId,
+                                            scriptConnections,
+                                            draftRenameRef,
+                                            onNavigateToScript: inspectScript,
+                                            onClose: closeDetails,
+                                        })}
+                                    </React.Fragment>
                                 )}
                             </div>
                         )}
                         {/* Over the views, the composer keeps its draft and its focus when the view switches */}
-                        <dependencies.WorkbookPrompt
-                            workbookScripts={props.workbookScripts}
-                            modifyWorkbookScripts={props.modifyWorkbookScripts}
-                            conn={props.connection}
-                            scriptConnections={props.scriptConnections}
-                            placement={promptPlacement}
-                            expanded={promptExpanded}
-                            onExpandedChange={togglePrompt}
-                            feed={promptFeed}
-                            handleRef={promptRef}
-                            draftRenameRef={draftRenameRef}
-                            feedInsets={feedInsets}
-                            onHeight={setPromptHeight}
-                        />
+                        {prompt({
+                            workbookScripts: props.workbookScripts,
+                            modifyWorkbookScripts: props.modifyWorkbookScripts,
+                            conn: props.connection,
+                            scriptConnections: props.scriptConnections,
+                            placement: promptPlacement,
+                            expanded: promptExpanded,
+                            onExpandedChange: togglePrompt,
+                            feed: promptFeed,
+                            handleRef: promptRef,
+                            draftRenameRef,
+                            feedInsets,
+                            onHeight: setPromptHeight,
+                        })}
                     </div>
                 </main>
                 {/* After the feed in the DOM, so that no-drag rows scrolled behind the bar do not cut holes into its drag region, see docs/design/electron.md */}
@@ -528,49 +493,13 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                     {!overviewActive && <>
                         {executionShown && <BarSeparator className={styles.start_separator} />}
                         {executionShown && <div className={styles.execution_controls} role="group" aria-label="Execution" data-testid="workbook-execution-group">
-                            {!ephemeral && <>
-                                <Button ref={executeRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible}
-                                    leadingVisual={execution.busy ? SquareFillIcon : PaperAirplaneIcon}
-                                    aria-label={execution.busy ? 'Stop workbook execution' : 'Execute All'}
-                                    data-testid={execution.busy ? 'stop-execution' : 'execute-all'}
-                                    // A run waits for the compute database, it reads the cached results
-                                    disabled={execution.busy ? run?.phase === 'stopping' : !execution.ready || !scriptConnectionsIdle
-                                        || execution.runActive || props.workbookScripts.scriptOrder.length === 0}
-                                    onClick={() => execution.busy ? execution.stop() : execution.start()}>
-                                    <span className={styles.action_label}>{execution.busy ? run?.phase === 'stopping' ? 'Stopping' : 'Stop' : 'Execute All'}</span>
-                                </Button>
-                                <div className={styles.execution_status} role="status" aria-live="polite" aria-atomic="true" data-testid="execution-status" data-phase={run?.phase}
-                                    title={run?.error ?? skippedTitle} aria-label={run?.error ? `${statusText}: ${run.error}` : undefined}>
-                                    {run && <>
-                                        <AnchoredOverlay
-                                            open={executionDetailsOpen} onOpen={() => setExecutionDetailsOpen(true)} onClose={() => setExecutionDetailsOpen(false)}
-                                            side={AnchorSide.OutsideBottom} align={AnchorAlignment.Start} anchorOffset={4}
-                                            renderAnchor={anchorProps => <Button {...anchorProps}
-                                                size={ButtonSize.Small} variant={ButtonVariant.Invisible} aria-label="Show workbook execution details" data-testid="execution-details-toggle"
-                                                leadingVisual={<span className={styles.execution_indicator} aria-hidden="true" data-testid="execution-indicator"><StatusIndicator width="16px" height="16px" status={execution.busy
-                                                    ? IndicatorStatus.Running : run.phase === 'failed' ? IndicatorStatus.Failed
-                                                        : run.phase === 'succeeded' ? IndicatorStatus.Succeeded : IndicatorStatus.Skip} /></span>}>
-                                                <span className={styles.execution_progress}>{statusText}</span>
-                                            </Button>}>
-                                            <section className={styles.execution_error_card} role="dialog" aria-label="Workbook execution details" data-testid="execution-details">
-                                                <header className={styles.execution_error_header}>
-                                                    <h2 className={styles.execution_details_title}>{run.phase === 'failed' ? 'Execution failed' : 'Workbook execution'}</h2>
-                                                    <IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible}
-                                                        aria-label="Close workbook execution details" data-testid="execution-details-close" onClick={() => setExecutionDetailsOpen(false)}>
-                                                        <CloseIcon size={16} />
-                                                    </IconButton>
-                                                </header>
-                                                <div className={styles.execution_details_body}>
-                                                    <div>{statusText}</div>
-                                                    {run.activeFileName && <div>{run.activeFileName} · statement {run.activeStatementIndex}/{run.activeStatementCount}</div>}
-                                                    <div>{run.completedStatements}/{run.totalStatements} statements completed</div>
-                                                    {run.error && <div className={styles.execution_error_message}>{run.error}</div>}
-                                                </div>
-                                            </section>
-                                        </AnchoredOverlay>
-                                    </>}
-                                </div>
-                            </>}
+                            {!ephemeral && (
+                                <WorkbookExecutionControls
+                                    workbookId={props.workbookScripts.workbookId}
+                                    execution={execution}
+                                    startable={scriptConnectionsIdle && props.workbookScripts.scriptOrder.length > 0}
+                                />
+                            )}
                             {/* A preview says it is read-only next to Execute All */}
                             {preview && <CloudPreviewBadge labelClassName={styles.action_label} />}
                         </div>}
@@ -581,7 +510,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                                 <div className={classNames(styles.bar_group, styles.connections_group)} role="group" aria-label="Connections" data-testid="workbook-connections-group">
                                     {/* The connections of the workbook, the user sees which one is not connected */}
                                     {/* A preview shows its connections locked, the import maps them */}
-                                    <dependencies.WorkbookConnectionButtons connections={barConnections} attention={connectionAttention?.active === true} />
+                                    <WorkbookConnectionButtons connections={barConnections} attention={connectionAttention?.active === true} />
                                 </div>
                             )}
                             {connectionsShown && (actionsShown || viewSwitchShown) && <BarSeparator />}
@@ -646,9 +575,9 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                                         </div>
                                     </AnchoredOverlay>
                                 )}
-                                <dependencies.WorkbookURLShareOverlay workbookId={props.workbookScripts.workbookId} isOpen={shareOpen} setIsOpen={setShareOpen} anchorRef={menuTriggerRef} />
+                                <WorkbookURLShareOverlay workbookId={props.workbookScripts.workbookId} isOpen={shareOpen} setIsOpen={setShareOpen} anchorRef={menuTriggerRef} />
                                 {archiveExport && !ephemeral && !preview && (
-                                    <dependencies.WorkbookFileSaveOverlay
+                                    <WorkbookFileSaveOverlay
                                         isOpen={exportOpen != null}
                                         setIsOpen={setExportOverlayOpen}
                                         anchorRef={exportOpen === 'button' ? exportTriggerRef : menuTriggerRef}
@@ -707,9 +636,9 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                     </>}
                 </header>
                 {navigationDrawerOpen && (
-                    <dependencies.WorkbookNavigationDrawer open onClose={() => setNavigationDrawerOpen(false)} returnFocusRef={navigationDrawerTriggerRef}>
+                    <WorkbookNavigationDrawer open onClose={() => setNavigationDrawerOpen(false)} returnFocusRef={navigationDrawerTriggerRef}>
                         {workbench(true)}
-                    </dependencies.WorkbookNavigationDrawer>
+                    </WorkbookNavigationDrawer>
                 )}
             </div>
         </WorkbookReadOnlyContext.Provider>
