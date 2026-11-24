@@ -287,7 +287,8 @@ export async function runVis(args: string[], cli: CliProcess, env: RunEnvironmen
     } finally {
         cli.interrupt?.removeEventListener('abort', interrupt);
     }
-    if (code === EXIT_INTERRUPTED) return code;
+    // A folder that the run refuses, e.g. a copy without its session, fails like the run, the run said why
+    if (code === EXIT_INTERRUPTED || code === EXIT_USAGE) return code;
     const result = done as Extract<RunEvent, { type: 'script_done' }> | null;
     const table = result?.table ?? null;
     const columns = table?.schema.fields.map(field => field.name) ?? null;

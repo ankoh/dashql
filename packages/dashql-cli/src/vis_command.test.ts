@@ -91,6 +91,18 @@ describe('dashql vis', () => {
         expect(output.stdout).toContain('  - the field "segment" is no column of the result, its columns are region, revenue\n');
     }, 60_000);
 
+    it('fails like the run when the run refuses the folder', async () => {
+        // The copy of a workbook of a tab without its session
+        const folder = testFiles([
+            [`.dashql/workbooks/${WORKBOOK_ID}/dashql-workbook.json`, workbookFile(['revenue.sql'])],
+            [`.dashql/workbooks/${WORKBOOK_ID}/scripts/revenue.sql`, charted(BAR)],
+        ]);
+        const output = await vis(folder, [`.dashql/workbooks/${WORKBOOK_ID}`, 'revenue']);
+        expect(output.stderr).toContain('no session of dashql connect runs');
+        expect(output.stdout).toBe('');
+        expect(output.code).toBe(2);
+    });
+
     it('asks the tab for the chart of a copy and writes its PNG', async () => {
         const session = '51030';
         const folder = testFiles([]);

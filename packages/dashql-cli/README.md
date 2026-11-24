@@ -319,7 +319,8 @@ The PNG comes from the tab, like the result: the run request asks for charts (`c
 the chart of the script with its result as the image download of the feed does, and sends it as the event
 `script_chart` before `run_finished` (`docs/design/agent_integration.md`, "Runs in the tab"). 800x500 at scale 2 by default, `charts/<script>.png`
 of the workspace, or `--out`. A workbook folder that runs in the process gets the check only. The exit
-code is 0 without problems, 1 with problems, without a chart or without a result, 2 on usage errors.
+code is 0 without problems, 1 with problems, without a chart or without a result, 2 on usage errors and a folder that
+`run` refuses, and 130 when interrupted: Ctrl-C stops the run like the one of `run`.
 
 ## dashql describe
 

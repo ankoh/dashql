@@ -10,7 +10,7 @@ import { ANSI, stdoutTerminal } from './term.js';
 const argv = process.argv.slice(2);
 // The commands that stop and clean up when the user interrupts them, e.g. cancel their queries. The first interrupt
 // asks them to, the second one ends the process. The other commands end on the first one.
-const INTERRUPTIBLE = new Set(['run']);
+const INTERRUPTIBLE = new Set(['run', 'vis']);
 const interrupt = new AbortController();
 if (INTERRUPTIBLE.has(argv[0])) {
     for (const signal of ['SIGINT', 'SIGTERM'] as const) {
