@@ -2153,3 +2153,152 @@ formatter-snapshots:
               update t
               set x = $1
               returning x;
+
+  - name: coverage_drop_table_view_lists
+    input: |-
+      drop table if exists drop_t1, drop_s.drop_t2 cascade; drop view if exists drop_v1, drop_v2 restrict
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              drop table if exists drop_t1, drop_s.drop_t2 cascade;
+
+              drop view if exists drop_v1, drop_v2 restrict;
+          - mode: compact
+            expected: |-
+              drop table if exists drop_t1, drop_s.drop_t2 cascade;
+
+              drop view if exists drop_v1, drop_v2 restrict;
+          - mode: pretty
+            expected: |-
+              drop table if exists drop_t1, drop_s.drop_t2 cascade;
+
+              drop view if exists drop_v1, drop_v2 restrict;
+        validation:
+          setup: |-
+            create schema drop_s;
+
+  - name: coverage_drop_schema_list
+    input: |-
+      drop schema if exists drop_s1, drop_s2 cascade
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              drop schema if exists drop_s1, drop_s2 cascade;
+          - mode: compact
+            expected: |-
+              drop schema if exists drop_s1, drop_s2 cascade;
+          - mode: pretty
+            expected: |-
+              drop schema if exists drop_s1, drop_s2 cascade;
+        validation:
+          setup: |-
+
+  - name: coverage_alter_table_constraints
+    input: |-
+      alter table only t add constraint t_pk primary key (a); alter table t add assumed unique (b); alter table t drop constraint if exists t_pk cascade; alter table t drop constraint c restrict; alter table t rename constraint c to d
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              alter table only t add constraint t_pk primary key (a);
+
+              alter table t add assumed unique (b);
+
+              alter table t drop constraint if exists t_pk cascade;
+
+              alter table t drop constraint c restrict;
+
+              alter table t rename constraint c to d;
+          - mode: compact
+            expected: |-
+              alter table only t add constraint t_pk primary key (a);
+
+              alter table t add assumed unique (b);
+
+              alter table t drop constraint if exists t_pk cascade;
+
+              alter table t drop constraint c restrict;
+
+              alter table t rename constraint c to d;
+          - mode: pretty
+            expected: |-
+              alter table only t add constraint t_pk primary key (a);
+
+              alter table t add assumed unique (b);
+
+              alter table t drop constraint if exists t_pk cascade;
+
+              alter table t drop constraint c restrict;
+
+              alter table t rename constraint c to d;
+
+  - name: coverage_create_schema_statements
+    input: |-
+      create schema s authorization bob create table t (a int) create view v as select 1 create index on t (a) create sequence q grant select on t to bob; create schema if not exists authorization 'bob'
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create schema s authorization bob create table t (a integer) create view v as select 1 create index on t (a) create sequence q grant select on table t to bob;
+
+              create schema if not exists authorization 'bob';
+          - mode: compact
+            expected: |-
+              create schema s authorization bob
+                create table t (a integer)
+                create view v as select 1
+                create index on t (a)
+                create sequence q
+                grant select on table t to bob;
+
+              create schema if not exists authorization 'bob';
+          - mode: pretty
+            expected: |-
+              create schema s authorization bob
+                create table t (a integer)
+                create view v as select 1
+                create index on t (a)
+                create sequence q
+                grant select on table t to bob;
+
+              create schema if not exists authorization 'bob';
+
+  - name: coverage_create_schema_statements_narrow
+    input: |-
+      create schema s authorization bob create table t (a int) create view v as select 1 create index on t (a) create sequence q grant select on t to bob; create schema if not exists authorization 'bob'
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create schema s authorization bob create table t (a integer) create view v as select 1 create index on t (a) create sequence q grant select on table t to bob;
+
+              create schema if not exists authorization 'bob';
+          - mode: compact
+            width: 40
+            expected: |-
+              create schema s authorization bob
+                create table t (a integer)
+                create view v as select 1
+                create index on t (a)
+                create sequence q
+                grant select on table t to bob;
+
+              create schema if not exists authorization 'bob';
+          - mode: pretty
+            width: 40
+            expected: |-
+              create schema s authorization bob
+                create table t (a integer)
+                create view v as select 1
+                create index on t (a)
+                create sequence q
+                grant select on table t to bob;
+
+              create schema if not exists authorization 'bob';

@@ -1,4 +1,4 @@
-//! CREATE, DROP, ATTACH, SET and RESET statements.
+//! CREATE, DROP and ALTER of tables, views, schemas and functions, ATTACH, SET and RESET statements.
 
 use super::{FmtReg, Formatter, FormattingJoinPolicy, K};
 use dashql_buffers::parser::{
@@ -411,33 +411,98 @@ impl<'a> Formatter<'a> {
 
     pub(super) fn format_drop(&self, node: &'a Node, table: bool) -> FmtReg {
         let f = &self.fmt;
-        let [name, if_exists] = attrs!(self.children(node), [K::SQL_DROP_NAME, K::SQL_DROP_IF_EXISTS]);
+        let [name, if_exists, more_names, cascade] = attrs!(
+            self.children(node),
+            [K::SQL_DROP_NAME, K::SQL_DROP_IF_EXISTS, K::SQL_DROP_MORE_NAMES, K::SQL_DROP_CASCADE]
+        );
         let Some(name) = name else { return self.format_unimplemented(node) };
         let object = if table { "table " } else { "view " };
         let if_exists_reg = if if_exists.is_some() { f.text("if exists ") } else { f.empty() };
-        f.concat(&[f.text("drop "), f.text(object), if_exists_reg, self.reg(name)])
+        f.concat(&[
+            f.text("drop "),
+            f.text(object),
+            if_exists_reg,
+            self.format_drop_names(name, more_names),
+            self.format_drop_behavior(cascade),
+        ])
+    }
+
+    /// The names of DROP TABLE, DROP VIEW and DROP SCHEMA: the first name and the more names after it
+    fn format_drop_names(&self, name: &'a Node, more_names: Option<&'a Node>) -> FmtReg {
+        match more_names {
+            Some(more_names) => {
+                let mut names = vec![self.reg_or_placeholder(name)];
+                names.extend(self.children(more_names).iter().map(|n| self.reg_or_placeholder(n)));
+                self.comma_join_on_overflow(&names, true)
+            }
+            None => self.reg_or_placeholder(name),
+        }
     }
 
     pub(super) fn format_schema_statement(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [name, condition, cascade, new_name] = attrs!(
+        let [name, condition, cascade, new_name, more_names, authorization, statements] = attrs!(
             self.children(node),
-            [K::SQL_SCHEMA_NAME, K::SQL_SCHEMA_IF, K::SQL_SCHEMA_CASCADE, K::SQL_SCHEMA_NEW_NAME]
+            [
+                K::SQL_SCHEMA_NAME,
+                K::SQL_SCHEMA_IF,
+                K::SQL_SCHEMA_CASCADE,
+                K::SQL_SCHEMA_NEW_NAME,
+                K::SQL_SCHEMA_MORE_NAMES,
+                K::SQL_SCHEMA_AUTHORIZATION,
+                K::SQL_SCHEMA_STATEMENTS,
+            ]
         );
-        let Some(name) = name else { return self.format_unimplemented(node) };
-        match (node.node_type(), new_name) {
-            (NodeType::OBJECT_SQL_CREATE_SCHEMA, _) => {
-                let condition = if condition.is_some() { f.text("if not exists ") } else { f.empty() };
-                f.concat(&[f.text("create schema "), condition, self.reg(name)])
+        match (node.node_type(), name, new_name) {
+            (NodeType::OBJECT_SQL_CREATE_SCHEMA, name, _) if name.is_some() || authorization.is_some() => {
+                let mut header = vec![f.text("create schema")];
+                if condition.is_some() {
+                    header.push(f.text(" if not exists"));
+                }
+                if let Some(name) = name {
+                    header.push(f.text(" "));
+                    header.push(self.reg_or_placeholder(name));
+                }
+                if let Some(authorization) = authorization {
+                    header.push(f.text(" authorization "));
+                    header.push(self.reg_or_placeholder(authorization));
+                }
+                // The statements that create the objects of the schema, each on a line of its own if they don't fit
+                let mut clauses = vec![f.concat(&header)];
+                if let Some(statements) = statements {
+                    clauses.extend(self.children(statements).iter().map(|s| self.reg_or_placeholder(s)));
+                }
+                self.format_command_clauses(&clauses)
             }
-            (NodeType::OBJECT_SQL_DROP_SCHEMA, _) => {
+            (NodeType::OBJECT_SQL_DROP_SCHEMA, Some(name), _) => {
                 let condition = if condition.is_some() { f.text("if exists ") } else { f.empty() };
-                f.concat(&[f.text("drop schema "), condition, self.reg(name), self.format_drop_behavior(cascade)])
+                f.concat(&[
+                    f.text("drop schema "),
+                    condition,
+                    self.format_drop_names(name, more_names),
+                    self.format_drop_behavior(cascade),
+                ])
             }
-            (NodeType::OBJECT_SQL_ALTER_SCHEMA, Some(new_name)) => {
+            (NodeType::OBJECT_SQL_ALTER_SCHEMA, Some(name), Some(new_name)) => {
                 f.concat(&[f.text("alter schema "), self.reg(name), f.text(" rename to "), self.reg(new_name)])
             }
             _ => self.format_unimplemented(node),
+        }
+    }
+
+    /// Mark the statements of CREATE SCHEMA as statement roots
+    pub(super) fn mark_schema_statement_roots(&mut self, root_id: usize) {
+        let Some(root) = self.ast.get(root_id) else { return };
+        if root.node_type() != NodeType::OBJECT_SQL_CREATE_SCHEMA {
+            return;
+        }
+        let [statements] = attrs!(self.children(root), [K::SQL_SCHEMA_STATEMENTS]);
+        let Some(statements) = statements else { return };
+        let begin = statements.children_begin_or_value() as usize;
+        for id in begin..begin + statements.children_count() as usize {
+            if let Some(state) = self.node_states.get_mut(id) {
+                state.is_statement_root = true;
+            }
         }
     }
 
@@ -452,17 +517,24 @@ impl<'a> Formatter<'a> {
 
     pub(super) fn format_alter_table(&self, node: &'a Node, statement: &'static str) -> FmtReg {
         let f = &self.fmt;
-        let [name, if_exists, actions] = attrs!(
+        let [name, if_exists, only, actions] = attrs!(
             self.children(node),
-            [K::SQL_ALTER_TABLE_NAME, K::SQL_ALTER_TABLE_IF_EXISTS, K::SQL_ALTER_TABLE_ACTIONS]
+            [
+                K::SQL_ALTER_TABLE_NAME,
+                K::SQL_ALTER_TABLE_IF_EXISTS,
+                K::SQL_ALTER_TABLE_ONLY,
+                K::SQL_ALTER_TABLE_ACTIONS
+            ]
         );
         let (Some(name), Some(actions)) = (name, actions) else { return self.format_unimplemented(node) };
         let if_exists_reg = if if_exists.is_some() { f.text("if exists ") } else { f.empty() };
-        f.concat(&[f.text(statement), if_exists_reg, self.reg(name), f.text(" "), self.reg(actions)])
+        let only_reg = if only.is_some() { f.text("only ") } else { f.empty() };
+        f.concat(&[f.text(statement), if_exists_reg, only_reg, self.reg(name), f.text(" "), self.reg(actions)])
     }
 
     pub(super) fn format_alter_table_action(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
+        let [constraint] = attrs!(self.children(node), [K::SQL_ALTER_ACTION_CONSTRAINT]);
         let [column, condition, condition_after, new_name, new_table, column_type, cascade, using] = attrs!(
             self.children(node),
             [
@@ -502,6 +574,31 @@ impl<'a> Formatter<'a> {
             (NodeType::OBJECT_SQL_ALTER_SET_SCHEMA, _, Some(new_name), _, _) => {
                 f.concat(&[f.text("set schema "), self.reg(new_name)])
             }
+            (NodeType::OBJECT_SQL_ALTER_ADD_CONSTRAINT, _, _, _, _) => match constraint {
+                Some(constraint) => f.concat(&[f.text("add "), self.reg_or_placeholder(constraint)]),
+                None => self.format_unimplemented(node),
+            },
+            (NodeType::OBJECT_SQL_ALTER_DROP_CONSTRAINT, _, _, _, _) => match constraint {
+                Some(constraint) => {
+                    let condition = if condition.is_some() { f.text("if exists ") } else { f.empty() };
+                    f.concat(&[
+                        f.text("drop constraint "),
+                        condition,
+                        self.reg_or_placeholder(constraint),
+                        self.format_drop_behavior(cascade),
+                    ])
+                }
+                None => self.format_unimplemented(node),
+            },
+            (NodeType::OBJECT_SQL_ALTER_RENAME_CONSTRAINT, _, Some(new_name), _, _) => match constraint {
+                Some(constraint) => f.concat(&[
+                    f.text("rename constraint "),
+                    self.reg_or_placeholder(constraint),
+                    f.text(" to "),
+                    self.reg_or_placeholder(new_name),
+                ]),
+                None => self.format_unimplemented(node),
+            },
             (NodeType::OBJECT_SQL_ALTER_COLUMN_TYPE, Some(column), _, _, Some(column_type)) => {
                 let using = match using {
                     Some(using) => f.concat(&[f.text(" using "), self.reg(using)]),

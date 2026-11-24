@@ -234,6 +234,8 @@ fn is_name_list(key: AttributeKey) -> bool {
             | K::SQL_GRANT_ROLE_GRANTEES
             | K::SQL_REVOKE_ROLE_GRANTEES
             | K::SQL_DROP_ROLE_ROLES
+            | K::SQL_DROP_MORE_NAMES
+            | K::SQL_SCHEMA_MORE_NAMES
     )
 }
 
@@ -357,6 +359,7 @@ impl<'a> Formatter<'a> {
             if let Some(state) = self.node_states.get_mut(statement.root as usize) {
                 state.is_statement_root = true;
                 self.mark_explain_inner_statement_root(statement.root as usize);
+                self.mark_schema_statement_roots(statement.root as usize);
             }
         }
     }
@@ -887,6 +890,8 @@ impl<'a> Formatter<'a> {
             | K::SQL_MERGE_ACTION_TARGET
             | K::SQL_MERGE_CLAUSES => self.format_comma_list(node, true),
             K::SQL_MERGE_ACTION_COLUMNS | K::SQL_MERGE_ACTION_VALUES => self.format_comma_list(node, false),
+            // The statements of CREATE SCHEMA, which their parent puts on lines of their own
+            K::SQL_SCHEMA_STATEMENTS => self.format_space_list(node),
             K::SQL_TEMP_NAME
             | K::SQL_CREATE_TABLE_NAME
             | K::SQL_FUNCTION_NAME
@@ -3372,7 +3377,10 @@ impl<'a> Formatter<'a> {
             | NodeType::OBJECT_SQL_ALTER_RENAME_COLUMN
             | NodeType::OBJECT_SQL_ALTER_RENAME_TABLE
             | NodeType::OBJECT_SQL_ALTER_SET_SCHEMA
-            | NodeType::OBJECT_SQL_ALTER_COLUMN_TYPE => self.format_alter_table_action(node),
+            | NodeType::OBJECT_SQL_ALTER_COLUMN_TYPE
+            | NodeType::OBJECT_SQL_ALTER_ADD_CONSTRAINT
+            | NodeType::OBJECT_SQL_ALTER_DROP_CONSTRAINT
+            | NodeType::OBJECT_SQL_ALTER_RENAME_CONSTRAINT => self.format_alter_table_action(node),
             NodeType::OBJECT_SQL_ATTACH_DATABASE => self.format_attach_database(node),
             NodeType::OBJECT_SQL_ATTACH_DATABASE_OPTION => self.format_attach_database_option(node),
             NodeType::OBJECT_SQL_FUNCTION_PARAM => self.format_function_param(node),
