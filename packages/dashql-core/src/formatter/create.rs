@@ -528,7 +528,11 @@ impl<'a> Formatter<'a> {
         let (Some(name), Some(actions)) = (name, actions) else { return self.format_unimplemented(node) };
         let if_exists_reg = if if_exists.is_some() { f.text("if exists ") } else { f.empty() };
         let only_reg = if only.is_some() { f.text("only ") } else { f.empty() };
-        f.concat(&[f.text(statement), if_exists_reg, only_reg, self.reg(name), f.text(" "), self.reg(actions)])
+        // The actions are a clause of their own, on the next line if the command does not fit
+        self.format_command_clauses(&[
+            f.concat(&[f.text(statement), if_exists_reg, only_reg, self.reg(name)]),
+            self.reg(actions),
+        ])
     }
 
     pub(super) fn format_alter_table_action(&self, node: &'a Node) -> FmtReg {
@@ -599,17 +603,15 @@ impl<'a> Formatter<'a> {
                 None => self.format_unimplemented(node),
             },
             (NodeType::OBJECT_SQL_ALTER_COLUMN_TYPE, Some(column), _, _, Some(column_type)) => {
-                let using = match using {
-                    Some(using) => f.concat(&[f.text(" using "), self.reg(using)]),
-                    None => f.empty(),
-                };
-                f.concat(&[
+                let set_type = f.concat(&[
                     f.text("alter column "),
                     self.reg(column),
                     f.text(" set data type "),
                     self.reg(column_type),
-                    using,
-                ])
+                ]);
+                // The conversion breaks before `using`
+                let using = using.map_or(f.empty(), |using| f.concat(&[f.text("using "), self.reg(using)]));
+                self.space_join(&[set_type, using], FormattingJoinPolicy::BreakOnOverflow, true)
             }
             _ => self.format_unimplemented(node),
         }

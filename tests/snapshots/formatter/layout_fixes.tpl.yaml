@@ -1,5 +1,49 @@
 formatter-snapshots:
 
+  # ALTER TABLE breaks between the table and its action, not inside the qualified name or the short column lists
+  - name: alter_table_breaks_before_action
+    input: alter table only some_schema.some_table add constraint some_table_fk foreign key (first_id, second_id) references other_table (id, other_id) on delete cascade
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 50
+          - mode: pretty
+            width: 50
+
+  # The same at a width where it fits
+  - name: alter_table_breaks_before_action_wide
+    input: alter table only some_schema.some_table add constraint some_table_fk foreign key (first_id, second_id) references other_table (id, other_id) on delete cascade
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 160
+          - mode: pretty
+            width: 160
+
+  # ALTER TABLE with several actions that do not fit
+  - name: alter_table_breaks_between_actions
+    input: alter table some_schema.some_table add column first_column integer not null default 0, drop column second_column cascade, alter column third_column type bigint using third_column::bigint
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 50
+          - mode: pretty
+            width: 50
+
+  # The same at a width where it fits
+  - name: alter_table_breaks_between_actions_wide
+    input: alter table some_schema.some_table add column first_column integer not null default 0, drop column second_column cascade, alter column third_column type bigint using third_column::bigint
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 160
+          - mode: pretty
+            width: 160
+
   # The items of a list in parentheses that break are aligned, also the first one
   - name: list_in_broken_parentheses_aligned
     input: select name from products where category in ('electronics', 'household appliances', 'garden furniture', 'sporting goods') and price > 10

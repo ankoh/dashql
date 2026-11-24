@@ -940,8 +940,9 @@ impl<'a> Formatter<'a> {
             | K::SQL_FUNCTION_TRIM_INPUT
             | K::SQL_ALIAS_COLUMN_NAMES
             | K::SQL_ALIAS_COLUMN_DEFS
-            | K::EXT_VARARG_ARRAY_VALUES
-            | K::SQL_ALTER_TABLE_ACTIONS => self.format_comma_list(node, true),
+            | K::EXT_VARARG_ARRAY_VALUES => self.format_comma_list(node, true),
+            // The actions of ALTER TABLE start their line when the command breaks
+            K::SQL_ALTER_TABLE_ACTIONS => self.format_comma_list(node, false),
             _ => self.format_unimplemented(node),
         }
     }
