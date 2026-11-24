@@ -126,3 +126,35 @@ completion-snapshots:
         index: 2
     completions:
       limit: 0
+
+  # The columns of a self-join after the dot of the second alias are qualified with that alias
+  - name: self_join_dot_second_alias
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t l join t r on l.a = r.
+    cursor:
+      search:
+        text: 'r.'
+        index: 2
+    completions:
+      limit: 5
+
+  # A column of a self-join is qualified with each alias, an object for each of them
+  - name: self_join_column_both_aliases
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select na from t l join t r on l.a = r.a
+    cursor:
+      search:
+        text: 'na from'
+        index: 2
+    completions:
+      limit: 5

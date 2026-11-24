@@ -424,6 +424,8 @@ pub struct Completion<'c, 'a> {
     pub client_function_name: bool,
     /// Is the cursor at a name definition?
     pub at_definition: bool,
+    /// The FROM item (its table ref node) that the qualifier before a dot names, it qualifies the columns
+    qualifier_source: Option<u32>,
     /// Is the cursor between symbols?
     pub between_symbols: bool,
     /// Is there a real token after the cursor?
@@ -505,6 +507,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             dot_completion: false,
             client_function_name: false,
             at_definition: false,
+            qualifier_source: None,
             between_symbols: false,
             has_post_cursor_token: false,
             target_symbol: None,
@@ -1693,7 +1696,10 @@ impl<'c, 'a> Completion<'c, 'a> {
                     // a._: a might be a table alias
                     let a = name_text(0);
                     match Self::find_qualified_relation(analyzed, cursor, a) {
-                        Some(QualifiedRelation::Source(source)) => add_source(self, &mut dot_candidates, source),
+                        Some(QualifiedRelation::Source(source)) => {
+                            self.qualifier_source = Some(source.ast_node_id);
+                            add_source(self, &mut dot_candidates, source);
+                        }
                         // The columns of an aliased join, a USING column once
                         Some(QualifiedRelation::Join(join)) => {
                             for column in &join.columns {
@@ -1721,6 +1727,7 @@ impl<'c, 'a> Completion<'c, 'a> {
                     // a.b._ or a.b.c._: the FROM item of a table without alias, qualified with its schema
                     let names: Vec<&str> = (0..sealed).map(name_text).collect();
                     if let Some(source) = Self::find_table_qualified_source(analyzed, cursor, &names) {
+                        self.qualifier_source = Some(source.ast_node_id);
                         add_source(self, &mut dot_candidates, source);
                     }
                 }
@@ -1938,9 +1945,9 @@ impl<'c, 'a> Completion<'c, 'a> {
 
     /// Derive qualified names of the top candidates
     fn qualify_top_candidates(&mut self) {
-        // The column candidates by the table that defines them: (table id, candidate object)
-        let mut columns_by_table: Vec<(QualifiedCatalogObjectId, usize)> = Vec::new();
-        for top in &self.top_candidates {
+        // The column candidates with the table that defines them: (top candidate, table id, candidate object)
+        let mut columns_by_table: Vec<(usize, QualifiedCatalogObjectId, usize)> = Vec::new();
+        for (top_index, top) in self.top_candidates.iter().enumerate() {
             let mut column_count_in_scope = 0;
             let mut table_count = 0;
             for &co in &top.catalog_objects {
@@ -1950,6 +1957,7 @@ impl<'c, 'a> Completion<'c, 'a> {
                     CandidateObjectRef::Column(loc) => {
                         column_count_in_scope += in_scope as usize;
                         columns_by_table.push((
+                            top_index,
                             QualifiedCatalogObjectId::table(object.catalog_object_id.unpack_table_column_id().0),
                             co,
                         ));
@@ -2013,7 +2021,10 @@ impl<'c, 'a> Completion<'c, 'a> {
         let ast = analyzed.parsed.nodes.as_slice();
         // Without a node, the cursor is outside of every join
         let node_id = self.cursor.ast_node_id.unwrap_or(u32::MAX);
-        for (scope_id, visibility) in Self::visible_scopes(analyzed, self.cursor) {
+        // The table refs that the cursor sees, with the rank of their scope (the innermost first) and the aliased join
+        // that hides them
+        let mut visible_refs = Vec::new();
+        for (rank, (scope_id, visibility)) in Self::visible_scopes(analyzed, self.cursor).into_iter().enumerate() {
             let Some(scope) = analyzed.scope(scope_id) else { continue };
             let hiding = scope.hiding_joins(ast, node_id);
             for &table_ref_id in &scope.table_references {
@@ -2021,55 +2032,79 @@ impl<'c, 'a> Completion<'c, 'a> {
                 if !visibility.sees_node(table_ref.ast_node_id) {
                     continue;
                 }
-                let join = hiding.iter().find(|join| is_within(ast, table_ref.ast_node_id, join.ast_node_id));
+                let join = hiding.iter().find(|join| is_within(ast, table_ref.ast_node_id, join.ast_node_id)).copied();
                 let Some(resolved) = table_ref.inner.as_ref().and_then(|r| r.resolved_table.as_ref()) else { continue };
-                let mut has_match = false;
-                for &(table_id, co) in &columns_by_table {
-                    if table_id != resolved.catalog_table_id {
-                        continue;
-                    }
-                    has_match = true;
-                    let Some(CandidateObjectRef::Column(loc)) = self.candidate_objects.get(co).map(|o| o.object) else {
-                        continue;
-                    };
-                    let Some(column) = self.table(loc.table).and_then(|t| t.table_columns.get(loc.column as usize))
-                    else {
-                        continue;
-                    };
-                    // The column aliases of the table ref rename the leading columns
-                    let column_name = table_ref
-                        .column_aliases
-                        .get(loc.column as usize)
-                        .map_or_else(|| column.column_name.text.clone(), |alias| alias.text.clone());
-                    let Some(object) = self.candidate_objects.get_mut(co) else { continue };
-                    match (join, &table_ref.alias) {
-                        (Some(join), _) => {
-                            // The join names the column, its column aliases rename it
-                            let join_column = join
-                                .columns
-                                .iter()
-                                .find(|c| c.source == table_ref.ast_node_id && c.position == loc.column)
-                                .map(|c| c.column.column_name.text.clone())
-                                .filter(|name| !name.is_empty());
-                            object.qualified_name = vec![join.name.clone(), join_column.unwrap_or(column_name)];
-                            object.qualified_name_target_idx = 1;
-                            object.prefer_qualified = true;
-                        }
-                        (None, Some((alias, _))) => {
-                            object.qualified_name = vec![alias.text.clone(), column_name];
-                            object.qualified_name_target_idx = 1;
-                            object.prefer_qualified = true;
-                        }
-                        (None, None) => {
-                            let mut names = Self::qualified_table_name(&resolved.table_name);
-                            names.push(column_name);
-                            object.qualified_name_target_idx = names.len() - 1;
-                            object.qualified_name = names;
-                        }
-                    }
+                visible_refs.push((rank, table_ref, join, resolved));
+            }
+        }
+        for (top, table_id, co) in columns_by_table {
+            // The FROM item that the qualifier before a dot names, or the table refs of the table in the innermost
+            // scope that has one: a self-join reads the same column through each of them
+            let named = self.qualifier_source.and_then(|source| {
+                visible_refs.iter().find(|r| r.1.ast_node_id == source && r.3.catalog_table_id == table_id)
+            });
+            let refs: Vec<_> = match named {
+                Some(named) => vec![*named],
+                None => {
+                    let rank = visible_refs.iter().find(|r| r.3.catalog_table_id == table_id).map(|r| r.0);
+                    visible_refs
+                        .iter()
+                        .filter(|r| Some(r.0) == rank && r.3.catalog_table_id == table_id)
+                        .copied()
+                        .collect()
                 }
-                if has_match {
-                    columns_by_table.retain(|&(table_id, _)| table_id != resolved.catalog_table_id);
+            };
+            let Some(CandidateObjectRef::Column(loc)) = self.candidate_objects.get(co).map(|o| o.object) else {
+                continue;
+            };
+            let Some(column) = self.table(loc.table).and_then(|t| t.table_columns.get(loc.column as usize)) else {
+                continue;
+            };
+            let ambiguous = refs.len() > 1;
+            for (i, &(_, table_ref, join, resolved)) in refs.iter().enumerate() {
+                // The first table ref qualifies the object, every other one a copy of it
+                let co = if i == 0 {
+                    co
+                } else {
+                    let Some(copy) = self.candidate_objects.get(co).cloned() else { continue };
+                    self.candidate_objects.push(copy);
+                    let copy = self.candidate_objects.len() - 1;
+                    if let Some(top) = self.top_candidates.get_mut(top) {
+                        top.catalog_objects.push(copy);
+                    }
+                    copy
+                };
+                // The column aliases of the table ref rename the leading columns
+                let column_name = table_ref
+                    .column_aliases
+                    .get(loc.column as usize)
+                    .map_or_else(|| column.column_name.text.clone(), |alias| alias.text.clone());
+                let Some(object) = self.candidate_objects.get_mut(co) else { continue };
+                match (join, &table_ref.alias) {
+                    (Some(join), _) => {
+                        // The join names the column, its column aliases rename it
+                        let join_column = join
+                            .columns
+                            .iter()
+                            .find(|c| c.source == table_ref.ast_node_id && c.position == loc.column)
+                            .map(|c| c.column.column_name.text.clone())
+                            .filter(|name| !name.is_empty());
+                        object.qualified_name = vec![join.name.clone(), join_column.unwrap_or(column_name)];
+                        object.qualified_name_target_idx = 1;
+                        object.prefer_qualified = true;
+                    }
+                    (None, Some((alias, _))) => {
+                        object.qualified_name = vec![alias.text.clone(), column_name];
+                        object.qualified_name_target_idx = 1;
+                        object.prefer_qualified = true;
+                    }
+                    (None, None) => {
+                        let mut names = Self::qualified_table_name(&resolved.table_name);
+                        names.push(column_name);
+                        object.qualified_name_target_idx = names.len() - 1;
+                        object.qualified_name = names;
+                        object.prefer_qualified |= ambiguous;
+                    }
                 }
             }
         }
