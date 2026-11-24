@@ -1,0 +1,285 @@
+formatter-snapshots:
+  # Validation runs the output of every mode in one database, so what it runs undoes itself
+
+  # GRANT and REVOKE of privileges, the clauses go on indented lines of their own if they don't fit
+  - name: coverage_grant_privileges
+    input: grant select (a, b), references, create, usage on table t, s.u to bob, group public with grant option
+    dialects:
+      hyper:
+
+  - name: coverage_grant_privileges_narrow
+    input: grant select (a, b), references, create, usage on table t, s.u to bob, group public with grant option
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 40
+          - mode: pretty
+            width: 40
+
+  - name: coverage_grant_all
+    input: grant all privileges on all tables in schema s1, s2 to bob; grant all (a) on t to bob
+    dialects:
+      hyper:
+
+  - name: coverage_grant_targets
+    input: |-
+      grant usage on sequence seq to bob;
+      grant usage on foreign data wrapper w to bob;
+      grant usage on foreign server srv to bob;
+      grant execute on function f(integer, text), g() to bob;
+      grant create on database db1, db2 to bob;
+      grant usage on domain d to bob;
+      grant usage on language plpgsql to bob;
+      grant select on large object 1, 2 to bob;
+      grant create on schema s to bob;
+      grant create on tablespace ts to bob;
+      grant usage on type ty to bob;
+      grant usage on all sequences in schema s to bob;
+      grant execute on all functions in schema s to bob
+    dialects:
+      hyper:
+
+  - name: coverage_revoke
+    input: revoke grant option for select on t from bob cascade; revoke all on all functions in schema s from public restrict; revoke insert on t from bob
+    dialects:
+      hyper:
+
+  - name: coverage_grant_revoke_role
+    input: grant r1, r2 to u1, u2 with admin option granted by admin; revoke admin option for r1 from u1 granted by admin cascade; revoke r1, r2 from u1 restrict
+    dialects:
+      hyper:
+
+  - name: coverage_grant_revoke_role_narrow
+    input: grant r1, r2 to u1, u2 with admin option granted by admin; revoke admin option for r1 from u1 granted by admin cascade; revoke r1, r2 from u1 restrict
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 40
+          - mode: pretty
+            width: 40
+
+  # CREATE, ALTER and DROP of roles, users and groups
+  - name: coverage_create_role
+    input: create role r with login password 'pw' connection limit 5 valid until '2030-01-01' inherit in role a admin b role c; create user u encrypted password 'x'; create user v unencrypted password 'y'; create group g
+    dialects:
+      hyper:
+
+  - name: coverage_create_role_narrow
+    input: create role r with login password 'pw' connection limit 5 valid until '2030-01-01' inherit in role a admin b role c; create user u encrypted password 'x'; create user v unencrypted password 'y'; create group g
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 50
+          - mode: pretty
+            width: 50
+
+  - name: coverage_alter_role
+    input: alter role r with password null connection limit -1; alter role r in database db set timezone to 'UTC'; alter role all reset all; alter user u nologin; alter user u set search_path = public; alter group g add user a, b; alter group g drop user a
+    dialects:
+      hyper:
+
+  - name: coverage_drop_role
+    input: drop role if exists a, b; drop user u; drop group if exists g1, g2
+    dialects:
+      hyper:
+
+  # DROP of indexes, sequences, types, ... and of functions
+  - name: coverage_drop_objects
+    input: |-
+      drop index concurrently if exists i1, i2 cascade;
+      drop sequence s restrict;
+      drop materialized view mv;
+      drop foreign table ft;
+      drop event trigger et;
+      drop type ty;
+      drop domain d;
+      drop collation c;
+      drop conversion cv;
+      drop extension e;
+      drop external table if exists et;
+      drop external stream es
+    dialects:
+      hyper:
+
+  - name: coverage_drop_function
+    input: drop function if exists f(integer, text) cascade; drop function h() restrict
+    dialects:
+      hyper:
+
+  # Cursors and prepared statements
+  - name: coverage_declare_cursor
+    input: declare c no scroll binary insensitive cursor with hold for select 1; declare c2 scroll cursor without hold for select 2
+    dialects:
+      hyper:
+
+  - name: coverage_declare_cursor_query_on_own_line
+    input: declare some_cursor scroll cursor with hold for select some_column, other_column from some_table where some_column > 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 60
+          - mode: pretty
+            width: 60
+
+  - name: coverage_fetch_directions
+    input: fetch next from c; fetch prior c; fetch first in c; fetch last c; fetch absolute -1 c; fetch relative 2 c; fetch 3 c; fetch all from c; fetch forward c; fetch forward 5 c; fetch backward all c; fetch c; move backward 2 in c; move c
+    dialects:
+      hyper:
+
+  - name: coverage_close
+    input: close c; close all; close external stream if exists s
+    dialects:
+      hyper:
+
+  - name: coverage_prepare_execute_deallocate
+    input: prepare p(integer, text) as select $1, $2; execute p(1, x => 'a', y := 2); execute p; deallocate prepare p; deallocate all
+    dialects:
+      hyper:
+
+  # SHOW, TRUNCATE, ANALYZE and COMMENT
+  - name: coverage_show
+    input: show timezone; show time zone; show transaction isolation level; show session authorization; show all
+    dialects:
+      hyper:
+
+  - name: coverage_truncate
+    input: truncate table only t, u * restart identity cascade; truncate t continue identity restrict
+    dialects:
+      hyper:
+
+  - name: coverage_truncate_validated
+    input: truncate table truncate_t
+    dialects:
+      hyper:
+        validation:
+          setup: create table truncate_t(a int);
+
+  - name: coverage_analyze
+    input: analyze verbose t (a, b); analyse s.t
+    dialects:
+      hyper:
+
+  - name: coverage_comment
+    input: comment on column t.x is 'a column'; comment on column s.t.x is null
+    dialects:
+      hyper:
+
+  # Sequences
+  - name: coverage_create_sequence
+    input: create temp sequence if not exists s as bigint increment by 2 minvalue 1 no maxvalue start with 10 cache 5 cycle owned by t.x; create sequence s2 increment -1 no minvalue maxvalue 100 start 3 no cycle
+    dialects:
+      hyper:
+
+  - name: coverage_create_sequence_narrow
+    input: create temp sequence if not exists s as bigint increment by 2 minvalue 1 no maxvalue start with 10 cache 5 cycle owned by t.x; create sequence s2 increment -1 no minvalue maxvalue 100 start 3 no cycle
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 50
+          - mode: pretty
+            width: 50
+
+  - name: coverage_alter_sequence
+    input: alter sequence if exists s restart; alter sequence s restart with 5; alter sequence s restart 7 cache 1
+    dialects:
+      hyper:
+
+  # Indexes
+  - name: coverage_create_index
+    input: create unique index concurrently if not exists idx on t using btree (a collate "C" text_pattern_ops desc nulls first, b asc nulls last) with (fillfactor = 70, s.x, y); create index on t (a)
+    dialects:
+      hyper:
+
+  - name: coverage_create_index_narrow
+    input: create unique index concurrently if not exists idx on t using btree (a collate "C" text_pattern_ops desc nulls first, b asc nulls last) with (fillfactor = 70, s.x, y); create index on t (a)
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 60
+          - mode: pretty
+            width: 60
+
+  # Definitions of types, domains, aggregates, operators, collations and text search objects
+  - name: coverage_define_types
+    input: create type t1 as (a int, b text); create type e as enum (); create type e2 as enum ('red', 'blue'); create type r as range (subtype = int); create type shell; create type b (input = f_in, output = f_out, internallength = 16); create domain d as int; create domain d2 as text with (collation => 'C')
+    dialects:
+      hyper:
+
+  - name: coverage_define_objects
+    input: create aggregate a(int) (sfunc = f, stype = int); create aggregate a2 (basetype = int, sfunc = f, stype = int); create aggregate a3(*) (sfunc = f, stype = int); create aggregate a4(float8 order by float8) (sfunc = f, stype = int); create operator === (procedure = f, leftarg = int, rightarg = int); create collation c (locale = 'de_DE'); create collation c2 from c; create text search parser p (start = f); create text search dictionary d (template = simple); create text search template t (lexize = f); create text search configuration c (parser = p)
+    dialects:
+      hyper:
+
+  - name: coverage_define_narrow
+    input: create text search configuration some_configuration (parser = some_parser, copy = other_configuration)
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 40
+          - mode: pretty
+            width: 40
+
+  # Renaming objects of every kind
+  - name: coverage_rename_objects
+    input: |-
+      alter aggregate a(int) rename to b;
+      alter collation c rename to c2;
+      alter conversion cv rename to cv2;
+      alter domain d rename to d2;
+      alter domain d rename constraint c to c2;
+      alter foreign data wrapper w rename to w2;
+      alter function f(int) rename to g;
+      alter group g rename to g2;
+      alter procedural language l rename to l2;
+      alter operator class oc using btree rename to oc2;
+      alter operator family of using btree rename to of2;
+      alter policy if exists p on t rename to p2;
+      alter server s rename to s2;
+      alter sequence if exists s rename to s2;
+      alter materialized view mv rename to mv2;
+      alter materialized view mv rename column a to b;
+      alter index if exists i rename to j;
+      alter foreign table if exists ft rename to ft2;
+      alter foreign table if exists ft rename a to b;
+      alter rule r on t rename to r2;
+      alter trigger tr on t rename to tr2;
+      alter event trigger et rename to et2;
+      alter role r rename to r2;
+      alter tablespace ts rename to ts2;
+      alter text search parser p rename to p2;
+      alter text search dictionary d rename to d2;
+      alter text search template t rename to t2;
+      alter text search configuration c rename to c2;
+      alter type ty rename to ty2;
+      alter type ty rename attribute a to b cascade
+    dialects:
+      hyper:
+
+  # Utility commands that Hyper executes
+  - name: coverage_prepare_validated
+    input: prepare stmts_p(integer) as select $1 + 1; execute stmts_p(1); deallocate stmts_p
+    dialects:
+      hyper:
+        validation:
+          setup: ""
+
+  - name: coverage_cursor_validated
+    input: begin; declare stmts_c scroll cursor for select 1; fetch next from stmts_c; move first in stmts_c; close stmts_c; commit
+    dialects:
+      hyper:
+        validation:
+          setup: ""
+
+  - name: coverage_show_validated
+    input: show time zone
+    dialects:
+      hyper:
+        validation:
+          setup: ""

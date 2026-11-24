@@ -8,6 +8,7 @@
 //! The output keeps the quirks listed in docs/design/core_quirks.md. The statement formatters live in
 //! the submodules, one per statement kind.
 
+mod commands;
 mod comments;
 mod create;
 mod delete;
@@ -16,6 +17,7 @@ mod insert;
 mod json;
 mod pgq;
 pub mod program;
+mod roles;
 mod select;
 mod transaction;
 
@@ -217,6 +219,19 @@ fn is_leaf(node_type: NodeType) -> bool {
             | NodeType::BOOL
             | NodeType::OPERATOR
             | NodeType::NAME
+    )
+}
+
+/// Is an attribute a list of qualified names, like the grantees of GRANT?
+fn is_name_list(key: AttributeKey) -> bool {
+    matches!(
+        key,
+        K::SQL_GRANT_TARGET_OBJECTS
+            | K::SQL_GRANT_GRANTEES
+            | K::SQL_REVOKE_GRANTEES
+            | K::SQL_GRANT_ROLE_GRANTEES
+            | K::SQL_REVOKE_ROLE_GRANTEES
+            | K::SQL_DROP_ROLE_ROLES
     )
 }
 
@@ -575,6 +590,15 @@ impl<'a> Formatter<'a> {
         f.join(items, f.text(" "), f.break_(), Some(policy), indent_after_breaks)
     }
 
+    /// The clauses of a command: on one line if the command fits, otherwise every clause after the first on an
+    /// indented line of its own
+    fn format_command_clauses(&self, clauses: &[FmtReg]) -> FmtReg {
+        let f = &self.fmt;
+        let parts: Vec<FmtReg> =
+            clauses.iter().enumerate().map(|(i, &clause)| if i == 0 { clause } else { f.indented(clause) }).collect();
+        f.join(&parts, f.text(" "), f.indented(f.break_()), Some(FormattingJoinPolicy::BreakAllOrNone), false)
+    }
+
     fn format_qualified_name(&self, node: &Node) -> FmtReg {
         let f = &self.fmt;
         // An index like `a[1]` follows its name without a dot
@@ -631,6 +655,10 @@ impl<'a> Formatter<'a> {
             }
             if parent.is_some_and(|p| p.node_type() == NodeType::OBJECT_SQL_NARY_EXPRESSION) {
                 return self.format_comma_list(node, true);
+            }
+            // A qualified name in a list of names
+            if parent_key.is_some_and(|key| is_name_list(key) || key == K::SQL_DROP_NAME) {
+                return self.format_qualified_name(node);
             }
         }
 
@@ -754,6 +782,61 @@ impl<'a> Formatter<'a> {
                 let (inline_separator, break_separator) = self.comma_separators();
                 f.join(&rows, inline_separator, break_separator, Some(policy), indent_after_breaks)
             }
+            // The privileges, roles and names of GRANT, REVOKE and the commands of roles
+            K::SQL_GRANT_PRIVILEGES
+            | K::SQL_REVOKE_PRIVILEGES
+            | K::SQL_GRANT_ROLE_ROLES
+            | K::SQL_REVOKE_ROLE_ROLES
+            | K::SQL_ROLE_ELEMENT_ARG => self.format_comma_list(node, true),
+            key if is_name_list(key) => self.format_comma_list(node, true),
+            K::SQL_GRANT_ACCESS_PRIVILEGE_COLUMNS | K::SQL_FUNCTION_WITH_ARGUMENTS_ARGUMENTS => {
+                self.format_comma_list(node, false)
+            }
+            K::SQL_CREATE_ROLE_OPTIONS => self.format_space_list(node),
+            // The options of ALTER ROLE, or the members that ALTER GROUP adds or drops
+            K::SQL_ALTER_ROLE_ARGS => {
+                if self.children(node).first().is_some_and(|c| c.node_type() == NodeType::OBJECT_SQL_ROLE_ELEMENT) {
+                    self.format_space_list(node)
+                } else {
+                    self.format_comma_list(node, true)
+                }
+            }
+            K::SQL_GRANT_ACCESS_PRIVILEGE_NAME
+            | K::SQL_GRANT_ROLE_GRANTOR
+            | K::SQL_REVOKE_ROLE_GRANTOR
+            | K::SQL_CREATE_ROLE_ROLE
+            | K::SQL_ALTER_ROLE_ROLE
+            | K::SQL_FUNCTION_WITH_ARGUMENTS_NAME => self.format_qualified_name(node),
+            // The lists of the utility commands
+            K::SQL_DROP_NAME
+                if self.ast.get(node.parent() as usize).is_some_and(|p| p.node_type() == NodeType::OBJECT_SQL_DROP) =>
+            {
+                self.format_comma_list(node, true)
+            }
+            K::SQL_TRUNCATE_RELATIONS => self.format_comma_list(node, true),
+            K::SQL_DROP_FUNCTION_ARGUMENTS
+            | K::SQL_PREPARE_PARAMETER_TYPES
+            | K::SQL_EXECUTE_ARGS
+            | K::SQL_ANALYZE_COLUMNS
+            | K::SQL_CREATE_INDEX_INDEX_PARAMS
+            | K::SQL_CREATE_INDEX_OPTIONS
+            | K::SQL_CREATE_DEFINITION_DEFINITION
+            | K::SQL_CREATE_DEFINITION_ARGS => self.format_comma_list(node, false),
+            K::SQL_DECLARE_CURSOR_OPTIONS | K::SQL_CREATE_SEQUENCE_OPTIONS | K::SQL_ALTER_SEQUENCE_OPTIONS => {
+                self.format_space_list(node)
+            }
+            K::SQL_DROP_FUNCTION_NAME
+            | K::SQL_CLOSE_STREAM_NAME
+            | K::SQL_SHOW_ARG
+            | K::SQL_ANALYZE_TABLE
+            | K::SQL_COMMENT_NAME
+            | K::SQL_CREATE_SEQUENCE_NAME
+            | K::SQL_ALTER_SEQUENCE_NAME
+            | K::SQL_CREATE_INDEX_RELATION
+            | K::SQL_CREATE_DEFINITION_NAME
+            | K::SQL_CREATE_DEFINITION_FROM
+            | K::SQL_RENAME_OBJECT_NAME
+            | K::SQL_RENAME_OBJECT_ARG => self.format_qualified_name(node),
             K::SQL_TEMP_NAME
             | K::SQL_CREATE_TABLE_NAME
             | K::SQL_FUNCTION_NAME
@@ -833,6 +916,11 @@ impl<'a> Formatter<'a> {
         }
         if base_reg == 0 {
             return self.format_unimplemented(node);
+        }
+        // `t *`, a table with its descendant tables
+        let [name_star] = attrs!(self.children(node), [K::SQL_TABLEREF_NAME_STAR]);
+        if is_true(name_star) {
+            base_reg = f.concat(&[base_reg, f.text(" *")]);
         }
         if is_true(only) {
             base_reg = f.concat(&[f.text("only "), base_reg]);
@@ -3147,6 +3235,35 @@ impl<'a> Formatter<'a> {
             NodeType::OBJECT_SQL_CREATE_AS => self.format_create_as(node),
             NodeType::OBJECT_SQL_VIEW => self.format_view(node),
             NodeType::OBJECT_SQL_CREATE_FUNCTION => self.format_create_function(node),
+            NodeType::OBJECT_SQL_DROP => self.format_drop_objects(node),
+            NodeType::ENUM_SQL_DROP_OBJECT_TYPE => self.format_drop_object_type(node),
+            NodeType::OBJECT_SQL_DROP_FUNCTION => self.format_drop_function(node),
+            NodeType::OBJECT_SQL_DECLARE_CURSOR => self.format_declare_cursor(node),
+            NodeType::ENUM_SQL_CURSOR_OPTION => self.format_cursor_option(node),
+            NodeType::OBJECT_SQL_FETCH => self.format_fetch(node),
+            NodeType::OBJECT_SQL_FETCH_DIRECTION => self.format_fetch_direction(node),
+            NodeType::ENUM_SQL_FETCH_DIRECTION => f.empty(),
+            NodeType::OBJECT_SQL_CLOSE_CURSOR => self.format_close_cursor(node),
+            NodeType::OBJECT_SQL_CLOSE_STREAM => self.format_close_stream(node),
+            NodeType::OBJECT_SQL_PREPARE => self.format_prepare(node),
+            NodeType::OBJECT_SQL_EXECUTE => self.format_execute(node),
+            NodeType::OBJECT_SQL_DEALLOCATE => self.format_deallocate(node),
+            NodeType::OBJECT_SQL_NAMED_ARG_EXPR => self.format_named_arg_expression(node),
+            NodeType::OBJECT_SQL_SHOW => self.format_show(node),
+            NodeType::OBJECT_SQL_TRUNCATE => self.format_truncate(node),
+            NodeType::OBJECT_SQL_ANALYZE => self.format_analyze(node),
+            NodeType::OBJECT_SQL_COMMENT => self.format_comment(node),
+            NodeType::OBJECT_SQL_SEQUENCE_OPTION => self.format_sequence_option(node),
+            NodeType::ENUM_SQL_SEQUENCE_OPTION => f.empty(),
+            NodeType::OBJECT_SQL_CREATE_SEQUENCE => self.format_create_sequence(node),
+            NodeType::OBJECT_SQL_ALTER_SEQUENCE => self.format_alter_sequence(node),
+            NodeType::OBJECT_SQL_CREATE_INDEX => self.format_create_index(node),
+            NodeType::OBJECT_SQL_DEFINITION => self.format_definition(node),
+            NodeType::OBJECT_SQL_AGGREGATION_ARGUMENTS => self.format_aggregation_arguments(node),
+            NodeType::OBJECT_SQL_CREATE_DEFINITION => self.format_create_definition(node),
+            NodeType::ENUM_SQL_DEFINITION_TYPE => f.empty(),
+            NodeType::OBJECT_SQL_RENAME_OBJECT => self.format_rename_object(node),
+            NodeType::ENUM_SQL_RENAME_OBJECT_TYPE => f.empty(),
             NodeType::OBJECT_SQL_DROP_TABLE => self.format_drop(node, true),
             NodeType::OBJECT_SQL_DROP_VIEW => self.format_drop(node, false),
             NodeType::OBJECT_SQL_ALTER_TABLE => self.format_alter_table(node, "alter table "),
@@ -3178,6 +3295,23 @@ impl<'a> Formatter<'a> {
             NodeType::OBJECT_EXT_EXPLAIN => self.format_explain(node),
             NodeType::OBJECT_EXT_EXPLAIN_EXPRESSIONS => self.format_explain_expressions(node),
             NodeType::OBJECT_SQL_CALL => self.format_call(node),
+            NodeType::OBJECT_SQL_GRANT => self.format_grant(node),
+            NodeType::OBJECT_SQL_REVOKE => self.format_revoke(node),
+            NodeType::OBJECT_SQL_GRANT_ROLE => self.format_grant_role(node),
+            NodeType::OBJECT_SQL_REVOKE_ROLE => self.format_revoke_role(node),
+            NodeType::OBJECT_SQL_GRANT_ACCESS_PRIVILEGE => self.format_grant_access_privilege(node),
+            NodeType::ENUM_SQL_PRIVILEGE => self.format_privilege(node),
+            NodeType::OBJECT_SQL_GRANT_TARGET => self.format_grant_target(node),
+            NodeType::OBJECT_SQL_FUNCTION_WITH_ARGUMENTS => self.format_function_with_arguments(node),
+            NodeType::OBJECT_SQL_CREATE_ROLE => self.format_create_role(node),
+            NodeType::ENUM_SQL_ROLE_TYPE => self.format_role_type(node),
+            NodeType::OBJECT_SQL_ROLE_ELEMENT => self.format_role_element(node),
+            NodeType::OBJECT_SQL_ALTER_ROLE => self.format_alter_role(node),
+            NodeType::OBJECT_SQL_DROP_ROLE => self.format_drop_role(node),
+            NodeType::ENUM_SQL_DROP_BEHAVIOR => self.format_drop_behavior_kind(node),
+            NodeType::ENUM_SQL_GRANT_TARGET_TYPE
+            | NodeType::ENUM_SQL_ROLE_OPTION
+            | NodeType::ENUM_SQL_ALTER_ROLE_ACTION => f.empty(),
             NodeType::OBJECT_SQL_TRANSACTION => self.format_transaction(node),
             NodeType::OBJECT_SQL_TRANSACTION_MODE => self.format_transaction_mode(node),
             NodeType::ENUM_SQL_TRANSACTION_COMMAND | NodeType::ENUM_SQL_TRANSACTION_ISOLATION_LEVEL => f.empty(),
