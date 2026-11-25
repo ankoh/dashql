@@ -170,8 +170,16 @@ describe('browser shell replacement', () => {
     it('writes a status line', async () => {
         const shell = await createShell([]);
         controller = await embedDashQLShell({ container, shell });
-        controller.writeStatus('connected to hyper');
-        await vi.waitFor(() => expect(container.textContent).toContain('connected to hyper'));
+        // What the shell writes to the terminal, not its rows: xterm renders them in animation frames and pauses while
+        // the terminal is out of the viewport
+        const { Terminal } = await import('@xterm/xterm');
+        const write = vi.spyOn(Terminal.prototype, 'write');
+        try {
+            controller.writeStatus('connected to hyper');
+            expect(write.mock.calls.map(([data]) => String(data)).join('')).toContain('connected to hyper');
+        } finally {
+            write.mockRestore();
+        }
         controller.dispose();
         // A disposed shell ignores queued prompts
         controller.queuePrompts(['select 1;']);
