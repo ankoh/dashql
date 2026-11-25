@@ -634,6 +634,32 @@ fn a_run_reads_no_stored_result_that_its_script_shows_already() {
 }
 
 #[test]
+fn a_run_shows_the_stored_result_again_after_a_failure_took_its_place() {
+    let (local, remote) = (connection("local", true), connection("remote", false));
+    let workbook = workbook(&[("foo.sql", "select 1 as a", &remote), ("bar.sql", "select count(*) from :foo", &local)]);
+    let s = setup(true, Some("/mnt/cache"), 1);
+    {
+        let mut state = s.state.borrow_mut();
+        state.offline.insert("remote".into());
+        state.stored.insert("foo.sql".into(), "imported".into());
+        state.names.insert("foo.sql".into(), "foo.sql.imported.1.parquet".into());
+    }
+    assert!(s.run(&workbook, workbook_run()).failure.is_none());
+    let latest = || workbook.borrow().script_by_file("foo.sql").and_then(|script| script.latest_query_id());
+    let shown =
+        workbook.borrow().script_by_file("foo.sql").and_then(|script| script.latest_result_query_id()).expect("shown");
+    assert_eq!(latest(), Some(shown));
+    // A refresh without the connection failed, the card shows its error
+    let key = workbook.borrow().script_by_file("foo.sql").map(|script| script.key()).unwrap();
+    workbook.borrow_mut().apply(WorkbookAction::RegisterQuery { key, query_id: shown + 100 }).unwrap();
+    // The next run shows the result of the file again without reading it
+    s.state.borrow_mut().statements.clear();
+    assert!(s.run(&workbook, workbook_run()).failure.is_none());
+    assert!(!s.state.borrow().statements.iter().any(|st| matches!(st.request.result, StatementResult::Read { .. })));
+    assert_eq!(latest(), Some(shown));
+}
+
+#[test]
 fn a_script_remembers_the_stored_file_of_the_result_it_wrote() {
     let main = connection("main", false);
     let workbook = workbook(&[("foo.sql", "select 1 as a", &main)]);

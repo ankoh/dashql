@@ -116,7 +116,7 @@ export class QueryChannels {
             const query = record.query;
             if (query == null) throw new Error(`The query ${queryId} was not described`);
             const channel = record.channel as HyperDatabaseChannel | null;
-            if (channel == null) throw new Error(`${query.connector} channel is not set up`);
+            if (channel == null) throw new Error(`${query.connector} is not connected, connect it to run the query`);
             const stream = await channel.executeQuery(query.text, record.cancellation.signal, { readTimeoutMs: query.readTimeoutMs ?? undefined });
             if (stream == null) return false;
             record.stream = stream;

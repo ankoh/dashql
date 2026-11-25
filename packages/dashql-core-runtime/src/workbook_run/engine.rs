@@ -390,6 +390,22 @@ impl<H: RunHost> Run<H> {
             .map(QueryId::from)
     }
 
+    /// Show a query on its script. The script keeps the result of its file when a later query failed, e.g. a refresh
+    /// without the connection or a script that a failed script blocked: the card shows that query again.
+    fn show_query(&self, script: u32, query_id: QueryId) -> Result<(), RunFailure> {
+        let Some(key) = self.keys.get(script as usize).copied() else { return Ok(()) };
+        let shown = self
+            .workbook
+            .try_borrow()
+            .ok()
+            .and_then(|workbook| workbook.script(key).map(|script| script.latest_query_id()))
+            .flatten();
+        if shown == Some(query_id as u32) {
+            return Ok(());
+        }
+        self.apply(WorkbookAction::RegisterQuery { key, query_id: query_id as u32 })
+    }
+
     /// A script failed: the run goes on with the scripts that don't follow it and fails once it ended
     fn fail_script(&self, script: u32, failure: RunFailure) {
         let file = self.file(script);
@@ -702,7 +718,10 @@ impl<H: RunHost> Run<H> {
         // A script that shows the result of the file already keeps it, a read would load the same rows again
         let shown = self.shown_file_result(script, &retained.file.name);
         let served = match shown {
-            Some(query_id) => Some(query_id),
+            Some(query_id) => {
+                self.show_query(script, query_id)?;
+                Some(query_id)
+            }
             None => {
                 self.serve_cached(plan.graph, script, result_node, &retained.file, plan.statements, plan.visualizations)
                     .await?

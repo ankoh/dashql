@@ -142,8 +142,9 @@ versions kept a choice per connection, `cacheQueryResults` of a connection entry
 A run reuses the result of a script if the key in the name of its file equals the reusable key of the script. A script
 that shows the result of that file already, it was read from the file or written to it (`latest_result_file` of the
 script, set with `RegisterScriptResult`), keeps showing it: the run reads no file twice, a large result takes seconds
-to read and analyze. The state of a run names the step that it takes before its statements run (`step`): the analysis,
-the plan, the lookup and the read of the stored result of a script, the setup of its connections and the mounts of the
+to read and analyze. A failed query keeps no result and releases none, so a script whose card shows a later failure,
+e.g. a refresh without its connection or a script that a failed script blocked, shows the result of the file again.
+The state of a run names the step that it takes before its statements run (`step`): the analysis, the plan, the lookup and the read of the stored result of a script, the setup of its connections and the mounts of the
 attachments and of the stored results. Execute All and the status bar of the workbook show it.
 A run of a script also lets a script of another connection that its target scans stand in with its stored file
 whatever its key (`script_references.md`, Running a Script). A run of
