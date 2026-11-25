@@ -1,8 +1,10 @@
-//! Checks of function calls before a script runs: aggregate calls nested in aggregate calls, an error on every engine.
+//! Checks of function calls before a script runs: aggregate calls nested in aggregate calls, an error on every engine,
+//! and calls of functions that the engine doesn't have, a warning where the connection reports all of its functions.
 //! See `docs/design/core_analysis_catalog.md`.
 
 use super::state::AnalysisState;
 use super::types::*;
+use crate::catalog::{Name, QualifiedFunctionName};
 use dashql_buffers::algebra::FunctionCallModifier;
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
 use dashql_buffers::parser::NodeType;
@@ -60,6 +62,55 @@ const STANDARD_AGGREGATES: &[&str] = &[
     "var_samp",
     "variance",
     "xmlagg",
+];
+
+/// Calls that are no function of a catalog, sorted: the SQL forms with the syntax of a call and the casts in the form
+/// of a call, `int4(x)` for `CAST(x AS int4)`. `pg_proc` has none of them, PostgreSQL and Hyper read them in their
+/// grammar. A few more names than an engine knows only spare a warning.
+const SQL_FORMS: &[&str] = &[
+    "bool",
+    "bpchar",
+    "bytea",
+    "char",
+    "date",
+    "float4",
+    "float8",
+    "geography",
+    "greatest",
+    "grouping",
+    "int2",
+    "int4",
+    "int8",
+    "json",
+    "jsonb",
+    "least",
+    "name",
+    "oid",
+    "regclass",
+    "regconfig",
+    "regdictionary",
+    "regoper",
+    "regoperator",
+    "regproc",
+    "regprocedure",
+    "regtype",
+    "text",
+    "timestamptz",
+    "timetz",
+    "uuid",
+    "varchar",
+];
+
+/// Functions of other engines, mostly Trino, and what to write instead: (function, the function of the alternative,
+/// the alternative). A hint is given only when the catalog declares the function of the alternative.
+const UNKNOWN_FUNCTION_HINTS: &[(&str, &str, &str)] = &[
+    ("approx_distinct", "approx_count_distinct", "approx_count_distinct(…)"),
+    ("approx_percentile", "percentile_cont", "percentile_cont(…) WITHIN GROUP (ORDER BY …)"),
+    ("arbitrary", "any_value", "any_value(…)"),
+    ("array_join", "array_to_string", "array_to_string(…)"),
+    ("cardinality", "array_length", "array_length(…)"),
+    ("count_if", "count", "count(*) FILTER (WHERE …)"),
+    ("from_unixtime", "to_timestamp", "to_timestamp(…)"),
 ];
 
 /// How many declarations of a name the checks look at
@@ -156,16 +207,68 @@ fn check_nested_aggregates(state: &mut AnalysisState) {
     }
 }
 
+/// The message of a call of a function that the connection doesn't have, with a hint if the catalog has the
+/// alternative of the function
+fn unknown_function_message(state: &AnalysisState, name: &QualifiedFunctionName) -> String {
+    let mut message = format!("function {} does not exist on the connection", name.debug_string());
+    let hint = UNKNOWN_FUNCTION_HINTS.iter().find(|(function, ..)| *function == name.function_name.text());
+    if let Some((_, alternative, text)) = hint {
+        let alternative = QualifiedFunctionName {
+            ast_node_id: None,
+            database_name: state.empty_name(),
+            schema_name: state.empty_name(),
+            function_name: Name { text: (*alternative).into(), ..state.empty_name() },
+        };
+        if !state.resolve_function(&alternative, 1).is_empty() {
+            message.push_str(", use ");
+            message.push_str(text);
+        }
+    }
+    message
+}
+
+/// Report calls of functions that no entry declares when the connection reports all functions of its engine. A
+/// catalog without that marker, e.g. of Trino or a restored one, may lack functions, so it decides nothing. Calls with
+/// the syntax of keywords (`KnownFunction`) and names with a database are not checked, the functions of an engine are
+/// the same in every database.
+fn check_unknown_functions(state: &mut AnalysisState) {
+    if !state.catalog.functions_complete() {
+        return;
+    }
+    let mut unknown = Vec::new();
+    for expr in &state.out.expressions {
+        let ExpressionInner::FunctionCall(call) = &expr.inner else { continue };
+        let FunctionName::Qualified(name) = &call.function_name else { continue };
+        if !name.database_name.text().is_empty() {
+            continue;
+        }
+        let schema = name.schema_name.text();
+        if (schema.is_empty() || schema == "pg_catalog") && SQL_FORMS.binary_search(&name.function_name.text()).is_ok()
+        {
+            continue;
+        }
+        if !state.resolve_function(name, 1).is_empty() {
+            continue;
+        }
+        unknown.push((name.ast_node_id.unwrap_or(expr.ast_node_id), unknown_function_message(state, name)));
+    }
+    for (node, message) in unknown {
+        state.add_error(AnalyzerErrorType::UNKNOWN_FUNCTION, AnalyzerErrorSeverity::WARNING, node, message);
+    }
+}
+
 pub(super) fn analyze(state: &mut AnalysisState) {
     check_nested_aggregates(state);
+    check_unknown_functions(state);
 }
 
 #[cfg(test)]
 mod tests {
-    use super::STANDARD_AGGREGATES;
+    use super::{SQL_FORMS, STANDARD_AGGREGATES};
 
     #[test]
-    fn the_standard_aggregates_are_sorted() {
+    fn the_name_lists_are_sorted() {
         assert!(STANDARD_AGGREGATES.windows(2).all(|w| w[0] < w[1]));
+        assert!(SQL_FORMS.windows(2).all(|w| w[0] < w[1]));
     }
 }

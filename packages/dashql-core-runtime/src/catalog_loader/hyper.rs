@@ -399,11 +399,13 @@ impl HyperCatalogUpdate {
         self.batch_functions(text, true)
     }
 
-    /// Parse the functions next
+    /// Parse the functions next. They are all functions of the engine: `pg_proc` or the bundled functions, which are
+    /// those of the `pg_proc` of the embedded Hyper (`scripts/update_hyper_functions.mjs`).
     fn batch_functions(&mut self, text: String, require_functions: bool) -> Result<(), CatalogLoadError> {
         let entry_id = self.entries.function_entry()?;
         self.function_text = Some(text.clone());
-        let batch = CatalogBatch::new(vec![CatalogBatchEntry { entry_id, text, require_functions }]);
+        let batch =
+            CatalogBatch::new(vec![CatalogBatchEntry { entry_id, text, require_functions, functions_complete: true }]);
         self.phase = Phase::Publish(batch.prepare()?.into_iter().next());
         Ok(())
     }
@@ -487,7 +489,9 @@ impl ConnectorCatalogUpdate for HyperCatalogUpdate {
                 let batches = answer.map_err(CatalogLoadError::Failed)?;
                 let functions = catalog_sql_from_pg_proc(&batches, Some(DEFAULT_DATABASE_NAME))?;
                 for skipped in &functions.skipped {
-                    self.warnings.push(format!("Skipping unsupported PostgreSQL function signature: {skipped}"));
+                    self.warnings.push(format!(
+                        "Skipping unsupported PostgreSQL function signature: {skipped}, declared by its name"
+                    ));
                 }
                 let text =
                     format!("{}{}", function_script_header(HYPER_PG_PROC_SOURCE, self.updated_at), functions.sql);

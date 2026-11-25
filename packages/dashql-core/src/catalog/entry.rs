@@ -348,6 +348,9 @@ pub struct CatalogEntryData {
     pub functions_by_qualified_name: HashMap<QualifiedKey, usize>,
     /// Functions by name, in declaration order
     pub functions_by_unqualified_name: BTreeMap<Arc<str>, Vec<usize>>,
+    /// Are the functions all functions of the engine? Only a descriptor of a connection says so, see
+    /// `CatalogDescriptor.functions_complete`.
+    pub functions_complete: bool,
     /// Table indexes by table id
     pub tables_by_id: HashMap<u32, usize>,
 }
@@ -402,6 +405,7 @@ impl CatalogEntryData {
             })
             && same(&self.table_declarations, &other.table_declarations, same_table)
             && same(&self.function_declarations, &other.function_declarations, same_function)
+            && self.functions_complete == other.functions_complete
     }
 
     /// The location of a table of this entry

@@ -96,7 +96,7 @@ The catalog loader of the runtime publishes the batches of an update (`catalog_l
 | Path | Inputs |
 |---|---|
 | Restoring a connection catalog (`restore/catalog.rs` of `dashql_core_runtime`) | Persisted relation and function SQL of `connections/<id>/`; durable connections only (`publish_catalog_batch_sync`). |
-| Hyper refresh (`catalog_loader/hyper.rs`) | Functions from `pg_proc` for a Hyper server and Database.com, the bundled function SQL (`prefetched_hyper_functions.sql`) for the WASM protocol. `require_functions` is set unless the live `pg_proc` catalog is used. |
+| Hyper refresh (`catalog_loader/hyper.rs`) | Functions from `pg_proc` for a Hyper server and Database.com, the bundled function SQL (`prefetched_hyper_functions.sql`) for the WASM protocol. `require_functions` is set unless the live `pg_proc` catalog is used, `functions_complete` for both (`CatalogDescriptor.functions_complete`, unless the descriptor declares no function). |
 | Salesforce refresh (`catalog_loader/salesforce.rs`) | The bundled functions |
 
 The functions of a refresh are published first. Its relations follow without a batch, a failure leaves them as they were.
@@ -104,7 +104,8 @@ The functions of a refresh are published first. Its relations follow without a b
 The live Hyper function query uses `unnest(...) WITH ORDINALITY` and `format_type` over native arrays
 (`catalog_loader/pg_proc.rs`), because Hyper supports neither `array_to_json` nor casting `oidvector` to
 `oid[]`. Hyper exposes incomplete built-in function signatures; missing return types become `any`, and
-batching does not reconstruct argument metadata the engine does not expose.
+batching does not reconstruct argument metadata the engine does not expose. A function whose signature is skipped is
+declared by its name, the list stays complete.
 
 ## Tests
 

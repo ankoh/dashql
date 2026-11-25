@@ -1147,6 +1147,7 @@ pub fn pack_catalog_descriptor(entry: &CatalogEntryData) -> crate::error::Result
         function.location = None;
     }
     descriptor.function_declarations = Some(functions);
+    descriptor.functions_complete = entry.functions_complete;
     let mut builder = flatbuffers::FlatBufferBuilder::new();
     let packed = descriptor.pack(&mut builder);
     builder.finish(packed, None);

@@ -160,6 +160,7 @@ impl DescriptorEntry {
         };
         // The new entry is published with the next catalog version, as are its tables
         Arc::make_mut(&mut out.entry).catalog_version = catalog.version() + 1;
+        Arc::make_mut(&mut out.entry).functions_complete = descriptor.functions_complete();
         let table_version = catalog.version() + 1;
         let mut names_by_text = std::collections::HashMap::<Arc<str>, NameId>::new();
         let mut register = |out: &mut DescriptorEntry, text: &str, tag: NameTag| -> Name {

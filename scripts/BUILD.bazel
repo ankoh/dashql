@@ -1,3 +1,4 @@
+load("@aspect_rules_js//js:defs.bzl", "js_binary")
 load("@rules_python//python:defs.bzl", "py_binary")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
@@ -31,4 +32,12 @@ py_binary(
     data = ["@rules_rust//tools/rust_analyzer:gen_rust_project"],
     main = "rust_project.py",
     deps = ["@rules_python//python/runfiles"],
+)
+
+# Regenerate the bundled function catalog of the embedded Hyper from the pg_proc of hyperdb-wasm, after an update of it.
+# Usage: bazel run //scripts:update_hyper_functions
+js_binary(
+    name = "update_hyper_functions",
+    data = ["//:node_modules/hyperdb-wasm"],
+    entry_point = "update_hyper_functions.mjs",
 )

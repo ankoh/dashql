@@ -856,3 +856,75 @@ fn a_schema_that_is_gone_takes_its_tables_along() {
     assert!(!resolves(&catalog, "select * from gone.d"));
     assert!(resolves(&catalog, "select * from e"));
 }
+
+/// Encode functions that are all functions of the engine
+fn complete_functions(functions: Vec<FunctionDeclarationT>) -> Vec<u8> {
+    let mut descriptor = CatalogDescriptorT::default();
+    descriptor.tables = Some(vec![]);
+    descriptor.function_declarations = Some(functions);
+    descriptor.functions_complete = true;
+    let mut builder = flatbuffers::FlatBufferBuilder::new();
+    let packed = descriptor.pack(&mut builder);
+    builder.finish(packed, None);
+    builder.finished_data().to_vec()
+}
+
+/// The messages of the unknown function warnings of a query
+fn unknown_functions(catalog: &Catalog, sql: &str) -> Vec<String> {
+    let mut script = Script::new(catalog);
+    script.insert_text_at(0, sql);
+    script.analyze(catalog, true).unwrap();
+    let analyzed = script.analyzed.clone().unwrap();
+    analyzed
+        .errors
+        .iter()
+        .filter(|e| e.error_type == dashql_buffers::analyzer::AnalyzerErrorType::UNKNOWN_FUNCTION)
+        .map(|e| e.message.clone())
+        .collect()
+}
+
+#[test]
+fn the_marker_of_complete_functions_round_trips_through_pack() {
+    let mut catalog = Catalog::new();
+    let id =
+        add(&mut catalog, CatalogLayer::CONNECTION, &complete_functions(vec![function("", "f", &[], "any", false)]));
+    assert!(catalog.entry(id).unwrap().data().functions_complete);
+    assert!(catalog.functions_complete());
+    let packed = pack_catalog_descriptor(catalog.entry(id).unwrap().data()).unwrap();
+    assert!(validate_descriptor(&packed).unwrap().functions_complete());
+    // A descriptor without the marker says nothing about the functions
+    let other =
+        add(&mut catalog, CatalogLayer::CONNECTION, &encode(vec![], vec![function("", "g", &[], "any", false)]));
+    assert!(!catalog.entry(other).unwrap().data().functions_complete);
+}
+
+#[test]
+fn only_complete_functions_of_the_connection_make_calls_of_other_functions_unknown() {
+    let mut catalog = Catalog::new();
+    let functions = vec![function("pg_catalog", "count", &[], "any", true)];
+    // Session functions are no list of the functions of the engine
+    let session = add(&mut catalog, CatalogLayer::SESSION, &complete_functions(functions.clone()));
+    assert!(!catalog.functions_complete());
+    assert!(unknown_functions(&catalog, "select count_if(1)").is_empty());
+    catalog.drop_descriptor(session).unwrap();
+    add(&mut catalog, CatalogLayer::CONNECTION, &complete_functions(functions));
+    assert_eq!(
+        unknown_functions(&catalog, "select count_if(1), count(*)"),
+        ["function count_if does not exist on the connection, use count(*) FILTER (WHERE …)"]
+    );
+}
+
+#[test]
+fn functions_of_session_scripts_are_known() {
+    let mut catalog = Catalog::new();
+    add(&mut catalog, CatalogLayer::CONNECTION, &complete_functions(vec![function("", "abs", &[], "any", false)]));
+    let mut declaring = Script::new(&catalog);
+    declaring.insert_text_at(0, "create function my_fn() returns any;");
+    declaring.analyze(&catalog, true).unwrap();
+    catalog.load_script(declaring.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
+    assert!(unknown_functions(&catalog, "select my_fn(), abs(1)").is_empty());
+    assert_eq!(
+        unknown_functions(&catalog, "select other_fn()"),
+        ["function other_fn does not exist on the connection"]
+    );
+}

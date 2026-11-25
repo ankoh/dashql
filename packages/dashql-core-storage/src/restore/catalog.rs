@@ -80,11 +80,18 @@ pub fn apply_catalog_files(state: &mut ConnectionState, files: &CatalogFiles) ->
             entry_id: state.relation_entry_id(),
             text: relations.to_string(),
             require_functions: false,
+            functions_complete: false,
         });
     }
     let function_entry = state.function_script().map(|script| script.catalog_entry_id());
     if let (Some(functions), Some(entry_id)) = (functions, function_entry) {
-        entries.push(CatalogBatchEntry { entry_id, text: functions.to_string(), require_functions: false });
+        // The file doesn't say whether the functions are complete, a refresh of the connection marks them again
+        entries.push(CatalogBatchEntry {
+            entry_id,
+            text: functions.to_string(),
+            require_functions: false,
+            functions_complete: false,
+        });
     }
     if !entries.is_empty() {
         let published = {

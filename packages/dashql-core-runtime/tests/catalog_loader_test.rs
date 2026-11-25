@@ -882,8 +882,11 @@ fn pg_proc_skips_set_and_table_results_and_qualified_custom_types() {
     assert!(functions.sql.contains("\"supported\""));
     // A dot of a quoted name is no qualification
     assert!(functions.sql.contains("\"quoted_type\"() RETURNS \"my.type\""));
+    // A skipped signature leaves the function declared by its name, the functions stay complete
+    assert!(functions.sql.contains("CREATE FUNCTION \"db\".\"public\".\"set_result\"() RETURNS any;"));
+    assert!(functions.sql.contains("CREATE FUNCTION \"db\".\"public\".\"custom_type\"() RETURNS any;"));
     let descriptor = read_catalog_descriptor(&catalog_descriptor_of_sql(&functions.sql).unwrap()).unwrap();
-    assert_eq!(descriptor.function_declarations.map_or(0, |f| f.len()), 2);
+    assert_eq!(descriptor.function_declarations.map_or(0, |f| f.len()), 5);
 }
 
 #[test]
@@ -907,7 +910,12 @@ fn pg_proc_rejects_invalid_argument_metadata() {
 
 /// Publish function SQL as the descriptor of a function script, the number of functions
 fn publish_functions(catalog: &mut Catalog, entry_id: CatalogEntryId, sql: &str) -> Result<usize, CatalogLoadError> {
-    let batch = CatalogBatch::new(vec![CatalogBatchEntry { entry_id, text: sql.to_string(), require_functions: true }]);
+    let batch = CatalogBatch::new(vec![CatalogBatchEntry {
+        entry_id,
+        text: sql.to_string(),
+        require_functions: true,
+        functions_complete: false,
+    }]);
     let counts = publish_catalog_batch_sync(catalog, &batch)?;
     Ok(counts.first().map_or(0, |counts| counts.functions))
 }
@@ -927,6 +935,15 @@ fn loads_the_bundled_function_catalog_as_a_descriptor() {
         PREFETCHED_HYPER_FUNCTIONS_SQL.contains("CREATE AGGREGATE \"hyper\".\"pg_catalog\".\"count\"() RETURNS any;")
     );
     assert!(PREFETCHED_HYPER_FUNCTIONS_SQL.contains("CREATE FUNCTION \"hyper\".\"tableau\".\"sqrt\"() RETURNS any;"));
+    // The list is the pg_proc of hyperdb-wasm (scripts/update_hyper_functions.mjs): it has the aggregates that scripts of
+    // other engines use and lacks the ones that Hyper doesn't have
+    for aggregate in ["count", "array_agg", "string_agg", "listagg", "any_value", "percentile_cont"] {
+        let declaration = format!("CREATE AGGREGATE \"hyper\".\"pg_catalog\".\"{aggregate}\"() RETURNS any;");
+        assert!(PREFETCHED_HYPER_FUNCTIONS_SQL.contains(&declaration), "{aggregate}");
+    }
+    for missing in ["count_if", "arbitrary", "approx_percentile", "greatest", "least"] {
+        assert!(!PREFETCHED_HYPER_FUNCTIONS_SQL.contains(&format!("\"{missing}\"")), "{missing}");
+    }
 }
 
 #[test]
@@ -961,7 +978,12 @@ fn rejects_invalid_or_empty_function_sql_without_publishing() {
 fn a_batch_publishes_a_descriptor_per_entry_and_refuses_invalid_sql() {
     let mut catalog = Catalog::new();
     let (a, b) = (catalog.allocate_entry_id(), catalog.allocate_entry_id());
-    let entry = |entry_id, text: &str| CatalogBatchEntry { entry_id, text: text.to_string(), require_functions: false };
+    let entry = |entry_id, text: &str| CatalogBatchEntry {
+        entry_id,
+        text: text.to_string(),
+        require_functions: false,
+        functions_complete: false,
+    };
     let both = CatalogBatch::new(vec![entry(a, "create table a(x int);"), entry(b, "create table b(y int);")]);
     let broken = CatalogBatch::new(vec![entry(a, "create table a(x int);"), entry(b, "create tabel b(y int);")]);
     assert!(broken.prepare().unwrap_err().message().starts_with("Catalog contains invalid SQL"));
@@ -1064,6 +1086,8 @@ fn hyper_wasm_reads_the_default_database_and_takes_the_bundled_functions() {
     let functions = functions.unwrap();
     assert!(functions.contains("-- Catalog Source: Bundled Hyper function catalog"));
     assert!(functions.contains("CREATE FUNCTION \"hyper\".\"pg_catalog\".\"abs\"() RETURNS any;"));
+    // The bundled functions are all functions of the embedded Hyper, the analyzer warns about others
+    assert!(hyper.connection.catalog().borrow().functions_complete());
 }
 
 #[test]
@@ -1084,6 +1108,8 @@ fn a_hyper_server_reads_its_functions_from_pg_proc() {
         "CREATE FUNCTION \"hyper\".\"pg_catalog\".\"wasm_catalog_function\"(\"arg1\" integer) RETURNS bigint;"
     ));
     assert!(!functions.contains("\"abs\""));
+    // pg_proc has all functions of the server
+    assert!(hyper.connection.catalog().borrow().functions_complete());
 }
 
 #[test]
@@ -1193,6 +1219,8 @@ fn hyper_publishes_an_empty_function_catalog_to_clear_stale_functions() {
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded);
     assert!(!functions.unwrap().contains("wasm_catalog_function"));
     assert_eq!(hyper.function_count(), 0);
+    // No function is no list of the functions of the server
+    assert!(!hyper.connection.catalog().borrow().functions_complete());
     assert!(hyper.connection.catalog().borrow().contains(hyper.function_entry()));
 }
 
@@ -1337,6 +1365,8 @@ fn salesforce_sends_the_metadata_requests_with_the_tokens_of_the_fresh_channel_a
     assert_eq!(outcome.warnings.len(), 1, "{:?}", outcome.warnings);
     assert!(outcome.warnings[0].contains("offline"));
     assert!(salesforce.relations_text().contains("Account__dlm"));
+    // Data 360 runs a Hyper of its own, the bundled functions of the embedded Hyper are not all of its functions
+    assert!(!salesforce.connection.catalog().borrow().functions_complete());
 }
 
 #[test]

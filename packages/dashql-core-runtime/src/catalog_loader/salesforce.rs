@@ -119,6 +119,8 @@ impl SalesforceCatalogUpdate {
             entry_id,
             text: PREFETCHED_HYPER_FUNCTIONS_SQL.to_string(),
             require_functions: true,
+            // Data 360 runs a Hyper of its own, the functions of the embedded Hyper are not all of its functions
+            functions_complete: false,
         }]);
         let prepared = batch
             .prepare()?

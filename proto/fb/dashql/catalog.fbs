@@ -6,6 +6,10 @@ namespace dashql.buffers.catalog;
 table CatalogDescriptor {
     tables: [dashql.buffers.analyzer.Table];
     function_declarations: [dashql.buffers.analyzer.FunctionDeclaration];
+    /// Are these all functions of the engine? Set by the catalog loader for the functions of a Hyper from `pg_proc` and
+    /// for the bundled ones of the embedded Hyper. The analyzer warns about a call of a function that no entry declares
+    /// only if a descriptor of the connection layer has it.
+    functions_complete: bool = false;
 }
 
 // ----------------------------------------------------------------------------

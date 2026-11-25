@@ -1028,6 +1028,11 @@ impl CatalogSnapshot {
         }
     }
 
+    /// Does the connection report all functions of its engine? Then a function that no entry declares doesn't exist.
+    pub fn functions_complete(&self) -> bool {
+        self.descriptor_entries.values().any(|d| d.layer == CatalogLayer::CONNECTION && d.entry.functions_complete)
+    }
+
     /// A function by location
     pub fn function(&self, loc: ObjectLoc) -> Option<&FunctionDeclaration> {
         self.entries.get(&loc.entry)?.data().function_declarations.get(loc.index as usize)

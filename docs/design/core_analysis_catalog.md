@@ -111,6 +111,7 @@ Both kinds expose their declarations as one shared `Arc<CatalogEntryData>` (`cat
 | `tables_by_qualified_name`, `tables_by_unqualified_name`, `tables_by_unqualified_schema` | Table lookups: exact, by name, by (schema, database) range |
 | `table_columns_by_name` | Columns by name across all tables of the entry |
 | `functions_by_*` | Function lookups |
+| `functions_complete` | Are the functions all functions of the engine? Set from `CatalogDescriptor.functions_complete`, see [Function checks](#function-checks) |
 | `catalog_version` | The catalog version the entry was created against |
 
 Names are `Name { entry, id, text: Arc<str> }`. The text is shared, so a qualified name copied from
@@ -428,6 +429,28 @@ catalog declares a function of that name as aggregate (`CREATE AGGREGATE`, `pg_p
 covers connections without functions in the catalog, such as Trino. Every nested aggregate is reported at its closest
 enclosing aggregate (`tests/snapshots/analyzer/aggregates.tpl.yaml`).
 
+**Unknown functions** (`UNKNOWN_FUNCTION`, a warning). Scripts written for another engine call functions that the
+engine of the connection doesn't have, `count_if(x > 0)` of Trino fails on Hyper with `function "count_if" does not
+exist`. A catalog knows that only when it holds every function of its engine: a descriptor of the connection layer
+with `functions_complete` (`CatalogSnapshot::functions_complete`). The catalog loader sets it for the functions of a
+Hyper, from `pg_proc` or the bundled list of the embedded Hyper, see [Catalog Updates](catalog_updates.md#full-refreshes).
+Trino reports no functions, Data 360 gets the bundled functions of the embedded Hyper, which aren't all of its own, and
+a restored catalog doesn't know where its functions came from: these catalogs check nothing.
+
+With the marker a call is unknown when `resolve_function` finds no declaration: not in the script, not in the
+connection, not in a script of the session (`CREATE FUNCTION`). A bare name matches every schema, `tableau.date_diff`
+needs the schema `tableau`. Calls with the syntax of a keyword (`KnownFunction`: `coalesce`, `current_date`, …) are not
+checked, nor names with a database, the functions of an engine are the same in every database. Neither are the SQL
+forms with the syntax of a call that no `pg_proc` lists, `greatest`, `least`, `grouping`, and the casts in the form of a
+call, `int4(x)` or `text(x)`, which PostgreSQL and Hyper read as `CAST`. The warning is
+`function count_if does not exist on the connection`, followed by what to write instead for a few functions of other
+engines, if the catalog has the function of the alternative: `count_if` → `count(*) FILTER (WHERE …)`, `arbitrary` →
+`any_value(…)`, `approx_percentile` → `percentile_cont(…) WITHIN GROUP (ORDER BY …)`, `approx_distinct` →
+`approx_count_distinct(…)`, `array_join` → `array_to_string(…)`, `cardinality` → `array_length(…)`, `from_unixtime` →
+`to_timestamp(…)` (`UNKNOWN_FUNCTION_HINTS`). A snapshot case marks its catalog script complete with
+`catalog.functions_complete: true`, the harness publishes it as a descriptor with the marker
+(`tests/snapshots/analyzer/unknown_functions.tpl.yaml`).
+
 ### The snapshot of an analysis
 
 A `TableLoc` into another entry is only meaningful against that entry's declarations as they were
@@ -654,7 +677,7 @@ database and schema, statements on `t` and `db.schema.t` are ordered as one rela
 | Analyzer entry point, `AnalyzedScript` | `packages/dashql-core/src/analyzer/mod.rs` |
 | Shared pass state | `packages/dashql-core/src/analyzer/state.rs` |
 | Name resolution, schema inference | `packages/dashql-core/src/analyzer/name_resolution.rs` |
-| Function checks: nested aggregates | `packages/dashql-core/src/analyzer/function_checks.rs` |
+| Function checks: nested aggregates, unknown functions | `packages/dashql-core/src/analyzer/function_checks.rs` |
 | Analysis types | `packages/dashql-core/src/analyzer/types.rs` |
 | Script pipeline | `packages/dashql-core/src/script.rs` |
 | Editor session | `packages/dashql-core/src/script_session.rs` |

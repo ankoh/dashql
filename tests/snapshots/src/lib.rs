@@ -56,6 +56,30 @@ pub fn client_functions_of(case: &Yaml) -> Option<&'static str> {
     }
 }
 
+/// Does the catalog of a snapshot case declare all functions of its engine, `catalog.functions_complete: true`?
+pub fn functions_complete_of(case: &Yaml) -> bool {
+    case["catalog"]["functions_complete"].as_bool().unwrap_or(false)
+}
+
+/// Publish the catalog script of a case into the connection layer: as the script, or as a descriptor that declares all
+/// functions of the engine (`CatalogDescriptor.functions_complete`), like the functions that the catalog loader reads
+/// from a Hyper
+pub fn publish_catalog_script(
+    catalog: &mut dashql_core::catalog::Catalog,
+    analyzed: dashql_core::analyzer::AnalyzedScript,
+    functions_complete: bool,
+) -> Result<(), String> {
+    use dashql_core::catalog::CatalogLayer;
+    if !functions_complete {
+        return catalog.load_script(std::sync::Arc::new(analyzed), CatalogLayer::CONNECTION).map_err(|e| e.message);
+    }
+    let mut declarations = (*analyzed.entry).clone();
+    declarations.functions_complete = true;
+    let descriptor = dashql_core::pack::pack_catalog_descriptor(&declarations).map_err(|e| e.message)?;
+    let entry_id = catalog.allocate_entry_id();
+    catalog.replace_descriptor(entry_id, CatalogLayer::CONNECTION, &descriptor).map_err(|e| e.message)
+}
+
 /// Trim an input: leading spaces and newlines, trailing newlines and carriage returns.
 pub fn trim_input(input: &str) -> String {
     input.trim_start_matches([' ', '\n']).trim_end_matches(['\n', '\r']).to_string()

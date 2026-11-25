@@ -95,18 +95,21 @@ fn unsupported_type(sql_type: &str) -> bool {
 pub struct PgProcFunctions {
     /// The `CREATE FUNCTION` statements
     pub sql: String,
-    /// The functions that were skipped, as `schema.function`: set or table results and qualified custom types
+    /// The functions whose signature was skipped, as `schema.function`: set or table results and qualified custom types
     pub skipped: Vec<String>,
 }
 
 /// The function statements of the rows of `pg_proc` in a database. DashQL declarations model scalar signatures only,
-/// a function with a set or table result or a qualified custom type is skipped. Invalid parameter metadata fails.
+/// the signature of a function with a set or table result or a qualified custom type is skipped. Such a function is
+/// declared by its name, `name() RETURNS any` like the bundled functions, unless another signature declares the name:
+/// the functions stay all functions of the engine, which the analyzer relies on. Invalid parameter metadata fails.
 pub fn catalog_sql_from_pg_proc(
     batches: &[RecordBatch],
     database_name: Option<&str>,
 ) -> Result<PgProcFunctions, CatalogLoadError> {
     let mut functions = Vec::new();
     let mut skipped = Vec::new();
+    let mut unsupported_functions: Vec<FunctionMetadata> = Vec::new();
     for batch in batches_with_rows(batches) {
         let schemas = Strings::of(batch, "function_schema")?;
         let names = Strings::of(batch, "function_name")?;
@@ -142,6 +145,13 @@ pub fn catalog_sql_from_pg_proc(
                 || modes.iter().any(|mode| !matches!(mode.as_str(), "i" | "o" | "b" | "v" | "t"));
             if unsupported {
                 skipped.push(format!("{}.{function_name}", schema_name.unwrap_or("")));
+                unsupported_functions.push(FunctionMetadata {
+                    schema_name: schema_name.map(str::to_string),
+                    function_name: function_name.to_string(),
+                    arguments: None,
+                    return_type: None,
+                    is_aggregate: kinds.get(row) == Some("a"),
+                });
                 continue;
             }
             let arguments: Vec<String> = types
@@ -165,6 +175,14 @@ pub fn catalog_sql_from_pg_proc(
                 return_type: return_type.map(str::to_string),
                 is_aggregate: kinds.get(row) == Some("a"),
             });
+        }
+    }
+    for function in unsupported_functions {
+        let declared = |other: &FunctionMetadata| {
+            other.schema_name == function.schema_name && other.function_name == function.function_name
+        };
+        if !functions.iter().any(declared) {
+            functions.push(function);
         }
     }
     Ok(PgProcFunctions { sql: functions_sql(database_name, &functions), skipped })

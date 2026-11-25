@@ -110,6 +110,16 @@ e.g. `vector_search`. A session that attaches several databases reads the `pg_pr
 always takes the bundled function catalog (`catalog_loader/prefetched_hyper_functions.sql`), so it is described with one
 query of its relations, whose database is new at every start.
 
+The bundled catalog is the `pg_proc` of hyperdb-wasm, every function by its name (`name() RETURNS any`, `CREATE
+AGGREGATE` for an aggregate), regenerated after an update of hyperdb-wasm with `bazel run
+//scripts:update_hyper_functions` (`scripts/update_hyper_functions.mjs`, the filter of `pg_proc.rs`). Both lists of a
+Hyper are all functions of the engine: the descriptor of the functions carries `functions_complete`, and the analyzer
+warns about calls of other functions ([Function checks](core_analysis_catalog.md#function-checks)). A function of
+`pg_proc` whose signature DashQL doesn't model (a set or table result, a qualified custom type) is declared by its name
+for that reason, an empty `pg_proc` sets no marker. Data 360 takes the bundled functions without the marker, its Hyper
+is not the embedded one, and the file of the functions doesn't keep the marker: a restored catalog checks no calls until
+the next full refresh.
+
 Until a connection is described, the answers about relations update the catalog in memory but nothing saves it: a few
 relations aren't a catalog, and a restart must not take them for one.
 

@@ -371,6 +371,8 @@ enum AnalyzerErrorType: uint8 {
     INVALID_FROM_CLAUSE_REFERENCE,
     /// An aggregate call in the arguments, the FILTER or the ORDER BY of an aggregate call of the same query
     NESTED_AGGREGATE_CALL,
+    /// A call of a function that no catalog entry declares, while the connection reports all functions of its engine
+    UNKNOWN_FUNCTION,
 }
 
 /// The severity of an analyzer error. WARNING-level diagnostics still carry a

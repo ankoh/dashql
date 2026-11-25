@@ -21,6 +21,9 @@ pub struct CatalogBatchEntry {
     pub text: String,
     /// Must the descriptor declare functions? The function catalog of Hyper never is empty.
     pub require_functions: bool,
+    /// Are the functions all functions of the engine? The descriptor says so (`CatalogDescriptor.functions_complete`),
+    /// and the analyzer warns about calls of other functions.
+    pub functions_complete: bool,
 }
 
 /// What a descriptor of a batch declares
@@ -71,8 +74,15 @@ impl CatalogBatch {
                     return Err(CatalogLoadError::failed(format!("Catalog contains invalid SQL: {}", error.message)));
                 }
                 let analyzed = checked.script.analyzed.as_deref().ok_or_else(missing)?;
-                let descriptor = pack_catalog_descriptor(&analyzed.entry)
-                    .map_err(|error| CatalogLoadError::failed(error.message))?;
+                // No function is no list of the functions of an engine: every call would be unknown
+                let descriptor = if entry.functions_complete && !analyzed.entry.function_declarations.is_empty() {
+                    let mut declarations = (*analyzed.entry).clone();
+                    declarations.functions_complete = true;
+                    pack_catalog_descriptor(&declarations)
+                } else {
+                    pack_catalog_descriptor(&analyzed.entry)
+                }
+                .map_err(|error| CatalogLoadError::failed(error.message))?;
                 if descriptor.is_empty() {
                     return Err(missing());
                 }

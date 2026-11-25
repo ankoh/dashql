@@ -1,0 +1,227 @@
+analyzer-snapshots:
+
+  - name: unknown_function_with_hint
+    catalog:
+      functions_complete: true
+      script:
+        input: |
+          create table "hyper"."public"."events" (event text, waiting_jobs int, g int);
+          create aggregate "hyper"."pg_catalog"."count"() returns any;
+          create aggregate "hyper"."pg_catalog"."any_value"() returns any;
+          create function "hyper"."pg_catalog"."abs"() returns any;
+        errors: []
+    script:
+      input: select count_if(waiting_jobs > 0), arbitrary(g), approx_distinct(event), pg_catalog.count_if(g > 1) from events
+      catalog-id: 3
+      errors:
+        - {type: UNKNOWN_FUNCTION, severity: WARNING, message: 'function count_if does not exist on the connection, use count(*) FILTER (WHERE …)', text: "count_if"}
+        - {type: UNKNOWN_FUNCTION, severity: WARNING, message: 'function arbitrary does not exist on the connection, use any_value(…)', text: "arbitrary"}
+        - {type: UNKNOWN_FUNCTION, severity: WARNING, message: function approx_distinct does not exist on the connection, text: "approx_distinct"}
+        - {type: UNKNOWN_FUNCTION, severity: WARNING, message: 'function pg_catalog.count_if does not exist on the connection, use count(*) FILTER (WHERE …)', text: "pg_catalog.count_if"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.2:0", text: "events"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.2:0.1", source: "events", text: "waiting_jobs"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.2:0.2", source: "events", text: "g"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.2:0.0", source: "events", text: "event"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.2:0.2", source: "events", text: "g"}
+        - {id: 4, type: function, name: count_if, text: "count_if(w.._jobs > 0)"}
+        - {id: 5, type: function, name: arbitrary, text: "arbitrary(g)"}
+        - {id: 6, type: function, name: approx_distinct, text: "approx_dis..nct(event)"}
+        - {id: 7, type: function, name: pg_catalog.count_if, text: "pg_catalog.._if(g > 1)"}
+        - {id: 8, type: literal/integer, is-const: true, text: "0"}
+        - {id: 9, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 8, text: "0"}
+        - {expression: 9, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: events, text: "events"}
+          columns:
+            - {name: '?', expression: 4}
+            - {name: '?', expression: 5}
+            - {name: '?', expression: 6}
+            - {name: '?', expression: 7}
+          text: "select cou..rom events"
+
+  - name: unknown_function_incomplete_catalog
+    catalog:
+      script:
+        input: |
+          create table "hyper"."public"."events" (event text, waiting_jobs int, g int);
+          create aggregate "hyper"."pg_catalog"."count"() returns any;
+        errors: []
+    script:
+      input: select count_if(waiting_jobs > 0) from events
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "events"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.1", source: "events", text: "waiting_jobs"}
+        - {id: 1, type: function, name: count_if, text: "count_if(w.._jobs > 0)"}
+        - {id: 2, type: literal/integer, is-const: true, text: "0"}
+      constants:
+        - {expression: 2, text: "0"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: events, text: "events"}
+          columns:
+            - {name: '?', expression: 1}
+          text: "select cou..rom events"
+
+  - name: known_functions_complete_catalog
+    catalog:
+      functions_complete: true
+      script:
+        input: |
+          create table "hyper"."public"."events" (event text, waiting_jobs int, g int);
+          create aggregate "hyper"."pg_catalog"."string_agg"() returns any;
+          create aggregate "hyper"."pg_catalog"."count"() returns any;
+          create function "hyper"."tableau"."date_diff"() returns any;
+        errors: []
+    script:
+      input: |
+        create function my_fn() returns any;
+        select
+          string_agg(event, ','), greatest(g, 1), least(g, 2), int4(g), text(g), coalesce(g, 0), current_date,
+          date_diff('day', current_date, current_date), tableau.date_diff('day', current_date, current_date),
+          my_fn(), hyper.pg_catalog.whatever(g)
+        from events
+        group by grouping sets ((g), ());
+        select g, grouping(g) from events group by rollup (g);
+      catalog-id: 3
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.2:0", statement-id: 1, text: "events"}
+        - {type: name/catalog, catalog-id: "256.65536.2:0", statement-id: 2, text: "events"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.2:0.0", source: "events", statement-id: 1, text: "event"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.2:0.2", source: "events", statement-id: 1, text: "g"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.2:0.2", source: "events", statement-id: 1, text: "g"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.2:0.2", source: "events", statement-id: 1, text: "g"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.2:0.2", source: "events", statement-id: 1, text: "g"}
+        - {id: 5, type: colref/catalog, catalog: "256.65536.2:0.2", source: "events", statement-id: 1, text: "g"}
+        - {id: 6, type: colref/catalog, catalog: "256.65536.2:0.2", source: "events", statement-id: 1, text: "g"}
+        - {id: 7, type: colref/catalog, catalog: "256.65536.2:0.2", source: "events", statement-id: 1, text: "g"}
+        - {id: 8, type: colref/catalog, catalog: "256.65536.2:0.2", source: "events", statement-id: 2, text: "g"}
+        - {id: 9, type: colref/catalog, catalog: "256.65536.2:0.2", source: "events", statement-id: 2, text: "g"}
+        - {id: 10, type: colref/catalog, catalog: "256.65536.2:0.2", source: "events", statement-id: 2, text: "g"}
+        - {id: 11, type: function, name: string_agg, statement-id: 1, text: "string_agg..vent, ',')"}
+        - {id: 12, type: function, name: greatest, statement-id: 1, text: "greatest(g, 1)"}
+        - {id: 13, type: function, name: least, statement-id: 1, text: "least(g, 2)"}
+        - {id: 14, type: function, name: int4, statement-id: 1, text: "int4(g)"}
+        - {id: 15, type: function, name: text, statement-id: 1, text: "text(g)"}
+        - {id: 16, type: function, known-function: COALESCE, statement-id: 1, text: "coalesce(g, 0)"}
+        - {id: 17, type: function, known-function: CURRENT_DATE, is-const: true, statement-id: 1, text: "current_date"}
+        - {id: 18, type: function, known-function: CURRENT_DATE, is-const: true, statement-id: 1, text: "current_date"}
+        - {id: 19, type: function, known-function: CURRENT_DATE, is-const: true, statement-id: 1, text: "current_date"}
+        - {id: 20, type: function, name: date_diff, is-const: true, statement-id: 1, text: "date_diff(..rent_date)"}
+        - {id: 21, type: function, known-function: CURRENT_DATE, is-const: true, statement-id: 1, text: "current_date"}
+        - {id: 22, type: function, known-function: CURRENT_DATE, is-const: true, statement-id: 1, text: "current_date"}
+        - {id: 23, type: function, name: tableau.date_diff, is-const: true, statement-id: 1, text: "tableau.da..rent_date)"}
+        - {id: 24, type: function, name: my_fn, is-const: true, statement-id: 1, text: "my_fn()"}
+        - {id: 25, type: function, name: hyper.pg_catalog.whatever, statement-id: 1, text: "hyper.pg_c..hatever(g)"}
+        - {id: 26, type: function, name: grouping, statement-id: 2, text: "grouping(g)"}
+        - {id: 27, type: literal/string, is-const: true, statement-id: 1, text: "','"}
+        - {id: 28, type: literal/integer, is-const: true, statement-id: 1, text: "1"}
+        - {id: 29, type: literal/integer, is-const: true, statement-id: 1, text: "2"}
+        - {id: 30, type: literal/integer, is-const: true, statement-id: 1, text: "0"}
+        - {id: 31, type: literal/string, is-const: true, statement-id: 1, text: "'day'"}
+        - {id: 32, type: literal/string, is-const: true, statement-id: 1, text: "'day'"}
+      constants:
+        - {expression: 27, text: "','"}
+        - {expression: 28, text: "1"}
+        - {expression: 29, text: "2"}
+        - {expression: 30, text: "0"}
+        - {expression: 20, text: "date_diff(..rent_date)"}
+        - {expression: 23, text: "tableau.da..rent_date)"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: events, text: "events"}
+          columns:
+            - {name: '?', expression: 11}
+            - {name: '?', expression: 12}
+            - {name: '?', expression: 13}
+            - {name: '?', expression: 14}
+            - {name: '?', expression: 15}
+            - {name: '?', expression: 16}
+            - {name: '?', expression: 17}
+            - {name: '?', expression: 20}
+            - {name: '?', expression: 23}
+            - {name: '?', expression: 24}
+            - {name: '?', expression: 25}
+          text: "select\n  s.. ((g), ())"
+        - scope-id: 1
+          sources:
+            - {type: table, name: events, text: "events"}
+          columns:
+            - {name: g, expression: 8}
+            - {name: '?', expression: 26}
+          text: "select g, ..rollup (g)"
+
+  - name: unknown_function_other_schema
+    catalog:
+      functions_complete: true
+      script:
+        input: |
+          create table "hyper"."public"."events" (event text, waiting_jobs int, g int);
+          create function "hyper"."tableau"."date_diff"() returns any;
+        errors: []
+    script:
+      input: select pg_catalog.date_diff('day', current_date, current_date) from events
+      catalog-id: 3
+      errors:
+        - {type: UNKNOWN_FUNCTION, severity: WARNING, message: function pg_catalog.date_diff does not exist on the connection, text: "pg_catalog...date_diff"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.2:0", text: "events"}
+      expressions:
+        - {id: 0, type: function, known-function: CURRENT_DATE, is-const: true, text: "current_date"}
+        - {id: 1, type: function, known-function: CURRENT_DATE, is-const: true, text: "current_date"}
+        - {id: 2, type: function, name: pg_catalog.date_diff, is-const: true, text: "pg_catalog..rent_date)"}
+        - {id: 3, type: literal/string, is-const: true, text: "'day'"}
+      constants:
+        - {expression: 2, text: "pg_catalog..rent_date)"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: events, text: "events"}
+          columns:
+            - {name: '?', expression: 2}
+          text: "select pg_..rom events"
+
+  - name: nested_aggregate_complete_catalog
+    catalog:
+      functions_complete: true
+      script:
+        input: |
+          create table "hyper"."public"."events" (event text, waiting_jobs int, g int);
+          create aggregate "hyper"."pg_catalog"."string_agg"() returns any;
+          create aggregate "hyper"."pg_catalog"."array_agg"() returns any;
+          create function "hyper"."pg_catalog"."array_distinct"() returns any;
+        errors: []
+    script:
+      input: select string_agg(array_distinct(array_agg(e.event)), ',') from events e
+      catalog-id: 3
+      errors:
+        - {type: NESTED_AGGREGATE_CALL, message: 'aggregate function calls cannot be nested: array_agg is inside of string_agg', text: "array_agg(e.event)"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.2:0", text: "events e"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.2:0.0", source: "events e", text: "e.event"}
+        - {id: 1, type: function, name: array_agg, text: "array_agg(e.event)"}
+        - {id: 2, type: function, name: array_distinct, text: "array_dist..(e.event))"}
+        - {id: 3, type: function, name: string_agg, text: "string_agg..nt)), ',')"}
+        - {id: 4, type: literal/string, is-const: true, text: "','"}
+      constants:
+        - {expression: 4, text: "','"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: e, text: "events e"}
+          columns:
+            - {name: '?', expression: 3}
+          text: "select str..m events e"

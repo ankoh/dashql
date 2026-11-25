@@ -1,0 +1,66 @@
+analyzer-snapshots:
+  # The connection reports all functions of its engine: a call of another function is a warning, with the alternative
+  # when the catalog has its function
+  - name: unknown_function_with_hint
+    catalog:
+      functions_complete: true
+      script:
+        input: |
+          create table "hyper"."public"."events" (event text, waiting_jobs int, g int);
+          create aggregate "hyper"."pg_catalog"."count"() returns any;
+          create aggregate "hyper"."pg_catalog"."any_value"() returns any;
+          create function "hyper"."pg_catalog"."abs"() returns any;
+    script:
+      input: select count_if(waiting_jobs > 0), arbitrary(g), approx_distinct(event), pg_catalog.count_if(g > 1) from events
+  # Without the marker the functions of the catalog may be incomplete, e.g. of Trino or of a restored catalog
+  - name: unknown_function_incomplete_catalog
+    catalog:
+      script:
+        input: |
+          create table "hyper"."public"."events" (event text, waiting_jobs int, g int);
+          create aggregate "hyper"."pg_catalog"."count"() returns any;
+    script:
+      input: select count_if(waiting_jobs > 0) from events
+  # Functions of the catalog in any schema, functions that the script declares, SQL forms with the syntax of a call,
+  # casts in the form of a call, keywords and names with a database are no unknown functions
+  - name: known_functions_complete_catalog
+    catalog:
+      functions_complete: true
+      script:
+        input: |
+          create table "hyper"."public"."events" (event text, waiting_jobs int, g int);
+          create aggregate "hyper"."pg_catalog"."string_agg"() returns any;
+          create aggregate "hyper"."pg_catalog"."count"() returns any;
+          create function "hyper"."tableau"."date_diff"() returns any;
+    script:
+      input: |
+        create function my_fn() returns any;
+        select
+          string_agg(event, ','), greatest(g, 1), least(g, 2), int4(g), text(g), coalesce(g, 0), current_date,
+          date_diff('day', current_date, current_date), tableau.date_diff('day', current_date, current_date),
+          my_fn(), hyper.pg_catalog.whatever(g)
+        from events
+        group by grouping sets ((g), ());
+        select g, grouping(g) from events group by rollup (g);
+  # A function of another schema than the one of the catalog is unknown
+  - name: unknown_function_other_schema
+    catalog:
+      functions_complete: true
+      script:
+        input: |
+          create table "hyper"."public"."events" (event text, waiting_jobs int, g int);
+          create function "hyper"."tableau"."date_diff"() returns any;
+    script:
+      input: select pg_catalog.date_diff('day', current_date, current_date) from events
+  # The motivating script of Trino on the embedded Hyper: a nested aggregate is an error, the functions exist
+  - name: nested_aggregate_complete_catalog
+    catalog:
+      functions_complete: true
+      script:
+        input: |
+          create table "hyper"."public"."events" (event text, waiting_jobs int, g int);
+          create aggregate "hyper"."pg_catalog"."string_agg"() returns any;
+          create aggregate "hyper"."pg_catalog"."array_agg"() returns any;
+          create function "hyper"."pg_catalog"."array_distinct"() returns any;
+    script:
+      input: select string_agg(array_distinct(array_agg(e.event)), ',') from events e

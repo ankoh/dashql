@@ -5,7 +5,7 @@ use crate::ryml::Node;
 use dashql_buffers::algebra::LiteralType;
 use dashql_buffers::parser::{Node as AstNode, SymbolSpan};
 use dashql_core::analyzer::*;
-use dashql_core::catalog::{Catalog, CatalogLayer, ColumnLoc, QualifiedCatalogObjectId, TableDeclaration};
+use dashql_core::catalog::{Catalog, ColumnLoc, QualifiedCatalogObjectId, TableDeclaration};
 use dashql_core::touched_relations::touched_relations_of_statement;
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::span::TextSpan;
@@ -751,6 +751,7 @@ pub const COMPARED_KEYS: [&str; 13] = [
 pub fn analyze_case(
     client_functions: Option<&str>,
     catalog_input: Option<&str>,
+    functions_complete: bool,
     main_input: &str,
 ) -> Result<(Option<Yaml>, Yaml), String> {
     use dashql_core::catalog::Catalog;
@@ -771,7 +772,7 @@ pub fn analyze_case(
     if let Some(input) = catalog_input {
         let analyzed = analyze_text(&catalog, input)?;
         catalog_yaml = Some(encode_catalog_script(&analyzed).to_yaml());
-        catalog.load_script(Arc::new(analyzed), CatalogLayer::CONNECTION).map_err(|e| e.message)?;
+        crate::publish_catalog_script(&mut catalog, analyzed, functions_complete)?;
     }
     let analyzed = analyze_text(&catalog, main_input)?;
     Ok((catalog_yaml, encode_script(&analyzed, Some(&catalog)).to_yaml()))
