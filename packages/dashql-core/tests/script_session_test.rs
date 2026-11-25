@@ -880,6 +880,24 @@ fn sessions_rewrite_the_tags_of_their_script() {
 }
 
 #[test]
+fn added_params_take_the_offsets_of_the_editor() {
+    let catalog = new_catalog();
+    let mut session = session(&catalog, UTF16);
+    // The selection and the name range count UTF-16 code units, the emoji takes two
+    let text = "select '\u{1F600}' as e where amount > 10";
+    analyze(&mut session, text);
+    let at = text.encode_utf16().count() as u64 - 1;
+    let added = session.add_param(at, at, &[], false).unwrap();
+    assert_eq!(added.text, "/** @param :amount = 10 */\nselect '\u{1F600}' as e where amount > :amount");
+    let units: Vec<u16> = added.text.encode_utf16().collect();
+    assert_eq!(String::from_utf16(&units[added.name_range.clone()]).unwrap(), "amount");
+    assert_eq!(added.name_range.end, units.len());
+    // The session keeps its text
+    assert_eq!(session.text(), text);
+    assert!(session.add_param(at + 10, at + 10, &[], false).is_err());
+}
+
+#[test]
 fn sessions_take_allocated_entry_ids() {
     let catalog = new_catalog();
     let id = catalog.borrow().allocate_entry_id();

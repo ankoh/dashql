@@ -30,6 +30,9 @@ interface Props {
     /// Add a script above or below the script, the menu offers the add actions
     onAddAbove?: () => void;
     onAddBelow?: () => void;
+    /// Add a parameter to the script at the selection of its editor, the menu offers the action
+    onAddParameter?: () => void;
+    addParameterDisabled?: boolean;
     /// The storage of the script, the menu offers its storage view
     storage?: ScriptStorage;
     /// The size of the icon of the trigger, 16 by default
@@ -96,6 +99,17 @@ export const ScriptActionMenu: React.FC<Props> = (props) => {
                         <ActionList.ListItem data-testid="script-menu-item" data-action="add-below" onClick={() => run(props.onAddBelow!)}>
                             <ActionList.Leading><AddIcon size={16} /></ActionList.Leading>
                             <ActionList.ItemText>Add Below</ActionList.ItemText>
+                        </ActionList.ListItem>
+                    )}</>
+                    <>{props.onAddParameter != null && (
+                        <ActionList.ListItem
+                            data-testid="script-menu-item"
+                            data-action="add-parameter"
+                            disabled={props.addParameterDisabled}
+                            onClick={() => run(props.onAddParameter!)}
+                        >
+                            <ActionList.Leading><AddIcon size={16} /></ActionList.Leading>
+                            <ActionList.ItemText>Add Parameter</ActionList.ItemText>
                         </ActionList.ListItem>
                     )}</>
                     <ActionList.ListItem
