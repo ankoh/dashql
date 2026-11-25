@@ -19,7 +19,7 @@ function execution(phase: WorkbookRunState['phase'], extra: Partial<WorkbookRunS
     return {
         phase, busy: phase === 'planning' || phase === 'running' || phase === 'stopping', totalScripts: 3, completedScripts: 1, totalStatements: 3, completedStatements: 1,
         activeFileName: '2_revenue.sql', activeStatementIndex: 0, activeStatementCount: 1,
-        error: null, skippedScripts: 0, skippedFiles: [], failedScripts: [], readingFileName: null, ...extra,
+        error: null, skippedScripts: 0, skippedFiles: [], failedScripts: [], step: null, ...extra,
     };
 }
 
@@ -51,6 +51,15 @@ describe('Workbook status', () => {
         expect(texts(liveWorkbookStatuses({ queries, execution: execution('running'), connections: [], publish: null, now: NOW }))).toEqual([
             ['progress', 'Running all scripts', '1/3 · 2_revenue'],
         ]);
+        // The steps before the statements run, with the names of the connections
+        const step = (phase: WorkbookRunState['phase'], runStep: WorkbookRunState['step']) =>
+            texts(liveWorkbookStatuses({ queries: [], execution: execution(phase, { step: runStep }), connections: [connection(ConnectionHealth.ONLINE)], publish: null, now: NOW }))[0];
+        expect(step('planning', null)).toEqual(['progress', 'Planning the run of all scripts', null]);
+        expect(step('planning', { type: 'analyzing' })).toEqual(['progress', 'Analyzing the scripts', null]);
+        expect(step('planning', { type: 'checking', fileName: '2_revenue.sql' })).toEqual(['progress', 'Looking up the stored result of 2_revenue', null]);
+        expect(step('planning', { type: 'reading', fileName: '2_revenue.sql' })).toEqual(['progress', 'Reading the stored result of 2_revenue', null]);
+        expect(step('planning', { type: 'connecting', connectionIds: ['c1', 'c9'] })).toEqual(['progress', 'Connecting to Trino, c9', null]);
+        expect(step('running', { type: 'mountingAttachments' })).toEqual(['progress', 'Mounting the attachments of the workbook', '1/3 · 2_revenue']);
         expect(texts(liveWorkbookStatuses({
             queries: [], execution: execution('succeeded'), publish: { phase: 'publishing', error: null }, now: NOW,
             connections: [connection(ConnectionHealth.CONNECTING), { ...connection(ConnectionHealth.FAILED), connectionId: 'c2' }, { ...connection(ConnectionHealth.ONLINE, true), connectionId: 'c3' }],

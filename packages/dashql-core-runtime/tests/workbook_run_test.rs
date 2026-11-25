@@ -19,8 +19,8 @@ use dashql_core_runtime::workbook::{
 };
 use dashql_core_runtime::workbook_run::result_key::{stored_result_keys, UNMATCHED_RESULT_KEY};
 use dashql_core_runtime::workbook_run::{
-    start_run, PlanRun, RetainedFile, RunFailureKind, RunHost, RunOptions, RunPhase, RunResult, RunState, ScriptEvent,
-    ScriptFailure, StatementFailure, StatementHandle, StatementRequest, StatementResult,
+    start_run, PlanRun, RetainedFile, RunFailureKind, RunHost, RunOptions, RunPhase, RunResult, RunState, RunStep,
+    ScriptEvent, ScriptFailure, StatementFailure, StatementHandle, StatementRequest, StatementResult,
 };
 
 // The executor
@@ -690,9 +690,27 @@ fn serves_the_cached_results_of_scripts_and_runs_the_others() {
     assert!(texts[1].contains("with foo as") && texts[1].ends_with("from foo"), "{}", texts[1]);
     // The stored result of foo has its key, it is reused and bar runs
     s.state.borrow_mut().statements.clear();
+    s.state.borrow_mut().states.clear();
     s.state.borrow_mut().stored.insert("foo.sql".into(), keys[0].clone());
     let second = s.run(&workbook, workbook_run());
     assert!(second.failure.is_none(), "{:?}", second.failure);
+    // The state names the steps before the statements run: the analysis, the plan, the lookups and the reads of the
+    // stored results, the plan that scans them
+    let mut steps: Vec<Option<RunStep>> = s.state.borrow().states.iter().map(|state| state.step.clone()).collect();
+    steps.dedup();
+    let file = |name: &str| name.to_string();
+    assert_eq!(
+        steps,
+        vec![
+            Some(RunStep::Analyzing),
+            Some(RunStep::Planning),
+            Some(RunStep::Checking { file: file("foo.sql") }),
+            Some(RunStep::Reading { file: file("foo.sql") }),
+            Some(RunStep::Checking { file: file("bar.sql") }),
+            Some(RunStep::Planning),
+            None,
+        ]
+    );
     let statements = &s.state.borrow().statements;
     assert!(
         matches!(statements[0].request.result, StatementResult::Read { .. }) && statements[0].request.planned.cached

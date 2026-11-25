@@ -211,8 +211,27 @@ pub struct RunState {
     pub skipped_files: Vec<String>,
     /// The scripts that failed, in the order they failed. The scripts that follow them don't run, the others run on.
     pub failed: Vec<ScriptFailure>,
-    /// The script whose stored result the run reads, e.g. while it plans
-    pub reading_file: Option<String>,
+    /// What the run does before its statements run, a step can take a while; none while statements run
+    pub step: Option<RunStep>,
+}
+
+/// A step of a run before its statements run, the status names it
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum RunStep {
+    /// It analyzes the scripts whose analyses are outdated
+    Analyzing,
+    /// It plans the scripts
+    Planning,
+    /// It looks up the stored result of a script, by its file
+    Checking { file: String },
+    /// It reads the stored result of a script, by its file
+    Reading { file: String },
+    /// It sets up the connections that its statements run on, by their ids
+    Connecting { connections: Vec<String> },
+    /// It mounts the attachments of the workbook in the compute database
+    MountingAttachments,
+    /// It mounts the stored results that its statements scan in the compute database
+    MountingResults,
 }
 
 /// A script that failed in a run
@@ -237,7 +256,7 @@ impl Default for RunState {
             skipped_scripts: 0,
             skipped_files: Vec::new(),
             failed: Vec::new(),
-            reading_file: None,
+            step: None,
         }
     }
 }

@@ -14,7 +14,7 @@ function runState(phase: WorkbookRunState['phase'], extra: Partial<WorkbookRunSt
     return {
         phase, busy: phase === 'planning' || phase === 'running' || phase === 'stopping', totalScripts: 5, completedScripts: 2,
         totalStatements: 9, completedStatements: 4, activeFileName: null, activeStatementIndex: null, activeStatementCount: null,
-        error: null, skippedScripts: 0, skippedFiles: [], failedScripts: [], readingFileName: null, ...extra,
+        error: null, skippedScripts: 0, skippedFiles: [], failedScripts: [], step: null, ...extra,
     };
 }
 
@@ -71,11 +71,22 @@ describe('WorkbookExecutionControls', () => {
         expect(details()).toBeNull();
     });
 
-    it('names the stored result that it reads while it plans', () => {
-        render(fakeExecution(runState('planning', { readingFileName: 'shadow_samples.sql' })));
+    it('names the step that the run takes before its statements run', () => {
+        render(fakeExecution(runState('planning', { step: { type: 'analyzing' } })));
+        expect(status().textContent).toBe('Analyzing...');
+        render(fakeExecution(runState('planning', { step: { type: 'checking', fileName: 'shadow_samples.sql' } })));
+        expect(status().textContent).toBe('Checking shadow_samples...');
+        render(fakeExecution(runState('planning', { step: { type: 'reading', fileName: 'shadow_samples.sql' } })));
         expect(status().textContent).toBe('Reading shadow_samples...');
+        render(fakeExecution(runState('planning', { step: { type: 'connecting', connectionIds: ['trino'] } })));
+        expect(status().textContent).toBe('Connecting...');
+        render(fakeExecution(runState('running', { step: { type: 'mountingResults' } })));
+        expect(status().textContent).toBe('Mounting results...');
         render(fakeExecution(runState('planning')));
         expect(status().textContent).toBe('Planning...');
+        // A run that stops says so whatever its step
+        render(fakeExecution(runState('stopping', { step: { type: 'reading', fileName: 'shadow_samples.sql' } })));
+        expect(status().textContent).toBe('Stopping · 2/5 completed');
     });
 
     it('starts the workbook once it can run', () => {

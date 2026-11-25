@@ -5,7 +5,7 @@
 use std::collections::BTreeMap;
 
 use dashql_core_runtime::workbook_run::{
-    report, RunFailure, RunFailureKind, RunPhase, RunResult, RunState, ScriptEvent,
+    report, RunFailure, RunFailureKind, RunPhase, RunResult, RunState, RunStep, ScriptEvent,
 };
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
@@ -103,8 +103,42 @@ pub struct WorkbookRunState {
     pub skipped_files: Vec<String>,
     /// The scripts that failed, in the order they failed. The scripts that follow them didn't run, the others ran on.
     pub failed_scripts: Vec<WorkbookRunScriptFailure>,
-    /// The script whose stored result the run reads, e.g. while it plans
-    pub reading_file_name: Option<String>,
+    /// What the run does before its statements run, a step can take a while; null while statements run
+    pub step: Option<WorkbookRunStep>,
+}
+
+/// A step of a run before its statements run, the status names it
+#[derive(Clone, Debug, PartialEq, Serialize, Tsify)]
+#[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
+pub enum WorkbookRunStep {
+    /// It analyzes the scripts whose analyses are outdated
+    Analyzing,
+    /// It plans the scripts
+    Planning,
+    /// It looks up the stored result of a script
+    Checking { file_name: String },
+    /// It reads the stored result of a script
+    Reading { file_name: String },
+    /// It sets up the connections that its statements run on, by their ids
+    Connecting { connection_ids: Vec<String> },
+    /// It mounts the attachments of the workbook in the compute database
+    MountingAttachments,
+    /// It mounts the stored results that its statements scan in the compute database
+    MountingResults,
+}
+
+impl From<&RunStep> for WorkbookRunStep {
+    fn from(step: &RunStep) -> Self {
+        match step {
+            RunStep::Analyzing => WorkbookRunStep::Analyzing,
+            RunStep::Planning => WorkbookRunStep::Planning,
+            RunStep::Checking { file } => WorkbookRunStep::Checking { file_name: file.clone() },
+            RunStep::Reading { file } => WorkbookRunStep::Reading { file_name: file.clone() },
+            RunStep::Connecting { connections } => WorkbookRunStep::Connecting { connection_ids: connections.clone() },
+            RunStep::MountingAttachments => WorkbookRunStep::MountingAttachments,
+            RunStep::MountingResults => WorkbookRunStep::MountingResults,
+        }
+    }
 }
 
 /// A script that failed in a run
@@ -138,7 +172,7 @@ impl From<&RunState> for WorkbookRunState {
                     message: failure.message.clone(),
                 })
                 .collect(),
-            reading_file_name: state.reading_file.clone(),
+            step: state.step.as_ref().map(WorkbookRunStep::from),
         }
     }
 }

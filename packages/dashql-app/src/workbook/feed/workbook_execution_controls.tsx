@@ -9,6 +9,7 @@ import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
+import { runStepLabel } from './workbook_run_step.js';
 
 const CloseIcon = SymbolIcon('x_16');
 
@@ -69,9 +70,10 @@ export function WorkbookExecutionControls({ workbookId, execution, startable, sh
     const failedScripts = run?.failedScripts ?? [];
     const failed = failedScripts.length === 1 ? ` · ${scriptDisplayName(failedScripts[0].fileName)} failed`
         : failedScripts.length > 1 ? ` · ${failedScripts.length} failed` : '';
-    // A run reads the stored results of the scripts that don't run before the others start, a large one takes a while
-    const planning = run?.readingFileName != null ? `Reading ${scriptDisplayName(run.readingFileName)}...` : 'Planning...';
-    const statusText = !run ? '' : run.phase === 'planning' ? planning
+    // The steps before the statements run take a while, e.g. a run reads the stored results of the scripts that don't
+    // run, a large one takes a while
+    const step = run?.step != null && (run.phase === 'planning' || run.phase === 'running') ? runStepLabel(run.step) : null;
+    const statusText = !run ? '' : step != null ? step : run.phase === 'planning' ? 'Planning...'
         : run.phase === 'stopping' ? `Stopping · ${progress} completed`
             : run.phase === 'failed' ? `${progress} completed${failed}${skipped}`
                 : run.phase === 'cancelled' ? `Stopped · ${progress} completed`

@@ -19,8 +19,8 @@ use super::plan::{
 };
 use super::result_key::{result_keys, run_key, ResultKey};
 use super::{
-    RunFailure, RunFailureKind, RunHost, RunOptions, RunPhase, RunResult, RunState, ScriptEvent, ScriptFailure,
-    StatementRequest, StatementResult,
+    RetainedFile, RunFailure, RunFailureKind, RunHost, RunOptions, RunPhase, RunResult, RunState, RunStep, ScriptEvent,
+    ScriptFailure, StatementRequest, StatementResult,
 };
 use crate::executor::{QueryId, StoredFile};
 use crate::host::signal::{oneshot, Sender};
@@ -582,7 +582,7 @@ impl<H: RunHost> Run<H> {
                 if run.options.refresh || !run.stands_in(script) {
                     return Some(key);
                 }
-                let Some(retained) = run.host.result_retain(&run.file(script)).await.ok().flatten() else {
+                let Some(retained) = run.retain_stored(script).await else {
                     return Some(key);
                 };
                 run.kept.borrow_mut().push(retained.id);
@@ -684,7 +684,7 @@ impl<H: RunHost> Run<H> {
     ) -> Result<Option<String>, RunFailure> {
         let host = self.host.clone();
         let file = self.file(script);
-        let retained = host.result_retain(&file).await.ok().flatten();
+        let retained = self.retain_stored(script).await;
         // A file of another key is no result of the script as it is now, the script runs
         let retained = match retained {
             Some(retained) if retained.file.key != key.key => {
@@ -728,9 +728,16 @@ impl<H: RunHost> Run<H> {
         if !self.host.has_results() {
             return None;
         }
-        let retained = self.host.result_retain(&self.file(script)).await.ok().flatten()?;
+        let retained = self.retain_stored(script).await?;
         self.kept.borrow_mut().push(retained.id);
         Some(retained.file.name)
+    }
+
+    /// Retain the stored result of a script, the status names the script while the run looks it up
+    async fn retain_stored(&self, script: u32) -> Option<RetainedFile> {
+        let file = self.file(script);
+        self.emit(|state| state.step = Some(RunStep::Checking { file: file.clone() }));
+        self.host.result_retain(&file).await.ok().flatten()
     }
 
     /// Run the workbook and report how it ended
@@ -759,6 +766,7 @@ impl<H: RunHost> Run<H> {
                 }
                 self.emit(|state| {
                     state.phase = RunPhase::Succeeded;
+                    state.step = None;
                     state.active_file_name = None;
                     state.active_statement_index = None;
                     state.active_statement_count = None;
@@ -771,6 +779,7 @@ impl<H: RunHost> Run<H> {
                 let cancelled = self.control.cancelled.get() || failure.kind == RunFailureKind::Cancelled;
                 self.emit(|state| {
                     state.phase = if cancelled { RunPhase::Cancelled } else { RunPhase::Failed };
+                    state.step = None;
                     state.error = (!cancelled).then(|| failure.message.clone());
                 });
                 let failure =
@@ -845,7 +854,10 @@ impl<H: RunHost> Run<H> {
     async fn plan_and_run(self: &Rc<Self>) -> Result<Vec<Option<QueryId>>, RunFailure> {
         let host = self.host.clone();
         let count = self.files.len();
-        self.emit(|state| state.total_scripts = count);
+        self.emit(|state| {
+            state.total_scripts = count;
+            state.step = Some(RunStep::Analyzing);
+        });
         // Let the host paint the running state before the analysis and the planning
         self.cooperate().await?;
         let mut offline: Vec<&str> = Vec::new();
@@ -881,6 +893,7 @@ impl<H: RunHost> Run<H> {
         if !self.tolerant() {
             prepared.map_err(RunFailure::error)?;
         }
+        self.emit(|state| state.step = Some(RunStep::Planning));
         self.cooperate().await?;
 
         // A change of inputs runs the scripts that it affects, with what they read
@@ -986,6 +999,8 @@ impl<H: RunHost> Run<H> {
                 }
             }
             let provided: Vec<u32> = cached_files.keys().copied().collect();
+            self.emit(|state| state.step = Some(RunStep::Planning));
+            self.cooperate().await?;
             let replanned = self.plan(targets.as_deref(), &provided, &files, &mount_prefix)?;
             // The keys, the reused results and the names of the files come from the first plan. A script that changed
             // during the lookups of the results would run its new text under the key of its old one.
@@ -1050,6 +1065,10 @@ impl<H: RunHost> Run<H> {
                 if !skip.contains(&(index as u32)) && !needed.contains(connection) {
                     needed.push(connection.clone());
                 }
+            }
+            if !needed.is_empty() {
+                let connecting = needed.clone();
+                self.emit(|state| state.step = Some(RunStep::Connecting { connections: connecting }));
             }
             type Setup = Pin<Box<dyn Future<Output = Result<(), crate::host::HostError>>>>;
             let setups: Vec<Setup> =
@@ -1172,7 +1191,7 @@ impl<H: RunHost> Run<H> {
         let statements = planned_statements(graph, &self.files, &self.options.run);
         for (script, node) in reads {
             // The file stays pinned until the run released its files
-            let retained = self.host.result_retain(&self.file(script)).await.ok().flatten();
+            let retained = self.retain_stored(script).await;
             if let Some(retained) = &retained {
                 self.kept.borrow_mut().push(retained.id);
             }
@@ -1232,10 +1251,9 @@ impl<H: RunHost> Run<H> {
         self.log(LogLevel::Info, "Reusing the stored result of a script", details);
         self.control.active.borrow_mut().insert(query_id, ActiveQuery { connection_id, cancelling: false });
         // The status names the script while its file is read, a large result takes a while
-        let reading = self.file(script);
-        self.emit(|state| state.reading_file = Some(reading));
+        let file_name = self.file(script);
+        self.emit(|state| state.step = Some(RunStep::Reading { file: file_name }));
         let served = handle.done.await;
-        self.emit(|state| state.reading_file = None);
         self.control.active.borrow_mut().remove(&query_id);
         let has_result = match served {
             Ok(has_result) => has_result,
@@ -1337,6 +1355,7 @@ impl<H: RunHost> Run<H> {
         self.emit(|state| {
             state.phase = RunPhase::Running;
             state.total_statements = total;
+            state.step = None;
         });
         // Validate after the notifications, but before the first statement. Later edits belong to the next run.
         self.validate(graph, true)?;
@@ -1355,14 +1374,25 @@ impl<H: RunHost> Run<H> {
             if !self.host.mounts_attachments() {
                 return Err(RunFailure::error("Scripts that read attachments need the compute database"));
             }
+            self.emit(|state| state.step = Some(RunStep::MountingAttachments));
             self.host.mount_attachments().await.map_err(|error| RunFailure::from_host(&error))?;
         }
         self.log_plan(&context);
         // The results that the host provides, e.g. cached results, are read in place
-        for materialization in materializations {
-            if materialization.node == NONE {
-                self.pin(materialization.path.as_deref().unwrap_or_default()).await?;
-            }
+        let provided: Vec<&str> = materializations
+            .iter()
+            .filter(|materialization| materialization.node == NONE)
+            .map(|materialization| materialization.path.as_deref().unwrap_or_default())
+            .collect();
+        let mounts_results = !provided.is_empty();
+        if mounts_results {
+            self.emit(|state| state.step = Some(RunStep::MountingResults));
+        }
+        for path in provided {
+            self.pin(path).await?;
+        }
+        if attachments || mounts_results {
+            self.emit(|state| state.step = None);
         }
 
         let mut predecessors = vec![0usize; all.len()];

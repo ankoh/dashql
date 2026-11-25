@@ -41,6 +41,7 @@ export type {
     WorkbookRunKind,
     WorkbookRunPhase,
     WorkbookRunState,
+    WorkbookRunStep,
     WorkbookRunView,
     WorkbookScriptRunEvent,
 } from '@akohn/dashql-wasm/dashql_core.js';

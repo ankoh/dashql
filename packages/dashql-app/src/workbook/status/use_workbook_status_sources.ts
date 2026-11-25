@@ -8,6 +8,7 @@ import type { ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/work
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import { formatMilliseconds } from '@akohn/dashql-react/format/format';
 import { getQueryStatusText } from '../entry_status_model.js';
+import { runStepText } from '../feed/workbook_run_step.js';
 import type { CloudPublishStatus } from '../../cloud/cloud_publish_status.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from './workbook_status.js';
 import { useLiveWorkbookStatuses, useWorkbookOutcomeTransitions } from './workbook_status_store.js';
@@ -107,15 +108,16 @@ export function liveWorkbookStatuses(args: {
     const live: WorkbookStatus[] = [];
     const execution = args.execution;
     const executing = execution?.busy === true;
+    const connectionName = (connectionId: string) => args.connections.find(c => c.connectionId === connectionId)?.name ?? connectionId;
     if (executing) {
         const active = execution.activeFileName != null ? ` · ${scriptDisplayName(execution.activeFileName)}` : '';
         live.push({
             key: 'execute_all',
             source: WorkbookStatusSource.ExecuteAll,
             tone: WorkbookStatusTone.Progress,
-            text: execution.phase === 'planning'
-                ? (execution.readingFileName != null ? `Reading the stored result of ${scriptDisplayName(execution.readingFileName)}` : 'Planning the run of all scripts')
-                : execution.phase === 'stopping' ? 'Stopping the run of all scripts' : 'Running all scripts',
+            text: execution.phase === 'stopping' ? 'Stopping the run of all scripts'
+                : execution.step != null ? runStepText(execution.step, connectionName)
+                    : execution.phase === 'planning' ? 'Planning the run of all scripts' : 'Running all scripts',
             detail: execution.phase === 'running' ? `${execution.completedScripts}/${execution.totalScripts}${active}` : null,
             at: now,
         });
