@@ -801,23 +801,23 @@ fn a_selection_filters_the_rows_and_orders_them_again() {
     });
 
     // A frequent value of the name selects, selecting it again clears it
-    setup.service.most_frequent_value_filter(1, 2, Some(1), false).unwrap();
+    setup.service.most_frequent_value_filter(1, 2, Some(1)).unwrap();
     assert_eq!(setup.service.read(|state| state.computation(1).unwrap().cross_filters.column_filters.len()), 1);
-    setup.service.most_frequent_value_filter(1, 2, Some(1), false).unwrap();
+    setup.service.most_frequent_value_filter(1, 2, Some(1)).unwrap();
     assert!(setup.service.read(|state| state.computation(1).unwrap().cross_filters.column_filters.is_empty()));
 
-    // A toggle adds a value to the selection and removes it again, null clears the selection
+    // A click adds a value to the selection and removes it again, null clears the selection
     let selected = |setup: &Setup| {
         setup.service.read(|state| state.computation(1).unwrap().cross_filters.most_frequent_values(2).to_vec())
     };
-    assert!(setup.service.most_frequent_value_filter(1, 2, Some(2), true).unwrap().changed);
-    assert!(setup.service.most_frequent_value_filter(1, 2, Some(1), true).unwrap().changed);
+    assert!(setup.service.most_frequent_value_filter(1, 2, Some(2)).unwrap().changed);
+    assert!(setup.service.most_frequent_value_filter(1, 2, Some(1)).unwrap().changed);
     assert_eq!(selected(&setup), vec![1, 2]);
-    assert!(setup.service.most_frequent_value_filter(1, 2, Some(2), true).unwrap().changed);
+    assert!(setup.service.most_frequent_value_filter(1, 2, Some(2)).unwrap().changed);
     assert_eq!(selected(&setup), vec![1]);
-    assert!(setup.service.most_frequent_value_filter(1, 2, Some(3), true).unwrap().changed);
-    assert!(setup.service.most_frequent_value_filter(1, 2, None, false).unwrap().changed);
-    assert!(!setup.service.most_frequent_value_filter(1, 2, None, true).unwrap().changed);
+    assert!(setup.service.most_frequent_value_filter(1, 2, Some(3)).unwrap().changed);
+    assert!(setup.service.most_frequent_value_filter(1, 2, None).unwrap().changed);
+    assert!(!setup.service.most_frequent_value_filter(1, 2, None).unwrap().changed);
     assert!(selected(&setup).is_empty());
 
     // An empty ordering clears it
@@ -899,7 +899,7 @@ fn requests_of_an_unknown_computation_change_nothing() {
     let setup = setup(analysis_answer);
     assert!(!setup.service.order_by(7, score_ascending()).unwrap().changed);
     assert!(!setup.service.histogram_filter(7, 1, Some((0.0, 1.0))).unwrap().changed);
-    assert!(!setup.service.most_frequent_value_filter(7, 2, Some(1), false).unwrap().changed);
+    assert!(!setup.service.most_frequent_value_filter(7, 2, Some(1)).unwrap().changed);
     assert!(!setup.service.set_search_pattern(7, SearchKind::Data, "a".into()).unwrap().changed);
     setup.service.request_filtered_column_aggregation(7, 1).unwrap();
     assert!(!setup.service.delete_computation(7).unwrap().changed);

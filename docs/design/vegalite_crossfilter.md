@@ -31,9 +31,8 @@ derives the filters of the rows from them; the view lists them as `ComputationVi
 - **Histogram**, an ordinal column: a brush over a range of bins (`histogramFilter`). It filters the bin field of the
   column with `>=` and `<=`.
 - **Frequent values**, a string column with value ids: the bars of its most frequent values (`mostFrequentValueFilter`).
-  A click selects the value of a bar and replaces the selection, a click on the value that is selected alone clears it.
-  A click with Shift, Ctrl or Cmd (`toggle: true`) adds the value to the selection or removes it, the last value removed
-  clears it. A click next to the bars clears the selection. The view lists the ids of the selected values ascending,
+  A click on a bar adds its value to the selection or removes it, the last value removed clears it. A click next to the
+  bars clears the selection. The view lists the ids of the selected values ascending,
   `{kind: 'mostFrequent', column, valueIds}`.
 
 The frequent values filter on the value ids of the column, the system column that numbers its distinct values from 1
@@ -45,10 +44,9 @@ SELECT * FROM __df_10 WHERE "_2_id" = 3
 ```
 
 The filter compares integers only. The values of the column are never written into the SQL, so strings, dates or
-other types need no literals, and null is selected by its id rather than with `IS NULL`. The rule of the selection,
-replace or toggle, is in the core (`CrossFilters::select_most_frequent_value`); the cell only reports which bar was
-clicked and whether a modifier was held. The cell reports the clicks of an animation frame together: a plain click
-replaces the clicks before it in the frame, the toggles after it all count in their order.
+other types need no literals, and null is selected by its id rather than with `IS NULL`. The rule of the selection is in
+the core (`CrossFilters::select_most_frequent_value`); the cell only reports which bar was clicked. The cell reports the
+clicks of an animation frame together in their order, a click next to the bars replaces the clicks before it.
 
 ## Data flow
 

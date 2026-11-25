@@ -1291,13 +1291,13 @@ fn cross_filters_add_histogram_filters() {
 fn cross_filters_most_frequent_values() {
     let mut filters = CrossFilters::new();
     assert_eq!(filters.most_frequent_values(1), &[] as &[i64]);
-    let select = |filters: &mut CrossFilters, value_id: Option<i64>, toggle: bool| {
-        filters.select_most_frequent_value(1, &category(), value_id, toggle);
+    let select = |filters: &mut CrossFilters, value_id: Option<i64>| {
+        filters.select_most_frequent_value(1, &category(), value_id);
         filters.most_frequent_values(1).to_vec()
     };
 
     // A click selects a value, one value filters with =
-    assert_eq!(select(&mut filters, Some(3), false), vec![3]);
+    assert_eq!(select(&mut filters, Some(3)), vec![3]);
     assert_eq!(
         filters.column_filters.get(&1),
         Some(&CrossFilterPredicate::MostFrequent {
@@ -1305,42 +1305,39 @@ fn cross_filters_most_frequent_values() {
             filters: vec![RowFilter::In { field_name: "_category_id".into(), values: vec![3] }],
         })
     );
-    // A click on another value replaces it, on the value selected alone clears it
-    assert_eq!(select(&mut filters, Some(2), false), vec![2]);
-    assert_eq!(select(&mut filters, Some(2), false), Vec::<i64>::new());
+    // A click on the value selected alone clears the selection
+    assert_eq!(select(&mut filters, Some(3)), Vec::<i64>::new());
     assert!(filters.column_filters.is_empty());
 
-    // A toggle adds values and keeps them ascending, several values filter with IN
-    assert_eq!(select(&mut filters, Some(5), true), vec![5]);
-    assert_eq!(select(&mut filters, Some(1), true), vec![1, 5]);
-    assert_eq!(select(&mut filters, Some(3), true), vec![1, 3, 5]);
+    // Clicks add values and keep them ascending, several values filter with IN
+    assert_eq!(select(&mut filters, Some(5)), vec![5]);
+    assert_eq!(select(&mut filters, Some(1)), vec![1, 5]);
+    assert_eq!(select(&mut filters, Some(3)), vec![1, 3, 5]);
     assert_eq!(
         filters.filter_transforms(),
         vec![RowFilter::In { field_name: "_category_id".into(), values: vec![1, 3, 5] }]
     );
-    // A toggle of a selected value removes it, of the last one clears the selection
-    assert_eq!(select(&mut filters, Some(3), true), vec![1, 5]);
-    assert_eq!(select(&mut filters, Some(1), true), vec![5]);
-    assert_eq!(select(&mut filters, Some(5), true), Vec::<i64>::new());
+    // A click on a selected value removes it, on the last one clears the selection
+    assert_eq!(select(&mut filters, Some(3)), vec![1, 5]);
+    assert_eq!(select(&mut filters, Some(1)), vec![5]);
+    assert_eq!(select(&mut filters, Some(5)), Vec::<i64>::new());
     assert!(filters.column_filters.is_empty());
 
-    // A click without toggle on one of several values selects it alone, none clears the selection
-    assert_eq!(select(&mut filters, Some(4), true), vec![4]);
-    assert_eq!(select(&mut filters, Some(6), true), vec![4, 6]);
-    assert_eq!(select(&mut filters, Some(6), false), vec![6]);
-    assert_eq!(select(&mut filters, Some(7), true), vec![6, 7]);
-    assert_eq!(select(&mut filters, None, true), Vec::<i64>::new());
+    // None clears the selection
+    assert_eq!(select(&mut filters, Some(4)), vec![4]);
+    assert_eq!(select(&mut filters, Some(6)), vec![4, 6]);
+    assert_eq!(select(&mut filters, None), Vec::<i64>::new());
     assert!(filters.column_filters.is_empty());
 
     // The selection of a column leaves the other columns
     filters.set_most_frequent_values(2, &category(), &[9]);
-    assert_eq!(select(&mut filters, Some(1), true), vec![1]);
+    assert_eq!(select(&mut filters, Some(1)), vec![1]);
     assert_eq!(filters.most_frequent_values(2), &[9]);
 
     // A column without value ids can't select a value
     let mut filters = CrossFilters::new();
     let without_ids = StringColumnGroup { value_id_field_name: None, ..category() };
-    filters.select_most_frequent_value(1, &without_ids, Some(2), false);
+    filters.select_most_frequent_value(1, &without_ids, Some(2));
     filters.set_most_frequent_values(1, &without_ids, &[2, 3]);
     assert!(filters.column_filters.is_empty());
 }

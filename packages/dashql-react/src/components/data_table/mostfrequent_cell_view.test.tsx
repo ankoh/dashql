@@ -134,8 +134,8 @@ describe('MostFrequentCell', () => {
             await flushContinuousUpdates();
         });
     }
-    function click(target: Element, at: { clientX: number; clientY: number } = center(target), modifiers: MouseEventInit = {}) {
-        act(() => { target.dispatchEvent(new MouseEvent('click', { bubbles: true, ...at, ...modifiers })); });
+    function click(target: Element, at: { clientX: number; clientY: number } = center(target)) {
+        act(() => { target.dispatchEvent(new MouseEvent('click', { bubbles: true, ...at })); });
     }
     const hoverBar = (bar: number) => pointer('pointermove', center(totalBars()[bar]));
 
@@ -242,37 +242,35 @@ describe('MostFrequentCell', () => {
         expect(axisLabels()).toEqual([truncateFocusedValue(long)]);
     });
 
-    it('filters by the clicked value once per frame', async () => {
+    it('toggles the clicked value once per frame', async () => {
         const column = await aggregate(ROWS, VALUES());
         const { onFilter } = await render({ column });
 
         click(pointerTarget(), center(totalBars()[1]));
-        click(pointerTarget(), center(totalBars()[3]));
         expect(onFilter).not.toHaveBeenCalled();
         await act(async () => { await nextFrame(); });
 
-        // The last click of the frame wins and names the value by its id
+        // The click names the value by its id
         expect(onFilter).toHaveBeenCalledOnce();
-        expect(onFilter).toHaveBeenCalledWith(ROWS, 3, column, 3, false);
+        expect(onFilter).toHaveBeenCalledWith(ROWS, 3, column, 2);
 
         // The null value has an id too
         click(pointerTarget(), center(totalBars()[2]));
         await act(async () => { await nextFrame(); });
-        expect(onFilter).toHaveBeenLastCalledWith(ROWS, 3, column, 4, false);
+        expect(onFilter).toHaveBeenLastCalledWith(ROWS, 3, column, 4);
     });
 
-    it('toggles the clicked value with Shift, Ctrl or Cmd, every toggle of a frame counts', async () => {
+    it('reports every click of a frame in its order, a clear replaces the clicks before it', async () => {
         const column = await aggregate(ROWS, VALUES());
         const { onFilter } = await render({ column });
 
-        // A click replaces the toggles before it in the frame, the toggles after it count in their order
-        click(pointerTarget(), center(totalBars()[0]), { shiftKey: true });
+        click(pointerTarget(), center(totalBars()[0]));
+        click(cell().firstElementChild!.firstElementChild!);
         click(pointerTarget(), center(totalBars()[1]));
-        click(pointerTarget(), center(totalBars()[3]), { shiftKey: true });
-        click(pointerTarget(), center(totalBars()[2]), { ctrlKey: true });
-        click(pointerTarget(), center(totalBars()[0]), { metaKey: true });
+        click(pointerTarget(), center(totalBars()[3]));
+        click(pointerTarget(), center(totalBars()[1]));
         await act(async () => { await nextFrame(); });
-        expect(vi.mocked(onFilter).mock.calls.map(call => call.slice(3))).toEqual([[2, false], [3, true], [4, true], [1, true]]);
+        expect(vi.mocked(onFilter).mock.calls.map(call => call[3])).toEqual([null, 2, 3, 2]);
     });
 
     it('clears the filter when clicking outside of the bars', async () => {
@@ -282,7 +280,7 @@ describe('MostFrequentCell', () => {
         click(cell().firstElementChild!.firstElementChild!);
         await act(async () => { await nextFrame(); });
         expect(onFilter).toHaveBeenCalledOnce();
-        expect(onFilter).toHaveBeenCalledWith(ROWS, 3, column, null, false);
+        expect(onFilter).toHaveBeenCalledWith(ROWS, 3, column, null);
     });
 
     it('drops a pending filter when it unmounts', async () => {
@@ -317,7 +315,7 @@ describe('MostFrequentCell', () => {
         );
         await act(async () => { await nextFrame(); });
         expect(first).not.toHaveBeenCalled();
-        expect(second).toHaveBeenCalledWith(ROWS, 3, column, 1, false);
+        expect(second).toHaveBeenCalledWith(ROWS, 3, column, 1);
     });
 
     it('fills the bars with the share of the selected rows', async () => {
@@ -385,7 +383,7 @@ describe('MostFrequentCell', () => {
         expect(header()).toBe('Text');
         click(pointerTarget(), at);
         await act(async () => { await nextFrame(); });
-        expect(onFilter).toHaveBeenCalledWith(table, 3, column, null, false);
+        expect(onFilter).toHaveBeenCalledWith(table, 3, column, null);
     });
 
     it('shows more values by the counts of the frequent values, not by the estimated distinct count', async () => {
@@ -426,6 +424,6 @@ describe('MostFrequentCell', () => {
         expect(header()).toBe('Text');
         click(pointerTarget());
         await act(async () => { await nextFrame(); });
-        expect(onFilter).toHaveBeenCalledWith(table, 3, column, null, false);
+        expect(onFilter).toHaveBeenCalledWith(table, 3, column, null);
     });
 });

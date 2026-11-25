@@ -57,14 +57,14 @@ describe('useCrossFilters', () => {
         const { dispatch, ofKind } = recordingDispatch();
         const hook = renderCrossFilters(dispatch);
         hook.render(tableState([{ kind: 'mostFrequent', column: 2, valueIds: [3, 7] }]));
-        hook.current.controller!.mostFrequentValueFilter({} as TableAggregation, 2, {} as never, 7, false);
-        hook.current.controller!.mostFrequentValueFilter({} as TableAggregation, 2, {} as never, 9, true);
-        hook.current.controller!.mostFrequentValueFilter({} as TableAggregation, 1, {} as never, 8, false);
-        hook.current.controller!.mostFrequentValueFilter({} as TableAggregation, 3, {} as never, 8, true);
-        // The runtime decides the selection, the hook passes the toggle on
+        hook.current.controller!.mostFrequentValueFilter({} as TableAggregation, 2, {} as never, 7);
+        hook.current.controller!.mostFrequentValueFilter({} as TableAggregation, 2, {} as never, 9);
+        hook.current.controller!.mostFrequentValueFilter({} as TableAggregation, 1, {} as never, 8);
+        hook.current.controller!.mostFrequentValueFilter({} as TableAggregation, 3, {} as never, 8);
+        // The runtime decides the selection, the hook names the value
         expect(ofKind('mostFrequentValueFilter').map(action => action.value)).toEqual([
-            { columnGroup: 2, valueId: 7, toggle: false },
-            { columnGroup: 2, valueId: 9, toggle: true },
+            { columnGroup: 2, valueId: 7 },
+            { columnGroup: 2, valueId: 9 },
         ]);
         expect(hook.current.controller!.crossFilters).toEqual([{ kind: 'mostFrequent', column: 2, valueIds: [3, 7] }]);
         expect(crossFilterOf(hook.current.controller!.crossFilters, 2)).toEqual({ kind: 'mostFrequent', column: 2, valueIds: [3, 7] });

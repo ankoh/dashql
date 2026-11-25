@@ -129,31 +129,18 @@ impl CrossFilters {
         self.column_filters.insert(column_group, CrossFilterPredicate::MostFrequent { value_ids, filters });
     }
 
-    /// Select a frequent value of a column, a click on it. Without toggle the value replaces the selection of the
-    /// column, the value that the column selects alone clears it. With toggle (a click with Shift, Ctrl or Cmd) the
-    /// value joins the selection or leaves it. None clears the selection.
-    pub fn select_most_frequent_value(
-        &mut self,
-        column_group: u32,
-        group: &StringColumnGroup,
-        value_id: Option<i64>,
-        toggle: bool,
-    ) {
+    /// Toggle a frequent value of a column, a click on it: the value joins the selection of the column or leaves it,
+    /// the last value that leaves clears it. None clears the selection.
+    pub fn select_most_frequent_value(&mut self, column_group: u32, group: &StringColumnGroup, value_id: Option<i64>) {
         let Some(value_id) = value_id else {
             self.column_filters.remove(&column_group);
             return;
         };
         let selected = self.most_frequent_values(column_group);
-        let value_ids: Vec<i64> = if toggle {
-            if selected.contains(&value_id) {
-                selected.iter().copied().filter(|selected| *selected != value_id).collect()
-            } else {
-                selected.iter().copied().chain([value_id]).collect()
-            }
-        } else if selected == [value_id] {
-            Vec::new()
+        let value_ids: Vec<i64> = if selected.contains(&value_id) {
+            selected.iter().copied().filter(|selected| *selected != value_id).collect()
         } else {
-            vec![value_id]
+            selected.iter().copied().chain([value_id]).collect()
         };
         self.set_most_frequent_values(column_group, group, &value_ids);
     }

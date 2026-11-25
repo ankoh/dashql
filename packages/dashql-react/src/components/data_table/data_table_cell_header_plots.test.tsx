@@ -198,7 +198,7 @@ describe('HeaderPlotsCell', () => {
             target.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: bounds.left + bounds.width / 2, clientY: bounds.top + bounds.height / 2 }));
         });
         await act(async () => { await nextFrame(); });
-        expect(props.onMostFrequentValueFilter).toHaveBeenCalledWith(TABLE, 1, props.columnAggregations[1]!.value, 1, false);
+        expect(props.onMostFrequentValueFilter).toHaveBeenCalledWith(TABLE, 1, props.columnAggregations[1]!.value, 1);
     });
 
     it('shows the histogram of ordinal columns with the brush of the cross filter', async () => {

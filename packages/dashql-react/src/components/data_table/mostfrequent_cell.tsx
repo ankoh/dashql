@@ -10,9 +10,8 @@ import { COLUMN_SUMMARY_BASELINE_COLOR, COLUMN_SUMMARY_COLORS, getTotalBarColor,
 import { formatHistogramFocusDescription } from './histogram_label.js';
 import { arePropsEqualWithStyle } from './memo_props.js';
 
-/// Select a frequent value by its id, null clears the selection. With toggle (a click with Shift, Ctrl or Cmd) the value
-/// joins the selection of the column or leaves it, without it replaces the selection.
-export type MostFrequentValueFilterCallback = (table: TableAggregation, columnIndex: number, column: StringColumnAggregation, frequentValueId: number | null, toggle: boolean) => void;
+/// Toggle a frequent value by its id, it joins the selection of the column or leaves it, null clears the selection
+export type MostFrequentValueFilterCallback = (table: TableAggregation, columnIndex: number, column: StringColumnAggregation, frequentValueId: number | null) => void;
 
 export const MAX_FOCUSED_VALUE_LENGTH = 100;
 
@@ -45,7 +44,7 @@ function MostFrequentCellImpl(props: MostFrequentCellProps): React.ReactElement 
     const svgContainer = React.useRef<HTMLDivElement>(null);
     const svgContainerSize = useObservedSize(svgContainer);
     const pendingFilterFrame = React.useRef<number | null>(null);
-    const pendingFilters = React.useRef<{ valueId: number | null, toggle: boolean }[]>([]);
+    const pendingFilters = React.useRef<(number | null)[]>([]);
     const diagonalStripesId = React.useId();
     const roundedBarClipId = React.useId();
 
@@ -144,12 +143,12 @@ function MostFrequentCellImpl(props: MostFrequentCellProps): React.ReactElement 
     columnIndexRef.current = props.columnIndex;
     columnAggregateRef.current = props.columnAggregate;
 
-    // The clicks of a frame report once: the last selection wins, the toggles after it all count
-    const queueFilter = React.useCallback((valueId: number | null, toggle: boolean) => {
-        if (toggle) {
-            pendingFilters.current.push({ valueId, toggle });
+    // The clicks of a frame report once: a clear replaces the clicks before it, the clicks after it all count
+    const queueFilter = React.useCallback((valueId: number | null) => {
+        if (valueId == null) {
+            pendingFilters.current = [null];
         } else {
-            pendingFilters.current = [{ valueId, toggle }];
+            pendingFilters.current.push(valueId);
         }
         if (pendingFilterFrame.current != null) {
             return;
@@ -158,14 +157,8 @@ function MostFrequentCellImpl(props: MostFrequentCellProps): React.ReactElement 
             pendingFilterFrame.current = null;
             const filters = pendingFilters.current;
             pendingFilters.current = [];
-            for (const filter of filters) {
-                onFilterRef.current(
-                    tableAggregationRef.current,
-                    columnIndexRef.current,
-                    columnAggregateRef.current,
-                    filter.valueId,
-                    filter.toggle,
-                );
+            for (const valueId of filters) {
+                onFilterRef.current(tableAggregationRef.current, columnIndexRef.current, columnAggregateRef.current, valueId);
             }
         });
     }, []);
@@ -200,7 +193,7 @@ function MostFrequentCellImpl(props: MostFrequentCellProps): React.ReactElement 
         const invertedX = xScale.invert(relativeX);
         const row = Math.min(resolveRowUsingOffset(xOffsets, invertedX), frequentValueStrings.length - 1);
         elem.stopPropagation();
-        queueFilter(Number(frequentValueIds[row]), elem.shiftKey || elem.ctrlKey || elem.metaKey);
+        queueFilter(Number(frequentValueIds[row]));
     }, [barWidth, frequentValueIds, frequentValueStrings.length, queueFilter, xOffsets, xScale]);
 
     // A column without rows has no frequent values
@@ -216,7 +209,7 @@ function MostFrequentCellImpl(props: MostFrequentCellProps): React.ReactElement 
                 ...props.style,
                 zIndex: focusedRow != null ? 100 : props.style?.zIndex
             }}
-            onClick={() => queueFilter(null, false)}
+            onClick={() => queueFilter(null)}
         >
             <div className={styles.root}>
                 <div className={styles.header_container}>
