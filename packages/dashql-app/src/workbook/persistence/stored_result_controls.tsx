@@ -21,7 +21,6 @@ interface StoredResultBeanProps {
 /// when the result is stored (docs/design/workbook_results.md).
 export const StoredResultBean: React.FC<StoredResultBeanProps> = ({ writtenAtMs, current }) => {
     const [open, setOpen] = React.useState(false);
-    const relativeTime = useRelativeTime(writtenAtMs);
     const label = current ? 'Stored' : 'Outdated';
     return (
         <AnchoredOverlay
@@ -43,22 +42,31 @@ export const StoredResultBean: React.FC<StoredResultBeanProps> = ({ writtenAtMs,
                 </button>
             )}
         >
-            <div className={styles.stored_result_detail} role="dialog" aria-label="Stored result" data-testid="stored-result-detail">
-                <div className={styles.stored_result_detail_title}>
-                    Stored {relativeTime != null ? lowerFirst(relativeTime) : null}
-                </div>
-                <div className={styles.stored_result_detail_time}>
-                    {new Date(writtenAtMs).toLocaleString()}
-                </div>
-                {!current && (
-                    <div className={styles.stored_result_detail_hint}>
-                        The script or its connection changed since, a run computes the result anew.
-                    </div>
-                )}
-            </div>
+            <StoredResultDetail writtenAtMs={writtenAtMs} current={current} />
         </AnchoredOverlay>
     );
 };
+
+/// Since when the result is stored. Only the open overlay renders it, so a closed tag keeps no clock of its relative
+/// time running.
+function StoredResultDetail({ writtenAtMs, current }: StoredResultBeanProps): React.ReactElement {
+    const relativeTime = useRelativeTime(writtenAtMs);
+    return (
+        <div className={styles.stored_result_detail} role="dialog" aria-label="Stored result" data-testid="stored-result-detail">
+            <div className={styles.stored_result_detail_title}>
+                Stored {relativeTime != null ? lowerFirst(relativeTime) : null}
+            </div>
+            <div className={styles.stored_result_detail_time}>
+                {new Date(writtenAtMs).toLocaleString()}
+            </div>
+            {!current && (
+                <div className={styles.stored_result_detail_hint}>
+                    The script or its connection changed since, a run computes the result anew.
+                </div>
+            )}
+        </div>
+    );
+}
 
 /// Lowercase the first letter so "Just now"/"Yesterday" read naturally after a verb
 function lowerFirst(text: string): string {
