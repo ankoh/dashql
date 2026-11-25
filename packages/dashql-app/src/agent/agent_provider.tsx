@@ -452,7 +452,10 @@ export function useAgentSession(args: AgentSessionArgs): AgentSession | null {
     // The feed of the workbook follows the agent
     const followRef = React.useRef(followScript);
     followRef.current = followScript;
-    React.useEffect(() => context?.show(workbookId, { follow: (scriptKey, target) => followRef.current(scriptKey, target) }), [context, workbookId]);
+    // Shown once per workbook: the context changes with the connections of the agent, which showing the workbook
+    // changes, an effect on the context would show and hide the workbook in a loop and starve the transitions of the router
+    const show = context?.show;
+    React.useEffect(() => show?.(workbookId, { follow: (scriptKey, target) => followRef.current(scriptKey, target) }), [show, workbookId]);
     const state = conversations.get(workbookId) ?? null;
     const stop = context?.controls.stop;
     const reset = context?.controls.reset;
