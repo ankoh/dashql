@@ -47,25 +47,28 @@ describe('ResultTableOverlay', () => {
         expect(dialog()?.getAttribute('aria-modal')).toBe('true');
         expect(dialog()?.querySelector('h2')?.textContent).toBe('01_alpha');
         expect(dialog()?.querySelector('[data-testid="mock-query-results"]')).not.toBeNull();
-        expect(detailsProps[detailsProps.length - 1].fitHeight).toBe(true);
     });
 
-    it('enlarges the card to the window and restores it', () => {
+    it('opens enlarged to the window, restores the card to a smaller size and enlarges it again', () => {
         act(() => root.render(<Overlay onClose={vi.fn()} />));
         const resize = document.querySelector<HTMLButtonElement>('[data-testid="result-table-overlay-resize"]')!;
-        expect(resize.getAttribute('aria-pressed')).toBe('false');
-        expect(dialog()?.hasAttribute('data-expanded')).toBe(false);
-
-        act(() => resize.click());
         expect(resize.getAttribute('aria-pressed')).toBe('true');
+        expect(resize.getAttribute('aria-label')).toBe('Restore size');
         expect(dialog()?.hasAttribute('data-expanded')).toBe(true);
         expect(dialog()?.parentElement?.getAttribute('data-expanded')).toBe('true');
         // The enlarged table fills the card instead of fitting its rows
         expect(detailsProps[detailsProps.length - 1].fitHeight).toBe(false);
+        expect(detailsProps[detailsProps.length - 1].maxHeight).toBeUndefined();
 
         act(() => resize.click());
+        expect(resize.getAttribute('aria-pressed')).toBe('false');
         expect(dialog()?.hasAttribute('data-expanded')).toBe(false);
+        expect(dialog()?.parentElement?.getAttribute('data-expanded')).toBe('false');
         expect(detailsProps[detailsProps.length - 1].fitHeight).toBe(true);
+
+        act(() => resize.click());
+        expect(dialog()?.hasAttribute('data-expanded')).toBe(true);
+        expect(detailsProps[detailsProps.length - 1].fitHeight).toBe(false);
     });
 
     it('closes with the close button and with Escape', () => {

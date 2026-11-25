@@ -16,7 +16,7 @@ export interface ResultTableOverlayProps {
     children: (layout: QueryResultDetailsLayout) => React.ReactNode;
 }
 
-/// The height of the card before it is enlarged, the table grows up to it and scrolls then
+/// The height of the card once its size is restored, the table grows up to it and scrolls then
 const MAX_CARD_HEIGHT = 600;
 const HEADER_HEIGHT = 44;
 // The table opens popups of its own (search, cell details), a click into them must not close the card
@@ -24,10 +24,12 @@ const IGNORE_OUTSIDE_CLICK = () => {};
 const CloseIcon = SymbolIcon('x_16');
 
 /// The full result table of a feed entry or a dashboard card in a card over the page: the table with its column plots
-/// under a header with the name of the script, a button to enlarge the card to the window and a close button.
+/// under a header with the name of the script, a button that restores the card to a smaller size and enlarges it again,
+/// and a close button. The card opens enlarged to the window below the top bar: the user opens it to see more of the
+/// result than the card of the feed or of the dashboard shows, a card of a size between them would show little more.
 export function ResultTableOverlay(props: ResultTableOverlayProps): React.ReactElement {
     const dialogRef = React.useRef<HTMLElement | null>(null);
-    const [expanded, setExpanded] = React.useState(false);
+    const [expanded, setExpanded] = React.useState(true);
     const subject = props.subject ?? 'Query results';
 
     // Focus the dialog, not its first button

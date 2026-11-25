@@ -1,6 +1,6 @@
 import * as arrow from 'apache-arrow';
 import * as React from 'react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ComputationColumnGroup } from '@akohn/dashql';
 import { ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN } from '@akohn/dashql/platform/compute/computation_types';
@@ -68,6 +68,33 @@ describe('DataTable', () => {
         const sort = root.container.querySelector<HTMLButtonElement>('button[aria-label^="Sort name"]');
         act(() => sort!.click());
         expect(model.dispatch).toHaveBeenCalledWith(expect.objectContaining({ kind: 'orderBy' }));
+    });
+
+    it('shows the rows that a preview leaves out in place, or opens the full table without a host that can', async () => {
+        const model = nameTable();
+        const onShowTable = vi.fn();
+        const onShowMoreRows = vi.fn();
+        const onShowFewerRows = vi.fn();
+        const footerRow = (testId: string) => root.container.querySelector<HTMLElement>(`[data-testid="${testId}"]`);
+
+        // The preview of the first row counts the two others, the row shows them in place
+        await render(<DataTable model={model} debugMode={false} maxRows={1} onShowTable={onShowTable} onShowMoreRows={onShowMoreRows} onShowFewerRows={onShowFewerRows} />);
+        expect(footerRow('data-table-more-rows')?.textContent).toBe('2 more rows');
+        expect(footerRow('data-table-fewer-rows')).toBeNull();
+        act(() => footerRow('data-table-more-rows')!.click());
+        expect(onShowMoreRows).toHaveBeenCalledTimes(1);
+        expect(onShowTable).not.toHaveBeenCalled();
+
+        // Without a host that shows them in place, the row opens the full table
+        await render(<DataTable model={model} debugMode={false} maxRows={1} onShowTable={onShowTable} />);
+        act(() => footerRow('data-table-more-rows')!.click());
+        expect(onShowTable).toHaveBeenCalledTimes(1);
+
+        // All rows in place end with the row that shows fewer rows again
+        await render(<DataTable model={model} debugMode={false} fitHeight maxHeight={200} onShowTable={onShowTable} onShowMoreRows={onShowMoreRows} onShowFewerRows={onShowFewerRows} />);
+        expect(footerRow('data-table-more-rows')).toBeNull();
+        act(() => footerRow('data-table-fewer-rows')!.click());
+        expect(onShowFewerRows).toHaveBeenCalledTimes(1);
     });
 
     it('opens the detail of a cell in the slot of the host', async () => {

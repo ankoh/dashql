@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { act } from '@akohn/dashql-react/testing/react_act';
+import { createPortal } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as dashql from '@akohn/dashql';
@@ -12,7 +13,9 @@ import { WorkbookReadOnlyContext } from '../workbook_read_only.js';
 import type { ScriptConnectionView } from '../scripts/script_connection_picker.js';
 import { fakeQueryModel, fakeScript, fakeScriptModel } from '@akohn/dashql-react/testing/fake_models';
 import type { ScriptModel } from '@akohn/dashql-react/models/script_model';
-import { ScriptCard, type ScriptCardDependencies, type ScriptCardProps, type ScriptFeedCommands } from './script_card.js';
+import {
+    ScriptCard, type ScriptCardDependencies, type ScriptCardProps, type ScriptFeedCommands, type ScriptResultSlot,
+} from './script_card.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
@@ -191,6 +194,73 @@ describe('the card of a script', () => {
         expect(feed.moveDown).toHaveBeenCalledWith('01_alpha.sql');
         click('script-delete');
         expect(feed.delete).toHaveBeenCalledWith('01_alpha.sql');
+    });
+
+    it('shows more rows in the card until the user presses Escape or outside of the card, picks a tab or folds the result', () => {
+        const script = fakeScript(1, '01_alpha.sql', 'SELECT 1', { latestQueryId: 42 } as never);
+        // A result with rows selects the tab of its table
+        const resultOf = (queryId: number) => fakeQueryModel(succeeded(queryId, { status: QueryExecutionStatus.SUCCEEDED }), {
+            computation: { computation: { dataTableRows: 100 } } as never,
+        });
+        const { props, result } = cardProps(fakeScriptModel({ script, query: resultOf(42) }));
+        // The panel of the result with a popup of its own in a portal, like the detail of a cell
+        const resultPanel = (slot: ScriptResultSlot) => (
+            <div data-testid="result-panel" data-more-rows={String(slot.moreRows)}>
+                <button data-testid="more-rows" onClick={slot.onShowMoreRows} />
+                <button data-testid="fewer-rows" onClick={slot.onShowFewerRows} />
+                {createPortal(<button data-testid="result-popup" />, document.body)}
+            </div>
+        );
+        render({ ...props, connection: connection(), resultPanel });
+        const moreRows = () => container.querySelector('[data-testid="result-panel"]')!.getAttribute('data-more-rows');
+        const press = (target: Element) => act(() => { target.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); });
+        const pressAndClick = (testId: string) => {
+            const target = document.querySelector<HTMLElement>(`[data-testid="${testId}"]`)!;
+            press(target);
+            act(() => target.click());
+        };
+        const escape = () => {
+            const event = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+            act(() => { document.body.dispatchEvent(event); });
+        };
+        expect(moreRows()).toBe('false');
+
+        // Presses inside the card and in its popups keep the rows, a press outside shows the first rows again
+        pressAndClick('more-rows');
+        expect(moreRows()).toBe('true');
+        press(container.querySelector('[data-testid="result-panel"]')!);
+        press(document.querySelector('[data-testid="result-popup"]')!);
+        expect(moreRows()).toBe('true');
+        press(document.body);
+        expect(moreRows()).toBe('false');
+
+        // Escape shows the first rows again, unless something in front of the card handled it
+        pressAndClick('more-rows');
+        const handled = (event: KeyboardEvent) => event.preventDefault();
+        document.addEventListener('keydown', handled);
+        escape();
+        document.removeEventListener('keydown', handled);
+        expect(moreRows()).toBe('true');
+        escape();
+        expect(moreRows()).toBe('false');
+
+        // The row under the rows, a tab and the fold of the result show the first rows again
+        pressAndClick('more-rows');
+        pressAndClick('fewer-rows');
+        expect(moreRows()).toBe('false');
+        pressAndClick('more-rows');
+        act(() => container.querySelector<HTMLButtonElement>('[role="tab"][aria-label="Query results"]')!.click());
+        expect(moreRows()).toBe('false');
+        pressAndClick('more-rows');
+        act(() => container.querySelector<HTMLButtonElement>('button[aria-controls="feed-result-1"]')!.click());
+        expect(result.toggle).toHaveBeenCalledWith(1);
+        expect(moreRows()).toBe('false');
+
+        // The rows are those of a query, the next query shows its first rows
+        pressAndClick('more-rows');
+        expect(moreRows()).toBe('true');
+        render({ ...props, connection: connection(), resultPanel, model: fakeScriptModel({ script, query: resultOf(43) }) });
+        expect(moreRows()).toBe('false');
     });
 
     it('shows the statistics in the script debug mode and formats in the formatting debug mode of the settings', () => {

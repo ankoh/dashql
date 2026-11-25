@@ -127,6 +127,50 @@ describe('FeedEntryFooter', () => {
         expect(onShowTable).toHaveBeenCalledTimes(1);
     });
 
+    it('shows more rows in place with the column plots and shows the first rows again', async () => {
+        const model = succeeded(tableFromArrays({ value: Array.from({ length: 10 }, (_, row) => row) }));
+        const onShowMoreRows = vi.fn();
+        const onShowFewerRows = vi.fn();
+        const renderTable = (moreRows: boolean) => act(() => root.render(
+            <StandaloneRuntime>
+                <HostProvider value={{ setupCore: null, downloadFile: download }}>
+                    <FeedEntryFooter
+                        workbookId="workbook"
+                        model={model}
+                        visualizeQuery={null}
+                        selectedTab={FeedEntryTab.Table}
+                        onShowTable={onShowTable}
+                        moreRows={moreRows}
+                        onShowMoreRows={onShowMoreRows}
+                        onShowFewerRows={onShowFewerRows}
+                    />
+                </HostProvider>
+            </StandaloneRuntime>,
+        ));
+        const testId = (id: string) => container.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+
+        // The preview counts the rows that it leaves out, the row shows them in place instead of opening the full table
+        renderTable(false);
+        expect(container.textContent).toContain('6 of 10 rows');
+        expect(testId('data-table-more-rows')?.textContent).toBe('4 more rows');
+        act(() => testId('data-table-more-rows')!.click());
+        expect(onShowMoreRows).toHaveBeenCalledTimes(1);
+        expect(onShowTable).not.toHaveBeenCalled();
+
+        // All rows scroll below the column plots and end with the row that shows the first rows again
+        renderTable(true);
+        expect(container.textContent).toContain('10 rows');
+        expect(container.textContent).not.toContain('6 of 10 rows');
+        expect(testId('data-table-more-rows')).toBeNull();
+        await vi.waitFor(() => expect(container.querySelector('[aria-label="Hide column plots"], [aria-label="Show column plots"]')).not.toBeNull());
+        act(() => testId('data-table-fewer-rows')!.click());
+        expect(onShowFewerRows).toHaveBeenCalledTimes(1);
+
+        // The header still opens the full table
+        act(() => testId('tab-header-expand')!.click());
+        expect(onShowTable).toHaveBeenCalledTimes(1);
+    });
+
     it('offers the chart as PNG in the visualization header', () => {
         const vegaLiteSpec = { mark: 'bar', encoding: { x: { field: 'value', type: 'ordinal' } } } as Extract<ResolvedVisualizeQuery, { renderer: 'vegalite' }>['vegaLiteSpec'];
         renderFooter(tableFromArrays({ value: [10, 20, 30] }), { renderer: 'vegalite', sql: 'select 1', statementId: 0, vegaLiteSpec });

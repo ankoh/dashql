@@ -170,6 +170,9 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
             visualizeQuery={visualizeQuery}
             selectedTab={slot.selectedTab}
             onShowTable={slot.onShowTable}
+            moreRows={slot.moreRows}
+            onShowMoreRows={slot.onShowMoreRows}
+            onShowFewerRows={slot.onShowFewerRows}
         />
     ), [props.workbookId, query, visualizeQuery]);
     const resultTable = React.useCallback((slot: ScriptResultTableSlot) => query == null ? null : (

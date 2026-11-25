@@ -20,6 +20,9 @@ import { Deferred } from '@akohn/dashql-react/components/deferred';
 import { Skeleton } from '@akohn/dashql-react/components/skeleton';
 
 const FEED_LIMIT_RESULT_ROWS = 6;
+/// The height of the table of a feed entry that shows more rows in place, with the column plots. It scrolls the rows
+/// that don't fit.
+const FEED_MORE_ROWS_TABLE_HEIGHT = 480;
 /// The Log tab's viewport auto-expands to fit its rows and caps at this many (then scrolls).
 const FEED_LIMIT_LOG_ROWS = 6;
 /// Cap the Vega-Lite chart height in the feed footer so a single vis entry doesn't dominate the
@@ -185,6 +188,13 @@ interface FeedEntryFooterProps {
     selectedTab: FeedEntryTab;
     /// Open the full result table, makes the header and the column names of the preview clickable
     onShowTable?: () => void;
+    /// The table shows all rows in place with a scroller and the column plots, not only the first ones
+    moreRows?: boolean;
+    /// Show more rows in place, makes the row that counts the rows of the preview clickable. Without it, that row opens
+    /// the full result table.
+    onShowMoreRows?: () => void;
+    /// Show only the first rows again
+    onShowFewerRows?: () => void;
 }
 
 export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
@@ -207,18 +217,24 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                 maxRows={FEED_LIMIT_LOG_ROWS}
             />
         );
+        // The preview shows the first rows. More rows grow the card in place: the rows scroll below the column plots, the
+        // full result table opens from the header.
         case FeedEntryTab.Table: return model == null ? null : (
             <>
                 <QueryResultHeader
                     model={model}
-                    maxRows={FEED_LIMIT_RESULT_ROWS}
+                    maxRows={props.moreRows ? undefined : FEED_LIMIT_RESULT_ROWS}
                     onShowTable={props.onShowTable}
                 />
                 <QueryResultView
                     model={model}
-                    maxRows={FEED_LIMIT_RESULT_ROWS}
-                    columnHeader={TableColumnHeader.OnlyColumnName}
+                    maxRows={props.moreRows ? undefined : FEED_LIMIT_RESULT_ROWS}
+                    columnHeader={props.moreRows ? TableColumnHeader.WithColumnPlots : TableColumnHeader.OnlyColumnName}
                     onShowTable={props.onShowTable}
+                    onShowMoreRows={props.onShowMoreRows}
+                    onShowFewerRows={props.moreRows ? props.onShowFewerRows : undefined}
+                    fitHeight={props.moreRows}
+                    maxHeight={props.moreRows ? FEED_MORE_ROWS_TABLE_HEIGHT : undefined}
                     compact
                 />
             </>

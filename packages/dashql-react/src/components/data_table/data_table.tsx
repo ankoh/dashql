@@ -57,7 +57,13 @@ export interface DataTableProps {
     maxRows?: number;
     columnHeader?: TableColumnHeader;
     cellBackground?: string;
+    /// Open the full table, makes the column names clickable, and the row of the rows that `maxRows` leaves out
+    /// without `onShowMoreRows`
     onShowTable?: () => void;
+    /// Show the rows that `maxRows` leaves out in place, makes the row that counts them clickable
+    onShowMoreRows?: () => void;
+    /// Show only the first rows again, the table ends with a row that does it
+    onShowFewerRows?: () => void;
     fitHeight?: boolean;
     /// The grid takes the height of its host however few rows it shows, the last of `maxRows` may be cut off
     fillHeight?: boolean;
@@ -75,7 +81,8 @@ const COLUMN_HEADER_PLOTS_HEIGHT = 76;
 /// The row of the column plots shrinks to a strip that still holds its toggle
 const COLUMN_HEADER_PLOTS_COLLAPSED_HEIGHT = 18;
 export const ROW_HEIGHT = 26;
-/// The row under a preview that `maxRows` cuts, it counts the rows that the preview leaves out
+/// The row under a preview that `maxRows` cuts, it counts the rows that the preview leaves out. The row that shows
+/// fewer rows again has the same height.
 const MORE_ROWS_HEIGHT = 24;
 const GRID_OVERSCAN_COUNT = 10;
 const NOOP_BRUSHING = () => { };
@@ -162,6 +169,9 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
     const totalRowCount = visibleRowIndices?.length ?? dataTable.numRows;
     const dataRowCount = props.maxRows != null ? Math.min(totalRowCount, props.maxRows) : totalRowCount;
     const hiddenRowCount = totalRowCount - dataRowCount;
+    // The table ends with a row: the count of the hidden rows, or the row that shows fewer rows again
+    const showFewerRows = hiddenRowCount === 0 ? props.onShowFewerRows : undefined;
+    const hasFooterRow = hiddenRowCount > 0 || showFewerRows != null;
     // Header configuration
     const headerRowCount = columnHeader === TableColumnHeader.WithColumnPlots ? 2 : 1;
     const visibleColumnGroups = React.useMemo(() => {
@@ -349,7 +359,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
     const needsHorizontalScroll = totalColumnsWidth > gridContainerWidth;
     // An overlay scrollbar would leave an empty band between the last row and the row of the hidden rows, it paints
     // over the last row while scrolling instead
-    const horizontalScrollbarHeight = needsHorizontalScroll && !(scrollbarsOverlay && hiddenRowCount > 0)
+    const horizontalScrollbarHeight = needsHorizontalScroll && !(scrollbarsOverlay && hasFooterRow)
         ? scrollbarHeight
         : 0;
     const gridContainerHeight = props.fillHeight ? (gridContainerSize?.height ?? 0) : computeGridHeight(
@@ -437,13 +447,13 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
         <div
             className={classNames(styles.root, props.className, {
                 [styles.root_compact]: props.compact,
-                [styles.root_more_rows]: hiddenRowCount > 0,
+                [styles.root_more_rows]: hasFooterRow,
             })}
             data-electron-drag-region="false"
             style={{
                 ...(props.cellBackground ? { '--data_table_bg': props.cellBackground } : {}),
                 // The row of the hidden rows overlaps the bottom border of the last row by a pixel
-                ...(props.fitHeight ? { height: gridContainerHeight + (hiddenRowCount > 0 ? MORE_ROWS_HEIGHT - 1 : 0) } : {}),
+                ...(props.fitHeight ? { height: gridContainerHeight + (hasFooterRow ? MORE_ROWS_HEIGHT - 1 : 0) } : {}),
             } as React.CSSProperties}
         >
             <div className={styles.grid_container} ref={gridContainerElement} {...columnResize}>
@@ -490,7 +500,16 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
                     gridData={gridData}
                 />
             </div>
-            {hiddenRowCount > 0 && <MoreRows count={hiddenRowCount} onShowTable={props.onShowTable} />}
+            {hiddenRowCount > 0 && (
+                <TableFooterRow
+                    label={`${hiddenRowCount.toLocaleString()} more ${hiddenRowCount === 1 ? 'row' : 'rows'}`}
+                    onClick={props.onShowMoreRows ?? props.onShowTable}
+                    testId="data-table-more-rows"
+                />
+            )}
+            {showFewerRows != null && (
+                <TableFooterRow label="Show fewer rows" onClick={showFewerRows} testId="data-table-fewer-rows" />
+            )}
             {props.cellDetail && <props.cellDetail
                 isOpen={cellDetail != null}
                 onClose={() => setCellDetail(null)}
@@ -505,20 +524,21 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
     );
 }
 
-/// The row under a cut preview: the count of the rows it leaves out, a button that opens the full table if there is one
-function MoreRows(props: { count: number; onShowTable?: () => void }): React.ReactElement {
-    const label = `${props.count.toLocaleString()} more ${props.count === 1 ? 'row' : 'rows'}`;
-    if (props.onShowTable == null) {
-        return <div className={styles.more_rows} style={{ height: MORE_ROWS_HEIGHT }}>{label}</div>;
+/// The row that ends the table: under a cut preview the count of the rows it leaves out, a button that shows them if
+/// the host can; under the rows that it showed in place a button that shows fewer rows again
+function TableFooterRow(props: { label: string; onClick?: () => void; testId: string }): React.ReactElement {
+    if (props.onClick == null) {
+        return <div className={styles.more_rows} style={{ height: MORE_ROWS_HEIGHT }} data-testid={props.testId}>{props.label}</div>;
     }
     return (
         <button
             type="button"
             className={classNames(styles.more_rows, styles.more_rows_clickable)}
             style={{ height: MORE_ROWS_HEIGHT }}
-            onClick={props.onShowTable}
+            onClick={props.onClick}
+            data-testid={props.testId}
         >
-            {label}
+            {props.label}
         </button>
     );
 }

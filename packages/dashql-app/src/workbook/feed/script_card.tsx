@@ -19,7 +19,8 @@ import { QueryResultRerunButton, StoredResultBean } from '../persistence/stored_
 import {
     DEFAULT_FEED_ENTRY_HEADER_DEPENDENCIES, FeedEntryHeader, type FeedEntryHeaderDependencies, type FeedEntryHeaderDisplay,
 } from './feed_entry_header.js';
-import { FeedEntryTabStrip, useFeedEntryTabs, type FeedEntryTab } from './feed_entry_footer.js';
+import { FeedEntryTab, FeedEntryTabStrip, useFeedEntryTabs } from './feed_entry_footer.js';
+import { useEagerDismiss } from './eager_dismiss.js';
 import type { ScriptConnectionView } from '../scripts/script_connection_picker.js';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 
@@ -81,6 +82,12 @@ export interface ScriptResultSlot {
     selectedTab: FeedEntryTab;
     /// Open the full result table over the feed
     onShowTable: () => void;
+    /// The table shows more rows in the card, with a scroller and the column plots
+    moreRows: boolean;
+    /// Show more rows of the table in the card, until the user turns to something else
+    onShowMoreRows: () => void;
+    /// Show only the first rows of the table again
+    onShowFewerRows: () => void;
 }
 
 /// The slot of the full result table over the feed
@@ -163,6 +170,17 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     const showTable = React.useCallback(() => setTableOpen(true), []);
     const closeTable = React.useCallback(() => setTableOpen(false), []);
 
+    // More rows of the table grow the card in place for a moment: the card shows them for the query that the user
+    // expanded and only on its table tab, and shows the first rows again as soon as the user presses Escape or
+    // something outside of the card, picks a tab or folds the result
+    const queryId = query?.queryId ?? null;
+    const [moreRowsQueryId, setMoreRowsQueryId] = React.useState<number | null>(null);
+    const moreRows = queryId != null && moreRowsQueryId === queryId && result.expanded
+        && resultTabs.selectedTab === FeedEntryTab.Table;
+    const showMoreRows = React.useCallback(() => setMoreRowsQueryId(queryId), [queryId]);
+    const showFewerRows = React.useCallback(() => setMoreRowsQueryId(null), []);
+    const moreRowsDismiss = useEagerDismiss(moreRows, showFewerRows);
+
     const resultContentId = `feed-result-${scriptKey}`;
     // A read-only workbook shows its cards greyed out
     const readOnly = useWorkbookReadOnly();
@@ -174,6 +192,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
             data-read-only={readOnly ? '' : undefined}
             data-electron-drag-region="false"
             onPointerEnter={() => feed.focus(fileName)}
+            onPointerDownCapture={moreRowsDismiss.onPointerDownCapture}
             aria-label={`${displayName} script cell`}
             data-testid="script-cell"
         >
@@ -264,13 +283,19 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                     <div className={styles.feed_entry_footer} data-feed-result="">
                         <EntryStatusBar
                             status={entryStatus}
-                            onToggleExpanded={() => result.toggle(scriptKey)}
+                            onToggleExpanded={() => {
+                                showFewerRows();
+                                result.toggle(scriptKey);
+                            }}
                             expanded={result.expanded}
                             controls={resultContentId}
                             onCancel={entryStatus.indicator === IndicatorStatus.Running ? cancel : undefined}
                             cancelLabel="Cancel query"
                             compact
-                            tabs={<FeedEntryTabStrip tabs={resultTabs} expanded={result.expanded} onSelect={expandResult} />}
+                            tabs={<FeedEntryTabStrip tabs={resultTabs} expanded={result.expanded} onSelect={() => {
+                                showFewerRows();
+                                expandResult();
+                            }} />}
                             actions={
                                 <>
                                     {storedResult != null && <StoredResultBean writtenAtMs={storedResult.writtenAt} current={storedResult.current} />}
@@ -283,7 +308,13 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         />
                         {query != null ? (
                             <div id={resultContentId} hidden={!result.expanded}>
-                                {props.resultPanel({ selectedTab: resultTabs.selectedTab, onShowTable: showTable })}
+                                {props.resultPanel({
+                                    selectedTab: resultTabs.selectedTab,
+                                    onShowTable: showTable,
+                                    moreRows,
+                                    onShowMoreRows: showMoreRows,
+                                    onShowFewerRows: showFewerRows,
+                                })}
                             </div>
                         ) : null}
                         {tableOpen && query != null && props.resultTable({ scriptName: displayName, onClose: closeTable })}

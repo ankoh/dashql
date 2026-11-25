@@ -12,6 +12,10 @@ interface Props {
     columnHeader?: TableColumnHeader;
     cellBackground?: string;
     onShowTable?: () => void;
+    /// Show the rows that `maxRows` leaves out in place instead of opening the full table
+    onShowMoreRows?: () => void;
+    /// Show only the first rows again
+    onShowFewerRows?: () => void;
     fitHeight?: boolean;
     fillHeight?: boolean;
     maxHeight?: number;
@@ -34,6 +38,8 @@ export function QueryResultView(props: Props) {
                 columnHeader={props.columnHeader}
                 cellBackground={props.cellBackground}
                 onShowTable={props.onShowTable}
+                onShowMoreRows={props.onShowMoreRows}
+                onShowFewerRows={props.onShowFewerRows}
                 fitHeight={props.fitHeight}
                 fillHeight={props.fillHeight}
                 maxHeight={props.maxHeight}
