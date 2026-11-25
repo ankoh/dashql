@@ -517,8 +517,8 @@ impl Script {
     /// - `analyzer_name_index_bytes` is the size of the suffix vector.
     pub fn memory_statistics(&self) -> ScriptMemoryStatisticsT {
         use std::mem::size_of;
-        let mut memory = ScriptMemoryStatisticsT::default();
-        memory.rope_bytes = self.text.len_bytes() as u32;
+        let mut memory =
+            ScriptMemoryStatisticsT { rope_bytes: self.text.len_bytes() as u32, ..ScriptMemoryStatisticsT::default() };
         let Some(analyzed) = self.analyzed.as_ref() else {
             return memory;
         };

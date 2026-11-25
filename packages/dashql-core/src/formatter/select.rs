@@ -133,7 +133,7 @@ impl<'a> Formatter<'a> {
             let separator = f.concat(&[f.text(" "), op_reg, f.text(" ")]);
             let break_separator = f.concat(&[f.break_(), op_reg, f.break_()]);
             let mut inputs = self.array_regs(combine_input);
-            if inputs.iter().any(|&i| i == 0) {
+            if inputs.contains(&0) {
                 return self.format_unimplemented(node);
             }
             // The AST does not keep the parentheses of the inputs, add those that the operands need

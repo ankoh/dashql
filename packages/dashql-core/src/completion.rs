@@ -876,15 +876,16 @@ impl<'c, 'a> Completion<'c, 'a> {
         }
 
         // Is the previous symbol an inner dot and the cursor on the successor?
-        if previous_symbol.is_some_and(|p| p.is_dot()) && expects_identifier {
-            if matches!(
+        if previous_symbol.is_some_and(|p| p.is_dot())
+            && expects_identifier
+            && matches!(
                 target.relative_pos,
                 RelativeSymbolPosition::END_OF_SYMBOL
                     | RelativeSymbolPosition::BEGIN_OF_SYMBOL
                     | RelativeSymbolPosition::MID_OF_SYMBOL
-            ) {
-                completion.dot_completion = true;
-            }
+            )
+        {
+            completion.dot_completion = true;
         }
 
         completion.has_post_cursor_token = completion.compute_has_post_cursor_token();
@@ -1917,8 +1918,8 @@ impl<'c, 'a> Completion<'c, 'a> {
         let node_id = cursor.ast_node_id.unwrap_or(u32::MAX);
         for (scope_id, visibility) in Self::visible_scopes(analyzed, cursor) {
             let Some(scope) = analyzed.scope(scope_id) else { continue };
-            let named = scope
-                .named_sources(ast, node_id, visibility, |s| s.table_name.as_ref().is_some_and(|n| names_table(n)));
+            let named =
+                scope.named_sources(ast, node_id, visibility, |s| s.table_name.as_ref().is_some_and(&names_table));
             if let Some(&source) = named.first() {
                 return Some(source);
             }

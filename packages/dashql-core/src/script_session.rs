@@ -223,10 +223,7 @@ impl Projector<'_> {
         if end < begin {
             return None;
         }
-        let mut out = EditorTextSpanT::default();
-        out.offset = begin;
-        out.length = end - begin;
-        Some(out)
+        Some(EditorTextSpanT { offset: begin, length: end - begin })
     }
 }
 
@@ -845,11 +842,7 @@ impl ScriptSession {
         let mut add_syntax =
             |projector: &mut Projector, token_type: ScannerTokenType, span: TextSpan, in_comment: bool| {
                 if let Some(text_span) = projector.span(span) {
-                    let mut s = EditorSyntaxSpanT::default();
-                    s.token_type = token_type;
-                    s.text_span = text_span;
-                    s.in_comment = in_comment;
-                    syntax_spans.push(s);
+                    syntax_spans.push(EditorSyntaxSpanT { token_type, text_span, in_comment });
                 }
             };
         for ((&offset, &length), &token_type) in offsets.iter().zip(lengths).zip(types) {
@@ -898,10 +891,12 @@ impl ScriptSession {
             let Some(text_span) = projector.span(resolve(location)) else {
                 continue;
             };
-            let mut span = EditorSemanticSpanT::default();
-            span.kind = EditorSemanticReferenceKind::TABLE;
-            span.reference_id = reference_id as u32;
-            span.text_span = text_span;
+            let mut span = EditorSemanticSpanT {
+                kind: EditorSemanticReferenceKind::TABLE,
+                reference_id: reference_id as u32,
+                text_span,
+                ..EditorSemanticSpanT::default()
+            };
             if let Some(resolved) = resolved_table_ids(reference) {
                 span.resolution = EditorSemanticResolution::RESOLVED;
                 span.catalog_database_id = resolved.database_id;
@@ -937,11 +932,14 @@ impl ScriptSession {
             let Some(text_span) = projector.span(resolve(location)) else {
                 continue;
             };
-            let mut span = EditorSemanticSpanT::default();
-            span.kind =
+            let kind =
                 if is_function { EditorSemanticReferenceKind::FUNCTION } else { EditorSemanticReferenceKind::COLUMN };
-            span.reference_id = expression_id as u32;
-            span.text_span = text_span;
+            let mut span = EditorSemanticSpanT {
+                kind,
+                reference_id: expression_id as u32,
+                text_span,
+                ..EditorSemanticSpanT::default()
+            };
             if let Some((table, column_id)) = resolved_column_ids(expression) {
                 span.resolution = EditorSemanticResolution::RESOLVED;
                 span.catalog_database_id = table.database_id;
@@ -1170,12 +1168,9 @@ impl ScriptSession {
         packed.cursor_offset = Self::project_byte_offset(&mut projector, packed.cursor_offset as u64)? as u32;
         let project_symbol_span = |projector: &mut Projector, span: &mut Option<SymbolSpanT>| {
             if let Some(s) = span.as_ref() {
-                *span = projector.span(TextSpan::new(s.offset, s.length)).map(|p| {
-                    let mut out = SymbolSpanT::default();
-                    out.offset = p.offset as u32;
-                    out.length = p.length as u32;
-                    out
-                });
+                *span = projector
+                    .span(TextSpan::new(s.offset, s.length))
+                    .map(|p| SymbolSpanT { offset: p.offset as u32, length: p.length as u32 });
             }
         };
         let mut candidates = packed.candidates.take().unwrap_or_default();

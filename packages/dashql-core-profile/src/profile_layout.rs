@@ -458,7 +458,7 @@ impl<'a> ProfileLayouter<'a> {
             self.first_walk(root, None);
             // Second run over the tree.
             // `prelim` stores the preliminary x-coordinate AFTER computing the subtree.
-            self.second_walk(root, -1.0 * self.node(root).prelim, 0);
+            self.second_walk(root, -self.node(root).prelim, 0);
             self.resolve_level_overlaps(root);
 
             // Independent roots are laid out at the same origin. Pack their full subtree bounds left-to-right.
@@ -551,7 +551,7 @@ impl QueryProfile {
         let total_width = (x_max - x_min).abs();
         let total_height = (y_max - y_min).abs() + level_height;
         let shift_x = -x_min;
-        let shift_y = (y_min - level_height / 2.0) * -1.0;
+        let shift_y = level_height / 2.0 - y_min;
 
         // Set all nodes layouts
         for (out, node) in self.operators.iter_mut().zip(&nodes) {

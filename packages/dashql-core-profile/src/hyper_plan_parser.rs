@@ -458,26 +458,31 @@ impl QueryProfile {
     fn identify_operator_cross_edges(&mut self) {
         let operator_ids = self.source_operator_ids();
 
-        let mut pending: Vec<(u32, u32, &'static str, Vec<(String, String)>)> = Vec::new();
+        let mut pending: Vec<OperatorCrossEdge> = Vec::new();
         for (operator_id, op) in self.operators.iter_mut().enumerate() {
             for reference in std::mem::take(&mut op.references) {
                 if let Some(&source) = operator_ids.get(&reference.source_operator_id) {
-                    pending.push((source, operator_id as u32, reference.kind, reference.attributes));
+                    pending.push(OperatorCrossEdge {
+                        source_node: source,
+                        target_node: operator_id as u32,
+                        kind: reference.kind,
+                        attributes: reference.attributes,
+                    });
                 }
             }
         }
 
-        pending.sort_by_key(|(source_node, ..)| *source_node);
+        pending.sort_by_key(|edge| edge.source_node);
         self.operator_cross_edges.reserve(pending.len());
-        for (source_node, target_node, kind, attributes) in pending {
-            let Some(source) = self.operators.get_mut(source_node as usize) else {
+        for edge in pending {
+            let Some(source) = self.operators.get_mut(edge.source_node as usize) else {
                 continue;
             };
             if source.cross_edge_count == 0 {
                 source.cross_edges_begin = self.operator_cross_edges.len();
             }
             source.cross_edge_count += 1;
-            self.operator_cross_edges.push(OperatorCrossEdge { source_node, target_node, kind, attributes });
+            self.operator_cross_edges.push(edge);
         }
     }
 

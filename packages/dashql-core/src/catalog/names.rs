@@ -71,7 +71,7 @@ impl NameSearchIndex {
 
     /// The bytes of the suffix index
     pub fn byte_size(&self) -> usize {
-        self.suffixes().len() * std::mem::size_of::<(u32, u32)>()
+        std::mem::size_of_val(self.suffixes())
     }
 
     /// A suffix of a name, the suffixes index the names

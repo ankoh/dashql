@@ -786,7 +786,7 @@ impl<'a> Formatter<'a> {
             | K::SQL_TRANSACTION_MODES
             | K::SQL_SET_ARGS => {
                 let values = self.array_regs(node);
-                if values.iter().any(|&v| v == 0) {
+                if values.contains(&0) {
                     return self.format_unimplemented(node);
                 }
                 self.comma_join_on_overflow(&values, true)
@@ -803,7 +803,7 @@ impl<'a> Formatter<'a> {
             },
             K::SQL_SELECT_VALUES => {
                 let rows = self.array_regs(node);
-                if rows.iter().any(|&r| r == 0) {
+                if rows.contains(&0) {
                     return self.format_unimplemented(node);
                 }
                 let policy = self.pretty_policy(FormattingJoinPolicy::BreakOnOverflow);
@@ -1278,7 +1278,7 @@ impl<'a> Formatter<'a> {
             let bounds: Vec<Option<&Node>> =
                 if keyword_form { vec![None] } else { self.children(array).iter().map(Some).collect() };
             for bound in bounds {
-                let unbounded = bound.map_or(true, |b| b.node_type() == NodeType::BOOL);
+                let unbounded = bound.is_none_or(|b| b.node_type() == NodeType::BOOL);
                 if self.config.dialect == FormattingDialect::TRINO {
                     if !unbounded {
                         return self.format_unimplemented(node);
@@ -2689,7 +2689,7 @@ impl<'a> Formatter<'a> {
             base_reg = self.reg(function);
         } else if let Some(rows_from) = rows_from {
             let items = self.array_regs(rows_from);
-            if items.iter().any(|&i| i == 0) {
+            if items.contains(&0) {
                 return self.format_unimplemented(node);
             }
             let list = self.comma_join_on_overflow(&items, true);
@@ -2942,7 +2942,7 @@ impl<'a> Formatter<'a> {
     fn format_operator_path(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
         let parts = self.array_regs(node);
-        if parts.is_empty() || parts.iter().any(|&p| p == 0) {
+        if parts.is_empty() || parts.contains(&0) {
             return self.format_unimplemented(node);
         }
         let joined = f.join(&parts, f.text("."), f.text("."), None, false);

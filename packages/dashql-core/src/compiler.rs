@@ -31,12 +31,7 @@ fn error(
     e.code = code;
     e.statement_id = statement_id;
     e.ast_node_id = ast_node_id;
-    e.text_span = text_span.map(|s| {
-        let mut t = TextSpanT::default();
-        t.offset = s.offset;
-        t.length = s.length;
-        t
-    });
+    e.text_span = text_span.map(|s| TextSpanT { offset: s.offset, length: s.length });
     e.message = Some(message.to_string());
     e
 }

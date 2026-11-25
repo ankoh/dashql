@@ -198,6 +198,9 @@ fn check_layer(layer: CatalogLayer) -> Result<()> {
 /// The source of unique catalog ids
 static NEXT_CATALOG_ID: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
 
+/// The key of an entry by its qualified schema: (database, schema, layer, id)
+pub type QualifiedSchemaEntryKey = (Arc<str>, Arc<str>, CatalogLayer, CatalogEntryId);
+
 /// The published state of a catalog at one point in time.
 ///
 /// Immutable once published: analyses keep the snapshot they resolved against, so their catalog
@@ -218,7 +221,7 @@ pub struct CatalogSnapshot {
     /// The entries ordered by (layer, id)
     entries_ranked: BTreeSet<(CatalogLayer, CatalogEntryId)>,
     /// The entries by (database, schema, layer, id)
-    entries_by_qualified_schema: BTreeMap<(Arc<str>, Arc<str>, CatalogLayer, CatalogEntryId), SchemaEntryInfo>,
+    entries_by_qualified_schema: BTreeMap<QualifiedSchemaEntryKey, SchemaEntryInfo>,
     /// The entries by (schema, layer, id)
     entries_by_schema: BTreeMap<(Arc<str>, CatalogLayer, CatalogEntryId), SchemaEntryInfo>,
     /// The databases referenced by entries
@@ -355,9 +358,7 @@ impl CatalogSnapshot {
     }
 
     /// The entries by (database, schema, layer, id)
-    pub fn entries_by_qualified_schema(
-        &self,
-    ) -> &BTreeMap<(Arc<str>, Arc<str>, CatalogLayer, CatalogEntryId), SchemaEntryInfo> {
+    pub fn entries_by_qualified_schema(&self) -> &BTreeMap<QualifiedSchemaEntryKey, SchemaEntryInfo> {
         &self.entries_by_qualified_schema
     }
 
@@ -1207,16 +1208,17 @@ impl CatalogSnapshot {
 
     /// The statistics of the catalog content
     pub fn statistics(&self) -> dashql_buffers::catalog::CatalogStatisticsT {
-        let mut content = dashql_buffers::catalog::CatalogContentStatisticsT::default();
-        content.database_count = self.databases.len() as u32;
-        content.schema_count = self.schemas.len() as u32;
-        content.table_count = self.entries.values().map(|e| e.data().table_declarations.len() as u32).sum();
-        content.table_column_count = self
-            .entries
-            .values()
-            .flat_map(|e| e.data().table_declarations.iter())
-            .map(|t| t.table_columns.len() as u32)
-            .sum();
+        let content = dashql_buffers::catalog::CatalogContentStatisticsT {
+            database_count: self.databases.len() as u32,
+            schema_count: self.schemas.len() as u32,
+            table_count: self.entries.values().map(|e| e.data().table_declarations.len() as u32).sum(),
+            table_column_count: self
+                .entries
+                .values()
+                .flat_map(|e| e.data().table_declarations.iter())
+                .map(|t| t.table_columns.len() as u32)
+                .sum(),
+        };
         let mut out = dashql_buffers::catalog::CatalogStatisticsT::default();
         out.content = Some(content);
         out

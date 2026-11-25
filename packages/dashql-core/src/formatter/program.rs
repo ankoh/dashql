@@ -792,7 +792,7 @@ fn append_line_break(output: &mut String, line: &mut Line, indentation: usize, d
         output.push_str(&suffix);
     }
     output.push('\n');
-    output.extend(std::iter::repeat(' ').take(indentation));
+    output.extend(std::iter::repeat_n(' ', indentation));
     line.width = indentation;
 }
 

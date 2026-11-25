@@ -246,10 +246,11 @@ impl<'a> ScriptDiff<'a> {
         // Compare the text if the statements are equal in size and number of root attributes.
         let s_span = resolve(self.source, s);
         let t_span = resolve(self.target, t);
-        if s.children_count() == t.children_count() && s_span.length == t_span.length {
-            if padded_text(self.source, s_span) == padded_text(self.target, t_span) {
-                return SimilarityEstimate::Equal;
-            }
+        if s.children_count() == t.children_count()
+            && s_span.length == t_span.length
+            && padded_text(self.source, s_span) == padded_text(self.target, t_span)
+        {
+            return SimilarityEstimate::Equal;
         }
         SimilarityEstimate::Similar
     }

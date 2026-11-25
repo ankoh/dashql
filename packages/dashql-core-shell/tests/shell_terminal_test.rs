@@ -6,9 +6,7 @@ use dashql_core::catalog::CatalogLayer;
 use dashql_core::script::Script;
 use dashql_core_shell::vt100::{self, sequence, Command};
 use dashql_core_shell::DEFAULT_TERMINAL_PROMPT;
-use dashql_core_shell::{
-    EffectCompletionStatus, PromptInputAction, PromptInputKey as Key, ShellStatus, TerminalOutput,
-};
+use dashql_core_shell::{PromptInputAction, PromptInputKey as Key, ShellStatus, TerminalOutput};
 
 #[path = "support/test_shell.rs"]
 mod support;

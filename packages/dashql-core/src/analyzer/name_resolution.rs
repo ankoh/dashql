@@ -1973,7 +1973,7 @@ impl NameResolutionPass {
         let mut columns = Vec::new();
         let mut covered = 0;
         for item in state.children(from) {
-            columns.extend(self.from_item_columns(state, scope, item, &mut covered).into_iter().map(|c| c.column));
+            columns.extend(self.columns_of_from_item(state, scope, item, &mut covered).into_iter().map(|c| c.column));
         }
         // A FROM item outside of the join trees, forward the FROM items in order
         if covered != scope.sources.len() {
@@ -1985,11 +1985,11 @@ impl NameResolutionPass {
     /// The columns of an aliased join
     fn join_alias_columns(&self, state: &AnalysisState, scope: &NameScope, join: &ScopeJoin) -> Vec<ScopeJoinColumn> {
         let Some(item) = state.node(join.ast_node_id) else { return Vec::new() };
-        self.from_item_columns(state, scope, item, &mut 0)
+        self.columns_of_from_item(state, scope, item, &mut 0)
     }
 
     /// The columns of a FROM item or a join, counting the FROM items it covers
-    fn from_item_columns(
+    fn columns_of_from_item(
         &self,
         state: &AnalysisState,
         scope: &NameScope,
@@ -2009,7 +2009,7 @@ impl NameResolutionPass {
             let Some(join) = table.filter(|t| t.node_type() == NodeType::OBJECT_SQL_JOINED_TABLE) else {
                 return Vec::new();
             };
-            let mut columns = self.from_item_columns(state, scope, join, covered);
+            let mut columns = self.columns_of_from_item(state, scope, join, covered);
             if let Some(alias) = scope.joins.iter().find(|alias| alias.ast_node_id == item_id) {
                 for (column, name) in columns.iter_mut().zip(&alias.column_aliases) {
                     column.column.column_name = name.clone();
@@ -2020,7 +2020,8 @@ impl NameResolutionPass {
         let joins = self.using_joins.get(&scope.name_scope_id).map(Vec::as_slice).unwrap_or_default();
         let [inputs] = attrs!(state.children(item), [K::SQL_JOIN_INPUT]);
         let Some(inputs) = inputs.filter(|n| n.node_type() == NodeType::ARRAY) else { return Vec::new() };
-        let mut sides = state.children(inputs).iter().map(|input| self.from_item_columns(state, scope, input, covered));
+        let mut sides =
+            state.children(inputs).iter().map(|input| self.columns_of_from_item(state, scope, input, covered));
         let (Some(left), Some(right)) = (sides.next(), sides.next()) else { return Vec::new() };
         let name = |c: &ScopeJoinColumn| c.column.column_name.text.clone();
         let join_columns: Vec<Arc<str>> = match joins.iter().find(|join| join.ast_node_id == item_id) {
