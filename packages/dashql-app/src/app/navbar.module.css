@@ -47,7 +47,7 @@
 
 /* The brand follows the traffic lights of the desktop app on macOS, see trafficLightPosition in dashql-native */
 .top_bar_mac .brand_identity {
-    margin-left: 84px;
+    margin-left: 96px;
 }
 
 .top_bar_actions {
