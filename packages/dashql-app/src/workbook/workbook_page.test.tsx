@@ -41,11 +41,19 @@ describe('WorkbookPage view transitions', () => {
     let feedMounts: number;
     let feedUnmounts: number;
 
+    /// Capture what is committed, not what is rendered. The router navigates in a transition, which React renders
+    /// in slices: a check between two slices would see the location of this component and the page of the old one.
     function Capture() {
-        runtime = useRuntime();
-        location = useLocation();
-        viewMode = useWorkbookViewMode();
-        navigate = useRouterNavigate();
+        const renderedRuntime = useRuntime();
+        const renderedLocation = useLocation();
+        const renderedViewMode = useWorkbookViewMode();
+        const renderedNavigate = useRouterNavigate();
+        React.useLayoutEffect(() => {
+            runtime = renderedRuntime;
+            location = renderedLocation;
+            viewMode = renderedViewMode;
+            navigate = renderedNavigate;
+        });
         return null;
     }
 
