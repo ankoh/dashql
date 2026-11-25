@@ -575,10 +575,12 @@ describe('the runs of scripts of the runtime', () => {
         expect(f.cache!.names(f.workbookId)).toEqual([expect.stringMatching(new RegExp(`^foo\\.${key}\\.[0-9a-f]{20}\\.parquet$`))]);
         f.core.flush();
         expect(queryView(f.core, f.script('foo.sql').latestQueryId!)).toMatchObject({ servedFromCache: false });
-        // The second run reads the stored result instead of the connection
+        // The second run reuses the stored result instead of the connection. The script shows the result that it wrote
+        // to that file already, the run doesn't read the file again.
+        const shown = f.script('foo.sql').latestQueryId;
         await f.run('foo.sql');
         expect(f.executeQuery).toHaveBeenCalledOnce();
-        expect(queryView(f.core, f.script('foo.sql').latestQueryId!)?.servedFromCache).toBe(true);
+        expect(f.script('foo.sql').latestQueryId).toBe(shown);
         // A refresh runs the script again, its new file replaces the old one
         await f.run('foo.sql', true);
         await f.core.module.flushResultWrites();

@@ -101,6 +101,18 @@ pub struct WorkbookRunState {
     /// result or follow a script that runs on such a connection
     pub skipped_scripts: usize,
     pub skipped_files: Vec<String>,
+    /// The scripts that failed, in the order they failed. The scripts that follow them didn't run, the others ran on.
+    pub failed_scripts: Vec<WorkbookRunScriptFailure>,
+    /// The script whose stored result the run reads, e.g. while it plans
+    pub reading_file_name: Option<String>,
+}
+
+/// A script that failed in a run
+#[derive(Clone, Debug, PartialEq, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkbookRunScriptFailure {
+    pub file_name: String,
+    pub message: String,
 }
 
 impl From<&RunState> for WorkbookRunState {
@@ -118,6 +130,15 @@ impl From<&RunState> for WorkbookRunState {
             error: state.error.clone(),
             skipped_scripts: state.skipped_scripts,
             skipped_files: state.skipped_files.clone(),
+            failed_scripts: state
+                .failed
+                .iter()
+                .map(|failure| WorkbookRunScriptFailure {
+                    file_name: failure.file.clone(),
+                    message: failure.message.clone(),
+                })
+                .collect(),
+            reading_file_name: state.reading_file.clone(),
         }
     }
 }
@@ -221,8 +242,11 @@ pub enum WorkbookScriptRunEvent {
     Started,
     /// Its statements are done: the key of its result if the key is reusable, the query of its last output
     Done { key: Option<String>, query_id: Option<u64> },
-    /// A statement of the script failed, the run stops
+    /// A statement of the script failed, or a run of the workbook can't plan it. The scripts that follow it don't run,
+    /// the others run on.
     Failed { failure: WorkbookRunFailure },
+    /// It doesn't run since it follows a script that failed: the file of that script and its error
+    Blocked { by: String, message: String },
     /// The run stopped the script while it ran
     Cancelled,
 }
@@ -245,6 +269,9 @@ impl WorkbookScriptRunEvent {
                 return (WorkbookScriptRunEvent::Failed { failure }, value);
             }
             ScriptEvent::Cancelled => WorkbookScriptRunEvent::Cancelled,
+            ScriptEvent::Blocked { by, message } => {
+                WorkbookScriptRunEvent::Blocked { by: by.clone(), message: message.clone() }
+            }
         };
         (view, wasm_bindgen::JsValue::UNDEFINED)
     }

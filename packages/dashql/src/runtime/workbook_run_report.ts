@@ -176,6 +176,10 @@ export async function runWorkbookReported(runtime: Runtime, workbook: WorkbookSc
                     settle(script, 'notRun');
                     report(async () => ({ type: 'script_not_run', script, reason: event.reason }));
                     break;
+                case 'blocked':
+                    settle(script, 'notRun');
+                    report(async () => ({ type: 'script_not_run', script, reason: `${event.by} failed` }));
+                    break;
             }
         };
 

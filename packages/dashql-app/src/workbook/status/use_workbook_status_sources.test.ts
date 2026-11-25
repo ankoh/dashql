@@ -19,7 +19,7 @@ function execution(phase: WorkbookRunState['phase'], extra: Partial<WorkbookRunS
     return {
         phase, busy: phase === 'planning' || phase === 'running' || phase === 'stopping', totalScripts: 3, completedScripts: 1, totalStatements: 3, completedStatements: 1,
         activeFileName: '2_revenue.sql', activeStatementIndex: 0, activeStatementCount: 1,
-        error: null, skippedScripts: 0, skippedFiles: [], ...extra,
+        error: null, skippedScripts: 0, skippedFiles: [], failedScripts: [], readingFileName: null, ...extra,
     };
 }
 
@@ -89,6 +89,11 @@ describe('Workbook status', () => {
             ['success', 'Ran all scripts', '3 scripts · 1 skipped, they need a connection'],
         ]);
         expect(texts(diffExecution(execution('running'), execution('failed', { error: 'boom' }), NOW))).toEqual([['failed', 'Running all scripts failed', 'boom']]);
+        // The scripts that failed, the others ran on
+        const one = [{ fileName: 'a.sql', message: 'boom' }];
+        expect(texts(diffExecution(execution('running'), execution('failed', { error: 'boom', failedScripts: one }), NOW))).toEqual([['failed', 'Running all scripts failed', 'a: boom']]);
+        const two = [...one, { fileName: 'b.sql', message: 'bang' }];
+        expect(texts(diffExecution(execution('running'), execution('failed', { error: 'boom', failedScripts: two }), NOW))).toEqual([['failed', 'Running all scripts failed', '2 scripts failed: a, b']]);
         expect(texts(diffExecution(execution('stopping'), execution('cancelled'), NOW))).toEqual([['attention', 'Stopped the run of all scripts', '1/3']]);
         expect(diffExecution(execution('succeeded'), execution('succeeded'), NOW)).toEqual([]);
     });

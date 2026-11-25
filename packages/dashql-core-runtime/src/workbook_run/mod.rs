@@ -209,6 +209,17 @@ pub struct RunState {
     /// result whose key matches or follow a script that runs on such a connection
     pub skipped_scripts: usize,
     pub skipped_files: Vec<String>,
+    /// The scripts that failed, in the order they failed. The scripts that follow them don't run, the others run on.
+    pub failed: Vec<ScriptFailure>,
+    /// The script whose stored result the run reads, e.g. while it plans
+    pub reading_file: Option<String>,
+}
+
+/// A script that failed in a run
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ScriptFailure {
+    pub file: String,
+    pub message: String,
 }
 
 impl Default for RunState {
@@ -225,6 +236,8 @@ impl Default for RunState {
             error: None,
             skipped_scripts: 0,
             skipped_files: Vec::new(),
+            failed: Vec::new(),
+            reading_file: None,
         }
     }
 }
@@ -273,8 +286,9 @@ impl RunFailure {
     }
 }
 
-/// What happens to a script in a run. A script of the plan is `Planned`, `Cached` or `Skipped`. A planned script
-/// that starts is then `Done`, `Failed` or `Cancelled`. A planned script that never starts, e.g. because the run
+/// What happens to a script in a run. A script of the plan is `Planned`, `Cached` or `Skipped`, or `Failed` if a run
+/// of the workbook can't plan it. A planned script that starts is then `Done`, `Failed` or `Cancelled`. A planned
+/// script that follows a script that failed is `Blocked`. A planned script that never starts, e.g. because the run
 /// stopped first, gets no further event.
 #[derive(Clone, Debug)]
 pub enum ScriptEvent {
@@ -288,8 +302,11 @@ pub enum ScriptEvent {
     Started,
     /// Its statements are done: the key of its result if the key is reusable, the query of its last output
     Done { key: Option<String>, query_id: Option<QueryId> },
-    /// A statement of the script failed, the run stops
+    /// A statement of the script failed, or a run of the workbook can't plan it (`RunFailureKind::Plan`). The scripts
+    /// that follow it don't run, the others run on.
     Failed { failure: RunFailure },
+    /// It doesn't run since it follows a script that failed: the file of that script and its error
+    Blocked { by: String, message: String },
     /// The run stopped the script while it ran
     Cancelled,
 }

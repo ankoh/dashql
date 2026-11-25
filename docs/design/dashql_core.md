@@ -312,9 +312,14 @@ loader. See [catalog_updates.md](catalog_updates.md) and [catalog_batching.md](c
   and plans again with their files. A script that changed its text or its signature between the two plans, e.g. typed
   while the run looked up the stored results, fails the run: its keys and files come from the first plan.
 - A node starts once its predecessors released it, at most `max_concurrent_queries` statements of a connection at once
-  (four for a Hyper server, one otherwise). A failed statement cancels the running ones; the nodes of a connection that
-  can't run or be set up are skipped with what follows them. A script of a connection that can't run uses its stored
-  result whatever its key, it is skipped only without one.
+  (four for a Hyper server, one otherwise). A failed statement fails its script: the nodes that follow it don't run, the
+  scripts of those nodes are `Blocked` and show why, and the other scripts run on. The run fails with the first failure
+  once it ended, the `run` state lists every failed script (`failed`). The nodes of a connection that can't run or be
+  set up are skipped with what follows them. A script of a connection that can't run uses its stored result whatever
+  its key, it is skipped only without one.
+- A run of the whole workbook plans tolerantly (`PlanScope::Tolerant`): a script that doesn't analyze, can't be planned
+  or whose visualization doesn't decode fails on its own and blocks what follows it. A run of targets, of a script or
+  of a change of inputs, still needs all of its plan.
 - One run holds a workbook. A run of the whole workbook takes the connections of its scripts and starts only while they
   are idle; otherwise it resolves `refused` with the reason. A change of inputs while the workbook is busy stops the run
   and waits in the `run` slice, it is dropped after 5 s.

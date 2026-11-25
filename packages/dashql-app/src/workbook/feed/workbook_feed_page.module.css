@@ -273,6 +273,30 @@
     white-space: pre-wrap;
 }
 
+.execution_failures {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 8px;
+}
+
+/* The name of a failed script shows it in the feed */
+.execution_failure_script {
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    font-weight: 600;
+    color: var(--color_accent_fg, inherit);
+    cursor: pointer;
+    text-align: start;
+}
+
+.execution_failure_script:hover {
+    text-decoration: underline;
+}
+
 @media only screen and (max-width: 600px) {
     .page {
         --workbook_header_height: 76px;

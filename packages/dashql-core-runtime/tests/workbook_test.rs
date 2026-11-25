@@ -485,10 +485,12 @@ fn keeps_the_result_of_the_newest_query() {
     let (mut workbook, _) = workbook(&[("alpha.sql", "select 1")]);
     let alpha = key(&workbook, "alpha.sql");
     workbook.apply(WorkbookAction::RegisterQuery { key: alpha, query_id: 7 }).unwrap();
-    workbook.apply(WorkbookAction::RegisterScriptResult { key: alpha, query_id: 7 }).unwrap();
+    workbook.apply(WorkbookAction::RegisterScriptResult { key: alpha, query_id: 7, file: None }).unwrap();
     workbook.apply(WorkbookAction::RegisterQuery { key: alpha, query_id: 8 }).unwrap();
     // An older overlapping query doesn't replace the newer result
-    assert!(!workbook.apply(WorkbookAction::RegisterScriptResult { key: alpha, query_id: 5 }).unwrap().changed);
+    assert!(
+        !workbook.apply(WorkbookAction::RegisterScriptResult { key: alpha, query_id: 5, file: None }).unwrap().changed
+    );
     let script = workbook.script(alpha).unwrap();
     assert_eq!((script.latest_query_id(), script.latest_result_query_id()), (Some(8), Some(7)));
 }
@@ -570,7 +572,7 @@ fn moves_a_script_to_another_connection_under_its_key() {
     let (mut workbook, main) = workbook(&[("alpha.sql", "select 1"), ("beta.sql", "select 2")]);
     let beta = key(&workbook, "beta.sql");
     workbook.apply(WorkbookAction::RegisterQuery { key: beta, query_id: 7 }).unwrap();
-    workbook.apply(WorkbookAction::RegisterScriptResult { key: beta, query_id: 7 }).unwrap();
+    workbook.apply(WorkbookAction::RegisterScriptResult { key: beta, query_id: 7, file: None }).unwrap();
     let trino = connection("trino", Some(r#"{"trino":{}}"#));
     let set = |connection: &Rc<ScriptConnection>| WorkbookAction::SetScriptConnection {
         file_name: "beta.sql".into(),

@@ -139,7 +139,12 @@ change of inputs reuse a stored result whose key fits, only **Refresh** computes
 results downstream of the script, the next run computes them anew (Result Keys above). The app manifest of earlier
 versions kept a choice per connection, `cacheQueryResults` of a connection entry: it is read and dropped.
 
-A run reuses the result of a script if the key in the name of its file equals the reusable key of the script. A run of
+A run reuses the result of a script if the key in the name of its file equals the reusable key of the script. A script
+that shows the result of that file already, it was read from the file or written to it (`latest_result_file` of the
+script, set with `RegisterScriptResult`), keeps showing it: the run reads no file twice, a large result takes seconds
+to read and analyze. While the run reads a file, its state names the script (`reading_file`) and the status says so.
+A run of a script also lets a script of another connection that its target scans stand in with its stored file
+whatever its key (`script_references.md`, Running a Script). A run of
 a script executes a plan of the script like a run of the workbook executes the plan of every script
 (`packages/dashql-core-runtime/src/workbook_run/`): it derives the result keys from the plan and, for a script whose
 key is reusable and stored and that follows no script that runs, runs only the terminal query of the script with the

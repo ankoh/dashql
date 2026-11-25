@@ -1251,6 +1251,23 @@ impl RunHost for RuntimeRunHost {
     }
 
     fn script_event(&self, file: &str, event: &ScriptEvent) {
+        // A script that a run of the workbook can't plan, or one that doesn't run since it follows a script that
+        // failed, shows why where it shows the error of a failed statement
+        let shown = match event {
+            ScriptEvent::Failed { failure } if failure.kind == RunFailureKind::Plan => Some(failure.message.clone()),
+            ScriptEvent::Blocked { by, message } => Some(format!("Not run, {by} failed: {message}")),
+            _ => None,
+        };
+        if let (Some(message), Some(runs)) = (shown, self.runs.upgrade()) {
+            let script = self.workbook.upgrade().and_then(|workbook| {
+                let workbook = workbook.try_borrow().ok()?;
+                let script = workbook.script_by_file(file)?;
+                Some((script.key(), script.connection().connection_id.clone()))
+            });
+            if let Some((key, connection_id)) = script {
+                runs.record_failure(&self.workbook_id, key, &connection_id, &message);
+            }
+        }
         let Some((listener, script)) = self
             .listener
             .as_ref()

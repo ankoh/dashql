@@ -113,7 +113,8 @@ export function liveWorkbookStatuses(args: {
             key: 'execute_all',
             source: WorkbookStatusSource.ExecuteAll,
             tone: WorkbookStatusTone.Progress,
-            text: execution.phase === 'planning' ? 'Planning the run of all scripts'
+            text: execution.phase === 'planning'
+                ? (execution.readingFileName != null ? `Reading the stored result of ${scriptDisplayName(execution.readingFileName)}` : 'Planning the run of all scripts')
                 : execution.phase === 'stopping' ? 'Stopping the run of all scripts' : 'Running all scripts',
             detail: execution.phase === 'running' ? `${execution.completedScripts}/${execution.totalScripts}${active}` : null,
             at: now,
@@ -204,8 +205,13 @@ export function diffExecution(prev: WorkbookRunState | null, next: WorkbookRunSt
     switch (next.phase) {
         case 'succeeded':
             return [{ key, source: WorkbookStatusSource.ExecuteAll, tone: WorkbookStatusTone.Success, text: 'Ran all scripts', detail: `${next.completedScripts} scripts${skipped}`, at: now }];
-        case 'failed':
-            return [{ key, source: WorkbookStatusSource.ExecuteAll, tone: WorkbookStatusTone.Failed, text: 'Running all scripts failed', detail: next.error, at: now }];
+        case 'failed': {
+            // The scripts that failed, the others ran on
+            const failed = next.failedScripts;
+            const detail = failed.length === 1 ? `${scriptDisplayName(failed[0].fileName)}: ${failed[0].message}`
+                : failed.length > 1 ? `${failed.length} scripts failed: ${failed.map(f => scriptDisplayName(f.fileName)).join(', ')}` : next.error;
+            return [{ key, source: WorkbookStatusSource.ExecuteAll, tone: WorkbookStatusTone.Failed, text: 'Running all scripts failed', detail, at: now }];
+        }
         default:
             return [{ key, source: WorkbookStatusSource.ExecuteAll, tone: WorkbookStatusTone.Attention, text: 'Stopped the run of all scripts', detail: `${next.completedScripts}/${next.totalScripts}`, at: now }];
     }

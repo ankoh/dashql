@@ -333,6 +333,12 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
             if (modeRef.current !== WorkbookViewMode.Workbook) setViewReveal({ view: modeRef.current, scriptKey });
         },
     }), [setMode, setOverviewConnectionId]);
+    // A failed script of the run of the workbook shows in the feed
+    const scriptRefs = props.workbookScripts.scriptRefs;
+    const showScriptOfFile = React.useCallback((fileName: string) => {
+        const scriptKey = scriptRefs[fileName]?.scriptId;
+        if (scriptKey != null) promptFeed.show(scriptKey);
+    }, [promptFeed, scriptRefs]);
     // The feed keeps the space of the docked prompt below its last script, also while the prompt is shrunk over
     // another view and the rows of the hidden feed stay where they are
     const [feedInsets, setFeedInsets] = React.useState<WorkbookFeedInsets | undefined>(undefined);
@@ -498,6 +504,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                                     workbookId={props.workbookScripts.workbookId}
                                     execution={execution}
                                     startable={scriptConnectionsIdle && props.workbookScripts.scriptOrder.length > 0}
+                                    showScript={showScriptOfFile}
                                 />
                             )}
                             {/* A preview says it is read-only next to Execute All */}

@@ -14,7 +14,7 @@ function runState(phase: WorkbookRunState['phase'], extra: Partial<WorkbookRunSt
     return {
         phase, busy: phase === 'planning' || phase === 'running' || phase === 'stopping', totalScripts: 5, completedScripts: 2,
         totalStatements: 9, completedStatements: 4, activeFileName: null, activeStatementIndex: null, activeStatementCount: null,
-        error: null, skippedScripts: 0, skippedFiles: [], ...extra,
+        error: null, skippedScripts: 0, skippedFiles: [], failedScripts: [], readingFileName: null, ...extra,
     };
 }
 
@@ -37,8 +37,9 @@ describe('WorkbookExecutionControls', () => {
         container.remove();
     });
 
+    const showScript = vi.fn();
     const render = (execution: WorkbookExecutionModel, startable = true) => act(() => root.render(
-        <WorkbookExecutionControls workbookId="workbook" execution={execution} startable={startable} />,
+        <WorkbookExecutionControls workbookId="workbook" execution={execution} startable={startable} showScript={showScript} />,
     ));
     const executeAll = () => container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]');
     const stopButton = () => container.querySelector<HTMLButtonElement>('[data-testid="stop-execution"]');
@@ -46,6 +47,36 @@ describe('WorkbookExecutionControls', () => {
     const details = () => document.querySelector('[data-testid="execution-details"]');
     const toggleDetails = () => act(() => container.querySelector<HTMLButtonElement>('[data-testid="execution-details-toggle"]')!.click());
     const closeDetails = () => act(() => document.querySelector<HTMLButtonElement>('[data-testid="execution-details-close"]')!.click());
+
+    it('names the scripts that failed and shows them in the feed', () => {
+        render(fakeExecution(runState('failed', {
+            completedScripts: 3, error: 'aggregates are not allowed here',
+            failedScripts: [{ fileName: 'events.sql', message: 'aggregates are not allowed here' }],
+        })));
+        expect(status().textContent).toBe('3/5 completed · events failed');
+        render(fakeExecution(runState('failed', {
+            completedScripts: 3, error: 'aggregates are not allowed here',
+            failedScripts: [
+                { fileName: 'events.sql', message: 'aggregates are not allowed here' },
+                { fileName: 'daily.sql', message: 'function "count_if" does not exist' },
+            ],
+        })));
+        expect(status().textContent).toBe('3/5 completed · 2 failed');
+        toggleDetails();
+        const failures = document.querySelector('[data-testid="execution-failures"]')!;
+        expect(failures.textContent).toContain('function "count_if" does not exist');
+        // The name of a failed script shows it in the feed and closes the details
+        act(() => [...failures.querySelectorAll('button')].find(button => button.textContent === 'daily')!.click());
+        expect(showScript).toHaveBeenCalledWith('daily.sql');
+        expect(details()).toBeNull();
+    });
+
+    it('names the stored result that it reads while it plans', () => {
+        render(fakeExecution(runState('planning', { readingFileName: 'shadow_samples.sql' })));
+        expect(status().textContent).toBe('Reading shadow_samples...');
+        render(fakeExecution(runState('planning')));
+        expect(status().textContent).toBe('Planning...');
+    });
 
     it('starts the workbook once it can run', () => {
         const execution = fakeExecution(null);

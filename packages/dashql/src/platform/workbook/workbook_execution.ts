@@ -6,9 +6,10 @@ import { LoggableException } from '../logger/logger.js';
 // `packages/dashql-core-runtime/src/workbook_run`): `Runtime.runWorkbook`, `runScript` and `stopRun`, the `run`
 // slice of a workbook. These are the types that the listeners of runs read.
 
-/// What happens to a script in a run. A script of the plan is `planned`, or `cached`, or `skipped`. A planned script
-/// may still be skipped if its connection can't be set up. A planned script that starts is then `done`, `failed` or
-/// `cancelled`. A planned script that never starts, e.g. because the run stopped first, gets no further event.
+/// What happens to a script in a run. A script of the plan is `planned`, or `cached`, or `skipped`, or `failed` if a run
+/// of the workbook can't plan it. A planned script may still be skipped if its connection can't be set up. A planned
+/// script that starts is then `done`, `failed` or `cancelled`. A planned script that follows a script that failed is
+/// `blocked`. A planned script that never starts, e.g. because the run stopped first, gets no further event.
 export type ScriptRunEvent =
     /// It runs once the scripts that it follows in the plan are done
     | { type: 'planned'; follows: string[] }
@@ -21,9 +22,12 @@ export type ScriptRunEvent =
     /// Its statements are done: the key of its result in the query result cache if the key is reusable, the query of
     /// its last output, null without one
     | { type: 'done'; key: string | null; queryId: number | null }
-    /// A statement of the script failed, the run stops. The query of the statement, null for a failure of no statement.
+    /// A statement of the script failed, or a run of the workbook can't plan it. The query of the statement, null for a
+    /// failure of no statement. The scripts that follow it don't run, the others run on.
     | { type: 'failed'; error: unknown; queryId: number | null }
-    /// The run stopped the script while it ran, e.g. after another script failed
+    /// It doesn't run since it follows a script that failed: the file of that script and its error
+    | { type: 'blocked'; by: string; message: string }
+    /// The run stopped the script while it ran
     | { type: 'cancelled' };
 
 /// A script that can't be planned, e.g. one that references an unknown script

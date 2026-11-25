@@ -352,6 +352,9 @@ pub struct WorkbookScript {
     latest_query_id: Option<u32>,
     /// The query whose result the script shows, independent of later queries that failed
     latest_result_query_id: Option<u32>,
+    /// The stored file that holds the result that the script shows: the file that it was read from or written to. A run
+    /// that reuses this file shows the result as it is instead of reading the file again.
+    latest_result_file: Option<String>,
     /// The stored result of the script as the host last looked it up, none without one
     stored_result: Option<ScriptStoredResult>,
     /// The connection that the workbook file names for the script while the app doesn't know it
@@ -454,6 +457,9 @@ impl WorkbookScript {
     }
     pub fn latest_result_query_id(&self) -> Option<u32> {
         self.latest_result_query_id
+    }
+    pub fn latest_result_file(&self) -> Option<&str> {
+        self.latest_result_file.as_deref()
     }
     pub fn stored_result(&self) -> Option<&ScriptStoredResult> {
         self.stored_result.as_ref()
@@ -726,8 +732,10 @@ pub enum WorkbookAction {
     SetExecutionVisualization { key: ScriptKey, visualization: Option<ScriptVisualization> },
     /// A query of a script started
     RegisterQuery { key: ScriptKey, query_id: u32 },
-    /// A query of a script produced the result that the script shows. An older query never replaces a newer result.
-    RegisterScriptResult { key: ScriptKey, query_id: u32 },
+    /// A query of a script produced the result that the script shows, with the stored file that holds it: the file that
+    /// it was read from or that its result is written to, none for a result without one. An older query never replaces
+    /// a newer result.
+    RegisterScriptResult { key: ScriptKey, query_id: u32, file: Option<String> },
     /// The stored result of a script as the host looked it up, none for a script without one
     SetStoredResult { key: ScriptKey, stored: Option<ScriptStoredResult> },
     /// Rename the workbook, an empty name removes the name
@@ -1583,11 +1591,12 @@ impl Workbook {
                     outcome.changed = true;
                 }
             }
-            WorkbookAction::RegisterScriptResult { key, query_id } => {
+            WorkbookAction::RegisterScriptResult { key, query_id, file } => {
                 if let Some(script) = self.script_mut(key) {
                     // Query ids grow, an older overlapping query must not replace a newer result
                     if script.latest_result_query_id.is_none_or(|latest| latest < query_id) {
                         script.latest_result_query_id = Some(query_id);
+                        script.latest_result_file = file;
                         script.revision = next_revision();
                         outcome.changed = true;
                     }
@@ -1763,6 +1772,7 @@ impl Workbook {
             statistics: Default::default(),
             latest_query_id: None,
             latest_result_query_id: None,
+            latest_result_file: None,
             stored_result: None,
             unresolved_connection_id: None,
             revision: next_revision(),
@@ -2176,6 +2186,7 @@ impl Workbook {
         moved.statistics = previous.statistics.clone();
         moved.latest_query_id = previous.latest_query_id;
         moved.latest_result_query_id = previous.latest_result_query_id;
+        moved.latest_result_file = previous.latest_result_file.clone();
         moved.stored_result = previous.stored_result.clone();
         Ok(moved)
     }

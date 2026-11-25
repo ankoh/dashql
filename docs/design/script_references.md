@@ -168,6 +168,11 @@ statement. The files of the runs are the stored results of the workbook over the
 platform). Without them, a run mounts no results of other connections and stores nothing. A script connection knows whether it is the embedded
 Hyper (`ScriptConnection.local`).
 
+A script of another connection than the target, one that the target scans, stands in with its stored file whatever its
+key (`stands_in` of `workbook_run/engine.rs`): the run of `bar.sql` scans the stored result of `foo.sql` of Trino, also
+an imported one, instead of running the query of `foo.sql` again. Only a refresh runs it. Without a stored file the
+script runs.
+
 The result key of a script covers the keys of the scripts it references and the names of their files (`result_keys` in
 `workbook_run/result_key.rs` of the core runtime, see `workbook_results.md`): a new result of a script outdates the scripts
 downstream of it. When the key is reusable, i.e. the script and the scripts it references are cacheable, a

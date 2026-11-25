@@ -20,7 +20,7 @@ use dashql_core_runtime::workbook::{
 use dashql_core_runtime::workbook_run::result_key::{stored_result_keys, UNMATCHED_RESULT_KEY};
 use dashql_core_runtime::workbook_run::{
     start_run, PlanRun, RetainedFile, RunFailureKind, RunHost, RunOptions, RunPhase, RunResult, RunState, ScriptEvent,
-    StatementFailure, StatementHandle, StatementRequest, StatementResult,
+    ScriptFailure, StatementFailure, StatementHandle, StatementRequest, StatementResult,
 };
 
 // The executor
@@ -308,6 +308,7 @@ impl RunHost for FakeHost {
             ScriptEvent::Done { .. } => "done",
             ScriptEvent::Failed { .. } => "failed",
             ScriptEvent::Cancelled => "cancelled",
+            ScriptEvent::Blocked { .. } => "blocked",
         };
         self.state.borrow_mut().events.push((file.to_string(), name.to_string()));
     }
@@ -483,7 +484,7 @@ fn pin_of(call: &str) -> (String, String) {
 }
 
 #[test]
-fn a_failed_statement_cancels_the_running_statements_and_fails_the_run() {
+fn a_failed_statement_fails_its_script_and_the_others_run_on() {
     let (a, b) = (connection("a", false), connection("b", false));
     let workbook = workbook(&[("1_a.sql", "select 1", &a), ("2_b.sql", "select 2", &b)]);
     let s = setup(false, None, 1);
@@ -491,15 +492,157 @@ fn a_failed_statement_cancels_the_running_statements_and_fails_the_run() {
     // The statements of the two connections run at once
     assert_eq!(s.texts(), vec!["select 1", "select 2"]);
     s.end("select 1", Err(StatementFailure::new("boom")));
+    // The other script is no follower of the failed one, it runs on
+    assert!(result.borrow().is_none(), "the run waits for select 2");
+    let cancel = format!("cancel {}", s.query_of("select 2"));
+    assert!(!s.calls().contains(&cancel), "{:?}", s.calls());
+    s.end("select 2", Ok(true));
     let result = result.borrow_mut().take().expect("the run ended");
     let failure = result.failure.expect("a failure");
     assert_eq!((failure.kind, failure.message.as_str()), (RunFailureKind::Error, "boom"));
-    let cancel = format!("cancel {}", s.query_of("select 2"));
-    assert!(s.calls().contains(&cancel), "{:?}", s.calls());
     assert_eq!(s.events("1_a.sql"), vec!["planned", "started", "failed"]);
-    assert_eq!(s.events("2_b.sql"), vec!["planned", "started", "cancelled"]);
+    assert_eq!(s.events("2_b.sql"), vec!["planned", "started", "done"]);
     let state = s.last_state();
     assert_eq!((state.phase, state.error.as_deref()), (RunPhase::Failed, Some("boom")));
+    assert_eq!(state.completed_scripts, 1);
+    assert_eq!(state.failed, vec![ScriptFailure { file: "1_a.sql".into(), message: "boom".into() }]);
+}
+
+#[test]
+fn the_scripts_that_follow_a_failed_script_do_not_run() {
+    let (local, remote) = (connection("local", true), connection("remote", false));
+    let workbook = workbook(&[
+        ("foo.sql", "select 1 as a", &remote),
+        ("bar.sql", "select count(*) from :foo", &local),
+        ("baz.sql", "select 3", &local),
+    ]);
+    let s = setup(true, Some("/mnt/cache"), 1);
+    s.state.borrow_mut().failing.push("select 1 as a".into());
+    let result = s.run(&workbook, workbook_run());
+    assert_eq!(result.failure.map(|f| f.message), Some("select 1 as a failed".to_string()));
+    // bar scans the result of foo, it never runs and says why; baz runs
+    assert!(!s.texts().iter().any(|text| text.contains("count(*)")), "{:?}", s.texts());
+    assert!(s.texts().contains(&"select 3".to_string()), "{:?}", s.texts());
+    assert_eq!(s.events("foo.sql").last().map(String::as_str), Some("failed"));
+    assert_eq!(s.events("bar.sql").last().map(String::as_str), Some("blocked"));
+    assert_eq!(s.events("baz.sql").last().map(String::as_str), Some("done"));
+    let state = s.last_state();
+    assert_eq!((state.phase, state.completed_scripts, state.failed.len()), (RunPhase::Failed, 1, 1));
+    // The run wrote no file of foo and released its pins
+    assert!(!s.calls().iter().any(|call| call.starts_with("write ")), "{:?}", s.calls());
+}
+
+#[test]
+fn execute_all_fails_the_scripts_it_can_not_plan_and_runs_the_others() {
+    let main = connection("main", false);
+    let workbook = workbook(&[
+        ("good.sql", "select 1", &main),
+        ("broken.sql", "select * from :missing", &main),
+        ("other.sql", "select 2", &main),
+    ]);
+    let s = setup(true, None, 1);
+    let result = s.run(&workbook, workbook_run());
+    let failure = result.failure.expect("a failure");
+    assert_eq!(failure.kind, RunFailureKind::Plan);
+    assert!(failure.message.contains("missing"), "{}", failure.message);
+    assert_eq!(s.texts(), vec!["select 1", "select 2"]);
+    assert_eq!(s.events("broken.sql"), vec!["failed"]);
+    let state = s.last_state();
+    assert_eq!(state.phase, RunPhase::Failed);
+    assert_eq!(state.failed.iter().map(|f| f.file.as_str()).collect::<Vec<_>>(), vec!["broken.sql"]);
+    assert_eq!((state.completed_scripts, state.skipped_scripts), (2, 0));
+    // A run of the script itself still needs all of its plan
+    let script = RunOptions { run: PlanRun::Script("broken.sql".into()), targets: Some(vec![1]), ..workbook_run() };
+    let failure = s.run(&workbook, script).failure.expect("a failure");
+    assert_eq!(failure.kind, RunFailureKind::Plan);
+}
+
+#[test]
+fn a_run_of_a_script_scans_the_stored_result_of_a_script_of_another_connection() {
+    let (local, remote) = (connection("local", true), connection("remote", false));
+    let workbook = workbook(&[("foo.sql", "select 1 as a", &remote), ("bar.sql", "select count(*) from :foo", &local)]);
+    let s = setup(true, Some("/mnt/cache"), 1);
+    {
+        // An imported result: its key matches no script
+        let mut state = s.state.borrow_mut();
+        state.stored.insert("foo.sql".into(), "imported".into());
+        state.names.insert("foo.sql".into(), "foo.sql.imported.1.parquet".into());
+    }
+    let run_bar = |refresh: bool| RunOptions {
+        run: PlanRun::Script("bar.sql".into()),
+        targets: Some(vec![1]),
+        refresh,
+        ..workbook_run()
+    };
+    let result = s.run(&workbook, run_bar(false));
+    assert!(result.failure.is_none(), "{:?}", result.failure);
+    // foo doesn't run on its connection, it shows its stored file and bar scans the file
+    let runs_foo =
+        |s: &Setup| {
+            s.state.borrow().statements.iter().any(|st| {
+                st.request.text == "select 1 as a" && !matches!(st.request.result, StatementResult::Read { .. })
+            })
+        };
+    assert!(!runs_foo(&s), "{:?}", s.texts());
+    assert!(s.texts().iter().any(|text| text.contains("/mnt/cache/foo.sql.imported.1.parquet")), "{:?}", s.texts());
+    // A refresh runs foo
+    s.state.borrow_mut().statements.clear();
+    let result = s.run(&workbook, run_bar(true));
+    assert!(result.failure.is_none(), "{:?}", result.failure);
+    assert!(runs_foo(&s), "{:?}", s.texts());
+}
+
+#[test]
+fn a_run_reads_no_stored_result_that_its_script_shows_already() {
+    let (local, remote) = (connection("local", true), connection("remote", false));
+    let workbook = workbook(&[("foo.sql", "select 1 as a", &remote), ("bar.sql", "select count(*) from :foo", &local)]);
+    let s = setup(true, Some("/mnt/cache"), 1);
+    {
+        let mut state = s.state.borrow_mut();
+        state.offline.insert("remote".into());
+        state.stored.insert("foo.sql".into(), "imported".into());
+        state.names.insert("foo.sql".into(), "foo.sql.imported.1.parquet".into());
+    }
+    let reads = |s: &Setup| {
+        s.state
+            .borrow()
+            .statements
+            .iter()
+            .filter(|st| matches!(st.request.result, StatementResult::Read { .. }))
+            .count()
+    };
+    // The first run reads the file of foo to show it
+    assert!(s.run(&workbook, workbook_run()).failure.is_none());
+    assert_eq!(reads(&s), 1);
+    let shown = workbook.borrow().script_by_file("foo.sql").and_then(|script| script.latest_result_query_id());
+    assert_eq!(
+        workbook.borrow().script_by_file("foo.sql").and_then(|script| script.latest_result_file().map(str::to_string)),
+        Some("foo.sql.imported.1.parquet".to_string())
+    );
+    // The next run reuses the file without reading it again, bar still scans it
+    s.state.borrow_mut().statements.clear();
+    assert!(s.run(&workbook, workbook_run()).failure.is_none());
+    assert_eq!(reads(&s), 0, "{:?}", s.texts());
+    assert!(s.texts().iter().any(|text| text.contains("/mnt/cache/foo.sql.imported.1.parquet")), "{:?}", s.texts());
+    assert_eq!(s.events("foo.sql").last().map(String::as_str), Some("cached"));
+    assert_eq!(workbook.borrow().script_by_file("foo.sql").and_then(|script| script.latest_result_query_id()), shown);
+    // A new file of foo is read again
+    s.state.borrow_mut().names.insert("foo.sql".into(), "foo.sql.imported.2.parquet".into());
+    s.state.borrow_mut().statements.clear();
+    assert!(s.run(&workbook, workbook_run()).failure.is_none());
+    assert_eq!(reads(&s), 1);
+}
+
+#[test]
+fn a_script_remembers_the_stored_file_of_the_result_it_wrote() {
+    let main = connection("main", false);
+    let workbook = workbook(&[("foo.sql", "select 1 as a", &main)]);
+    let s = setup(true, None, 1);
+    assert!(s.run(&workbook, workbook_run()).failure.is_none());
+    let [(_, _, name)] = <[_; 1]>::try_from(stores(&s)).unwrap();
+    let file =
+        workbook.borrow().script_by_file("foo.sql").and_then(|script| script.latest_result_file().map(str::to_string));
+    assert_eq!(file, Some(name));
 }
 
 #[test]
@@ -767,9 +910,12 @@ fn reads(s: &Setup) -> Vec<String> {
 
 #[test]
 fn a_shown_workbook_whose_run_fails_shows_the_stored_results_of_the_scripts_it_did_not_finish() {
-    let local = connection("local", true);
-    let workbook =
-        workbook(&[("a.sql", "select 1", &local), ("b.sql", "select 2", &local), ("c.sql", "select 3", &local)]);
+    let (local, remote) = (connection("local", true), connection("remote", false));
+    let workbook = workbook(&[
+        ("a.sql", "select 1", &local),
+        ("b.sql", "select 2 as x", &remote),
+        ("c.sql", "select count(*) from :b", &local),
+    ]);
     let s = setup(false, Some("/mnt/cache"), 1);
     for script in ["a.sql", "b.sql", "c.sql"] {
         // Results of earlier texts, the scripts run
@@ -777,10 +923,11 @@ fn a_shown_workbook_whose_run_fails_shows_the_stored_results_of_the_scripts_it_d
     }
     let (_handle, result) = s.start(&workbook, RunOptions { local: true, ..workbook_run() });
     s.end("select 1", Ok(true));
-    s.end("select 2", Err(StatementFailure::new("boom")));
+    s.end("select 2 as x", Err(StatementFailure::new("boom")));
     let result = result.borrow_mut().take().expect("the run ended");
     assert_eq!(result.failure.map(|failure| failure.message), Some("boom".to_string()));
-    // a shows its new result and b its error, c never ran and shows its stored result
+    // a shows its new result and b its error, c follows b, never ran and shows its stored result
+    assert_eq!(s.events("c.sql").last().map(String::as_str), Some("blocked"));
     assert_eq!(reads(&s), vec!["c.sql"]);
     let workbook = workbook.borrow();
     let c = workbook.script_by_file("c.sql").unwrap();
@@ -840,6 +987,7 @@ fn execute_all_that_fails_reads_no_stored_results() {
     }
     let (_handle, result) = s.start(&workbook, workbook_run());
     s.end("select 1", Err(StatementFailure::new("boom")));
+    s.end("select 2", Ok(true));
     assert!(result.borrow_mut().take().expect("the run ended").failure.is_some());
     assert!(reads(&s).is_empty());
 }
@@ -974,10 +1122,11 @@ fn releases_the_pins_of_a_failed_run_once_its_statements_settled() {
     let pin = calls.iter().find(|call| call.starts_with("pin ") && call.contains("/mnt/cache/foo.sql")).expect("a pin");
     let (pin_id, _) = pin_of(pin);
     s.end("select 2", Err(StatementFailure::new("boom")));
-    // The run waits for the statement of foo before it releases the files
+    // The run waits for the statement of foo before it releases the files, bar runs on once the file is written
     assert!(result.borrow().is_none());
     open.send(());
     s.executor.run_until_stalled();
+    s.end("count(*)", Ok(true));
     let result = result.borrow_mut().take().expect("the run ended");
     assert_eq!(result.failure.map(|failure| failure.message), Some("boom".to_string()));
     assert_eq!(s.calls().last(), Some(&format!("release {pin_id}")));

@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as styles from './workbook_feed_page.module.css';
 
 import type { WorkbookRunState } from '@akohn/dashql';
+import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import { PaperAirplaneIcon, SquareFillIcon, SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
@@ -53,18 +54,26 @@ interface Props {
     execution: WorkbookExecutionModel;
     /// Can the workbook start a run? It has scripts and none of their connections is busy.
     startable: boolean;
+    /// Show a script in the feed, by its file name
+    showScript(fileName: string): void;
 }
 
 /// Execute All of a workbook and the status of its run, the details of the run open from the status
-export function WorkbookExecutionControls({ workbookId, execution, startable }: Props): React.ReactElement {
+export function WorkbookExecutionControls({ workbookId, execution, startable, showScript }: Props): React.ReactElement {
     const run = execution.state;
     const [detailsOpen, setDetailsOpen] = React.useState(false);
     React.useEffect(() => setDetailsOpen(false), [workbookId]);
     const progress = run ? `${run.completedScripts}/${run.totalScripts}` : '';
     const skipped = run != null && run.skippedScripts > 0 ? ` · ${run.skippedScripts} need a connection` : '';
-    const statusText = !run ? '' : run.phase === 'planning' ? 'Planning...'
+    // The scripts that failed, the others ran on
+    const failedScripts = run?.failedScripts ?? [];
+    const failed = failedScripts.length === 1 ? ` · ${scriptDisplayName(failedScripts[0].fileName)} failed`
+        : failedScripts.length > 1 ? ` · ${failedScripts.length} failed` : '';
+    // A run reads the stored results of the scripts that don't run before the others start, a large one takes a while
+    const planning = run?.readingFileName != null ? `Reading ${scriptDisplayName(run.readingFileName)}...` : 'Planning...';
+    const statusText = !run ? '' : run.phase === 'planning' ? planning
         : run.phase === 'stopping' ? `Stopping · ${progress} completed`
-            : run.phase === 'failed' ? `${progress} completed${skipped}`
+            : run.phase === 'failed' ? `${progress} completed${failed}${skipped}`
                 : run.phase === 'cancelled' ? `Stopped · ${progress} completed`
                     : run.phase === 'succeeded' ? (skipped ? `${progress} completed${skipped}` : `${progress} succeeded`) : `${progress} completed${skipped}`;
     const skippedTitle = run != null && run.skippedFiles.length > 0 ? `Need a connection: ${run.skippedFiles.join(', ')}` : undefined;
@@ -104,7 +113,20 @@ export function WorkbookExecutionControls({ workbookId, execution, startable }: 
                                 <div>{statusText}</div>
                                 {run.activeFileName && <div>{run.activeFileName} · statement {run.activeStatementIndex}/{run.activeStatementCount}</div>}
                                 <div>{run.completedStatements}/{run.totalStatements} statements completed</div>
-                                {run.error && <div className={styles.execution_error_message}>{run.error}</div>}
+                                {failedScripts.length === 0 && run.error && <div className={styles.execution_error_message}>{run.error}</div>}
+                                {failedScripts.length > 0 && (
+                                    <ul className={styles.execution_failures} aria-label="Failed scripts" data-testid="execution-failures">
+                                        {failedScripts.map(failure => (
+                                            <li key={failure.fileName}>
+                                                <button type="button" className={styles.execution_failure_script}
+                                                    onClick={() => { setDetailsOpen(false); showScript(failure.fileName); }}>
+                                                    {scriptDisplayName(failure.fileName)}
+                                                </button>
+                                                <div className={styles.execution_error_message}>{failure.message}</div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
                             </div>
                         </section>
                     </AnchoredOverlay>
