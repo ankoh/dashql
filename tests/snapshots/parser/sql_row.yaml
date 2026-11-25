@@ -732,7 +732,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected RRB'
+        - message: 'syntax error, unexpected ")"'
           text: ")"
       line-breaks: []
       comments: []
@@ -1589,7 +1589,7 @@ parser-snapshots:
                                 text: "1"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected RRB'
+        - message: 'syntax error, unexpected ")"'
           text: ")"
       line-breaks: []
       comments: []
@@ -1603,8 +1603,9 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected EOF'
+        - message: 'syntax error, unexpected end of input'
           text: ""
+          hint: a ")" may be missing at the end
       line-breaks: []
       comments: []
       comment-blocks: []

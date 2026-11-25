@@ -793,7 +793,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected RAW_CHAR'
+        - message: 'syntax error, unexpected "\"'
           text: "\\"
       line-breaks: []
       comments: []
@@ -2028,7 +2028,7 @@ parser-snapshots:
                         text: "gt"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected GREATER_THAN'
+        - message: 'syntax error, unexpected ">"'
           text: ">"
       line-breaks:
         - text: [28,29]

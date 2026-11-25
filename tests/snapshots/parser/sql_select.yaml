@@ -14602,7 +14602,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected QUESTION_MARK'
+        - message: 'syntax error, unexpected "?"'
           text: "?"
       line-breaks: []
       comments: []
@@ -14616,7 +14616,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected QUESTION_MARK'
+        - message: 'syntax error, unexpected "?"'
           text: "?"
       line-breaks: []
       comments: []
@@ -14654,7 +14654,7 @@ parser-snapshots:
                             text: "t"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected identifier literal, expecting ICONST'
+        - message: 'syntax error, unexpected name "foo", expected an integer'
           text: "foo"
       line-breaks: []
       comments: []
@@ -14692,7 +14692,7 @@ parser-snapshots:
                             text: "t"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected identifier literal, expecting ICONST'
+        - message: 'syntax error, unexpected name "foo", expected an integer'
           text: "\"foo\""
       line-breaks: []
       comments: []

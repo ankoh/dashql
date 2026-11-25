@@ -29,8 +29,9 @@ parser-snapshots:
                         text: "1"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected identifier literal'
+        - message: 'syntax error, unexpected name "SELEC"'
           text: "SELEC"
+          hint: did you mean SELECT?
       line-breaks:
         - text: [8,9]
       comments: []
@@ -98,8 +99,9 @@ parser-snapshots:
                                 text: "x"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected identifier literal'
+        - message: 'syntax error, unexpected name "invalid"'
           text: "invalid"
+          hint: 'a "," may be missing before name "invalid"'
       line-breaks: []
       comments: []
       comment-blocks: []

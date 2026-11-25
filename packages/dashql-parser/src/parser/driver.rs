@@ -1,15 +1,16 @@
 //! The LALR(1) driver, the `parse()` loop of bison's lalr1.cc skeleton configured with
-//! `parse.lac full`, `parse.error verbose` plus an error hint, error recovery through the `error`
+//! `parse.lac full`, a verbose syntax error with a hint (`syntax_error.rs`), error recovery through the `error`
 //! token, and a custom default location for reductions. The stack has a depth limit
 //! (`MAX_STACK_DEPTH`), a shift past it is a syntax error.
 
 use super::actions::{ReduceError, ReduceStack};
 use super::context::ParseContext;
+use super::syntax_error::{syntax_error, Unexpected};
 use super::value::Value;
 use crate::scanner::SymbolValue;
 use crate::symbol_kind::*;
 use crate::tables::*;
-use crate::{symbol_name, SymbolKind};
+use crate::SymbolKind;
 use dashql_buffers::parser::SymbolSpan;
 
 /// A parser state
@@ -263,41 +264,6 @@ enum Label {
     ErrLab1,
 }
 
-/// Build the verbose syntax error message (`yysyntax_error_`) and its hint.
-fn syntax_error(states: &[StateId], lookahead: Option<SymbolKind>, scratch: &mut Vec<StateId>) -> (String, String) {
-    const ARGS_MAX: usize = 5;
-    let Some(token) = lookahead else {
-        return ("syntax error".to_string(), String::new());
-    };
-    let mut args = vec![token];
-    let mut overflow = false;
-    for t in 0..YYNTOKENS as SymbolKind {
-        if t == S_YYerror || t == S_YYUNDEF || !lac_check(states, t, scratch) {
-            continue;
-        }
-        if args.len() == ARGS_MAX {
-            overflow = true;
-            break;
-        }
-        args.push(t);
-    }
-    if overflow {
-        args.truncate(1);
-    }
-    let mut message = format!("syntax error, unexpected {}", symbol_name(token));
-    for (i, &arg) in args.iter().enumerate().skip(1) {
-        message.push_str(if i == 1 { ", expecting " } else { " or " });
-        message.push_str(&symbol_name(arg));
-    }
-    // Suggest a double-quoted identifier when a string literal is used where an identifier fits.
-    let hint = if token == S_SCONST && lac_check(states, S_IDENT, scratch) {
-        "string literals cannot be used as identifiers here; use a double-quoted identifier instead".to_string()
-    } else {
-        String::new()
-    };
-    (message, hint)
-}
-
 /// Run the parser with the grammar actions. Returns false if parsing was aborted.
 pub fn parse(ctx: &mut ParseContext) -> bool {
     let mut stack = Stack { states: vec![0], values: vec![Value::Empty], locations: vec![SymbolSpan::default()] };
@@ -415,7 +381,15 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
                     let (message, hint) = if deep {
                         (NESTING_TOO_DEEP.to_string(), String::new())
                     } else {
-                        syntax_error(&stack.states, lookahead.map(|la| la.kind), &mut scratch)
+                        // The token before the lookahead is on top if nothing was reduced after its shift
+                        let index = lookahead_location.offset();
+                        let previous_on_top = stack
+                            .locations
+                            .last()
+                            .is_some_and(|top| index.checked_sub(1) == Some(top.offset()) && top.length() == 1);
+                        let unexpected = lookahead
+                            .map(|la| Unexpected::at(ctx.text(), ctx.symbols(), la.kind, index, previous_on_top));
+                        syntax_error(&stack.states, unexpected, &mut scratch)
                     };
                     ctx.state.borrow_mut().pending_hint = hint;
                     ctx.error(lookahead_location, &message);

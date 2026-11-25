@@ -145,7 +145,7 @@ parser-snapshots:
                                 text: "a"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected identifier literal'
+        - message: 'syntax error, unexpected name "wh"'
           text: "wh"
       line-breaks: []
       comments: []

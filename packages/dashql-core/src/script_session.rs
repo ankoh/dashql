@@ -790,6 +790,7 @@ impl ScriptSession {
                                   source: EditorDiagnosticSource,
                                   severity: EditorDiagnosticSeverity,
                                   message: &str,
+                                  hint: &str,
                                   span: TextSpan| {
             let Some(text_span) = projector.span(span) else {
                 return;
@@ -798,6 +799,7 @@ impl ScriptSession {
             diagnostic.source = source;
             diagnostic.severity = severity;
             diagnostic.message = non_empty_string(message);
+            diagnostic.hint = non_empty_string(hint);
             diagnostic.text_span = Some(text_span);
             diagnostics.push(diagnostic);
         };
@@ -807,6 +809,7 @@ impl ScriptSession {
                 EditorDiagnosticSource::SCANNER,
                 EditorDiagnosticSeverity::ERROR,
                 &error.message,
+                "",
                 error.location,
             );
         }
@@ -816,6 +819,7 @@ impl ScriptSession {
                 EditorDiagnosticSource::PARSER,
                 EditorDiagnosticSeverity::ERROR,
                 &error.message,
+                &error.hint,
                 resolve(error.location),
             );
         }
@@ -828,7 +832,7 @@ impl ScriptSession {
             } else {
                 EditorDiagnosticSeverity::ERROR
             };
-            add_diagnostic(projector, EditorDiagnosticSource::ANALYZER, severity, &error.message, span);
+            add_diagnostic(projector, EditorDiagnosticSource::ANALYZER, severity, &error.message, "", span);
         }
         diagnostics.sort_by_key(|d| d.text_span.as_ref().map_or(0, |s| s.offset));
         update.diagnostics = non_empty(diagnostics);

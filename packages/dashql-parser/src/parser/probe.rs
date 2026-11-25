@@ -32,6 +32,9 @@ pub struct PrefixSnapshot {
     pub alternatives: Vec<Vec<StateId>>,
     /// Did the prefix parse reach the cursor without failing or accepting first?
     pub reached_target: bool,
+    /// Does the parser recover from an error at the cursor? It shifted fewer than three tokens since the error, and
+    /// drops the tokens that don't fit.
+    pub recovering: bool,
 }
 
 impl PrefixSnapshot {
@@ -111,6 +114,8 @@ trait Policy {
         stop: &mut bool,
     );
     fn on_shifted(&mut self, _kind: SymbolKind) {}
+    /// The parser starts to recover from an error
+    fn on_recover(&mut self) {}
     fn on_accept(&mut self) {}
     /// Stop instead of recovering from an error?
     fn short_circuit_on_error(&mut self, _states: &[StateId]) -> bool {
@@ -233,6 +238,7 @@ fn drive<P: Policy>(policy: &mut P, states: &mut Vec<StateId>, tokens: &mut Toke
             }
             Label::ErrLab1 => {
                 errstatus = 3;
+                policy.on_recover();
                 let next = loop {
                     if let Some(Action::Shift(next)) =
                         table_action(states.last().copied().unwrap_or(NO_STATE), S_YYerror)
@@ -276,6 +282,8 @@ struct PrefixCapture<'a> {
     target: u32,
     /// The captured snapshot
     out: &'a mut PrefixSnapshot,
+    /// The shifts until the parser recovered from an error, the `errstatus` of the driver
+    recovery: u8,
 }
 
 impl Policy for PrefixCapture<'_> {
@@ -289,9 +297,16 @@ impl Policy for PrefixCapture<'_> {
     ) {
         if pre_index >= self.target {
             self.out.reached_target = true;
+            self.out.recovering = self.recovery > 0;
             self.out.state_stack.extend_from_slice(states);
             *stop = true;
         }
+    }
+    fn on_shifted(&mut self, _kind: SymbolKind) {
+        self.recovery = self.recovery.saturating_sub(1);
+    }
+    fn on_recover(&mut self) {
+        self.recovery = 3;
     }
 }
 
@@ -300,7 +315,7 @@ fn capture_prefix(symbols: &[Symbol], target: u32) -> PrefixSnapshot {
     let mut prefix = PrefixSnapshot::default();
     let mut states = vec![0];
     let mut tokens = Tokens { symbols, next_index: 0 };
-    drive(&mut PrefixCapture { target, out: &mut prefix }, &mut states, &mut tokens);
+    drive(&mut PrefixCapture { target, out: &mut prefix, recovery: 0 }, &mut states, &mut tokens);
     prefix
 }
 
@@ -338,10 +353,15 @@ pub fn parse_until_with_snapshot(symbols: &[Symbol], target: u32) -> ExpectedAtC
 /// Does the parser take a keyword at the cursor only as a name, like BY in `where a = by`? It does if the state
 /// after the keyword shifts nothing and only reduces the keyword to a name. A keyword that also continues a rule of
 /// its own, like SET in `update t set` (an alias or the SET clause), is no name only.
-#[allow(non_upper_case_globals)]
 pub fn takes_keyword_only_as_name(prefix: &PrefixSnapshot, keyword: SymbolKind) -> bool {
-    let mut states = prefix.stack_for(keyword).to_vec();
-    if !prefix.reached_target || states.is_empty() || !feed(&mut states, keyword) {
+    prefix.reached_target && takes_keyword_only_as_name_at(prefix.stack_for(keyword), keyword)
+}
+
+/// Does the parser take a keyword after a stack of states only as a name? See [`takes_keyword_only_as_name`].
+#[allow(non_upper_case_globals)]
+pub fn takes_keyword_only_as_name_at(states: &[StateId], keyword: SymbolKind) -> bool {
+    let mut states = states.to_vec();
+    if states.is_empty() || !feed(&mut states, keyword) {
         return false;
     }
     let Some(&state) = states.last() else { return false };

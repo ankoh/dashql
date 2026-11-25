@@ -82,6 +82,8 @@ table EditorDiagnostic {
     severity: EditorDiagnosticSeverity;
     message: string;
     text_span: EditorTextSpan;
+    /// A guess of the fix of a syntax error, absent if there is none
+    hint: string;
 }
 
 /// A scanner token class and its source span. Comments are emitted as COMMENT spans.

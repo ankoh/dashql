@@ -5311,7 +5311,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected FCONST'
+        - message: 'syntax error, unexpected number .3'
           text: ".3"
       line-breaks: []
       comments: []
@@ -5538,7 +5538,7 @@ parser-snapshots:
                             text: "t"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected string literal'
+        - message: 'syntax error, unexpected string ''a'''
           text: "'a'"
           hint: string literals cannot be used as identifiers here; use a double-quoted identifier instead
       line-breaks: []
@@ -5631,7 +5631,7 @@ parser-snapshots:
                         text: "1"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected COMMA'
+        - message: 'syntax error, unexpected ","'
           text: ","
       line-breaks:
         - text: [27,28]
@@ -5759,7 +5759,7 @@ parser-snapshots:
                         text: "2"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";"'
           text: ";"
       line-breaks:
         - text: [68,69]
@@ -5796,8 +5796,9 @@ parser-snapshots:
                         text: "3"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected COMMA'
+        - message: 'syntax error, unexpected ","'
           text: ","
+          hint: 'remove the "," before ","'
       line-breaks:
         - text: [67,68]
       comments: []
@@ -5910,11 +5911,11 @@ parser-snapshots:
                             text: "t"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected RRB'
+        - message: 'syntax error, unexpected ")"'
           text: ")"
-        - message: 'syntax error, unexpected RRB'
+        - message: 'syntax error, unexpected ")"'
           text: ")"
-        - message: 'syntax error, unexpected RRB'
+        - message: 'syntax error, unexpected ")"'
           text: ")"
       line-breaks: []
       comments: []
@@ -5999,7 +6000,7 @@ parser-snapshots:
                         text: "4"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected RRB'
+        - message: 'syntax error, unexpected ")"'
           text: ")"
       line-breaks:
         - text: [45,46]
@@ -6079,9 +6080,9 @@ parser-snapshots:
                         text: "5"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected FROM'
+        - message: 'syntax error, unexpected keyword FROM'
           text: "from"
-        - message: 'syntax error, unexpected FROM, expecting ICONST or RSB'
+        - message: 'syntax error, unexpected keyword FROM, expected an integer or "]"'
           text: "from"
       line-breaks:
         - text: [18,19]
@@ -6167,7 +6168,7 @@ parser-snapshots:
                         text: "6"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected RRB'
+        - message: 'syntax error, unexpected ")"'
           text: ")"
       line-breaks:
         - text: [43,44]

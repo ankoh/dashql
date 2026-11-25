@@ -18,3 +18,48 @@ parser-snapshots:
   - name: error_reporting_sconst_explicit_alias_ok
     input: |
       select 1 as 'one'
+
+  # A comma too many before FROM
+  - name: error_reporting_trailing_comma
+    input: |
+      select a, from t
+
+  # A misspelled keyword at the error
+  - name: error_reporting_misspelled_keyword
+    input: |
+      select * frm t
+
+  # A misspelled keyword before the error, it became an alias
+  - name: error_reporting_misspelled_keyword_before
+    input: |
+      select * from t wher a = 1
+
+  # A missing comma between two targets
+  - name: error_reporting_missing_comma
+    input: |
+      select a b c from t
+
+  # A missing closing parenthesis before FROM
+  - name: error_reporting_missing_paren
+    input: |
+      select (a from t
+
+  # A reserved keyword as a name
+  - name: error_reporting_reserved_keyword
+    input: |
+      create table t (order int)
+
+  # A reserved keyword after an operator is a missing operand, no name
+  - name: error_reporting_missing_operand
+    input: |
+      select a + from t
+
+  # The expected tokens, the keywords that are names here are the name
+  - name: error_reporting_expected_name
+    input: |
+      create table;
+
+  # Tokens with their text
+  - name: error_reporting_token_texts
+    input: |
+      select 1 2; select 'a' 'b'; select a b; select * from t where a == 1; select (1 + 2

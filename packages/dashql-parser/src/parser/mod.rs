@@ -5,6 +5,7 @@ pub mod context;
 pub mod driver;
 pub mod enums;
 pub mod probe;
+pub mod syntax_error;
 pub mod value;
 
 use crate::comment_blocks::{group_comments, CommentBlocks};
@@ -365,6 +366,6 @@ mod tests {
         let parsed = parse_text("select * from foo select");
         assert_eq!(parsed.statements.len(), 0);
         assert_eq!(parsed.errors.len(), 1);
-        assert!(parsed.errors[0].message.starts_with("syntax error, unexpected SELECT"), "{:?}", parsed.errors);
+        assert!(parsed.errors[0].message.starts_with("syntax error, unexpected keyword SELECT"), "{:?}", parsed.errors);
     }
 }

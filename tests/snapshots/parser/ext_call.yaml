@@ -1143,7 +1143,7 @@ parser-snapshots:
                     text: "f"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected EQUALS_GREATER, expecting EQUALS'
+        - message: 'syntax error, unexpected "=>", expected "="'
           text: "=>"
       line-breaks: []
       comments: []
@@ -1176,7 +1176,7 @@ parser-snapshots:
                     text: "f"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected RRB, expecting DOT or DOT_TRAILING or LRB or LSB'
+        - message: 'syntax error, unexpected ")", expected ".", "(" or "["'
           text: ")"
       line-breaks: []
       comments: []
@@ -1190,7 +1190,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected CALL_P'
+        - message: 'syntax error, unexpected keyword CALL'
           text: "CALL"
       line-breaks: []
       comments: []
@@ -1239,8 +1239,9 @@ parser-snapshots:
         - message: unterminated dollar-quoted string
           text: "$$open"
       parser-errors:
-        - message: 'syntax error, unexpected EOF, expecting RRB or COMMA'
+        - message: 'syntax error, unexpected end of input, expected ")" or ","'
           text: ""
+          hint: a ")" may be missing at the end
       line-breaks: []
       comments: []
       comment-blocks: []

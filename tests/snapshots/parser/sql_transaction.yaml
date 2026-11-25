@@ -1159,7 +1159,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected WORK, expecting TRANSACTION'
+        - message: 'syntax error, unexpected keyword WORK, expected TRANSACTION'
           text: "work"
       line-breaks: []
       comments: []
@@ -1173,7 +1173,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected AND'
+        - message: 'syntax error, unexpected keyword AND, expected end of input, ";", PREPARED, TRANSACTION or WORK'
           text: "and"
       line-breaks: []
       comments: []
@@ -1187,7 +1187,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON, expecting READ_P or REPEATABLE or SERIALIZABLE'
+        - message: 'syntax error, unexpected ";", expected READ, REPEATABLE or SERIALIZABLE'
           text: ";"
       line-breaks: []
       comments: []
@@ -1201,7 +1201,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SNAPSHOT, expecting READ_P or REPEATABLE or SERIALIZABLE'
+        - message: 'syntax error, unexpected keyword SNAPSHOT, expected READ, REPEATABLE or SERIALIZABLE'
           text: "snapshot"
       line-breaks: []
       comments: []
@@ -1215,8 +1215,9 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON, expecting DEFERRABLE or NOT or ISOLATION or READ_P'
+        - message: 'syntax error, unexpected ";", expected DEFERRABLE, NOT, ISOLATION or READ'
           text: ";"
+          hint: 'remove the "," before ";"'
       line-breaks: []
       comments: []
       comment-blocks: []
@@ -1229,7 +1230,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";", expected a name or SAVEPOINT'
           text: ";"
       line-breaks: []
       comments: []
@@ -1243,7 +1244,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected string literal'
+        - message: 'syntax error, unexpected string ''checkpoint'', expected a name'
           text: "'checkpoint'"
           hint: string literals cannot be used as identifiers here; use a double-quoted identifier instead
       line-breaks: []
@@ -1258,7 +1259,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON, expecting string literal or LRB or AS'
+        - message: 'syntax error, unexpected ";", expected a string, "(" or AS'
           text: ";"
       line-breaks: []
       comments: []
@@ -1272,7 +1273,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected identifier literal, expecting string literal'
+        - message: 'syntax error, unexpected name "batch", expected a string'
           text: "batch"
       line-breaks: []
       comments: []
@@ -1323,7 +1324,7 @@ parser-snapshots:
                         text: "1"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected identifier literal, expecting ONLY or WRITE_P'
+        - message: 'syntax error, unexpected name "invalid", expected ONLY or WRITE'
           text: "invalid"
       line-breaks:
         - text: [19,20]

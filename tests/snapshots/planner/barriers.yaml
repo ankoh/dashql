@@ -537,7 +537,7 @@ planner-snapshots:
       diagnostics:
         - script: queries
           error: true
-          message: 'parser: syntax error, unexpected SEMICOLON'
+          message: 'parser: syntax error, unexpected ";"'
 
   - name: ExplainOptions
     catalog: |

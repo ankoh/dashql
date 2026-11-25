@@ -456,7 +456,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected OWNER'
+        - message: 'syntax error, unexpected keyword OWNER'
           text: "owner"
       line-breaks: []
       comments: []
@@ -598,7 +598,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected ADD_P'
+        - message: 'syntax error, unexpected keyword ADD, expected ".", "[", RENAME or SET'
           text: "add"
       line-breaks: []
       comments: []

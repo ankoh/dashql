@@ -107,7 +107,7 @@ parser-snapshots:
                         text: "e"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected DOT_DOT'
+        - message: 'syntax error, unexpected ".."'
           text: ".."
       line-breaks:
         - text: [10,11]
@@ -145,7 +145,7 @@ parser-snapshots:
                         text: "'foo'\n  'bar'"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected string literal'
+        - message: 'syntax error, unexpected string ''b'''
           text: "'b'"
           hint: string literals cannot be used as identifiers here; use a double-quoted identifier instead
       line-breaks:

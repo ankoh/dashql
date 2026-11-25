@@ -207,6 +207,11 @@ impl<'a> ParseContext<'a> {
         self.symbols
     }
 
+    /// The text of the script
+    pub fn text(&self) -> &'a str {
+        self.text
+    }
+
     /// Finish parsing and return the state
     pub(crate) fn into_state(self) -> State {
         self.state.into_inner()

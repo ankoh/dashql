@@ -7,8 +7,9 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected EOF'
+        - message: 'syntax error, unexpected end of input'
           text: ""
+          hint: a ")" may be missing at the end
       line-breaks: []
       comments: []
       comment-blocks: []
@@ -52,7 +53,7 @@ parser-snapshots:
                                 text: "1"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected RRB'
+        - message: 'syntax error, unexpected ")"'
           text: ")"
       line-breaks: []
       comments: []
@@ -119,7 +120,7 @@ parser-snapshots:
                         text: "2"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";"'
           text: ";"
       line-breaks:
         - text: [11,12]
@@ -134,7 +135,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected COMMA'
+        - message: 'syntax error, unexpected ","'
           text: ","
       line-breaks: []
       comments: []
@@ -195,8 +196,9 @@ parser-snapshots:
                             text: "t"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected COMMA'
+        - message: 'syntax error, unexpected ","'
           text: ","
+          hint: 'remove the "," before ","'
       line-breaks: []
       comments: []
       comment-blocks: []
@@ -253,7 +255,7 @@ parser-snapshots:
                         text: "2"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected identifier literal'
+        - message: 'syntax error, unexpected name "foo"'
           text: "foo"
       line-breaks:
         - text: [9,10]
@@ -349,13 +351,14 @@ parser-snapshots:
       parser-errors:
         - message: expected a table reference after FROM
           text: "from"
-        - message: 'syntax error, unexpected identifier literal'
+        - message: 'syntax error, unexpected name "frm"'
           text: "frm"
-        - message: 'syntax error, unexpected SEMICOLON'
+          hint: did you mean FROM?
+        - message: 'syntax error, unexpected ";", expected a name or IF'
           text: ";"
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";"'
           text: ";"
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";", expected a name, a parameter, ":" or "$"'
           text: ";"
       line-breaks:
         - text: [12,13]
@@ -374,7 +377,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected COMMA'
+        - message: 'syntax error, unexpected ","'
           text: ","
       line-breaks: []
       comments: []
@@ -388,7 +391,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected EOF'
+        - message: 'syntax error, unexpected end of input'
           text: ""
       line-breaks: []
       comments: []
@@ -402,9 +405,10 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected COMMA'
+        - message: 'syntax error, unexpected ","'
           text: ","
-        - message: 'syntax error, unexpected EOF'
+          hint: 'remove the "," before ","'
+        - message: 'syntax error, unexpected end of input'
           text: ""
       line-breaks: []
       comments: []
@@ -418,7 +422,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected THEN'
+        - message: 'syntax error, unexpected keyword THEN'
           text: "then"
       line-breaks: []
       comments: []
@@ -432,9 +436,10 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected COMMA'
+        - message: 'syntax error, unexpected ","'
           text: ","
-        - message: 'syntax error, unexpected COMMA'
+          hint: 'remove the "," before ","'
+        - message: 'syntax error, unexpected ","'
           text: ","
       line-breaks: []
       comments: []
@@ -450,8 +455,9 @@ parser-snapshots:
       parser-errors:
         - message: expected a table reference after FROM
           text: "from"
-        - message: 'syntax error, unexpected EOF'
+        - message: 'syntax error, unexpected end of input'
           text: ""
+          hint: a ")" may be missing at the end
       line-breaks: []
       comments: []
       comment-blocks: []
@@ -523,11 +529,11 @@ parser-snapshots:
                                         text: "b"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";"'
           text: ";"
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";"'
           text: ";"
-        - message: 'syntax error, unexpected EOF, expecting JOIN'
+        - message: 'syntax error, unexpected end of input, expected JOIN'
           text: ""
       line-breaks:
         - text: [26,27]
@@ -636,9 +642,9 @@ parser-snapshots:
                             text: "t"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected ORDER'
+        - message: 'syntax error, unexpected keyword ORDER'
           text: "order"
-        - message: 'syntax error, unexpected NULLS_P'
+        - message: 'syntax error, unexpected keyword NULLS'
           text: "nulls"
       line-breaks:
         - text: [34,35]
@@ -715,7 +721,7 @@ parser-snapshots:
                             text: "t"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected ORDER'
+        - message: 'syntax error, unexpected keyword ORDER'
           text: "order"
       line-breaks: []
       comments: []
@@ -729,7 +735,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SELECT'
+        - message: 'syntax error, unexpected keyword SELECT, expected "(", NOT, MATERIALIZED, PROPERTY or SECURE'
           text: "select"
       line-breaks: []
       comments: []
@@ -778,7 +784,7 @@ parser-snapshots:
                                 text: "1"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";"'
           text: ";"
       line-breaks:
         - text: [15,16]
@@ -793,8 +799,9 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SELECT'
+        - message: 'syntax error, unexpected keyword SELECT'
           text: "select"
+          hint: a ";" may be missing before keyword SELECT
       line-breaks: []
       comments: []
       comment-blocks: []
@@ -846,11 +853,11 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";"'
           text: ";"
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";"'
           text: ";"
-        - message: 'syntax error, unexpected EOF'
+        - message: 'syntax error, unexpected end of input'
           text: ""
       line-breaks:
         - text: [5,6]
@@ -868,10 +875,11 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";"'
           text: ";"
-        - message: 'syntax error, unexpected SELECT'
+        - message: 'syntax error, unexpected keyword SELECT'
           text: "select"
+          hint: a ")" may be missing before keyword SELECT
       line-breaks:
         - text: [8,9]
         - text: [35,36]
@@ -905,9 +913,9 @@ parser-snapshots:
                     text: "if"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";"'
           text: ";"
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";", expected a name or IF'
           text: ";"
       line-breaks:
         - text: [5,6]
@@ -945,9 +953,9 @@ parser-snapshots:
                         text: "t"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";", expected a name, a parameter, ":", "$" or ONLY'
           text: ";"
-        - message: 'syntax error, unexpected EOF'
+        - message: 'syntax error, unexpected end of input'
           text: ""
       line-breaks:
         - text: [12,13]
@@ -1016,9 +1024,9 @@ parser-snapshots:
                         text: "a"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";", expected a name or "("'
           text: ";"
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";"'
           text: ";"
       line-breaks:
         - text: [13,14]
@@ -1220,7 +1228,7 @@ parser-snapshots:
                                 text: "a"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected EOF'
+        - message: 'syntax error, unexpected end of input'
           text: ""
       line-breaks: []
       comments: []
@@ -1284,8 +1292,9 @@ parser-snapshots:
                         text: "3"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected COMMA'
+        - message: 'syntax error, unexpected ","'
           text: ","
+          hint: 'remove the "," before ","'
       line-breaks:
         - text: [21,22]
       comments: []
@@ -1410,7 +1419,7 @@ parser-snapshots:
                         text: "4"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected FROM'
+        - message: 'syntax error, unexpected keyword FROM'
           text: "from"
       line-breaks:
         - text: [54,55]
@@ -1508,7 +1517,7 @@ parser-snapshots:
       parser-errors:
         - message: expected a table reference after FROM
           text: "from"
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";"'
           text: ";"
       line-breaks:
         - text: [35,36]
@@ -1548,11 +1557,11 @@ parser-snapshots:
                         text: "6"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";"'
           text: ";"
-        - message: 'syntax error, unexpected TO'
+        - message: 'syntax error, unexpected keyword TO'
           text: "to"
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";", expected a name'
           text: ";"
       line-breaks:
         - text: [9,10]
@@ -1591,7 +1600,7 @@ parser-snapshots:
                         text: "2"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON, expecting string literal'
+        - message: 'syntax error, unexpected ";", expected a string'
           text: ";"
       line-breaks:
         - text: [32,33]
@@ -1628,7 +1637,7 @@ parser-snapshots:
                         text: "2"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";"'
           text: ";"
       line-breaks:
         - text: [21,22]
@@ -1668,14 +1677,18 @@ parser-snapshots:
                         text: "2"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";"'
           text: ";"
-        - message: 'syntax error, unexpected SEMICOLON'
+          hint: a ")" may be missing before ";"
+        - message: 'syntax error, unexpected ";"'
           text: ";"
-        - message: 'syntax error, unexpected SEMICOLON'
+          hint: a ")" may be missing before ";"
+        - message: 'syntax error, unexpected ";"'
           text: ";"
-        - message: 'syntax error, unexpected SEMICOLON'
+          hint: a ")" may be missing before ";"
+        - message: 'syntax error, unexpected ";"'
           text: ";"
+          hint: a ")" may be missing before ";"
       line-breaks:
         - text: [10,11]
         - text: [41,42]
@@ -1757,9 +1770,9 @@ parser-snapshots:
                         text: "2"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON, expecting NOTHING or UPDATE'
+        - message: 'syntax error, unexpected ";", expected NOTHING or UPDATE'
           text: ";"
-        - message: 'syntax error, unexpected SEMICOLON'
+        - message: 'syntax error, unexpected ";", expected a name or "("'
           text: ";"
       line-breaks:
         - text: [44,45]

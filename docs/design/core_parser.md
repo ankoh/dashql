@@ -71,6 +71,44 @@ The recovery can only use a state that is on the stack: at the end of the input,
 the error before the name before it is reduced, so a few rules take `EOF` instead to keep the tree of a statement that
 is typed (see the lenient incomplete statements in `core_quirks.md`).
 
+### Error messages
+
+`parser/syntax_error.rs` writes the message and the hint of a syntax error. The message names the token that doesn't
+fit by its kind and text, and what fits there if that is at most five things:
+
+```
+syntax error, unexpected keyword FROM
+syntax error, unexpected name "frm"
+syntax error, unexpected ";", expected a name or IF
+syntax error, unexpected end of input, expected ")" or ","
+```
+
+A keyword is written in upper case and a lookahead token as its keyword (`NULLS`, not `NULLS_LA`), punctuation and
+operators in double quotes, a name, a literal or a parameter with its kind and its text, shortened to 32 characters.
+The expected tokens are a keyword, a quoted punctuation, or a class: `a name`, `a string`, `an integer`, `a number`,
+`a parameter`, `an operator`, `end of input`. Where a name fits, the keywords that the parser takes there only as a name
+(`probe::takes_keyword_only_as_name_at`) are that name and aren't listed, otherwise every unreserved keyword would make
+the list too long to show. Every message starts with `syntax error`.
+
+The hint (`ParseError::hint`, empty if there is none) guesses the fix from the tokens around the error, the first that
+applies:
+
+| Hint | Example | When |
+|------|---------|------|
+| `remove the "," before keyword FROM` | `select a, from t` | the token fits the stack below the comma that was just shifted |
+| `did you mean FROM?` | `select * frm t` | the name is one edit (Damerau) from a keyword that fits, a keyword that begins with the name first |
+| `did you mean WHERE instead of "wher"?` | `select * from t wher a = 1` | the name before the error, now an alias, is one edit from a reserved keyword |
+| `string literals cannot be used as identifiers here; ...` | `select * from 'foo'` | a string where a name fits |
+| `a ";" may be missing before keyword SELECT` | `select * from foo select 1` | the keyword fits after a `;` |
+| `a ")" may be missing before keyword FROM` | `select (a from t` | the token fits after a `)`, not right after a `(` |
+| `a "," may be missing before name "c"` | `select a b c from t` | a name or constant after a gap, after a name, constant or `)`, fits after a `,` |
+| `ORDER is a reserved keyword, write "order" to use it as a name` | `create table t (order int)` | a name fits, the token after the keyword fits after a name, and the token before it is a keyword, `(`, `,` or `.` |
+
+Names and keywords of fewer than three or four letters are no misspellings. The checks run on the stack of the error,
+without grammar actions, like the probes of the completion. The editor shows the message of an error, the completion
+also names the first error before the cursor with its hint (see "The syntax error of a completion" in
+[core_completion.md](core_completion.md)).
+
 ## Flat AST Design
 
 ### The Node struct

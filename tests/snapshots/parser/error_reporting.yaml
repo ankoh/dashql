@@ -7,8 +7,9 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SELECT'
+        - message: 'syntax error, unexpected keyword SELECT'
           text: "select"
+          hint: a ";" may be missing before keyword SELECT
       line-breaks: []
       comments: []
       comment-blocks: []
@@ -21,7 +22,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected string literal'
+        - message: 'syntax error, unexpected string ''foo'''
           text: "'foo'"
           hint: string literals cannot be used as identifiers here; use a double-quoted identifier instead
       line-breaks: []
@@ -36,7 +37,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected string literal'
+        - message: 'syntax error, unexpected string ''one'''
           text: "'one'"
           hint: string literals cannot be used as identifiers here; use a double-quoted identifier instead
       line-breaks: []
@@ -75,6 +76,383 @@ parser-snapshots:
                         text: "'one'"
       scanner-errors: []
       parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: error_reporting_trailing_comma
+    input: |-
+      select a, from t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 8
+          description:
+            text: "select a, from t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select a, from t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "a, from t"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: NAME
+                                text: "a"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "from t"
+                    children:
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "t"
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected keyword FROM'
+          text: "from"
+          hint: 'remove the "," before keyword FROM'
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: error_reporting_misspelled_keyword
+    input: |-
+      select * frm t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "select * frm t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * frm t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "* frm t"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "* frm t"
+                    children:
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "t"
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected name "frm"'
+          text: "frm"
+          hint: did you mean FROM?
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: error_reporting_misspelled_keyword_before
+    input: |-
+      select * from t wher a = 1
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 9
+          description:
+            text: "select * f..wher a = 1"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f..wher a = 1"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "* from t wher a = 1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "* from t wher a = 1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "* from t wher a = 1"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "* from t wher a = 1"
+                            children:
+                              - type: LITERAL_INTEGER
+                                text: "1"
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected name "a"'
+          text: "a"
+          hint: did you mean WHERE instead of "wher"?
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: error_reporting_missing_comma
+    input: |-
+      select a b c from t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 9
+          description:
+            text: "select a b c from t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select a b c from t"
+            children:
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected name "c"'
+          text: "c"
+          hint: 'a "," may be missing before name "c"'
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: error_reporting_missing_paren
+    input: |-
+      select (a from t
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected keyword FROM'
+          text: "from"
+          hint: a ")" may be missing before keyword FROM
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: error_reporting_reserved_keyword
+    input: |-
+      create table t (order int)
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected keyword ORDER'
+          text: "order"
+          hint: 'ORDER is a reserved keyword, write "order" to use it as a name'
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: error_reporting_missing_operand
+    input: |-
+      select a + from t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 10
+          description:
+            text: "select a + from t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select a + from t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "a + from t"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a + from t"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a + from"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: PLUS
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a + from"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "t"
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected keyword FROM'
+          text: "from"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: error_reporting_expected_name
+    input: |-
+      create table;
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected ";", expected a name or IF'
+          text: ";"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: error_reporting_token_texts
+    input: |-
+      select 1 2; select 'a' 'b'; select a b; select * from t where a == 1; select (1 + 2
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 7
+          description:
+            text: "select a b;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select a b"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "a b"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a b"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: NAME
+                                text: "a"
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "b"
+        - type: SELECT
+          ast-begin: 7
+          ast-size: 15
+          description:
+            text: "select * f..re a == 1;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f..ere a == 1"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+              - key: SQL_SELECT_WHERE
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "a == 1"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: OPERATOR
+                    text: "=="
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "a == 1"
+                    children:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: NAME
+                                text: "a"
+                      - type: LITERAL_INTEGER
+                        text: "1"
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected number 2'
+          text: "2"
+          hint: 'a "," may be missing before number 2'
+        - message: 'syntax error, unexpected string ''b'''
+          text: "'b'"
+          hint: string literals cannot be used as identifiers here; use a double-quoted identifier instead
+        - message: 'syntax error, unexpected end of input'
+          text: ""
+          hint: a ")" may be missing at the end
       line-breaks: []
       comments: []
       comment-blocks: []

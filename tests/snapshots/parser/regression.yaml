@@ -7,7 +7,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected EOF, expecting BY'
+        - message: 'syntax error, unexpected end of input, expected BY'
           text: ""
       line-breaks: []
       comments: []
@@ -21,7 +21,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected identifier literal, expecting BY'
+        - message: 'syntax error, unexpected name "b", expected BY'
           text: "b"
       line-breaks: []
       comments: []
@@ -740,7 +740,7 @@ parser-snapshots:
                                 text: "p_partkey"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected RRB'
+        - message: 'syntax error, unexpected ")"'
           text: ")"
       line-breaks:
         - text: [6,7]

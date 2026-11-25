@@ -335,7 +335,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected LSB'
+        - message: 'syntax error, unexpected "["'
           text: "["
       line-breaks: []
       comments: []
