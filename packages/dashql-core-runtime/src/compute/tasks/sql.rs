@@ -252,7 +252,8 @@ impl SqlFrame {
         Self { input_table: input_table.into(), ..Default::default() }
     }
 
-    /// Number the distinct values of a field, by `dense_rank()` in ascending order with nulls last
+    /// Number the distinct values of a field in ascending order with nulls last, from 1 without gaps, the ids of
+    /// `dense_rank()`. Null gets an id if the field has nulls.
     pub fn value_identifier(mut self, field_name: impl Into<String>, output_alias: impl Into<String>) -> Self {
         self.value_identifiers.push((field_name.into(), output_alias.into()));
         self
@@ -309,17 +310,26 @@ impl SqlFrame {
         let mut ctes: Vec<String> = Vec::new();
         let mut prev = quote_identifier(&self.input_table);
 
-        // 1. Value identifiers
+        // 1. Value identifiers. A dense_rank() over the rows sorts the whole table per field, numbering the distinct
+        // values and joining them back costs a grouping and a hash join instead. The grouping makes the values unique,
+        // so the join keeps the rows, and IS NOT DISTINCT FROM gives null its id too.
         if !self.value_identifiers.is_empty() {
-            let windows: Vec<String> = self
-                .value_identifiers
-                .iter()
-                .map(|(field, alias)| {
-                    let (field, alias) = (quote_identifier(field), quote_identifier(alias));
-                    format!("dense_rank() OVER (ORDER BY {field} ASC NULLS LAST) AS {alias}")
-                })
-                .collect();
-            push_cte(&mut ctes, "__value_ids", &format!("SELECT *, {} FROM {prev}", windows.join(", ")));
+            let mut ids = Vec::new();
+            let mut joins = Vec::new();
+            for (idx, (field, alias)) in self.value_identifiers.iter().enumerate() {
+                let (field, alias) = (quote_identifier(field), quote_identifier(alias));
+                let values = format!("__values_{idx}");
+                let body = format!(
+                    "SELECT {field} AS __value, \
+                     CAST(row_number() OVER (ORDER BY {field} ASC NULLS LAST) AS BIGINT) AS __id \
+                     FROM {prev} GROUP BY {field}"
+                );
+                push_cte(&mut ctes, &values, &body);
+                ids.push(format!("v{idx}.__id AS {alias}"));
+                joins.push(format!("LEFT JOIN {values} v{idx} ON v{idx}.__value IS NOT DISTINCT FROM t.{field}"));
+            }
+            let body = format!("SELECT t.*, {} FROM {prev} t {}", ids.join(", "), joins.join(" "));
+            push_cte(&mut ctes, "__value_ids", &body);
             prev = "__value_ids".to_string();
         }
 

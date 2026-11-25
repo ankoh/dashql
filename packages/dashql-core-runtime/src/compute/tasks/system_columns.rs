@@ -81,7 +81,7 @@ pub fn plan_system_columns(
                 column.value_id_field_name = Some(value_field_name);
                 column_groups.push(ColumnGroup::String(column));
             }
-            // No value ids of lists: a dense_rank() over embeddings sorts the table by full vectors at high cost, and
+            // No value ids of lists: numbering embeddings groups and sorts the table by full vectors at high cost, and
             // nothing reads the ids
             ColumnGroup::List(_) | ColumnGroup::Skipped(_) | ColumnGroup::RowNumber(_) => {
                 column_groups.push(entry.clone())

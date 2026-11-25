@@ -90,16 +90,35 @@ fn sql_empty_transform() {
 #[test]
 fn sql_single_value_identifier() {
     let sql = SqlFrame::from("t").value_identifier("category", "cat_id").to_sql();
-    assert!(sql.contains(r#"SELECT *, dense_rank() OVER (ORDER BY "category" ASC NULLS LAST) AS "cat_id" FROM "t""#));
+    // The distinct values numbered in ascending order with nulls last, the ids of dense_rank(), joined back to the
+    // rows; null matches its own id
+    assert_eq!(
+        sql,
+        r#"WITH
+  __values_0 AS (
+    SELECT "category" AS __value, CAST(row_number() OVER (ORDER BY "category" ASC NULLS LAST) AS BIGINT) AS __id FROM "t" GROUP BY "category"
+  ),
+  __value_ids AS (
+    SELECT t.*, v0.__id AS "cat_id" FROM "t" t LEFT JOIN __values_0 v0 ON v0.__value IS NOT DISTINCT FROM t."category"
+  )
+SELECT * FROM __value_ids"#
+    );
 }
 
 #[test]
-fn sql_value_identifiers_fold_into_one_select() {
+fn sql_value_identifiers_join_one_dictionary_per_field() {
     let sql = SqlFrame::from("t").value_identifier("category", "cat_id").value_identifier("region", "reg_id").to_sql();
+    assert!(sql.contains(r#"__values_0 AS (
+    SELECT "category" AS __value, CAST(row_number() OVER (ORDER BY "category" ASC NULLS LAST) AS BIGINT) AS __id FROM "t" GROUP BY "category"
+  )"#), "{sql}");
+    assert!(sql.contains(r#"__values_1 AS (
+    SELECT "region" AS __value, CAST(row_number() OVER (ORDER BY "region" ASC NULLS LAST) AS BIGINT) AS __id FROM "t" GROUP BY "region"
+  )"#), "{sql}");
+    // One select adds every id to the rows
     assert!(sql.contains(
-        r#"dense_rank() OVER (ORDER BY "category" ASC NULLS LAST) AS "cat_id", dense_rank() OVER (ORDER BY "region" ASC NULLS LAST) AS "reg_id""#
-    ));
-    assert_eq!(sql.matches("SELECT *, dense_rank()").count(), 1, "{sql}");
+        r#"SELECT t.*, v0.__id AS "cat_id", v1.__id AS "reg_id" FROM "t" t LEFT JOIN __values_0 v0 ON v0.__value IS NOT DISTINCT FROM t."category" LEFT JOIN __values_1 v1 ON v1.__value IS NOT DISTINCT FROM t."region""#
+    ), "{sql}");
+    assert!(!sql.contains("dense_rank"), "{sql}");
 }
 
 #[test]
@@ -634,8 +653,12 @@ fn system_columns_bin_and_number_the_values_in_the_order_of_the_rows() {
     // The strings get ids in the order of their values, a name of the result that looks like a system column gets
     // another prefix; the numbers get bins over the range of the statistics
     let sql = &plan.query.sql;
-    assert!(sql.contains(r#"dense_rank() OVER (ORDER BY "query" ASC NULLS LAST) AS "__1_id""#), "{sql}");
-    assert!(sql.contains(r#"dense_rank() OVER (ORDER BY "_1_id" ASC NULLS LAST) AS "_3_id""#), "{sql}");
+    assert!(sql.contains(r#"(ORDER BY "query" ASC NULLS LAST) AS BIGINT) AS __id FROM "__df_10" GROUP BY"#), "{sql}");
+    assert!(sql.contains(r#"v0.__id AS "__1_id""#), "{sql}");
+    assert!(sql.contains(r#"(ORDER BY "_1_id" ASC NULLS LAST) AS BIGINT) AS __id FROM "__df_10" GROUP BY"#), "{sql}");
+    assert!(sql.contains(r#"v1.__id AS "_3_id""#), "{sql}");
+    // The bins are computed over the rows with their ids
+    assert!(sql.contains(r#"FROM __value_ids t CROSS JOIN"#), "{sql}");
     assert!(sql.contains(r#"FROM "__df_10""#), "{sql}");
     assert!(sql.contains(r#"(CAST(t."total_ms" AS DOUBLE PRECISION) - "#), "{sql}");
     assert!(sql.contains(r#"AS "_2_bin""#), "{sql}");

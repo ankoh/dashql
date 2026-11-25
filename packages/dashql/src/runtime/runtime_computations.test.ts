@@ -165,6 +165,26 @@ describe('The computations of the runtime', () => {
         await vi.waitFor(async () => expect(await dataFrameTables()).toEqual([]));
     }, 60_000);
 
+    it('numbers the strings in the order of their values with null last, and selects null by its id', async () => {
+        database = await openTestHyperDB('runtime_computations_value_ids_test');
+        const rt = runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, core: dql, computeDatabase: async () => database! });
+        const table = new arrow.Table({ name: vectorFromArray(['b', null, 'a', 'b', null, ''], new arrow.Utf8()) });
+        await rt.analyzeTable(1, table, { connectionId: 'main' });
+        let computation = await settled(rt, view => view.tasks.systemColumnTask?.progress.status === TaskStatus.TASK_SUCCEEDED);
+        const name = computation.columnGroups[1];
+        expect(name?.type).toBe(STRING_COLUMN);
+        if (name?.type !== STRING_COLUMN) return;
+        const idField = name.value.valueIdFieldName!;
+        // The ids of dense_rank() in ascending order with nulls last, in the order of the rows
+        const ids = rt.table(computation.dataTable)!.toArray().map(row => [row.name, row[idField]]);
+        expect(ids).toEqual([['b', 3n], [null, 4n], ['a', 2n], ['b', 3n], [null, 4n], ['', 1n]]);
+
+        // The id of null selects the rows with null
+        rt.dispatch({ computation: 1 }, { kind: 'mostFrequentValueFilter', value: { columnGroup: 1, valueId: 4 } });
+        computation = await settled(rt, view => view.filterTable != null && view.tasks.filteringTask?.progress.status === TaskStatus.TASK_SUCCEEDED);
+        expect(computation.filterTable?.rows).toBe(2);
+    }, 60_000);
+
     it('lists the queries of the tasks in the history of the connection', async () => {
         database = await openTestHyperDB('runtime_computations_history_test');
         runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, core: dql, computeDatabase: async () => database! });
