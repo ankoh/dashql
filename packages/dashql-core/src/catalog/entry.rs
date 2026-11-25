@@ -506,6 +506,28 @@ impl CatalogEntryData {
         }
     }
 
+    /// Resolve a function by name: a name with a database exactly, one with a schema in that schema of any database,
+    /// a bare name in every schema. A function has no search path in DashQL, so a bare name matches any schema.
+    pub fn resolve_function(&self, name: &QualifiedFunctionName, out: &mut Vec<ObjectLoc>, limit: usize) {
+        if !name.database_name.text.is_empty() {
+            if let Some(&i) = self.functions_by_qualified_name.get(&name.key()) {
+                out.push(ObjectLoc { entry: self.catalog_entry_id, index: i as u32 });
+            }
+            return;
+        }
+        let Some(functions) = self.functions_by_unqualified_name.get(&name.function_name.text) else { return };
+        for &i in functions {
+            let schema = self.function_declarations.get(i).map(|f| &f.function_name.schema_name.text);
+            if !name.schema_name.text.is_empty() && schema != Some(&name.schema_name.text) {
+                continue;
+            }
+            out.push(ObjectLoc { entry: self.catalog_entry_id, index: i as u32 });
+            if out.len() >= limit {
+                return;
+            }
+        }
+    }
+
     /// Index the tables and functions (the first step of `NameResolutionPass::finish`)
     pub fn index_declarations(&mut self) {
         for (i, table) in self.table_declarations.iter().enumerate() {

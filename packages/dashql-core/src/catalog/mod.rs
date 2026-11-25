@@ -1028,6 +1028,36 @@ impl CatalogSnapshot {
         }
     }
 
+    /// A function by location
+    pub fn function(&self, loc: ObjectLoc) -> Option<&FunctionDeclaration> {
+        self.entries.get(&loc.entry)?.data().function_declarations.get(loc.index as usize)
+    }
+
+    /// Resolve a function across all entries except `ignore_entry`, in resolution order, like `resolve_table`: the
+    /// matches of the first layer that has one. A name without a database matches the function in every database, one
+    /// without a schema in every schema.
+    pub fn resolve_function(
+        &self,
+        name: &QualifiedFunctionName,
+        ignore_entry: CatalogEntryId,
+        out: &mut Vec<ObjectLoc>,
+        limit: usize,
+    ) {
+        for (_, entry_id) in &self.entries_ranked {
+            if *entry_id == ignore_entry {
+                continue;
+            }
+            let Some(entry) = self.entries.get(entry_id) else { continue };
+            entry.data().resolve_function(name, out, limit);
+            if out.len() >= limit {
+                break;
+            }
+        }
+        if let Some(first) = out.first().and_then(|loc| self.layer(loc.entry)) {
+            out.retain(|loc| self.layer(loc.entry) == Some(first));
+        }
+    }
+
     /// Collect the matches of a table in resolution order
     fn collect_table_matches(
         &self,

@@ -10,6 +10,7 @@
 pub mod clfn_calls;
 mod constants;
 mod function_calls;
+mod function_checks;
 pub mod manual_tag;
 mod name_resolution;
 pub mod param_tags;
@@ -227,6 +228,7 @@ pub fn analyze_with(
     param_tags::analyze(&mut state);
     manual_tag::analyze(&mut state);
     clfn_calls::analyze(&mut state);
+    function_checks::analyze(&mut state);
     transactions::analyze(&mut state);
 
     let mut out = state.into_script();

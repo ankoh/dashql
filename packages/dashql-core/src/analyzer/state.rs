@@ -374,6 +374,25 @@ impl<'a> AnalysisState<'a> {
         }
     }
 
+    /// Resolve a function: the declarations of the script first, then the catalog in resolution order
+    pub fn resolve_function(&self, name: &QualifiedFunctionName, limit: usize) -> Vec<ObjectLoc> {
+        let mut out = Vec::new();
+        self.out.entry.resolve_function(name, &mut out, limit);
+        if out.is_empty() {
+            self.catalog.resolve_function(name, self.entry_id, &mut out, limit);
+        }
+        out
+    }
+
+    /// A function of this script or of the catalog
+    pub fn function(&self, loc: ObjectLoc) -> Option<&FunctionDeclaration> {
+        if loc.entry == self.entry_id {
+            self.out.entry.function_declarations.get(loc.index as usize)
+        } else {
+            self.catalog.function(loc)
+        }
+    }
+
     /// The statement that contains an AST node, None outside of statements
     pub fn find_statement_id(&self, ast_node_id: u32) -> Option<u32> {
         let mut root = ast_node_id;

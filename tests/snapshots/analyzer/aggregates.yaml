@@ -1,0 +1,216 @@
+analyzer-snapshots:
+
+  - name: nested_aggregate_through_scalar
+    catalog:
+      script:
+        input: create table events (event text, waiting_jobs int, g int);
+        errors: []
+    script:
+      input: select string_agg(array_distinct(array_agg(e.event)), ',') from events e
+      catalog-id: 2
+      errors:
+        - {type: NESTED_AGGREGATE_CALL, message: 'aggregate function calls cannot be nested: array_agg is inside of string_agg', text: "array_agg(e.event)"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "events e"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "events e", text: "e.event"}
+        - {id: 1, type: function, name: array_agg, text: "array_agg(e.event)"}
+        - {id: 2, type: function, name: array_distinct, text: "array_dist..(e.event))"}
+        - {id: 3, type: function, name: string_agg, text: "string_agg..nt)), ',')"}
+        - {id: 4, type: literal/string, is-const: true, text: "','"}
+      constants:
+        - {expression: 4, text: "','"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: e, text: "events e"}
+          columns:
+            - {name: '?', expression: 3}
+          text: "select str..m events e"
+
+  - name: nested_aggregate_direct
+    catalog:
+      script:
+        input: create table events (event text, waiting_jobs int, g int);
+        errors: []
+    script:
+      input: select g, max(sum(waiting_jobs)) from events group by g
+      catalog-id: 2
+      errors:
+        - {type: NESTED_AGGREGATE_CALL, message: 'aggregate function calls cannot be nested: sum is inside of max', text: "sum(waiting_jobs)"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "events"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.2", source: "events", text: "g"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "events", text: "waiting_jobs"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.2", source: "events", text: "g"}
+        - {id: 3, type: function, name: sum, text: "sum(waiting_jobs)"}
+        - {id: 4, type: function, name: max, text: "max(sum(wa..ing_jobs))"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: events, text: "events"}
+          columns:
+            - {name: g, expression: 0}
+            - {name: '?', expression: 4}
+          text: "select g, ..group by g"
+
+  - name: nested_aggregate_twice
+    catalog:
+      script:
+        input: create table events (event text, waiting_jobs int, g int);
+        errors: []
+    script:
+      input: select avg(abs(sum(count(*)))) from events group by g
+      catalog-id: 2
+      errors:
+        - {type: NESTED_AGGREGATE_CALL, message: 'aggregate function calls cannot be nested: count is inside of sum', text: "count(*)"}
+        - {type: NESTED_AGGREGATE_CALL, message: 'aggregate function calls cannot be nested: sum is inside of avg', text: "sum(count(*))"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "events"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.2", source: "events", text: "g"}
+        - {id: 1, type: function, name: count, text: "count(*)"}
+        - {id: 2, type: function, name: sum, text: "sum(count(*))"}
+        - {id: 3, type: function, name: abs, text: "abs(sum(count(*)))"}
+        - {id: 4, type: function, name: avg, text: "avg(abs(su..ount(*))))"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: events, text: "events"}
+          columns:
+            - {name: '?', expression: 4}
+          text: "select avg..group by g"
+
+  - name: nested_aggregate_filter_and_within_group
+    catalog:
+      script:
+        input: create table events (event text, waiting_jobs int, g int);
+        errors: []
+    script:
+      input: |
+        select count(*) filter (where max(g) > 0) from events;
+        select percentile_cont(0.5) within group (order by sum(g)) from events;
+      catalog-id: 2
+      errors:
+        - {type: NESTED_AGGREGATE_CALL, message: 'aggregate function calls cannot be nested: max is inside of count', text: "max(g)"}
+        - {type: NESTED_AGGREGATE_CALL, message: 'aggregate function calls cannot be nested: sum is inside of percentile_cont', text: "sum(g)"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 0, text: "events"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 1, text: "events"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.2", source: "events", statement-id: 0, text: "g"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.2", source: "events", statement-id: 1, text: "g"}
+        - {id: 2, type: function, name: max, statement-id: 0, text: "max(g)"}
+        - {id: 3, type: function, name: count, statement-id: 0, text: "count(*) f..ax(g) > 0)"}
+        - {id: 4, type: function, name: sum, statement-id: 1, text: "sum(g)"}
+        - {id: 5, type: function, name: percentile_cont, statement-id: 1, text: "percentile..by sum(g))"}
+        - {id: 6, type: literal/integer, is-const: true, statement-id: 0, text: "0"}
+        - {id: 7, type: literal/float, is-const: true, statement-id: 1, text: "0.5"}
+      constants:
+        - {expression: 6, text: "0"}
+        - {expression: 7, text: "0.5"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: events, text: "events"}
+          columns:
+            - {name: '?', expression: 3}
+          text: "select cou..rom events"
+        - scope-id: 1
+          sources:
+            - {type: table, name: events, text: "events"}
+          columns:
+            - {name: '?', expression: 5}
+          text: "select per..rom events"
+
+  - name: window_over_aggregate
+    catalog:
+      script:
+        input: create table events (event text, waiting_jobs int, g int);
+        errors: []
+    script:
+      input: select g, sum(count(*)) over (), rank() over (order by sum(waiting_jobs)) from events group by g
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "events"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.2", source: "events", text: "g"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "events", text: "waiting_jobs"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.2", source: "events", text: "g"}
+        - {id: 3, type: function, name: count, text: "count(*)"}
+        - {id: 4, type: function, name: sum, text: "sum(count(..)) over ()"}
+        - {id: 5, type: function, name: sum, text: "sum(waiting_jobs)"}
+        - {id: 6, type: function, name: rank, text: "rank() ove..ing_jobs))"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: events, text: "events"}
+          columns:
+            - {name: g, expression: 0}
+            - {name: '?', expression: 4}
+            - {name: '?', expression: 6}
+          text: "select g, ..group by g"
+
+  - name: aggregate_in_scalar_subquery
+    catalog:
+      script:
+        input: create table events (event text, waiting_jobs int, g int);
+        errors: []
+    script:
+      input: select sum((select count(*) from events)), max(g) from events
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "events"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "events"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.2", source: "events", text: "g"}
+        - {id: 1, type: function, name: count, text: "count(*)"}
+        - {id: 2, type: function, name: sum, text: "sum((selec..m events))"}
+        - {id: 3, type: function, name: max, text: "max(g)"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          sources:
+            - {type: table, name: events, text: "events"}
+          columns:
+            - {name: '?', expression: 1}
+          text: "(select co..om events)"
+        - scope-id: 1
+          sources:
+            - {type: table, name: events, text: "events"}
+          columns:
+            - {name: '?', expression: 2}
+            - {name: '?', expression: 3}
+          text: "select sum..rom events"
+
+  - name: nested_catalog_aggregate
+    catalog:
+      script:
+        input: |
+          create table events (event text, waiting_jobs int, g int);
+          create aggregate stats.my_agg() returns any;
+        errors: []
+    script:
+      input: select my_agg(sum(g)), other.sum(count(*)) from events
+      catalog-id: 2
+      errors:
+        - {type: NESTED_AGGREGATE_CALL, message: 'aggregate function calls cannot be nested: sum is inside of my_agg', text: "sum(g)"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "events"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.2", source: "events", text: "g"}
+        - {id: 1, type: function, name: sum, text: "sum(g)"}
+        - {id: 2, type: function, name: my_agg, text: "my_agg(sum(g))"}
+        - {id: 3, type: function, name: count, text: "count(*)"}
+        - {id: 4, type: function, name: other.sum, text: "other.sum(count(*))"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: events, text: "events"}
+          columns:
+            - {name: '?', expression: 2}
+            - {name: '?', expression: 4}
+          text: "select my_..rom events"

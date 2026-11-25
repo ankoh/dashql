@@ -1,0 +1,54 @@
+analyzer-snapshots:
+  # An aggregate in the arguments of an aggregate of the same query fails on every engine, also through scalar calls
+  - name: nested_aggregate_through_scalar
+    catalog:
+      script:
+        input: create table events (event text, waiting_jobs int, g int);
+    script:
+      input: select string_agg(array_distinct(array_agg(e.event)), ',') from events e
+  # A nested aggregate directly in the arguments
+  - name: nested_aggregate_direct
+    catalog:
+      script:
+        input: create table events (event text, waiting_jobs int, g int);
+    script:
+      input: select g, max(sum(waiting_jobs)) from events group by g
+  # Every aggregate under an aggregate is reported, at the closest enclosing aggregate
+  - name: nested_aggregate_twice
+    catalog:
+      script:
+        input: create table events (event text, waiting_jobs int, g int);
+    script:
+      input: select avg(abs(sum(count(*)))) from events group by g
+  # The FILTER and the WITHIN GROUP order of an aggregate are part of it
+  - name: nested_aggregate_filter_and_within_group
+    catalog:
+      script:
+        input: create table events (event text, waiting_jobs int, g int);
+    script:
+      input: |
+        select count(*) filter (where max(g) > 0) from events;
+        select percentile_cont(0.5) within group (order by sum(g)) from events;
+  # A window function aggregates after the grouping, its arguments and its window may hold aggregates
+  - name: window_over_aggregate
+    catalog:
+      script:
+        input: create table events (event text, waiting_jobs int, g int);
+    script:
+      input: select g, sum(count(*)) over (), rank() over (order by sum(waiting_jobs)) from events group by g
+  # A subquery has an aggregation of its own
+  - name: aggregate_in_scalar_subquery
+    catalog:
+      script:
+        input: create table events (event text, waiting_jobs int, g int);
+    script:
+      input: select sum((select count(*) from events)), max(g) from events
+  # A function that the catalog declares as aggregate is one, a function of another schema is not a standard aggregate
+  - name: nested_catalog_aggregate
+    catalog:
+      script:
+        input: |
+          create table events (event text, waiting_jobs int, g int);
+          create aggregate stats.my_agg() returns any;
+    script:
+      input: select my_agg(sum(g)), other.sum(count(*)) from events

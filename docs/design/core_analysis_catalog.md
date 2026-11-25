@@ -242,6 +242,12 @@ layer that has a match are kept as alternatives for ambiguity errors, the layers
 without a database is never an exact lookup: `create table t` of a script has no qualification and would
 hit `t` directly, ahead of the `db.schema.t` of the connection.
 
+`CatalogSnapshot::resolve_function(name, ignore_entry, out, limit)` resolves a function name the same way, through
+`functions_by_qualified_name` and `functions_by_unqualified_name` of every entry in resolution order, the matches of
+the first layer that has one. A name with a database is exact, one with a schema matches that schema of any database,
+and a bare name matches every schema: DashQL has no search path. The analyzer resolves the declarations of the script
+first (`AnalysisState::resolve_function`).
+
 ## Analysis
 
 `analyze(parsed, catalog)` (`analyzer/mod.rs`) runs four passes over the post-order AST, interleaved
@@ -257,6 +263,7 @@ built after the scan:
 | - | Visualizations (`vis_tags.rs`, after the scan) | `VisualizationSpec`s of the `@vis` tags of queries, `flow` of the first `@flow` tag |
 | - | Inputs (`param_tags.rs`, after the scan) | `inputs`, the first `@param :name = <literal>` tag of every name, the literal read by `sql_literal` (see `workbook_inputs.md`) |
 | - | Transactions (`transactions.rs`, after the scan) | `transactions`, the statements that begin and end every transaction of the script, see below |
+| - | Function checks (`function_checks.rs`, after the scan) | Errors of function calls that fail before they run, see [Function checks](#function-checks) |
 
 A transaction begins and ends in one script: the scripts in between may run on other connections, in another order
 or not at all, and a run of one script would leave its transaction open. `transactions.rs` flags every transaction
@@ -403,6 +410,23 @@ The rules follow PostgreSQL and Hyper:
   its own at the table ref. The scope holds the column refs of the arguments and sees the FROM items before it, with or
   without `LATERAL`, as in PostgreSQL, in UPDATE, DELETE and MERGE without the target. Its columns are computed: those of a column definition list, or one named by the
   alias of a single function or by the function, more of them if the column aliases name more, then the ordinality.
+
+### Function checks
+
+`function_checks.rs` reports function calls that the engine would reject, so the editor underlines them before the
+script runs. The planner makes a statement with an error a barrier, like every analyzer error.
+
+**Nested aggregates** (`NESTED_AGGREGATE_CALL`, an error). An aggregate call inside of an aggregate call of the same
+query fails on every engine: `string_agg(array_distinct(array_agg(x)), ',')`, also in the FILTER or the WITHIN GROUP
+order of the outer call. The check walks the parents of every aggregate call up to the closest enclosing aggregate and
+passes through scalar calls and other expressions. A SELECT ends the walk, a subquery aggregates on its own
+(`sum((select count(*) from t))`), and so does a window function, which aggregates after the grouping
+(`sum(count(*)) OVER ()`, `rank() OVER (ORDER BY sum(x))`). A call with OVER is never an aggregate. A call is one by
+its WITHIN GROUP, by a short list of standard aggregates (`count`, `sum`, `array_agg`, `string_agg`, `listagg`,
+`bool_and`, … and the common ones of Trino) when the name is bare or in `pg_catalog`, or when the script or the
+catalog declares a function of that name as aggregate (`CREATE AGGREGATE`, `pg_proc` with `prokind = 'a'`). The list
+covers connections without functions in the catalog, such as Trino. Every nested aggregate is reported at its closest
+enclosing aggregate (`tests/snapshots/analyzer/aggregates.tpl.yaml`).
 
 ### The snapshot of an analysis
 
@@ -630,6 +654,7 @@ database and schema, statements on `t` and `db.schema.t` are ordered as one rela
 | Analyzer entry point, `AnalyzedScript` | `packages/dashql-core/src/analyzer/mod.rs` |
 | Shared pass state | `packages/dashql-core/src/analyzer/state.rs` |
 | Name resolution, schema inference | `packages/dashql-core/src/analyzer/name_resolution.rs` |
+| Function checks: nested aggregates | `packages/dashql-core/src/analyzer/function_checks.rs` |
 | Analysis types | `packages/dashql-core/src/analyzer/types.rs` |
 | Script pipeline | `packages/dashql-core/src/script.rs` |
 | Editor session | `packages/dashql-core/src/script_session.rs` |
