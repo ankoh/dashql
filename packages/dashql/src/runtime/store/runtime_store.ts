@@ -1,4 +1,5 @@
 import type * as core from '../../core/index.js';
+import * as perfMarks from '../../core/perf_marks.js';
 
 import type { HandleTable } from './handles.js';
 import type { QueryExecutionState } from '../../platform/query/query_execution_state.js';
@@ -120,9 +121,11 @@ export class RuntimeStore {
     flush = (): void => {
         const waiting = this.waiting;
         this.waiting = [];
+        const started = perfMarks.start();
         try {
             this.take();
         } finally {
+            perfMarks.end('store:flush', started);
             for (const resolve of waiting) resolve();
         }
     };
@@ -132,7 +135,8 @@ export class RuntimeStore {
         this.scheduled = null;
         const source = this.source;
         if (source == null || this.disposed) return;
-        const changes = source.takeChanges();
+        // The runtime derives the views of the planner of the workbooks that changed in the take
+        const changes = perfMarks.measure('store:takeChanges', () => source.takeChanges());
         // Aborts and closes apply at once, the handles are forgotten once no view names them
         this.releases.push(...this.handles.apply(changes.effects));
         // Does a slice keep an older view after the flush?
@@ -161,6 +165,7 @@ export class RuntimeStore {
                 cache = new RevisionCache();
                 this.caches.set(kind, cache);
             }
+            const viewsStarted = perfMarks.start();
             const present = list.filter(change => change.revision != null);
             const projection = this.projections[kind] as ViewProjection<typeof kind, unknown> | undefined;
             const ids = present.map(change => change.id) as core.ViewId<typeof kind>[];
@@ -209,18 +214,21 @@ export class RuntimeStore {
                 this.drop(kind, change.id);
                 changed(kind, change.id);
             }
+            perfMarks.end('store:views', viewsStarted, () => `${kind} ×${list.length}`);
         }
         if (!behind) {
             const releases = this.releases;
             this.releases = [];
             for (const handle of releases) this.handles.release(handle);
         }
+        const notifyStarted = perfMarks.start();
         for (const key of notify) {
             for (const listener of [...(this.listeners.get(key) ?? [])]) listener();
         }
         for (const kind of notifyKinds) {
             for (const listener of [...(this.kindListeners.get(kind) ?? [])]) listener();
         }
+        perfMarks.end('store:notify', notifyStarted, () => `${notify.length} slices`);
     }
 
     /// Slices that the store failed to project keep their views, the runtime is asked for them again a few times.

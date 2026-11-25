@@ -1,5 +1,6 @@
 import * as arrow from 'apache-arrow';
 import type * as core from '../../core/index.js';
+import * as perfMarks from '../../core/perf_marks.js';
 
 import type { QueryExecutionArgs } from '../../platform/connections/query_execution_args.js';
 import type { HyperDatabaseChannel } from '../../platform/connections/hyper/hyperdb_grpc_client.js';
@@ -38,6 +39,8 @@ interface QueryRecord {
     batches: number;
     /// The table that the batches of the stream go into
     table: number | null;
+    /// When the channel opened the query, while the perf marks record
+    started: number | null;
 }
 
 function newRecord(): QueryRecord {
@@ -50,7 +53,14 @@ function newRecord(): QueryRecord {
         items: null,
         batches: 0,
         table: null,
+        started: null,
     };
+}
+
+/// The query of a span of the perf marks: its id and the start of its text
+function queryLabel(queryId: number, query: core.RuntimeChannelQuery | null): string {
+    const text = (query?.text ?? '').replace(/\s+/g, ' ').trim();
+    return `#${queryId} ${text.length > 80 ? `${text.substring(0, 80)}…` : text}`;
 }
 
 /// The cancellation of a query as an error
@@ -117,14 +127,19 @@ export class QueryChannels {
             if (query == null) throw new Error(`The query ${queryId} was not described`);
             const channel = record.channel as HyperDatabaseChannel | null;
             if (channel == null) throw new Error(`${query.connector} is not connected, connect it to run the query`);
-            const stream = await channel.executeQuery(query.text, record.cancellation.signal, { readTimeoutMs: query.readTimeoutMs ?? undefined });
+            record.started = perfMarks.start();
+            const stream = await perfMarks.measure(
+                'query:open',
+                () => channel.executeQuery(query.text, record.cancellation.signal, { readTimeoutMs: query.readTimeoutMs ?? undefined }),
+                () => queryLabel(queryId, query),
+            );
             if (stream == null) return false;
             record.stream = stream;
             // The stream is read from the first message on, a query that was cancelled meanwhile never reads it
             record.table = table;
             return true;
         },
-        next: queryId => this.nextMessage(this.recordOf(queryId)),
+        next: queryId => this.nextMessage(queryId, this.recordOf(queryId)),
         cancel: async queryId => {
             const record = this.records.get(queryId);
             if (record == null) return;
@@ -142,32 +157,32 @@ export class QueryChannels {
     private createResults(files: WorkbookResultFiles, database: ComputeDatabase): core.RuntimeResults {
         const { handles, pins } = this.deps;
         return {
-            mount: async workbookId => await files.mount(await database(), workbookId),
+            mount: workbookId => perfMarks.measure('results:mount', async () => await files.mount(await database(), workbookId), workbookId),
             unmount: workbookId => files.unmount(workbookId),
             files: workbookId => files.files(workbookId),
             pin: async (workbookId, name) => pins.add(await files.pin(workbookId, name)),
             release: id => pins.release(id),
-            read: async (workbookId, name) => {
+            read: (workbookId, name) => perfMarks.measure('results:read', async () => {
                 const table = await files.readTable(await database(), workbookId, name);
                 if (table == null) return null;
                 return { table: handles.register(table), rows: table.numRows, columns: table.numCols } satisfies core.RuntimeCachedTable;
-            },
+            }, name),
             write: (workbookId, name, handle) => {
                 // The table is taken when the runtime calls, its handle may go before the write ends
                 const table = handles.get<arrow.Table>(handle);
-                return (async () => {
+                return perfMarks.measure('results:write', async () => {
                     if (table == null) throw new Error('The query has no result');
                     return await files.writeTable(await database(), workbookId, table, name);
-                })();
+                }, name);
             },
             file: (workbookId, name) => files.readFile(workbookId, name),
-            import: async (workbookId, name, handle, crc32) => {
+            import: (workbookId, name, handle, crc32) => perfMarks.measure('results:import', async () => {
                 const file = handles.get<Blob | Uint8Array>(handle);
                 if (file == null) throw new Error(`The result ${name} has no file`);
                 // The bytes are streamed into the file, a slice of a dropped archive never sits in memory
                 const blob = file instanceof Blob ? file : new Blob([file as Uint8Array<ArrayBuffer>]);
                 await files.importFile(workbookId, name, blob, { crc32: crc32 ?? undefined });
-            },
+            }, name),
             move: (workbookId, from, to) => files.move(workbookId, from, to),
             remove: (workbookId, name) => files.remove(workbookId, name),
         };
@@ -251,7 +266,7 @@ export class QueryChannels {
 
     /// The next message of a channel: the next batch that goes into the table of the query, the next progress, or the
     /// end of the stream. The runtime pulls a message when it handled the last one, the stream is read as fast.
-    private async nextMessage(record: QueryRecord): Promise<core.RuntimeChannelMessage> {
+    private async nextMessage(queryId: number, record: QueryRecord): Promise<core.RuntimeChannelMessage> {
         const stream = record.stream;
         if (stream == null || record.table == null) throw new Error('The query has no stream');
         const publish = record.query?.publishResults !== false;
@@ -263,6 +278,8 @@ export class QueryChannels {
                 if (publish && record.batches === 0) {
                     result?.setSchema(await stream.getSchema() ?? new arrow.Schema());
                 }
+                perfMarks.end('query:run', record.started, () => `${queryLabel(queryId, record.query)} (${record.batches} batches)`);
+                record.started = null;
                 return { type: 'end', metrics: stream.getMetrics() };
             }
             const item = next.value;

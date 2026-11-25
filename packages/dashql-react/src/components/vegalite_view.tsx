@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { perfMarks } from '@akohn/dashql';
 import type { Config, TopLevelSpec } from 'vega-lite';
 
 import * as styles from './vegalite_view.module.css';
@@ -184,7 +185,7 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
     // The rows are converted for the embedded chart only
     const rows = React.useMemo<Record<string, unknown>[] | null>(() => {
         if (!succeeded || !dataTable || !nearViewport) return null;
-        return arrowTableToRows(dataTable);
+        return perfMarks.measure('render:visRows', () => arrowTableToRows(dataTable), () => `${dataTable.numRows} rows`);
     }, [succeeded, dataTable, nearViewport]);
     const crossFilterBinding = React.useMemo(() => {
         if (spec == null || dataTable == null) {
@@ -238,6 +239,9 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
         // changes, never on every run: a pointer move over the canvas runs the view, and the fit of a temporal axis
         // with flushed labels can alternate between two widths, the x labels then flickered on hover.
         runtimeSpec.autosize = { type: 'fit', contains: 'padding', resize: false };
+        // The load of the libraries, the compilation of the spec and the first run of the view
+        const embedStarted = perfMarks.start();
+        const embedDetail = () => `${rows.length} rows`;
         // Lazy-load vega-embed and vega-interpreter to keep them out of the import graph for non-vis paths.
         dependencies.loadVega().then(({ embed, expressionInterpreter }) => {
             if (disposed) return;
@@ -260,6 +264,7 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
             });
         }).then(result => {
             if (!result) return;
+            perfMarks.end('render:visEmbed', embedStarted, embedDetail);
             if (disposed) {
                 result.view.finalize();
                 return;

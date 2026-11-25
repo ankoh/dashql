@@ -30,6 +30,7 @@ import { AgentProvider } from '../agent/agent_provider.js';
 import { WorkbookResultsProvider } from '../storage/workbook_results_provider.js';
 import { getGlobalLogger, LoggerProvider } from '../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
+import { perfMarks } from '@akohn/dashql';
 import { EmbeddedDatabaseProvider, type EmbeddedDatabaseOptions } from '../host/embedded_database_provider.js';
 import { NativeWorkbookSync } from '../workbook/persistence/native_workbook_sync_react.js';
 import { WorkbookImportProvider } from '../workbook/persistence/workbook_import_provider.js';
@@ -135,6 +136,9 @@ function logRecoverableReactError(error: unknown, errorInfo: React.ErrorInfo) {
     }, LOG_CTX);
 
 }
+
+// `?perf` records the perf marks from the start, see "Perf marks" in docs/design/dashql_runtime.md
+if (new URLSearchParams(window.location.search).has('perf')) perfMarks.setEnabled(true);
 
 const element = document.getElementById('root');
 const root = createRoot(element!, {

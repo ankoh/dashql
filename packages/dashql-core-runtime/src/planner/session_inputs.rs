@@ -83,6 +83,11 @@ impl SessionInputs {
 
 /// Collect the inputs of the scripts of a session that have a current analysis
 pub fn collect_session_inputs(request: &SessionPlanRequest) -> SessionInputs {
+    crate::perf_marks::measure("planner:inputs", || collect_inputs(request))
+}
+
+/// See `collect_session_inputs`
+fn collect_inputs(request: &SessionPlanRequest) -> SessionInputs {
     let mut inputs: Vec<SessionInput> = Vec::new();
     let mut index: BTreeMap<Arc<str>, usize> = BTreeMap::new();
     for (si, script) in request.scripts.iter().enumerate() {

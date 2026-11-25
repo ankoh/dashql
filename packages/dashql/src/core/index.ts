@@ -1,4 +1,5 @@
 export * as buffers from './buffers.js';
+export * as perfMarks from './perf_marks.js';
 export * from './api.js';
 export * from './workbook.js';
 export * from './connection.js';

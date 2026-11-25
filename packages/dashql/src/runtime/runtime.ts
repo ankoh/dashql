@@ -305,7 +305,7 @@ export class Runtime {
     /// refuses an action that it can't read, and a destroyed runtime refuses every action.
     dispatch<T extends core.Target>(target: T, action: core.ActionOf<T>): Settled {
         if (this.stopping) return { ok: false, changed: false, error: destroyedError().message, id: null, settled: Promise.resolve() };
-        const outcome = this.module.dispatch(target, action);
+        const outcome = core.perfMarks.measure('runtime:dispatch', () => this.module.dispatch(target, action), action.kind);
         return { ...outcome, settled: this.store.afterFlush() };
     }
 
@@ -579,7 +579,7 @@ export class Runtime {
         // text of the script again
         let outcome: core.EditorEventOutcome | null | undefined;
         try {
-            outcome = this.module.applyEditorEvent(script.workbookId, script.scriptKey, script.sessionGeneration, builder.asUint8Array(), knownKey);
+            outcome = core.perfMarks.measure('runtime:editorEvent', () => this.module.applyEditorEvent(script.workbookId, script.scriptKey, script.sessionGeneration, builder.asUint8Array(), knownKey));
         } catch (e: unknown) {
             this.logger.warn('Refused an editor event', { workbookId: script.workbookId, scriptKey: script.scriptKey.toString(), error: stringifyError(e) }, 'workbook_editor');
             return null;

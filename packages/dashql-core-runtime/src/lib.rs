@@ -33,6 +33,7 @@ pub mod http;
 pub mod hyper;
 pub mod names;
 pub mod natural;
+pub mod perf_marks;
 pub mod planner;
 pub mod query;
 pub mod salesforce;

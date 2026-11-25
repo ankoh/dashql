@@ -601,6 +601,11 @@ impl ReferenceErrors for CollectedErrors {
 /// of the session would. Other scripts may be broken or stale meanwhile: a referenced script without a current
 /// analysis is read as a single SELECT. Ignores the scope, the order of the scripts and the catalogs.
 pub fn check_script_references(request: &SessionPlanRequest) -> Vec<CheckedScript> {
+    crate::perf_marks::measure("planner:references", || check_references(request))
+}
+
+/// See `check_script_references`
+fn check_references(request: &SessionPlanRequest) -> Vec<CheckedScript> {
     let count = request.scripts.len();
     let prepared: Vec<Option<Prepared>> = request.scripts.iter().map(|s| Prepared::lenient(s.script)).collect();
     let mut references = ScriptReferences::new(count);

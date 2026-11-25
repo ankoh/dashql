@@ -444,6 +444,11 @@ pub fn plan_session(request: &SessionPlanRequest) -> ExecutionGraphT {
 
 /// Plan the statements of the scripts of a session, see `plan_session`
 pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
+    crate::perf_marks::measure("planner:plan", || plan_statements(request))
+}
+
+/// See `plan`
+fn plan_statements(request: &SessionPlanRequest) -> Plan {
     // A plan of targets, and a tolerant plan like one, prepares what its targets need, runs the statements of a script
     // in order and passes a script that doesn't parse through as written
     let targeted = matches!(request.scope, PlanScope::Targets(_) | PlanScope::Tolerant);

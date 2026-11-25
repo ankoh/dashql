@@ -1,4 +1,5 @@
 import * as buffers from './buffers.js';
+import * as perfMarks from './perf_marks.js';
 import * as flatbuffers from 'flatbuffers';
 
 import * as glue from '@akohn/dashql-wasm/dashql_core.js';
@@ -239,6 +240,8 @@ export class DashQL {
             const instantiation = (async () => {
                 const moduleOrPath = options?.module ?? options?.wasmBinary ?? await loadDefaultWasm();
                 moduleMemory = (await glue.default({ module_or_path: moduleOrPath })).memory;
+                // The planner and the analysis record their spans while the perf marks are on
+                perfMarks.attachModule(glue.setPerfRecorder);
             })();
             moduleInstantiation = instantiation;
             instantiation.catch(() => {

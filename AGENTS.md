@@ -24,7 +24,7 @@ start with `packages/` or `extensions/`.
 - Planner and runs: `design/planner.md`, `design/planner_dependencies.md`, `design/script_references.md` (`:foo`),
   `design/workbook_graph_execution.md`, `design/workbook_results.md` (stored results of the scripts)
 - Core and runtime: `design/dashql_core.md` (the Rust crates, the core module, the host, the rules),
-  `design/dashql_runtime.md` (`@akohn/dashql`, views, dispatch, where tests go)
+  `design/dashql_runtime.md` (`@akohn/dashql`, views, dispatch, where tests go, perf marks)
 - Workbooks: `design/workbook_inputs.md` (`@param`), `design/vis_comments.md` (`@vis`, `@board`, `@flow`),
   `design/workbook_tables.md` (`.dashql` files, links), `design/workbook_publishing.md` (static hosts),
   `design/cloud.md` (published workbooks in a connection), `design/storage_layout.md` (OPFS, Node, migrations),

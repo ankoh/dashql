@@ -1,5 +1,6 @@
 import * as arrow from 'apache-arrow';
 import type * as core from '../core/index.js';
+import * as perfMarks from '../core/perf_marks.js';
 
 import type { EmbeddedClientContext, EmbeddedComputeDatabase, EmbeddedConnection } from '../platform/embedded_database.js';
 import { appendRowNumbers, isArrowTable } from './store/runtime_tables.js';
@@ -56,21 +57,21 @@ export function createComputePlatform(database: () => Promise<EmbeddedComputeDat
         }
     };
     return {
-        importTable: async (_dataFrame, tableName, result, rowNumberField, context) => {
+        importTable: (_dataFrame, tableName, result, rowNumberField, context) => perfMarks.measure('compute:importTable', async () => {
             if (!isArrowTable(result)) throw new Error(`the result to import into ${tableName} is no table`);
             const table = appendRowNumbers(result as arrow.Table, rowNumberField);
             await inRun(context.run, signal => withConnection(clientContextOf(context.clientContext), conn => conn.insertArrowTable(table, { name: tableName, create: true, abort: signal })));
-        },
-        createTable: async (_dataFrame, tableName, sql, context) => {
+        }, tableName),
+        createTable: (_dataFrame, tableName, sql, context) => perfMarks.measure('compute:createTable', async () => {
             await inRun(context.run, signal => withConnection(clientContextOf(context.clientContext), conn => conn.createTableAs(tableName, sql, signal)));
-        },
-        query: async (sql, context) => {
+        }, tableName),
+        query: (sql, context) => perfMarks.measure('compute:query', async () => {
             const table = await inRun(context.run, signal => withConnection(clientContextOf(context.clientContext), conn => conn.query(sql, signal)));
             return arrow.tableToIPC(table, 'stream');
-        },
-        queryTable: async (sql, context) => {
+        }, () => sqlLabel(sql)),
+        queryTable: (sql, context) => perfMarks.measure('compute:query', async () => {
             return await inRun(context.run, signal => withConnection(clientContextOf(context.clientContext), conn => conn.query(sql, signal)));
-        },
+        }, () => sqlLabel(sql)),
         dropTable: async (_dataFrame, _tableName, sql) => {
             await withConnection(null, conn => conn.execute(sql));
         },
@@ -78,4 +79,10 @@ export function createComputePlatform(database: () => Promise<EmbeddedComputeDat
             for (const controller of runs.get(run) ?? []) controller.abort(new DOMException('The task was cancelled', 'AbortError'));
         },
     };
+}
+
+/// The start of the text of a query of a computation for a span of the perf marks
+function sqlLabel(sql: string): string {
+    const text = sql.replace(/\s+/g, ' ').trim();
+    return text.length > 80 ? `${text.substring(0, 80)}…` : text;
 }

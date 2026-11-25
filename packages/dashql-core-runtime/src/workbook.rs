@@ -1809,7 +1809,10 @@ impl Workbook {
         let Some(script) = self.scripts.get_mut(index) else { return false };
         let connection = script.connection.clone();
         let version = connection.catalog.try_borrow().map(|catalog| catalog.version()).ok();
-        if !script.analyze() {
+        let started = crate::perf_marks::begin();
+        let analyzed = script.analyze();
+        crate::perf_marks::end("core:analyze", || script.file_name.clone(), started);
+        if !analyzed {
             return false;
         }
         script.revision = next_revision();

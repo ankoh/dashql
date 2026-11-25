@@ -78,6 +78,7 @@ macro_rules! finish {
 
 // After the macros, the module uses them
 mod host;
+mod perf_marks;
 mod query_history;
 mod runtime;
 mod views;

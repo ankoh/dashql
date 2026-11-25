@@ -24,6 +24,7 @@ use std::rc::Rc;
 use dashql_core_runtime::compute::types::TableId;
 use dashql_core_runtime::connections::registry::ConnectionRegistry;
 use dashql_core_runtime::host::LogLevel;
+use dashql_core_runtime::perf_marks::measure_with;
 use dashql_core_runtime::query::{QueryExecutionHistory, QueryId};
 use dashql_core_runtime::workbook::{next_revision, Workbook};
 use serde::{Serialize, Serializer};
@@ -306,6 +307,11 @@ fn text(id: &str) -> SliceId {
 
 /// Derive the buffers of the derived view of a workbook with the names that they refer to, and their hash
 pub(crate) fn derive(workbook: &Workbook) -> (Rc<DerivedParts>, u64) {
+    measure_with("planner:derive", || workbook.id().to_string(), || derive_buffers(workbook))
+}
+
+/// See `derive`
+fn derive_buffers(workbook: &Workbook) -> (Rc<DerivedParts>, u64) {
     let buffers = workbook.with_planner(|request, sessions| {
         [
             crate::pack_reference_check(request, sessions),

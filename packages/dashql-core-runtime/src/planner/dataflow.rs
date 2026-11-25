@@ -146,6 +146,11 @@ fn writes(node: &ExecutionGraphNodeT) -> impl Iterator<Item = Relation> + '_ {
 
 /// Derive the dataflow of the scripts of a session. Ignores the scope and the materializations of the request.
 pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
+    crate::perf_marks::measure("planner:dataflow", || derive_dataflow(request))
+}
+
+/// See `derive_session_dataflow`
+fn derive_dataflow(request: &SessionPlanRequest) -> Dataflow {
     let tolerant = SessionPlanRequest { scope: PlanScope::Tolerant, materialized: &[], ..*request };
     let plan = plan(&tolerant);
     let graph = &plan.graph;

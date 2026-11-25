@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { perfMarks } from '@akohn/dashql';
 
 import * as styles from './deferred.module.css';
 
@@ -32,13 +33,23 @@ export function Deferred(props: DeferredProps): React.ReactNode {
     const [shown, setShown] = React.useState(props.immediate === true);
     // A suspension hides the content in the same render, it shows again in a calm frame
     if (suspended && shown) setShown(false);
+    // The perf marks of the wait for a calm frame and of the render that shows the content
+    const shownStarted = React.useRef<number | null>(null);
     React.useEffect(() => {
         if (shown || suspended) return;
+        const waitStarted = perfMarks.start();
         return schedule.schedule(() => {
+            perfMarks.end('render:deferredWait', waitStarted);
+            shownStarted.current = perfMarks.start();
             setMounted(true);
             setShown(true);
         });
     }, [schedule, shown, suspended]);
+    React.useLayoutEffect(() => {
+        if (!shown || shownStarted.current == null) return;
+        perfMarks.end('render:deferredShow', shownStarted.current);
+        shownStarted.current = null;
+    }, [shown]);
     if (!mounted) return props.fallback;
     return (
         <div className={styles.root}>

@@ -573,3 +573,47 @@ Run it before and after a change on the per-keystroke path: the editor, the work
 tracking or the store. A keystroke costs the same next to 2 and next to 19 scripts. The derivation of the workbook (the
 planner) runs after a pause and is linear in the scripts of the workbook, the run next to 19 scripts shows its cost per
 script.
+
+## Perf marks
+
+Perf marks are named time spans at the seams of DashQL on the timeline of the browser, to see where the time of a
+workbook goes: in the planner, the store, the queries, the stored results, the computations or the charts. Each is a
+`performance.measure` named `dashql:<track>:<step>` (`perfMarks` of `@akohn/dashql`, `src/core/perf_marks.ts`). They are
+off by default, a span then costs the check of a flag; `?perf` in the URL of the app turns them on from the start
+(`http://localhost:9002/?perf`), and `perfMarks.setEnabled` at any time.
+
+To read them:
+
+- **The performance panel of Chrome.** A recording shows every span on its track in the DashQL group, next to the
+  calls of the main thread and the tracks of React, with its detail in the tooltip, e.g. the workbook of a derive or
+  the text of a query.
+- **A script.** `performance.getEntriesByType('measure')` lists the spans with their `detail.text`, e.g. from a
+  Playwright page that loads a workbook and changes an input. Sum them by name to compare a change with its base.
+
+| Span | Where | What |
+|---|---|---|
+| `store:flush` | `RuntimeStore` | A flush of the store: the take, the views of every changed kind, the notification of the subscribers |
+| `store:takeChanges` | `RuntimeStore` | The changes of the runtime, with the derive of the workbooks that changed |
+| `store:views` | `RuntimeStore` | The views of one kind with their projections, the kind and the number of slices as detail |
+| `store:notify` | `RuntimeStore` | The subscribers of the changed slices, the renders of React follow |
+| `runtime:dispatch` | `Runtime.dispatch` | An action in the module, its kind as detail |
+| `runtime:editorEvent` | `Runtime.applyEditorEvent` | A keystroke or a move of the cursor in the module |
+| `planner:derive` | `derive` of the bindings (`runtime/changes.rs`) | The derived view of a workbook: the reference check, the dataflow and the inputs, packed and hashed |
+| `planner:plan` | `planner::plan` | One plan of the statements of a workbook, also the ones of a run and of the dataflow |
+| `planner:references`, `planner:dataflow`, `planner:inputs` | `planner/` | The passes of the derived view |
+| `core:analyze` | `Workbook::analyze_at` | The analysis of one script, its file as detail |
+| `run:workbook` | `Run::run_plan` (`workbook_run/engine.rs`) | A run of a workbook from its analysis to the release of its files |
+| `run:settleResults` | `Run::plan_and_run` | The keys of the scripts of a run and the stored results that they reuse |
+| `query:open`, `query:run` | `QueryChannels` | A query of a channel of the host until its first answer, and until its last batch |
+| `results:mount`, `results:read`, `results:write`, `results:import` | `QueryChannels` | The stored results of the scripts |
+| `compute:importTable`, `compute:createTable`, `compute:query` | `createComputePlatform` | The computations of the results in the compute database |
+| `render:visRows`, `render:visEmbed` | `VegaLiteView` | The rows of a chart, and its compilation and first run in Vega |
+| `render:deferredWait`, `render:deferredShow` | `Deferred` | The wait of a heavy part for a calm frame, and the render that shows it |
+| `dataflow:layout` | `DashQLDataflow` | The layout of the dataflow canvas with ELK |
+
+A new span goes on a seam that is called a few times per user action, never into a loop over rows or tokens. In
+TypeScript, `perfMarks.measure(name, fn, detail)` measures a function, also one that returns a promise, and
+`perfMarks.start()` with `perfMarks.end(name, started, detail)` a span across calls. In Rust,
+`perf_marks::measure`/`measure_with` and `begin`/`end` of `dashql_core_runtime::perf_marks` record through the
+recorder that the bindings install while the marks are on (`setPerfRecorder`). A detail that costs something to build
+is a function, it is only built while the marks are on. Add the span to the table.

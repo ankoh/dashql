@@ -1,4 +1,5 @@
 import * as glue from '@akohn/dashql-wasm/dashql_dataflow.js';
+import * as perfMarks from './perf_marks.js';
 
 /// The wasm-bindgen module of the layout of the dataflow canvas (`packages/dashql-dataflow/bindings`)
 export type DashQLDataflowBindings = Pick<typeof glue, 'DataflowLayout' | 'routeDataflowEdges' | 'dataflowConfig' | 'installPanicHook'>;
@@ -178,6 +179,11 @@ export class DashQLDataflow {
         boxes: DataflowLayoutBox[],
         edges: DataflowLayoutEdge[],
     ): { boxes: DataflowBoxGeometry[]; routes: DataflowLayoutRoute[] } {
+        return perfMarks.measure('dataflow:layout', () => this.layOut(boxes, edges), () => `${boxes.length} boxes, ${edges.length} edges`);
+    }
+
+    /// See `computeDataflowLayoutWithRoutes`
+    private layOut(boxes: DataflowLayoutBox[], edges: DataflowLayoutEdge[]): { boxes: DataflowBoxGeometry[]; routes: DataflowLayoutRoute[] } {
         const layout = new this.bindings.DataflowLayout();
         try {
             for (const box of boxes) {

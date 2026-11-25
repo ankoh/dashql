@@ -25,6 +25,7 @@ use super::{
 use crate::executor::{QueryId, StoredFile};
 use crate::host::signal::{oneshot, Sender};
 use crate::host::LogLevel;
+use crate::perf_marks;
 use crate::workbook::{RunPlanRequest, ScriptKey, ScriptVisualization, SessionHandle, Workbook, WorkbookAction};
 
 /// The statements that settle between two yields to the host
@@ -817,6 +818,7 @@ impl<H: RunHost> Run<H> {
     /// Run the plan, then release the files of the run. A plan that failed cancels the statements that run and waits
     /// for them first, a statement never writes a file past the release of its pin.
     async fn run_plan(self: &Rc<Self>) -> Result<Vec<Option<QueryId>>, RunFailure> {
+        let started = perf_marks::begin();
         let result = self.plan_and_run().await;
         if result.is_err() {
             self.cancel_active();
@@ -824,6 +826,7 @@ impl<H: RunHost> Run<H> {
             self.read_unfinished().await;
         }
         self.release_files().await;
+        perf_marks::end("run:workbook", || self.workbook_id.clone(), started);
         result
     }
 
@@ -979,7 +982,10 @@ impl<H: RunHost> Run<H> {
         self.validate(&graph, true)?;
         self.check_cancelled()?;
         // The keys of the scripts, the stored results that they reuse and the names of the files that they write
-        let (keys, settled) = self.settle_results(&graph, &visualizations, &held).await?;
+        let settling = perf_marks::begin();
+        let settled = self.settle_results(&graph, &visualizations, &held).await;
+        perf_marks::end("run:settleResults", || self.workbook_id.clone(), settling);
+        let (keys, settled) = settled?;
         let Settled { cached: cached_files, names, .. } = settled;
 
         // Scripts without statements are done right away, so are the scripts that reused their results
