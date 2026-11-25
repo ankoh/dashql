@@ -131,6 +131,18 @@
     color: var(--color_fg);
     white-space: pre-wrap;
     max-width: 400px;
+    border-left: 3px solid transparent;
+}
+
+/* The severity of the diagnostic under the cursor */
+.cm-tooltip-cursor-diagnostics-error {
+    border-left-color: var(--color_danger_fg);
+    background-color: var(--color_danger_muted);
+}
+
+.cm-tooltip-cursor-diagnostics-warning {
+    border-left-color: var(--color_attention_fg);
+    background-color: var(--color_attention_muted);
 }
 
 .cm-completion-hint {

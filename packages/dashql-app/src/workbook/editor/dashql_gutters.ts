@@ -7,29 +7,39 @@ import { Transaction, StateField, RangeSet, RangeSetBuilder } from '@codemirror/
 import { editorDiagnostics } from './dashql_script_references.js';
 import { DashQLProcessorPlugin } from './dashql_processor.js';
 import { DashQLScriptKey } from '@akohn/dashql/platform/workbook/script_editor_state';
+import { revealEditorOffset } from './dashql_inline_diagnostics.js';
 import { findVegaLiteSpecs, isFolded, toggleVegaLiteSpecAtLine, VegaLiteFoldMarker } from './dashql_vis_folding.js';
 
 import icons from '@akohn/dashql-svg-symbols';
 
 import './dashql_gutters.css';
 
+/// The marker of a line with an error, its title is the message of the first error of the line
 class ErrorMarker extends GutterMarker {
+    constructor(readonly message: string) {
+        super();
+    }
     eq(other: GutterMarker): boolean {
-        return other instanceof ErrorMarker;
+        return other instanceof ErrorMarker && other.message === this.message;
     }
     toDOM() {
+        const marker = document.createElement('span');
+        marker.className = 'dashql-gutter-error';
+        marker.dataset.testid = 'gutter-error';
+        marker.title = this.message;
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('class', 'dashql-gutter-error');
         svg.setAttribute('width', '14px');
         svg.setAttribute('height', '14px');
+        svg.setAttribute('aria-hidden', 'true');
         const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-        use.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#close_circle`);
+        use.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#x_circle_16`);
         svg.appendChild(use);
-        return svg;
+        marker.appendChild(svg);
+        return marker;
     }
 }
 
-const ERROR_MARKER = new ErrorMarker();
+const ERROR_MARKER = new ErrorMarker('');
 
 interface State {
     scriptKey: DashQLScriptKey | null;
@@ -69,22 +79,24 @@ const GutterState: StateField<State> = StateField.define<State>({
         // The analysis may lag behind the text
         const doc = transaction.state.doc;
         const lineAt = (offset: number) => doc.lineAt(Math.min(offset, doc.length)).from;
-        const errorLines: Set<number> = new Set();
+        // The message of the first error of a line, by the start of the line
+        const errorLines: Map<number, string> = new Map();
         for (const diagnostic of diagnostics ?? []) {
             if (diagnostic.severity !== dashql.buffers.editor.EditorDiagnosticSeverity.ERROR) continue;
             const loc = diagnostic.textSpan;
             if (loc == null) continue;
-            errorLines.add(lineAt(Number(loc.offset)));
+            const line = lineAt(Number(loc.offset));
+            if (!errorLines.has(line)) errorLines.set(line, typeof diagnostic.message === 'string' ? diagnostic.message : '');
         }
         const foldLines: Map<number, boolean> = new Map();
         for (const spec of findVegaLiteSpecs(processor.editorUpdate)) {
             foldLines.set(lineAt(spec.from), !isFolded(transaction.state, spec));
         }
         const builder = new RangeSetBuilder<GutterMarker>();
-        for (const line of [...new Set([...errorLines, ...foldLines.keys()])].sort((l, r) => l - r)) {
+        for (const line of [...new Set([...errorLines.keys(), ...foldLines.keys()])].sort((l, r) => l - r)) {
             const open = foldLines.get(line);
-            const error = errorLines.has(line);
-            builder.add(line, line, open == null ? ERROR_MARKER : new VegaLiteFoldMarker(open, error));
+            const error = errorLines.get(line);
+            builder.add(line, line, open == null ? new ErrorMarker(error ?? '') : new VegaLiteFoldMarker(open, error != null));
         }
         return {
             scriptKey: processor.scriptKey,
@@ -103,7 +115,19 @@ const GutterExtension = gutter({
         return ERROR_MARKER;
     },
     domEventHandlers: {
-        click: (view, line) => toggleVegaLiteSpecAtLine(view, line.from, line.to),
+        // A click folds a Vega-Lite spec, or places the cursor at the error of the line
+        click: (view, line) => {
+            if (toggleVegaLiteSpecAtLine(view, line.from, line.to)) return true;
+            const error = (editorDiagnostics(view.state) ?? []).find(diagnostic => {
+                const loc = diagnostic.textSpan;
+                if (loc == null || diagnostic.severity !== dashql.buffers.editor.EditorDiagnosticSeverity.ERROR) return false;
+                const offset = Math.min(Number(loc.offset), view.state.doc.length);
+                return offset >= line.from && offset <= line.to;
+            });
+            if (error?.textSpan == null) return false;
+            revealEditorOffset(view, Number(error.textSpan.offset));
+            return true;
+        },
     },
 });
 

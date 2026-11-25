@@ -1,0 +1,54 @@
+/* A line with an error */
+.cm-line.dashql-diagnostic-line-error {
+    background-color: color-mix(in srgb, var(--color_danger_fg) 8%, transparent);
+}
+
+/* The message of a diagnostic at the end of its line, set apart from the code in the font of the app */
+.cm-editor .dashql-inline-diagnostic,
+.cm-editor .dashql-inline-diagnostic * {
+    font-family: var(--font_family);
+}
+
+.dashql-inline-diagnostic {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: min(60ch, 90%);
+    margin-left: 2ch;
+    padding: 0 6px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-size: var(--font_size_small);
+    line-height: 1.5;
+    vertical-align: baseline;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+}
+
+.dashql-inline-diagnostic-error {
+    color: var(--color_danger_fg);
+    background-color: var(--color_danger_muted);
+    border-color: var(--color_danger_border);
+}
+
+.dashql-inline-diagnostic-warning {
+    color: var(--color_attention_fg);
+    background-color: var(--color_attention_muted);
+    border-color: var(--color_attention_border);
+}
+
+.dashql-inline-diagnostic-icon {
+    flex-shrink: 0;
+}
+
+.dashql-inline-diagnostic-message {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dashql-inline-diagnostic-more {
+    flex-shrink: 0;
+    font-weight: 600;
+}

@@ -8,6 +8,7 @@ import { DashQLCompletionStatus } from './completion/dashql_completion_state.js'
 import { editorDiagnostics } from './dashql_script_references.js';
 
 interface CursorError {
+    severity: 'error' | 'warning';
     message: string;
     from: number;
     to: number;
@@ -20,7 +21,8 @@ function findErrorAtCursor(diagnostics: dashql.buffers.editor.EditorDiagnosticT[
         const from = Number(loc.offset);
         const to = Number(loc.offset + loc.length);
         if (from <= cursor && to >= cursor) {
-            return { message: typeof diagnostic.message === 'string' ? diagnostic.message : '', from, to };
+            const severity = diagnostic.severity === dashql.buffers.editor.EditorDiagnosticSeverity.WARNING ? 'warning' : 'error';
+            return { severity, message: typeof diagnostic.message === 'string' ? diagnostic.message : '', from, to };
         }
     }
     return null;
@@ -33,7 +35,7 @@ function createTooltip(error: CursorError): Tooltip {
         arrow: true,
         create: () => {
             const dom = document.createElement('div');
-            dom.className = 'cm-tooltip-cursor-diagnostics';
+            dom.className = `cm-tooltip-cursor-diagnostics cm-tooltip-cursor-diagnostics-${error.severity}`;
             dom.textContent = error.message;
             return { dom };
         },

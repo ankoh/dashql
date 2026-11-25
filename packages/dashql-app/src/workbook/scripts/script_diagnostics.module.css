@@ -3,9 +3,28 @@
     color: var(--color_attention_fg);
 }
 
-.error_trigger,
 .error_icon {
     color: var(--color_danger_fg);
+}
+
+/* The errors of a script with their count, a pill that stands out of the bar */
+button.error_trigger {
+    height: 22px;
+    padding: 0 8px 0 6px;
+    color: var(--color_danger_fg);
+    background-color: var(--color_danger_muted);
+    border: 1px solid var(--color_danger_border);
+    border-radius: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    --button_visual_gap: 4px;
+}
+
+button.error_trigger:hover:not(:disabled),
+button.error_trigger[aria-expanded="true"] {
+    color: var(--color_fg_on_emphasis);
+    background-color: var(--color_danger_emphasis);
+    border-color: var(--color_danger_emphasis);
 }
 
 .overlay {
@@ -43,11 +62,18 @@
     list-style: none;
 }
 
+.entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 2px;
+}
+
 .item {
     appearance: none;
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     display: grid;
-    grid-template-columns: 16px minmax(0, 1fr);
+    grid-template-columns: 16px minmax(0, 1fr) auto;
     align-items: start;
     gap: 8px;
     padding: 8px 12px;
@@ -75,6 +101,26 @@
 .message {
     min-width: 0;
     overflow-wrap: anywhere;
+}
+
+/* The script of an error of a workbook, above its message */
+.script_name {
+    display: block;
+    font-weight: 600;
+}
+
+/* Where the diagnostic is in the editor */
+.location {
+    color: var(--color_fg_muted);
+    font-size: var(--font_size_caption);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.details_button {
+    flex-shrink: 0;
+    margin-top: 4px;
+    color: var(--color_fg_muted);
 }
 
 .detail_header {

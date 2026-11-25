@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { act } from '@akohn/dashql-react/testing/react_act';
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
+import { EditorState } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { collectScriptDiagnostics, ScriptDiagnosticsButton, SCRIPT_FORMATTING_WARNING } from './script_diagnostics.js';
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
@@ -39,11 +41,11 @@ describe('collectScriptDiagnostics', () => {
             diagnostic(EditorDiagnosticSeverity.WARNING, EditorDiagnosticSource.ANALYZER, 'unresolved column'),
         ]);
         const result = collectScriptDiagnostics(script, false, ConnectorType.TRINO, null, references(2n));
-        expect(result.map(d => [d.severity, d.message])).toEqual([
-            ['error', 'syntax error'],
-            ['warning', 'unresolved column'],
-            ['error', 'unknown script: orders'],
-            ['warning', SCRIPT_FORMATTING_WARNING],
+        expect(result.map(d => [d.severity, d.message, d.offset])).toEqual([
+            ['error', 'syntax error', 4],
+            ['warning', 'unresolved column', null],
+            ['error', 'unknown script: orders', 10],
+            ['warning', SCRIPT_FORMATTING_WARNING, null],
         ]);
         expect(result[0].details).toEqual({
             source: 'parser', severity: 'error', message: 'syntax error', scriptKey: 3, textSpan: { offset: 4, length: 3, end: 7 },
@@ -66,7 +68,7 @@ describe('collectScriptDiagnostics', () => {
         expect(collectScriptDiagnostics(script, true, undefined, null, references(1n))).toEqual([]);
         const formatting = { source: 'cached' };
         expect(collectScriptDiagnostics(script, false, undefined, formatting)).toEqual([
-            { severity: 'warning', message: SCRIPT_FORMATTING_WARNING, details: formatting },
+            { severity: 'warning', message: SCRIPT_FORMATTING_WARNING, offset: null, details: formatting },
         ]);
         // A script without an update has no diagnostics
         expect(collectScriptDiagnostics({ ...script, editorUpdate: null } as unknown as ScriptData, true)).toEqual([]);
@@ -88,7 +90,7 @@ describe('ScriptDiagnosticsButton', () => {
     });
     afterEach(() => root.unmount());
 
-    const trigger = () => root.container.querySelector<HTMLButtonElement>('button[aria-label^="Show script"]');
+    const trigger = () => root.container.querySelector<HTMLButtonElement>('button[data-testid="script-diagnostics"]');
     const dialog = (label: string) => document.querySelector<HTMLElement>(`[role="dialog"][aria-label="${label}"]`);
 
     it('renders nothing without diagnostics', () => {
@@ -102,7 +104,10 @@ describe('ScriptDiagnosticsButton', () => {
             diagnostic(EditorDiagnosticSeverity.ERROR, EditorDiagnosticSource.PARSER, 'syntax error'),
         ]);
         root.render(<ScriptDiagnosticsButton scriptData={script} isFormattable={false} connectorType={ConnectorType.HYPER} />);
-        expect(trigger()!.getAttribute('aria-label')).toBe('Show script errors');
+        // Errors show with their count
+        expect(trigger()!.getAttribute('aria-label')).toBe('Show 2 errors, 1 warning');
+        expect(trigger()!.dataset.severity).toBe('error');
+        expect(trigger()!.textContent).toBe('2');
         expect(dialog('Script diagnostics')).toBeNull();
 
         act(() => trigger()!.click());
@@ -125,7 +130,8 @@ describe('ScriptDiagnosticsButton', () => {
     it('shows a warning trigger and closes when the diagnostics are gone', () => {
         const warning = scriptData([diagnostic(EditorDiagnosticSeverity.WARNING, EditorDiagnosticSource.ANALYZER, 'ambiguous column')]);
         root.render(<ScriptDiagnosticsButton scriptData={warning} isFormattable />);
-        expect(trigger()!.getAttribute('aria-label')).toBe('Show script warnings');
+        expect(trigger()!.getAttribute('aria-label')).toBe('Show 1 warning');
+        expect(trigger()!.dataset.severity).toBe('warning');
         act(() => trigger()!.click());
         expect(dialog('Script diagnostics')!.textContent).toContain('1 warning');
         expect(dialog('Script diagnostics')!.textContent).not.toContain('error');
@@ -149,5 +155,34 @@ describe('ScriptDiagnosticsButton', () => {
         act(() => trigger()!.click());
         expect(dialog('Script diagnostics')!.textContent).toContain('1 error');
         expect(dialog('Script diagnostics')!.textContent).toContain('unknown script: orders');
+    });
+
+    it('moves the cursor of the editor to a diagnostic and still shows its details', () => {
+        const parent = document.createElement('div');
+        document.body.appendChild(parent);
+        const view = new EditorView({ parent, state: EditorState.create({ doc: 'select 1;\nselect * fromm x;' }) });
+        try {
+            const script = scriptData([
+                diagnostic(EditorDiagnosticSeverity.ERROR, EditorDiagnosticSource.PARSER, 'syntax error', [24, 1]),
+                diagnostic(EditorDiagnosticSeverity.WARNING, EditorDiagnosticSource.ANALYZER, 'somewhere'),
+            ]);
+            root.render(<ScriptDiagnosticsButton scriptData={script} isFormattable editorView={view} />);
+            act(() => trigger()!.click());
+            const list = dialog('Script diagnostics')!;
+            // A diagnostic with a place shows where it is, the other one only its details
+            expect(list.querySelector('button[aria-label="Go to: syntax error"]')!.textContent).toBe('syntax errorLn 2, Col 15');
+            expect(list.querySelector('button[aria-label="Show details: somewhere"]')).not.toBeNull();
+
+            act(() => list.querySelector<HTMLButtonElement>('button[aria-label="Go to: syntax error"]')!.click());
+            expect(dialog('Script diagnostics')).toBeNull();
+            expect(view.state.selection.main.head).toBe(24);
+
+            act(() => trigger()!.click());
+            act(() => dialog('Script diagnostics')!.querySelector<HTMLButtonElement>('button[aria-label="Show details: syntax error"]')!.click());
+            expect(dialog('Diagnostic details')!.textContent).toContain('parser');
+        } finally {
+            view.destroy();
+            parent.remove();
+        }
     });
 });

@@ -2,7 +2,8 @@ import * as React from 'react';
 import * as dashql from '@akohn/dashql';
 import * as styles from './script_diagnostics.module.css';
 
-import { AlertIcon, XCircleFillIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
+import type { EditorView } from '@codemirror/view';
+import { AlertIcon, BracesIcon, XCircleFillIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
@@ -10,15 +11,18 @@ import { formattingDialectForConnector, useScriptText } from './script_format.js
 import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
-import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { JsonView } from '@akohn/dashql-react/components/json/json_view';
 import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
+import { revealEditorOffset } from '../editor/dashql_inline_diagnostics.js';
 
 export const SCRIPT_FORMATTING_WARNING = 'This script cannot be formatted';
 
 export interface ScriptDiagnostic {
     severity: 'error' | 'warning';
     message: string;
+    /// Where the diagnostic starts in the analyzed text, in UTF-16 code units, null without a place
+    offset: number | null;
     details: Record<string, unknown>;
 }
 
@@ -68,6 +72,7 @@ export function collectScriptDiagnostics(scriptData: Pick<ScriptData, 'scriptKey
         return {
             severity,
             message,
+            offset: textSpan?.offset ?? null,
             details: { source, severity, message, scriptKey: scriptData.scriptKey, textSpan },
         };
     });
@@ -80,6 +85,7 @@ export function collectScriptDiagnostics(scriptData: Pick<ScriptData, 'scriptKey
                 diagnostics.push({
                     severity: 'error',
                     message,
+                    offset: mark.from,
                     details: { source: 'script references', severity: 'error', message, scriptKey: scriptData.scriptKey, textSpan },
                 });
             }
@@ -90,10 +96,24 @@ export function collectScriptDiagnostics(scriptData: Pick<ScriptData, 'scriptKey
         diagnostics.push({
             severity: 'warning',
             message: SCRIPT_FORMATTING_WARNING,
+            offset: null,
             details: formatting ?? formattingDetails(scriptData, connectorType),
         });
     }
     return diagnostics;
+}
+
+/// The count of the diagnostics of a severity, e.g. "2 errors"
+export function diagnosticCount(count: number, severity: 'error' | 'warning'): string {
+    return `${count} ${severity}${count === 1 ? '' : 's'}`;
+}
+
+/// Where a diagnostic is in the text of an editor, e.g. "Ln 3, Col 5". The analysis may lag behind the text, its offset
+/// is clamped to the document.
+function locationLabel(view: EditorView, offset: number): string {
+    const doc = view.state.doc;
+    const line = doc.lineAt(Math.max(0, Math.min(offset, doc.length)));
+    return `Ln ${line.number}, Col ${Math.min(offset, doc.length) - line.from + 1}`;
 }
 
 export const ScriptDiagnosticsButton: React.FC<{
@@ -104,7 +124,10 @@ export const ScriptDiagnosticsButton: React.FC<{
     iconSize?: number;
     /// The checked script references of the script
     references?: ScriptReferenceReport | null;
-}> = ({ scriptData, isFormattable, connectorType, iconSize = 16, references = null }) => {
+    /// The editor of the script. A diagnostic of the list moves its cursor to the diagnostic, without an editor the
+    /// list shows its details.
+    editorView?: EditorView | null;
+}> = ({ scriptData, isFormattable, connectorType, iconSize = 16, references = null, editorView = null }) => {
     const [isOpen, setIsOpen] = React.useState(false);
     const [selectedDiagnostic, setSelectedDiagnostic] = React.useState<ScriptDiagnostic | null>(null);
     const triggerRef = React.useRef<HTMLButtonElement | null>(null);
@@ -125,16 +148,31 @@ export const ScriptDiagnosticsButton: React.FC<{
             if (selectedDiagnostic != null) setSelectedDiagnostic(null);
         }
     }, [diagnostics.length, isOpen, selectedDiagnostic]);
+    // A diagnostic picked in the list is revealed once the list closed, the list returns the focus to its trigger and
+    // the editor takes it from there
+    const [pendingReveal, setPendingReveal] = React.useState<number | null>(null);
+    React.useEffect(() => {
+        if (pendingReveal == null || isOpen) return;
+        setPendingReveal(null);
+        if (editorView != null) revealEditorOffset(editorView, pendingReveal);
+    }, [pendingReveal, isOpen, editorView]);
     if (diagnostics.length === 0) return null;
 
-    const hasErrors = diagnostics.some(diagnostic => diagnostic.severity === 'error');
     const errorCount = diagnostics.filter(diagnostic => diagnostic.severity === 'error').length;
     const warningCount = diagnostics.length - errorCount;
-    const label = hasErrors ? 'Show script errors' : 'Show script warnings';
+    const hasErrors = errorCount > 0;
     const summary = [
-        errorCount > 0 ? `${errorCount} ${errorCount === 1 ? 'error' : 'errors'}` : null,
-        warningCount > 0 ? `${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'}` : null,
+        errorCount > 0 ? diagnosticCount(errorCount, 'error') : null,
+        warningCount > 0 ? diagnosticCount(warningCount, 'warning') : null,
     ].filter(Boolean).join(', ');
+    const showDetails = (diagnostic: ScriptDiagnostic) => {
+        setIsOpen(false);
+        setSelectedDiagnostic(diagnostic);
+    };
+    const reveal = (offset: number) => {
+        setIsOpen(false);
+        setPendingReveal(offset);
+    };
 
     return (
         <>
@@ -149,18 +187,33 @@ export const ScriptDiagnosticsButton: React.FC<{
                 anchorRef={triggerRef}
                 returnFocusRef={triggerRef}
                 focusZoneSettings={{ disabled: true }}
-                renderAnchor={(anchorProps) => (
+                renderAnchor={(anchorProps) => hasErrors ? (
+                    // Errors show with their count, a script with errors doesn't run as intended
+                    <Button
+                        {...anchorProps}
+                        ref={triggerRef}
+                        className={styles.error_trigger}
+                        variant={ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
+                        leadingVisual={<XCircleFillIcon size={iconSize} aria-hidden="true" />}
+                        aria-label={`Show ${summary}`}
+                        data-testid="script-diagnostics"
+                        data-severity="error"
+                    >
+                        {errorCount}
+                    </Button>
+                ) : (
                     <IconButton
                         {...anchorProps}
                         ref={triggerRef}
-                        className={hasErrors ? styles.error_trigger : styles.warning_trigger}
+                        className={styles.warning_trigger}
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
-                        aria-label={label}
+                        aria-label={`Show ${summary}`}
+                        data-testid="script-diagnostics"
+                        data-severity="warning"
                     >
-                        {hasErrors
-                            ? <XCircleFillIcon size={iconSize} aria-hidden="true" />
-                            : <AlertIcon size={iconSize} aria-hidden="true" />}
+                        <AlertIcon size={iconSize} aria-hidden="true" />
                     </IconButton>
                 )}
             >
@@ -170,29 +223,44 @@ export const ScriptDiagnosticsButton: React.FC<{
                         <span className={styles.summary}>{summary}</span>
                     </header>
                     <ul className={styles.list}>
-                        {diagnostics.map((diagnostic, index) => (
-                            <li key={`${diagnostic.severity}-${index}`}>
-                                <button
-                                    type="button"
-                                    className={styles.item}
-                                    onClick={() => {
-                                        setIsOpen(false);
-                                        setSelectedDiagnostic(diagnostic);
-                                    }}
-                                    aria-label={`Show details: ${diagnostic.message}`}
-                                >
-                                    <span
-                                        className={diagnostic.severity === 'error' ? styles.error_icon : styles.warning_icon}
-                                        aria-hidden="true"
+                        {diagnostics.map((diagnostic, index) => {
+                            // A diagnostic with a place in the text moves the cursor of the editor there
+                            const offset = editorView != null ? diagnostic.offset : null;
+                            return (
+                                <li key={`${diagnostic.severity}-${index}`} className={styles.entry}>
+                                    <button
+                                        type="button"
+                                        className={styles.item}
+                                        onClick={() => offset != null ? reveal(offset) : showDetails(diagnostic)}
+                                        aria-label={offset != null ? `Go to: ${diagnostic.message}` : `Show details: ${diagnostic.message}`}
                                     >
-                                        {diagnostic.severity === 'error'
-                                            ? <XCircleFillIcon size={16} />
-                                            : <AlertIcon size={16} />}
-                                    </span>
-                                    <span className={styles.message}>{diagnostic.message}</span>
-                                </button>
-                            </li>
-                        ))}
+                                        <span
+                                            className={diagnostic.severity === 'error' ? styles.error_icon : styles.warning_icon}
+                                            aria-hidden="true"
+                                        >
+                                            {diagnostic.severity === 'error'
+                                                ? <XCircleFillIcon size={16} />
+                                                : <AlertIcon size={16} />}
+                                        </span>
+                                        <span className={styles.message}>{diagnostic.message}</span>
+                                        {offset != null && editorView != null && (
+                                            <span className={styles.location}>{locationLabel(editorView, offset)}</span>
+                                        )}
+                                    </button>
+                                    {offset != null && (
+                                        <IconButton
+                                            className={styles.details_button}
+                                            variant={ButtonVariant.Invisible}
+                                            size={ButtonSize.Small}
+                                            aria-label={`Show details: ${diagnostic.message}`}
+                                            onClick={() => showDetails(diagnostic)}
+                                        >
+                                            <BracesIcon size={14} />
+                                        </IconButton>
+                                    )}
+                                </li>
+                            );
+                        })}
                     </ul>
                 </section>
             </AnchoredOverlay>

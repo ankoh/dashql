@@ -20,16 +20,23 @@
 
 .dashql-function-ref { }
 
+/* The span of a diagnostic: a wavy underline below the descenders, an error also with a tint */
 .dashql-error {
     position: relative;
-    text-decoration: underline 1px var(--color_danger_fg);
-    text-decoration-style: wavy;
+    text-decoration: underline wavy var(--color_danger_fg);
+    text-decoration-thickness: 1.5px;
+    text-decoration-skip-ink: none;
+    text-underline-offset: 3px;
+    background-color: color-mix(in srgb, var(--color_danger_fg) 14%, transparent);
+    border-radius: 2px;
 }
 
 .dashql-warning {
     position: relative;
-    text-decoration: underline 1px var(--color_attention_fg);
-    text-decoration-style: wavy;
+    text-decoration: underline wavy var(--color_attention_fg);
+    text-decoration-thickness: 1.5px;
+    text-decoration-skip-ink: none;
+    text-underline-offset: 3px;
 }
 
 .dashql-quote-tombstoned {

@@ -1,4 +1,6 @@
 .dashql-gutter-error {
+    display: inline-flex;
     margin: 3px 1px 0px 1px;
     color: var(--color_danger_fg);
+    cursor: pointer;
 }

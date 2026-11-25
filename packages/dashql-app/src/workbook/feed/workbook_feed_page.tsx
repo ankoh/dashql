@@ -34,6 +34,7 @@ import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_po
 import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { WorkbookConnectionButtons } from './workbook_connection_buttons.js';
 import { WorkbookExecutionControls, useSkippedRunAttention } from './workbook_execution_controls.js';
+import { WorkbookErrors } from '../scripts/workbook_errors.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import { ConnectionOverviewPage } from '../../connections/connection_overview_page.js';
 import { CloudOverviewPage } from '../../cloud/cloud_overview_page.js';
@@ -509,6 +510,14 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                             )}
                             {/* A preview says it is read-only next to Execute All */}
                             {preview && <CloudPreviewBadge labelClassName={styles.action_label} />}
+                            {/* The errors of the scripts, a script with errors doesn't run as intended */}
+                            {!ephemeral && (
+                                <WorkbookErrors
+                                    workbookId={props.workbookScripts.workbookId}
+                                    scriptKeys={props.workbookScripts.scriptKeys}
+                                    showScript={promptFeed.show}
+                                />
+                            )}
                         </div>}
                         {/* The groups at the end of the bar: the connections of the workbook, its actions, then its views. A
                             separator stands between two groups that show. */}

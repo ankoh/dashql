@@ -8,6 +8,7 @@ import { defaultKeymap, history, historyKeymap, insertNewlineAndIndent } from '@
 
 import { CodeMirrorSearchExtensions } from './codemirror.js';
 import { DashQLExtensions, DashQLFocusCompletionEffect } from './dashql_extension.js';
+import { DashQLInlineDiagnosticsPlugin } from './dashql_inline_diagnostics.js';
 import { DashQLCompletionAbortEffect, DashQLProcessorPlugin, DashQLUpdateEffect } from './dashql_processor.js';
 import { DashQLProcessorUpdateOut } from './completion/dashql_completion_state.js';
 
@@ -22,8 +23,10 @@ interface PromptEditorCallbacks {
 }
 
 /// The SQL assistance: completion, highlighting and auto-closing.
-/// An empty prompt shows its placeholder rather than a completion hint.
-const SQL_ASSIST_EXTENSIONS = DashQLExtensions.filter(extension => extension !== DashQLFocusCompletionEffect && extension !== DashQLProcessorPlugin);
+/// An empty prompt shows its placeholder rather than a completion hint. A draft shows no messages of its diagnostics
+/// at the ends of its lines, its script does once it is created.
+const SQL_ASSIST_EXTENSIONS = DashQLExtensions.filter(extension => extension !== DashQLFocusCompletionEffect && extension !== DashQLProcessorPlugin
+    && extension !== DashQLInlineDiagnosticsPlugin);
 /// The parts of a prompt that change without a new view. A compartment is a key into the state of a view, the prompts
 /// share them.
 const PLACEHOLDER = new Compartment();

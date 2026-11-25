@@ -198,6 +198,7 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
                 connectorType={connectorType}
                 iconSize={14}
                 references={display.references}
+                editorView={editorView}
             />
             {script.annotations.manual && (
                 <span
