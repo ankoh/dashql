@@ -208,15 +208,7 @@ describe('DashQL planner', () => {
             expect(dql!.textChange('/** @param :min = 10 */', '/** @param :min = 20 */')).toEqual({ from: 18, to: 19, insert: '2' });
             expect(dql!.textChange('€ 1', '€ 2')).toEqual({ from: 2, to: 3, insert: '2' });
             expect(dql!.textChange('a😀b', 'a😁b')).toEqual({ from: 1, to: 3, insert: '😁' });
-            // A literal at a selection becomes a new parameter, the offsets count UTF-16 code units
-            const c = prepare(catalog, "select '😀' where amount > 10");
-            const added = c.addParam(27, 29, ['amount']);
-            expect(added.name).toBe('amount2');
-            expect(added.text).toBe("/** @param :amount2 = 10 */\nselect '😀' where amount > :amount2");
-            expect(added.change).toEqual(dql!.textChange(c.getText(), added.text));
-            expect(added.text.slice(added.nameFrom, added.nameTo)).toBe('amount2');
-            expect(c.getText()).toBe("select '😀' where amount > 10");
-            for (const session of [a, b, c]) session.destroy();
+            for (const session of [a, b]) session.destroy();
         } finally {
             catalog.destroy();
         }

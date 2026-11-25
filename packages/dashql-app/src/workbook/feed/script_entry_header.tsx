@@ -9,7 +9,6 @@ import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@akohn/
 import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
 import { useLiveScriptReader } from '../scripts/script_creation.js';
 import { useScriptModel } from '@akohn/dashql-react/models/script_model';
-import { useWorkbookDerived } from '@akohn/dashql-react/hooks';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
 import { getKeywordCase } from '../scripts/script_format.js';
 import { scriptConnectionView, usePickScriptConnection } from '../scripts/script_connection_picker.js';
@@ -60,13 +59,10 @@ export const ScriptEntryHeader: React.FC<ScriptEntryHeaderProps> = React.memo((p
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
     const keywordCase = getKeywordCase(config?.settings);
-    // The names of the inputs of the workbook, a parameter that the script menu adds takes another name
-    const inputNamesKey = JSON.stringify(useWorkbookDerived(workbookId)?.inputs.map(input => input.name) ?? []);
-    const inputNames = React.useMemo<readonly string[]>(() => JSON.parse(inputNamesKey) as string[], [inputNamesKey]);
     const display = React.useMemo<FeedEntryHeaderDisplay>(() => ({
         // There is no composer outside of the feed
-        focused: true, canTarget: false, scriptDebugMode, formattingDebugMode, keywordCase, references: props.scriptReferences, inputNames,
-    }), [scriptDebugMode, formattingDebugMode, keywordCase, props.scriptReferences, inputNames]);
+        focused: true, canTarget: false, scriptDebugMode, formattingDebugMode, keywordCase, references: props.scriptReferences,
+    }), [scriptDebugMode, formattingDebugMode, keywordCase, props.scriptReferences]);
 
     const readScript = useLiveScriptReader();
     const rename = React.useCallback((name: string) => {

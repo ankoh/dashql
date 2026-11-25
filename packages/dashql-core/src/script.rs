@@ -409,20 +409,6 @@ impl Script {
         crate::param_rewrite::rewrite_param_tag(&self.text.to_string(), &parsed, name, value, first_use)
     }
 
-    /// Add a new parameter at a selection of the script, its bytes: a literal there becomes the parameter and its
-    /// value, otherwise the statement gets an unset tag (see `param_rewrite::add_param`). `taken` are names that the
-    /// parameter must not take, e.g. the inputs of the workbook. Returns the new text with the parameter, the script
-    /// keeps its text.
-    pub fn add_param(
-        &mut self,
-        selection: std::ops::Range<usize>,
-        taken: &[String],
-        parse_if_outdated: bool,
-    ) -> Result<crate::param_rewrite::AddedParam> {
-        let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
-        crate::param_rewrite::add_param(&self.text.to_string(), &parsed, selection, taken)
-    }
-
     /// Select the columns of the result of the terminal query below it, `with base as (<query>) select a, b from
     /// base`, the new statement formatted with the config (see `result_projection`). Returns the new text like
     /// `rewrite_vis_renderer`, or an error that says why the script cannot get the projection.

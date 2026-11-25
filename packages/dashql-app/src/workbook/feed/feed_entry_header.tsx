@@ -28,7 +28,6 @@ import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { formattingDialectForConnector, isScriptFormattable, useScriptText } from '../scripts/script_format.js';
 import { formatScriptEditor } from '../editor/script_format_editor.js';
-import { addParameterInEditor } from '../editor/script_parameter_editor.js';
 
 const MoveUpIcon: Icon = SymbolIcon('chevron_up_16');
 const MoveDownIcon: Icon = SymbolIcon('chevron_down_16');
@@ -41,7 +40,6 @@ export interface FeedEntryHeaderDependencies {
     ChartBuilderOverlay: typeof ChartBuilderOverlay;
     formatScriptEditor: typeof formatScriptEditor;
     isScriptFormattable: typeof isScriptFormattable;
-    addParameterInEditor: typeof addParameterInEditor;
 }
 
 export const DEFAULT_FEED_ENTRY_HEADER_DEPENDENCIES: FeedEntryHeaderDependencies = {
@@ -50,10 +48,7 @@ export const DEFAULT_FEED_ENTRY_HEADER_DEPENDENCIES: FeedEntryHeaderDependencies
     ChartBuilderOverlay,
     formatScriptEditor,
     isScriptFormattable,
-    addParameterInEditor,
 };
-
-const NO_NAMES: readonly string[] = [];
 
 /// How a view shows the header of a script
 export interface FeedEntryHeaderDisplay {
@@ -66,8 +61,6 @@ export interface FeedEntryHeaderDisplay {
     keywordCase: dashql.buffers.formatting.KeywordCase;
     /// The checked script references of the script
     references: ScriptReferenceReport | null;
-    /// The names of the inputs of the workbook, a parameter that the script menu adds takes another name
-    inputNames?: readonly string[];
 }
 
 export interface FeedEntryHeaderProps {
@@ -132,12 +125,6 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
     const format = React.useCallback((mode: dashql.buffers.formatting.FormattingMode) => {
         formatScriptEditor(editorView, script, mode, text => void model.setText(text), formattingDebugMode, keywordCase, formattingDialect);
     }, [formatScriptEditor, editorView, script, model, formattingDebugMode, keywordCase, formattingDialect]);
-    // A new parameter goes into the script at the selection of its editor, the editor selects its name
-    const { addParameterInEditor } = dependencies;
-    const inputNames = display.inputNames ?? NO_NAMES;
-    const addParameter = React.useCallback(() => {
-        addParameterInEditor(editorView, script, inputNames);
-    }, [addParameterInEditor, editorView, script, inputNames]);
     const { storageReader, onRename } = props;
     const workbookId = model.workbookId;
     const storage = React.useMemo<ScriptStorage>(() => ({
@@ -285,8 +272,6 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
                 onRename={() => setRenaming(true)}
                 onAddAbove={props.onAddAbove}
                 onAddBelow={props.onAddBelow}
-                onAddParameter={editorView != null ? addParameter : undefined}
-                addParameterDisabled={hasPendingDiff}
                 storage={storage}
                 iconSize={14}
                 contextMenu={contextMenu}

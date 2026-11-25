@@ -626,10 +626,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
 
     const scriptReferences = derived?.references;
     scriptReferencesRef.current = scriptReferences;
-    // The names of the inputs of the workbook, a parameter that a card adds takes another name. The list keeps its
-    // identity while the names stay, the cards are memoized.
-    const inputNamesKey = JSON.stringify(derived?.inputs.map(input => input.name) ?? []);
-    const inputNames = React.useMemo<readonly string[]>(() => JSON.parse(inputNamesKey) as string[], [inputNamesKey]);
     // The rows mount their editors once the list has a width. The list takes a width only after the size observer of
     // a container that was hidden reports, and a wrapped editor that measures at no width estimates the height of its
     // lines at a few characters per row, and gets no resize event to correct that.
@@ -654,7 +650,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
         workbookId,
         scriptReferences,
-        inputNames,
         connections: scriptConnections,
         entries,
         storageReader: storageReader,
@@ -670,7 +665,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         onParameterClick: handleParameterClick,
         topInset,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [workbookId, entries, scriptReferences, inputNames, rowsActive, scriptConnections, storageReader, selectedFileName, scriptDebugMode, formattingDebugMode, keywordCase, collapsedResults, fold, feedCommands, handleParameterClick, topInset, feedLayout.rowHeights.setRowHeight]);
+    }), [workbookId, entries, scriptReferences, rowsActive, scriptConnections, storageReader, selectedFileName, scriptDebugMode, formattingDebugMode, keywordCase, collapsedResults, fold, feedCommands, handleParameterClick, topInset, feedLayout.rowHeights.setRowHeight]);
 
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 

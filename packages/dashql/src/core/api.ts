@@ -883,15 +883,6 @@ export abstract class DashQLScriptSessionReader<O extends NativeScriptSession | 
         return this.ptr.assertNotNull().removeParamTag(name, parseIfOutdated);
     }
 
-    /// Add a new parameter at a selection, its offsets in the offset unit of the session: a literal there becomes the
-    /// parameter and its value, `amount > 10` becomes `amount > :amount` with `@param :amount = 10`, otherwise the
-    /// statement at the selection gets an unset tag, `@param :param`. The parameter takes none of the names of the
-    /// script and of `taken`, e.g. the inputs of the workbook. Returns the new text, the change from the text of the
-    /// script and the name in the new text, the script is not changed. Throws if the script doesn't parse.
-    public addParam(from: number, to: number, taken: readonly string[] = [], parseIfOutdated: boolean = true): glue.AddedParam {
-        return this.ptr.assertNotNull().addParam(from, to, [...taken], parseIfOutdated);
-    }
-
     /// Select the columns of the result of the terminal query below it, `with base as (<query>) select a, b from base`,
     /// the new statement formatted with the config. Returns the new text, the script is not changed. Throws with the
     /// reason when the script cannot get the projection: it does not parse, its last statement is no query, the result

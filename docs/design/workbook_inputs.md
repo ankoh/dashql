@@ -130,16 +130,6 @@ doesn't read, e.g. `ten` for an integer or `1.5` hours, is marked and not writte
   core names the parameter under the cursor that the click placed (`parameter` of the cursor context of an editor
   update), `DashQLParameterClickPlugin` only checks that the click hit its text; a click beside it, a double click or a
   click with a modifier only places the cursor.
-- **Add Parameter.** The script menu of a card with an editor (the kebab of the header and a right click on it) adds a
-  parameter at the selection of the editor. The core writes it (`param_rewrite::add_param`, `addParam` of a script
-  session): a literal around the selection, `10`, `'EU'`, `date '2024-01-01'` or the whole `interval '3' day`, becomes
-  the parameter and its value, `amount > 10` becomes `amount > :amount` with `@param :amount = 10` on its statement. A
-  cast stays in the query and types the input, `'2024-01-01'::date` becomes `:param::date`. Without a literal the
-  statement at the selection gets an unset tag, `@param :param`, the input appears once the query uses it. The name is
-  the column that an expression compares the literal to, `limit` or `offset` for those clauses, `param` otherwise, with
-  a number when the script or another input of the workbook has it already: a new parameter is a new input, it doesn't
-  join an input of another script. The editor applies the change as one step to undo and selects the new name, of the
-  parameter in the query or in the tag without a literal (`addParameterInEditor`).
 - **Draft inputs.** The prompt shows the inputs of its SQL draft on its header bar, below the bar of Wobble, as soon
   as the draft holds a parameter (`collectDraftInputs`), on the landing view and on the docked prompt. A value is written
   into the draft as `@param` tag like in a script and nothing runs, the tag goes along when the draft is sent. A

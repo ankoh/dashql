@@ -427,24 +427,4 @@ describe('the card of a script', () => {
         expect(model.run).not.toHaveBeenCalled();
         expect(document.querySelector('[role="dialog"]')).toBeNull();
     });
-
-    it('adds a parameter at the selection of the editor from the script menu', () => {
-        const addParameterInEditor = vi.fn(() => true);
-        const model = fakeScriptModel({ script: fakeScript(1, '01_alpha.sql') });
-        const { props } = cardProps(model);
-        const display = { ...props.display, inputNames: ['min'] };
-        const dependencies = { ...DEPENDENCIES, addParameterInEditor } as unknown as ScriptCardDependencies;
-        render({ ...props, display, dependencies });
-        const menuItem = () => document.querySelector<HTMLButtonElement>('[data-testid="script-menu-item"][data-action="add-parameter"]');
-        click('script-more-actions');
-        act(() => menuItem()!.click());
-        // The editor of the card, the script and the inputs of the workbook, whose names the parameter doesn't take
-        expect(addParameterInEditor).toHaveBeenCalledExactlyOnceWith({}, model.script, ['min']);
-        expect(menuItem()).toBeNull();
-
-        // A staged rewrite takes no parameter
-        render({ ...props, display, dependencies, model: { ...model, script: { ...model.script, pendingDiff: {} } as never } });
-        click('script-more-actions');
-        expect(menuItem()!.disabled).toBe(true);
-    });
 });

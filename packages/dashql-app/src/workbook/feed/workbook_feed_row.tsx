@@ -48,8 +48,6 @@ export interface ScriptFeedRowProps {
     canTarget: boolean;
     /// The checked script references of the scripts, by script key
     scriptReferences?: ReadonlyMap<number, ScriptReferenceReport>;
-    /// The names of the inputs of the workbook, a parameter that a card adds takes another name
-    inputNames?: readonly string[];
     /// The folded results by script key, see `ScriptResultFold`
     collapsedResults: ReadonlyMap<number, number | null>;
     /// Fold the results, the rest of `ScriptResultFold`
@@ -143,8 +141,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
         formattingDebugMode: props.formattingDebugMode,
         keywordCase: props.keywordCase,
         references,
-        inputNames: props.inputNames,
-    }), [scriptFileName, props.focusedFileName, props.active, props.canTarget, props.scriptDebugMode, props.formattingDebugMode, props.keywordCase, references, props.inputNames]);
+    }), [scriptFileName, props.focusedFileName, props.active, props.canTarget, props.scriptDebugMode, props.formattingDebugMode, props.keywordCase, references]);
     const expanded = scriptKey == null || !props.collapsedResults.has(scriptKey);
     const result = React.useMemo<ScriptResultFold>(() => ({ ...props.fold, expanded }), [props.fold, expanded]);
     // The parts of the card that read the runtime

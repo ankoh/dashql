@@ -855,20 +855,6 @@ impl ScriptSession {
         self.inner.borrow_mut().rewrite_param_tag(name, None, parse_if_outdated).map_err(js_error)
     }
 
-    /// Add a new parameter at a selection, its offsets in the offset unit of the session: a literal there becomes the
-    /// parameter, otherwise the statement gets an unset `@param` tag. `taken` are names it must not take. The session
-    /// keeps its text.
-    #[wasm_bindgen(js_name = addParam)]
-    pub fn add_param(
-        &self,
-        from: u32,
-        to: u32,
-        taken: Vec<String>,
-        parse_if_outdated: bool,
-    ) -> Result<tsify::Ts<AddedParam>, JsError> {
-        added_param(&mut self.inner.borrow_mut(), from, to, &taken, parse_if_outdated)
-    }
-
     /// Select the columns of the result of the terminal query below it, the new statement formatted with the
     /// config. Returns the new text, the error says why the script cannot get the projection.
     #[allow(clippy::too_many_arguments)]
@@ -1156,18 +1142,6 @@ impl WorkbookScriptSession {
     #[wasm_bindgen(js_name = removeParamTag)]
     pub fn remove_param_tag(&self, name: &str, parse_if_outdated: bool) -> Result<String, JsError> {
         self.parsed()?.rewrite_param_tag(name, None, parse_if_outdated).map_err(js_error)
-    }
-
-    /// Add a new parameter at a selection, see `ScriptSession.addParam`. The session stays.
-    #[wasm_bindgen(js_name = addParam)]
-    pub fn add_param(
-        &self,
-        from: u32,
-        to: u32,
-        taken: Vec<String>,
-        parse_if_outdated: bool,
-    ) -> Result<tsify::Ts<AddedParam>, JsError> {
-        added_param(&mut *self.parsed()?, from, to, &taken, parse_if_outdated)
     }
 
     /// Select the columns of the result of the terminal query below it. Returns the new text, the session stays.
@@ -1638,42 +1612,6 @@ pub fn input_literal(value: &str, sql_type: Option<String>) -> Result<String, Js
     dashql_core::sql_literal::SqlLiteral::from_value(value, ty.as_ref())
         .map(|l| l.to_hyper())
         .map_err(|e| JsError::new(&e))
-}
-
-/// A parameter that `addParam` added to a script, its offsets in the offset unit of the session
-#[derive(Clone, Debug, serde::Serialize, tsify::Tsify)]
-#[serde(rename_all = "camelCase")]
-pub struct AddedParam {
-    /// The name of the parameter
-    pub name: String,
-    /// The text with the parameter
-    pub text: String,
-    /// The change from the text of the session to the new text
-    pub change: runtime::workbooks::view::WorkbookTextChange,
-    /// The name in the new text without its colon: the parameter that took the place of a literal, the name in the
-    /// tag otherwise
-    pub name_from: u64,
-    pub name_to: u64,
-}
-
-/// Add a parameter to the script of a session (`param_rewrite::add_param`) with the change of its text
-fn added_param(
-    session: &mut CoreScriptSession,
-    from: u32,
-    to: u32,
-    taken: &[String],
-    parse_if_outdated: bool,
-) -> Result<tsify::Ts<AddedParam>, JsError> {
-    let before = session.text();
-    let added = session.add_param(from.into(), to.into(), taken, parse_if_outdated).map_err(js_error)?;
-    let change = dashql_core_runtime::workbook::text_change(&before, &added.text, session.offset_unit());
-    views::to_js(&AddedParam {
-        change: runtime::workbooks::view::WorkbookTextChange::from(&change),
-        name_from: added.name_range.start as u64,
-        name_to: added.name_range.end as u64,
-        name: added.name,
-        text: added.text,
-    })
 }
 
 /// The change from one text to another (`workbook::text_change`): the range between their common prefix and suffix, on

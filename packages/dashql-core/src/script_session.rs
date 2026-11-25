@@ -1267,32 +1267,6 @@ impl ScriptSession {
         self.script.rewrite_param_tag(name, value, parse_if_outdated)
     }
 
-    /// Add a new parameter at a selection, its offsets in the offset unit of the session (see `Script::add_param`).
-    /// Returns the new text and the parameter, the name range in the offset unit of the session in the new text. The
-    /// session keeps its text.
-    pub fn add_param(
-        &mut self,
-        from: u64,
-        to: u64,
-        taken: &[String],
-        parse_if_outdated: bool,
-    ) -> Result<crate::param_rewrite::AddedParam> {
-        let text = self.script.text();
-        let (Some(from), Some(to)) = (self.resolve_offset(text, from), self.resolve_offset(text, to)) else {
-            return Err(Error::invalid_argument("the selection is outside of the script"));
-        };
-        let selection = from.text_bytes.min(to.text_bytes)..from.text_bytes.max(to.text_bytes);
-        let mut added = self.script.add_param(selection, taken, parse_if_outdated)?;
-        if self.offset_unit == EditorOffsetUnit::UTF16_CODE_UNITS {
-            let utf16 = |bytes: usize| added.text.get(..bytes).map(|head| head.encode_utf16().count());
-            let (Some(begin), Some(end)) = (utf16(added.name_range.start), utf16(added.name_range.end)) else {
-                return Err(Error::invalid_argument("the name is not on a UTF-8 codepoint boundary"));
-            };
-            added.name_range = begin..end;
-        }
-        Ok(added)
-    }
-
     /// Select the columns of the result of the terminal query below it, returns the new text
     pub fn rewrite_result_projection(
         &mut self,
