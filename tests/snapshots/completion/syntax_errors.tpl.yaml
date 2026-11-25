@@ -1,0 +1,194 @@
+completion-snapshots:
+  # A doubled comma before the cursor
+  - name: err_double_comma
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+    editor:
+      input: |-
+        select a,, b from foo where b
+    cursor:
+      search:
+        text: 'where b'
+        index: 7
+    completions:
+      limit: 5
+
+  # A doubled operator in the condition before the cursor
+  - name: err_double_operator
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+    editor:
+      input: |-
+        select a from foo where a = = 1 and b
+    cursor:
+      search:
+        text: 'and b'
+        index: 5
+    completions:
+      limit: 5
+
+  # A missing comma between the targets before the cursor
+  - name: err_missing_comma
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+    editor:
+      input: |-
+        select a b c from foo where b
+    cursor:
+      search:
+        text: 'where b'
+        index: 7
+    completions:
+      limit: 5
+
+  # A misspelled FROM before the cursor
+  - name: err_misspelled_from
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+    editor:
+      input: |-
+        select * frm foo where b
+    cursor:
+      search:
+        text: 'where b'
+        index: 7
+    completions:
+      limit: 5
+
+  # A trailing comma before FROM, the cursor after it
+  - name: err_trailing_comma
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+    editor:
+      input: |-
+        select a, from foo where b
+    cursor:
+      search:
+        text: 'where b'
+        index: 7
+    completions:
+      limit: 5
+
+  # An unclosed parenthesis before the cursor
+  - name: err_unclosed_paren
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+    editor:
+      input: |-
+        select (a from foo where b
+    cursor:
+      search:
+        text: 'where b'
+        index: 7
+    completions:
+      limit: 5
+
+  # An error in an earlier statement is no error of the statement at the cursor
+  - name: err_previous_statement
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+    editor:
+      input: |-
+        selec a from foo; select * from foo where b
+    cursor:
+      search:
+        text: 'where b'
+        index: 7
+    completions:
+      limit: 5
+
+  # An error after the cursor
+  - name: err_after_cursor
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+    editor:
+      input: |-
+        select b from foo where a = = 1
+    cursor:
+      search:
+        text: 'select b'
+        index: 8
+    completions:
+      limit: 5
+
+  # An error at the word being typed
+  - name: err_at_cursor
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+    editor:
+      input: |-
+        select * from foo where a = 1 gr
+    cursor:
+      search:
+        text: 'gr'
+        index: 2
+    completions:
+      limit: 5
+
+  # An unterminated string before the cursor
+  - name: err_unterminated_string
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+    editor:
+      input: |-
+        select * from foo where a = 'x and b
+    cursor:
+      search:
+        text: 'and b'
+        index: 5
+    completions:
+      limit: 5
+
+  # An error on an earlier line of the statement
+  - name: err_earlier_line
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+    editor:
+      input: |-
+        select a
+          frm foo
+        where b
+    cursor:
+      search:
+        text: 'where b'
+        index: 7
+    completions:
+      limit: 3
+
+  # A keyword whose lookahead token the word at the cursor picks is no error before the cursor
+  - name: err_lookahead_keyword
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+    editor:
+      input: |-
+        select a from foo order by a nulls fi
+    cursor:
+      search:
+        text: 'nulls fi'
+        index: 8
+    completions:
+      limit: 3

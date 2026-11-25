@@ -45,6 +45,10 @@ Completion::compute(cursor, k)
 ├─ derive_keyword_continuations(prefix snapshot)
 │   └─ probe::probe_suffix_sequence() — keep continuation if suffix still parses (mid-statement)
 │
+├─ keep_text_after_cursor()         → a candidate replaces the word only if it contains its text after the cursor
+│
+├─ find_syntax_error()             → the first syntax error before the word in the statement of the cursor
+│
 └─ pack_completion() (pack.rs) → FlatBuffer result to frontend
 ```
 
@@ -104,6 +108,10 @@ The cursor's `CursorContext` determines the active strategy (`Completion::new`):
 
 Expected grammar symbols at the cursor position are extracted by `probe::parse_until_with_snapshot`, which runs the LR automaton up to the cursor's symbol and collects all valid next tokens with the driver's LAC (look-ahead correction) check, `lac_check`.
 The same call also returns a `PrefixSnapshot` of the LR state stack (state numbers only — the probes run the automaton without grammar actions, so semantic values aren't needed); the suffix probe reuses that snapshot to avoid re-parsing the prefix.
+While the parser recovers from a syntax error, fewer than three tokens shifted since the error, it drops the tokens that
+don't fit, and the expected symbols after the recovery are no guide: `select (a from foo where b` expects only what
+follows an expression at `b`. The snapshot records that (`PrefixSnapshot::recovering`), and a name or a keyword at the
+cursor then searches the name indexes as if a name were expected.
 Keywords bypass the candidate registration and enter the result heap directly.
 They receive a +17 keyword-substring bonus when both `EXPECTED_PARSER_SYMBOL` and `SUBSTRING_MATCH` are set on the candidate, plus a prevalence modifier for common keywords (e.g. `SELECT` +4, `AS` +2).
 
@@ -263,6 +271,33 @@ A column of a table ref that the cursor sees is qualified with the alias of the 
 
 The column list of an INSERT, also of the INSERT of a MERGE, takes bare names only: its columns never prefer the qualified name, `insert into t as x (na` offers `name` and not `x.name`.
 
+## The text that a candidate replaces
+
+A candidate replaces its target, the symbol at the cursor or the name after a dot (`target_location`), and the whole
+name path with its qualification (`target_location_qualified`). The candidates match the text before the cursor, but the
+target reaches to the end of the word. A candidate never drops text that the user typed after the cursor
+(`keep_text_after_cursor`, the last step of `Completion::compute`): with the cursor inside the target, a candidate
+replaces all of it only if it contains the text after the cursor, case-insensitively and without a closing quote. So
+`sel|ct` becomes `select`. Otherwise both spans end at the cursor and the rest of the word stays: `my|orders` becomes
+`my_tableorders` with `my_table`, not `my_table`, and the hint shows that before Tab. Its keyword continuation would land
+between the candidate and the rest, so such a candidate has none. A cursor at the begin or the end of the target keeps
+the whole target, at the begin the candidates match the whole word. The editor and the shell apply the spans as they
+are.
+
+## The syntax error of a completion
+
+The parser recovers from a syntax error by dropping tokens or the whole statement (see "Error recovery" in
+[core_parser.md](core_parser.md)), so the candidates after an error can miss what the statement would offer: the cursor
+has no context, the tables of the statement aren't in scope, or the expected symbols are those of the recovery. A
+completion names the error that explains it (`Completion::syntax_error`, `completion_syntax_error.rs`): the first scanner
+or parser error before the word at the cursor in the statement of the cursor, with its line, message and hint. The
+statement begins after the last `;` before the word, an error in an earlier statement doesn't matter since the next
+statement always survives the recovery. An error at the word at the cursor or after it is the text being typed,
+`where a = 1 gr|`, and so is an error at a keyword right before the word whose lookahead token the word picks,
+`nulls fi|` (NULLS becomes NULLS_LA only before FIRST or LAST). The packed completion carries it as `syntax_error`, its
+span in the offsets of the candidates. The snapshots write it as `syntax-error`, `tests/snapshots/completion/syntax_errors.tpl.yaml`
+has the cases.
+
 ## Candidate info
 
 `CandidateInfo` is what the pane of a list shows about a candidate:
@@ -336,13 +371,19 @@ A table of a database other than the default one (`shouldAutoQualifyNonDefaultTa
 
 | Key        | AVAILABLE state                | SELECTED_CANDIDATE          | SELECTED_CATALOG_OBJECT     |
 |------------|-------------------------------|-----------------------------|-----------------------------|
-| Enter      | Insert newline                 | Insert newline              | Insert newline              |
+| Enter      | Insert newline, or accept the candidate after Up, Down, Left, Right, Ctrl-N or Ctrl-P | Insert newline | Insert newline |
 | Tab        | Accept candidate (+ continue) | Apply qualification         | —                           |
-| Arrow Up   | Previous candidate            | —                           | —                           |
-| Arrow Down | Next candidate                | —                           | —                           |
+| Arrow Up, Ctrl-P | Previous candidate      | —                           | —                           |
+| Arrow Down, Ctrl-N | Next candidate        | —                           | —                           |
 | Arrow Left | Previous catalog object       | —                           | —                           |
 | Arrow Right| Next catalog object           | —                           | —                           |
 | Escape     | Dismiss completion            | —                           | —                           |
+
+Enter stays with the editor, a newline in a script and the submit of a prompt, until the user steps through the list:
+a word typed in full at the end of a line would otherwise take the top candidate. A step marks the completion as
+`navigated`, then Enter accepts the selected candidate like Tab, also one without a patch, and the next Enter is a
+newline again. Typing starts a new completion that isn't navigated. Ctrl-N and Ctrl-P are Ctrl on macOS too; Chrome on
+Linux and Windows keeps Ctrl-N for a new window, the desktop app passes it on.
 
 ### Visual hints
 
@@ -379,6 +420,15 @@ A row shows the type and the name. The pane next to the list shows what is known
 A description is rendered through text nodes, with `code` and `strong` elements for its inline Markdown. A link shows its label and can't be clicked, since a click must not leave the editor. A click anywhere in the list keeps the focus in the editor, because a blur ends the completion.
 
 The list is as wide as its content. If that doesn't fit the window, the pane goes first, then the list moves left from the cursor.
+
+The list starts at the target where it is without the hints (`CompletionList.computeAnchor`). A hint can insert text
+in front of the target, `my_` before `ord` for `my_orders` or the qualification `db0.public.`, which moves the target to
+the right by another width for every candidate. The list takes the right edge of the character before the hints, or the
+start of the line, plus the text of the user between the qualification and the target, so it doesn't move with them.
+
+A completion with a [syntax error](#the-syntax-error-of-a-completion) shows it above the candidates: `Line 2:` with the
+message, and the hint below it. It stays in view while the list scrolls and wraps at 360px instead of widening the list.
+A completion without candidates shows no list, so it shows no error either; the diagnostics of the editor show it.
 
 The view lives in `workbook/editor/completion/completion_list_view.ts` and knows nothing about its host. The editor and the shell both show it.
 

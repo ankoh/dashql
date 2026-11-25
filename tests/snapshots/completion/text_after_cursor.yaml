@@ -1,0 +1,231 @@
+completion-snapshots:
+
+  - name: text_after_cursor_table
+    catalog:
+      script:
+        input: create table my_table(a int); create table myorders(a int);
+        errors: []
+    editor:
+      input: select * from myorders
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "myorders"}
+    cursor:
+      search:
+        text: myorders
+        index: 2
+    completions:
+      limit: 3
+      strategy: TABLE_REF
+      symbol: NAME
+      relative: MID_OF_SYMBOL
+      entries:
+        - value: my_table
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "my"
+          location-qualified: "my"
+          objects:
+            - type: table
+              id: "256.65536.1:0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: my_table
+              qualified-idx: 0
+              prefer-qualified: 0
+              detail: "1 column"
+              columns: ["a integer"]
+        - value: myorders
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "myorders"
+          location-qualified: "myorders"
+          objects:
+            - type: table
+              id: "256.65536.1:1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: myorders
+              qualified-idx: 0
+              prefer-qualified: 0
+              detail: "1 column"
+              columns: ["a integer"]
+        - value: myorders
+          candidate-tags: [IDENTITY]
+          location: "myorders"
+          location-qualified: "myorders"
+          objects: []
+      text: "myorders"
+
+  - name: text_after_cursor_keyword_typo
+    catalog: {}
+    editor:
+      input: selct
+      catalog-id: 1
+      errors: []
+    cursor:
+      search:
+        text: selct
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - value: select
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "selct"
+          location-qualified: "selct"
+          objects: []
+        - value: set
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "sel"
+          location-qualified: "sel"
+          objects: []
+        - value: with
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "sel"
+          location-qualified: "sel"
+          objects: []
+      text: "selct"
+
+  - name: text_after_cursor_drops_continuation
+    catalog:
+      script:
+        input: create table t(a int);
+        errors: []
+    editor:
+      input: select a from t groxy
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t groxy"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t groxy", text: "a"}
+    cursor:
+      search:
+        text: groxy
+        index: 3
+    completions:
+      limit: 3
+      strategy: TABLE_REF_ALIAS
+      symbol: NAME
+      relative: MID_OF_SYMBOL
+      entries:
+        - value: group
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - value: grouping
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+        - value: groups
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "gro"
+          location-qualified: "gro"
+          objects: []
+      text: "groxy"
+
+  - name: text_after_cursor_quoted
+    catalog:
+      script:
+        input: create table "MyOrders"(a int); create table "MyTable"(a int);
+        errors: []
+    editor:
+      input: select * from "MyOrders"
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "\"MyOrders\""}
+    cursor:
+      search:
+        text: '"MyOrders"'
+        index: 3
+    completions:
+      limit: 3
+      strategy: TABLE_REF
+      symbol: NAME
+      relative: MID_OF_SYMBOL
+      entries:
+        - value: MyOrders
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "\"MyOrders\""
+          location-qualified: "\"MyOrders\""
+          objects:
+            - type: table
+              id: "256.65536.1:0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: '"MyOrders"'
+              qualified-idx: 0
+              prefer-qualified: 0
+              detail: "1 column"
+              columns: ["a integer"]
+        - value: MyTable
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "\"My"
+          location-qualified: "\"My"
+          objects:
+            - type: table
+              id: "256.65536.1:1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: '"MyTable"'
+              qualified-idx: 0
+              prefer-qualified: 0
+              detail: "1 column"
+              columns: ["a integer"]
+        - value: '"MyOrders"'
+          candidate-tags: [IDENTITY]
+          location: "\"MyOrders\""
+          location-qualified: "\"MyOrders\""
+          objects: []
+      text: "\"MyOrders\""
+
+  - name: text_after_cursor_end_of_word
+    catalog:
+      script:
+        input: create table my_table(a int); create table myorders(a int);
+        errors: []
+    editor:
+      input: select * from myorders
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "myorders"}
+    cursor:
+      search:
+        text: myorders
+        index: 8
+    completions:
+      limit: 3
+      strategy: TABLE_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: myorders
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
+          location: "myorders"
+          location-qualified: "myorders"
+          objects:
+            - type: table
+              id: "256.65536.1:1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
+              qualified: myorders
+              qualified-idx: 0
+              prefer-qualified: 0
+              detail: "1 column"
+              columns: ["a integer"]
+        - value: myorders
+          candidate-tags: [IDENTITY]
+          location: "myorders"
+          location-qualified: "myorders"
+          objects: []
+        - value: where
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
+          location: "myorders"
+          location-qualified: "myorders"
+          objects: []
+      text: "myorders"

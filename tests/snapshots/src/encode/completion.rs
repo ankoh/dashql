@@ -99,6 +99,16 @@ pub fn encode_completion(out: &mut Map, completion: &Completion) {
         let relative = completion.target_symbol.map(|t| t.relative_pos.variant_name().unwrap_or("")).unwrap_or("");
         out.plain("relative", relative);
     }
+    if let Some(error) = &completion.syntax_error {
+        let mut e = Map::new();
+        e.int("line", error.line as i64);
+        e.quoted("message", &error.message);
+        if !error.hint.is_empty() {
+            e.quoted("hint", &error.hint);
+        }
+        encode_location_text(&mut e, text, error.location.offset, error.location.length, "text");
+        out.insert("syntax-error", e.into_node());
+    }
     let entries = completion
         .top_candidates
         .iter()

@@ -185,8 +185,8 @@ completion-snapshots:
         - value: name
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
-          location: "nxme"
-          location-qualified: "nxme"
+          location: "n"
+          location-qualified: "n"
           objects:
             - type: column
               id: "256.65536.1:0.2"
@@ -202,18 +202,18 @@ completion-snapshots:
           objects: []
         - value: name
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
-          location: "nxme"
-          location-qualified: "nxme"
+          location: "n"
+          location-qualified: "n"
           objects: []
         - value: names
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
-          location: "nxme"
-          location-qualified: "nxme"
+          location: "n"
+          location-qualified: "n"
           objects: []
         - value: national
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
-          location: "nxme"
-          location-qualified: "nxme"
+          location: "n"
+          location-qualified: "n"
           objects: []
       text: "nxme"
 
@@ -257,18 +257,18 @@ completion-snapshots:
           objects: []
         - value: while
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
-          location: "where"
-          location-qualified: "where"
+          location: "wh"
+          location-qualified: "wh"
           objects: []
         - value: whitespace
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
-          location: "where"
-          location-qualified: "where"
+          location: "wh"
+          location-qualified: "wh"
           objects: []
         - value: limit
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
-          location: "where"
-          location-qualified: "where"
+          location: "wh"
+          location-qualified: "wh"
           objects: []
       text: "where"
 
@@ -446,6 +446,10 @@ completion-snapshots:
       strategy: DEFAULT
       symbol: ARRAY
       relative: END_OF_SYMBOL
+      syntax-error:
+        line: 2
+        message: "syntax error, unexpected keyword AND"
+        text: "and"
       entries:
         - value: na
           candidate-tags: [IDENTITY]

@@ -13,6 +13,8 @@ use crate::analyzer::{
     ScopeId, ScopeJoin, ScopeSource, SourceVisibility, TableRole,
 };
 use crate::catalog::*;
+use crate::completion_syntax_error::find_syntax_error;
+pub use crate::completion_syntax_error::CompletionSyntaxError;
 use crate::cursor::{CursorContext, NameComponentType, ScriptCursor, SymbolLocation};
 use crate::hash::HashMap;
 use crate::table_parameters::{TableParameterSource, TABLE_PARAMETERS_ENTRY_ID};
@@ -205,6 +207,11 @@ pub fn is_symbol_kind_completable(kind: SymbolKind) -> bool {
             | S_DOT_STAR_LA
             | S_DOT_DOT
     )
+}
+
+/// Is a symbol a word that can be a name, a name or a keyword?
+fn is_name_like(kind: SymbolKind) -> bool {
+    kind == S_IDENT || Keyword::name_of(kind).is_some()
 }
 
 /// The catalog object of a candidate
@@ -449,6 +456,9 @@ pub struct Completion<'c, 'a> {
     candidate_heap: CandidateHeap,
     /// The selected candidates, best first
     pub top_candidates: Vec<Candidate>,
+    /// The first syntax error before the word at the cursor in the statement of the cursor, the candidates after it
+    /// can miss what the statement would offer
+    pub syntax_error: Option<CompletionSyntaxError>,
 }
 
 /// A dot candidate
@@ -524,6 +534,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             candidate_objects_by_id: HashMap::default(),
             candidate_heap: TopKHeap::new(k, candidate_cmp as fn(&Candidate, &Candidate) -> Ordering),
             top_candidates: Vec::new(),
+            syntax_error: None,
         }
     }
 
@@ -739,6 +750,41 @@ impl<'c, 'a> Completion<'c, 'a> {
 
     /// Compute the completion at a cursor
     pub fn compute(cursor: &'c ScriptCursor<'a>, k: usize) -> Self {
+        let mut completion = Self::compute_candidates(cursor, k);
+        completion.keep_text_after_cursor();
+        completion.syntax_error = find_syntax_error(cursor, completion.target_symbol);
+        completion
+    }
+
+    /// A candidate never drops text that the user typed after the cursor. With the cursor inside the text that a
+    /// candidate replaces, it replaces all of it only if it contains the text after the cursor, `sel|ct` becomes
+    /// `select`. Otherwise it replaces the text up to the cursor and the rest stays, `my|orders` becomes
+    /// `my_tableorders` and not `my_table`. A keyword continuation would land between the two, it is dropped then.
+    fn keep_text_after_cursor(&mut self) {
+        let cursor = self.cursor.text_offset as u32;
+        let text = self.text().as_bytes();
+        for candidate in &mut self.top_candidates {
+            let target = candidate.target_location;
+            let target_end = target.offset() + target.length();
+            if cursor <= target.offset() || cursor >= target_end {
+                continue;
+            }
+            let after_cursor = text.get(cursor as usize..target_end as usize).unwrap_or_default();
+            // A closing quote of the replaced text is no text of the user, the candidate brings its own quotes
+            let after_cursor = after_cursor.strip_suffix(b"\"").unwrap_or(after_cursor);
+            if ci_find(candidate.completion_text.as_bytes(), after_cursor).is_some() {
+                continue;
+            }
+            candidate.target_location = SymbolSpan::new(target.offset(), cursor - target.offset());
+            let qualified = candidate.target_location_qualified;
+            let qualified_begin = qualified.offset().min(cursor);
+            candidate.target_location_qualified = SymbolSpan::new(qualified_begin, cursor - qualified_begin);
+            candidate.keyword_continuation = None;
+        }
+    }
+
+    /// Compute the candidates at a cursor, with the text that each one replaces
+    fn compute_candidates(cursor: &'c ScriptCursor<'a>, k: usize) -> Self {
         let mut completion = Completion::new(cursor, k);
         // Inside comments, only comment tags and the content of `@vis` tags are completed
         if cursor.script.scanned.is_some_and(|scanned| crate::cursor::is_inside_comment(scanned, cursor.text_offset)) {
@@ -841,7 +887,10 @@ impl<'c, 'a> Completion<'c, 'a> {
                 target.symbol_id
             };
             expected_at_cursor = probe::parse_until_with_snapshot(completion.symbols(), parse_until);
-            expects_identifier = expected_at_cursor.expected.contains(&S_IDENT);
+            // While the parser recovers from an error, it drops the tokens that don't fit, what it expects is no
+            // guide. A name may be anything then, the name indexes are searched.
+            expects_identifier = expected_at_cursor.expected.contains(&S_IDENT)
+                || (expected_at_cursor.prefix.recovering && is_name_like(target.symbol.kind));
         }
 
         // Is the target at a definition position? A target before the symbol at the cursor, `create function f|(`,

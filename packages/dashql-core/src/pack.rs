@@ -1100,6 +1100,15 @@ pub fn pack_completion(
     out.client_function_name = completion.client_function_name;
     out.strategy = completion.strategy;
     out.candidates = Some(candidates);
+    out.syntax_error = completion.syntax_error.as_ref().map(|error| {
+        use dashql_buffers::completion::CompletionSyntaxErrorT;
+        Box::new(build!(CompletionSyntaxErrorT {
+            text_span: Some(symbol_span(SymbolSpan::new(error.location.offset, error.location.length))),
+            line: error.line,
+            message: Some(error.message.clone()),
+            hint: non_empty_str(&error.hint),
+        }))
+    });
     out
 }
 

@@ -461,7 +461,7 @@ const STEP_EFFECTS: [StateEffectType<null>, 1 | -1, UpdatePatchStartingFrom][] =
 ];
 
 /// Step to the next or the previous candidate, or to the next or the previous catalog object of the candidate, wrapping
-/// around at the ends. A candidate starts at its first catalog object.
+/// around at the ends. A candidate starts at its first catalog object. A step marks the completion as navigated.
 function stepCompletion(
     completion: DashQLCompletionState,
     step: 1 | -1,
@@ -476,8 +476,8 @@ function stepCompletion(
         return completion;
     }
     const next = target === UpdatePatchStartingFrom.Candidate
-        ? { ...completion, candidateId: (completion.candidateId + step + count) % count, catalogObjectId: 0 }
-        : { ...completion, catalogObjectId: (completion.catalogObjectId + step + count) % count };
+        ? { ...completion, candidateId: (completion.candidateId + step + count) % count, catalogObjectId: 0, navigated: true }
+        : { ...completion, catalogObjectId: (completion.catalogObjectId + step + count) % count, navigated: true };
     return computePatches(next, transaction.newDoc, transaction.newSelection.main.anchor, target);
 }
 

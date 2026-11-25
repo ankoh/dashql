@@ -503,23 +503,23 @@ completion-snapshots:
           objects: []
         - value: gracefully
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "gro"
-          location-qualified: "gro"
+          location: "gr"
+          location-qualified: "gr"
           objects: []
         - value: granted
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "gro"
-          location-qualified: "gro"
+          location: "gr"
+          location-qualified: "gr"
           objects: []
         - value: graph
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "gro"
-          location-qualified: "gro"
+          location: "gr"
+          location-qualified: "gr"
           objects: []
         - value: greatest
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "gro"
-          location-qualified: "gro"
+          location: "gr"
+          location-qualified: "gr"
           objects: []
       text: "gro"
 
@@ -555,18 +555,18 @@ completion-snapshots:
           objects: []
         - value: gracefully
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
-          location: "gro"
-          location-qualified: "gro"
+          location: "gr"
+          location-qualified: "gr"
           objects: []
         - value: granted
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
-          location: "gro"
-          location-qualified: "gro"
+          location: "gr"
+          location-qualified: "gr"
           objects: []
         - value: graph
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
-          location: "gro"
-          location-qualified: "gro"
+          location: "gr"
+          location-qualified: "gr"
           objects: []
       text: "gro"
 
@@ -599,23 +599,23 @@ completion-snapshots:
       entries:
         - value: gracefully
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
-          location: "gro"
-          location-qualified: "gro"
+          location: "gr"
+          location-qualified: "gr"
           objects: []
         - value: granted
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
-          location: "gro"
-          location-qualified: "gro"
+          location: "gr"
+          location-qualified: "gr"
           objects: []
         - value: graph
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
-          location: "gro"
-          location-qualified: "gro"
+          location: "gr"
+          location-qualified: "gr"
           objects: []
         - value: greatest
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
-          location: "gro"
-          location-qualified: "gro"
+          location: "gr"
+          location-qualified: "gr"
           objects: []
         - value: grouping
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
@@ -634,8 +634,8 @@ completion-snapshots:
           objects: []
         - value: aggregate
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
-          location: "gro"
-          location-qualified: "gro"
+          location: "gr"
+          location-qualified: "gr"
           objects: []
         - value: aggregation_threshold
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
@@ -654,7 +654,7 @@ completion-snapshots:
           objects: []
         - value: by
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
-          location: "gro"
-          location-qualified: "gro"
+          location: "gr"
+          location-qualified: "gr"
           objects: []
       text: "gro"

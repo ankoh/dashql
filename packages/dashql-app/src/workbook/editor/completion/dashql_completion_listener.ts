@@ -3,7 +3,7 @@ import { EditorView, keymap, KeyBinding, ViewPlugin, ViewUpdate } from '@codemir
 import { insertTab } from '@codemirror/commands';
 
 import { DashQLCompletionAbortEffect, DashQLCompletionNextCandidateEffect, DashQLCompletionNextCandidateVariantEffect, DashQLCompletionPreviousCandidateEffect, DashQLCompletionPreviousCandidateVariantEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectCatalogObjectEffect, DashQLProcessorPlugin, hasEmptyCompletionTarget } from '../dashql_processor.js';
-import { DashQLCompletionStatus } from './dashql_completion_state.js';
+import { type DashQLCompletionState, DashQLCompletionStatus } from './dashql_completion_state.js';
 import { applyCompletion, shouldAutoQualifyNonDefaultTable, updateCursorWithCompletion } from './dashql_completion_patches.js';
 
 type EventListener = (event: Event) => void;
@@ -101,6 +101,37 @@ class DashQLCompletionEventListener {
     }
 };
 
+/// Apply the selected candidate of an available completion. A table of a database other than the default one takes its
+/// qualification along.
+function acceptCandidate(view: EditorView, completion: DashQLCompletionState) {
+    const candidate = completion.buffer.read().candidates(completion.candidateId);
+    const catalogObject = candidate?.catalogObjects(completion.catalogObjectId);
+    const applyQualification = catalogObject != null
+        && shouldAutoQualifyNonDefaultTable(catalogObject)
+        && completion.catalogObjectPatch.length > 0;
+    const patches = applyQualification
+        ? [...completion.candidatePatch, ...completion.catalogObjectPatch]
+        : completion.candidatePatch;
+    const target = candidate?.targetLocation();
+    const cursorOverride = target == null || candidate == null
+        ? null
+        : target.offset() + (candidate.completionCursorOffset() ?? candidate.completionText()!.length);
+    view.dispatch({
+        changes: applyCompletion(patches),
+        effects: applyQualification
+            ? DashQLCompletionSelectCatalogObjectEffect.of(null)
+            : DashQLCompletionSelectCandidateEffect.of(null),
+        selection: {
+            anchor: applyQualification
+                ? updateCursorWithCompletion(patches, view.state.selection.main.anchor)
+                : cursorOverride ?? updateCursorWithCompletion(
+                    patches,
+                    view.state.selection.main.anchor
+                )
+        }
+    });
+}
+
 function onTab(view: EditorView) {
     // Has no processor state?
     // Then we just leave the key to CodeMirror.
@@ -116,34 +147,7 @@ function onTab(view: EditorView) {
         case DashQLCompletionStatus.AVAILABLE: {
             // Try to complete the candidate object
             if (processor.scriptCompletion.candidatePatch.length > 0) {
-                const candidate = processor.scriptCompletion.buffer.read().candidates(
-                    processor.scriptCompletion.candidateId,
-                );
-                const catalogObject = candidate?.catalogObjects(processor.scriptCompletion.catalogObjectId);
-                const applyQualification = catalogObject != null
-                    && shouldAutoQualifyNonDefaultTable(catalogObject)
-                    && processor.scriptCompletion.catalogObjectPatch.length > 0;
-                const patches = applyQualification
-                    ? [...processor.scriptCompletion.candidatePatch, ...processor.scriptCompletion.catalogObjectPatch]
-                    : processor.scriptCompletion.candidatePatch;
-                const target = candidate?.targetLocation();
-                const cursorOverride = target == null || candidate == null
-                    ? null
-                    : target.offset() + (candidate.completionCursorOffset() ?? candidate.completionText()!.length);
-                view.dispatch({
-                    changes: applyCompletion(patches),
-                    effects: applyQualification
-                        ? DashQLCompletionSelectCatalogObjectEffect.of(null)
-                        : DashQLCompletionSelectCandidateEffect.of(null),
-                    selection: {
-                        anchor: applyQualification
-                            ? updateCursorWithCompletion(patches, view.state.selection.main.anchor)
-                            : cursorOverride ?? updateCursorWithCompletion(
-                            patches,
-                            view.state.selection.main.anchor
-                        )
-                    }
-                });
+                acceptCandidate(view, processor.scriptCompletion);
                 return true;
             }
             // Fall through to next case
@@ -222,13 +226,30 @@ function stepCompletion(effect: StateEffectType<null>, variants: boolean) {
     };
 }
 
+/// Enter accepts the selected candidate like Tab, once the user stepped through the list with the arrow keys or Ctrl-N
+/// and Ctrl-P. Until then it stays with the editor, a newline in a script and the submit of a prompt, since the user
+/// might just end the line with a word that the list happens to show.
+function onEnter(view: EditorView) {
+    const completion = view.state.field(DashQLProcessorPlugin).scriptCompletion;
+    if (completion?.status !== DashQLCompletionStatus.AVAILABLE || completion.passiveHint || !completion.navigated) {
+        return false;
+    }
+    acceptCandidate(view, completion);
+    return true;
+}
+
 const KEYBINDINGS: KeyBinding[] = [
     { key: "Tab", run: onTab },
+    { key: "Enter", run: onEnter },
     { key: "Escape", run: onEsc },
     { key: "ArrowLeft", run: stepCompletion(DashQLCompletionPreviousCandidateVariantEffect, true) },
     { key: "ArrowRight", run: stepCompletion(DashQLCompletionNextCandidateVariantEffect, true) },
     { key: "ArrowDown", run: stepCompletion(DashQLCompletionNextCandidateEffect, false) },
     { key: "ArrowUp", run: stepCompletion(DashQLCompletionPreviousCandidateEffect, false) },
+    // Like the arrow keys, as in Emacs and in the shells, with Ctrl on macOS too. Chrome on Linux and Windows keeps
+    // Ctrl-N for a new window and never passes it to a page, the desktop app does.
+    { key: "Ctrl-n", run: stepCompletion(DashQLCompletionNextCandidateEffect, false) },
+    { key: "Ctrl-p", run: stepCompletion(DashQLCompletionPreviousCandidateEffect, false) },
 ];
 const KEYMAP = Prec.highest(keymap.of(KEYBINDINGS));
 

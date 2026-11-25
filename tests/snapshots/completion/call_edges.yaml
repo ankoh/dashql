@@ -220,8 +220,8 @@ completion-snapshots:
         - value: ticket_feed
           name-tags: [FUNCTION_NAME]
           candidate-tags: [PREFIX_MATCH]
-          location: "ticket_list"
-          location-qualified: "ticket_list"
+          location: "ticket_"
+          location-qualified: "ticket_"
           detail: "(project string)"
           parameters:
             - name: "project"
@@ -263,8 +263,8 @@ completion-snapshots:
         - value: ticket_search
           name-tags: [FUNCTION_NAME]
           candidate-tags: [PREFIX_MATCH]
-          location: "ticket_list"
-          location-qualified: "ticket_list"
+          location: "ticket_"
+          location-qualified: "ticket_"
           detail: "(query? string)"
           parameters: ["query string"]
           facts: ["Endpoint POST /tickets:search"]
@@ -307,8 +307,8 @@ completion-snapshots:
         - value: page_token
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
-          location: "page_size"
-          location-qualified: "page_size"
+          location: "page_"
+          location-qualified: "page_"
           detail: "string"
           objects: []
       text: "page_size"

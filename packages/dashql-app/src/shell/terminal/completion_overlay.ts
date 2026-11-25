@@ -2,7 +2,7 @@ import type * as dashql from '@akohn/dashql';
 import type { Terminal } from '@xterm/xterm';
 
 import type { DashQLShell } from './api.js';
-import { CandidateListRenderer, collectCandidates, placeBelowOrAbove } from '../../workbook/editor/completion/completion_list_view.js';
+import { CandidateListRenderer, collectCandidates, placeBelowOrAbove, readSyntaxError } from '../../workbook/editor/completion/completion_list_view.js';
 
 import * as styles from '../../workbook/editor/completion/completion_list.module.css';
 
@@ -53,6 +53,7 @@ export class TerminalCompletionOverlay {
         }
         this.anchorColumn = state.anchorColumn;
         this.list.show();
+        this.list.updateSyntaxError(readSyntaxError(this.buffer.read()));
         this.list.updateCandidates(collectCandidates(this.buffer.read(), state.selection, state.variant));
         // The width of the list can differ now
         this.placedAt = null;

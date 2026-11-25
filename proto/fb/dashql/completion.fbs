@@ -159,6 +159,19 @@ enum CompletionStrategy: uint8 {
     COLUMN_REF,
 }
 
+/// A syntax error before the word at the cursor in the statement of the cursor. The parser recovered from it, so the
+/// candidates can miss what the statement would offer.
+table CompletionSyntaxError {
+    /// The text span of the error, in the offsets of the candidates
+    text_span: parser.SymbolSpan;
+    /// The line of the error, from 1
+    line: uint32;
+    /// The message
+    message: string;
+    /// A guess of the fix, absent if there is none
+    hint: string;
+}
+
 table Completion {
     /// The cursor offset
     cursor_offset: uint32;
@@ -172,4 +185,6 @@ table Completion {
     /// Is the target a function, option or attribute of a client function call?
     /// The editor opens the list for these before the first character of the name.
     client_function_name: bool;
+    /// The first syntax error before the word at the cursor in the statement of the cursor, if any
+    syntax_error: CompletionSyntaxError;
 }

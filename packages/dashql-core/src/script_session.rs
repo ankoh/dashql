@@ -1198,6 +1198,9 @@ impl ScriptSession {
             candidate.catalog_objects = non_empty(objects);
         }
         packed.candidates = non_empty(candidates);
+        if let Some(error) = packed.syntax_error.as_mut() {
+            project_symbol_span(&mut projector, &mut error.text_span);
+        }
         Ok(packed)
     }
 

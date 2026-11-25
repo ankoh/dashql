@@ -1179,23 +1179,23 @@ completion-snapshots:
           objects: []
         - value: to
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,SUFFIX_DEPTH_MANY]
-          location: "total"
-          location-qualified: "total"
+          location: "to"
+          location-qualified: "to"
           objects: []
         - value: descriptor
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
-          location: "total"
-          location-qualified: "total"
+          location: "to"
+          location-qualified: "to"
           objects: []
         - value: into
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
-          location: "total"
-          location-qualified: "total"
+          location: "to"
+          location-qualified: "to"
           objects: []
         - value: operator
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
-          location: "total"
-          location-qualified: "total"
+          location: "to"
+          location-qualified: "to"
           objects: []
       text: "total"
 

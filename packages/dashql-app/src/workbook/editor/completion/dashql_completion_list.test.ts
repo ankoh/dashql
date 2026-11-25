@@ -5,6 +5,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { completionAtEnd, ORDERS_COMPLETION_TEXT, ordersCompletion } from '../../../tests/mocks/editor_completion.js';
 import { DashQLCompletionListPlugin } from './dashql_completion_list.js';
+import { DashQLCompletionHintPlugin } from './dashql_completion_hint.js';
 import { DashQLCompletionAbortEffect, DashQLProcessorPlugin, DashQLUpdateEffect } from '../dashql_processor.js';
 import * as styles from './completion_list.module.css';
 
@@ -258,6 +259,51 @@ describe('DashQLCompletionListPlugin', () => {
         await waitForSelected();
         expect(selected().querySelector(`.${styles.candidate_icon}`)?.textContent).toBe(':');
         expect(paneDetail()).toBe('1 column');
+    });
+
+    it('keeps its place when the hints insert text before the target', async () => {
+        parent = document.createElement('div');
+        document.body.appendChild(parent);
+        view = new EditorView({
+            parent,
+            state: EditorState.create({
+                doc: ORDERS_COMPLETION_TEXT,
+                selection: EditorSelection.cursor(ORDERS_COMPLETION_TEXT.length),
+                extensions: [DashQLProcessorPlugin, DashQLCompletionHintPlugin, DashQLCompletionListPlugin],
+            }),
+        });
+        // The hint qualifies the table of another database, `db0.public.` goes in front of `ord`
+        view.dispatch({ effects: DashQLUpdateEffect.of(ordersCompletion(dql)) });
+        await waitForSelected();
+        const editor = view;
+        const targetOffset = ORDERS_COMPLETION_TEXT.length - 'ord'.length;
+        await vi.waitFor(() => expect(editor.contentDOM.textContent).toContain('db0.public.'));
+        const left = parseFloat(list().style.left);
+
+        // Without the hints, the list starts at the target
+        editor.dispatch({ effects: DashQLCompletionAbortEffect.of(null) });
+        await vi.waitFor(() => expect(editor.contentDOM.textContent).not.toContain('db0.public.'));
+        expect(left).toBeCloseTo(editor.coordsForChar(targetOffset)!.left, 0);
+    });
+
+    it('names a syntax error before the cursor above the candidates', async () => {
+        const catalog = dql.createCatalog();
+        const schema = dql.createScript(catalog);
+        schema.insertTextAt(0, 'create table foo (a int, bar int);');
+        schema.analyze();
+        catalog.loadScript(schema, 0);
+        editorAt('select a,\n  , a from foo where ba', catalog, 'bar');
+        await waitForSelected();
+        const banner = list().querySelector<HTMLElement>(`.${styles.syntax_error}`)!;
+        expect(banner.classList.contains(styles.hidden)).toBe(false);
+        expect(banner.querySelector(`.${styles.syntax_error_message}`)?.textContent).toBe('Line 2: syntax error, unexpected ","');
+        expect(banner.querySelector(`.${styles.syntax_error_hint}`)?.textContent).toBe('remove the "," before ","');
+    });
+
+    it('shows no syntax error without one before the cursor', async () => {
+        completingEditor();
+        await waitForSelected();
+        expect(list().querySelector(`.${styles.syntax_error}`)?.classList.contains(styles.hidden)).toBe(true);
     });
 
     it('removes the list with the editor', () => {

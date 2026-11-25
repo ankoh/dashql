@@ -1,9 +1,9 @@
-import { EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
+import { EditorView, type Rect, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 
 import { DashQLCompletionNextCandidateVariantEffect, DashQLCompletionPreviousCandidateVariantEffect, DashQLProcessorPlugin } from '../dashql_processor.js';
 import { DashQLCompletionState, DashQLCompletionStatus } from './dashql_completion_state.js';
-import { CandidateListRenderer, collectCandidates, placeBelowOrAbove, type Position } from './completion_list_view.js';
+import { CandidateListRenderer, collectCandidates, placeBelowOrAbove, readSyntaxError, type Position } from './completion_list_view.js';
 
 
 // This file contains a CodeMirror plugin for showing the completion list of completion_list_view.ts.
@@ -44,11 +44,47 @@ class CompletionList {
         document.body.appendChild(this.list.rootElement);
         this.dom = dom;
     }
-    /// Helper to compute a position
-    static computePosition(view: EditorView, offset: number): (Position | null) {
-        const candidateCoords = view.coordsAtPos(offset);
-        if (candidateCoords == null) return null;
-        return placeBelowOrAbove(candidateCoords);
+    /// The position of the list at the text that a candidate replaces
+    static computePosition(view: EditorView, qualifiedOffset: number, targetOffset: number): (Position | null) {
+        const anchor = CompletionList.computeAnchor(view, qualifiedOffset, targetOffset);
+        if (anchor == null) return null;
+        return placeBelowOrAbove(anchor);
+    }
+
+    /// The box of the text that a candidate replaces, where it is without the hints of the completion. A hint inserts
+    /// text in front of the target, `my_` before `ord` for `my_orders` or the qualification `db0.public.`, and moves
+    /// the target to the right, by another width for every candidate. The list keeps its place: it starts at the right
+    /// edge of the character before the hints, plus the text of the user between them and the target, `x.` of `x.ta`.
+    static computeAnchor(view: EditorView, qualifiedOffset: number, targetOffset: number): Rect | null {
+        const target = view.coordsAtPos(targetOffset);
+        if (target == null) return null;
+        const line = view.state.doc.lineAt(targetOffset);
+        const from = Math.max(line.from, Math.min(qualifiedOffset, targetOffset));
+        let left: number;
+        if (from > line.from) {
+            const before = view.coordsForChar(from - 1);
+            // Not rendered, or on the visual line before a wrap
+            if (before == null || before.bottom <= target.top) return target;
+            left = before.right;
+        } else {
+            const lineElement = CompletionList.lineElementAt(view, line.from);
+            if (lineElement == null) return target;
+            left = lineElement.getBoundingClientRect().left + parseFloat(getComputedStyle(lineElement).paddingLeft || '0');
+        }
+        if (from < targetOffset) {
+            const first = view.coordsForChar(from);
+            const last = view.coordsForChar(targetOffset - 1);
+            if (first == null || last == null) return target;
+            left += last.right - first.left;
+        }
+        return { left, right: left, top: target.top, bottom: target.bottom };
+    }
+
+    /// The element of the line that holds a position
+    static lineElementAt(view: EditorView, offset: number): HTMLElement | null {
+        const { node } = view.domAtPos(offset);
+        const element = node instanceof HTMLElement ? node : node.parentElement;
+        return element?.closest<HTMLElement>('.cm-line') ?? null;
     }
 
     /// Update the completion list
@@ -91,9 +127,11 @@ class CompletionList {
         }
         const candidateLoc = candidate.targetLocation()!;
         const candidateLocOffset = candidateLoc.offset();
+        const qualifiedLocOffset = candidate.targetLocationQualified()?.offset() ?? candidateLocOffset;
 
         // Collect all candidates
         const pending = collectCandidates(completionBuffer, selectedCandidate, selectedCatalogObject);
+        const syntaxError = readSyntaxError(completionBuffer);
 
         // Update the container position.
         // Keyed so that a later update (e.g. hiding) supersedes a pending measure.
@@ -102,7 +140,7 @@ class CompletionList {
             key: this,
             read: (view) => {
                 if (candidateLocOffset > view.state.doc.length) return null;
-                return CompletionList.computePosition(view, candidateLocOffset);
+                return CompletionList.computePosition(view, qualifiedLocOffset, candidateLocOffset);
             },
             write: (pos: Position | null, _view) => {
                 if (pos == null) {
@@ -110,6 +148,7 @@ class CompletionList {
                     return;
                 }
                 this.list.show();
+                this.list.updateSyntaxError(syntaxError);
                 this.list.updateCandidates(pending);
                 this.list.updatePosition(this.list.fitIntoWindow(pos));
             }

@@ -284,8 +284,8 @@ completion-snapshots:
           objects: []
         - value: aggregate
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
-          location: "\"Region\""
-          location-qualified: "\"Region\""
+          location: "\"Reg"
+          location-qualified: "\"Reg"
           objects: []
         - value: aggregation_threshold
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
@@ -294,8 +294,8 @@ completion-snapshots:
           objects: []
         - value: where
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
-          location: "\"Region\""
-          location-qualified: "\"Region\""
+          location: "\"Reg"
+          location-qualified: "\"Reg"
           objects: []
       text: "\"Region\""
 

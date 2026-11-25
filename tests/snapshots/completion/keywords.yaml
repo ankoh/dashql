@@ -408,8 +408,8 @@ completion-snapshots:
           objects: []
         - value: glob
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "gr"
-          location-qualified: "gr"
+          location: "g"
+          location-qualified: "g"
           objects: []
       text: "gr"
 
@@ -550,8 +550,8 @@ completion-snapshots:
           objects: []
         - value: offset
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          location: "or"
-          location-qualified: "or"
+          location: "o"
+          location-qualified: "o"
           objects: []
       text: "or"
 

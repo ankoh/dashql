@@ -10,8 +10,8 @@ import icons from '@akohn/dashql-svg-symbols';
 // The rendering deliberately does NOT use React.
 // We're implementing the view consolidation manually here.
 //
-// It knows nothing about its host: the host reads a completion buffer with collectCandidates, passes the position of
-// the text that is replaced to placeBelowOrAbove, and keeps the focus in its input.
+// It knows nothing about its host: the host reads a completion buffer with collectCandidates and readSyntaxError, passes
+// the position of the text that is replaced to placeBelowOrAbove, and keeps the focus in its input.
 
 
 export interface Position {
@@ -486,6 +486,57 @@ class CandidateRenderer {
     }
 }
 
+/// A syntax error before the cursor, the list names it above the candidates
+export interface CompletionSyntaxErrorView {
+    /// The line of the error, from 1
+    line: number;
+    /// The message
+    message: string;
+    /// A guess of the fix
+    hint: string | null;
+}
+
+/// The syntax error of a completion: the core names the first one before the word at the cursor in its statement
+export function readSyntaxError(completion: dashql.buffers.completion.Completion): CompletionSyntaxErrorView | null {
+    const error = completion.syntaxError();
+    if (error == null) return null;
+    return { line: error.line(), message: error.message() ?? '', hint: error.hint() ?? null };
+}
+
+/// The banner of a syntax error above the candidates. The parser recovered from the error, so the candidates may miss
+/// what the statement would offer.
+class SyntaxErrorRenderer {
+    readonly rootElement: HTMLDivElement;
+    readonly messageElement: HTMLDivElement;
+    readonly hintElement: HTMLDivElement;
+    rendered: CompletionSyntaxErrorView | null = null;
+
+    constructor() {
+        this.rootElement = document.createElement('div');
+        this.rootElement.className = `${styles.syntax_error} ${styles.hidden}`;
+        this.rootElement.title = 'The candidates may be incomplete until the error is fixed';
+        this.messageElement = document.createElement('div');
+        this.messageElement.className = styles.syntax_error_message;
+        this.hintElement = document.createElement('div');
+        this.hintElement.className = styles.syntax_error_hint;
+        this.rootElement.appendChild(this.messageElement);
+        this.rootElement.appendChild(this.hintElement);
+    }
+
+    render(error: CompletionSyntaxErrorView | null) {
+        const rendered = this.rendered;
+        if (rendered === error || (rendered != null && error != null && rendered.line === error.line
+            && rendered.message === error.message && rendered.hint === error.hint)) {
+            return;
+        }
+        this.rendered = error;
+        this.rootElement.classList.toggle(styles.hidden, error == null);
+        this.messageElement.textContent = error == null ? '' : `Line ${error.line}: ${error.message}`;
+        this.hintElement.textContent = error?.hint ?? '';
+        this.hintElement.classList.toggle(styles.hidden, error?.hint == null);
+    }
+}
+
 export class CandidateListRenderer {
     /// Is the list shown?
     rootVisible: boolean;
@@ -500,6 +551,8 @@ export class CandidateListRenderer {
     readonly renderedCandidates: CandidateRenderer[];
     /// The pane next to the list
     readonly details: CandidateDetailsRenderer;
+    /// The syntax error above the candidates
+    readonly syntaxError: SyntaxErrorRenderer;
     readonly selectPreviousVariant: () => void;
     readonly selectNextVariant: () => void;
 
@@ -514,6 +567,8 @@ export class CandidateListRenderer {
         this.rootElement.dataset.dashqlCompletionList = 'true';
         this.listContainer = document.createElement('div');
         this.listContainer.className = styles.list_container;
+        this.syntaxError = new SyntaxErrorRenderer();
+        this.listContainer.appendChild(this.syntaxError.rootElement);
         this.details = new CandidateDetailsRenderer();
         this.rootElement.appendChild(this.listContainer);
         this.rootElement.appendChild(this.details.rootElement);
@@ -558,6 +613,10 @@ export class CandidateListRenderer {
             this.rootElement.style.left = `${position.left}px`;
             this.rootPosition = position;
         }
+    }
+    /// Update the syntax error above the candidates
+    public updateSyntaxError(error: CompletionSyntaxErrorView | null) {
+        this.syntaxError.render(error);
     }
     /// Update the candidates
     public updateCandidates(candidates: VirtualCandidate[]) {

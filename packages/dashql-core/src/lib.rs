@@ -15,6 +15,7 @@ pub mod compact_json;
 pub mod compiler;
 pub mod completion;
 mod completion_clfn;
+mod completion_syntax_error;
 mod completion_vis;
 pub mod cursor;
 pub mod error;

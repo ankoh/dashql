@@ -1,0 +1,755 @@
+completion-snapshots:
+
+  - name: err_double_comma
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+        errors: []
+    editor:
+      input: |-
+        select a,, b from foo where b
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "foo"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "foo", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "foo", text: "b"}
+    cursor:
+      search:
+        text: 'where b'
+        index: 7
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      syntax-error:
+        line: 1
+        message: "syntax error, unexpected \",\""
+        hint: "remove the \",\" before \",\""
+        text: ","
+      entries:
+        - value: b
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+              qualified: foo.b
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo"
+        - value: bar
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "b"
+          location-qualified: "b"
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: foo.bar
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo"
+        - value: b
+          candidate-tags: [IDENTITY]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+        - value: by
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+        - value: backward
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+      text: "b"
+
+  - name: err_double_operator
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+        errors: []
+    editor:
+      input: |-
+        select a from foo where a = = 1 and b
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "foo"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "foo", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "foo", text: "a"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "foo", text: "b"}
+    cursor:
+      search:
+        text: 'and b'
+        index: 5
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      syntax-error:
+        line: 1
+        message: "syntax error, unexpected \"=\""
+        text: "="
+      entries:
+        - value: b
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+              qualified: foo.b
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo"
+        - value: bar
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "b"
+          location-qualified: "b"
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: foo.bar
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo"
+        - value: b
+          candidate-tags: [IDENTITY]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+        - value: by
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+        - value: backward
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+      text: "b"
+
+  - name: err_missing_comma
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+        errors: []
+    editor:
+      input: |-
+        select a b c from foo where b
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "foo"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "foo", text: "b"}
+    cursor:
+      search:
+        text: 'where b'
+        index: 7
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      syntax-error:
+        line: 1
+        message: "syntax error, unexpected name \"c\""
+        hint: "a \",\" may be missing before name \"c\""
+        text: "c"
+      entries:
+        - value: b
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+              qualified: foo.b
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo"
+        - value: bar
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "b"
+          location-qualified: "b"
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: foo.bar
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo"
+        - value: b
+          candidate-tags: [IDENTITY]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+        - value: by
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+        - value: backward
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+      text: "b"
+
+  - name: err_misspelled_from
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+        errors: []
+    editor:
+      input: |-
+        select * frm foo where b
+      catalog-id: 2
+      errors: []
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "b"}
+    cursor:
+      search:
+        text: 'where b'
+        index: 7
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      syntax-error:
+        line: 1
+        message: "syntax error, unexpected name \"frm\""
+        hint: "did you mean FROM?"
+        text: "frm"
+      entries:
+        - value: b
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG,EXACT_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG,EXACT_MATCH]
+              qualified: foo.b
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo"
+        - value: b
+          candidate-tags: [IDENTITY]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+        - value: bar
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG]
+          location: "b"
+          location-qualified: "b"
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG]
+              qualified: foo.bar
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo"
+        - value: by
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+        - value: backward
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+      text: "b"
+
+  - name: err_trailing_comma
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+        errors: []
+    editor:
+      input: |-
+        select a, from foo where b
+      catalog-id: 2
+      errors: []
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "a"}
+        - {id: 1, type: colref/unresolved, text: "b"}
+    cursor:
+      search:
+        text: 'where b'
+        index: 7
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      syntax-error:
+        line: 1
+        message: "syntax error, unexpected keyword FROM"
+        hint: "remove the \",\" before keyword FROM"
+        text: "from"
+      entries:
+        - value: b
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG,EXACT_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG,EXACT_MATCH]
+              qualified: foo.b
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo"
+        - value: b
+          candidate-tags: [IDENTITY]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+        - value: bar
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG]
+          location: "b"
+          location-qualified: "b"
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG]
+              qualified: foo.bar
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo"
+        - value: by
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+        - value: backward
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+      text: "b"
+
+  - name: err_unclosed_paren
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+        errors: []
+    editor:
+      input: |-
+        select (a from foo where b
+      catalog-id: 2
+      errors: []
+    cursor:
+      search:
+        text: 'where b'
+        index: 7
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      syntax-error:
+        line: 1
+        message: "syntax error, unexpected keyword FROM"
+        hint: "a \")\" may be missing before keyword FROM"
+        text: "from"
+      entries:
+        - value: b
+          candidate-tags: [IDENTITY]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+        - value: b
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
+              qualified: foo.b
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo"
+        - value: bar
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "b"
+          location-qualified: "b"
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: foo.bar
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo"
+        - value: between
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+        - value: glob
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+      text: "b"
+
+  - name: err_previous_statement
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+        errors: []
+    editor:
+      input: |-
+        selec a from foo; select * from foo where b
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "foo"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.1", source: "foo", text: "b"}
+    cursor:
+      search:
+        text: 'where b'
+        index: 7
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: b
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+              qualified: foo.b
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo"
+        - value: bar
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "b"
+          location-qualified: "b"
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: foo.bar
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo"
+        - value: b
+          candidate-tags: [IDENTITY]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+        - value: by
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+        - value: backward
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+      text: "b"
+
+  - name: err_after_cursor
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+        errors: []
+    editor:
+      input: |-
+        select b from foo where a = = 1
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "foo"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.1", source: "foo", text: "b"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "foo", text: "a"}
+    cursor:
+      search:
+        text: 'select b'
+        index: 8
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: b
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+              qualified: foo.b
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo"
+        - value: bar
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "b"
+          location-qualified: "b"
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: foo.bar
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo"
+        - value: b
+          candidate-tags: [IDENTITY]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+        - value: by
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+        - value: backward
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+      text: "b"
+
+  - name: err_at_cursor
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+        errors: []
+    editor:
+      input: |-
+        select * from foo where a = 1 gr
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "foo"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "foo", text: "a"}
+    cursor:
+      search:
+        text: 'gr'
+        index: 2
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: ARRAY
+      relative: END_OF_SYMBOL
+      entries:
+        - value: group
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "gr"
+          location-qualified: "gr"
+          objects: []
+        - value: and
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
+          location: "gr"
+          location-qualified: "gr"
+          objects: []
+        - value: order
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
+          location: "gr"
+          location-qualified: "gr"
+          objects: []
+        - value: like
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "gr"
+          location-qualified: "gr"
+          objects: []
+        - value: limit
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "gr"
+          location-qualified: "gr"
+          objects: []
+      text: "gr"
+
+  - name: err_unterminated_string
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+        errors: []
+    editor:
+      input: |-
+        select * from foo where a = 'x and b
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "foo"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "foo", text: "a"}
+        - {id: 1, type: literal/string, is-const: true, text: "'x and b"}
+      constants:
+        - {expression: 1, text: "'x and b"}
+    cursor:
+      search:
+        text: 'and b'
+        index: 5
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: LITERAL_STRING
+      relative: END_OF_SYMBOL
+      entries: []
+      text: "'x and b"
+
+  - name: err_earlier_line
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+        errors: []
+    editor:
+      input: |-
+        select a
+          frm foo
+        where b
+      catalog-id: 2
+      errors: []
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "a"}
+        - {id: 1, type: colref/unresolved, text: "b"}
+    cursor:
+      search:
+        text: 'where b'
+        index: 7
+    completions:
+      limit: 3
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      syntax-error:
+        line: 2
+        message: "syntax error, unexpected name \"foo\""
+        hint: "did you mean FROM instead of \"frm\"?"
+        text: "foo"
+      entries:
+        - value: b
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG,EXACT_MATCH]
+          location: "b"
+          location-qualified: "b"
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG,EXACT_MATCH]
+              qualified: foo.b
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo"
+        - value: b
+          candidate-tags: [IDENTITY]
+          location: "b"
+          location-qualified: "b"
+          objects: []
+        - value: bar
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG]
+          location: "b"
+          location-qualified: "b"
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG]
+              qualified: foo.bar
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · foo"
+      text: "b"
+
+  - name: err_lookahead_keyword
+    catalog:
+      script:
+        input: |-
+          create table foo (a int, b int, bar int);
+        errors: []
+    editor:
+      input: |-
+        select a from foo order by a nulls fi
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "foo"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "foo", text: "a"}
+    cursor:
+      search:
+        text: 'nulls fi'
+        index: 8
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_SELECT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: first
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "fi"
+          location-qualified: "fi"
+          objects: []
+        - value: last
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
+          location: "fi"
+          location-qualified: "fi"
+          objects: []
+      text: "fi"

@@ -32,6 +32,9 @@ export interface DashQLCompletionState {
     catalogObjectPatch: CompletionPatch[];
     /// Override cursor position after applying qualification/function-call patches.
     catalogObjectCursorOffset: number | null;
+    /// Did the user step through the list with the arrow keys or Ctrl-N and Ctrl-P? Enter accepts the selected
+    /// candidate then. Unset until the first step, a new completion starts unset again.
+    navigated?: boolean;
 }
 
 /// A state that is pushed from the processor to the outside. The workbook scripts take the part of a

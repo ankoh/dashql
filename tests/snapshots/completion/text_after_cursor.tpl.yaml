@@ -1,0 +1,65 @@
+completion-snapshots:
+  # The cursor inside a table name: `myorders` keeps the text after the cursor and replaces the name, `my_table` doesn't
+  # and replaces only the text up to the cursor
+  - name: text_after_cursor_table
+    catalog:
+      script:
+        input: create table my_table(a int); create table myorders(a int);
+    editor:
+      input: select * from myorders
+    cursor:
+      search:
+        text: myorders
+        index: 2
+    completions:
+      limit: 3
+  # The cursor inside a misspelled keyword, `select` keeps the `ct` after the cursor and replaces the keyword
+  - name: text_after_cursor_keyword_typo
+    catalog: {}
+    editor:
+      input: selct
+    cursor:
+      search:
+        text: selct
+        index: 3
+    completions:
+      limit: 3
+  # A keyword that replaces only the text up to the cursor loses its continuation, `group` would insert `by` before `xy`
+  - name: text_after_cursor_drops_continuation
+    catalog:
+      script:
+        input: create table t(a int);
+    editor:
+      input: select a from t groxy
+    cursor:
+      search:
+        text: groxy
+        index: 3
+    completions:
+      limit: 3
+  # The closing quote of a quoted name is no text of the user, `"MyOrders"` keeps `Orders` and replaces the name
+  - name: text_after_cursor_quoted
+    catalog:
+      script:
+        input: create table "MyOrders"(a int); create table "MyTable"(a int);
+    editor:
+      input: select * from "MyOrders"
+    cursor:
+      search:
+        text: '"MyOrders"'
+        index: 3
+    completions:
+      limit: 3
+  # The cursor at the end of a word replaces the word
+  - name: text_after_cursor_end_of_word
+    catalog:
+      script:
+        input: create table my_table(a int); create table myorders(a int);
+    editor:
+      input: select * from myorders
+    cursor:
+      search:
+        text: myorders
+        index: 8
+    completions:
+      limit: 3
