@@ -10,9 +10,9 @@ use dashql_core_runtime::compute::cross_filters::{CrossFilterPredicate, CrossFil
 use dashql_core_runtime::compute::types::{
     ArrowTable, ColumnAggregate, ColumnAggregationTask, ColumnGroup, ColumnStatsFields, ColumnSummary, ComputationTask,
     ComputationVersion, DataFrameId, DataSearchTable, DataSearchTask, FilterOp, FilterTable, FilteredColumnAggregate,
-    FilteredColumnAggregationTask, OrderByConstraint, OrderingTable, OrdinalColumnGroup, RowNumberColumnGroup,
-    ScalarFilter, StringColumnGroup, SystemColumnsTask, TableAggregation, TableAggregationTask, TableFilteringTask,
-    TableId, TableOrderingTask, TaskId, TaskProgressUpdate, TaskStatus,
+    FilteredColumnAggregationTask, OrderByConstraint, OrderingTable, OrdinalColumnGroup, RowFilter,
+    RowNumberColumnGroup, ScalarFilter, StringColumnGroup, SystemColumnsTask, TableAggregation, TableAggregationTask,
+    TableFilteringTask, TableId, TableOrderingTask, TaskId, TaskProgressUpdate, TaskStatus,
 };
 use dashql_core_runtime::compute::{
     ComputationAction, ComputationEffect, ComputationOutcome, ComputationState, SearchKind, COMPUTATION_DROPPED,
@@ -381,7 +381,7 @@ fn keeps_the_state_for_equal_cross_filters() {
     assert!(!apply(&mut state, set(CrossFilters::new(), 7)).changed);
 
     let mut filters = CrossFilters::new();
-    filters.add_most_frequent_value_filter(1, &category(), Some(3));
+    filters.set_most_frequent_values(1, &category(), &[3]);
     assert!(apply(&mut state, set(filters.clone(), 1)).changed);
     assert_eq!(state.computation(1).unwrap().cross_filters, filters);
 }
@@ -472,7 +472,7 @@ fn filtering_task() {
             input_data_table: input_table(),
             input_data_frame: 1,
             row_number_column_name: "rowNumber".into(),
-            filters: vec![ScalarFilter { field_name: "score".into(), op: FilterOp::Less, value: 20.0 }],
+            filters: vec![ScalarFilter { field_name: "score".into(), op: FilterOp::Less, value: 20.0 }.into()],
         }),
     );
     assert_eq!(state.scheduler_tasks().count(), 1);
@@ -1180,7 +1180,7 @@ fn cross_filters_equal() {
 
     // Filter types differ for the same column
     let mut b = CrossFilters::new();
-    b.column_filters.insert(1, CrossFilterPredicate::MostFrequent { value_id: 1, filters: Vec::new() });
+    b.column_filters.insert(1, CrossFilterPredicate::MostFrequent { value_ids: vec![1], filters: Vec::new() });
     assert!(!a.selects_same(&b));
 
     // Histogram selections
@@ -1192,13 +1192,18 @@ fn cross_filters_equal() {
     a.add_histogram_filter(1, &ordinal, Some((2.0, 5.0)));
     assert!(a.selects_same(&b));
 
-    // Most frequent values compare by value id
+    // Most frequent values compare by their value ids, not by the order of the selection
     let mut a = CrossFilters::new();
     let mut b = CrossFilters::new();
-    a.add_most_frequent_value_filter(1, &category(), Some(2));
-    b.add_most_frequent_value_filter(1, &category(), Some(2));
+    a.set_most_frequent_values(1, &category(), &[2]);
+    b.set_most_frequent_values(1, &category(), &[2]);
     assert!(a.selects_same(&b));
-    b.add_most_frequent_value_filter(1, &category(), Some(3));
+    b.set_most_frequent_values(1, &category(), &[3]);
+    assert!(!a.selects_same(&b));
+    a.set_most_frequent_values(1, &category(), &[5, 2]);
+    b.set_most_frequent_values(1, &category(), &[2, 5, 2]);
+    assert!(a.selects_same(&b));
+    b.set_most_frequent_values(1, &category(), &[2]);
     assert!(!a.selects_same(&b));
 }
 
@@ -1211,17 +1216,19 @@ fn cross_filter_transforms() {
     filters.add_histogram_filter(1, &binned("score", None), Some((1.0, 3.0)));
     assert_eq!(filters.filter_transforms(), Vec::new());
 
-    // A histogram with bins filters the range of bins, a most frequent value its id, in the order of the columns
+    // A histogram with bins filters the range of bins, most frequent values their ids, in the order of the columns
     let mut filters = CrossFilters::new();
-    filters.add_most_frequent_value_filter(2, &category(), Some(3));
+    filters.set_most_frequent_values(2, &category(), &[7, 3]);
     filters.add_histogram_filter(1, &binned("score", Some("_score_bin")), Some((2.0, 7.0)));
-    let filter = |field_name: &str, op: FilterOp, value: f64| ScalarFilter { field_name: field_name.into(), op, value };
+    let filter = |field_name: &str, op: FilterOp, value: f64| {
+        RowFilter::Scalar(ScalarFilter { field_name: field_name.into(), op, value })
+    };
     assert_eq!(
         filters.filter_transforms(),
         vec![
             filter("_score_bin", FilterOp::GreaterEqual, 2.0),
             filter("_score_bin", FilterOp::LessEqual, 7.0),
-            filter("_category_id", FilterOp::Equal, 3.0),
+            RowFilter::In { field_name: "_category_id".into(), values: vec![3, 7] },
         ]
     );
 
@@ -1244,7 +1251,7 @@ fn cross_filters_contain_histogram_filters() {
     assert!(!filters.contains_histogram_filter(1, Some((2.0, 9.0))));
 
     let mut filters = CrossFilters::new();
-    filters.column_filters.insert(1, CrossFilterPredicate::MostFrequent { value_id: 1, filters: Vec::new() });
+    filters.column_filters.insert(1, CrossFilterPredicate::MostFrequent { value_ids: vec![1], filters: Vec::new() });
     assert!(!filters.contains_histogram_filter(1, Some((0.0, 5.0))));
 }
 
@@ -1264,13 +1271,18 @@ fn cross_filters_add_histogram_filters() {
     // A selection overwrites the one of the column, none removes it
     let ordinal = binned("score", Some("_score_bin"));
     filters.add_histogram_filter(1, &ordinal, Some((3.0, 9.0)));
-    let Some(CrossFilterPredicate::Histogram { selection, filters: scalar }) = filters.column_filters.get(&1) else {
+    let Some(CrossFilterPredicate::Histogram { selection, filters: scalar_filters }) = filters.column_filters.get(&1)
+    else {
         panic!("expected a histogram filter");
     };
     assert_eq!(*selection, (3.0, 9.0));
-    assert_eq!(scalar.len(), 2);
-    assert_eq!((scalar[0].op, scalar[0].value), (FilterOp::GreaterEqual, 3.0));
-    assert_eq!((scalar[1].op, scalar[1].value), (FilterOp::LessEqual, 9.0));
+    assert_eq!(scalar_filters.len(), 2);
+    let scalar = |filter: &RowFilter| match filter {
+        RowFilter::Scalar(filter) => (filter.op, filter.value),
+        RowFilter::In { .. } => panic!("expected a comparison"),
+    };
+    assert_eq!(scalar(&scalar_filters[0]), (FilterOp::GreaterEqual, 3.0));
+    assert_eq!(scalar(&scalar_filters[1]), (FilterOp::LessEqual, 9.0));
     filters.add_histogram_filter(1, &ordinal, None);
     assert!(filters.column_filters.is_empty());
 }
@@ -1278,26 +1290,57 @@ fn cross_filters_add_histogram_filters() {
 #[test]
 fn cross_filters_most_frequent_values() {
     let mut filters = CrossFilters::new();
-    assert!(filters.contains_most_frequent_value_filter(1, None));
-    filters.add_most_frequent_value_filter(1, &category(), Some(2));
-    assert!(filters.contains_most_frequent_value_filter(1, Some(2)));
-    assert!(!filters.contains_most_frequent_value_filter(1, Some(3)));
-    assert!(!filters.contains_most_frequent_value_filter(1, None));
+    assert_eq!(filters.most_frequent_values(1), &[] as &[i64]);
+    let select = |filters: &mut CrossFilters, value_id: Option<i64>, toggle: bool| {
+        filters.select_most_frequent_value(1, &category(), value_id, toggle);
+        filters.most_frequent_values(1).to_vec()
+    };
 
-    // Replace and remove a selected value
-    filters.add_most_frequent_value_filter(1, &category(), Some(3));
+    // A click selects a value, one value filters with =
+    assert_eq!(select(&mut filters, Some(3), false), vec![3]);
     assert_eq!(
         filters.column_filters.get(&1),
         Some(&CrossFilterPredicate::MostFrequent {
-            value_id: 3,
-            filters: vec![ScalarFilter { field_name: "_category_id".into(), op: FilterOp::Equal, value: 3.0 }],
+            value_ids: vec![3],
+            filters: vec![RowFilter::In { field_name: "_category_id".into(), values: vec![3] }],
         })
     );
-    filters.add_most_frequent_value_filter(1, &category(), None);
+    // A click on another value replaces it, on the value selected alone clears it
+    assert_eq!(select(&mut filters, Some(2), false), vec![2]);
+    assert_eq!(select(&mut filters, Some(2), false), Vec::<i64>::new());
     assert!(filters.column_filters.is_empty());
+
+    // A toggle adds values and keeps them ascending, several values filter with IN
+    assert_eq!(select(&mut filters, Some(5), true), vec![5]);
+    assert_eq!(select(&mut filters, Some(1), true), vec![1, 5]);
+    assert_eq!(select(&mut filters, Some(3), true), vec![1, 3, 5]);
+    assert_eq!(
+        filters.filter_transforms(),
+        vec![RowFilter::In { field_name: "_category_id".into(), values: vec![1, 3, 5] }]
+    );
+    // A toggle of a selected value removes it, of the last one clears the selection
+    assert_eq!(select(&mut filters, Some(3), true), vec![1, 5]);
+    assert_eq!(select(&mut filters, Some(1), true), vec![5]);
+    assert_eq!(select(&mut filters, Some(5), true), Vec::<i64>::new());
+    assert!(filters.column_filters.is_empty());
+
+    // A click without toggle on one of several values selects it alone, none clears the selection
+    assert_eq!(select(&mut filters, Some(4), true), vec![4]);
+    assert_eq!(select(&mut filters, Some(6), true), vec![4, 6]);
+    assert_eq!(select(&mut filters, Some(6), false), vec![6]);
+    assert_eq!(select(&mut filters, Some(7), true), vec![6, 7]);
+    assert_eq!(select(&mut filters, None, true), Vec::<i64>::new());
+    assert!(filters.column_filters.is_empty());
+
+    // The selection of a column leaves the other columns
+    filters.set_most_frequent_values(2, &category(), &[9]);
+    assert_eq!(select(&mut filters, Some(1), true), vec![1]);
+    assert_eq!(filters.most_frequent_values(2), &[9]);
 
     // A column without value ids can't select a value
     let mut filters = CrossFilters::new();
-    filters.add_most_frequent_value_filter(1, &StringColumnGroup { value_id_field_name: None, ..category() }, Some(2));
+    let without_ids = StringColumnGroup { value_id_field_name: None, ..category() };
+    filters.select_most_frequent_value(1, &without_ids, Some(2), false);
+    filters.set_most_frequent_values(1, &without_ids, &[2, 3]);
     assert!(filters.column_filters.is_empty());
 }

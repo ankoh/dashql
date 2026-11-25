@@ -118,7 +118,7 @@ export type {
     ComputationColumnGroup,
     ComputationValueColumn,
     ComputationStatsFields,
-    ComputationScalarFilter,
+    ComputationRowFilter,
     ComputationFilterOp,
     ComputationOrderBy,
     ComputationCrossFilter,

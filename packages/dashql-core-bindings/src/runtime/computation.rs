@@ -10,8 +10,8 @@ use dashql_core_runtime::compute::cross_filters::CrossFilterPredicate;
 use dashql_core_runtime::compute::tasks::analysis::BinBounds;
 use dashql_core_runtime::compute::tasks::data_search::collect_searchable_result_columns;
 use dashql_core_runtime::compute::types::{
-    self as rt, ColumnStatsFields, ColumnSummaryAnalysis, ComputationVersion, FilterOp, OrderByConstraint,
-    ScalarFilter, TrackedTask,
+    self as rt, ColumnStatsFields, ColumnSummaryAnalysis, ComputationVersion, FilterOp, OrderByConstraint, RowFilter,
+    TrackedTask,
 };
 use dashql_core_runtime::compute::{SearchKind, TableComputation};
 use serde::{Deserialize, Serialize};
@@ -172,26 +172,34 @@ pub enum ComputationFilterOp {
     GreaterEqual,
 }
 
-/// A filter that compares a field with a number
+/// A filter of the rows of a table
 #[derive(Clone, Debug, Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
+#[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 #[tsify(missing_as_null)]
-pub struct ComputationScalarFilter {
-    pub field_name: String,
-    pub op: ComputationFilterOp,
-    pub value: f64,
+pub enum ComputationRowFilter {
+    /// Compare a field with a number
+    Scalar { field_name: String, op: ComputationFilterOp, value: f64 },
+    /// The field is one of the integers, ascending
+    In { field_name: String, values: Vec<i64> },
 }
 
-impl From<&ScalarFilter> for ComputationScalarFilter {
-    fn from(filter: &ScalarFilter) -> Self {
-        let op = match filter.op {
-            FilterOp::Equal => ComputationFilterOp::Equal,
-            FilterOp::Less => ComputationFilterOp::Less,
-            FilterOp::LessEqual => ComputationFilterOp::LessEqual,
-            FilterOp::Greater => ComputationFilterOp::Greater,
-            FilterOp::GreaterEqual => ComputationFilterOp::GreaterEqual,
-        };
-        ComputationScalarFilter { field_name: filter.field_name.clone(), op, value: filter.value }
+impl From<&RowFilter> for ComputationRowFilter {
+    fn from(filter: &RowFilter) -> Self {
+        match filter {
+            RowFilter::Scalar(filter) => {
+                let op = match filter.op {
+                    FilterOp::Equal => ComputationFilterOp::Equal,
+                    FilterOp::Less => ComputationFilterOp::Less,
+                    FilterOp::LessEqual => ComputationFilterOp::LessEqual,
+                    FilterOp::Greater => ComputationFilterOp::Greater,
+                    FilterOp::GreaterEqual => ComputationFilterOp::GreaterEqual,
+                };
+                ComputationRowFilter::Scalar { field_name: filter.field_name.clone(), op, value: filter.value }
+            }
+            RowFilter::In { field_name, values } => {
+                ComputationRowFilter::In { field_name: field_name.clone(), values: values.clone() }
+            }
+        }
     }
 }
 
@@ -232,8 +240,8 @@ fn order_by(constraints: &[OrderByConstraint]) -> Vec<ComputationOrderBy> {
 pub enum ComputationCrossFilter {
     /// A range of bins of a histogram, the first and the last bin
     Histogram { column: u32, selection: (f64, f64) },
-    /// A frequent value by its id
-    MostFrequent { column: u32, value_id: i64 },
+    /// Frequent values by their ids, ascending
+    MostFrequent { column: u32, value_ids: Vec<i64> },
 }
 
 /// The statistics of all columns of a table, the table by its handle
@@ -389,7 +397,7 @@ pub struct ComputationTrackedTask {
     /// The filters of a filtering
     #[serde(skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
-    pub filters: Option<Vec<ComputationScalarFilter>>,
+    pub filters: Option<Vec<ComputationRowFilter>>,
     /// The ordering of an ordering, cleared with the ordering of the table
     #[serde(skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
@@ -557,7 +565,7 @@ impl From<&TableComputation> for ComputationView {
         let tasks = &c.tasks;
         let mut filtering = tracked(tasks.filtering.as_ref(), |task| task.table_version);
         if let (Some(tracked), Some(view)) = (&tasks.filtering, &mut filtering) {
-            view.filters = Some(tracked.task.filters.iter().map(ComputationScalarFilter::from).collect());
+            view.filters = Some(tracked.task.filters.iter().map(ComputationRowFilter::from).collect());
         }
         let mut ordering = tracked(tasks.ordering.as_ref(), |task| task.table_version);
         if let (Some(tracked), Some(view)) = (&tasks.ordering, &mut ordering) {
@@ -571,8 +579,8 @@ impl From<&TableComputation> for ComputationView {
                 CrossFilterPredicate::Histogram { selection, .. } => {
                     ComputationCrossFilter::Histogram { column: *column, selection: *selection }
                 }
-                CrossFilterPredicate::MostFrequent { value_id, .. } => {
-                    ComputationCrossFilter::MostFrequent { column: *column, value_id: *value_id }
+                CrossFilterPredicate::MostFrequent { value_ids, .. } => {
+                    ComputationCrossFilter::MostFrequent { column: *column, value_ids: value_ids.clone() }
                 }
             })
             .collect();

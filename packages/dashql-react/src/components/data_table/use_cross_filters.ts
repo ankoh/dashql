@@ -15,7 +15,7 @@ export interface CrossFilterController {
     crossFilters: core.ComputationCrossFilter[];
     /// Toggle/update a histogram filter for a column
     histogramFilter: HistogramFilterCallback;
-    /// Toggle/update a most-frequent-value filter for a column
+    /// Select a frequent value of a column, with toggle add it to the selection of the column or remove it
     mostFrequentValueFilter: MostFrequentValueFilterCallback;
     /// Request a filtered column aggregation for a column group
     requestFilteredColumnAggregation: (columnId: number) => void;
@@ -48,14 +48,14 @@ export function useCrossFilters(
         dispatchComputation({ kind: 'histogramFilter', value: { columnGroup: columnGroupId, selection: brush } });
     }, [dispatchComputation]);
 
-    const mostFrequentValueFilter: MostFrequentValueFilterCallback = React.useCallback((_table: TableAggregation, columnIndex: number, _column: StringColumnAggregation, frequentValueId: number | null) => {
+    const mostFrequentValueFilter: MostFrequentValueFilterCallback = React.useCallback((_table: TableAggregation, columnIndex: number, _column: StringColumnAggregation, frequentValueId: number | null, toggle: boolean) => {
         const columnGroupId = gridLayoutRef.current.columnGroupByColumnIndex[columnIndex];
         const columnGroup = columnGroupsRef.current[columnGroupId];
         if (columnGroup?.type !== STRING_COLUMN || columnGroup.value.valueIdFieldName == null) {
             return;
         }
-        // Selecting the selected value again clears the selection
-        dispatchComputation({ kind: 'mostFrequentValueFilter', value: { columnGroup: columnGroupId, valueId: frequentValueId } });
+        // The runtime decides the selection: the value replaces it or, with toggle, joins or leaves it
+        dispatchComputation({ kind: 'mostFrequentValueFilter', value: { columnGroup: columnGroupId, valueId: frequentValueId, toggle } });
     }, [dispatchComputation]);
 
     const requestFilteredColumnAggregation = React.useCallback((columnId: number) => {

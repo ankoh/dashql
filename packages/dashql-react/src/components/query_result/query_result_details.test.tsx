@@ -78,7 +78,7 @@ describe('TableDetails', () => {
     it('clears all active cross-filters from the query results bar', () => {
         const { dispatch } = recordingDispatch();
         render(
-            model(QueryExecutionStatus.SUCCEEDED, null, [{ kind: 'mostFrequent', column: 1, valueId: 7 }], dispatch),
+            model(QueryExecutionStatus.SUCCEEDED, null, [{ kind: 'mostFrequent', column: 1, valueIds: [7] }], dispatch),
             <button type="button" data-testid="test-action">Close</button>,
         );
 

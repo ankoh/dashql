@@ -1,4 +1,4 @@
-//! The rows of a table that pass the scalar filters of the cross filters, as row numbers in the order of the table.
+//! The rows of a table that pass the filters of the cross filters, as row numbers in the order of the table.
 
 use super::sql::SqlFrame;
 use super::{ascending, data_frame_table_name, read_data_frame_sql, TaskQuery};
@@ -33,7 +33,7 @@ pub fn plan_table_filtering(task: &TableFilteringTask, output: DataFrameId) -> O
     }
     let mut frame = SqlFrame::from(data_frame_table_name(task.input_data_frame));
     for filter in &task.filters {
-        frame = frame.filter(filter.field_name.clone(), filter.op, filter.value);
+        frame = frame.row_filter(filter.clone());
     }
     let sql = frame.project(vec![task.row_number_column_name.clone()]).to_sql();
     // The rows of the filter are shown in the order of the table

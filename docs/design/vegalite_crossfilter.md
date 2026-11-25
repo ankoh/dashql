@@ -3,12 +3,13 @@
 ## Overview
 
 Brushable column summaries of a query result filter the Vega-Lite visualizations of the
-same result. `VegaLiteView` renders every Vega-Lite chart of the app: through
+same result: a range of a histogram or one or several frequent values of a column.
+`VegaLiteView` renders every Vega-Lite chart of the app: through
 `visualization_dispatch.tsx` in the feed, the dashboard cards, the dataflow canvas and the
 script output details, and directly in the chart builder preview. DashQL owns cross-filter
-evaluation: histogram brushes update `ComputationView.crossFilters`, and the compute
-layer produces a `filterTable` containing the stable row numbers that satisfy all active
-filters.
+evaluation: histogram brushes and selected frequent values update
+`ComputationView.crossFilters`, and the compute layer produces a `filterTable` containing
+the stable row numbers that satisfy all active filters.
 
 Vega-Lite consumes that existing row-ID relation as a selection mask. The full chart
 source remains resident in a retained Vega View, while each brush updates only a small
@@ -21,10 +22,38 @@ The implementation lives in:
 - `packages/dashql-react/src/components/vegalite_view.tsx`
 - `packages/dashql-react/src/vegalite/vegalite_rows.ts` (Arrow to Vega rows)
 
+## Selections
+
+The summaries in the header of the result grid select rows, one selection per column group, all selections of a result
+hold at once. The core keeps them in `CrossFilters` (`packages/dashql-core-runtime/src/compute/cross_filters.rs`) and
+derives the filters of the rows from them; the view lists them as `ComputationView.crossFilters`.
+
+- **Histogram**, an ordinal column: a brush over a range of bins (`histogramFilter`). It filters the bin field of the
+  column with `>=` and `<=`.
+- **Frequent values**, a string column with value ids: the bars of its most frequent values (`mostFrequentValueFilter`).
+  A click selects the value of a bar and replaces the selection, a click on the value that is selected alone clears it.
+  A click with Shift, Ctrl or Cmd (`toggle: true`) adds the value to the selection or removes it, the last value removed
+  clears it. A click next to the bars clears the selection. The view lists the ids of the selected values ascending,
+  `{kind: 'mostFrequent', column, valueIds}`.
+
+The frequent values filter on the value ids of the column, the system column that numbers its distinct values from 1
+(`SqlFrame::value_identifier`, null gets an id of its own). Several selected values filter with `IN`, one with `=`:
+
+```sql
+SELECT * FROM __df_10 WHERE "_2_id" IN (1, 3, 4)
+SELECT * FROM __df_10 WHERE "_2_id" = 3
+```
+
+The filter compares integers only. The values of the column are never written into the SQL, so strings, dates or
+other types need no literals, and null is selected by its id rather than with `IS NULL`. The rule of the selection,
+replace or toggle, is in the core (`CrossFilters::select_most_frequent_value`); the cell only reports which bar was
+clicked and whether a modifier was held. The cell reports the clicks of an animation frame together: a plain click
+replaces the clicks before it in the frame, the toggles after it all count in their order.
+
 ## Data flow
 
 ```text
-Histogram brush
+Histogram brush, frequent values
       |
       v
 ComputationView.crossFilters

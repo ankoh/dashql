@@ -183,6 +183,29 @@ describe('The computations of the runtime', () => {
         rt.dispatch({ computation: 1 }, { kind: 'mostFrequentValueFilter', value: { columnGroup: 1, valueId: 4 } });
         computation = await settled(rt, view => view.filterTable != null && view.tasks.filteringTask?.progress.status === TaskStatus.TASK_SUCCEEDED);
         expect(computation.filterTable?.rows).toBe(2);
+
+        // A toggle adds the empty string, the rows of both values pass the filter with IN
+        const selected = (view: core.ComputationView, valueIds: number[], rows: number) =>
+            JSON.stringify(view.crossFilters) === JSON.stringify([{ kind: 'mostFrequent', column: 1, valueIds }])
+            && view.filterTable?.rows === rows
+            && view.tasks.filteringTask?.progress.status === TaskStatus.TASK_SUCCEEDED;
+        rt.dispatch({ computation: 1 }, { kind: 'mostFrequentValueFilter', value: { columnGroup: 1, valueId: 1, toggle: true } });
+        computation = await settled(rt, view => selected(view, [1, 4], 3));
+        expect(computation.tasks.filteringTask?.filters).toEqual([{ kind: 'in', fieldName: idField, values: [1, 4] }]);
+        rt.dispatch({ computation: 1 }, { kind: 'mostFrequentValueFilter', value: { columnGroup: 1, valueId: 3, toggle: true } });
+        computation = await settled(rt, view => selected(view, [1, 3, 4], 5));
+        expect(computation.tasks.filteringTask?.filters).toEqual([{ kind: 'in', fieldName: idField, values: [1, 3, 4] }]);
+
+        // A toggle removes a selected value, a click on one of several selects it alone, null clears the selection
+        rt.dispatch({ computation: 1 }, { kind: 'mostFrequentValueFilter', value: { columnGroup: 1, valueId: 4, toggle: true } });
+        await settled(rt, view => selected(view, [1, 3], 3));
+        rt.dispatch({ computation: 1 }, { kind: 'mostFrequentValueFilter', value: { columnGroup: 1, valueId: 3, toggle: false } });
+        computation = await settled(rt, view => selected(view, [3], 2));
+        // The filter of one value lists one id, its SQL compares with =
+        expect(computation.tasks.filteringTask?.filters).toEqual([{ kind: 'in', fieldName: idField, values: [3] }]);
+        rt.dispatch({ computation: 1 }, { kind: 'mostFrequentValueFilter', value: { columnGroup: 1, valueId: null } });
+        computation = await settled(rt, view => view.crossFilters.length === 0 && view.filterTable == null);
+        expect(computation.crossFilters).toEqual([]);
     }, 60_000);
 
     it('lists the queries of the tasks in the history of the connection', async () => {

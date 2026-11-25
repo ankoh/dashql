@@ -145,6 +145,27 @@ pub struct ScalarFilter {
     pub value: f64,
 }
 
+/// A filter of the rows of a table, the filters of a filtering all hold
+#[derive(Clone, Debug, PartialEq)]
+pub enum RowFilter {
+    /// Compare a field with a number
+    Scalar(ScalarFilter),
+    /// Keep the rows whose field is one of the integers, `field IN (...)`, `field = ...` for one. Lists no integer
+    /// only when it keeps no row.
+    In {
+        /// The field
+        field_name: String,
+        /// The integers, ascending without duplicates
+        values: Vec<i64>,
+    },
+}
+
+impl From<ScalarFilter> for RowFilter {
+    fn from(filter: ScalarFilter) -> Self {
+        RowFilter::Scalar(filter)
+    }
+}
+
 /// A key of an ordering
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OrderByConstraint {
@@ -526,7 +547,7 @@ pub struct TableFilteringTask {
     /// The row numbers of the data frame
     pub row_number_column_name: String,
     /// The filters
-    pub filters: Vec<ScalarFilter>,
+    pub filters: Vec<RowFilter>,
 }
 
 /// Order the rows of a table

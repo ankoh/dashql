@@ -925,12 +925,15 @@ impl<H: ComputeHost> ComputeService<H> {
         self.set_cross_filters(table_id, filters)
     }
 
-    /// Select a frequent value of a column group, selecting the selected value again or none clears the selection
+    /// Select a frequent value of a column group, see `CrossFilters::select_most_frequent_value`: without toggle the
+    /// value replaces the selection and the value selected alone again clears it, with toggle the value joins the
+    /// selection or leaves it, none clears the selection
     pub fn most_frequent_value_filter(
         &self,
         table_id: TableId,
         column_group: u32,
         value_id: Option<i64>,
+        toggle: bool,
     ) -> Result<ComputationOutcome> {
         let filters = {
             let inner = self.shared.inner.borrow();
@@ -944,10 +947,11 @@ impl<H: ComputeHost> ComputeService<H> {
                 return Ok(ComputationOutcome::default());
             }
             let current = &computation.cross_filters;
-            let value_id =
-                if current.contains_most_frequent_value_filter(column_group, value_id) { None } else { value_id };
             let mut filters = current.clone();
-            filters.add_most_frequent_value_filter(column_group, group, value_id);
+            filters.select_most_frequent_value(column_group, group, value_id, toggle);
+            if filters.selects_same(current) {
+                return Ok(ComputationOutcome::default());
+            }
             filters
         };
         self.set_cross_filters(table_id, filters)

@@ -35,8 +35,8 @@ use dashql_core_runtime::compute::tasks::{data_frame_table_name, TableStats};
 use dashql_core_runtime::compute::types::{
     ArrowTable, ColumnAggregate, ColumnAggregationTask, ColumnGroup, ColumnStatsFields, ComputationVersion,
     DataSearchColumn, DataSearchTable, DataSearchTask, FilterOp, FilterTable, FilteredColumnAggregationTask,
-    ListColumnGroup, OrderByConstraint, OrdinalColumnGroup, RowNumberColumnGroup, ScalarFilter, SkippedColumnGroup,
-    StringColumnGroup, TableAggregation, TableFilteringTask, TableOrderingTask,
+    ListColumnGroup, OrderByConstraint, OrdinalColumnGroup, RowFilter, RowNumberColumnGroup, ScalarFilter,
+    SkippedColumnGroup, StringColumnGroup, TableAggregation, TableFilteringTask, TableOrderingTask,
 };
 
 // ------------------------------------------------------------
@@ -179,6 +179,22 @@ fn sql_scalar_filter() {
         .filter("score", FilterOp::LessEqual, 20.0)
         .to_sql();
     assert!(sql.contains(r#"SELECT * FROM "t" WHERE "score" >= 10 AND "score" <= 20"#), "{sql}");
+}
+
+#[test]
+fn sql_in_filter() {
+    // Several integers filter with IN, one with =, none keeps no row
+    let sql = SqlFrame::from("t").filter_in("_name_id", vec![2, 5, 9]).filter_in("_kind_id", vec![-1]).to_sql();
+    assert_eq!(
+        sql,
+        r#"WITH
+  __filtered AS (
+    SELECT * FROM "t" WHERE "_name_id" IN (2, 5, 9) AND "_kind_id" = -1
+  )
+SELECT * FROM __filtered"#
+    );
+    let sql = SqlFrame::from("t").filter_in("_name_id", Vec::new()).to_sql();
+    assert!(sql.contains(r#"SELECT * FROM "t" WHERE FALSE"#), "{sql}");
 }
 
 #[test]
@@ -686,10 +702,11 @@ fn table_filtering_lists_the_rows_in_the_order_of_the_input() {
         filters: vec![],
     };
     assert_eq!(plan_table_filtering(&task, 11), None);
-    task.filters.push(ScalarFilter { field_name: "value".into(), op: FilterOp::GreaterEqual, value: 50.0 });
+    task.filters.push(ScalarFilter { field_name: "value".into(), op: FilterOp::GreaterEqual, value: 50.0 }.into());
+    task.filters.push(RowFilter::In { field_name: "_name_id".into(), values: vec![1, 4] });
     let plan = plan_table_filtering(&task, 11).expect("a filter");
     let sql = &plan.query.sql;
-    assert!(sql.contains(r#"FROM "__df_10" WHERE "value" >= 50"#), "{sql}");
+    assert!(sql.contains(r#"FROM "__df_10" WHERE "value" >= 50 AND "_name_id" IN (1, 4)"#), "{sql}");
     assert!(sql.contains(r#"SELECT "_rownum" FROM"#), "{sql}");
     assert_eq!(plan.query.read_sql, "SELECT * FROM \"__df_11\"\nORDER BY \"_rownum\" ASC NULLS LAST");
     let filter = plan.finish();

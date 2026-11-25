@@ -21,8 +21,16 @@ pub enum ComputationAction {
     OrderBy { constraints: Vec<ComputationOrderBy> },
     /// Select a range of bins of the histogram of a column group, null clears the selection of the column
     HistogramFilter { column_group: u32, selection: Option<(f64, f64)> },
-    /// Select a frequent value of a column group by its id, the selected value again or null clears the selection
-    MostFrequentValueFilter { column_group: u32, value_id: Option<i64> },
+    /// Select a frequent value of a column group by its id. Without toggle the value replaces the selection, the value
+    /// selected alone again clears it. With toggle (a click with Shift, Ctrl or Cmd) the value joins the selection or
+    /// leaves it, several values filter with `IN`. Null clears the selection.
+    MostFrequentValueFilter {
+        column_group: u32,
+        value_id: Option<i64>,
+        #[serde(default)]
+        #[tsify(optional)]
+        toggle: Option<bool>,
+    },
     /// Clear the selections of all column groups
     ClearCrossFilters,
     /// Search the columns or the data, an empty pattern ends the search

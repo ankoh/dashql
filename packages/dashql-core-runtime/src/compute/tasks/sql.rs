@@ -1,10 +1,10 @@
 //! A builder of the SQL of the computations: a chain of CTEs over a table of the compute database.
 //!
-//! The stages run in a fixed order, whatever the order of the calls: value ids, bins, scalar filters, semi-join
+//! The stages run in a fixed order, whatever the order of the calls: value ids, bins, row filters, semi-join
 //! filters, grouping, then the final projection with its order and limit.
 
 use crate::catalog_loader::sql::quote_identifier;
-use crate::compute::types::{FilterOp, OrderByConstraint, ScalarFilter};
+use crate::compute::types::{FilterOp, OrderByConstraint, RowFilter, ScalarFilter};
 
 /// The conversion of a value into a number for binning
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -191,6 +191,23 @@ fn filter_op(op: FilterOp) -> &'static str {
     }
 }
 
+/// The condition of a filter of the rows
+fn format_row_filter(filter: &RowFilter) -> String {
+    match filter {
+        RowFilter::Scalar(f) => {
+            format!("{} {} {}", quote_identifier(&f.field_name), filter_op(f.op), format_number(f.value))
+        }
+        RowFilter::In { field_name, values } => match values.as_slice() {
+            [] => "FALSE".to_string(),
+            [value] => format!("{} = {value}", quote_identifier(field_name)),
+            values => {
+                let values = values.iter().map(i64::to_string).collect::<Vec<_>>().join(", ");
+                format!("{} IN ({values})", quote_identifier(field_name))
+            }
+        },
+    }
+}
+
 fn bin_width_expression(range: &str, bin_count: u32, min_bin_width: Option<f64>) -> String {
     format!("GREATEST({range} / {bin_count}, {})", format_number(min_bin_width.unwrap_or(1e-15)))
 }
@@ -238,7 +255,7 @@ pub struct SqlFrame {
     input_table: String,
     value_identifiers: Vec<(String, String)>,
     binnings: Vec<Binning>,
-    scalar_filters: Vec<ScalarFilter>,
+    row_filters: Vec<RowFilter>,
     semi_join_filters: Vec<SemiJoinFilter>,
     group_by: Option<GroupBy>,
     order_by: Option<Vec<OrderByConstraint>>,
@@ -267,7 +284,19 @@ impl SqlFrame {
 
     /// Keep the rows whose field compares to a number
     pub fn filter(mut self, field_name: impl Into<String>, op: FilterOp, value: f64) -> Self {
-        self.scalar_filters.push(ScalarFilter { field_name: field_name.into(), op, value });
+        self.row_filters.push(RowFilter::Scalar(ScalarFilter { field_name: field_name.into(), op, value }));
+        self
+    }
+
+    /// Keep the rows whose field is one of the integers, `IN`, `=` for one
+    pub fn filter_in(mut self, field_name: impl Into<String>, values: Vec<i64>) -> Self {
+        self.row_filters.push(RowFilter::In { field_name: field_name.into(), values });
+        self
+    }
+
+    /// Keep the rows that pass a filter
+    pub fn row_filter(mut self, filter: RowFilter) -> Self {
+        self.row_filters.push(filter);
         self
     }
 
@@ -358,13 +387,9 @@ impl SqlFrame {
             prev = "__binning".to_string();
         }
 
-        // 3. Scalar filters
-        if !self.scalar_filters.is_empty() {
-            let conditions: Vec<String> = self
-                .scalar_filters
-                .iter()
-                .map(|f| format!("{} {} {}", quote_identifier(&f.field_name), filter_op(f.op), format_number(f.value)))
-                .collect();
+        // 3. Filters of the rows
+        if !self.row_filters.is_empty() {
+            let conditions: Vec<String> = self.row_filters.iter().map(format_row_filter).collect();
             push_cte(&mut ctes, "__filtered", &format!("SELECT * FROM {prev} WHERE {}", conditions.join(" AND ")));
             prev = "__filtered".to_string();
         }

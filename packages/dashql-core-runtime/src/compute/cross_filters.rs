@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use super::types::{FilterOp, OrdinalColumnGroup, ScalarFilter, StringColumnGroup};
+use super::types::{FilterOp, OrdinalColumnGroup, RowFilter, ScalarFilter, StringColumnGroup};
 
 /// The selection in the summary of a column
 #[derive(Clone, Debug, PartialEq)]
@@ -12,20 +12,20 @@ pub enum CrossFilterPredicate {
         /// The first and the last bin
         selection: (f64, f64),
         /// The filters of the range
-        filters: Vec<ScalarFilter>,
+        filters: Vec<RowFilter>,
     },
-    /// A frequent value
+    /// Frequent values, distinct values of the column
     MostFrequent {
-        /// The id of the value
-        value_id: i64,
-        /// The filters of the value
-        filters: Vec<ScalarFilter>,
+        /// The ids of the values, ascending without duplicates, never empty
+        value_ids: Vec<i64>,
+        /// The filters of the values
+        filters: Vec<RowFilter>,
     },
 }
 
 impl CrossFilterPredicate {
     /// The filters of the selection
-    pub fn filters(&self) -> &[ScalarFilter] {
+    pub fn filters(&self) -> &[RowFilter] {
         match self {
             CrossFilterPredicate::Histogram { filters, .. } | CrossFilterPredicate::MostFrequent { filters, .. } => {
                 filters
@@ -57,15 +57,15 @@ impl CrossFilters {
                     Some(CrossFilterPredicate::Histogram { selection: b, .. }),
                 ) => a.0 == b.0 && a.1 == b.1,
                 (
-                    CrossFilterPredicate::MostFrequent { value_id: a, .. },
-                    Some(CrossFilterPredicate::MostFrequent { value_id: b, .. }),
+                    CrossFilterPredicate::MostFrequent { value_ids: a, .. },
+                    Some(CrossFilterPredicate::MostFrequent { value_ids: b, .. }),
                 ) => a == b,
                 _ => false,
             })
     }
 
     /// The filters of all selections, in the order of the column groups
-    pub fn filter_transforms(&self) -> Vec<ScalarFilter> {
+    pub fn filter_transforms(&self) -> Vec<RowFilter> {
         self.column_filters.values().flat_map(|predicate| predicate.filters().iter().cloned()).collect()
     }
 
@@ -90,44 +90,71 @@ impl CrossFilters {
         };
         let mut filters = Vec::new();
         if let Some(bin_field_name) = &group.bin_field_name {
-            filters.push(ScalarFilter {
+            filters.push(RowFilter::Scalar(ScalarFilter {
                 field_name: bin_field_name.clone(),
                 op: FilterOp::GreaterEqual,
                 value: brush.0,
-            });
-            filters.push(ScalarFilter { field_name: bin_field_name.clone(), op: FilterOp::LessEqual, value: brush.1 });
+            }));
+            filters.push(RowFilter::Scalar(ScalarFilter {
+                field_name: bin_field_name.clone(),
+                op: FilterOp::LessEqual,
+                value: brush.1,
+            }));
         }
         self.column_filters.insert(column_group, CrossFilterPredicate::Histogram { selection: brush, filters });
     }
 
-    /// Does a column select a frequent value? Without a value: does the column select nothing?
-    pub fn contains_most_frequent_value_filter(&self, column_group: u32, value_id: Option<i64>) -> bool {
-        let existing = self.column_filters.get(&column_group);
-        match value_id {
-            None => existing.is_none(),
-            Some(value_id) => {
-                matches!(existing, Some(CrossFilterPredicate::MostFrequent { value_id: selected, .. }) if *selected == value_id)
-            }
+    /// The ids of the frequent values that a column selects, ascending, empty without a selection
+    pub fn most_frequent_values(&self, column_group: u32) -> &[i64] {
+        match self.column_filters.get(&column_group) {
+            Some(CrossFilterPredicate::MostFrequent { value_ids, .. }) => value_ids,
+            _ => &[],
         }
     }
 
-    /// Select a frequent value of a column, none removes the selection of the column. A column without value ids
-    /// can't select a value.
-    pub fn add_most_frequent_value_filter(
+    /// Select frequent values of a column by their ids, no ids remove the selection of the column. The values filter
+    /// with `IN` on the value ids of the column, with `=` for one. A column without value ids can't select values.
+    pub fn set_most_frequent_values(&mut self, column_group: u32, group: &StringColumnGroup, value_ids: &[i64]) {
+        let mut value_ids = value_ids.to_vec();
+        value_ids.sort_unstable();
+        value_ids.dedup();
+        if value_ids.is_empty() {
+            self.column_filters.remove(&column_group);
+            return;
+        }
+        let Some(value_id_field_name) = &group.value_id_field_name else {
+            return;
+        };
+        let filters = vec![RowFilter::In { field_name: value_id_field_name.clone(), values: value_ids.clone() }];
+        self.column_filters.insert(column_group, CrossFilterPredicate::MostFrequent { value_ids, filters });
+    }
+
+    /// Select a frequent value of a column, a click on it. Without toggle the value replaces the selection of the
+    /// column, the value that the column selects alone clears it. With toggle (a click with Shift, Ctrl or Cmd) the
+    /// value joins the selection or leaves it. None clears the selection.
+    pub fn select_most_frequent_value(
         &mut self,
         column_group: u32,
         group: &StringColumnGroup,
         value_id: Option<i64>,
+        toggle: bool,
     ) {
         let Some(value_id) = value_id else {
             self.column_filters.remove(&column_group);
             return;
         };
-        let Some(value_id_field_name) = &group.value_id_field_name else {
-            return;
+        let selected = self.most_frequent_values(column_group);
+        let value_ids: Vec<i64> = if toggle {
+            if selected.contains(&value_id) {
+                selected.iter().copied().filter(|selected| *selected != value_id).collect()
+            } else {
+                selected.iter().copied().chain([value_id]).collect()
+            }
+        } else if selected == [value_id] {
+            Vec::new()
+        } else {
+            vec![value_id]
         };
-        let filters =
-            vec![ScalarFilter { field_name: value_id_field_name.clone(), op: FilterOp::Equal, value: value_id as f64 }];
-        self.column_filters.insert(column_group, CrossFilterPredicate::MostFrequent { value_id, filters });
+        self.set_most_frequent_values(column_group, group, &value_ids);
     }
 }

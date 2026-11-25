@@ -507,8 +507,9 @@ impl Runtime {
             A::HistogramFilter { column_group, selection } => {
                 self.settle(service.histogram_filter(table_id, column_group, selection))
             }
-            A::MostFrequentValueFilter { column_group, value_id } => {
-                self.settle(service.most_frequent_value_filter(table_id, column_group, value_id))
+            A::MostFrequentValueFilter { column_group, value_id, toggle } => {
+                let toggle = toggle.unwrap_or(false);
+                self.settle(service.most_frequent_value_filter(table_id, column_group, value_id, toggle))
             }
             A::ClearCrossFilters => self.settle(service.clear_cross_filters(table_id)),
             A::SetResultSearchPattern { search, pattern } => {
