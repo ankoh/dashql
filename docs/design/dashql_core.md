@@ -295,9 +295,13 @@ handle; formatting of values stays with the host. The analysis imports the resul
 database (`ComputeHost::import_table`), the host keeps the numbered result as the table of the computation that the
 grid and the charts show. The system columns (the bins and the value ids) stay in their data frame, the filters and
 the summaries read them there and nothing reads their rows. The one read of rows besides the small tables that tasks
-parse and the row numbers of filters, orderings and searches is the preview of a result (`ComputeService::preview`,
+parse and the row numbers of filters, orderings and searches are the preview of a result (`ComputeService::preview`,
 `previewResult` of the facade): its first rows from the data frame of the computation, bounded by a limit, for the
-tables of the shell.
+tables of the shell, and the windows of the grid (`ComputeService::read_rows`, `readResultRows`): the rows that show
+from an offset, bounded by a limit, with the count of the rows that show. The core decides which rows show and their
+order (`compute/tasks/row_window.rs`): an ordering orders the rows that were filtered and searched when it ran, a data
+search that it doesn't cover narrows them further, and a filter and a data search without an ordering are counted by a
+query. See [result_windows.md](../wip/result_windows.md).
 See [vegalite_crossfilter.md](vegalite_crossfilter.md).
 
 ### The catalog loader

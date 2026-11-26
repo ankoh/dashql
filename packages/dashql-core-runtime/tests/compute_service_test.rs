@@ -930,6 +930,69 @@ fn previews_the_first_rows_of_a_result_from_its_data_frame() {
     assert!(preview.ends_with("LIMIT 2"), "{preview}");
 }
 
+#[test]
+fn reads_windows_of_the_rows_that_show() {
+    let setup = setup(analysis_answer);
+    setup.analyze().unwrap();
+    let data_frame =
+        setup.service.read(|state| state.computation(1).and_then(|computation| computation.data_frame)).unwrap();
+    let read = |offset: u64, limit: u64| {
+        let output = setup.run(setup.service.read_rows(1, offset, limit));
+        let window = output.borrow_mut().take().expect("the read finished").unwrap();
+        assert!(ResultTable::from_ipc_stream(&window.ipc).is_ok());
+        let sql = setup.database.borrow().queries.last().cloned().expect("a read");
+        (window.rows, sql)
+    };
+
+    // Without an ordering, a filter or a search the row numbers are the positions of the rows
+    let (rows, sql) = read(2, 2);
+    assert_eq!(rows, 4);
+    assert!(sql.starts_with("WITH"), "{sql}");
+    assert!(sql.contains(&format!(r#"FROM "__df_{data_frame}" WHERE "_rownum" > 2 AND "_rownum" <= 4"#)), "{sql}");
+    assert!(sql.contains(r#"SELECT "score", "name", "_rownum" FROM"#), "{sql}");
+    assert!(sql.ends_with("ORDER BY \"_rownum\" ASC NULLS LAST\nLIMIT 2"), "{sql}");
+
+    // An ordering orders the rows that it holds, the row numbers keep equal rows in the order of the result
+    setup.service.order_by(1, score_ascending()).unwrap();
+    setup.executor.run_until_stalled();
+    let ordering = setup.service.read(|state| state.computation(1).unwrap().ordering_table.clone()).unwrap();
+    let (rows, sql) = read(2, 2);
+    assert_eq!(rows, 4);
+    assert!(sql.contains(&format!(r#"IN (SELECT "_rownum" FROM "__df_{}")"#, ordering.data_frame)), "{sql}");
+    assert!(sql.ends_with("ORDER BY \"score\" ASC NULLS LAST, \"_rownum\" ASC NULLS LAST\nLIMIT 2\nOFFSET 2"), "{sql}");
+    setup.service.order_by(1, Vec::new()).unwrap();
+    setup.executor.run_until_stalled();
+
+    // A filter shows the rows that pass it
+    setup.service.histogram_filter(1, 1, Some((0.0, 1.0))).unwrap();
+    setup.executor.run_until_stalled();
+    let filter = setup.service.read(|state| state.computation(1).unwrap().filter_table.clone()).unwrap();
+    let (rows, sql) = read(0, 10);
+    assert_eq!(rows, 2);
+    assert!(sql.contains(&format!(r#"IN (SELECT "_rownum" FROM "__df_{}")"#, filter.data_frame)), "{sql}");
+    assert!(sql.ends_with("ORDER BY \"_rownum\" ASC NULLS LAST\nLIMIT 10"), "{sql}");
+
+    // A filter and a data search show the rows that pass both, a query counts them
+    setup.service.set_search_pattern(1, SearchKind::Data, "a".into()).unwrap();
+    setup.executor.run_until_stalled();
+    let search = setup.service.read(|state| state.computation(1).unwrap().data_search_table.clone()).unwrap();
+    let (rows, sql) = read(0, 10);
+    assert_eq!(rows, 1);
+    assert!(sql.contains(&format!(r#"IN (SELECT "row_idx" FROM "__df_{}")"#, search.data_frame)), "{sql}");
+    let queries = setup.database.borrow().queries.clone();
+    let count = &queries[queries.len() - 2];
+    assert!(count.starts_with("SELECT count(*) AS count FROM ("), "{count}");
+}
+
+#[test]
+fn a_read_of_rows_needs_an_analyzed_result() {
+    let setup = setup(analysis_answer);
+    let output = setup.run(setup.service.read_rows(7, 0, 10));
+    let error = output.borrow_mut().take().expect("the read finished").unwrap_err();
+    assert!(error.to_string().contains("the table 7 has no computation"), "{error}");
+    assert!(setup.database.borrow().queries.is_empty());
+}
+
 impl Setup {
     /// Start an analysis of the result of the tests that `stop` stops
     fn start_analysis(&self, stop: &CancellationToken) -> impl Future<Output = Result<()>> + 'static {

@@ -1003,6 +1003,26 @@ impl Runtime {
         }))
     }
 
+    /// A window of the rows that the grid of an analyzed result shows: the rows that pass its filters and its data
+    /// search in the order of its ordering, from `offset`, at most `limit`, with the fields of the result and its row
+    /// numbers, as an Arrow IPC stream, and the count of the rows that show. The rows are read from the data frame of
+    /// the computation, the result itself doesn't enter the module. Rejects like `previewResult`.
+    #[wasm_bindgen(js_name = readResultRows, unchecked_return_type = "Promise<{ rows: number; ipc: Uint8Array }>")]
+    pub fn read_result_rows(&self, table_id: f64, offset: f64, limit: f64) -> Result<Promise, JsError> {
+        let table_id = integer(table_id, "table id")? as TableId;
+        let offset = integer(offset, "offset")?;
+        let limit = integer(limit, "limit")?;
+        let read = self.computations.read_rows(table_id, offset, limit);
+        Ok(future_to_promise(async move {
+            let window = read.await.map_err(task_error)?;
+            let result = Object::new();
+            let _ = Reflect::set(&result, &JsValue::from_str("rows"), &JsValue::from_f64(window.rows as f64));
+            let ipc = js_sys::Uint8Array::from(window.ipc.as_slice());
+            let _ = Reflect::set(&result, &JsValue::from_str("ipc"), &ipc);
+            Ok(result.into())
+        }))
+    }
+
     /// Run a query on a connection. The query is in the history of the connection from the start; it runs once the
     /// runtime described it: the target on the channel of the connection, the stored result of its script and what the
     /// options of the arguments ask for. The caller hears the events of the query (`events`).

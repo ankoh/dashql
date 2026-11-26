@@ -63,7 +63,7 @@ A model is an interface with a hook that implements it over the runtime:
 |---|---|---|
 | `useScriptModel` (`models/script_model`) | the script, the model of its latest query, whether its workbook runs | `run`, `cancel`, `setText`, `acceptDiff`, `rejectDiff`, `setVisSpec` |
 | `useQueryModel` (`models/query_model`) | the query, its progress, its result as an Arrow table, the model of the computation of the result | `cancel` |
-| `useComputationModel` (`models/computation_model`) | the computation of a result table and the Arrow tables of its handles | `dispatch` of a computation action (filters, ordering, searches, summaries) |
+| `useComputationModel` (`models/computation_model`) | the computation of a result table and the Arrow tables of its handles | `dispatch` of a computation action (filters, ordering, searches, summaries), `readRows` of a window of the rows that show |
 
 Each has a fake in `@akohn/dashql-react/testing/fake_models`, `mockTableComputation` of `testing/computation_mocks`
 gives a fake computation its view. What a component derives from a model is a function of the component, e.g. the rows

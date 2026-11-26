@@ -16,6 +16,7 @@ pub mod column_aggregation;
 pub mod columns;
 pub mod data_search;
 pub mod result_table;
+pub mod row_window;
 pub mod sql;
 pub mod system_columns;
 pub mod table_aggregation;

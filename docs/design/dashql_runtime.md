@@ -325,6 +325,7 @@ is a typed method with its contract rather than a generated table, the app reads
 |---|---|
 | `analyzeTable` | Analyze a result as a computation |
 | `previewResult` | The first rows of an analyzed result as Arrow IPC, read from its data frame, e.g. for the table of the shell; waits for the system columns of an analysis that runs |
+| `readResultRows` | A window of the rows that the grid of an analyzed result shows, filtered, searched and ordered by the core, with the count of the rows that show (`docs/wip/result_windows.md`); waits like `previewResult` |
 | `execute`, `cancel`, `watchProfile` | Run a query on a connection, cancel it, show its profile; `queryCommands` of the options stand in for them |
 | `createConnection`, `connection`, `catalog`, `channel`, `saveConnection`, `retrySave`, `replaceConnections`, `connectionUsage` | Connections and their saves; `replaceConnections` moves the workbooks of connections to another one, writes their files and names the replaced connections that are dead (`ConnectionReplacement` of the registry), the app deletes those; `connectionUsage` counts the workbooks that use a connection and those that keep it, and says whether the user may delete it (`ConnectionRegistry::usage`): ephemeral workbooks and previews don't count, every workbook keeps the embedded Hyper |
 | `setupConnection`, `cancelSetup`, `authenticateSalesforce`, `refreshCatalog` | Setups, the login of the shell and refreshes of catalogs |

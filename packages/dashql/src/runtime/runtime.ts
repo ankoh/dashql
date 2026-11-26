@@ -1,6 +1,6 @@
 import * as core from '../core/index.js';
 import * as flatbuffers from 'flatbuffers';
-import type * as arrow from 'apache-arrow';
+import * as arrow from 'apache-arrow';
 import type * as connection from '@akohn/dashql-jsonschema/connection.js';
 
 import { clientContextJson, createComputePlatform } from './compute_platform.js';
@@ -33,6 +33,16 @@ import { scriptRunEvent, workbookRunError, type ScriptRunEvent } from '../platfo
 import { emptyWorkbookTables, WORKBOOK_TABLE_NAMES, type WorkbookTables } from '../platform/storage/workbook_tables.js';
 
 const LOG_CTX = 'runtime';
+
+/// A window of the rows that the grid of a result shows
+export interface ResultRowWindow {
+    /// The position of the first row of the window among the rows that show, from 0
+    offset: number;
+    /// The rows that show in all
+    rows: number;
+    /// The rows of the window: the fields of the result and its row numbers
+    table: arrow.Table;
+}
 
 export type { ComputeDatabaseProvider };
 
@@ -339,6 +349,15 @@ export class Runtime {
     /// the computation, the result itself doesn't pass through the module. Fails for a result without a computation.
     async previewResult(tableId: number, limit: number): Promise<Uint8Array> {
         return await this.live().previewResult(tableId, limit);
+    }
+
+    /// A window of the rows that the grid of an analyzed result shows: the rows that pass its filters and its data
+    /// search in the order of its ordering, from `offset`, at most `limit`, with the fields of the result and its row
+    /// numbers, and the count of the rows that show. The core reads them from the data frame of the computation
+    /// (docs/wip/result_windows.md). Fails for a result without a computation.
+    async readResultRows(tableId: number, offset: number, limit: number): Promise<ResultRowWindow> {
+        const { rows, ipc } = await this.live().readResultRows(tableId, offset, limit);
+        return { offset, rows, table: arrow.tableFromIPC(ipc) };
     }
 
     /// An Arrow table of the handle table, undefined for none

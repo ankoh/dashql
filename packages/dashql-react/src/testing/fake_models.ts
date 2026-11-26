@@ -48,7 +48,8 @@ export function fakeQueryModel(query: Partial<QueryExecutionState> & { queryId: 
     };
 }
 
-/// The model of a computation: its view and the Arrow tables of its handles, an action is recorded and changes nothing
+/// The model of a computation: its view and the Arrow tables of its handles, an action is recorded and changes nothing.
+/// The rows that show are the rows of the table of the computation in their order, a read slices them.
 export function fakeComputationModel(
     computation: ComputationView,
     tables: ReadonlyMap<number, arrow.Table> = new Map(),
@@ -58,6 +59,11 @@ export function fakeComputationModel(
         computation,
         tables: { table: handle => handle == null ? undefined : tables.get(handle) },
         dispatch: vi.fn(() => ({ ok: true, changed: true, error: null, id: null })),
+        readRows: vi.fn(async (offset: number, limit: number) => {
+            const table = tables.get(computation.dataTable);
+            if (table == null) throw new Error(`no table ${computation.dataTable}`);
+            return { offset, rows: table.numRows, table: table.slice(offset, offset + limit) };
+        }),
         ...overrides,
     };
 }

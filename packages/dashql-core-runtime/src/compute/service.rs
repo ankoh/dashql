@@ -50,6 +50,7 @@ use super::tasks::data_search::{
     DATA_SEARCH_ROW_FIELD,
 };
 use super::tasks::result_table::ResultTable;
+use super::tasks::row_window::{plan_row_window, RowWindow, WindowRows};
 use super::tasks::system_columns::plan_system_columns;
 use super::tasks::table_aggregation::plan_table_aggregation;
 use super::tasks::table_filtering::plan_table_filtering;
@@ -69,6 +70,8 @@ use crate::catalog_loader::sql::quote_identifier;
 const IMPORT_TITLE: &str = "Table import";
 /// The title of the read of the first rows of a result
 const PREVIEW_TITLE: &str = "Result preview";
+/// The title of the read of a window of the rows of a result
+const ROWS_TITLE: &str = "Result rows";
 
 /// What a task computed, the values of the action that it applied
 #[derive(Clone, Debug, PartialEq)]
@@ -1129,29 +1132,13 @@ impl<H: ComputeHost> ComputeService<H> {
     pub fn preview(&self, table_id: TableId, limit: u64) -> impl Future<Output = Result<Vec<u8>>> + 'static {
         let shared = self.shared.clone();
         async move {
-            let no_computation = || Error::invalid_argument(format!("the table {table_id} has no computation"));
-            let sql = loop {
-                let waiting = {
-                    let mut inner = shared.inner.borrow_mut();
-                    let inner = &mut *inner;
-                    let computation = inner.state.computation(table_id).ok_or_else(no_computation)?;
-                    if let (Some(data_frame), Some(row_numbers)) =
-                        (computation.data_frame, computation.row_number_column_name.as_deref())
-                    {
-                        break preview_data_frame_sql(data_frame, &computation.data_table_fields, row_numbers, limit);
-                    }
-                    let Some(previews) = inner.analyses.get_mut(&table_id) else {
-                        return Err(Error::invalid_argument(format!(
-                            "the result of the table {table_id} is not analyzed"
-                        )));
-                    };
-                    let (sender, receiver) = oneshot();
-                    previews.push(sender);
-                    receiver
-                };
-                waiting.await;
-            };
-            let info = computation_info(&shared, table_id).ok_or_else(no_computation)?;
+            let sql = analyzed(&shared, table_id, |computation| {
+                let data_frame = computation.data_frame?;
+                let row_numbers = computation.row_number_column_name.as_deref()?;
+                Some(preview_data_frame_sql(data_frame, &computation.data_table_fields, row_numbers, limit))
+            })
+            .await?;
+            let info = computation_info(&shared, table_id).ok_or_else(|| no_computation(table_id))?;
             in_run(&shared, table_id, &info, PREVIEW_TITLE, RunOf::default(), |context| {
                 let shared = shared.clone();
                 async move {
@@ -1162,6 +1149,73 @@ impl<H: ComputeHost> ComputeService<H> {
             .await
             .map_err(|error| error.into_error(PREVIEW_TITLE))
         }
+    }
+
+    /// A window of the rows that the grid of a result shows: the rows that pass the filters and the data search in
+    /// the order of the ordering, from `offset`, at most `limit`, with the fields of the result and its row numbers,
+    /// as an Arrow IPC stream with the count of the rows that show. The rows are read from the data frame of the
+    /// computation, a window is as small as its limit. Waits for the system columns of an analysis that runs like a
+    /// preview, and fails like one.
+    pub fn read_rows(
+        &self,
+        table_id: TableId,
+        offset: u64,
+        limit: u64,
+    ) -> impl Future<Output = Result<RowWindow>> + 'static {
+        let shared = self.shared.clone();
+        async move {
+            let plan = analyzed(&shared, table_id, |computation| plan_row_window(computation, offset, limit)).await?;
+            let info = computation_info(&shared, table_id).ok_or_else(|| no_computation(table_id))?;
+            in_run(&shared, table_id, &info, ROWS_TITLE, RunOf::default(), |context| {
+                let shared = shared.clone();
+                async move {
+                    let failed = |e: HostError| Error::invalid_argument(format!("reading the rows failed: {e}"));
+                    let rows = match plan.rows {
+                        WindowRows::Known(rows) => rows,
+                        WindowRows::Counted(sql) => {
+                            let ipc = shared.host.query(&sql, &context).await.map_err(|e| host_failed(e, failed))?;
+                            let table = ResultTable::from_ipc_stream(&ipc)?;
+                            let count = if table.num_rows() == 0 { None } else { table.integer_value(0, 0)? };
+                            count.and_then(|count| u64::try_from(count).ok()).unwrap_or(0)
+                        }
+                    };
+                    let ipc = shared.host.query(&plan.sql, &context).await.map_err(|e| host_failed(e, failed))?;
+                    Ok(RowWindow { rows, ipc })
+                }
+            })
+            .await
+            .map_err(|error| error.into_error(ROWS_TITLE))
+        }
+    }
+}
+
+fn no_computation(table_id: TableId) -> Error {
+    Error::invalid_argument(format!("the table {table_id} has no computation"))
+}
+
+/// What a read plans of a computation once its result is analyzed: waits for the system columns of an analysis that
+/// runs. Fails for a table whose analysis ended without them, or once its computation is gone.
+async fn analyzed<H: ComputeHost, T>(
+    shared: &Rc<Shared<H>>,
+    table_id: TableId,
+    plan: impl Fn(&TableComputation) -> Option<T>,
+) -> Result<T> {
+    loop {
+        let waiting = {
+            let mut inner = shared.inner.borrow_mut();
+            let inner = &mut *inner;
+            let computation = inner.state.computation(table_id).ok_or_else(|| no_computation(table_id))?;
+            if let Some(planned) = plan(computation) {
+                return Ok(planned);
+            }
+            let Some(previews) = inner.analyses.get_mut(&table_id) else {
+                return Err(Error::invalid_argument(format!("the result of the table {table_id} is not analyzed")));
+            };
+            let (sender, receiver) = oneshot();
+            previews.push(sender);
+            receiver
+        };
+        waiting.await;
     }
 }
 

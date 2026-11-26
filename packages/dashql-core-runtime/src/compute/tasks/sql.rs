@@ -260,6 +260,7 @@ pub struct SqlFrame {
     group_by: Option<GroupBy>,
     order_by: Option<Vec<OrderByConstraint>>,
     limit: Option<u64>,
+    offset: Option<u64>,
     projection: Option<Vec<String>>,
 }
 
@@ -325,6 +326,12 @@ impl SqlFrame {
     pub fn order_by(mut self, constraints: Vec<OrderByConstraint>, limit: Option<u64>) -> Self {
         self.order_by = Some(constraints);
         self.limit = limit;
+        self
+    }
+
+    /// Skip the first rows of the order
+    pub fn offset(mut self, offset: u64) -> Self {
+        self.offset = Some(offset);
         self
     }
 
@@ -429,6 +436,9 @@ impl SqlFrame {
         }
         if let Some(limit) = self.limit {
             final_select.push_str(&format!("\nLIMIT {limit}"));
+        }
+        if let Some(offset) = self.offset.filter(|offset| *offset > 0) {
+            final_select.push_str(&format!("\nOFFSET {offset}"));
         }
 
         if ctes.is_empty() {
