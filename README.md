@@ -45,6 +45,10 @@ bazel run //packages/dashql-native:mac_package_x86_64
 # Test everything
 bazel test //...
 
+# Perf test a workbook: import a .dashql file into the app in Chromium and print the perf marks,
+# the long frames and the renders per component (see "Perf marks" in docs/design/dashql_runtime.md)
+bazel run //packages/dashql-app:perf_workbook -- path/to/workbook.dashql
+
 # Many tests are backed by snapshots / fixtures
 # /tests/snapshots/*.tpl.yaml are the input to generate /tests/snapshots/*.yaml
 # Update a snapshot category after intentional changes:
