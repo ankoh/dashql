@@ -136,15 +136,16 @@ function readLayout(workbookScripts: WorkbookScripts, scripts: ScriptDataMap): D
     }));
 }
 
-/// The card of a script with the model of the script, the cards of a section are a list
-function DashboardScriptCard({ workbookId, scriptKey, useScriptModel, ...card }: Omit<DashboardCardProps, 'model'> & {
+/// The card of a script with the model of the script, the cards of a section are a list. Memoized: the board renders
+/// again with every change of a script, a card with the change of its own script.
+const DashboardScriptCard = React.memo(function DashboardScriptCard({ workbookId, scriptKey, useScriptModel, ...card }: Omit<DashboardCardProps, 'model'> & {
     workbookId: string;
     scriptKey: number;
     useScriptModel: DashboardDependencies['useScriptModel'];
 }): React.ReactElement | null {
     const model = useScriptModel(workbookId, scriptKey);
     return model == null ? null : <DashboardCard model={model} {...card} />;
-}
+});
 
 export function Dashboard(props: Props): React.ReactElement {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
@@ -195,16 +196,19 @@ export function Dashboard(props: Props): React.ReactElement {
         useSensor(KeyboardSensor, { coordinateGetter: keyboardCoordinates }),
     );
 
+    // The handlers read the scripts through a ref, so that the cards keep their callbacks while a script changes
+    const scriptsRef = React.useRef(scriptMap);
+    scriptsRef.current = scriptMap;
     const persistLayout = React.useCallback((next: DashboardPlacement[], previous: DashboardPlacement[]) => {
         const previousById = new Map(previous.map(item => [item.id, item]));
         for (const placement of next) {
             const before = previousById.get(placement.id);
             if (before?.row === placement.row && before.column === placement.column
                 && before.width === placement.width && before.height === placement.height) continue;
-            const script = scriptMap[placement.id];
+            const script = scriptsRef.current[placement.id];
             if (script != null) persistDashboardPlacement(script, placement, modifyWorkbookScripts);
         }
-    }, [scriptMap, modifyWorkbookScripts]);
+    }, [modifyWorkbookScripts]);
 
     const handleDragEnd = React.useCallback((event: DragEndEvent) => {
         const ownerId = Number(event.active.id);
@@ -219,11 +223,11 @@ export function Dashboard(props: Props): React.ReactElement {
         setLayout(next);
         persistLayout(next, layout);
         const placed = next.find(item => item.id === ownerId);
-        const script = scriptMap[ownerId];
+        const script = scriptsRef.current[ownerId];
         if (placed && script) {
             setAnnouncement(`${script.fileName} moved to row ${placed.row + 1}, column ${placed.column + 1}`);
         }
-    }, [layout, columnStep, rowStep, persistLayout, scriptMap]);
+    }, [layout, columnStep, rowStep, persistLayout]);
 
     // The resize handler reads the layout through a ref, so that the cards keep their callback while the layout changes
     const layoutRef = React.useRef(layout);
@@ -249,8 +253,6 @@ export function Dashboard(props: Props): React.ReactElement {
 
     // The renderers of a card. A Markdown template and a bar chart are a start, the editor or the chart builder opens
     // to adjust them.
-    const scriptsRef = React.useRef(scriptMap);
-    scriptsRef.current = scriptMap;
     const handleVisualize = React.useCallback((scriptKey: number, renderer: DashboardRenderer, body: string) => {
         const script = scriptsRef.current[scriptKey];
         if (script == null) return;
