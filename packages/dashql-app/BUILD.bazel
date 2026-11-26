@@ -326,11 +326,18 @@ copy_to_directory(
     visibility = ["//visibility:private"],
 )
 
+# The server of a bundle, shared by the browser tests and :perf_workbook. One target copies it to bin: a copy of each of
+# them would be two conflicting actions, since the tags of the tests change the execution info of their copies
+copy_to_bin(
+    name = "static_server",
+    srcs = ["test/static_server.mjs"],
+)
+
 # The driver of the browser tests of the app, with the page tests after the test files
 BROWSER_TEST_DATA = [
     "test/browser_coverage.mjs",
     "test/browser_page_tests.mjs",
-    "test/static_server.mjs",
+    ":static_server",
 ]
 
 # A suite runs a browser with an embedded Hyper per page, about two cores each: a shard of the test files per four cores
@@ -399,7 +406,7 @@ js_binary(
     args = ["$(rootpath :coverage_pages)"],
     data = [
         ":coverage_pages",
-        "test/static_server.mjs",
+        ":static_server",
         "//:node_modules/playwright-core",
         "@playwright_chromium//:chromium",
         "@playwright_chromium//:runtime",
