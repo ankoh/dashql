@@ -30,6 +30,7 @@ export type DashQLBindings = Pick<
     | 'QueryProgressFollower'
     | 'replayQueryProgress'
     | 'Runtime'
+    | 'setPerfRecorder'
     | 'Shell'
 >;
 

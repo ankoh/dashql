@@ -44,6 +44,9 @@ describe('the perf marks', () => {
 
     it('record the planner of the core in the flush of the store', async () => {
         const rt = runtime = await createTestRuntime();
+        // The browser tests share one core across the frames of the test page, another copy of the package may have
+        // created it: its recorder joins the marks of this copy
+        perfMarks.attachModule(rt.core.bindings.setPerfRecorder);
         const connection = rt.createConnection(newDefaultHyperWasmConnection({ active: false }));
         const workbook = rt.createWorkbook(connection.connectionId, 'Marks', false);
         rt.flush();

@@ -9,8 +9,18 @@
 /// The prefix of the names of the spans on the timeline
 export const PREFIX = 'dashql:';
 
-/// What the module of the core needs to record its spans
-type RecorderInstall = (record: ((name: string, detail: string, start: number, end: number) => void) | null) => void;
+/// What a module of the core records its spans with: the clock of this timeline and the function that puts a span on
+/// it. The clock comes with the recorder, a module that another frame instantiated measures on the clock of this one.
+export interface PerfRecorder {
+    now(): number;
+    record(name: string, detail: string, start: number, end: number): void;
+}
+
+/// Installs the recorder in a module of the core, null stops its recording
+type RecorderInstall = (recorder: PerfRecorder | null) => void;
+
+/// The recorder of this timeline
+const RECORDER: PerfRecorder = { now: () => performance.now(), record };
 
 /// Are the spans recorded?
 let recording = false;
@@ -25,13 +35,13 @@ export function enabled(): boolean {
 /// Record the spans or stop, also those of the modules of the core
 export function setEnabled(enable: boolean): void {
     recording = enable;
-    for (const install of modules) install(enable ? record : null);
+    for (const install of modules) install(enable ? RECORDER : null);
 }
 
 /// Let a module of the core record its spans while the spans are recorded. Returns the release.
 export function attachModule(install: RecorderInstall): () => void {
     modules.add(install);
-    install(recording ? record : null);
+    install(recording ? RECORDER : null);
     return () => {
         modules.delete(install);
         install(null);
