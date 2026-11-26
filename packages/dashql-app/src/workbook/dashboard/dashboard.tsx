@@ -136,16 +136,15 @@ function readLayout(workbookScripts: WorkbookScripts, scripts: ScriptDataMap): D
     }));
 }
 
-/// The card of a script with the model of the script, the cards of a section are a list. Memoized: the board renders
-/// again with every change of a script, a card with the change of its own script.
-const DashboardScriptCard = React.memo(function DashboardScriptCard({ workbookId, scriptKey, useScriptModel, ...card }: Omit<DashboardCardProps, 'model'> & {
+/// The card of a script with the model of the script, the cards of a section are a list
+function DashboardScriptCard({ workbookId, scriptKey, useScriptModel, ...card }: Omit<DashboardCardProps, 'model'> & {
     workbookId: string;
     scriptKey: number;
     useScriptModel: DashboardDependencies['useScriptModel'];
 }): React.ReactElement | null {
     const model = useScriptModel(workbookId, scriptKey);
     return model == null ? null : <DashboardCard model={model} {...card} />;
-});
+}
 
 export function Dashboard(props: Props): React.ReactElement {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;

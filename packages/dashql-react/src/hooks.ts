@@ -66,63 +66,15 @@ export function useOwnedRuntime(create: () => Runtime): Runtime {
 }
 
 const NO_SUBSCRIPTION = () => () => { };
-const NO_VIEW = () => null;
 
-/// The view of a slice, null without one: the view as the runtime returns it, or the projection of the store for the
-/// workbooks, the scripts and the derived views. The component renders again when the slice changes.
-export function useView<K extends core.ViewKind>(kind: K, id: core.ViewId<K> | null | undefined): StoreView<K> | null {
-    const runtime = React.useContext(RUNTIME_CTX);
-    const store = runtime?.store ?? null;
-    const subscribe = React.useMemo(
-        () => store == null || id == null ? NO_SUBSCRIPTION : (listener: () => void) => store.subscribe(kind, id, listener),
-        [store, kind, id],
-    );
-    const getSnapshot = React.useMemo(
-        (): () => StoreView<K> | null => store == null || id == null ? NO_VIEW : () => store.get(kind, id),
-        [store, kind, id],
-    );
-    return React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-}
-
-/// A value that a component selects from a snapshot of a store, `useSyncExternalStore` with a selector. The component
-/// renders again only when the selected value changes, not with every change of the snapshot: a selected value equal to
-/// the previous one (`isEqual`) is the previous one. The selection of a snapshot is kept while the snapshot keeps its
-/// identity, a new `select` selects again and keeps the value that the component shows while it is equal.
-function useSelection<S, T>(
-    subscribe: (listener: () => void) => () => void,
-    getSnapshot: () => S,
-    select: (snapshot: S) => T,
-    isEqual: (left: T, right: T) => boolean,
-): T {
-    // The value of the last commit, a new selector compares with it
-    const committed = React.useRef<{ value: T } | null>(null);
-    const getSelection = React.useMemo(() => {
-        let held: { snapshot: S; value: T } | null = null;
-        return (): T => {
-            const snapshot = getSnapshot();
-            if (held != null && Object.is(held.snapshot, snapshot)) return held.value;
-            const value = select(snapshot);
-            const prev = held ?? committed.current;
-            held = { snapshot, value: prev != null && isEqual(prev.value, value) ? prev.value : value };
-            return held.value;
-        };
-    }, [getSnapshot, select, isEqual]);
-    const value = React.useSyncExternalStore(subscribe, getSelection, getSelection);
-    React.useEffect(() => {
-        committed.current = { value };
-    }, [value]);
-    return value;
-}
-
-/// A part of the view of a slice, e.g. the report of one script in the derived view of its workbook. `select` gets the
-/// view, null without one. The component renders again only when the selected value changes (`isEqual`, by identity
-/// by default), not with every change of the slice: select a part that keeps its identity while it is unchanged, the
+/// A part of the view of a slice, e.g. the report of one script in the derived view of its workbook: `useSyncExternalStore`
+/// with a selector. `select` gets the view, null without one. The component renders again only when the selected value
+/// changes, not with every change of the slice: select a part that keeps its identity while it is unchanged, the
 /// projections of the store keep them (`share`), or a primitive.
 export function useViewSelector<K extends core.ViewKind, T>(
     kind: K,
     id: core.ViewId<K> | null | undefined,
     select: (view: StoreView<K> | null) => T,
-    isEqual: (left: T, right: T) => boolean = Object.is,
 ): T {
     const runtime = React.useContext(RUNTIME_CTX);
     const store = runtime?.store ?? null;
@@ -130,12 +82,16 @@ export function useViewSelector<K extends core.ViewKind, T>(
         () => store == null || id == null ? NO_SUBSCRIPTION : (listener: () => void) => store.subscribe(kind, id, listener),
         [store, kind, id],
     );
-    const getSnapshot = React.useMemo(
-        (): () => StoreView<K> | null => store == null || id == null ? NO_VIEW : () => store.get(kind, id),
-        [store, kind, id],
-    );
-    return useSelection(subscribe, getSnapshot, select, isEqual);
+    const getSelection = () => select(store == null || id == null ? null : store.get(kind, id));
+    return React.useSyncExternalStore(subscribe, getSelection, getSelection);
 }
+
+/// The view of a slice, null without one: the view as the runtime returns it, or the projection of the store for the
+/// workbooks, the scripts and the derived views. The component renders again when the slice changes.
+export function useView<K extends core.ViewKind>(kind: K, id: core.ViewId<K> | null | undefined): StoreView<K> | null {
+    return useViewSelector(kind, id, selectView);
+}
+const selectView = <V,>(view: V): V => view;
 
 /// Read the views of the store when a function is called, e.g. in a handler, without subscribing to them: the
 /// component doesn't render again when they change. A read sees the last flush, null without a runtime.
@@ -198,11 +154,7 @@ export const useWorkbookDerived = (workbookId: string | null | undefined) => use
 /// again when the report of the script changes, not with the reports of the other scripts: a report that didn't change
 /// keeps its identity.
 export function useScriptReferences(workbookId: string | null | undefined, scriptKey: number | null | undefined): ScriptReferenceReport | null {
-    const select = React.useCallback(
-        (derived: WorkbookDerived | null) => scriptKey == null ? null : derived?.references.get(scriptKey) ?? null,
-        [scriptKey],
-    );
-    return useViewSelector('workbookDerived', workbookId, select);
+    return useViewSelector('workbookDerived', workbookId, derived => scriptKey == null ? null : derived?.references.get(scriptKey) ?? null);
 }
 const selectInputs = (derived: WorkbookDerived | null) => derived?.inputs ?? null;
 /// The inputs of a workbook, from its derived view, null without them. The component renders again when the inputs

@@ -6,20 +6,16 @@
 // `performance.getEntriesByType('measure')`. They are off by default: a span then costs a check of a flag. The core
 // module records its own spans (the planner, the analysis) through the recorder that `setEnabled` installs.
 
+import type { PerfRecorder } from '@akohn/dashql-wasm/dashql_core.js';
+
 /// The prefix of the names of the spans on the timeline
 export const PREFIX = 'dashql:';
-
-/// What a module of the core records its spans with: the clock of this timeline and the function that puts a span on
-/// it. The clock comes with the recorder, a module that another frame instantiated measures on the clock of this one.
-export interface PerfRecorder {
-    now(): number;
-    record(name: string, detail: string, start: number, end: number): void;
-}
 
 /// Installs the recorder in a module of the core, null stops its recording
 type RecorderInstall = (recorder: PerfRecorder | null) => void;
 
-/// The recorder of this timeline
+/// The recorder of this timeline. The clock comes with the recorder, a module that another frame instantiated measures
+/// on the clock of this one.
 const RECORDER: PerfRecorder = { now: () => performance.now(), record };
 
 /// Are the spans recorded?
@@ -27,25 +23,16 @@ let recording = false;
 /// The modules that record spans of their own
 const modules = new Set<RecorderInstall>();
 
-/// Are the spans recorded?
-export function enabled(): boolean {
-    return recording;
-}
-
 /// Record the spans or stop, also those of the modules of the core
 export function setEnabled(enable: boolean): void {
     recording = enable;
     for (const install of modules) install(enable ? RECORDER : null);
 }
 
-/// Let a module of the core record its spans while the spans are recorded. Returns the release.
-export function attachModule(install: RecorderInstall): () => void {
+/// Let a module of the core record its spans while the spans are recorded
+export function attachModule(install: RecorderInstall): void {
     modules.add(install);
     install(recording ? RECORDER : null);
-    return () => {
-        modules.delete(install);
-        install(null);
-    };
 }
 
 /// The start of a span, null while nothing is recorded

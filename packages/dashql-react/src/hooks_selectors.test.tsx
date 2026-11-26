@@ -86,27 +86,6 @@ describe('the selector hooks', () => {
         expect(keys.value).toHaveLength(3);
     });
 
-    it('keeps the selected value with a new selector while it is equal', () => {
-        const workbook = rt.addWorkbook(CONNECTION, [['alpha.sql', 'select 1']]);
-        // The values of the renders
-        const values: number[][] = [];
-        const sameKeys = (left: number[], right: number[]) => left.length === right.length && left.every((key, i) => key === right[i]);
-        const Counting = () => {
-            const [, setTick] = React.useState(0);
-            // A new selector and a new array with every render, equal by their contents
-            const value = useViewSelector('workbook', workbook.workbookId, view => [...(view?.scriptKeys ?? [])], sameKeys);
-            React.useLayoutEffect(() => { values.push(value); });
-            return <button onClick={() => setTick(tick => tick + 1)} />;
-        };
-        render(<Counting />);
-        act(() => container.querySelector('button')!.click());
-        expect(values).toHaveLength(2);
-        expect(values[1]).toBe(values[0]);
-        // A rename selects an equal array, the component doesn't render
-        apply(workbook.workbookId, { kind: 'renameScript', value: { fileName: 'alpha.sql', newName: 'beta' } });
-        expect(values).toHaveLength(2);
-    });
-
     it('renders a reader of the references of a script only when its report changes, and of the inputs only when they change', () => {
         const workbook = rt.addWorkbook(CONNECTION, [['alpha.sql', 'select 1 as x'], ['beta.sql', 'select x from :alpha'], ['gamma.sql', 'select x from :alpha']]);
         const [, beta, gamma] = workbook.scriptKeys;

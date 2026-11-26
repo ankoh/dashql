@@ -24,8 +24,8 @@ extern "C" {
     #[wasm_bindgen(method)]
     fn now(this: &JsPerfRecorder) -> f64;
 
-    #[wasm_bindgen(method)]
-    fn record(this: &JsPerfRecorder, name: &str, detail: &str, start: f64, end: f64);
+    #[wasm_bindgen(method, catch)]
+    fn record(this: &JsPerfRecorder, name: &str, detail: &str, start: f64, end: f64) -> Result<(), JsValue>;
 }
 
 /// Hands every span to the recorder of the host
@@ -37,7 +37,8 @@ impl PerfRecorder for HostPerfRecorder {
     }
 
     fn record(&self, name: &'static str, detail: &str, start: f64, end: f64) {
-        self.0.record(name, detail, start, end);
+        // A recorder that throws loses the span, the exception must not unwind through the runtime
+        let _ = self.0.record(name, detail, start, end);
     }
 }
 

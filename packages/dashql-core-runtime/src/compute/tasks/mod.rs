@@ -93,17 +93,12 @@ pub struct TaskQuery {
 
 impl TaskQuery {
     fn new(title: &'static str, failure: &'static str, data_frame: DataFrameId, sql: String, read_sql: String) -> Self {
-        Self::unread(title, failure, data_frame, sql).with_read(read_sql)
+        Self { read_sql: Some(read_sql), ..Self::unread(title, failure, data_frame, sql) }
     }
 
     /// The query of a table that the task doesn't read
     fn unread(title: &'static str, failure: &'static str, data_frame: DataFrameId, sql: String) -> Self {
         Self { title, data_frame, table_name: data_frame_table_name(data_frame), sql, read_sql: None, failure }
-    }
-
-    fn with_read(mut self, read_sql: String) -> Self {
-        self.read_sql = Some(read_sql);
-        self
     }
 
     /// The error of the task when its query, its read or its finish failed

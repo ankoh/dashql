@@ -236,6 +236,8 @@ impl<H: ComputeHost> ComputeService<H> {
     /// its table, the future runs the steps. The analysis stops without an error once the computation is gone, e.g.
     /// replaced by the computation of a later result. A cancel of `stop` stops it with an error: the runs of the
     /// computation end cancelled, the steps after them don't start, the computation keeps what the analysis computed.
+    /// The caller drives the future to its end: its end lets go of the analysis, which the previews of the table wait
+    /// for.
     #[allow(clippy::too_many_arguments)]
     pub fn analyze_table(
         &self,

@@ -3,7 +3,7 @@ import * as React from 'react';
 import type { EditorView } from '@codemirror/view';
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
-import { useWorkbookDerived } from '@akohn/dashql-react/hooks';
+import { useWorkbookInputs } from '@akohn/dashql-react/hooks';
 import type { ModifyWorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { WorkbookInputCard } from './workbook_input_card.js';
 import { useApplyWorkbookInput } from './use_apply_workbook_input.js';
@@ -43,8 +43,8 @@ interface AnchorBox {
 /// inputs. The overlay follows the parameter while the feed scrolls and closes once the parameter is out of view.
 export function WorkbookInputOverlay(props: Props): React.ReactElement | null {
     const { target, containerRef, getScrollElement, onClose } = props;
-    const derived = useWorkbookDerived(props.workbookId);
-    const input = target == null ? null : derived?.inputs.find(i => i.name === target.name) ?? null;
+    const inputs = useWorkbookInputs(props.workbookId);
+    const input = target == null ? null : inputs?.find(i => i.name === target.name) ?? null;
     const { apply, literalOf, busyInputs } = useApplyWorkbookInput(props.workbookId, props.modifyWorkbookScripts);
 
     const anchorRef = React.useRef<HTMLSpanElement>(null);
@@ -97,8 +97,8 @@ export function WorkbookInputOverlay(props: Props): React.ReactElement | null {
 
     // A parameter that is no input, e.g. while the analysis lags behind the text, opens nothing
     React.useEffect(() => {
-        if (target != null && derived != null && input == null) onClose();
-    }, [target, derived, input, onClose]);
+        if (target != null && inputs != null && input == null) onClose();
+    }, [target, inputs, input, onClose]);
 
     if (target == null || input == null || anchor == null) return null;
     return (

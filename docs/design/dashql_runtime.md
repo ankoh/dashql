@@ -456,11 +456,11 @@ it over, and only the latest lease resets the connection when it closes.
   `useScriptRun`). `useView` is `useSyncExternalStore` over one slice; a component renders again only when its slice
   changes. `useDispatch` dispatches through the facade, see [Dispatch](#dispatch).
 - **Selectors** read a part of the views, a component renders again only when its part changes:
-  `useViewSelector(kind, id, select, isEqual?)` selects from the view of one slice, `useScriptReferences(workbookId,
-  scriptKey)` is the report of one script in the derived view and `useWorkbookInputs(workbookId)` its inputs. The
-  selected value is the previous one while it is equal (`isEqual`, by identity by default), so a selector returns a
-  primitive or a part of the view that keeps its identity (`share` of the projections, the reports of
-  `readScriptReferenceReports`); a new `select` with every render is fine. `useViewReader()` reads the views when it
+  `useViewSelector(kind, id, select)` selects from the view of one slice (`useSyncExternalStore` with a selector),
+  `useScriptReferences(workbookId, scriptKey)` is the report of one script in the derived view and
+  `useWorkbookInputs(workbookId)` its inputs. A component renders again when the selected value changes by identity,
+  so a selector returns a primitive or a part of the view that keeps its identity (`share` of the projections, the
+  reports of `readScriptReferenceReports`), never a new object or array; a new `select` with every render is fine. `useViewReader()` reads the views when it
   is called, e.g. in a handler, without subscribing. A list passes its rows no view that each of them reads a part
   of, each row selects its part: the rows and the editors of the feed read their script, whether it is selected (`useIsScriptSelected` of
   `workbook/scripts/script_selection.ts`) and its references, and the feed reads its scripts in its handlers only.
@@ -629,7 +629,7 @@ To read them:
 | `results:mount`, `results:read`, `results:write`, `results:import` | `QueryChannels` | The stored results of the scripts |
 | `compute:importTable`, `compute:createTable`, `compute:query` | `createComputePlatform` | The computations of the results in the compute database |
 | `render:visRows`, `render:visEmbed` | `VegaLiteView` | The rows of a chart, and its compilation and first run in Vega |
-| `render:deferredWait`, `render:deferredShow` | `Deferred` | The wait of a heavy part for a calm frame, and the render that shows it |
+| `render:deferredWait` | `Deferred` | The wait of a heavy part for a calm frame |
 | `dataflow:layout` | `DashQLDataflow` | The layout of the dataflow canvas with ELK |
 
 A new span goes on a seam that is called a few times per user action, never into a loop over rows or tokens. In
