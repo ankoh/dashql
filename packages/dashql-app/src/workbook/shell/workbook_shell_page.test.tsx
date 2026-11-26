@@ -742,7 +742,8 @@ describe('WorkbookShellPage', () => {
             vi.mocked(DashQLShell.create).mockRejectedValueOnce(new Error('shell is broken'));
             render({ connectionId: OTHER });
             await vi.waitFor(() => expect(screen()).toContain('Failed to load shell: shell is broken'), WAIT);
-            expect(status()).toContain('shell is broken');
+            // The terminal gets the message right away, the status line with the next render
+            await vi.waitFor(() => expect(status()).toContain('shell is broken'), WAIT);
             // The shell that is there still runs queries
             run('select 42 as answer;');
             await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);

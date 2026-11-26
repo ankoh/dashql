@@ -283,7 +283,8 @@ describe('DashQLCompletionListPlugin', () => {
         // Without the hints, the list starts at the target
         editor.dispatch({ effects: DashQLCompletionAbortEffect.of(null) });
         await vi.waitFor(() => expect(editor.contentDOM.textContent).not.toContain('db0.public.'));
-        expect(left).toBeCloseTo(editor.coordsForChar(targetOffset)!.left, 0);
+        // Within a pixel: the list adds up the widths of characters, which WebKit measures in other fractions of a pixel
+        expect(Math.abs(left - editor.coordsForChar(targetOffset)!.left)).toBeLessThan(1);
     });
 
     it('names a syntax error before the cursor above the candidates', async () => {

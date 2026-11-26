@@ -205,7 +205,8 @@ describe('the runs of workbooks in the app', () => {
             early!.start();
             await new Promise(resolve => setTimeout(resolve, 0));
         });
-        expect(early!.state).not.toBeNull();
+        // WebKit sets the state a few tasks later than Chromium
+        await vi.waitFor(() => expect(early!.state).not.toBeNull());
         setup.resolve();
         await rendering;
         expect(current.ready).toBe(true);
