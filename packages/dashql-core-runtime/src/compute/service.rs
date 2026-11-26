@@ -242,8 +242,8 @@ impl<H: ComputeHost> ComputeService<H> {
     /// its table, the future runs the steps. The analysis stops without an error once the computation is gone, e.g.
     /// replaced by the computation of a later result. A cancel of `stop` stops it with an error: the runs of the
     /// computation end cancelled, the steps after them don't start, the computation keeps what the analysis computed.
-    /// The caller drives the future to its end: its end lets go of the analysis, which the previews of the table wait
-    /// for.
+    /// The end of the future lets go of the analysis, which the previews of the table wait for, also when the caller
+    /// drops it.
     #[allow(clippy::too_many_arguments)]
     pub fn analyze_table(
         &self,
@@ -256,13 +256,13 @@ impl<H: ComputeHost> ComputeService<H> {
         stop: CancellationToken,
     ) -> impl Future<Output = Result<()>> + 'static {
         let shared = self.shared.clone();
-        let started = start_analysis(&shared, table_id, table, handles, connection_id, client_context);
+        let started = start_analysis(&shared, table_id, table, handles, connection_id, client_context)
+            .map(|started| started.map(|started| (started, AnalysisEnd::new(&shared, table_id))));
         async move {
-            let Some(started) = started? else { return Ok(()) };
+            let Some((started, end)) = started? else { return Ok(()) };
             // A stop cancels the runs of the computation, e.g. the step that runs. The reads of its rows go on, the
             // rows that were imported stay readable.
-            let ended = CancellationToken::new();
-            let watch = (shared.clone(), ended.clone(), stop.clone());
+            let watch = (shared.clone(), end.ended.clone(), stop.clone());
             shared.host.spawn(Box::pin(async move {
                 let (shared, ended, stop) = watch;
                 if ended.run(stop.cancelled()).await.is_some() {
@@ -270,11 +270,7 @@ impl<H: ComputeHost> ComputeService<H> {
                     cancel_runs(&shared, runs);
                 }
             }));
-            let analyzed = analyze(&shared, started, options, &stop).await;
-            ended.cancel();
-            // The reads that wait for the analysis look again
-            shared.inner.borrow_mut().analyses.remove(&table_id);
-            analyzed
+            analyze(&shared, started, options, &stop).await
         }
     }
 
@@ -832,6 +828,29 @@ fn start_analysis<H: ComputeHost>(
     }
     shared.inner.borrow_mut().analyses.insert(table_id, Vec::new());
     Ok(Some(StartedAnalysis { table_id, input, start, data_table }))
+}
+
+/// The end of an analysis that started, once its future ended or was dropped: the watch of its stop ends, and the reads
+/// that wait for the analysis look again
+struct AnalysisEnd<H: ComputeHost> {
+    shared: Rc<Shared<H>>,
+    table_id: TableId,
+    ended: CancellationToken,
+}
+
+impl<H: ComputeHost> AnalysisEnd<H> {
+    fn new(shared: &Rc<Shared<H>>, table_id: TableId) -> Self {
+        Self { shared: shared.clone(), table_id, ended: CancellationToken::new() }
+    }
+}
+
+impl<H: ComputeHost> Drop for AnalysisEnd<H> {
+    fn drop(&mut self) {
+        self.ended.cancel();
+        if let Ok(mut inner) = self.shared.inner.try_borrow_mut() {
+            inner.analyses.remove(&self.table_id);
+        }
+    }
 }
 
 /// The steps of an analysis that started, see `ComputeService::analyze_table`

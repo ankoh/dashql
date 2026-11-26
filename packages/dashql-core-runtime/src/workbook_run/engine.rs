@@ -46,7 +46,8 @@ struct Control {
     finished: Cell<bool>,
     /// The queries that run
     active: RefCell<BTreeMap<QueryId, ActiveQuery>>,
-    /// The queries that ended with a result to analyze, by connection: their analyses may still run, a Stop stops them
+    /// The queries that ended with a result to analyze, by connection: their analyses may still run, a Stop stops them.
+    /// The run lets go of them once it ended.
     analyzed: RefCell<Vec<(String, QueryId)>>,
     /// Wakes the run, it waits for a statement or a task
     waker: RefCell<Option<Sender<()>>>,
@@ -828,6 +829,8 @@ impl<H: RunHost> Run<H> {
             }
         };
         self.control.finished.set(true);
+        // A run that ended stops no analysis
+        self.control.analyzed.borrow_mut().clear();
         outcome
     }
 

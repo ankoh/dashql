@@ -1117,6 +1117,16 @@ fn a_preview_reads_the_imported_rows_while_the_system_columns_are_computed() {
 }
 
 #[test]
+fn a_read_of_rows_waits_for_no_analysis_whose_future_was_dropped() {
+    let setup = setup(analysis_answer);
+    // The analysis started its computation, the caller drops it before its import
+    drop(setup.start_analysis(&CancellationToken::new()));
+    let read = setup.run(setup.service.read_rows(1, 0, 10));
+    let error = read.borrow_mut().take().expect("the read finished").unwrap_err();
+    assert!(error.to_string().contains("is not analyzed"), "{error}");
+}
+
+#[test]
 fn a_read_of_rows_waits_for_the_import() {
     let setup = setup(analysis_answer);
     let (release, gate): (Sender<()>, Receiver<()>) = oneshot();
