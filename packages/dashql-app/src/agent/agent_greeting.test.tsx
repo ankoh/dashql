@@ -27,6 +27,17 @@ describe('Agent greeting', () => {
     it('keeps Wobble moving with reduced motion, the question changes when it melts', async () => {
         const original = globalThis.matchMedia;
         globalThis.matchMedia = (query: string) => ({ matches: query.includes('prefers-reduced-motion') }) as MediaQueryList;
+        // Wobble stops its frames while it is off the screen. The frame of the browser runner can be scrolled away, the
+        // observer reports Wobble as visible. It reports later like the browser does.
+        const intersectionObserver = globalThis.IntersectionObserver;
+        class VisibleIntersectionObserver {
+            constructor(readonly callback: IntersectionObserverCallback) {}
+            observe(target: Element) {
+                queueMicrotask(() => this.callback([{ target, isIntersecting: true } as IntersectionObserverEntry], this as unknown as IntersectionObserver));
+            }
+            disconnect() {}
+        }
+        globalThis.IntersectionObserver = VisibleIntersectionObserver as unknown as typeof IntersectionObserver;
         try {
             act(() => root.render(<AgentGreeting wobble={{ label: 'Agent', tuning: { faceHoldMs: 1 } }} questionTestId="question" greetings={['First?', 'Second?']} />));
             const question = container.querySelector('[data-testid="question"]');
@@ -34,6 +45,7 @@ describe('Agent greeting', () => {
             await vi.waitFor(() => expect(question?.getAttribute('aria-label')).toBe('Second?'));
         } finally {
             globalThis.matchMedia = original;
+            globalThis.IntersectionObserver = intersectionObserver;
         }
     });
 });
