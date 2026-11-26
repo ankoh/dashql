@@ -12,7 +12,7 @@ import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info
 import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
-import { useCatalog, useOptionalRuntime, useScriptRun, useWorkbookExecution, useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
+import { useCatalog, useOptionalRuntime, useScriptRun } from '@akohn/dashql-react/hooks';
 import { type KeyEventHandler, useKeyEvents } from '@akohn/dashql-react/dom/key_events';
 import { useSettledHeight } from '@akohn/dashql-react/components/size_observer';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
@@ -33,8 +33,7 @@ import { describeSqlDialect } from '../../agent/agent_prompt.js';
 import { agentLiveStatuses, diffAgentQuestions } from '../../agent/agent_workbook_status.js';
 import { WorkbookStatusBar, WorkbookStatusBarVariant, type WorkbookStatusBarPrompt } from '../status/workbook_status_bar.js';
 import { useLiveWorkbookStatuses, useWorkbookOutcomeTransitions } from '../status/workbook_status_store.js';
-import { useWorkbookStatusSources } from '../status/use_workbook_status_sources.js';
-import { useCloudPublishStatus } from '../../cloud/cloud_publish_status.js';
+import { WorkbookStatusSources } from '../status/use_workbook_status_sources.js';
 
 /// Where the prompt of a workbook shows
 export enum WorkbookPromptPlacement {
@@ -98,7 +97,6 @@ export interface WorkbookPromptDependencies {
     usePickPendingConnection: typeof usePickPendingConnection;
     useKeyEvents: typeof useKeyEvents;
     useScriptRun: typeof useScriptRun;
-    useWorkbookScriptMap: typeof useWorkbookScriptMap;
     useLiveScriptReader: typeof useLiveScriptReader;
     useComposerCore: typeof useComposerCore;
     useAgentSession: typeof useAgentSession;
@@ -111,7 +109,6 @@ const DEFAULT_DEPENDENCIES: WorkbookPromptDependencies = {
     usePickPendingConnection,
     useKeyEvents,
     useScriptRun,
-    useWorkbookScriptMap,
     useLiveScriptReader,
     useComposerCore,
     useAgentSession,
@@ -165,26 +162,12 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
     const workbookId = props.workbookScripts.workbookId;
     const readOnly = useWorkbookReadOnly();
     const overFeed = props.placement === WorkbookPromptPlacement.Feed;
-    const scripts = dependencies.useWorkbookScriptMap(workbookId);
     const defaultConnections = React.useMemo(
         () => new Map(props.conn == null ? [] : [[props.conn.connectionId, props.conn]]),
         [props.conn],
     );
     const connections = props.scriptConnections ?? defaultConnections;
-
-    // The runs, the connections and the publishes of the workbook tell its status, the bar of Wobble shows it in every
-    // view
-    const execution = useWorkbookExecution(workbookId);
-    const publishStatus = useCloudPublishStatus(workbookId);
     const labeler = useConnectionLabeler();
-    useWorkbookStatusSources({
-        workbookScripts: props.workbookScripts,
-        scripts,
-        connections,
-        label: labeler,
-        execution: execution.state,
-        publish: publishStatus,
-    });
 
     // The composer drafts the next script, on the connection that the script will run on
     const composerConnectionId = props.workbookScripts.nextScriptConnectionId ?? null;
@@ -388,6 +371,9 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
                 '--prompt_scrollbar_gutter': `${insets.scrollbarGutter}px`,
             } as React.CSSProperties}
         >
+            {/* The runs, the queries, the connections and the publishes of the workbook tell its status, the bar of
+                Wobble shows it in every view */}
+            <WorkbookStatusSources workbookScripts={props.workbookScripts} connections={connections} label={labeler} />
             {landing && (
                 <div className={styles.landing_top}>
                     <div className={styles.landing_header}>

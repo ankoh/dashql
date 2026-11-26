@@ -502,7 +502,9 @@ it over, and only the latest lease resets the connection when it closes.
    those of the derived view once it moved after the pause, and of those the selectors whose part changed. In the
    feed that is the card of the script without its result (`ScriptCardResult` is memoized on the query of the
    script, and the operations of a script model keep their identity), and after the pause the cards whose
-   references changed.
+   references changed. Two views read all scripts and are components of their own, so the page around them doesn't
+   render: the errors in the bar (`WorkbookErrors`) and the status of the prompt (`WorkbookStatusSources`, it shows
+   nothing and tells the bar of Wobble the latest queries).
 5. The stored results of the workbook are looked up once the typing paused, a move of the cursor looks up none
    (`runs/stored_results.rs`).
 

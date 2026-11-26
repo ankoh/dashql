@@ -9,10 +9,10 @@ import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types'
 import { formatMilliseconds } from '@akohn/dashql-react/format/format';
 import { getQueryStatusText } from '../entry_status_model.js';
 import { runStepText } from '../feed/workbook_run_step.js';
-import type { CloudPublishStatus } from '../../cloud/cloud_publish_status.js';
+import { useCloudPublishStatus, type CloudPublishStatus } from '../../cloud/cloud_publish_status.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from './workbook_status.js';
 import { useLiveWorkbookStatuses, useWorkbookOutcomeTransitions } from './workbook_status_store.js';
-import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
+import { useOptionalRuntime, useWorkbookExecution, useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 
 /// The latest query of a script
@@ -250,28 +250,32 @@ export function diffPublish(prev: CloudPublishStatus | null, next: CloudPublishS
     }];
 }
 
-/// Tell the runs, the connections and the publishes of a workbook to its bars of Wobble
-export function useWorkbookStatusSources(args: {
+interface WorkbookStatusSourcesProps {
     workbookScripts: WorkbookScripts;
-    /// The scripts of the workbook by key
-    scripts: ScriptDataMap;
+    /// The connections that the scripts run on
     connections: ReadonlyMap<string, ConnectionState>;
     label: (connection: ConnectionState) => ConnectionLabelParts;
-    execution: WorkbookRunState | null;
-    publish: CloudPublishStatus | null;
-}): void {
-    const workbookId = args.workbookScripts.workbookId;
-    const queries = useScriptQueries(args.workbookScripts, args.scripts, args.connections);
-    const connections = useStable(workbookConnectionStatuses(args.connections, args.label));
-    const execution = args.execution;
+}
+
+/// Tell the runs, the queries, the connections and the publishes of a workbook to its bars of Wobble. A component of its
+/// own that shows nothing: it reads the latest query of every script, so it renders again with every keystroke and
+/// every step of a run, the prompt around it doesn't.
+export const WorkbookStatusSources = React.memo(function WorkbookStatusSources({ workbookScripts, connections: connectionStates, label }: WorkbookStatusSourcesProps): null {
+    const workbookId = workbookScripts.workbookId;
+    const scripts = useWorkbookScriptMap(workbookId);
+    const execution = useWorkbookExecution(workbookId).state;
+    const publish = useCloudPublishStatus(workbookId);
+    const queries = useScriptQueries(workbookScripts, scripts, connectionStates);
+    const connections = useStable(workbookConnectionStatuses(connectionStates, label));
     const executing = execution?.busy === true;
     const live = React.useMemo(
-        () => liveWorkbookStatuses({ queries, execution, connections, publish: args.publish, now: Date.now() }),
-        [queries, execution, connections, args.publish],
+        () => liveWorkbookStatuses({ queries, execution, connections, publish, now: Date.now() }),
+        [queries, execution, connections, publish],
     );
     useLiveWorkbookStatuses(workbookId, 'workbook', live);
     useWorkbookOutcomeTransitions(workbookId, queries, (prev, next) => diffScriptQueries(prev, next, executing, Date.now()));
     useWorkbookOutcomeTransitions(workbookId, execution, (prev, next) => diffExecution(prev, next, Date.now()));
     useWorkbookOutcomeTransitions(workbookId, connections, (prev, next) => diffConnections(prev, next, Date.now()));
-    useWorkbookOutcomeTransitions(workbookId, args.publish, (prev, next) => diffPublish(prev, next, Date.now()));
-}
+    useWorkbookOutcomeTransitions(workbookId, publish, (prev, next) => diffPublish(prev, next, Date.now()));
+    return null;
+});

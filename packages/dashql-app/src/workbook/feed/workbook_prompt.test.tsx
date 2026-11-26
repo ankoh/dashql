@@ -28,8 +28,7 @@ describe('Workbook prompt', () => {
         /// The bar that rendered the props last
         barOwner: null as object | null,
         runScript: vi.fn(),
-        /// The scripts of the workbook, and the workbook that the runtime holds after an action
-        scripts: {} as ScriptDataMap,
+        /// The workbook that the runtime holds after an action
         next: null as (WorkbookScripts & { scripts: ScriptDataMap }) | null,
         /// The conversation of the agent that the prompt gets, and what the prompt gave it
         session: null as AgentSession | null,
@@ -42,7 +41,6 @@ describe('Workbook prompt', () => {
         usePickPendingConnection: () => vi.fn(),
         useKeyEvents: handlers => { promptState.keyHandlers = handlers; },
         useScriptRun: () => promptState.runScript,
-        useWorkbookScriptMap: () => promptState.scripts,
         useLiveScriptReader: () => (key: number) => promptState.next?.scripts[key] ?? null,
         useComposerCore: () => ({ instance: {}, catalog: {}, tableParameters: { attach: () => false }, connectorType: ConnectorType.HYPER }) as unknown as ReturnType<WorkbookPromptDependencies['useComposerCore']>,
         useAgentSession: (args: AgentSessionArgs) => { promptState.sessionArgs = args; return promptState.session; },
@@ -123,7 +121,6 @@ describe('Workbook prompt', () => {
         promptState.session = null;
         promptState.agent = null;
         promptState.sessionArgs = null;
-        promptState.scripts = {};
         promptState.next = null;
         promptState.view = fakeView('');
         attention = { active: false, request: vi.fn<Attention['request']>() };
@@ -138,7 +135,6 @@ describe('Workbook prompt', () => {
     function render(workbookScripts: WorkbookScripts & { scripts: ScriptDataMap }, modifyWorkbookScripts: ModifyWorkbookScripts = vi.fn(),
         conn: ConnectionState | null = onlineConn, placement = WorkbookPromptPlacement.Feed,
         expanded = placement === WorkbookPromptPlacement.Feed, onExpandedChange?: (expanded: boolean) => void) {
-        promptState.scripts = workbookScripts.scripts;
         act(() => root.render(<LoggerProvider>
             <WorkbookConnectionAttentionContext.Provider value={attention}>
                 <WorkbookPrompt workbookScripts={workbookScripts} modifyWorkbookScripts={modifyWorkbookScripts} conn={conn}
