@@ -96,6 +96,13 @@ describe('the dashql commands of the agent', () => {
         expect(noText.err).toContain('--file');
         const unknown = await call('drop');
         expect(unknown.exit).toBe(EXIT_USAGE);
+        // dashql only types the arguments, the page checks their ranges
+        const rows = await call('run', { scripts: [], rows: 10001 });
+        expect(rows.exit).toBe(EXIT_USAGE);
+        expect(rows.err).toBe('error: --rows takes a number from 0 to 10000\n');
+        await call('edit', { script: 'chart' }, 'select 1');
+        const width = await call('vis', { script: 'chart', width: 0 });
+        expect([width.exit, width.err]).toEqual([EXIT_USAGE, 'error: --width takes a number from 1 to 4096\n']);
     });
 
     it('moves a script in the feed', async () => {

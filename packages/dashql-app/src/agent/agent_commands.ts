@@ -99,7 +99,7 @@ function optionalString(args: Record<string, unknown>, name: string): string | n
 function integerArg(args: Record<string, unknown>, name: string, fallback: number, min: number, max: number): number {
     const value = args[name];
     if (value == null) return fallback;
-    if (typeof value !== 'number' || !Number.isInteger(value) || value < min || value > max) usage(`${name} takes a number from ${min} to ${max}`);
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < min || value > max) usage(`--${name} takes a number from ${min} to ${max}`);
     return value;
 }
 

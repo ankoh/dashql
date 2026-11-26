@@ -1,14 +1,8 @@
-//! The command line of `dashql`: the session file, the command and its arguments as the JSON of a call
+//! The command line of `dashql`: the session file, the command and its arguments as the JSON of a call. The arguments
+//! are only typed here, the page checks their values and fills in the defaults.
 
 use crate::commands;
 use serde_json::{json, Map, Value};
-
-/// The most rows that `run` prints of a result
-pub const MAX_ROWS: u64 = 10_000;
-/// The rows that `run` prints of a result without --rows
-pub const DEFAULT_ROWS: u64 = 10;
-/// The largest width or height of a chart of `vis`
-pub const MAX_CHART_SIZE: u64 = 4096;
 
 /// Where the text of `edit` comes from
 #[derive(Debug, PartialEq, Eq)]
@@ -115,12 +109,9 @@ impl Parsed {
     }
 }
 
-/// A number of an option within a range
-fn number(name: &str, value: &str, min: u64, max: u64) -> Result<u64, String> {
-    match value.parse::<u64>() {
-        Ok(n) if (min..=max).contains(&n) => Ok(n),
-        _ => Err(format!("option {name} takes a number from {min} to {max}")),
-    }
+/// The number of an option
+fn number(name: &str, value: &str) -> Result<u64, String> {
+    value.parse::<u64>().map_err(|_| format!("option {name} takes a number"))
 }
 
 /// The call of a command with its arguments
@@ -149,21 +140,15 @@ fn call(name: &'static str, args: &[String]) -> Result<Call, String> {
             let parsed = split(args, &["--before", "--after"], &["--first", "--last"])?;
             let mut out = Map::new();
             out.insert("script".into(), parsed.script()?.into());
-            let mut places = 0;
             for option in ["--before", "--after"] {
                 if let Some(script) = parsed.value(option)? {
                     out.insert(option.trim_start_matches('-').into(), script.into());
-                    places += 1;
                 }
             }
             for option in ["--first", "--last"] {
                 if parsed.flag(option) {
                     out.insert(option.trim_start_matches('-').into(), true.into());
-                    places += 1;
                 }
-            }
-            if places != 1 {
-                return Err("name one place: --before <script>, --after <script>, --first or --last".into());
             }
             Ok(call(Value::Object(out)))
         }
@@ -177,11 +162,13 @@ fn call(name: &'static str, args: &[String]) -> Result<Call, String> {
         }
         "run" => {
             let parsed = split(args, &["--rows"], &["--refresh"])?;
-            let rows = match parsed.value("--rows")? {
-                Some(rows) => number("--rows", rows, 0, MAX_ROWS)?,
-                None => DEFAULT_ROWS,
-            };
-            Ok(call(json!({ "scripts": parsed.positional, "refresh": parsed.flag("--refresh"), "rows": rows })))
+            let mut out = Map::new();
+            out.insert("scripts".into(), parsed.positional.clone().into());
+            out.insert("refresh".into(), parsed.flag("--refresh").into());
+            if let Some(rows) = parsed.value("--rows")? {
+                out.insert("rows".into(), number("--rows", rows)?.into());
+            }
+            Ok(call(Value::Object(out)))
         }
         "vis" => {
             let parsed = split(args, &["--width", "--height"], &["--refresh"])?;
@@ -189,7 +176,7 @@ fn call(name: &'static str, args: &[String]) -> Result<Call, String> {
             out.insert("script".into(), parsed.script()?.into());
             for option in ["--width", "--height"] {
                 if let Some(size) = parsed.value(option)? {
-                    out.insert(option.trim_start_matches('-').into(), number(option, size, 1, MAX_CHART_SIZE)?.into());
+                    out.insert(option.trim_start_matches('-').into(), number(option, size)?.into());
                 }
             }
             out.insert("refresh".into(), parsed.flag("--refresh").into());
@@ -305,7 +292,7 @@ mod tests {
         assert_eq!(args_of("move a --before=b"), json!({"script": "a", "before": "b"}));
         assert_eq!(args_of("move a --first"), json!({"script": "a", "first": true}));
         assert_eq!(args_of("move a --last"), json!({"script": "a", "last": true}));
-        assert_eq!(args_of("run"), json!({"scripts": [], "refresh": false, "rows": 10}));
+        assert_eq!(args_of("run"), json!({"scripts": [], "refresh": false}));
         assert_eq!(args_of("run a b --refresh --rows 0"), json!({"scripts": ["a", "b"], "refresh": true, "rows": 0}));
         assert_eq!(args_of("run --rows=10000 a"), json!({"scripts": ["a"], "refresh": false, "rows": 10000}));
         assert_eq!(args_of("vis a"), json!({"script": "a", "refresh": false}));
@@ -341,20 +328,18 @@ mod tests {
         assert_eq!(error_of("edit a --file"), "option --file needs a value");
         assert_eq!(error_of("edit a --file x --file y"), "option --file is given twice");
         assert_eq!(error_of("edit a --bogus"), "unknown option --bogus");
-        assert!(error_of("move a").starts_with("name one place"));
-        assert!(error_of("move a --first --last").starts_with("name one place"));
-        assert!(error_of("move a --after b --before c").starts_with("name one place"));
+        // The page checks the values, e.g. that move names one place
+        assert_eq!(args_of("move a --first --last"), json!({"script": "a", "first": true, "last": true}));
         assert_eq!(error_of("catalog a b"), "unexpected argument b");
-        assert_eq!(error_of("run --rows 10001"), "option --rows takes a number from 0 to 10000");
-        assert_eq!(error_of("run --rows x"), "option --rows takes a number from 0 to 10000");
+        assert_eq!(args_of("run --rows 10001"), json!({"scripts": [], "refresh": false, "rows": 10001}));
+        assert_eq!(error_of("run --rows x"), "option --rows takes a number");
         assert_eq!(error_of("run --refresh=1"), "option --refresh takes no value");
-        assert_eq!(error_of("vis a --width 0"), "option --width takes a number from 1 to 4096");
-        assert_eq!(error_of("vis a --height 4097"), "option --height takes a number from 1 to 4096");
+        assert_eq!(error_of("vis a --width x"), "option --width takes a number");
         assert_eq!(error_of("vis"), "missing the script");
     }
 
     #[test]
     fn takes_arguments_after_a_double_dash_as_scripts() {
-        assert_eq!(args_of("run -- --odd"), json!({"scripts": ["--odd"], "refresh": false, "rows": 10}));
+        assert_eq!(args_of("run -- --odd"), json!({"scripts": ["--odd"], "refresh": false}));
     }
 }
