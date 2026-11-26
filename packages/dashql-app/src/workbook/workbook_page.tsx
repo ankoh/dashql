@@ -3,8 +3,7 @@ import * as styles from './workbook_page.module.css';
 
 import { useLocation } from 'react-router-dom';
 
-import { useConnections, useDispatch, useWorkbook } from '@akohn/dashql-react/hooks';
-import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import { useConnection, useConnectionViews, useDispatch, useWorkbook } from '@akohn/dashql-react/hooks';
 import { useLogger } from '../host/logger_provider.js';
 import { PROMOTE_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router.js';
 
@@ -34,22 +33,21 @@ export const WorkbookPage: React.FC<Props> = ({ feed = renderFeed, shells = rend
     const logger = useLogger();
     const workbookScripts = useWorkbook(route.workbookId ?? null);
     const modifyWorkbookScripts = useDispatch(route.workbookId == null ? null : { workbook: route.workbookId });
-    // The connections that the scripts of the workbook run on, and the one the next script runs on
-    const connections = useConnections();
-    const nextConnectionId = workbookScripts?.nextScriptConnectionId ?? null;
-    const conn = nextConnectionId == null ? null : connections.get(nextConnectionId) ?? null;
-    const scriptConnections = new Map<string, ConnectionState>();
-    for (const connectionId of workbookScripts == null ? [] : workbookScripts.connectionIds) {
-        const connection = connections.get(connectionId);
-        if (connection != null) scriptConnections.set(connectionId, connection);
-    }
+    // The connections that the scripts of the workbook run on, and the one the next script runs on. The map keeps its
+    // identity while these connections are unchanged, a change of another connection doesn't render the feed page.
+    const workbookConnections = useConnectionViews(workbookScripts?.connectionIds);
+    const scriptConnections = React.useMemo(
+        () => new Map((workbookConnections ?? []).map(connection => [connection.connectionId, connection])),
+        [workbookConnections],
+    );
+    const conn = useConnection(workbookScripts?.nextScriptConnectionId ?? null);
     const { mode: workbookMode, setMode: setWorkbookMode } = useWorkbookViewMode();
     const workbookPageVisible = workbookMode !== WorkbookViewMode.Shell;
     // The connection of the visible shell, the connection of the next script until another one is picked.
     // Kept while the shell is closed, the shell reopens on the picked connection of the workbook.
     const [shellPick, setShellPick] = React.useState<{ workbookId: string; connectionId: string } | null>(null);
     const shellConnectionId = shellPick != null && shellPick.workbookId === route.workbookId ? shellPick.connectionId : null;
-    const shellConnection = (shellConnectionId == null ? null : connections.get(shellConnectionId)) ?? conn ?? null;
+    const shellConnection = useConnection(shellConnectionId) ?? conn;
 
     React.useEffect(() => {
         if (route.workbookId === null) {

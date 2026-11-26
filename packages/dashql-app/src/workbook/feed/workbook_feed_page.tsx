@@ -132,7 +132,9 @@ interface Props {
     workbench?: (props: WorkbenchProps) => React.ReactNode;
 }
 
-export const WorkbookFeedPage: React.FC<Props> = (props) => {
+/// The page of a workbook. Memoized: the workbook page renders again with a change of any connection, the page only
+/// when its props change.
+export const WorkbookFeedPage = React.memo(function WorkbookFeedPage(props: Props): React.ReactElement {
     const {
         feed = renderFeed, prompt = renderPrompt, dashboard = renderDashboard, dataflow = renderDataflow,
         editorDialog = renderEditorDialog, workbench: workbenchSlot = renderWorkbench,
@@ -155,6 +157,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     }, [props.workbookScripts, selection]);
     const closeDetails = React.useCallback(() => setDetails(null), []);
     const [navigationDrawerOpen, setNavigationDrawerOpen] = React.useState(false);
+    const closeNavigationDrawer = React.useCallback(() => setNavigationDrawerOpen(false), []);
     const [sidebarWidth, setSidebarWidth] = React.useState(SIDEBAR_DEFAULT_WIDTH);
     // The overview of a connection or of a cloud that takes the place of the workbook
     const [overview, setOverview] = React.useState<{ kind: 'connection' | 'cloud'; connectionId: string } | null>(null);
@@ -354,7 +357,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const readOverlayInset = React.useCallback(() => overlayInsetRef.current, []);
     const workbench = (closeAfterSelection: boolean) => workbenchSlot({
         workbookScripts: props.workbookScripts,
-        closeAfterSelection: closeAfterSelection ? () => setNavigationDrawerOpen(false) : undefined,
+        closeAfterSelection: closeAfterSelection ? closeNavigationDrawer : undefined,
         openOverviewId: overviewConnectionId,
         onOpenOverview: setOverviewConnectionId,
         openCloudId: cloudOverviewId,
@@ -652,11 +655,11 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                     </>}
                 </header>
                 {navigationDrawerOpen && (
-                    <WorkbookNavigationDrawer open onClose={() => setNavigationDrawerOpen(false)} returnFocusRef={navigationDrawerTriggerRef}>
+                    <WorkbookNavigationDrawer open onClose={closeNavigationDrawer} returnFocusRef={navigationDrawerTriggerRef}>
                         {workbench(true)}
                     </WorkbookNavigationDrawer>
                 )}
             </div>
         </WorkbookReadOnlyContext.Provider>
     );
-};
+});

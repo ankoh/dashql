@@ -563,7 +563,8 @@ const LocalWorkbookFolderRow: React.FC<{ expanded: boolean; count: number; onTog
     );
 };
 
-export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
+/// The workbench of a workbook. Memoized: it reads what it shows itself, the page around it renders more often.
+export const WorkbookWorkbenchSidebar = React.memo(function WorkbookWorkbenchSidebar(props: Props): React.ReactElement {
     const navigate = useRouterNavigate();
     const runtime = useRuntime();
     const scriptsRegistry = useWorkbooks();
@@ -1052,4 +1053,4 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
             />
         </nav>
     );
-};
+});
