@@ -50,7 +50,7 @@ use super::workbooks::Workbooks;
 use crate::host::{host_error, JsPlatform};
 use view::{
     RunOutcome, RunScriptOptions, RunWorkbookOptions, StatementError, WorkbookRunKind, WorkbookRunState,
-    WorkbookRunView, WorkbookScriptRunEvent,
+    WorkbookRunStep, WorkbookRunView, WorkbookScriptRunEvent,
 };
 
 #[wasm_bindgen(typescript_custom_section)]
@@ -194,6 +194,11 @@ impl Runs {
 
     /// Change the entry of a workbook, it is created when needed. Tells the platform that the slice changed.
     fn update<R>(&self, workbook_id: &str, change: impl FnOnce(&mut RunEntry) -> R) -> R {
+        self.update_marked(workbook_id, true, change)
+    }
+
+    /// Change the entry of a workbook like `update`, the change of the slice is `urgent` or waits for the frame
+    fn update_marked<R>(&self, workbook_id: &str, urgent: bool, change: impl FnOnce(&mut RunEntry) -> R) -> R {
         let result = {
             let mut entries = self.entries.borrow_mut();
             if let Some(entry) = entries.iter_mut().find(|entry| entry.workbook_id == workbook_id) {
@@ -212,17 +217,23 @@ impl Runs {
                 result
             }
         };
-        self.platform.changed(Slice::Runs, true);
+        self.platform.changed(Slice::Runs, urgent);
         result
     }
 
     /// Change the entry of a workbook while a run of a number holds it, none otherwise: the run of a workbook that was
     /// deleted or replaced changes nothing
-    fn update_held<R>(&self, workbook_id: &str, number: u64, change: impl FnOnce(&mut RunEntry) -> R) -> Option<R> {
+    fn update_held<R>(
+        &self,
+        workbook_id: &str,
+        number: u64,
+        urgent: bool,
+        change: impl FnOnce(&mut RunEntry) -> R,
+    ) -> Option<R> {
         let holds = self.read(workbook_id, |entry| {
             entry.and_then(|entry| entry.held.as_ref()).is_some_and(|held| held.number == number)
         });
-        holds.then(|| self.update(workbook_id, change))
+        holds.then(|| self.update_marked(workbook_id, urgent, change))
     }
 
     /// Forget the run of a workbook that was deleted or replaced: a run that holds it stops, the slice goes, and the
@@ -652,7 +663,7 @@ impl Runs {
 
     /// A run ended: it releases the workbook, a change of inputs that waits may start
     fn release(self: &Rc<Self>, workbook_id: &str, number: u64) {
-        self.update_held(workbook_id, number, |entry| entry.held = None);
+        self.update_held(workbook_id, number, true, |entry| entry.held = None);
         self.start_pending();
         // The run wrote the results of its scripts, a workbook that was shown meanwhile shows its results
         self.check_stored_results(&[workbook_id.to_string()]);
@@ -822,9 +833,17 @@ impl Runs {
 
     /// The state of the run of a workbook changed, a run that no longer holds the workbook changes nothing
     fn set_state(&self, workbook_id: &str, number: u64, state: WorkbookRunState) {
-        let changed = self.read(workbook_id, |entry| entry.and_then(|entry| entry.state.as_ref()) != Some(&state));
+        // A new phase goes out at once, e.g. the start and the end of a run, and so do the analysis and the planning: the
+        // run lets the host paint them before it works without a break. The progress and the other steps wait for the
+        // frame like the progress of a query, the run awaits the host in them anyway.
+        let (changed, urgent) = self.read(workbook_id, |entry| {
+            let current = entry.and_then(|entry| entry.state.as_ref());
+            let stepped = current.and_then(|current| current.step.as_ref()) != state.step.as_ref()
+                && matches!(state.step, Some(WorkbookRunStep::Analyzing | WorkbookRunStep::Planning));
+            (current != Some(&state), stepped || current.map(|current| current.phase) != Some(state.phase))
+        });
         if changed {
-            self.update_held(workbook_id, number, |entry| entry.state = Some(state));
+            self.update_held(workbook_id, number, urgent, |entry| entry.state = Some(state));
         }
     }
 

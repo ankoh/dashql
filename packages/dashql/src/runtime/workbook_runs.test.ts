@@ -16,6 +16,7 @@ import { createQueryResponseStreamMetrics, QueryExecutionStatus, QueryType, type
 import { tableFromArrays } from '../platform/testing/arrow_fixtures.js';
 import { memoryWorkbookResultFiles } from '../platform/testing/memory_workbook_result_files.js';
 import { openTestHyperDB } from '../platform/testing/test_hyperdb.js';
+import { TASK_UPDATE_SCHEDULER } from './store/update_scheduler.js';
 import { createTestRuntime, restoreTestWorkbook, type TestRuntime } from './testing/test_runtime.js';
 import type { ScriptRunEvent } from '../platform/workbook/workbook_execution.js';
 
@@ -677,6 +678,25 @@ describe('the runs of scripts of the runtime', () => {
         expect(f.statements.slice(refreshed)).toEqual([expect.stringContaining('select a from foo')]);
         await f.core.module.flushResultWrites();
         await vi.waitFor(() => expect(f.script('bar.sql').storedResult).toMatchObject({ current: true }));
+    });
+
+    it('lets the steps of a run wait for the frame, its start and its end go out at once', async () => {
+        const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        const f = await scripts(files.map((name, i): [string, string] => [`${name}.sql`, `select ${i} as ${name};`]), { cache: true });
+        expect((await f.core.runWorkbook(f.workbookId, {})).outcome.failure).toBeNull();
+        await f.core.module.flushResultWrites();
+        await f.rt.clock.elapse();
+        await settle();
+        // The run checks the stored result of every script, each check is a step of its own that waits for the frame:
+        // the urgent flushes are those of the start, the analysis, the planning and the end, whatever the scripts
+        const urgent = vi.spyOn(TASK_UPDATE_SCHEDULER, 'afterTask');
+        try {
+            expect((await f.core.runWorkbook(f.workbookId, {})).outcome.failure).toBeNull();
+            expect(urgent.mock.calls.length).toBeLessThan(files.length);
+            expect(f.core.store.get('run', f.workbookId)?.state).toMatchObject({ phase: 'succeeded', completedScripts: files.length });
+        } finally {
+            urgent.mockRestore();
+        }
     });
 
     it('keeps the results of workbooks apart, also for the same script on the same connection', async () => {

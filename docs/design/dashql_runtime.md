@@ -202,8 +202,10 @@ A parent lists the ids of its children, not their revisions: a keystroke changes
    which calls `platform.changed(urgent)` once until the store takes the changes, and again when a change turns
    urgent. Not urgent are the events of a query other than its registration, `Sending` and its end (succeeded,
    failed, cancelled), so its progress, its batches and its result wait for the frame; the steps of the tasks of a
-   computation; a refreshed token of a connection; the releases of handles; and the slices that were busy or that the
-   host asked for again. Everything else is urgent: actions, setups, workbooks, runs, the storage.
+   computation; the progress of a run and its steps but the analysis and the planning, which the run lets the host
+   paint before it works without a break; a refreshed token of a connection; the releases of handles; and the slices
+   that were busy or that the host asked for again. Everything else is urgent: actions, setups, workbooks, the runs (a
+   new phase, e.g. the start and the end of a run, their holds and waiting inputs), the storage.
 2. The store flushes at the end of the task when urgent, before the next frame otherwise (`RuntimeStore.changed` over
    the `UpdateScheduler`). `flush()` flushes at once, e.g. for the commands of an agent and the tests.
 3. `takeChanges()` returns the marked slices, `{ kind, id, revision }` with a null revision for a slice that is gone,
