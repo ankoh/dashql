@@ -86,16 +86,8 @@ fn run_with(args: &[&str], stdin: &str, stdin_is_terminal: bool) -> Output {
     Output { code, stdout: String::from_utf8(stdout).unwrap(), stderr: String::from_utf8(stderr).unwrap() }
 }
 
-/// The head of an answer of 200 with the body in chunks
-const CHUNKED: &str = "HTTP/1.1 200 OK\r\nContent-Type: application/x-ndjson\r\nTransfer-Encoding: chunked\r\n\r\n";
-
-/// A chunk of a chunked body
-fn chunk(data: &str) -> String {
-    format!("{:x}\r\n{data}\r\n", data.len())
-}
-
-/// The end of a chunked body
-const LAST: &str = "0\r\n\r\n";
+/// The head of an answer of 200 as the app streams it to a request of HTTP/1.0: the body ends with the connection
+const STREAMED: &str = "HTTP/1.1 200 OK\r\nContent-Type: application/x-ndjson\r\nConnection: close\r\n\r\n";
 
 /// The parts of an answer as owned strings
 fn parts(parts: &[&str]) -> Vec<String> {
@@ -136,23 +128,20 @@ fn fails_without_a_readable_session_file() {
 
 #[test]
 fn sends_a_call_and_streams_its_answer() {
-    // A line can span chunks, and a chunk can arrive in parts
-    let last = chunk("{\"out\": \"1 row\\n\"}\n{\"exit\"");
-    let (head, tail) = last.split_at(10);
-    let (port, request) = serve(vec![
-        CHUNKED.to_string(),
-        chunk("{\"out\": \"started\\n\"}\n"),
-        chunk("{\"err\": \"slow\\n\"}\n"),
-        head.to_string(),
-        tail.to_string(),
-        chunk(": 1}\n"),
-        LAST.to_string(),
-    ]);
+    // A line can arrive in parts
+    let (port, request) = serve(parts(&[
+        STREAMED,
+        "{\"out\": \"started\\n\"}\n",
+        "{\"err\": \"slow\\n\"}\n",
+        "{\"out\": \"1 ",
+        "row\\n\"}\n{\"exit\"",
+        ": 1}\n",
+    ]));
     let session = session_file(port);
     let output = run_with(&["--session", &session, "run", "orders", "--rows", "5"], "", true);
     assert_eq!(output, Output { code: 1, stdout: "started\n1 row\n".into(), stderr: "slow\n".into() });
     let request = request.recv().unwrap();
-    assert!(request.head.starts_with("POST /v1/call HTTP/1.1\r\n"), "{}", request.head);
+    assert!(request.head.starts_with("POST /v1/call HTTP/1.0\r\n"), "{}", request.head);
     assert!(request.head.contains("Authorization: Bearer s3cret\r\n"));
     assert!(request.head.contains("Content-Type: application/json\r\n"));
     assert_eq!(
@@ -162,17 +151,8 @@ fn sends_a_call_and_streams_its_answer() {
 }
 
 #[test]
-fn reads_an_answer_with_a_length_or_until_the_end() {
-    let (port, _) = serve(parts(&["HTTP/1.1 200 OK\r\nContent-Length: 12\r\n\r\n{\"exit\": 0}\n"]));
-    assert_eq!(run_with(&["--session", &session_file(port), "scripts"], "", true).code, EXIT_OK);
-    let (port, _) = serve(parts(&["HTTP/1.1 200 OK\r\n\r\n{\"out\": \"x\"}\n", "{\"exit\": 0}\n"]));
-    let output = run_with(&["--session", &session_file(port), "scripts"], "", true);
-    assert_eq!((output.code, output.stdout.as_str()), (EXIT_OK, "x"));
-}
-
-#[test]
 fn fails_an_answer_that_ends_without_an_exit_code() {
-    let (port, _) = serve(vec![CHUNKED.to_string(), chunk("{\"out\": \"half\\n\"}\n")]);
+    let (port, _) = serve(parts(&[STREAMED, "{\"out\": \"half\\n\"}\n"]));
     let output = run_with(&["--session", &session_file(port), "scripts"], "", true);
     assert_eq!(
         output,
@@ -211,7 +191,7 @@ fn tells_when_dashql_does_not_run() {
 fn sends_the_text_of_edit_from_a_file_or_stdin() {
     let file = folder().join("orders.sql");
     std::fs::write(&file, "select 1;\n").unwrap();
-    let (port, request) = serve(vec![CHUNKED.to_string(), chunk("{\"exit\": 0}\n"), LAST.to_string()]);
+    let (port, request) = serve(parts(&[STREAMED, "{\"exit\": 0}\n"]));
     let file = file.display().to_string();
     let output = run_with(
         &["--session", &session_file(port), "edit", "orders", "--file", &file, "--connection", "c1"],
@@ -223,7 +203,7 @@ fn sends_the_text_of_edit_from_a_file_or_stdin() {
         request.recv().unwrap().body,
         json!({"workbookId": "wb1", "command": "edit", "args": {"script": "orders", "connection": "c1"}, "input": "select 1;\n"})
     );
-    let (port, request) = serve(vec![CHUNKED.to_string(), chunk("{\"exit\": 0}\n"), LAST.to_string()]);
+    let (port, request) = serve(parts(&[STREAMED, "{\"exit\": 0}\n"]));
     let output = run_with(&["--session", &session_file(port), "edit", "orders"], "select 2;\n", false);
     assert_eq!(output.code, EXIT_OK, "{output:?}");
     assert_eq!(request.recv().unwrap().body["input"], json!("select 2;\n"));
