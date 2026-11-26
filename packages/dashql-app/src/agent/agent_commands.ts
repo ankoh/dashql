@@ -220,17 +220,13 @@ async function editScript(host: AgentCommandHost, call: AgentCall, reply: AgentR
     let scriptKey: number;
     let created = false;
     if (ref == null) {
-        const before = new Set(Object.values(workbook.scriptRefs).map(r => r.scriptId));
         const outcome = runtime.dispatch({ workbook: call.workbookId }, {
             kind: 'createScript',
             value: { base: fileName.slice(0, -'.sql'.length), text, ...(connectionId != null ? { connectionId } : {}) },
         });
-        if (!outcome.ok) fail(outcome.error ?? 'DashQL could not create the script');
+        if (!outcome.ok || typeof outcome.id !== 'number') fail(outcome.error ?? 'DashQL could not create the script');
         runtime.flush();
-        const after = runtime.store.get('workbook', call.workbookId);
-        const key = Object.values(after?.scriptRefs ?? {}).find(r => !before.has(r.scriptId))?.scriptId;
-        if (key == null) fail('DashQL could not create the script');
-        scriptKey = key;
+        scriptKey = outcome.id;
         created = true;
     } else {
         scriptKey = ref.scriptId;
