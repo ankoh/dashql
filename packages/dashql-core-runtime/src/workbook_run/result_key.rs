@@ -250,20 +250,11 @@ where
     keys.into_iter().map(Option::flatten).collect()
 }
 
-/// The key that a run gives a script: its own key, or the key of its stored file if its connection can't run. The
-/// stored result is all that a run can show of such a script, whatever its key: another version of the keys or an
-/// earlier text of the script never keeps a result from rendering, and the keys of the scripts downstream of it cover
-/// that file.
-pub fn run_key(key: String, can_run: bool, stored: Option<&str>) -> String {
-    match stored {
-        Some(stored) if !can_run => stored.to_string(),
-        _ => key,
-    }
-}
-
-/// The keys of the scripts of a plan over their stored files, in feed order, as a run derives them (`run_key`): the
-/// lookup of the stored results tells with them whether a stored result fits its script as it is now
-/// (`ResultKey::script_key`). `can_run` tells by feed index whether the connection of a script can run.
+/// The keys of the scripts of a plan over their stored files, in feed order, as a run derives them: a script whose
+/// connection can't run takes the key of its stored file, the stored result is all that a run can show of it, whatever
+/// its key, and the keys of the scripts downstream of it cover that file. The lookup of the stored results tells with
+/// them whether a stored result fits its script as it is now (`ResultKey::script_key`). `can_run` tells by feed index
+/// whether the connection of a script can run.
 pub async fn stored_result_keys(
     graph: &ExecutionGraphT,
     can_run: impl Fn(u32) -> bool,
@@ -273,8 +264,11 @@ pub async fn stored_result_keys(
     result_keys(
         graph,
         |script, key| {
-            let stored = file(script).map(|file| file.key.as_str());
-            std::future::ready(Some(run_key(key, can_run(script), stored)))
+            let key = match file(script) {
+                Some(stored) if !can_run(script) => stored.key.clone(),
+                _ => key,
+            };
+            std::future::ready(Some(key))
         },
         |script, _key| std::future::ready(file(script).map(|file| file.name.clone())),
     )
@@ -283,7 +277,7 @@ pub async fn stored_result_keys(
 
 impl ResultKey {
     /// The key of the script as it is now, from its signature. The key of a run differs for a script whose connection
-    /// can't run, it is the key of its stored file then (`run_key`).
+    /// can't run, it is the key of its stored file then (`stored_result_keys`).
     pub fn script_key(&self) -> String {
         result_key(&self.signature)
     }

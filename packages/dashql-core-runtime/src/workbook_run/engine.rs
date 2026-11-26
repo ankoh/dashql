@@ -17,7 +17,7 @@ use super::plan::{
     affected_scripts, describe_plan_errors, edges, nodes, planned_statements, script_follows, skipped_nodes,
     visualization_is_valid, PlanRun, PlannedStatement, NONE,
 };
-use super::result_key::{result_keys, run_key, ResultKey};
+use super::result_key::{result_keys, ResultKey};
 use super::{
     RetainedFile, RunFailure, RunFailureKind, RunHost, RunOptions, RunPhase, RunResult, RunState, RunStep, ScriptEvent,
     ScriptFailure, StatementRequest, StatementResult,
@@ -600,11 +600,10 @@ impl<H: RunHost> Run<H> {
         (visualizations, invalid)
     }
 
-    /// The key of a script for the run (`run_key`), none without stored results. A script that stands in with its
-    /// stored result (`stands_in`) takes the key of its stored file, whatever key the script has now, the lookup of the
-    /// stored results derives the keys of the scripts of connections that can't run the same way
-    /// (`stored_result_keys`). The file stays retained until the run released its files. A refresh reuses nothing and
-    /// keeps the key.
+    /// The key of a script for the run, none without stored results. A script that stands in with its stored result
+    /// (`stands_in`) takes the key of its stored file, whatever key the script has now, the lookup of the stored
+    /// results derives the keys of the scripts of connections that can't run the same way (`stored_result_keys`). The
+    /// file stays retained until the run released its files. A refresh reuses nothing and keeps the key.
     fn key_of(self: &Rc<Self>) -> impl Fn(u32, String) -> Pin<Box<dyn Future<Output = Option<String>>>> {
         let run = self.clone();
         move |script, key| {
@@ -632,7 +631,7 @@ impl<H: RunHost> Run<H> {
                         ],
                     );
                 }
-                Some(run_key(key, false, Some(&retained.file.key)))
+                Some(retained.file.key)
             })
         }
     }
