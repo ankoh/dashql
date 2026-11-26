@@ -1144,6 +1144,10 @@ fn materializes_a_script_of_another_connection_before_the_scan() {
     let scan = at(&|call| call.starts_with("execute") && call.contains(&path));
     assert!(pin < write && write < scan, "{calls:?}");
     assert_eq!(calls.last(), Some(&format!("release {pin_id}")));
+    // foo remembers the file that its result was written to
+    let file =
+        workbook.borrow().script_by_file("foo.sql").and_then(|script| script.latest_result_file().map(str::to_string));
+    assert_eq!(file.map(|file| format!("/mnt/cache/{file}")), Some(path.clone()));
     // Without the mounts the run fails before its first statement
     let s = setup(true, None, 1);
     let result = s.run(&workbook, workbook_run());
@@ -1169,6 +1173,10 @@ fn removes_the_transient_files_of_a_run_after_it_released_their_pins() {
     let remove = calls.iter().position(|call| call == "remove transient.parquet").expect("a removal");
     assert!(release < remove, "{calls:?}");
     assert_eq!(remove, calls.len() - 1, "{calls:?}");
+    // A transient file is no stored file of the result
+    let file =
+        workbook.borrow().script_by_file("foo.sql").and_then(|script| script.latest_result_file().map(str::to_string));
+    assert_eq!(file, None);
 }
 
 #[test]

@@ -1692,15 +1692,11 @@ impl<H: RunHost> Run<H> {
             _ => StatementResult::None,
         };
         let stores = matches!(result, StatementResult::Store { .. });
-        // The stored file that will hold the result of the script: its new file, or the file that its materialized
-        // result is written to
+        // The stored file that will hold the result of the script: its new file, also the one that its materialized result
+        // is written to
         let result_file = match &result {
             StatementResult::Store { name, .. } => Some(name.clone()),
-            _ if node.script_result => materialization
-                .as_deref()
-                .and_then(|path| path.rsplit('/').next())
-                .filter(|name| !name.is_empty())
-                .map(str::to_string),
+            _ if node.script_result => context.names.get(&script).cloned(),
             _ => None,
         };
         let request = StatementRequest {
