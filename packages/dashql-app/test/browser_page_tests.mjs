@@ -33,6 +33,22 @@ async function waitForComposerSend(page) {
     await page.locator('[data-testid="composer-send"]:not([data-connect])').waitFor();
 }
 
+/// Click a target that the completion list of the focused editor may cover. The list can open after an Escape that
+/// came too early, so the click dismisses it as long as it shows.
+async function clickPastCompletion(page, target) {
+    const completion = page.locator('[data-dashql-completion-list]');
+    const deadline = Date.now() + PAGE_TIMEOUT;
+    for (;;) {
+        if (await completion.isVisible()) await page.keyboard.press('Escape');
+        try {
+            await target.click({ timeout: 1000 });
+            return;
+        } catch (error) {
+            if (Date.now() > deadline) throw error;
+        }
+    }
+}
+
 /// Run a query from the composer of the greeter, its first script creates the workbook
 async function sendFromComposer(page, text) {
     await waitForComposerSend(page);
@@ -174,9 +190,7 @@ async function testAppAgentWeb(page, navigate) {
     const editor = page.locator('[data-testid="composer-prompt"] .cm-content');
     await editor.click();
     await page.keyboard.insertText('select 7 as answer');
-    // The completion of the draft would cover the switch
-    await page.keyboard.press('Escape');
-    await page.locator('[data-testid="composer-mode"][data-mode="ai"]').click();
+    await clickPastCompletion(page, page.locator('[data-testid="composer-mode"][data-mode="ai"]'));
     const notice = page.getByTestId('composer-agent-desktop');
     await notice.waitFor();
     if (!(await notice.textContent()).includes('desktop app')) throw new Error(`The notice tells ${await notice.textContent()}`);
