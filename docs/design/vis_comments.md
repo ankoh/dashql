@@ -31,7 +31,7 @@ their line, the lines after them are ordinary text.
 | Tag | Content |
 |---|---|
 | `@vis vegalite` | A Vega-Lite spec as JSON object, on the same line or the next. The statement is the data, `data` is ignored with a warning. |
-| `@vis markdown` | The row template as Markdown, from right after the kind to the end of the tag. Rendered once per result row, `{{field}}` placeholders take the values of the columns. The card reads the first 100 rows of the result from the compute database and counts the others below them. |
+| `@vis markdown` | The row template as Markdown, from right after the kind to the end of the tag. Rendered once per result row, `{{field}}` placeholders take the values of the columns. The card reads the first 100 rows of the result from the compute database, a result with more shows a warning triangle below them (`CappedRows`). |
 | `@vis kpi` | A KPI card as `key=value` args, all optional: the columns `value` and `x`, the change `delta` (`previous`, `first` or `none`) and the `chart` behind the value (`line`, `bar` or `none`). See KPI cards. |
 | `@vis table` | Nothing, the result table is the visualization. |
 | `@board` | The dashboard placement as `key=value` args: `row`, `column`, `width` and `height`, all integers. |
@@ -116,7 +116,8 @@ SELECT day, sum(revenue) AS revenue FROM sales GROUP BY day ORDER BY day;
   in the order of the rows with the last bar stronger, or `none`.
 - A result of one row shows only the value, e.g. `SELECT sum(revenue) FROM sales`, a result without rows a dash.
 - The card reads the last 1000 rows of the result from the compute database (`KPI_CARD_ROWS`), never the whole result:
-  the chart draws those, and `first` compares with the first of them.
+  the chart draws those, and `first` compares with the first of them. A result with more rows shows a warning triangle
+  in the corner of the card (`CappedRows`), `dashql vis` marks it with ⚠.
 
 The chart is ambient, like the background charts of Grafana's stat panel and Kibana's metric: it spans the full width
 of the lower part of the card, from 45% of its height to the bottom, behind the text, and its line and bars are faint.

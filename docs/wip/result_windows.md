@@ -1,6 +1,6 @@
 # Result Windows
 
-Status: steps 1 and 2 landed, step 5 for the cards and the shell, and the stored results keep the order of their rows
+Status: steps 1 and 2 landed, step 5 but the downloads, and the stored results keep the order of their rows
 (Row order). The others are planned and land one by one, step 5 before step 3: every reader of a whole result moves to
 the compute database first, then the result of the embedded Hyper stops being an Arrow table without a fallback. This
 document fixes how DashQL stops holding whole results in the JavaScript heap: the grid reads the rows it shows, the
@@ -105,9 +105,9 @@ Lands before step 3. The readers that take the Arrow table of a result by its ha
 
 | Reader | Where | Rows | Reads instead |
 | --- | --- | --- | --- |
-| Vega-Lite chart, the crossfilter | `vegalite_view.tsx` (`arrowTableToRows`) | all | the aggregation of the spec in the compute database, raw marks a bounded number of rows |
+| Vega-Lite chart, the crossfilter | `vegalite_view.tsx` (`arrowTableToRows`) | all | the first 10 000 rows with their row numbers (`previewRows`), a warning triangle when capped |
 | Chart PNG download | `chart_download_button.tsx` | all | as the chart |
-| Chart of the agent | `agent_commands.ts` (`renderChart`) | all | as the chart |
+| Chart of the agent | `agent_commands.ts` (`renderChart`) | all | as the chart, a ⚠ problem when capped |
 | KPI card | `kpi_view.tsx` (`readKpi`) | all of two columns | the last 1000 rows (`previewRows`) |
 | KPI check of the agent | `agent_commands.ts` (`readKpi`) | at most 1000 | the same bounded read |
 | Markdown card | `markdown_view.tsx` | all | the first 100 rows (`previewRows`) |
@@ -115,15 +115,22 @@ Lands before step 3. The readers that take the Arrow table of a result by its ha
 | Rows of `run --rows N` of the agent | `agent_output.ts`, `workbook_run_report.ts` | at most 10 000 | a window of the data frame (`readResultRows`) |
 | Arrow and Parquet download | `query_result_download_button.tsx`, `exportArrowTableAsParquet` | all | a `COPY` of the data frame to the file |
 
-Landed: the rows of `run --rows N` and of the KPI check of `vis`, the KPI card and the Markdown card. The cards read
-rows of the result from an offset in its order (`previewResult` of the facade, `previewRows` of the computation model,
-`useResultRows` of `components/visualization/result_rows.tsx`), the filters, searches and ordering of the grid don't
-apply. A card shows the faint logo while it reads. The plan tab of the shell reads the first row of a result of one
-row. The status line of the shell (`executeQuery` of its environments) reads only the counts of the rows and the
-columns of the table, it changes with step 6, when a query resolves without a table. A reported run
+Landed: the rows of `run --rows N` and of the KPI check of `vis`, the KPI card, the Markdown card and the charts. The
+cards and the charts read rows of the result from an offset in its order (`previewResult` of the facade, `previewRows`
+of the computation model, `useResultRows` of `components/visualization/result_rows.tsx`), the filters, searches and
+ordering of the grid don't apply. A card shows the faint logo while it reads. The plan tab of the shell reads the first
+row of a result of one row. The status line of the shell (`executeQuery` of its environments) reads only the counts of
+the rows and the columns of the table, it changes with step 6, when a query resolves without a table. A reported run
 (`runWorkbookReported`) carries the schema and the first `rows` rows of a result, read with `previewResult` from the
-data frame of its computation; the chart of `vis` takes the whole table by the query of the event until the charts
-move.
+data frame of its computation.
+
+A chart draws the first `CHART_ROWS` (10 000) rows of its result with their row numbers, for its cross filters; its PNG
+download draws the same rows. Every view that caps the rows of a result shows a warning triangle with the rows that
+show and the rows of the result (`CappedRows` of `components/visualization/capped_rows.tsx`): the chart and the KPI
+card in a corner, the Markdown card below its rows. For the agent, every capped line starts with ⚠: a capped chart and
+KPI card in the problems of `dashql vis`, the rows of `run --rows N`, and the guide tells it to aggregate the query.
+Decided against for now: computing the aggregation of a Vega-Lite spec in the compute database. It translates the
+transforms of Vega-Lite into SQL in the core, a large piece of work that a measurement has to ask for first.
 
 The stored result write and the analysis import read the whole table too, step 3 replaces them. The grid, the shell
 preview, the data search, the filters and the ordering read the data frame already. The size of a result in the header

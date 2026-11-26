@@ -1129,21 +1129,30 @@ impl<H: ComputeHost> ComputeService<H> {
     /// Rows of a result, e.g. the first ones for a terminal or the last ones for a KPI card: at most `limit` rows from
     /// `offset` in the order of the result, its fields without the columns of the computation, as an Arrow IPC stream.
     /// They are read from the data frame of the computation, so the preview is as small as its limit and the result
-    /// itself stays with the host. Filters, searches and orderings of the grid don't apply. A preview of a result whose
-    /// analysis runs waits for the system columns. Fails for a table whose analysis ended without them, or once its
-    /// computation is gone.
+    /// itself stays with the host. Filters, searches and orderings of the grid don't apply. With `row_numbers` the row
+    /// numbers of the rows follow the fields, e.g. for a chart whose cross filters select rows by them. A preview of a
+    /// result whose analysis runs waits for the system columns. Fails for a table whose analysis ended without them, or
+    /// once its computation is gone.
     pub fn preview(
         &self,
         table_id: TableId,
         offset: u64,
         limit: u64,
+        row_numbers: bool,
     ) -> impl Future<Output = Result<Vec<u8>>> + 'static {
         let shared = self.shared.clone();
         async move {
             let sql = analyzed(&shared, table_id, |computation| {
                 let data_frame = computation.data_frame?;
-                let row_numbers = computation.row_number_column_name.as_deref()?;
-                Some(preview_data_frame_sql(data_frame, &computation.data_table_fields, row_numbers, offset, limit))
+                let row_number_field = computation.row_number_column_name.as_deref()?;
+                Some(preview_data_frame_sql(
+                    data_frame,
+                    &computation.data_table_fields,
+                    row_number_field,
+                    offset,
+                    limit,
+                    row_numbers,
+                ))
             })
             .await?;
             let info = computation_info(&shared, table_id).ok_or_else(|| no_computation(table_id))?;

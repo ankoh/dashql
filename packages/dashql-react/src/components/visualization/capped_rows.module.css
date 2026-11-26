@@ -1,0 +1,18 @@
+/* The warning of a view that caps the rows of a result: a warning triangle and the rows that show */
+.root {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: var(--color_bg_card);
+    color: var(--color_fg_muted);
+    font-size: 11px;
+    line-height: 16px;
+    white-space: nowrap;
+}
+
+.icon {
+    flex: none;
+    color: var(--color_attention_fg);
+}

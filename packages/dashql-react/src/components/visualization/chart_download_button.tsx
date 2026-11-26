@@ -6,13 +6,13 @@ import type { QueryModel } from '../../models/query_model.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { ButtonSize, ButtonVariant, IconButton } from '../button.js';
 import { DownloadIcon } from '../symbol_icon.js';
-import { arrowTableToRows } from '../../vegalite/vegalite_rows.js';
+import { arrowTableToRows, CHART_ROWS } from '../../vegalite/vegalite_rows.js';
 import { renderVegaLitePng } from '../../vegalite/vegalite_image.js';
 import { useLogger } from '../../logger.js';
 import { useHost } from '../../host.js';
 
 export interface ChartDownloadButtonProps {
-    /// The query, its result is the data of the chart
+    /// The query, the first rows of its result are the data of the chart, at most `CHART_ROWS` like the chart shows
     model: QueryModel;
     /// The Vega-Lite spec of the chart
     spec: TopLevelSpec;
@@ -27,17 +27,18 @@ const DEFAULT_DEPENDENCIES: NonNullable<ChartDownloadButtonProps['dependencies']
 
 /// Download the chart of a query result as PNG
 export function ChartDownloadButton({ model, spec, dependencies = DEFAULT_DEPENDENCIES }: ChartDownloadButtonProps) {
-    const { query, result: resultTable } = model;
+    const { query, computation } = model;
     const { downloadFile } = useHost();
     const logger = useLogger();
     const [downloading, setDownloading] = React.useState(false);
-    const hasResult = query.status === QueryExecutionStatus.SUCCEEDED && resultTable != null;
+    const hasResult = query.status === QueryExecutionStatus.SUCCEEDED && computation != null;
 
     const download = async () => {
         if (!hasResult || downloading) return;
         setDownloading(true);
         try {
-            const image = await dependencies.renderVegaLitePng(spec, arrowTableToRows(resultTable!));
+            const rows = await computation!.previewRows(0, CHART_ROWS, false);
+            const image = await dependencies.renderVegaLitePng(spec, arrowTableToRows(rows));
             await downloadFile(image.png, `chart-${query.queryId}.png`);
         } catch (error) {
             logger.error('Failed to download chart', { error: stringifyError(error) }, 'chart_download');

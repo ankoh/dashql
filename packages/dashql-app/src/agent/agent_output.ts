@@ -59,7 +59,8 @@ export function describeTable(table: arrow.Table, rows: number, total: number = 
         out += `  ${columns.map((cells, c) => cells[r].padEnd(widths[c])).join(' | ').trimEnd()}\n`;
         if (r === 0) out += `  ${widths.map(width => '-'.repeat(width)).join('-+-')}\n`;
     }
-    if (shown < total) out += `  … ${total - shown} more\n`;
+    // A capped table warns with a triangle, like the views of the page
+    if (shown < total) out += `  ⚠ showing the first ${shown} of ${total} rows, ${total - shown} more\n`;
     return out;
 }
 

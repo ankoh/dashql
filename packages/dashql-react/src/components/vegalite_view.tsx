@@ -4,7 +4,7 @@ import type { Config, TopLevelSpec } from 'vega-lite';
 
 import * as styles from './vegalite_view.module.css';
 import { loadVega } from '../vegalite/vegalite_loader.js';
-import { arrowTableToRows } from '../vegalite/vegalite_rows.js';
+import { arrowTableToRows, CHART_ROWS } from '../vegalite/vegalite_rows.js';
 import { type ChartColors, createEmbedOptions, createVegaLiteConfig, resolveChartColors } from '../vegalite/vegalite_theme.js';
 import { withViewEncodings } from '@akohn/dashql/platform/workbook/chart_config';
 import { useColorScheme } from '../theme/color_scheme.js';
@@ -13,6 +13,8 @@ import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_executi
 import type { QueryModel } from '../models/query_model.js';
 import { useComputationTables, type ComputationTables } from './data_table/computation_tables.js';
 import { CardPlaceholder, QueryStatusPlaceholder } from './card_placeholder.js';
+import { useResultRows } from './visualization/result_rows.js';
+import { CappedRows } from './visualization/capped_rows.js';
 import {
     filterTableToVegaCrossFilterRows,
     injectVegaStableScaleDomains,
@@ -80,8 +82,8 @@ const DEFAULT_DEPENDENCIES: VegaLiteViewDependencies = {
 };
 
 export interface VegaLiteViewProps {
-    /// The query of the chart: the chart shows the table of the computation of its result and follows its cross filters,
-    /// the result table while the result has no computation
+    /// The query of the chart: the chart shows the first rows of its result, at most `CHART_ROWS`, and follows the cross
+    /// filters of its computation
     model: QueryModel | null;
     vegaLiteSpec: TopLevelSpec | null;
     /// Optional exact width/height in px for the whole chart. The view is sized to `fit`, so the
@@ -171,12 +173,12 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
         [specSignature],
     );
 
-    // Prefer the analyzed data table (it carries the cross-filter row-id indirection); fall back
-    // to the raw result table when there is no computation registered. The analyzed table is a
-    // superset of the result columns (system columns are ignored by the spec).
+    // The chart reads the first rows of the result with their row numbers from the compute database, the cross filters
+    // select rows by them. A result with more rows is capped, the chart says so.
     const tableComputation = useResultComputation(props.model);
-    const queryResult = props.model?.result ?? null;
-    const dataTable = tableComputation?.tables.dataTable ?? (succeeded ? queryResult : null);
+    const chartRows = useResultRows(props.model, 'first', CHART_ROWS, true);
+    const dataTable = chartRows.table;
+    const cappedRows = dataTable != null && chartRows.rows > dataTable.numRows ? chartRows.rows : null;
     const rowNumberColumnName = tableComputation?.rowNumberColumnName ?? null;
 
     const filterTable = tableComputation?.tables.filterTable ?? null;
@@ -303,7 +305,7 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
         return <QueryStatusPlaceholder query={props.model?.query ?? null} />;
     }
     if (!dataTable) {
-        return <CardPlaceholder message="Result is empty" />;
+        return chartRows.reading ? <CardPlaceholder /> : <CardPlaceholder message="Result is empty" />;
     }
 
     // When scaling, the chart container is laid out at the enlarged logical size and shrunk with a
@@ -324,6 +326,7 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
         <div className={props.className ?? styles.root}>
             {error && <div className={styles.error}>{error}</div>}
             <div ref={containerRef} className={styles.chart} style={chartStyle} />
+            {cappedRows != null && <CappedRows className={styles.capped} part="first" shown={dataTable.numRows} rows={cappedRows} />}
         </div>
     );
 }

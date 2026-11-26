@@ -5,12 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { VEGALITE_PREVIEW_INSET, VegaLitePreview } from './vegalite_preview.js';
 import { createVegaLitePreviewConfig, resolveChartColors } from '../../vegalite/vegalite_theme.js';
 import type { VegaLiteViewDependencies } from '../vegalite_view.js';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
-import { fakeQueryModel } from '../../testing/fake_models.js';
+import { fakeResultModel } from '../../testing/fake_models.js';
 
 const vegaEmbed = vi.fn<typeof import('vega-embed').default>(() => new Promise<never>(() => { }));
 const dependencies = {
@@ -35,12 +34,11 @@ describe('VegaLitePreview', () => {
     });
 
     it('fits the chart into its box with smaller text and without legends', async () => {
-        const query = { queryId: 1, status: QueryExecutionStatus.SUCCEEDED } as QueryExecutionState;
         const resultTable = tableFromArrays({ region: ['EU'], amount: [1] });
         await act(async () => {
             root.render(
                 <VegaLitePreview
-                    model={fakeQueryModel(query, { result: resultTable })}
+                    model={fakeResultModel(resultTable)}
                     vegaLiteSpec={{
                         data: { values: [] },
                         mark: 'bar',
@@ -54,7 +52,8 @@ describe('VegaLitePreview', () => {
             await Promise.resolve();
         });
 
-        expect(vegaEmbed).toHaveBeenCalledTimes(1);
+        // The chart reads the rows of the result first
+        await vi.waitFor(() => expect(vegaEmbed).toHaveBeenCalledTimes(1));
         // The parts of the spec and the options of vega-embed that the preview sets
         const [, spec, options] = vegaEmbed.mock.calls[0] as unknown as [
             HTMLElement,

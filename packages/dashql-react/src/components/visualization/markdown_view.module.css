@@ -29,7 +29,7 @@
     overflow: auto;
 }
 
-.more {
-    margin: 20px 0 0;
-    color: var(--color_fg_muted);
+/* The warning of a card that renders only the first rows of its result, below them */
+.capped {
+    margin-top: 20px;
 }

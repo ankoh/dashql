@@ -122,7 +122,7 @@ describe('MarkdownView', () => {
 });
 
 describe('MarkdownView rows', () => {
-    it('renders the first rows of a long result and counts the others', async () => {
+    it('renders the first rows of a long result with a warning that it capped them', async () => {
         const container = document.createElement('div');
         const root = createRoot(container);
         const table = tableFromArrays({ n: Int32Array.from({ length: 150 }, (_, i) => i) });
@@ -136,7 +136,7 @@ describe('MarkdownView rows', () => {
         ));
         await rowsRead(container);
         expect(container.querySelectorAll('[data-markdown-row]')).toHaveLength(100);
-        expect(container.querySelector('[data-testid="markdown-more-rows"]')?.textContent).toBe('50 more rows');
+        expect(container.querySelector('[data-testid="capped-rows"]')?.textContent).toBe('Showing the first 100 of 150 rows');
         act(() => root.unmount());
     });
 });

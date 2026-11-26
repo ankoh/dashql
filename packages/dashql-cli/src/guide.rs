@@ -113,6 +113,9 @@ Charts:
 - After every change of a chart, run dashql vis on its script and look at the PNG if you can read images: overlapping
   labels, unreadable axes, empty marks. Check a narrow card too, --width 400 --height 400. Fix what it reports and what
   reads badly. For a KPI card it prints what the card shows instead of a PNG.
+- The views cap the rows they read: a chart draws the first 10000 rows, a KPI card the last 1000, a Markdown card the
+  first 100, and they show a warning triangle for the rest. A line with ⚠ tells you the same: aggregate the query,
+  e.g. by day or week, so that every row shows.
 
 How to work:
 1. Learn the workbook: dashql scripts, dashql read for the scripts that matter, and dashql catalog for the tables.

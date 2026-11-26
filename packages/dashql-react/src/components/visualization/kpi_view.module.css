@@ -146,3 +146,9 @@
     }
 }
 
+/* The warning of a card that reads only the last rows of its result, in the top right corner */
+.capped {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+}

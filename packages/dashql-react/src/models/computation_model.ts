@@ -25,8 +25,9 @@ export interface ComputationModel {
     /// ordering, from `offset`, at most `limit`
     readRows(offset: number, limit: number): Promise<ResultRowWindow>;
     /// Read rows of the result in its order, from `offset`, at most `limit`, without the columns of the computation.
-    /// The filters, the searches and the ordering don't apply, e.g. the last rows of a KPI card
-    previewRows(offset: number, limit: number): Promise<arrow.Table>;
+    /// The filters, the searches and the ordering don't apply, e.g. the last rows of a KPI card. With `rowNumbers` the
+    /// row numbers follow the fields, e.g. for the cross filters of a chart.
+    previewRows(offset: number, limit: number, rowNumbers: boolean): Promise<arrow.Table>;
 }
 
 export type { ResultRowWindow };
@@ -51,7 +52,8 @@ export function useComputationModel(computation: ComputationView | null | undefi
             : (offset: number, limit: number) => runtime.readResultRows(tableId, offset, limit);
         const previewRows = runtime == null
             ? noRows
-            : async (offset: number, limit: number) => arrow.tableFromIPC(await runtime.previewResult(tableId, offset, limit));
+            : async (offset: number, limit: number, rowNumbers: boolean) =>
+                arrow.tableFromIPC(await runtime.previewResult(tableId, offset, limit, rowNumbers));
         return { computation, tables: runtime ?? NO_TABLES, dispatch, readRows, previewRows };
     }, [runtime, computation, dispatch]);
 }

@@ -346,10 +346,11 @@ export class Runtime {
 
     /// Rows of an analyzed result from `offset`, at most `limit`, in the order of the result and without the columns of
     /// its computation, as an Arrow IPC stream, e.g. the first rows for the table of a terminal. The filters, the
-    /// searches and the ordering of the grid don't apply. The rows come from the data frame of the computation, the
-    /// result itself doesn't pass through the module. Fails for a result without a computation.
-    async previewResult(tableId: number, offset: number, limit: number): Promise<Uint8Array> {
-        return await this.live().previewResult(tableId, offset, limit);
+    /// searches and the ordering of the grid don't apply. With `rowNumbers` the row numbers of the rows follow the
+    /// fields, e.g. for a chart whose cross filters select rows by them. The rows come from the data frame of the
+    /// computation, the result itself doesn't pass through the module. Fails for a result without a computation.
+    async previewResult(tableId: number, offset: number, limit: number, rowNumbers: boolean): Promise<Uint8Array> {
+        return await this.live().previewResult(tableId, offset, limit, rowNumbers);
     }
 
     /// A window of the rows that the grid of an analyzed result shows: the rows that pass its filters and its data

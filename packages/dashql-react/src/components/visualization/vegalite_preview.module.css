@@ -1,5 +1,6 @@
 /* A chart preview fills its box with a small inset */
 .preview {
+    position: relative;
     width: 100%;
     height: 100%;
     overflow: hidden;

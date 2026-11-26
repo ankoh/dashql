@@ -91,7 +91,7 @@ one command table and knows nothing of the workbook, the page does everything el
 | `lint <script>` | The diagnostics of the analysis of the script |
 | `format <script>` | Formats the script in the dialect of its connection |
 | `run [<script>...] [--rows N] [--refresh]` | Runs the workbook with `runWorkbookReported`, the feed shows the run; prints every script with the first rows of its result and the Parquet file of the stored result (`results/` of the folder), its rows in the order of `__dashql_row` (`workbook_results.md`) |
-| `vis <script> [--width N] [--height N] [--refresh]` | Checks the `@vis` tag of the script against its result, renders a Vega-Lite chart as PNG into `charts/` of the folder, prints what a KPI card shows |
+| `vis <script> [--width N] [--height N] [--refresh]` | Checks the `@vis` tag of the script against its result, renders a Vega-Lite chart of the first 10 000 rows as PNG into `charts/` of the folder (a result with more is a problem), prints what a KPI card shows |
 | `guide` | Answered by `dashql` itself: the guide of the agent (`src/guide.rs`) |
 
 A run takes only the connections that the agent may use and that are set up in the page: the menu of the prompt in AI

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act } from '../testing/react_act.js';
+import { act, waitForRender } from '../testing/react_act.js';
 import { createRoot, type Root } from 'react-dom/client';
 import type { TopLevelSpec } from 'vega-lite';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,8 +8,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { useNearViewport, VegaLiteView, type VegaLiteViewDependencies } from './vegalite_view.js';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
-import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
-import { fakeQueryModel } from '../testing/fake_models.js';
+import { fakeResultModel } from '../testing/fake_models.js';
 
 const vegaEmbed = vi.fn<typeof import('vega-embed').default>(() => new Promise<never>(() => { }));
 const expressionInterpreter: typeof import('vega-interpreter').expressionInterpreter = {
@@ -27,9 +26,14 @@ const dependencies = {
     useNearViewport: () => true,
 } as VegaLiteViewDependencies;
 
-/// A query that succeeded with a result of one row and no computation
+/// A query that succeeded with an analyzed result of one row
 function succeededQuery() {
-    return fakeQueryModel({ queryId: 1, status: QueryExecutionStatus.SUCCEEDED }, { result: tableFromArrays({ value: [1] }) });
+    return fakeResultModel(tableFromArrays({ value: [1] }));
+}
+
+/// Wait until the chart read the rows of its result: the placeholder of the read is gone
+async function rowsRead(container: HTMLElement) {
+    await waitForRender(() => expect(container.querySelector('[data-testid="card-placeholder"]')).toBeNull());
 }
 
 describe('VegaLiteView', () => {
@@ -48,7 +52,7 @@ describe('VegaLiteView', () => {
         container.remove();
     });
 
-    it('reserves an explicit chart height while Vega loads', () => {
+    it('reserves an explicit chart height while Vega loads', async () => {
         const model = succeededQuery();
 
         act(() => {
@@ -65,6 +69,7 @@ describe('VegaLiteView', () => {
                 />,
             );
         });
+        await rowsRead(container);
 
         const chart = container.firstElementChild?.lastElementChild as HTMLElement | null;
         expect(chart).not.toBeNull();
@@ -81,6 +86,8 @@ describe('VegaLiteView', () => {
             render({ data: { values: [] }, mark: 'point', encoding: { x: { field: 'value' } } });
             await Promise.resolve();
         });
+        await rowsRead(container);
+        await vi.waitFor(() => expect(vegaEmbed).toHaveBeenCalledTimes(1));
         await act(async () => {
             render({ data: { values: [] }, mark: 'point', encoding: { x: { field: 'value' } } });
             await Promise.resolve();
@@ -129,6 +136,7 @@ describe('VegaLiteView', () => {
                 );
                 await Promise.resolve();
             });
+            await rowsRead(container);
             expect(observers).toHaveLength(1);
             const observer = observers[0];
             expect(observer.observed).toHaveLength(1);
@@ -153,5 +161,20 @@ describe('VegaLiteView', () => {
         } finally {
             globalThis.IntersectionObserver = intersectionObserver;
         }
+    });
+
+    it('draws the first rows of a long result and says that it capped them', async () => {
+        const model = fakeResultModel(tableFromArrays({ value: Int32Array.from({ length: 10_050 }, (_, i) => i) }));
+        act(() => root.render(
+            <VegaLiteView
+                model={model}
+                vegaLiteSpec={{ data: { values: [] }, mark: 'point', encoding: { x: { field: 'value' } } }}
+                height={180}
+                dependencies={dependencies}
+            />,
+        ));
+        await rowsRead(container);
+        expect(model.computation!.previewRows).toHaveBeenCalledWith(0, 10_000, true);
+        expect(container.querySelector('[data-testid="capped-rows"]')?.textContent).toBe('Showing the first 10,000 of 10,050 rows');
     });
 });

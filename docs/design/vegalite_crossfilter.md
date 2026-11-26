@@ -144,9 +144,15 @@ rather than relying on Vega-Lite-generated names such as `source_0`.
 
 ## Source dataset lifecycle
 
-`VegaLiteView` converts the analyzed Arrow table to Vega-compatible JavaScript row
-objects once per source-table identity (`arrowTableToRows`). BigInts are converted to
-numbers and Dates to ISO strings.
+`VegaLiteView` reads the first rows of the analyzed result with their row numbers from the
+compute database (`previewRows` of the computation model with `rowNumbers`), at most
+`CHART_ROWS` (10 000, `vegalite/vegalite_rows.ts`), and converts them to Vega-compatible
+JavaScript row objects once per read (`arrowTableToRows`). BigInts are converted to numbers
+and Dates to ISO strings. A result with more rows is capped: the chart draws the first
+10 000 and shows a warning triangle in its corner ("Showing the first 10,000 of N rows",
+`CappedRows` of `components/visualization/capped_rows.tsx`), the PNG download draws the
+same rows, and `dashql vis` reports it as a problem marked with ⚠ that asks to aggregate
+the query. The chart waits for the analysis of its result and shows the faint logo meanwhile.
 
 The rows are not embedded in `data.values`. After `vegaEmbed` creates the View, the
 renderer loads them through:
@@ -159,10 +165,10 @@ The source dataset includes DashQL's stable system row-number field. Authored en
 ignore that field unless explicitly referenced.
 
 When no row-number field is available, the renderer still uses the named runtime source
-but omits cross-filter mask transforms. Once the result is imported, the table of the
-computation is the result with its row numbers (the import appends them, the bins and the
-value ids stay in the compute database), and its changed table identity causes one new
-embed with mask support.
+but omits cross-filter mask transforms. The rows that a chart reads carry the row numbers
+that the import appended, the bins and the value ids stay in the compute database. A
+selection of the filter table may name rows beyond the cap, the mask simply finds no row
+of the chart for them.
 
 Result-grid ordering is intentionally not applied to Vega-Lite. Ordering controls table
 display order, while chart semantics depend only on the source rows and active filters.
@@ -265,8 +271,8 @@ can cause Vega to re-evaluate the source filter and downstream transforms over `
 The primary gain is eliminating repeated full-row marshaling, Vega-Lite compilation,
 scenegraph construction, and View teardown.
 
-The full source is still converted from Arrow to JavaScript tuples once because Vega's
-View API consumes JavaScript objects. Avoiding that initial cost requires an Arrow-aware
+The source, at most `CHART_ROWS` rows, is still converted from Arrow to JavaScript tuples
+once because Vega's View API consumes JavaScript objects. Avoiding that initial cost requires an Arrow-aware
 Vega input path or SQL pushdown that sends Vega a reduced chart-specific result.
 
 ## Correctness constraints

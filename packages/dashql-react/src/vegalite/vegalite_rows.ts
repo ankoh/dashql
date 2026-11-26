@@ -1,5 +1,8 @@
 import type * as arrow from 'apache-arrow';
 
+/// The first rows of a result that a chart draws, a result with more is capped and the chart says so
+export const CHART_ROWS = 10_000;
+
 /// Convert an arrow row object to a vega-compatible plain object.
 function arrowRowToObject(row: arrow.StructRowProxy, fields: readonly arrow.Field[]): Record<string, unknown> {
     const obj: Record<string, unknown> = {};

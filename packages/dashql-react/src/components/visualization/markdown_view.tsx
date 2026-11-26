@@ -7,6 +7,7 @@ import type { QueryModel } from '../../models/query_model.js';
 import * as styles from './markdown_view.module.css';
 import { CardPlaceholder, QueryStatusPlaceholder } from '../card_placeholder.js';
 import { useResultRows } from './result_rows.js';
+import { CappedRows } from './capped_rows.js';
 import { useLogger } from '../../logger.js';
 
 type MarkdownNode = buffers.visualization.MarkdownNodeT;
@@ -135,7 +136,7 @@ export function MarkdownView(props: MarkdownViewProps): React.ReactElement {
     const logger = useLogger();
     const query = props.model?.query ?? null;
     const succeeded = query?.status === QueryExecutionStatus.SUCCEEDED;
-    const { table, rows, reading } = useResultRows(props.model, 'first', MARKDOWN_CARD_ROWS);
+    const { table, rows, reading } = useResultRows(props.model, 'first', MARKDOWN_CARD_ROWS, false);
 
     const renderedRows = React.useMemo(() => {
         if (props.spec == null || table == null) return null;
@@ -183,11 +184,7 @@ export function MarkdownView(props: MarkdownViewProps): React.ReactElement {
                     {renderNode(document, fields, String(row))}
                 </article>
             ))}
-            {rows > renderedRows.length && (
-                <p className={styles.more} data-testid="markdown-more-rows">
-                    {rows - renderedRows.length} more rows
-                </p>
-            )}
+            {rows > renderedRows.length && <CappedRows className={styles.capped} part="first" shown={renderedRows.length} rows={rows} />}
         </div>
     );
 }

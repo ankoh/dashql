@@ -103,6 +103,7 @@ describe('KpiView', () => {
         const values = Int32Array.from({ length: 1200 }, (_, i) => i);
         const model = await render(tableFromArrays({ day: values, revenue: values }));
         expect(text('kpi-value')).toBe('1,199');
-        expect(model.computation!.previewRows).toHaveBeenCalledWith(200, 1000);
+        expect(model.computation!.previewRows).toHaveBeenCalledWith(200, 1000, false);
+        expect(text('capped-rows')).toBe('Showing the last 1,000 of 1,200 rows');
     });
 });

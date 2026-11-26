@@ -3,12 +3,12 @@
 // the live workbook and answers with text and an exit code
 import * as vegaLite from 'vega-lite';
 import * as core from '@akohn/dashql';
-import type * as arrow from 'apache-arrow';
+import * as arrow from 'apache-arrow';
 
 import { ConnectionHealth, connectorInfoOf, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { CHART_IMAGE_HEIGHT, CHART_IMAGE_SCALE, CHART_IMAGE_WIDTH, chartSpecProblems, compileProblems, type VegaLiteCompile } from '@akohn/dashql/platform/workbook/chart_config';
-import { KPI_CHECK_ROWS, kpiProblems, readKpi } from '@akohn/dashql/platform/workbook/kpi_reading';
+import { KPI_CARD_ROWS, KPI_CHECK_ROWS, kpiProblems, readKpi } from '@akohn/dashql/platform/workbook/kpi_reading';
 import type { RunEvent } from '@akohn/dashql/platform/workbook/run_events';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import type { ScriptData, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
@@ -18,7 +18,7 @@ import { describeRunError, runScriptsOf, runWorkbookReported } from '@akohn/dash
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 
 import { renderVegaLitePng } from '@akohn/dashql-react/vegalite/vegalite_image';
-import { arrowTableToRows } from '@akohn/dashql-react/vegalite/vegalite_rows';
+import { arrowTableToRows, CHART_ROWS } from '@akohn/dashql-react/vegalite/vegalite_rows';
 
 import { createScriptFormatConfig, formatSqlText, formattingDialectForConnector } from '../workbook/scripts/script_format.js';
 import { agentConnections } from './agent_connections.js';
@@ -551,7 +551,7 @@ async function visCommand(host: AgentCommandHost, call: AgentCall, reply: AgentR
     // A KPI card is checked with the rows of the result
     if (tag.kpi != null && table != null && resultRows != null) {
         if (resultRows > KPI_CHECK_ROWS || resultRows > table.numRows) {
-            problems.push(`the result has ${resultRows} rows, more than the ${KPI_CHECK_ROWS} that a KPI card is checked with: aggregate the query, e.g. by day or week`);
+            problems.push(`⚠ the result has ${resultRows} rows, the KPI card reads only the last ${KPI_CARD_ROWS} and is checked with at most ${KPI_CHECK_ROWS}: aggregate the query, e.g. by day or week`);
         } else {
             const reading = readKpi(table, tag.kpi);
             if (reading.missing == null) out += `  KPI card: ${describeKpi(reading, tag.kpi)}\n`;
@@ -559,12 +559,15 @@ async function visCommand(host: AgentCommandHost, call: AgentCall, reply: AgentR
         }
     }
 
-    // The PNG of a Vega-Lite chart, as the feed renders it. The chart takes every row of the result from the history of
-    // the query until charts read what they draw (docs/wip/result_windows.md, step 5).
+    // The PNG of a Vega-Lite chart, as the feed renders it: the first rows of the result, at most as many as a chart
+    // draws, read from the compute database
     let wrote: string | null = null;
-    const chartTable = result?.queryId == null ? undefined : runtime.table(runtime.store.get('query', result.queryId)?.resultTable?.id);
-    if (tag.spec != null && chartTable != null) {
+    if (tag.spec != null && result?.queryId != null && resultRows != null) {
+        if (resultRows > CHART_ROWS) {
+            problems.push(`⚠ the result has ${resultRows} rows, the chart draws only the first ${CHART_ROWS} and warns about the others: aggregate the query, e.g. by day or week`);
+        }
         try {
+            const chartTable = arrow.tableFromIPC(await runtime.previewResult(result.queryId, 0, CHART_ROWS, false));
             const image = await renderChart(runtime, call.workbookId, fileName, chartTable, size);
             const path = await host.writeFile(call.workbookId, 'chart', `${name}.png`, image.png);
             wrote = `${path} (${image.width}x${image.height} pixels)`;

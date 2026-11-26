@@ -120,11 +120,18 @@ describe('The computations of the runtime', () => {
         // An ordering of the grid doesn't change the order of the preview
         rt.dispatch({ computation: 1 }, { kind: 'orderBy', value: { constraints: [{ field: 'score', ascending: true }] } });
         await settled(rt, view => view.orderingTable != null);
-        const preview = arrow.tableFromIPC(await rt.previewResult(1, 0, 3));
+        const preview = arrow.tableFromIPC(await rt.previewResult(1, 0, 3, false));
         expect(preview.schema.fields.map(field => field.name)).toEqual(['score', 'name']);
         expect(preview.toArray().map(row => [row.score, row.name])).toEqual([[42, 'a'], [10, 'b'], [10, 'a']]);
-        await expect(rt.previewResult(2, 0, 3)).rejects.toThrow('the table 2 has no computation');
+        await expect(rt.previewResult(2, 0, 3, false)).rejects.toThrow('the table 2 has no computation');
+        // From an offset, with the row numbers that the cross filters of a chart select by
+        const rows = arrow.tableFromIPC(await rt.previewResult(1, 2, 10, true));
+        expect(rows.schema.fields.map(field => field.name).slice(0, 2)).toEqual(['score', 'name']);
+        expect(rows.numCols).toBe(3);
+        const rowNumbers = Array.from(rows.getChildAt(2)!.toArray() as BigInt64Array, Number);
+        expect(rows.toArray().map((row, i) => [row.score, row.name, rowNumbers[i]])).toEqual([[10, 'a', 3], [30, 'c', 4]]);
     }, 60_000);
+
 
     it('filters, orders and searches an analyzed result', async () => {
         const rt = await analyzed();

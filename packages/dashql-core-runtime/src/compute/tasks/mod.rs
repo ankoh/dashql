@@ -57,19 +57,25 @@ pub fn read_data_frame_sql(
 
 /// The read of rows of a result from its data frame: the fields of the result in the order of its rows from `offset`,
 /// at most `limit`. The row numbers that the import appended are the positions of the rows and order them, the
-/// columns that the computation added stay out.
+/// columns that the computation added stay out. With `row_numbers` the row numbers follow the fields, e.g. for a chart
+/// whose cross filters select rows by them.
 pub fn preview_data_frame_sql(
     data_frame: DataFrameId,
     fields: &[String],
     row_number_field: &str,
     offset: u64,
     limit: u64,
+    row_numbers: bool,
 ) -> String {
+    let mut columns = fields.to_vec();
+    if row_numbers {
+        columns.push(row_number_field.to_string());
+    }
     SqlFrame::from(data_frame_table_name(data_frame))
         .filter(row_number_field.to_string(), FilterOp::Greater, offset as f64)
         .filter(row_number_field.to_string(), FilterOp::LessEqual, offset.saturating_add(limit) as f64)
         .order_by(vec![ascending(row_number_field)], Some(limit))
-        .project(fields.to_vec())
+        .project(columns)
         .to_sql()
 }
 

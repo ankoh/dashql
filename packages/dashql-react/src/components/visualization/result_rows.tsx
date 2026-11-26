@@ -25,16 +25,16 @@ export interface ResultRows {
 const NO_ROWS: ResultRows = { table: null, rows: 0, reading: false };
 
 /// Read the first or the last rows of the result of a query, at most `limit`, once the query succeeded and its result
-/// is analyzed. The filters, the searches and the ordering of its grid don't apply. Reads again when the result or its
-/// data frame changes.
-export function useResultRows(model: QueryModel | null, part: ResultPart, limit: number): ResultRows {
+/// is analyzed. The filters, the searches and the ordering of its grid don't apply. With `rowNumbers` the row numbers
+/// follow the fields, e.g. for the cross filters of a chart. Reads again when the result or its data frame changes.
+export function useResultRows(model: QueryModel | null, part: ResultPart, limit: number, rowNumbers: boolean): ResultRows {
     const logger = useLogger();
     const succeeded = model?.query.status === QueryExecutionStatus.SUCCEEDED;
     const computation = succeeded ? model?.computation ?? null : null;
     const rows = model?.query.resultTable?.rows ?? computation?.computation.dataTableRows ?? 0;
     const tableId = computation?.computation.tableId ?? null;
     const dataFrame = computation?.computation.dataFrame ?? null;
-    const key = tableId == null || dataFrame == null ? null : `${tableId}:${dataFrame}:${part}:${limit}:${rows}`;
+    const key = tableId == null || dataFrame == null ? null : `${tableId}:${dataFrame}:${part}:${limit}:${rows}:${rowNumbers}`;
     const [state, setState] = React.useState<{ key: string; table: arrow.Table | null } | null>(null);
     // The latest read of the model, its identity changes with every change of the computation
     const previewRows = React.useRef(computation?.previewRows);
@@ -45,7 +45,7 @@ export function useResultRows(model: QueryModel | null, part: ResultPart, limit:
         if (key == null || read == null) return;
         let current = true;
         const offset = part === 'last' ? Math.max(0, rows - limit) : 0;
-        read(offset, limit).then(
+        read(offset, limit, rowNumbers).then(
             table => {
                 if (current) setState({ key, table });
             },
@@ -58,7 +58,7 @@ export function useResultRows(model: QueryModel | null, part: ResultPart, limit:
         return () => {
             current = false;
         };
-    }, [key, part, limit, rows, logger]);
+    }, [key, part, limit, rows, rowNumbers, logger]);
 
     if (!succeeded) return NO_ROWS;
     const read = state != null && state.key === key ? state : null;
