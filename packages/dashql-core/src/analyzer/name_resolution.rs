@@ -799,29 +799,14 @@ impl NameResolutionPass {
         let (alias, column_aliases) = Self::read_alias(state, alias_node);
         // A table reference that is resolved already, the cursor, the focus and the semantic spans see the parameter
         // like a table. Scope resolution, the planner and the script references skip it.
-        let id = state.out.table_references.len() as TableRefId;
-        state.out.table_references.push(TableReference {
-            table_reference_id: ExternalObjectId::new(state.entry_id, id),
-            ast_node_id: node_id,
-            location: Some(*node.symbol_span()),
-            ast_statement_id: None,
-            ast_scope_root: None,
-            alias: alias.clone(),
-            column_aliases: column_aliases.clone(),
-            inner: Some(RelationExpression {
-                table_name: table.table_name.clone(),
-                resolved_table: Some(ResolvedTableEntry {
-                    table_name: table.table_name.clone(),
-                    catalog_schema_id: table.catalog_schema_id,
-                    catalog_table_id: table.object_id,
-                    referenced_catalog_version: table.catalog_version,
-                }),
-                resolved_alternatives: Vec::new(),
-                resolved_cte: None,
-            }),
-            role: TableRole::Read,
-        });
-        state.mark(node_id, SemanticNodeMarkerType::TABLE_REFERENCE);
+        let resolved = ResolvedTableEntry {
+            table_name: table.table_name.clone(),
+            catalog_schema_id: table.catalog_schema_id,
+            catalog_table_id: table.object_id,
+            referenced_catalog_version: table.catalog_version,
+        };
+        let aliases = (alias.clone(), column_aliases.clone());
+        let id = Self::push_table_ref(state, node, table.table_name.clone(), Some(resolved), aliases, TableRole::Read);
         let source = ScopeSource {
             ast_node_id: node_id,
             name: Some(alias.map(|(alias, _)| alias.text).unwrap_or(name)),
@@ -830,6 +815,86 @@ impl NameResolutionPass {
             table_name: None,
         };
         Some((source, id))
+    }
+
+    /// Add the table reference of a table ref or of the relation of a statement, the semantic spans mark it
+    fn push_table_ref(
+        state: &mut AnalysisState,
+        node: &Node,
+        table_name: QualifiedTableName,
+        resolved_table: Option<ResolvedTableEntry>,
+        (alias, column_aliases): (Option<(Name, SymbolSpan)>, Vec<Name>),
+        role: TableRole,
+    ) -> TableRefId {
+        let id = state.out.table_references.len() as TableRefId;
+        let node_id = state.node_id(node);
+        state.out.table_references.push(TableReference {
+            table_reference_id: ExternalObjectId::new(state.entry_id, id),
+            ast_node_id: node_id,
+            location: Some(*node.symbol_span()),
+            ast_statement_id: None,
+            ast_scope_root: None,
+            alias,
+            column_aliases,
+            inner: Some(RelationExpression {
+                table_name,
+                resolved_table,
+                resolved_alternatives: Vec::new(),
+                resolved_cte: None,
+            }),
+            role,
+        });
+        state.mark(node_id, SemanticNodeMarkerType::TABLE_REFERENCE);
+        id
+    }
+
+    /// Mark the table refs of a node as written: the target of INSERT, DELETE, UPDATE and MERGE, the relations of
+    /// TRUNCATE
+    fn mark_writes(&self, state: &mut AnalysisState, node: Option<&Node>) {
+        let refs = node.and_then(|n| self.node_states.get(state.node_id(n) as usize)).map(|s| &s.table_references);
+        for &table_ref in refs.into_iter().flatten() {
+            if let Some(table_ref) = state.out.table_ref_mut(table_ref) {
+                table_ref.role = TableRole::Write;
+            }
+        }
+    }
+
+    /// Create the scope of a SELECT, INSERT, DELETE, UPDATE or MERGE with its result targets and the CTEs of its WITH
+    /// clause
+    fn statement_scope(
+        &mut self,
+        state: &mut AnalysisState,
+        node_state: &mut NodeState,
+        node_id: u32,
+        recursive: Option<&Node>,
+    ) -> ScopeId {
+        let result_targets = std::mem::take(&mut node_state.result_targets);
+        let ctes = std::mem::take(&mut node_state.ctes);
+        let scope = self.create_scope(state, node_state, node_id);
+        if let Some(s) = state.out.scope_mut(scope) {
+            s.result_targets.extend(result_targets);
+            // Completion needs the declaration order and the recursive visibility of CTEs
+            s.ctes_recursive = recursive.is_some();
+        }
+        Self::attach_ctes(state, scope, ctes);
+        scope
+    }
+
+    /// The columns that a list of SET assignments writes: one column, or a list of columns that a row assigns
+    fn assignment_columns<'a>(state: &AnalysisState<'a>, assignments: Option<&Node>) -> Vec<&'a Node> {
+        let mut columns = Vec::new();
+        let list = assignments.filter(|a| a.node_type() == NodeType::ARRAY).map(|a| state.children(a));
+        for assignment in list.unwrap_or_default() {
+            if assignment.node_type() != NodeType::OBJECT_SQL_ASSIGNMENT {
+                continue;
+            }
+            match attrs!(state.children(assignment), [K::SQL_ASSIGNMENT_COLUMNS]) {
+                [Some(list)] if list.node_type() == NodeType::ARRAY => columns.extend(state.children(list)),
+                [Some(column)] => columns.push(column),
+                [None] => {}
+            }
+        }
+        columns
     }
 
     /// Is a FROM item a table parameter?
@@ -2370,26 +2435,9 @@ impl NameResolutionPass {
                     [K::SQL_TABLEREF_NAME, K::SQL_TABLEREF_ALIAS, K::SQL_TABLEREF_TABLE, K::SQL_TABLEREF_LATERAL,]
                 );
                 if let Some(name) = state.read_qualified_table_name(name_node) {
-                    let (alias, column_aliases) = Self::read_alias(state, alias_node);
-                    let id = state.out.table_references.len() as TableRefId;
-                    state.out.table_references.push(TableReference {
-                        table_reference_id: ExternalObjectId::new(state.entry_id, id),
-                        ast_node_id: node_id,
-                        location: Some(*node.symbol_span()),
-                        ast_statement_id: None,
-                        ast_scope_root: None,
-                        alias,
-                        column_aliases,
-                        inner: Some(RelationExpression {
-                            table_name: name,
-                            resolved_table: None,
-                            resolved_alternatives: Vec::new(),
-                            resolved_cte: None,
-                        }),
-                        role: TableRole::Read,
-                    });
+                    let aliases = Self::read_alias(state, alias_node);
+                    let id = Self::push_table_ref(state, node, name, None, aliases, TableRole::Read);
                     node_state.table_references.push(id);
-                    state.mark(node_id, SemanticNodeMarkerType::TABLE_REFERENCE);
                 } else if let Some((source, table_ref)) =
                     Self::table_parameter_source(state, node_id, node, table_node, alias_node)
                 {
@@ -2491,16 +2539,8 @@ impl NameResolutionPass {
                     return;
                 }
                 self.merge_child_states(node_state, node);
-                let result_targets = std::mem::take(&mut node_state.result_targets);
-                let ctes = std::mem::take(&mut node_state.ctes);
-                let scope = self.create_scope(state, node_state, node_id);
                 let [recursive] = attrs!(state.children(node), [K::SQL_SELECT_WITH_RECURSIVE]);
-                if let Some(s) = state.out.scope_mut(scope) {
-                    s.result_targets.extend(result_targets);
-                    // Completion needs the declaration order and the recursive visibility of CTEs
-                    s.ctes_recursive = recursive.is_some();
-                }
-                Self::attach_ctes(state, scope, ctes);
+                self.statement_scope(state, node_state, node_id, recursive);
                 let [into] = attrs!(state.children(node), [K::SQL_SELECT_INTO]);
                 if let Some(into) = into.filter(|n| n.node_type() == NodeType::OBJECT_SQL_INTO) {
                     let [into_name] = attrs!(state.children(into), [K::SQL_TEMP_NAME]);
@@ -2527,10 +2567,7 @@ impl NameResolutionPass {
                     self.merge_child_states(node_state, node);
                     return;
                 };
-                if let Some(target) = state.out.table_ref_mut(target_ref) {
-                    target.role = TableRole::Write;
-                }
-
+                self.mark_writes(state, target);
                 self.merge_child_states(node_state, node);
                 let on_conflict = on_conflict.filter(|n| n.node_type() == NodeType::OBJECT_SQL_INSERT_ON_CONFLICT);
                 let target_node = target.map(|t| state.node_id(t));
@@ -2540,17 +2577,10 @@ impl NameResolutionPass {
                     }
                     _ => None,
                 };
-                let result_targets = std::mem::take(&mut node_state.result_targets);
-                let ctes = std::mem::take(&mut node_state.ctes);
-                let scope = self.create_scope(state, node_state, node_id);
-                if let Some(s) = state.out.scope_mut(scope) {
-                    s.result_targets.extend(result_targets);
-                    s.ctes_recursive = recursive.is_some();
-                }
+                let scope = self.statement_scope(state, node_state, node_id, recursive);
                 if let (Some(excluded), Some(target)) = (excluded, target_node) {
                     self.insert_excluded.insert(scope, (excluded, target));
                 }
-                Self::attach_ctes(state, scope, ctes);
                 if let Some(source) = source {
                     if let Some(&source_scope) = state.out.name_scopes_by_root_node.get(&state.node_id(source)) {
                         if let Some(s) = state.out.scope_mut(source_scope) {
@@ -2591,28 +2621,13 @@ impl NameResolutionPass {
                     state.children(node),
                     [K::SQL_DELETE_TARGET, K::SQL_DELETE_USING, K::SQL_SELECT_WITH_RECURSIVE]
                 );
-                if let Some(target) = target {
-                    let target_refs =
-                        self.node_states.get(state.node_id(target) as usize).map(|s| s.table_references.as_slice());
-                    for &table_ref in target_refs.unwrap_or_default() {
-                        if let Some(table_ref) = state.out.table_ref_mut(table_ref) {
-                            table_ref.role = TableRole::Write;
-                        }
-                    }
-                }
+                self.mark_writes(state, target);
                 self.merge_child_states(node_state, node);
                 if let (Some(target), Some(using)) = (target, using) {
                     let (target, using) = (state.node_id(target), state.node_id(using));
                     Self::hide_target_from_reads(node_state, target, using);
                 }
-                let result_targets = std::mem::take(&mut node_state.result_targets);
-                let ctes = std::mem::take(&mut node_state.ctes);
-                let scope = self.create_scope(state, node_state, node_id);
-                if let Some(s) = state.out.scope_mut(scope) {
-                    s.result_targets.extend(result_targets);
-                    s.ctes_recursive = recursive.is_some();
-                }
-                Self::attach_ctes(state, scope, ctes);
+                let scope = self.statement_scope(state, node_state, node_id, recursive);
                 // CTE definitions cannot correlate to the DELETE target or USING relations
                 self.set_cte_correlation_barriers(state, scope);
             }
@@ -2625,15 +2640,7 @@ impl NameResolutionPass {
             NodeType::OBJECT_SQL_TRUNCATE => {
                 // The array of the relations holds the table refs of its elements
                 let [relations] = attrs!(state.children(node), [K::SQL_TRUNCATE_RELATIONS]);
-                if let Some(relations) = relations {
-                    let refs =
-                        self.node_states.get(state.node_id(relations) as usize).map(|s| s.table_references.as_slice());
-                    for &table_ref in refs.unwrap_or_default() {
-                        if let Some(table_ref) = state.out.table_ref_mut(table_ref) {
-                            table_ref.role = TableRole::Write;
-                        }
-                    }
-                }
+                self.mark_writes(state, relations);
                 self.merge_child_states(node_state, node);
                 self.create_scope(state, node_state, node_id);
             }
@@ -2648,26 +2655,9 @@ impl NameResolutionPass {
                 };
                 let loads =
                     direction.is_some_and(|d| CopyDirection(d.children_begin_or_value() as u8) == CopyDirection::FROM);
-                let id = state.out.table_references.len() as TableRefId;
-                let relation_id = state.node_id(relation);
-                state.out.table_references.push(TableReference {
-                    table_reference_id: ExternalObjectId::new(state.entry_id, id),
-                    ast_node_id: relation_id,
-                    location: Some(*relation.symbol_span()),
-                    ast_statement_id: None,
-                    ast_scope_root: None,
-                    alias: None,
-                    column_aliases: Vec::new(),
-                    inner: Some(RelationExpression {
-                        table_name: name,
-                        resolved_table: None,
-                        resolved_alternatives: Vec::new(),
-                        resolved_cte: None,
-                    }),
-                    role: if loads { TableRole::Write } else { TableRole::Read },
-                });
+                let role = if loads { TableRole::Write } else { TableRole::Read };
+                let id = Self::push_table_ref(state, relation, name, None, (None, Vec::new()), role);
                 node_state.table_references.push(id);
-                state.mark(relation_id, SemanticNodeMarkerType::TABLE_REFERENCE);
                 self.merge_child_states(node_state, node);
                 self.create_scope(state, node_state, node_id);
             }
@@ -2862,15 +2852,8 @@ impl NameResolutionPass {
                 K::SQL_SELECT_WITH_RECURSIVE,
             ]
         );
+        self.mark_writes(state, update_target.or(merge_target));
         let target = update_target.or(merge_target).map(|t| state.node_id(t));
-        if let Some(target) = target {
-            let target_refs = self.node_states.get(target as usize).map(|s| s.table_references.as_slice());
-            for &table_ref in target_refs.unwrap_or_default() {
-                if let Some(table_ref) = state.out.table_ref_mut(table_ref) {
-                    table_ref.role = TableRole::Write;
-                }
-            }
-        }
         self.merge_child_states(node_state, node);
         if let (Some(target), Some(reads)) = (target, update_from.or(merge_source)) {
             let reads = state.node_id(reads);
@@ -2879,7 +2862,6 @@ impl NameResolutionPass {
 
         // A WHEN NOT MATCHED [BY TARGET] clause of MERGE sees the source only, a WHEN NOT MATCHED BY SOURCE clause the
         // target only, as in PostgreSQL
-        let mut restricted = Vec::new();
         for clause in clauses.map(|c| state.children(c)).unwrap_or_default() {
             let [kind] = attrs!(state.children(clause), [K::SQL_MERGE_WHEN_CLAUSE_KIND]);
             let visibility = match (target, kind.map(|k| MergeMatch(k.children_begin_or_value() as u8))) {
@@ -2887,33 +2869,23 @@ impl NameResolutionPass {
                 (Some(target), Some(MergeMatch::NOT_MATCHED_BY_SOURCE)) => SourceVisibility::Only(target),
                 _ => continue,
             };
-            restricted.push(ScopeClause { ast_node_id: state.node_id(clause), visibility });
+            node_state.clauses.push(ScopeClause { ast_node_id: state.node_id(clause), visibility });
         }
 
         // The written columns: the SET targets of UPDATE, the SET targets and the INSERT columns of the MERGE actions
         let mut written: Vec<&Node> = Vec::new();
-        let mut assignment_lists: Vec<&Node> = assignments.into_iter().collect();
+        let mut set_columns = Self::assignment_columns(state, assignments);
         for clause in clauses.map(|c| state.children(c)).unwrap_or_default() {
             let [action] = attrs!(state.children(clause), [K::SQL_MERGE_WHEN_CLAUSE_ACTION]);
             let Some(action) = action.filter(|a| a.node_type() == NodeType::OBJECT_SQL_MERGE_ACTION) else { continue };
             let [set, columns] =
                 attrs!(state.children(action), [K::SQL_MERGE_ACTION_TARGET, K::SQL_MERGE_ACTION_COLUMNS]);
-            assignment_lists.extend(set);
+            set_columns.extend(Self::assignment_columns(state, set));
             if let Some(columns) = columns.filter(|c| c.node_type() == NodeType::ARRAY) {
                 written.extend(state.children(columns));
             }
         }
-        for list in assignment_lists.into_iter().filter(|l| l.node_type() == NodeType::ARRAY) {
-            for assignment in state.children(list).iter().filter(|a| a.node_type() == NodeType::OBJECT_SQL_ASSIGNMENT) {
-                // One column, or a list of columns that a row assigns
-                let [columns] = attrs!(state.children(assignment), [K::SQL_ASSIGNMENT_COLUMNS]);
-                match columns {
-                    Some(columns) if columns.node_type() == NodeType::ARRAY => written.extend(state.children(columns)),
-                    Some(column) => written.push(column),
-                    None => {}
-                }
-            }
-        }
+        written.extend(set_columns);
         // Without a target, in a statement that doesn't parse, the columns bind to nothing
         if let Some(target) = target {
             for column in written.into_iter().filter(|c| c.node_type() == NodeType::NAME) {
@@ -2921,15 +2893,7 @@ impl NameResolutionPass {
             }
         }
 
-        let result_targets = std::mem::take(&mut node_state.result_targets);
-        let ctes = std::mem::take(&mut node_state.ctes);
-        let scope = self.create_scope(state, node_state, node_id);
-        if let Some(s) = state.out.scope_mut(scope) {
-            s.result_targets.extend(result_targets);
-            s.ctes_recursive = recursive.is_some();
-            s.clauses.extend(restricted);
-        }
-        Self::attach_ctes(state, scope, ctes);
+        let scope = self.statement_scope(state, node_state, node_id, recursive);
         // CTE definitions cannot correlate to the target or the read relations
         self.set_cte_correlation_barriers(state, scope);
     }
@@ -2981,18 +2945,7 @@ impl NameResolutionPass {
             let [name] = attrs!(state.children(element), [K::SQL_INDEX_ELEMENT_NAME]);
             columns.extend(name.filter(|_| element.node_type() == NodeType::OBJECT_SQL_INDEX_ELEMENT));
         }
-        let assignment_list = assignments.filter(|a| a.node_type() == NodeType::ARRAY).map(|a| state.children(a));
-        for assignment in assignment_list.unwrap_or_default() {
-            if assignment.node_type() != NodeType::OBJECT_SQL_ASSIGNMENT {
-                continue;
-            }
-            // One column, or a list of columns that a row assigns
-            match attrs!(state.children(assignment), [K::SQL_ASSIGNMENT_COLUMNS]) {
-                [Some(list)] if list.node_type() == NodeType::ARRAY => columns.extend(state.children(list)),
-                [Some(column)] => columns.push(column),
-                [None] => {}
-            }
-        }
+        columns.extend(Self::assignment_columns(state, assignments));
         for column in columns.into_iter().filter(|c| c.node_type() == NodeType::NAME) {
             self.add_written_column(state, node_state, column, target);
         }
