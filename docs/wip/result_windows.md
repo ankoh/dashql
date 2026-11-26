@@ -69,6 +69,8 @@ The grid has no other source of its rows, so a read must not fail where the tabl
 - A read that fails after its computation changed (its lifetime or its revision) is planned again: a filter, a search
   or an ordering replaced a table that it joined, or the result ran again. The stop of an analysis, e.g. a cancel of its
   query, cancels the steps of the analysis, not the reads.
+- A read that fails all the same is an error that the grid shows under its rows, a click reads again. The grid doesn't
+  retry on its own: a read fails again on the same computation.
 
 Not done yet: the tables of the tasks have no position column, a window reads `ORDER BY ... LIMIT ... OFFSET` over the
 selection, only a result without a filter, a search and an ordering reads a range of row numbers. A read deep into an

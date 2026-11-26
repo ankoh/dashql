@@ -33,12 +33,17 @@ export interface DataTableRows {
     window: DataTableWindow | null;
     /// The rows that show
     rows: number;
+    /// Why the read of the rendered rows failed, null while none failed
+    error: string | null;
+    /// Read the rendered rows again after a read failed
+    retry: () => void;
 }
 
-/// The rows of a window by position, the row numbers of a result count from 1
-function dataRowsOf(table: arrow.Table, rowNumberField: string | null): Int32Array {
+/// The rows of a window by position, the row numbers of a result count from 1. A window has the fields of the result
+/// and then its row numbers, the last field, whatever the result names its fields.
+function dataRowsOf(table: arrow.Table): Int32Array {
     const out = new Int32Array(table.numRows);
-    const column = rowNumberField == null ? null : table.getChild(rowNumberField);
+    const column = table.numCols === 0 ? null : table.getChildAt(table.numCols - 1);
     if (column == null) return out;
     forEachIntegerValue(column, (rowNumber, index) => {
         out[index] = rowNumber - 1;
@@ -66,16 +71,26 @@ function holds(offset: number, length: number, rows: number, start: number, stop
     return start >= offset && (stop < offset + length || offset + length >= rows);
 }
 
+/// A read that failed: the rows it read and why
+interface FailedRead {
+    key: string;
+    offset: number;
+    limit: number;
+    error: string;
+}
+
 /// The window of the rows that the grid renders, from `start` to `stop`. A read starts when the rendered rows leave the
 /// window or the rows that show change, a read that a newer one replaced is dropped. The previous window stays until the
-/// next one arrived, unless it is a window of another table.
+/// next one arrived, unless it is a window of another table. The core reads again when a read failed since its
+/// computation changed meanwhile; a read that fails all the same is an error that the grid shows, and the same rows
+/// are read again once the rows that show change, the rendered rows leave the failed read, or `retry`.
 export function useDataTableWindow(model: ComputationModel, start: number, stop: number): DataTableRows {
     const logger = useLogger();
     const view = model.computation;
     const key = selectionKey(view);
     const table = tableKey(view);
-    const rowNumberField = view.rowNumberColumnName;
     const [state, setState] = React.useState<{ key: string; table: string; rows: number; window: DataTableWindow } | null>(null);
+    const [failed, setFailed] = React.useState<FailedRead | null>(null);
     // The latest read of the model, its identity changes with every change of the computation
     const readRows = React.useRef(model.readRows);
     readRows.current = model.readRows;
@@ -92,6 +107,10 @@ export function useDataTableWindow(model: ComputationModel, start: number, stop:
         if (running != null && running.key === key && holds(running.offset, running.limit, Number.POSITIVE_INFINITY, start, stop)) {
             return;
         }
+        // A read of these rows failed, the grid shows why until something changes
+        if (failed != null && failed.key === key && holds(failed.offset, failed.limit, Number.POSITIVE_INFINITY, start, stop)) {
+            return;
+        }
         const offset = Math.max(0, start - WINDOW_MARGIN_ROWS);
         const limit = Math.max(0, stop - start + 1) + 2 * WINDOW_MARGIN_ROWS;
         const read = { seq: ++seq.current, key, offset, limit };
@@ -101,17 +120,25 @@ export function useDataTableWindow(model: ComputationModel, start: number, stop:
                 if (pending.current?.seq !== read.seq) return;
                 pending.current = null;
                 const formatter = new ArrowTableFormatter(result.table.schema, result.table.batches, logger);
-                const window = { offset: result.offset, table: result.table, formatter, dataRows: dataRowsOf(result.table, rowNumberField) };
+                const window = { offset: result.offset, table: result.table, formatter, dataRows: dataRowsOf(result.table) };
+                setFailed(null);
                 setState({ key, table, rows: result.rows, window });
             },
             (error: unknown) => {
                 if (pending.current?.seq !== read.seq) return;
                 pending.current = null;
-                logger.warn('Failed to read the rows of a table', { error: stringifyError(error) }, 'data_table');
+                const message = stringifyError(error);
+                logger.warn('Failed to read the rows of a table', { error: message }, 'data_table');
+                setFailed({ key, offset, limit, error: message });
             },
         );
-    }, [key, table, start, stop, state, rowNumberField, logger]);
+    }, [key, table, start, stop, state, failed, logger]);
 
+    const retry = React.useCallback(() => setFailed(null), []);
     const shown = state?.table === table ? state : null;
-    return { window: shown?.window ?? null, rows: shown?.rows ?? rowsOfView(view) };
+    // The error of a read of the rows that show now, the rendered rows that a window holds show
+    const error = failed != null && failed.key === key && (shown == null || shown.key !== key || !holds(shown.window.offset, shown.window.table.numRows, shown.rows, start, stop))
+        ? failed.error
+        : null;
+    return { window: shown?.window ?? null, rows: shown?.rows ?? rowsOfView(view), error, retry };
 }

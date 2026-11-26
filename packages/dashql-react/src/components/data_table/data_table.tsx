@@ -166,7 +166,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
     });
 
     // The rows that show are read in windows around the rendered rows, the core filters and orders them
-    const { window: rowWindow, rows: totalRowCount } = useDataTableWindow(props.model, renderedCells.rowStart, renderedCells.rowStop);
+    const { window: rowWindow, rows: totalRowCount, error: rowsError, retry: retryRows } = useDataTableWindow(props.model, renderedCells.rowStart, renderedCells.rowStop);
     const readRows = props.model.readRows;
 
     // Data row count. Headers are rendered separately via portals
@@ -174,7 +174,9 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
     const hiddenRowCount = totalRowCount - dataRowCount;
     // The table ends with a row: the count of the hidden rows, or the row that shows fewer rows again
     const showFewerRows = hiddenRowCount === 0 ? props.onShowFewerRows : undefined;
-    const hasFooterRow = hiddenRowCount > 0 || showFewerRows != null;
+    // The rows under the grid: a failed read of the rows, the count of the hidden rows or the button that shows fewer
+    const footerRowCount = (rowsError != null ? 1 : 0) + (hiddenRowCount > 0 ? 1 : 0) + (showFewerRows != null ? 1 : 0);
+    const hasFooterRow = footerRowCount > 0;
     // Header configuration
     const headerRowCount = columnHeader === TableColumnHeader.WithColumnPlots ? 2 : 1;
     const visibleColumnGroups = React.useMemo(() => {
@@ -432,7 +434,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
             style={{
                 ...(props.cellBackground ? { '--data_table_bg': props.cellBackground } : {}),
                 // The row of the hidden rows overlaps the bottom border of the last row by a pixel
-                ...(props.fitHeight ? { height: gridContainerHeight + (hasFooterRow ? MORE_ROWS_HEIGHT - 1 : 0) } : {}),
+                ...(props.fitHeight ? { height: gridContainerHeight + footerRowCount * (MORE_ROWS_HEIGHT - 1) } : {}),
             } as React.CSSProperties}
         >
             <div className={styles.grid_container} ref={gridContainerElement} {...columnResize}>
@@ -479,6 +481,13 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
                     gridData={gridData}
                 />
             </div>
+            {rowsError != null && (
+                <TableFooterRow
+                    label={`Failed to read the rows: ${rowsError}. Click to try again.`}
+                    onClick={retryRows}
+                    testId="data-table-rows-failed"
+                />
+            )}
             {hiddenRowCount > 0 && (
                 <TableFooterRow
                     label={`${hiddenRowCount.toLocaleString()} more ${hiddenRowCount === 1 ? 'row' : 'rows'}`}

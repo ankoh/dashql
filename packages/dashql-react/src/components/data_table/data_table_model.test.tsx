@@ -16,14 +16,15 @@ import { DataTable, TableColumnHeader, type CellDetailProps } from './data_table
 
 // The data table on its own: a model of a computation and nothing of a runtime or an app, the way another host shows it
 
-/// A computation of the table 1 with a row number, an ordinal column `id` and a string column `name`
+/// A computation of the table 1 with an ordinal column `id`, a string column `name` and the row numbers last, like
+/// the numbered table of a computation and the windows that the core reads
 function nameTable() {
-    const numbers = tableFromArrays({ rownum: Int32Array.from([1, 2, 3]), id: Int32Array.from([7, 8, 9]) });
+    const numbers = tableFromArrays({ id: Int32Array.from([7, 8, 9]), rownum: Int32Array.from([1, 2, 3]) });
     // Plain text, the fixtures would encode strings as a dictionary
     const table = new arrow.Table({
-        rownum: numbers.getChild('rownum')!,
         id: numbers.getChild('id')!,
         name: vectorFromArray(['alpha', 'beta', 'gamma'], new arrow.Utf8()),
+        rownum: numbers.getChild('rownum')!,
     });
     const columnGroups: ComputationColumnGroup[] = [
         { type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } },
@@ -38,8 +39,8 @@ function nameTable() {
 function largeTable() {
     const rows = 10_000;
     const table = tableFromArrays({
-        rownum: Int32Array.from({ length: rows }, (_, i) => i + 1),
         id: Int32Array.from({ length: rows }, (_, i) => i * 10),
+        rownum: Int32Array.from({ length: rows }, (_, i) => i + 1),
     });
     const columnGroups: ComputationColumnGroup[] = [
         { type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } },
@@ -86,6 +87,26 @@ describe('DataTable', () => {
         expect(offset).toBe(0);
         expect(limit).toBeLessThan(500);
         expect(root.container.textContent).not.toContain('99990');
+    });
+
+    it('shows why a read of the rows failed and reads them again on a click', async () => {
+        const model = nameTable();
+        const read = model.readRows;
+        vi.mocked(read).mockRejectedValueOnce(new Error('the result of the table 1 is not analyzed'));
+        const footerRow = () => root.container.querySelector<HTMLElement>('[data-testid="data-table-rows-failed"]');
+        await render(<DataTable model={model} columnHeader={TableColumnHeader.OnlyColumnName} fillHeight />);
+        // No empty cells without a word: the grid says why it has no rows and reads them no more on its own
+        await waitForRender(() => {
+            expect(footerRow()?.textContent).toContain('the result of the table 1 is not analyzed');
+        });
+        const calls = vi.mocked(read).mock.calls.length;
+        expect(root.container.textContent).not.toContain('alpha');
+        act(() => footerRow()!.click());
+        await waitForRender(() => {
+            expect(root.container.textContent).toContain('alpha');
+        });
+        expect(vi.mocked(read).mock.calls.length).toBe(calls + 1);
+        expect(footerRow()).toBeNull();
     });
 
     it('asks the model to order by a column', async () => {
