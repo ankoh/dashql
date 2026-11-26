@@ -280,6 +280,9 @@ pub fn start_run<H: RunHost>(
 /// The details of a log message
 type Details = Vec<(String, String)>;
 
+/// The visualizations of the outputs of a plan, by node, and the scripts whose visualizations don't decode
+type DecodedVisualizations = (Vec<Option<ScriptVisualization>>, BTreeSet<u32>);
+
 fn detail(key: &str, value: impl Into<String>) -> (String, String) {
     (key.to_string(), value.into())
 }
@@ -570,18 +573,19 @@ impl<H: RunHost> Run<H> {
         Ok(graph)
     }
 
-    /// The visualizations of the outputs of a plan, they must decode, also those of outputs that the run discards. A run
-    /// of the workbook holds back the scripts whose visualizations don't decode instead.
-    fn visualizations(&self, graph: &ExecutionGraphT) -> Result<Vec<Option<ScriptVisualization>>, RunFailure> {
-        let (visualizations, invalid) = Self::decoded_visualizations(graph);
-        if !invalid.is_empty() && !self.tolerant() {
+    /// The visualizations of the outputs of a plan, by node, and the scripts with a visualization that doesn't decode.
+    /// They must decode, also those of outputs that the run discards, a run of the workbook holds back or fails the
+    /// scripts whose visualizations don't decode instead. A run decodes them once per plan.
+    fn visualizations(&self, graph: &ExecutionGraphT) -> Result<DecodedVisualizations, RunFailure> {
+        let decoded = Self::decoded_visualizations(graph);
+        if !decoded.1.is_empty() && !self.tolerant() {
             return Err(RunFailure::error("Invalid captured visualization metadata"));
         }
-        Ok(visualizations)
+        Ok(decoded)
     }
 
     /// The visualizations of the outputs of a plan and the scripts with a visualization that doesn't decode
-    fn decoded_visualizations(graph: &ExecutionGraphT) -> (Vec<Option<ScriptVisualization>>, BTreeSet<u32>) {
+    fn decoded_visualizations(graph: &ExecutionGraphT) -> DecodedVisualizations {
         let mut invalid = BTreeSet::new();
         let visualizations = nodes(graph)
             .iter()
@@ -858,7 +862,8 @@ impl<H: RunHost> Run<H> {
         let finished = self.finished.borrow().clone();
         let scripts: Vec<u32> = (0..self.files.len() as u32).filter(|script| !finished.contains(script)).collect();
         let stoppable = !self.control.cancelled.get();
-        if let Err(failure) = self.read_stored(&graph, &scripts, stoppable).await {
+        let decoded = Self::decoded_visualizations(&graph);
+        if let Err(failure) = self.read_stored(&graph, &decoded, &scripts, stoppable).await {
             self.log(
                 LogLevel::Info,
                 "Reading the stored results of the scripts that the run didn't finish stopped",
@@ -956,12 +961,12 @@ impl<H: RunHost> Run<H> {
         if self.options.local {
             *self.shown.borrow_mut() = Some(graph.clone());
         }
+        let mut decoded = self.visualizations(&graph)?;
         // A run of a shown workbook calls no client function and holds back the scripts that run only on request and
         // those whose visualizations don't decode: its tolerant plan has them all
         let mut held_back: BTreeMap<u32, &'static str> = BTreeMap::new();
         if self.options.local {
-            let (_, invalid) = Self::decoded_visualizations(&graph);
-            held_back.extend(invalid.into_iter().map(|script| (script, "its visualization doesn't decode")));
+            held_back.extend(decoded.1.iter().map(|script| (*script, "its visualization doesn't decode")));
             let dataflow =
                 self.workbook.try_borrow().map_err(|_| RunFailure::error("The workbook is busy"))?.dataflow();
             for (script, flow) in dataflow.scripts.iter().enumerate() {
@@ -981,9 +986,8 @@ impl<H: RunHost> Run<H> {
                 let message = diagnostic.message.clone().unwrap_or_else(|| "The script can't be planned".to_string());
                 refused.entry(diagnostic.script).or_insert(message);
             }
-            let (_, invalid) = Self::decoded_visualizations(&graph);
-            for script in invalid {
-                refused.entry(script).or_insert_with(|| "The visualization of the script doesn't decode".to_string());
+            for script in &decoded.1 {
+                refused.entry(*script).or_insert_with(|| "The visualization of the script doesn't decode".to_string());
             }
         }
         for (script, message) in &refused {
@@ -997,12 +1001,11 @@ impl<H: RunHost> Run<H> {
                 return Err(RunFailure::plan(format!("{target} holds no statement")));
             }
         }
-        let visualizations = self.visualizations(&graph)?;
         self.validate(&graph, true)?;
         self.check_cancelled()?;
         // The keys of the scripts, the stored results that they reuse and the names of the files that they write
         let settling = perf_marks::begin();
-        let settled = self.settle_results(&graph, &visualizations, &held).await;
+        let settled = self.settle_results(&graph, &decoded.0, &held).await;
         perf_marks::end("run:settleResults", || self.workbook_id.clone(), settling);
         let (keys, settled) = settled?;
         let Settled { cached: cached_files, names, .. } = settled;
@@ -1052,6 +1055,7 @@ impl<H: RunHost> Run<H> {
                 return Err(RunFailure::error("Workbook changed during execution"));
             }
             graph = replanned;
+            decoded = self.visualizations(&graph)?;
         }
         // A materialized result is the file of its script already
         let materialized: BTreeSet<u32> = graph.materializations.iter().flatten().map(|m| m.script).collect();
@@ -1199,10 +1203,10 @@ impl<H: RunHost> Run<H> {
             }
             // A script that a run of a shown workbook leaves out shows its stored result
             if local {
-                self.read_stored(&graph, &skipped, true).await?;
+                self.read_stored(&graph, &decoded, &skipped, true).await?;
             }
         }
-        let context = self.plan_context(graph, connection_ids, keys, names, materialized, skip)?;
+        let context = self.plan_context(graph, decoded.0, connection_ids, keys, names, materialized, skip);
         self.run_graph(Rc::new(context)).await
     }
 
@@ -1213,13 +1217,13 @@ impl<H: RunHost> Run<H> {
     async fn read_stored(
         self: &Rc<Self>,
         graph: &ExecutionGraphT,
+        (visualizations, invalid): &DecodedVisualizations,
         scripts: &[u32],
         stoppable: bool,
     ) -> Result<(), RunFailure> {
         if !self.host.has_results() {
             return Ok(());
         }
-        let (visualizations, invalid) = Self::decoded_visualizations(graph);
         // The result node of every script that reads its file, in feed order
         let mut reads: BTreeMap<u32, usize> = BTreeMap::new();
         for (index, node) in nodes(graph).iter().enumerate() {
@@ -1243,7 +1247,7 @@ impl<H: RunHost> Run<H> {
                 self.check_cancelled()?;
             }
             let Some(retained) = retained else { continue };
-            self.serve_cached(graph, script, node, &retained.file, &statements, &visualizations).await?;
+            self.serve_cached(graph, script, node, &retained.file, &statements, visualizations).await?;
             if stoppable {
                 self.cooperate().await?;
             } else {
@@ -1343,18 +1347,19 @@ impl<H: RunHost> Run<H> {
     }
 
     /// What the statements of a plan read
+    #[allow(clippy::too_many_arguments)]
     fn plan_context(
         &self,
         graph: ExecutionGraphT,
+        visualizations: Vec<Option<ScriptVisualization>>,
         connection_ids: Vec<String>,
         keys: Vec<Option<ResultKey>>,
         names: BTreeMap<u32, String>,
         materialized: BTreeSet<u32>,
         skip: BTreeSet<u32>,
-    ) -> Result<PlanContext, RunFailure> {
+    ) -> PlanContext {
         let count = self.files.len();
         let statements = planned_statements(&graph, &self.files, &self.options.run);
-        let visualizations = self.visualizations(&graph)?;
         let mut nodes_of_script: Vec<Vec<usize>> = vec![Vec::new(); count];
         let mut output_nodes: Vec<Option<usize>> = vec![None; count];
         for (index, node) in nodes(&graph).iter().enumerate() {
@@ -1375,7 +1380,7 @@ impl<H: RunHost> Run<H> {
                 }
             }
         }
-        Ok(PlanContext {
+        PlanContext {
             graph,
             connection_ids,
             statements,
@@ -1387,7 +1392,7 @@ impl<H: RunHost> Run<H> {
             names,
             materialized,
             skip,
-        })
+        }
     }
 
     /// Run the nodes of a plan across their connections.
