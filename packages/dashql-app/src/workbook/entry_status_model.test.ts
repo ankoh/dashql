@@ -14,8 +14,6 @@ describe('getQueryStatusText', () => {
         [QueryExecutionStatus.RUNNING, 'Executing query'],
         [QueryExecutionStatus.RECEIVED_FIRST_BATCH, 'Executing query, fetching results'],
         [QueryExecutionStatus.RECEIVED_ALL_BATCHES, 'Executing query, received all results'],
-        [QueryExecutionStatus.PROCESSING_RESULTS, 'Processing results'],
-        [QueryExecutionStatus.PROCESSED_RESULTS, 'Processed results'],
         [QueryExecutionStatus.FAILED, 'Statement execution failed'],
         [QueryExecutionStatus.CANCELLED, 'Statement execution was cancelled'],
         [QueryExecutionStatus.SUCCEEDED, 'Statement executed successfully'],

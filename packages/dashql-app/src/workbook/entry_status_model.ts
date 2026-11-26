@@ -57,10 +57,6 @@ export function getQueryStatusText(status: QueryExecutionStatus): string {
             return 'Executing query, fetching results';
         case QueryExecutionStatus.RECEIVED_ALL_BATCHES:
             return 'Executing query, received all results';
-        case QueryExecutionStatus.PROCESSING_RESULTS:
-            return 'Processing results';
-        case QueryExecutionStatus.PROCESSED_RESULTS:
-            return 'Processed results';
         case QueryExecutionStatus.FAILED:
             return 'Statement execution failed';
         case QueryExecutionStatus.CANCELLED:

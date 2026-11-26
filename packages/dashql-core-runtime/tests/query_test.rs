@@ -141,7 +141,6 @@ fn finished_queries_keep_no_result_of_a_query_that_was_cancelled_or_failed_after
             now: NOW,
         };
         history.apply(received).unwrap();
-        history.apply(QueryExecutionAction::QueryProcessingResults { query_id, now: NOW }).unwrap();
         // The host dropped the computation of the result, the history lets go of the table
         let outcome = history.apply(end).unwrap();
         assert_eq!(outcome.effects, vec![release(query_id)]);
@@ -227,8 +226,6 @@ fn active_queries_move_through_the_execution_statuses_and_become_queued_only_whi
             QueryExecutionAction::QueryProgressUpdated { query_id: 1, progress: progress(), now: 4 },
             QueryExecutionStatus::Running,
         ),
-        (QueryExecutionAction::QueryProcessingResults { query_id: 1, now: 5 }, QueryExecutionStatus::ProcessingResults),
-        (QueryExecutionAction::QueryProcessedResults { query_id: 1, now: 6 }, QueryExecutionStatus::ProcessedResults),
     ];
     for (action, status) in steps {
         let revision = history.revision();
@@ -242,9 +239,7 @@ fn active_queries_move_through_the_execution_statuses_and_become_queued_only_whi
     assert_eq!(metrics.query_sending_started_at, Some(1));
     assert_eq!(metrics.query_queued_started_at, Some(2));
     assert_eq!(metrics.query_running_started_at, Some(3));
-    assert_eq!(metrics.processing_results_started_at, Some(5));
-    assert_eq!(metrics.processed_results_at, Some(6));
-    assert_eq!(metrics.last_updated_at, Some(6));
+    assert_eq!(metrics.last_updated_at, Some(4));
 }
 
 #[test]

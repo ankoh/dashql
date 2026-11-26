@@ -41,10 +41,6 @@ pub enum QueryExecutionStatus {
     ReceivedFirstBatch = 5,
     /// All batches of the result arrived
     ReceivedAllBatches = 6,
-    /// The result is processed, e.g. for a chart
-    ProcessingResults = 7,
-    /// The result is processed
-    ProcessedResults = 8,
     /// The query succeeded
     Succeeded = 9,
     /// The query failed
@@ -122,10 +118,6 @@ pub struct QueryMetrics {
     pub received_last_batch_at: Option<Timestamp>,
     /// When all batches arrived
     pub received_all_batches_at: Option<Timestamp>,
-    /// When processing the result started
-    pub processing_results_started_at: Option<Timestamp>,
-    /// When the result was processed
-    pub processed_results_at: Option<Timestamp>,
     /// When the query succeeded
     pub query_succeeded_at: Option<Timestamp>,
     /// When the query failed
@@ -323,10 +315,6 @@ pub enum QueryExecutionAction {
         metrics: QueryExecutionMetrics,
         now: Timestamp,
     },
-    /// Processing the result started
-    QueryProcessingResults { query_id: QueryId, now: Timestamp },
-    /// The result is processed
-    QueryProcessedResults { query_id: QueryId, now: Timestamp },
     /// The query succeeded
     QuerySucceeded { query_id: QueryId, now: Timestamp },
     /// The query failed, with the stream metrics so far if the connector has them
@@ -348,8 +336,6 @@ impl QueryExecutionAction {
             | QueryExecutionAction::QueryProgressUpdated { query_id, .. }
             | QueryExecutionAction::QueryReceivedBatch { query_id, .. }
             | QueryExecutionAction::QueryReceivedAllBatches { query_id, .. }
-            | QueryExecutionAction::QueryProcessingResults { query_id, .. }
-            | QueryExecutionAction::QueryProcessedResults { query_id, .. }
             | QueryExecutionAction::QuerySucceeded { query_id, .. }
             | QueryExecutionAction::QueryFailed { query_id, .. }
             | QueryExecutionAction::QueryCancelled { query_id, .. }
@@ -528,8 +514,6 @@ impl QueryExecutionHistory {
             | QueryExecutionAction::QueryProgressUpdated { query_id, .. }
             | QueryExecutionAction::QueryReceivedBatch { query_id, .. }
             | QueryExecutionAction::QueryReceivedAllBatches { query_id, .. }
-            | QueryExecutionAction::QueryProcessingResults { query_id, .. }
-            | QueryExecutionAction::QueryProcessedResults { query_id, .. }
             | QueryExecutionAction::QuerySucceeded { query_id, .. }
             | QueryExecutionAction::QueryFailed { query_id, .. }
             | QueryExecutionAction::QueryCancelled { query_id, .. } => *query_id,
@@ -589,16 +573,6 @@ impl QueryExecutionHistory {
                         outcome.effects.push(QueryExecutionEffect::Release { handle: previous.id });
                     }
                 }
-            }
-            QueryExecutionAction::QueryProcessingResults { now, .. } => {
-                query.status = QueryExecutionStatus::ProcessingResults;
-                query.metrics.last_updated_at = Some(now);
-                query.metrics.processing_results_started_at = Some(now);
-            }
-            QueryExecutionAction::QueryProcessedResults { now, .. } => {
-                query.status = QueryExecutionStatus::ProcessedResults;
-                query.metrics.last_updated_at = Some(now);
-                query.metrics.processed_results_at = Some(now);
             }
             QueryExecutionAction::QuerySucceeded { now, .. } => {
                 query.status = QueryExecutionStatus::Succeeded;

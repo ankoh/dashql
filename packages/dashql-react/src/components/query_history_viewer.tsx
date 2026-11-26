@@ -43,8 +43,6 @@ function getStatusLabel(status: QueryExecutionStatus): string {
         case QueryExecutionStatus.RUNNING: return 'running';
         case QueryExecutionStatus.RECEIVED_FIRST_BATCH: return 'receiving';
         case QueryExecutionStatus.RECEIVED_ALL_BATCHES: return 'received';
-        case QueryExecutionStatus.PROCESSING_RESULTS: return 'processing';
-        case QueryExecutionStatus.PROCESSED_RESULTS: return 'processed';
         case QueryExecutionStatus.SUCCEEDED: return 'succeeded';
         case QueryExecutionStatus.FAILED: return 'failed';
         case QueryExecutionStatus.CANCELLED: return 'cancelled';
@@ -74,8 +72,6 @@ function entryToObject(entry: QueryEntry): object {
             receivedFirstBatchAt: iso(m.receivedFirstBatchAt),
             receivedLastBatchAt: iso(m.receivedLastBatchAt),
             receivedAllBatchesAt: iso(m.receivedAllBatchesAt),
-            processingResultsStartedAt: iso(m.processingResultsStartedAt),
-            processedResultsAt: iso(m.processedResultsAt),
             querySucceededAt: iso(m.querySucceededAt),
             queryFailedAt: iso(m.queryFailedAt),
             queryCancelledAt: iso(m.queryCancelledAt),
