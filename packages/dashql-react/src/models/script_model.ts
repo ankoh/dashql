@@ -3,7 +3,7 @@ import * as React from 'react';
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
-import { useDispatch, useOptionalRuntime, useScript, useView } from '../hooks.js';
+import { useDispatch, useOptionalRuntime, useScript, useViewSelector } from '../hooks.js';
 import { useQueryModel, type QueryModel } from './query_model.js';
 
 // The model of a script of a workbook (docs/agents/writing_components.md). A component that shows a script reads the
@@ -43,15 +43,16 @@ export interface ScriptModel {
 type ScriptOperations = Pick<ScriptModel, 'run' | 'cancel' | 'setText' | 'acceptDiff' | 'rejectDiff' | 'setVisSpec'>;
 
 /// The model of a script of a workbook, null while the script is unknown. It renders again when the script, its latest
-/// query or the run of its workbook changes. The operations keep their identity while the script keeps its key, so a
-/// part of a component that takes only some of them doesn't render again with every keystroke.
+/// query or whether a run holds its workbook changes, not with the steps of a run. The operations keep their identity
+/// while the script keeps its key, so a part of a component that takes only some of them doesn't render again with
+/// every keystroke.
 export function useScriptModel(workbookId: string, scriptKey: number | null | undefined): ScriptModel | null {
     const runtime = useOptionalRuntime();
     const script = useScript(scriptKey);
     const query = useQueryModel(script?.latestQueryId ?? null);
-    const run = useView('run', workbookId);
+    // Only whether a run holds the workbook, not the steps of the run
+    const runActive = useViewSelector('run', workbookId, run => run?.state?.busy === true || run?.held != null);
     const dispatch = useDispatch({ workbook: workbookId });
-    const runActive = run?.state?.busy === true || run?.held != null;
     const key = script?.scriptKey ?? null;
     const operations = React.useMemo((): ScriptOperations | null => key == null ? null : {
         run: async options => {
