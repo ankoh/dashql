@@ -300,9 +300,9 @@ impl Workbooks {
             | WorkbookAction::RegisterScriptResult { .. }
             | WorkbookAction::SetExecutionVisualization { .. } => Changed::Scripts { derives: false },
             // The analyses of the scripts
-            WorkbookAction::AnalyzeOutdatedScript { .. } | WorkbookAction::CatalogDidUpdate { .. } => {
-                Changed::Scripts { derives: true }
-            }
+            WorkbookAction::AnalyzeOutdatedScript { .. } => Changed::Scripts { derives: true },
+            // A new catalog only outdates the analyses, the derived view follows once they analyze again
+            WorkbookAction::CatalogDidUpdate { .. } => Changed::Scripts { derives: false },
             _ => Changed::Workbook,
         };
         let outcome =

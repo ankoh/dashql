@@ -102,7 +102,8 @@ that wants the composition would depend on that rather than copy it.
   (`workbook::new_catalog`); script keys are unique in the module.
 - **The rules of the registry are Rust.** An ephemeral workbook that got a script is promoted with a free name, the
   registry of connections learns which workbooks use a connection after every action that can change it, and an
-  announced catalog outdates the analyses of the scripts on it (`CatalogDidUpdate`). Every change of a workbook, also
+  announced catalog outdates the analyses of the scripts on it (`CatalogDidUpdate`), the derived view of their workbook
+  follows once they analyze again. Every change of a workbook, also
   one of a run, settles in `Workbooks::settle`: the writes, the marks of the slices (the scripts and, when analyses
   changed, the derived view, after an editor event once the typing paused for 150 ms; the whole workbook only for a
   change of the workbook), the promotion, the references of

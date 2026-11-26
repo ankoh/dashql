@@ -51,7 +51,7 @@ describe('the perf marks', () => {
         const workbook = rt.createWorkbook(connection.connectionId, 'Marks', false);
         rt.flush();
         perfMarks.setEnabled(true);
-        rt.dispatch({ workbook: workbook.workbookId }, { kind: 'createScript', value: { text: 'select 1', base: 'a' } });
+        const created = rt.dispatch({ workbook: workbook.workbookId }, { kind: 'createScript', value: { text: 'select 1', base: 'a' } });
         rt.flush();
         const recorded = names();
         expect(recorded).toEqual(expect.arrayContaining([
@@ -64,6 +64,17 @@ describe('the perf marks', () => {
         expect(derive.startTime).toBeGreaterThanOrEqual(take.startTime);
         expect(derive.startTime + derive.duration).toBeLessThanOrEqual(take.startTime + take.duration);
         expect((derive.detail as { text: string }).text).toBe(workbook.workbookId);
+
+        // A table of another workbook on the connection outdates the analyses of this one, its derived view follows
+        // once they analyze again
+        const other = rt.createWorkbook(connection.connectionId, 'Other', false);
+        rt.flush();
+        performance.clearMeasures();
+        rt.dispatch({ workbook: other.workbookId }, { kind: 'createScript', value: { text: 'create table t (x int)', base: 't' } });
+        rt.flush();
+        const derived = spans().filter(entry => entry.name === `${perfMarks.PREFIX}planner:derive`).map(entry => (entry.detail as { text: string }).text);
+        expect(derived).toEqual([other.workbookId]);
+        expect(rt.store.get('script', created.id as number)?.analysisOutdated).toBe(true);
 
         // Off, the core records nothing either
         perfMarks.setEnabled(false);
