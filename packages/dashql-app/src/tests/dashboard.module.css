@@ -381,7 +381,7 @@
 .frame {
     width: calc(100% - 40px);
     height: 360px;
-    margin: 0 20px 20px;
+    margin: 20px;
     border: 1px solid var(--color_border);
     border-radius: 6px;
     background: var(--color_bg_card);

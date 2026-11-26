@@ -636,6 +636,26 @@ const RELEASE_MANIFEST = JSON.stringify({
     bundles: [],
 });
 
+/// An error of a page that is none: the browsers report a ResizeObserver whose callbacks change the observed sizes again
+/// as an error event of the window, WebKit's reach Playwright as errors of the page
+export function isBenignPageError(error) {
+    return error.message === 'ResizeObserver loop completed with undelivered notifications.';
+}
+
+/// A console error of a page that is none: WebKit counts released WebGL contexts until they are collected, it warns when
+/// it drops the oldest of them for a new one, e.g. of a terminal (releaseWebglRenderer of browser_shell.ts)
+export function isBenignConsoleError(text) {
+    return text === 'There are too many active WebGL contexts on this page, the oldest context will be lost.'
+        || text === 'WebGL: INVALID_OPERATION: loseContext: context already lost';
+}
+
+/// An error of a page with its name and message: WebKit's stacks only list the frames, some are empty
+export function formatPageError(error) {
+    const header = `${error.name ?? 'Error'}: ${error.message ?? ''}`;
+    if (!error.stack) return header;
+    return error.stack.startsWith(header) ? error.stack : `${header}\n${error.stack}`;
+}
+
 /// Run the tests of the pages, `concurrency` of them at once.
 /// Every test has a browser context of its own, from `newContext(options)`.
 /// Returns the failures in the order of the tests, the seconds of every test, and the V8 coverage of the pages if
@@ -681,9 +701,9 @@ async function runPageTest(newContext, origin, { name, options, test }, { collec
         return route.abort();
     });
     page.on('console', message => {
-        if (message.type() === 'error') errors.push(message.text());
+        if (message.type() === 'error' && !isBenignConsoleError(message.text())) errors.push(message.text());
     });
-    page.on('pageerror', error => errors.push(error.stack ?? error.message));
+    page.on('pageerror', error => { if (!isBenignPageError(error)) errors.push(formatPageError(error)); });
     const profiler = collectCoverage ? await context.newCDPSession(page) : null;
     if (profiler) {
         await profiler.send('Profiler.enable');

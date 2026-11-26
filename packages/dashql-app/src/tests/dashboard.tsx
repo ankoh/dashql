@@ -103,7 +103,9 @@ function summarize(files: Map<string, BrowserTestFileResult>, running: boolean):
 }
 
 function TestDashboard(): React.ReactElement {
-    const [detailsExpanded, setDetailsExpanded] = React.useState(false);
+    // The test driver (?autorun) keeps the frame in the viewport: WebKit gives an iframe outside of it, also one in
+    // a collapsed panel, an animation frame only every 10 seconds
+    const [detailsExpanded, setDetailsExpanded] = React.useState(() => new URLSearchParams(location.search).has('autorun'));
     const [state, setState] = React.useState<DashboardState>({
         activeFile: null,
         files: initialFiles,
@@ -263,14 +265,14 @@ function TestDashboard(): React.ReactElement {
                     </button>
                 </div>
                 <div className={styles.panel_body} id="browser-test-details">
-                    {selected ? <FileDetails file={selected} />
-                        : <div className={styles.empty}>Select a test file to inspect its results.</div>}
                     <iframe
                         className={`${styles.frame} ${state.running ? '' : styles.frame_idle}`}
                         ref={frameRef}
                         src={state.running ? testFrameUrl(state.requestedFiles, state.generation) : 'about:blank'}
                         title="Browser test frame"
                     />
+                    {selected ? <FileDetails file={selected} />
+                        : <div className={styles.empty}>Select a test file to inspect its results.</div>}
                 </div>
                 <div className={styles.panel_bottom_inset} aria-hidden="true" />
             </aside>

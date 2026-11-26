@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path';
 
 const playwright = await import('playwright-core');
 const { mapCoverage, toLcov, toSummary } = await import('./browser_coverage.mjs');
-const { runPageTests } = await import('./browser_page_tests.mjs');
+const { formatPageError, isBenignConsoleError, isBenignPageError, runPageTests } = await import('./browser_page_tests.mjs');
 const { serveBundle } = await import('./static_server.mjs');
 
 const root = resolve(process.argv[2]);
@@ -55,9 +55,9 @@ async function runShard(shard) {
     const page = await (await newContext()).newPage();
     const browserErrors = [];
     page.on('console', message => {
-        if (message.type() === 'error') browserErrors.push(message.text());
+        if (message.type() === 'error' && !isBenignConsoleError(message.text())) browserErrors.push(message.text());
     });
-    page.on('pageerror', error => browserErrors.push(error.stack ?? error.message));
+    page.on('pageerror', error => { if (!isBenignPageError(error)) browserErrors.push(formatPageError(error)); });
     // Precise coverage keeps the counters of the scripts of every test frame alive until we take them at the end
     const profiler = collectCoverage ? await page.context().newCDPSession(page) : null;
     if (profiler) {
