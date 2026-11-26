@@ -28,30 +28,41 @@ export interface ScriptQuery {
     fromCache: boolean;
 }
 
-/// The latest queries of the scripts of a workbook, in the order of the scripts
-export function scriptQueries(workbookScripts: Pick<WorkbookScripts, 'scriptOrder' | 'scriptRefs'>, scripts: ScriptDataMap, connections: ReadonlyMap<string, ConnectionState>, readQuery: (queryId: number) => QueryExecutionState | null): ScriptQuery[] {
-    const queries: ScriptQuery[] = [];
+/// A script with a query, the status reads its latest query
+export interface ScriptLatestQuery {
+    scriptKey: number;
+    name: string;
+    queryId: number;
+}
+
+/// The scripts of a workbook that have a query, in the order of the scripts
+export function scriptsWithQueries(workbookScripts: Pick<WorkbookScripts, 'scriptOrder' | 'scriptRefs'>, scripts: ScriptDataMap): ScriptLatestQuery[] {
+    const latest: ScriptLatestQuery[] = [];
     for (const fileName of workbookScripts.scriptOrder) {
         const scriptKey = workbookScripts.scriptRefs[fileName]?.scriptId;
         const script = scriptKey != null ? scripts[scriptKey] : undefined;
-        const queryId = script?.latestQueryId;
-        if (scriptKey == null || script == null || queryId == null) continue;
-        for (const connection of connections.values()) {
-            // Fakes of connections may leave out the queries
-            const query = connection.queriesActiveOrdered?.includes(queryId) || connection.queriesFinishedOrdered?.includes(queryId) ? readQuery(queryId) : null;
-            if (query == null) continue;
-            queries.push({
-                scriptKey,
-                name: scriptDisplayName(script.fileName),
-                queryId,
-                status: query.status,
-                durationMs: query.metrics.queryDurationMs,
-                error: query.error?.message ?? null,
-                rows: query.metrics.streamMetrics?.totalRowsReceived ?? null,
-                fromCache: query.servedFromCache === true,
-            });
-            break;
-        }
+        if (scriptKey == null || script?.latestQueryId == null) continue;
+        latest.push({ scriptKey, name: scriptDisplayName(script.fileName), queryId: script.latestQueryId });
+    }
+    return latest;
+}
+
+/// The latest queries of the scripts, a query that the runtime no longer holds is left out
+export function scriptQueries(latest: readonly ScriptLatestQuery[], readQuery: (queryId: number) => QueryExecutionState | null): ScriptQuery[] {
+    const queries: ScriptQuery[] = [];
+    for (const { scriptKey, name, queryId } of latest) {
+        const query = readQuery(queryId);
+        if (query == null) continue;
+        queries.push({
+            scriptKey,
+            name,
+            queryId,
+            status: query.status,
+            durationMs: query.metrics.queryDurationMs,
+            error: query.error?.message ?? null,
+            rows: query.metrics.streamMetrics?.totalRowsReceived ?? null,
+            fromCache: query.servedFromCache === true,
+        });
     }
     return queries;
 }
@@ -75,16 +86,20 @@ export function workbookConnectionStatuses(connections: ReadonlyMap<string, Conn
 
 /// The latest queries of the scripts of a workbook, see `scriptQueries`. The component renders again when one of these
 /// queries changes, e.g. with a step of a running query, which the views of the connections leave out.
-function useScriptQueries(workbookScripts: Pick<WorkbookScripts, 'scriptOrder' | 'scriptRefs'>, scripts: ScriptDataMap, connections: ReadonlyMap<string, ConnectionState>): ScriptQuery[] {
+function useScriptQueries(workbookScripts: Pick<WorkbookScripts, 'scriptOrder' | 'scriptRefs'>, scripts: ScriptDataMap): ScriptQuery[] {
     const store = useOptionalRuntime()?.store ?? null;
-    const queryIds = Object.values(scripts).flatMap(script => script.latestQueryId == null ? [] : [script.latestQueryId]).sort((a, b) => a - b).join(',');
+    // The scripts with a query keep their identity while no script gets a new query or another name, e.g. while the
+    // user types
+    const latest = useStable(scriptsWithQueries(workbookScripts, scripts));
     const subscribe = React.useCallback((listener: () => void) => {
-        const unsubscribes = store == null || queryIds.length === 0 ? [] : queryIds.split(',').map(id => store.subscribe('query', Number(id), listener));
+        const unsubscribes = store == null ? [] : latest.map(({ queryId }) => store.subscribe('query', queryId, listener));
         return () => unsubscribes.forEach(unsubscribe => unsubscribe());
-    }, [store, queryIds]);
-    const readQuery = (queryId: number) => (store?.get('query', queryId) ?? null) as QueryExecutionState | null;
+    }, [store, latest]);
     // The JSON of the queries keeps the snapshot while they are unchanged
-    const snapshot = () => JSON.stringify(scriptQueries(workbookScripts, scripts, connections, readQuery));
+    const snapshot = React.useCallback(
+        () => JSON.stringify(scriptQueries(latest, queryId => (store?.get('query', queryId) ?? null) as QueryExecutionState | null)),
+        [store, latest],
+    );
     const json = React.useSyncExternalStore(subscribe, snapshot, snapshot);
     return React.useMemo(() => JSON.parse(json) as ScriptQuery[], [json]);
 }
@@ -265,7 +280,7 @@ export const WorkbookStatusSources = React.memo(function WorkbookStatusSources({
     const scripts = useWorkbookScriptMap(workbookId);
     const execution = useWorkbookExecution(workbookId).state;
     const publish = useCloudPublishStatus(workbookId);
-    const queries = useScriptQueries(workbookScripts, scripts, connectionStates);
+    const queries = useScriptQueries(workbookScripts, scripts);
     const connections = useStable(workbookConnectionStatuses(connectionStates, label));
     const executing = execution?.busy === true;
     const live = React.useMemo(
