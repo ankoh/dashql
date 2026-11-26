@@ -173,9 +173,17 @@ struct Settling<'a> {
     follows: &'a [BTreeSet<u32>],
     /// May the scripts reuse their stored results?
     reuse: bool,
-    /// The scripts that a run of a shown workbook holds back, they keep their stored files
+    /// The scripts that the run leaves out, they keep their stored files
     held: &'a BTreeSet<u32>,
     settled: &'a RefCell<Settled>,
+}
+
+/// Why a run leaves a script out before it runs: the script keeps its stored file, the scripts that follow it don't run
+enum Exclusion {
+    /// A run of a shown workbook holds the script back, for a reason, the script shows its stored result
+    Held(&'static str),
+    /// A run of the workbook can't run the script, it fails with the message
+    Refused(String),
 }
 
 /// A run of a workbook
@@ -962,40 +970,43 @@ impl<H: RunHost> Run<H> {
             *self.shown.borrow_mut() = Some(graph.clone());
         }
         let mut decoded = self.visualizations(&graph)?;
-        // A run of a shown workbook calls no client function and holds back the scripts that run only on request and
-        // those whose visualizations don't decode: its tolerant plan has them all
-        let mut held_back: BTreeMap<u32, &'static str> = BTreeMap::new();
+        // The scripts that the run leaves out. A run of a shown workbook calls no client function and holds back the
+        // scripts that run only on request and those whose visualizations don't decode: its tolerant plan has them all.
+        // A run of the workbook that isn't a shown one refuses the scripts that it can't plan, those whose analysis or
+        // references fail and those whose visualizations don't decode, and runs the others.
+        let mut excluded: BTreeMap<u32, Exclusion> = BTreeMap::new();
         if self.options.local {
-            held_back.extend(decoded.1.iter().map(|script| (*script, "its visualization doesn't decode")));
+            let undecodable = "its visualization doesn't decode";
+            excluded.extend(decoded.1.iter().map(|script| (*script, Exclusion::Held(undecodable))));
             let dataflow =
                 self.workbook.try_borrow().map_err(|_| RunFailure::error("The workbook is busy"))?.dataflow();
             for (script, flow) in dataflow.scripts.iter().enumerate() {
                 if flow.manual {
-                    held_back.insert(script as u32, "runs only on request");
+                    excluded.insert(script as u32, Exclusion::Held("runs only on request"));
                 }
             }
             for node in nodes(&graph).iter().filter(|node| node.client_function_call.is_some()) {
-                held_back.insert(node.script, "calls a client function");
+                excluded.insert(node.script, Exclusion::Held("calls a client function"));
             }
-        }
-        // A run of the workbook that isn't a shown one fails the scripts that it can't plan, those whose analysis or
-        // references fail and those whose visualizations don't decode, and runs the others
-        let mut refused: BTreeMap<u32, String> = BTreeMap::new();
-        if self.tolerant() && !self.options.local {
+        } else if self.tolerant() {
             for diagnostic in graph.diagnostics.iter().flatten().filter(|d| d.error && d.script != NONE) {
                 let message = diagnostic.message.clone().unwrap_or_else(|| "The script can't be planned".to_string());
-                refused.entry(diagnostic.script).or_insert(message);
+                excluded.entry(diagnostic.script).or_insert(Exclusion::Refused(message));
             }
             for script in &decoded.1 {
-                refused.entry(*script).or_insert_with(|| "The visualization of the script doesn't decode".to_string());
+                let message = "The visualization of the script doesn't decode";
+                excluded.entry(*script).or_insert_with(|| Exclusion::Refused(message.to_string()));
             }
         }
-        for (script, message) in &refused {
-            self.fail_script(*script, RunFailure::plan(message.clone()));
-            self.finished.borrow_mut().insert(*script);
-            self.host.script_event(&self.file(*script), &ScriptEvent::Failed { failure: RunFailure::plan(message) });
+        for (script, exclusion) in &excluded {
+            if let Exclusion::Refused(message) = exclusion {
+                self.fail_script(*script, RunFailure::plan(message.clone()));
+                self.finished.borrow_mut().insert(*script);
+                let failure = RunFailure::plan(message.clone());
+                self.host.script_event(&self.file(*script), &ScriptEvent::Failed { failure });
+            }
         }
-        let held: BTreeSet<u32> = held_back.keys().chain(refused.keys()).copied().collect();
+        let held: BTreeSet<u32> = excluded.keys().copied().collect();
         if let (PlanRun::Script(target), Some(targets)) = (&self.options.run, targets.as_deref()) {
             if targets.iter().all(|t| !nodes(&graph).iter().any(|node| node.script == *t)) {
                 return Err(RunFailure::plan(format!("{target} holds no statement")));
@@ -1077,14 +1088,26 @@ impl<H: RunHost> Run<H> {
             .map(|connection| connection.connection_id.clone().unwrap_or_default())
             .collect();
         let mut skip = skipped_nodes(&graph, &connection_ids, &held, |connection| host.can_run(connection));
-        // The scripts that follow a script that failed before the run don't run either, they show why
-        let refused_set: BTreeSet<u32> = refused.keys().copied().collect();
-        let blocked = blocking_scripts(&graph, &skipped_nodes(&graph, &connection_ids, &refused_set, |_| true));
-        for (script, by) in &blocked {
-            if refused.contains_key(script) || held_back.contains_key(script) {
+        // The scripts that follow a refused script don't run either, they show why: blocked by the first refused script
+        // in feed order that they follow. The scripts follow earlier ones only.
+        let follows_of_scripts = script_follows(&graph, count);
+        let mut blocked: BTreeMap<u32, u32> = BTreeMap::new();
+        for (script, earlier) in follows_of_scripts.iter().enumerate() {
+            let script = script as u32;
+            if excluded.contains_key(&script) {
                 continue;
             }
-            let message = refused.get(by).cloned().unwrap_or_default();
+            let refused_by = |earlier: &u32| match excluded.get(earlier) {
+                Some(Exclusion::Refused(_)) => Some(*earlier),
+                _ => blocked.get(earlier).copied(),
+            };
+            if let Some(by) = earlier.iter().filter_map(refused_by).min() {
+                blocked.insert(script, by);
+            }
+        }
+        for (script, by) in &blocked {
+            let Some(Exclusion::Refused(message)) = excluded.get(by) else { continue };
+            let message = message.clone();
             self.host.script_event(&self.file(*script), &ScriptEvent::Blocked { by: self.file(*by), message });
         }
         // The scripts that run, with the scripts that they follow
@@ -1094,7 +1117,7 @@ impl<H: RunHost> Run<H> {
                 follows.entry(node.script).or_default();
             }
         }
-        for (script, earlier) in script_follows(&graph, count).into_iter().enumerate() {
+        for (script, earlier) in follows_of_scripts.into_iter().enumerate() {
             if let Some(set) = follows.get_mut(&(script as u32)) {
                 set.extend(earlier);
             }
@@ -1147,8 +1170,8 @@ impl<H: RunHost> Run<H> {
         for node in &skip {
             if let Some(node) = nodes(&graph).get(*node as usize) {
                 // A script that failed or follows one that failed is no skip that needs a connection
-                let failed = refused.contains_key(&node.script)
-                    || (blocked.contains_key(&node.script) && !held_back.contains_key(&node.script));
+                let failed = matches!(excluded.get(&node.script), Some(Exclusion::Refused(_)))
+                    || blocked.contains_key(&node.script);
                 if !skipped.contains(&node.script) && !failed {
                     skipped.push(node.script);
                 }
@@ -1171,7 +1194,7 @@ impl<H: RunHost> Run<H> {
             // Why a script didn't use a stored result, with the key it looked for
             let reason = |index: u32| {
                 let connection = self.connection_of(index);
-                if let Some(reason) = held_back.get(&index) {
+                if let Some(Exclusion::Held(reason)) = excluded.get(&index) {
                     return reason.to_string();
                 }
                 if failed_setups.contains(connection) {
@@ -1967,42 +1990,4 @@ fn same_keyed_scripts(first: &ExecutionGraphT, next: &ExecutionGraphT) -> bool {
 /// The path of a materialization
 fn graph_path(graph: &ExecutionGraphT, index: u32) -> Option<String> {
     graph.materializations.as_ref()?.get(index as usize).map(|m| m.path.clone().unwrap_or_default())
-}
-
-/// The scripts of the nodes that follow a failure, each with the script that it follows: the first script in feed order
-/// whose failure skips one of its nodes. `skipped` are the nodes that a failure of scripts skips, theirs included.
-fn blocking_scripts(graph: &ExecutionGraphT, skipped: &BTreeSet<u32>) -> BTreeMap<u32, u32> {
-    let all = nodes(graph);
-    let mut predecessors: Vec<Vec<u32>> = vec![Vec::new(); all.len()];
-    for edge in edges(graph) {
-        if let Some(list) = predecessors.get_mut(edge.to as usize) {
-            list.push(edge.from);
-        }
-    }
-    // The failed script of a skipped node: the script of its first skipped predecessor that failed, found by following
-    // the skipped predecessors back to a node without one
-    let mut by: BTreeMap<u32, u32> = BTreeMap::new();
-    for &node in skipped {
-        let Some(script) = all.get(node as usize).map(|n| n.script) else { continue };
-        let mut cursor = node;
-        let mut seen = BTreeSet::new();
-        while seen.insert(cursor) {
-            let next = predecessors
-                .get(cursor as usize)
-                .into_iter()
-                .flatten()
-                .copied()
-                .filter(|p| skipped.contains(p))
-                .find(|p| all.get(*p as usize).is_some_and(|n| n.script != script) || *p < cursor);
-            match next {
-                Some(next) => cursor = next,
-                None => break,
-            }
-        }
-        let origin = all.get(cursor as usize).map(|n| n.script).unwrap_or(script);
-        if origin != script {
-            by.entry(script).or_insert(origin);
-        }
-    }
-    by
 }
