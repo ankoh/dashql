@@ -1,5 +1,5 @@
-import { realpathSync, writeFileSync } from 'node:fs';
-import { availableParallelism } from 'node:os';
+import { mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
+import { availableParallelism, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const playwright = await import('playwright-core');
@@ -30,15 +30,29 @@ const pageTestsAlongside = shardCount > 1;
 const pageTestConcurrency = pageTestsAlongside ? Math.ceil(shardCount / 2) : 1;
 
 const server = await serveBundle(root);
-const browser = await browserType.launch({
+const launchOptions = {
     // Firefox resolves XPCOM resources relative to the physical app bundle, not a runfiles symlink.
     executablePath: realpathSync(executablePath),
     headless: true,
-});
+};
+// The ephemeral contexts of WebKit have no OPFS, navigator.storage.getDirectory() fails and Hyper never starts. A
+// context of WebKit is a persistent one with a profile of its own instead, a browser process per context.
+const persistentContexts = browserName === 'webkit';
+const browser = persistentContexts ? null : await browserType.launch(launchOptions);
+const contexts = [];
+
+/// A new browser context, isolated from the others like a context of Chromium
+async function newContext(options = {}) {
+    const context = persistentContexts
+        ? await browserType.launchPersistentContext(mkdtempSync(join(process.env.TEST_TMPDIR ?? tmpdir(), 'profile-')), { ...launchOptions, ...options })
+        : await browser.newContext(options);
+    contexts.push(context);
+    return context;
+}
 
 /// Run the test files of a shard on a page of its own
 async function runShard(shard) {
-    const page = await (await browser.newContext()).newPage();
+    const page = await (await newContext()).newPage();
     const browserErrors = [];
     page.on('console', message => {
         if (message.type() === 'error') browserErrors.push(message.text());
@@ -97,7 +111,7 @@ try {
     // A run of a single test file leaves out the pages
     const runPages = async () => requestedFile
         ? { durations: {}, failures: [], scriptCoverages: [] }
-        : await runPageTests(browser, server.url, { collectCoverage, concurrency: pageTestConcurrency, outputs });
+        : await runPageTests(newContext, server.url, { collectCoverage, concurrency: pageTestConcurrency, outputs });
     const [shards, pages] = pageTestsAlongside
         ? await Promise.all([runShards(), runPages()])
         : [await runShards(), await runPages()];
@@ -146,6 +160,7 @@ try {
     if (pages.failures.length > 0) console.error(`\nPage tests:\n${pages.failures.join('\n\n')}`);
     if (summary.status !== 'passed' || browserErrors.length > 0) process.exitCode = 1;
 } finally {
-    await browser.close();
+    await Promise.all(contexts.map(context => context.close()));
+    await browser?.close();
     await server.close();
 }

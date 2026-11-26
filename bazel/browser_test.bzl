@@ -1,9 +1,10 @@
-"""The browser tests: a driver of Playwright that runs a bundle in Chromium or Firefox."""
+"""The browser tests: a driver of Playwright that runs a bundle in Chromium, Firefox or WebKit."""
 
 load("@aspect_rules_js//js:defs.bzl", "js_test")
-load(":playwright.bzl", "FIREFOX_EXECUTABLES")
+load(":playwright.bzl", "FIREFOX_EXECUTABLES", "WEBKIT_EXECUTABLE")
 
 _FIREFOX = "//bazel:playwright_firefox"
+_WEBKIT = "//bazel:playwright_webkit"
 
 # The files of a browser, the path of its executable per OS and the variables that it needs
 _BROWSERS = {
@@ -20,6 +21,11 @@ _BROWSERS = {
         },
         env = {"MOZ_DISABLE_CONTENT_SANDBOX": "1"},
     ),
+    "webkit": struct(
+        files = [_WEBKIT],
+        executable = {"//conditions:default": "$(rootpath {})/{}".format(_WEBKIT, WEBKIT_EXECUTABLE)},
+        env = {},
+    ),
 }
 
 def browser_test(name, browser, bundle, entry_point, env = {}, data = [], tags = []):
@@ -29,7 +35,7 @@ def browser_test(name, browser, bundle, entry_point, env = {}, data = [], tags =
 
     Args:
         name: The name of the test
-        browser: chromium or firefox
+        browser: chromium, firefox or webkit
         bundle: The bundle that the driver serves, its first argument
         entry_point: The driver
         env: More variables of the test

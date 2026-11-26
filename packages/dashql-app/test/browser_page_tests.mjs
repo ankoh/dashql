@@ -430,9 +430,10 @@ const findDragRegionErrors = page => page.evaluate(() => {
 });
 
 /// The bars at the top of the window drag it, also when no-drag content scrolled behind them.
-/// Firefox knows neither app regions nor reading-flow.
+/// Firefox and WebKit know neither app regions nor reading-flow. A persistent context of WebKit has no browser(), the
+/// driver names the browser instead.
 async function testAppDragRegions(page, navigate) {
-    if (page.context().browser().browserType().name() !== 'chromium') return;
+    if ((process.env.DASHQL_BROWSER ?? 'chromium') !== 'chromium') return;
     await navigate('/');
     // 200 lines but one column, the analysis of a result with 200 columns took longer than the test on CI
     await sendFromComposer(page, `select\n${Array.from({ length: 200 }, (_, i) => i).join(' +\n')} as total;`);
@@ -636,16 +637,16 @@ const RELEASE_MANIFEST = JSON.stringify({
 });
 
 /// Run the tests of the pages, `concurrency` of them at once.
-/// Every test has a browser context of its own.
+/// Every test has a browser context of its own, from `newContext(options)`.
 /// Returns the failures in the order of the tests, the seconds of every test, and the V8 coverage of the pages if
 /// `collectCoverage` is set.
-export async function runPageTests(browser, origin, { collectCoverage, concurrency = 1, outputs }) {
+export async function runPageTests(newContext, origin, { collectCoverage, concurrency = 1, outputs }) {
     const results = new Array(PAGE_TESTS.length);
     let next = 0;
     const lane = async () => {
         while (next < PAGE_TESTS.length) {
             const index = next++;
-            results[index] = await runPageTest(browser, origin, PAGE_TESTS[index], { collectCoverage, outputs });
+            results[index] = await runPageTest(newContext, origin, PAGE_TESTS[index], { collectCoverage, outputs });
         }
     };
     await Promise.all(Array.from({ length: Math.max(1, concurrency) }, lane));
@@ -657,11 +658,11 @@ export async function runPageTests(browser, origin, { collectCoverage, concurren
 }
 
 /// Run a test of a page in a browser context of its own
-async function runPageTest(browser, origin, { name, options, test }, { collectCoverage, outputs }) {
+async function runPageTest(newContext, origin, { name, options, test }, { collectCoverage, outputs }) {
     const startedAt = performance.now();
     const scriptCoverages = [];
     let failure = null;
-    const context = await browser.newContext(options);
+    const context = await newContext(options);
     await context.addInitScript(() => {
         const getContext = HTMLCanvasElement.prototype.getContext;
         HTMLCanvasElement.prototype.getContext = function (kind, ...args) {

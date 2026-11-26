@@ -33,6 +33,9 @@ jobs:
                     libayatana-appindicator3-dev \
                     librsvg2-dev
 
+            # Every browser suite runs here, also those in WebKit
+            - uses: ./.github/actions/install-webkit-libraries
+
             - name: Setup GitHub credentials
               uses: ./.github/actions/setup-github-credentials
 

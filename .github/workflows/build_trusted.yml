@@ -172,14 +172,49 @@ jobs:
             - name: Test Everything
               shell: bash
               run: |
-                # The browser suites run in Firefox here and in Chromium in the other Linux job, each run takes minutes
+                # The browser suites run in Firefox here, in Chromium in the release job and in WebKit in a job of their
+                # own, each run takes minutes
                 bazel test --config=fastbuild \
                     --build_tests_only \
                     --test_output=errors \
                     --test_summary=detailed \
                     -- \
                     //... -//tests/agents/... \
-                    -//packages/dashql-app:test_chromium -//packages/dashql/test/browser:test_chromium
+                    -//packages/dashql-app:test_chromium -//packages/dashql/test/browser:test_chromium \
+                    -//packages/dashql-app:test_webkit -//packages/dashql/test/browser:test_webkit
+
+    linux_webkit:
+        name: Linux WebKit
+        runs-on: ubuntu-26.04
+        needs: [version, core_wasm_fastbuild]
+        env:
+            DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  submodules: 'recursive'
+                  fetch-depth: 0
+                  ref: ${{ inputs.commit || github.sha }}
+
+            - uses: ./.github/actions/setup-ubuntu-mirror
+
+            - uses: ./.github/actions/install-webkit-libraries
+
+            - name: Setup Bazel
+              uses: ./.github/actions/setup-bazel
+              with:
+                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
+                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
+                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
+
+            - name: Test in WebKit
+              shell: bash
+              run: |
+                # The browser suites in the WebKit of Playwright, the engine of Safari
+                bazel test --config=fastbuild \
+                    --test_output=errors \
+                    --test_summary=detailed \
+                    //packages/dashql-app:test_webkit //packages/dashql/test/browser:test_webkit
 
     agent_integration:
         name: Agent Integration
@@ -281,14 +316,16 @@ jobs:
             - name: Test Web App
               shell: bash
               run: |
-                # The browser suites run in Chromium here and in Firefox in the other Linux job, each run takes minutes
+                # The browser suites run in Chromium here, in Firefox in the fastbuild job and in WebKit in a job of their
+                # own, each run takes minutes
                 bazel test --config=release \
                     --build_tests_only \
                     --test_output=errors \
                     --test_summary=detailed \
                     -- \
                     //... -//tests/agents/... \
-                    -//packages/dashql-app:test_firefox -//packages/dashql/test/browser:test_firefox
+                    -//packages/dashql-app:test_firefox -//packages/dashql/test/browser:test_firefox \
+                    -//packages/dashql-app:test_webkit -//packages/dashql/test/browser:test_webkit
 
             # Kept as long as the npm and Electron packages: a deploy that waits for npm (deploy_gate in publish.yml)
             # can be re-run days later and takes everything from this run

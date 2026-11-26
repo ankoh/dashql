@@ -123,6 +123,7 @@ use_repo(npm, "npm")
 playwright = use_repo_rule("//bazel:playwright.bzl", "playwright_repository")
 playwright(name = "playwright_chromium", browser = "chromium")
 playwright(name = "playwright_firefox", browser = "firefox")
+playwright(name = "playwright_webkit", browser = "webkit")
 
 core_deps = use_extension("//bazel:core_dependencies.bzl", "dashql_core_dependencies")
 

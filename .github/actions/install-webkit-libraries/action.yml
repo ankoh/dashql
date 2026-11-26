@@ -1,0 +1,67 @@
+name: 'Install WebKit libraries'
+description: 'Install the system libraries that the WebKit of Playwright links on Ubuntu 26.04, for the browser tests in WebKit'
+
+# The build of WebKit for Ubuntu 26.04 (bazel/playwright.bzl) bundles WebKit itself but links these libraries of the
+# system, some only when it loads them (libGLESv2). The list of `playwright install-deps webkit` for ubuntu26.04 in
+# playwright-core (nativeDeps), with libsoup-3.0-0, which it lists for the tools, and libwebpmux3, which the build links
+# but the list misses; compare it on a bump of playwright-core.
+runs:
+  using: 'composite'
+  steps:
+    - name: Install WebKit libraries
+      shell: bash
+      run: |
+          sudo apt-get install -y \
+            gstreamer1.0-libav \
+            gstreamer1.0-plugins-bad \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good \
+            libatk-bridge2.0-0t64 \
+            libatk1.0-0t64 \
+            libatomic1 \
+            libavif16 \
+            libcairo-gobject2 \
+            libcairo2 \
+            libdbus-1-3 \
+            libdrm2 \
+            libenchant-2-2 \
+            libepoxy0 \
+            libevent-2.1-7t64 \
+            libflite1 \
+            libfontconfig1 \
+            libfreetype6 \
+            libgbm1 \
+            libgdk-pixbuf-2.0-0 \
+            libgles2 \
+            libglib2.0-0t64 \
+            libgstreamer-gl1.0-0 \
+            libgstreamer-plugins-bad1.0-0 \
+            libgstreamer-plugins-base1.0-0 \
+            libgstreamer1.0-0 \
+            libgtk-4-1 \
+            libharfbuzz-icu0 \
+            libharfbuzz0b \
+            libhyphen0 \
+            libicu78 \
+            libjpeg-turbo8 \
+            liblcms2-2 \
+            libmanette-0.2-0 \
+            libopus0 \
+            libpango-1.0-0 \
+            libpangocairo-1.0-0 \
+            libpng16-16t64 \
+            libsecret-1-0 \
+            libsoup-3.0-0 \
+            libvpx12 \
+            libwayland-client0 \
+            libwayland-egl1 \
+            libwayland-server0 \
+            libwebp7 \
+            libwebpdemux2 \
+            libwebpmux3 \
+            libwoff1 \
+            libx11-6 \
+            libx264-165 \
+            libxkbcommon0 \
+            libxml2-16 \
+            libxslt1.1

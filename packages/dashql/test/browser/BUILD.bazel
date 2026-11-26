@@ -61,5 +61,12 @@ browser_test(
     entry_point = "browser_test_driver.mjs",
 )
 
+browser_test(
+    name = "test_webkit",
+    browser = "webkit",
+    bundle = ":bundle",
+    entry_point = "browser_test_driver.mjs",
+)
+
 # ESLint with the rules of the root eslint.config.mjs, see docs/agents/build_bazel_targets.md
 eslint_test()

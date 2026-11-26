@@ -282,8 +282,8 @@ def update_dashql_datasets(filepath: Path, workspace: Path, force: bool = False)
 # ---------------------------------------------------------------------------
 #
 # The browsers must be the builds that the playwright-core of package.json expects,
-# which it lists in its browsers.json. Pin that version (Chromium) and revision
-# (Firefox) and recompute the hash of every platform archive.
+# which it lists in its browsers.json. Pin that version (Chromium) and revisions
+# (Firefox, WebKit) and recompute the hash of every platform archive.
 
 
 def _playwright_browsers(workspace: Path) -> dict:
@@ -315,13 +315,17 @@ def update_playwright(filepath: Path, workspace: Path, force: bool = False) -> N
     browsers = _playwright_browsers(workspace)
     version = browsers["chromium-headless-shell"]["browserVersion"]
     revision = browsers["firefox"]["revision"]
+    webkit_revision = browsers["webkit"]["revision"]
     content = filepath.read_text()
     content = re.sub(r'^_CHROMIUM_VERSION = "[^"]+"', f'_CHROMIUM_VERSION = "{version}"', content, flags=re.MULTILINE)
     content = re.sub(r'^_FIREFOX_REVISION = "[^"]+"', f'_FIREFOX_REVISION = "{revision}"', content, flags=re.MULTILINE)
+    content = re.sub(r'^_WEBKIT_REVISION = "[^"]+"', f'_WEBKIT_REVISION = "{webkit_revision}"', content, flags=re.MULTILINE)
     chromium = f"https://cdn.playwright.dev/builds/cft/{version}/"
     content = _update_playwright_hashes(content, "_CHROMIUM_PLATFORMS", lambda archive: chromium + archive)
     firefox = f"https://cdn.playwright.dev/builds/firefox/{revision}/"
     content = _update_playwright_hashes(content, "_FIREFOX_PLATFORMS", lambda archive: firefox + archive)
+    webkit = f"https://cdn.playwright.dev/builds/webkit/{webkit_revision}/"
+    content = _update_playwright_hashes(content, "_WEBKIT_PLATFORMS", lambda archive: webkit + archive)
     filepath.write_text(content)
     print("Done.")
 

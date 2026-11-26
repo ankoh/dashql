@@ -363,6 +363,14 @@ browser_test(
     entry_point = "test/browser_test_driver.mjs",
     tags = BROWSER_TEST_TAGS,
 )
+browser_test(
+    name = "test_webkit",
+    browser = "webkit",
+    bundle = ":pages",
+    data = BROWSER_TEST_DATA,
+    entry_point = "test/browser_test_driver.mjs",
+    tags = BROWSER_TEST_TAGS,
+)
 
 # Line coverage of the app sources in the browser tests, published at https://coverage.dashql.app.
 # Writes coverage.dat (LCOV) and coverage_summary.txt to the undeclared test outputs.

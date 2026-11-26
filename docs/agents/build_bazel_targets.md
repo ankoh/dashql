@@ -124,7 +124,7 @@ bazel test //...
 | `//packages/dashql-core-runtime:planner_validation_hyper_test` | Execute the planned SQL of the planner snapshots with script references in Hyper |
 | `//extensions/d360-api:all` | The Data 360 extension: `clfn/spec/*.yaml` generates `spec.json` and the documents, and the core reads the spec, see `extensions/d360-api/clfn/docs/overview.md`. `bazel run //extensions/d360-api:update` regenerates the documents |
 | `//packages/dashql:all` | The tests of `@akohn/dashql` in Node, its type checks, the boundary test of its folders, and the package on npm: tarball consumer and Node smoke tests |
-| `//packages/dashql/test/browser:all` | The tests of the bindings in Chromium and Firefox, and the bindings of the package on npm with a browser worker |
+| `//packages/dashql/test/browser:all` | The tests of the bindings in Chromium, Firefox and WebKit, and the bindings of the package on npm with a browser worker |
 | `//tests/hyper:smoke_test` | Native Tableau Hyper API integration test |
 | `//packages/dashql-native:test` | Electron host unit tests |
 | `//packages/dashql-cli:all` | `dashql`: the command line, the session file, the calls against a fake server of the app with their streamed answers and exit codes, the usage and the guide; Clippy with the safety lints and rustfmt |
@@ -149,6 +149,7 @@ bazel test //...
 | `//packages/<package>:eslint_test` | ESLint of the TypeScript and JavaScript of the package with the root `eslint.config.mjs`, every finding fails, see "ESLint" |
 | `//packages/dashql-app:test_chromium` | Web app tests in Chromium |
 | `//packages/dashql-app:test_firefox` | Web app tests in Firefox |
+| `//packages/dashql-app:test_webkit` | Web app tests in the WebKit of Playwright, the engine of Safari. On Linux it links libraries of the system, see "Browser Tests" |
 | `//packages/dashql-app:coverage_chromium` | Line coverage of the app sources in the Chromium tests (manual), published at [coverage.dashql.app](https://coverage.dashql.app) |
 | `//packages/dashql-slack:all` | The Slack app (a Cloudflare Worker): type check against the WebWorker lib, and the events against a fake Slack API in Node. Deployed with `wrangler deploy --env <channel>`, see `packages/dashql-slack/README.md` |
 | `//packages/dashql-mcp:all` | The MCP server (a Cloudflare Worker with an MCP App that frames `/embed`): type check against the WebWorker lib, and the Worker in Node with the client of the MCP SDK. Deployed with `wrangler deploy --env <channel>`, see `packages/dashql-mcp/README.md` |
@@ -181,7 +182,7 @@ bazel run //:trino [-- --port 8080]
 
 ### Browser Tests
 
-`test_chromium` and `test_firefox` split the test files over several browser pages that run at the same time, one page
+`test_chromium`, `test_firefox` and `test_webkit` split the test files over several browser pages that run at the same time, one page
 per four cores and at most four. Every page has its own browser context and Hyper. `coverage_chromium` stays on one page.
 `getBrowserTestShard` in `packages/dashql-app/src/tests/test_modules.ts` picks the files of a page, so a test can run
 after any other test file: tests have to clean up the globals they set. Its `SLOW_TEST_FILE_SECONDS` balance the pages,
@@ -189,8 +190,12 @@ refresh them from `browser_test_summary.json` in the test outputs when a file ge
 page tests (below) run next to them, half as many at once. A suite claims twelve cores (the `cpu:12` tag of
 `BROWSER_TEST_TAGS` in its `BUILD.bazel`), so two suites don't share a host with sixteen; Bazel runs it alone on a smaller
 host. A CI runner with four cores runs one page at a time, then the page tests one by one: two pages on four cores timed
-tests out. The Linux jobs of `build_trusted.yml` split the browsers, the fastbuild job runs the suites in Firefox and the
-release job in Chromium; the job of pull requests runs both.
+tests out. The Linux jobs of `build_trusted.yml` split the browsers, the fastbuild job runs the suites in Firefox, the
+release job in Chromium and a job of their own in WebKit; the job of pull requests runs all three.
+
+The WebKit of Playwright is built per OS release (`_WEBKIT_PLATFORMS` in `bazel/playwright.bzl`): the build for Ubuntu
+26.04, and those for macOS 15 and 26. On Linux it bundles WebKit but links libraries of the system, which
+`.github/actions/install-webkit-libraries` installs; locally run its `apt-get install` once.
 
 ```bash
 # Choose the number of pages
