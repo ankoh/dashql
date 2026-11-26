@@ -250,9 +250,9 @@ that wants the composition would depend on that rather than copy it.
   the computations starts before the query succeeds, so the computation shows the result at once, and runs on after it
   (`ExecutorHost::analyze_result`). Nothing waits for the analysis, neither the caller nor a run of a workbook; its
   steps show on the computation. An analysis that fails or is stopped leaves the query succeeded and the computation
-  with what it computed, the log has a warning of a failure. A cancel of the query stops the analysis
-  (`ComputeService::stop_analysis`), a result that a later one supersedes loses its computation and with it the
-  analysis. `previewResult` waits for the system columns of an analysis that runs. The history applies the start and
+  with what it computed, the log has a warning of a failure. The analysis runs with the token of the query
+  (`ComputeService::analyze_table`), so a cancel of the query stops it; a result that a later one supersedes loses its
+  computation and with it the analysis. `previewResult` waits for the system columns of an analysis that runs. The history applies the start and
   the end of a query as urgent changes, the rest with the next frame (see
   [Changes and the flush](dashql_runtime.md#changes-and-the-flush)). It decides the latest result of an owner and reports the superseded queries; the runtime deletes their computations. A query that
   was cancelled or failed keeps no result in the history.

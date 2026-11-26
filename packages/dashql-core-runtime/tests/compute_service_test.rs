@@ -23,6 +23,7 @@ use dashql_core_runtime::compute::types::{
 use dashql_core_runtime::compute::{ComputationAction, ComputationEffect, ComputationOutcome, SearchKind};
 use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
+use dashql_core_runtime::http::CancellationToken;
 use dashql_core_runtime::settings::RuntimeSettings;
 
 // The executor
@@ -383,6 +384,7 @@ impl Setup {
             Some("connection".into()),
             None,
             AnalyzeTableOptions::default(),
+            CancellationToken::new(),
         );
         let output = self.run(analysis);
         let output = output.borrow_mut().take();
@@ -494,8 +496,9 @@ fn a_result_without_columns_has_nothing_to_analyze() {
     let setup = setup(analysis_answer);
     let empty = ResultTable::try_new(Arc::new(arrow_schema::Schema::empty()), Vec::new()).unwrap();
     let handles = setup.analysis_handles();
-    let output =
-        setup.run(setup.service.analyze_table(1, shape(&empty), handles, None, None, AnalyzeTableOptions::default()));
+    let stop = CancellationToken::new();
+    let analysis = setup.service.analyze_table(1, shape(&empty), handles, None, None, Default::default(), stop);
+    let output = setup.run(analysis);
     assert!(matches!(output.borrow().as_ref(), Some(Ok(()))));
     assert!(setup.service.read(|state| state.computation(1).is_none()));
     assert!(setup.database.borrow().calls.is_empty());
@@ -729,6 +732,7 @@ fn deleting_a_computation_cancels_its_runs_and_drops_its_data_frames() {
         None,
         None,
         AnalyzeTableOptions::default(),
+        CancellationToken::new(),
     ));
     assert!(analysis.borrow().is_none());
 
@@ -842,6 +846,7 @@ fn searches_run_once_the_data_frame_is_there() {
         None,
         None,
         AnalyzeTableOptions::default(),
+        CancellationToken::new(),
     ));
 
     // The searches wait for the data frame with the system columns
@@ -926,13 +931,18 @@ fn previews_the_first_rows_of_a_result_from_its_data_frame() {
 }
 
 impl Setup {
-    /// Start an analysis of the result of the tests whose system columns wait for the returned sender
-    fn start_held_analysis(&self) -> (Sender<()>, Rc<RefCell<Option<Result<()>>>>) {
+    /// Start an analysis of the result of the tests that `stop` stops
+    fn start_analysis(&self, stop: &CancellationToken) -> impl Future<Output = Result<()>> + 'static {
+        let handles = self.analysis_handles();
+        let options = AnalyzeTableOptions::default();
+        self.service.analyze_table(1, shape(&result()), handles, None, None, options, stop.clone())
+    }
+
+    /// Start an analysis whose system columns wait for the returned sender
+    fn start_held_analysis(&self, stop: &CancellationToken) -> (Sender<()>, Rc<RefCell<Option<Result<()>>>>) {
         let (release, gate): (Sender<()>, Receiver<()>) = oneshot();
         self.database.borrow_mut().gates.insert("System column computation", gate);
-        let handles = self.analysis_handles();
-        let analysis =
-            self.service.analyze_table(1, shape(&result()), handles, None, None, AnalyzeTableOptions::default());
+        let analysis = self.start_analysis(stop);
         (release, self.run(analysis))
     }
 }
@@ -940,26 +950,22 @@ impl Setup {
 #[test]
 fn an_analysis_starts_its_computation_when_it_is_called() {
     let setup = setup(analysis_answer);
-    let handles = setup.analysis_handles();
-    let analysis =
-        setup.service.analyze_table(1, shape(&result()), handles, None, None, AnalyzeTableOptions::default());
+    let analysis = setup.start_analysis(&CancellationToken::new());
     // The computation is there with the result as its table before the analysis ran a step
     setup.service.read(|state| {
         let computation = state.computation(1).expect("a computation");
         assert_eq!(computation.data_table.rows(), 4);
         assert!(computation.data_frame.is_none());
     });
-    assert!(setup.service.is_analyzing(1));
     assert!(setup.database.borrow().calls.is_empty());
     let output = setup.run(analysis);
     assert!(matches!(output.borrow().as_ref(), Some(Ok(()))));
-    assert!(!setup.service.is_analyzing(1));
 }
 
 #[test]
 fn a_preview_waits_for_the_system_columns_of_an_analysis() {
     let setup = setup(analysis_answer);
-    let (release, analysis) = setup.start_held_analysis();
+    let (release, analysis) = setup.start_held_analysis(&CancellationToken::new());
     let preview = setup.run(setup.service.preview(1, 2));
     assert!(preview.borrow().is_none());
     release.send(());
@@ -971,9 +977,10 @@ fn a_preview_waits_for_the_system_columns_of_an_analysis() {
 #[test]
 fn a_stopped_analysis_keeps_its_computation_with_what_it_computed() {
     let setup = setup(analysis_answer);
-    let (_release, analysis) = setup.start_held_analysis();
+    let stop = CancellationToken::new();
+    let (_release, analysis) = setup.start_held_analysis(&stop);
     let preview = setup.run(setup.service.preview(1, 2));
-    assert!(setup.service.stop_analysis(1));
+    stop.cancel();
     setup.executor.run_until_stalled();
     let error = analysis.borrow_mut().take().expect("the analysis ended").unwrap_err();
     assert!(error.to_string().contains("cancelled"), "{error}");
@@ -986,8 +993,6 @@ fn a_stopped_analysis_keeps_its_computation_with_what_it_computed() {
         let status = computation.tasks.system_columns.as_ref().map(|task| task.progress.status);
         assert_eq!(status, Some(TaskStatus::Cancelled));
     });
-    assert!(!setup.service.is_analyzing(1));
-    assert!(!setup.service.stop_analysis(1));
     // A preview that waited for the system columns fails
     let error = preview.borrow_mut().take().expect("the preview ended").unwrap_err();
     assert!(error.to_string().contains("is not analyzed"), "{error}");
@@ -996,10 +1001,9 @@ fn a_stopped_analysis_keeps_its_computation_with_what_it_computed() {
 #[test]
 fn an_analysis_that_is_stopped_before_its_first_step_runs_none() {
     let setup = setup(analysis_answer);
-    let handles = setup.analysis_handles();
-    let analysis =
-        setup.service.analyze_table(1, shape(&result()), handles, None, None, AnalyzeTableOptions::default());
-    assert!(setup.service.stop_analysis(1));
+    let stop = CancellationToken::new();
+    let analysis = setup.start_analysis(&stop);
+    stop.cancel();
     let output = setup.run(analysis);
     assert!(output.borrow().as_ref().is_some_and(|output| output.is_err()));
     assert!(setup.database.borrow().calls.is_empty());

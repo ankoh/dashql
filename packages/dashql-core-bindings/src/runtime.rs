@@ -974,6 +974,7 @@ impl Runtime {
             options.connection_id,
             options.client_context,
             analyze_options,
+            dashql_core_runtime::http::CancellationToken::new(),
         );
         let ordering: Vec<OrderByConstraint> =
             options.ordering.unwrap_or_default().into_iter().map(OrderByConstraint::from).collect();

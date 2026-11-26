@@ -14,9 +14,8 @@
 //! of a selection, and hands them over (`ComputeHost::register_table`). The state names a table by its handle.
 //!
 //! Every run can be cancelled: aborting the lifetime of a computation cancels its runs, `AbortDataSearch` the run of
-//! the search, `cancel_task` the run of a task, `cancel_run` a run by its id, `stop_analysis` the runs of a
-//! computation whose analysis then ends without starting another step. A cancelled run drops its future and tells
-//! the host to abort its calls, its task ends cancelled. A task whose call the host cancelled
+//! the search, `cancel_task` the run of a task, `cancel_run` a run by its id, the stop token of an analysis the runs of
+//! its computation. A cancelled run drops its future and tells the host to abort its calls, its task ends cancelled. A task whose call the host cancelled
 //! (`HostError::is_cancelled`) ends cancelled too.
 //!
 //! The state sits behind a `RefCell` that no task borrows across an await. A task tells the host after its actions
@@ -35,6 +34,7 @@ use dashql_core::error::{Error, Result};
 
 use crate::host::signal::{cancellable, oneshot, CancelHandle, Sender};
 use crate::host::{HostError, LogLevel};
+use crate::http::CancellationToken;
 
 use super::cross_filters::CrossFilters;
 use super::host::{ComputeContext, ComputeHost, KeptTable, RunId, TableShape};
@@ -117,18 +117,8 @@ struct Inner {
     runs: BTreeMap<RunId, Run>,
     /// The summaries over the selected rows that count their selection before they are scheduled, by table and column
     counting: std::collections::BTreeSet<(TableId, u32)>,
-    /// The analyses that run, by table
-    analyses: BTreeMap<TableId, Analysis>,
-}
-
-/// An analysis of a result that runs
-#[derive(Default)]
-struct Analysis {
-    /// Was it stopped? The steps after the one that runs don't start.
-    stopped: bool,
-    /// The previews that wait for the data frame with the system columns, they look again once it is there or the
-    /// analysis ended
-    waiters: Vec<Sender<()>>,
+    /// The analyses that run, by table, with the previews that wait for their system columns
+    analyses: BTreeMap<TableId, Vec<Sender<()>>>,
 }
 
 impl Inner {
@@ -241,8 +231,9 @@ impl<H: ComputeHost> ComputeService<H> {
     /// rows and its schema, the handles of the table and of the lifetime of the computation go to the state; a result
     /// without columns has nothing to analyze and releases them. The call starts the computation with the result as
     /// its table, the future runs the steps. The analysis stops without an error once the computation is gone, e.g.
-    /// replaced by the computation of a later result, and with the cancellation of a step once it is stopped
-    /// (`stop_analysis`).
+    /// replaced by the computation of a later result. A cancel of `stop` stops it with an error: the runs of the
+    /// computation end cancelled, the steps after them don't start, the computation keeps what the analysis computed.
+    #[allow(clippy::too_many_arguments)]
     pub fn analyze_table(
         &self,
         table_id: TableId,
@@ -251,32 +242,28 @@ impl<H: ComputeHost> ComputeService<H> {
         connection_id: Option<String>,
         client_context: Option<String>,
         options: AnalyzeTableOptions,
+        stop: CancellationToken,
     ) -> impl Future<Output = Result<()>> + 'static {
         let shared = self.shared.clone();
         let started = start_analysis(&shared, table_id, table, handles, connection_id, client_context);
         async move {
             let Some(started) = started? else { return Ok(()) };
-            analyze(&shared, started, options).await
+            // A stop cancels the runs of the computation, e.g. the step that runs
+            let ended = CancellationToken::new();
+            let watch = (shared.clone(), ended.clone(), stop.clone());
+            shared.host.spawn(Box::pin(async move {
+                let (shared, ended, stop) = watch;
+                if ended.run(stop.cancelled()).await.is_some() {
+                    let runs = shared.inner.borrow_mut().take_runs(|run| run.table_id == table_id);
+                    cancel_runs(&shared, runs);
+                }
+            }));
+            let analyzed = analyze(&shared, started, options, &stop).await;
+            ended.cancel();
+            // The previews that wait for the analysis look again
+            shared.inner.borrow_mut().analyses.remove(&table_id);
+            analyzed
         }
-    }
-
-    /// Stop the analysis of a result: the step that runs ends cancelled, so do the other runs of the computation, and
-    /// the steps after it don't start. The computation stays with what the analysis computed. False if no analysis of
-    /// the table runs.
-    pub fn stop_analysis(&self, table_id: TableId) -> bool {
-        let runs = {
-            let mut inner = self.shared.inner.borrow_mut();
-            let Some(analysis) = inner.analyses.get_mut(&table_id) else { return false };
-            analysis.stopped = true;
-            inner.take_runs(|run| run.table_id == table_id)
-        };
-        cancel_runs(&self.shared, runs);
-        true
-    }
-
-    /// Does an analysis of a table run?
-    pub fn is_analyzing(&self, table_id: TableId) -> bool {
-        self.shared.inner.borrow().analyses.contains_key(&table_id)
     }
 
     /// Run a scheduled task: report its progress, compute its result, apply it and unregister the task
@@ -782,38 +769,12 @@ async fn schedule_and_run<H: ComputeHost>(shared: &Rc<Shared<H>>, task: Computat
 }
 
 /// An analysis that started its computation, what its steps need
-struct StartedAnalysis<H: ComputeHost> {
+struct StartedAnalysis {
     table_id: TableId,
     /// The data frame of the import
     input: DataFrameId,
     start: TableAnalysisStart,
     data_table: ArrowTable,
-    /// Ends the analysis once it is dropped
-    end: AnalysisEnd<H>,
-}
-
-/// Ends an analysis once it drops: it no longer runs, the previews that wait for it look again. A guard that drops
-/// while the state is borrowed ends it in a task of the host once the borrow ended.
-struct AnalysisEnd<H: ComputeHost> {
-    shared: Rc<Shared<H>>,
-    table_id: TableId,
-}
-
-impl<H: ComputeHost> Drop for AnalysisEnd<H> {
-    fn drop(&mut self) {
-        let table_id = self.table_id;
-        // Dropping the waiters wakes the previews
-        match self.shared.inner.try_borrow_mut() {
-            Ok(mut inner) => drop(inner.analyses.remove(&table_id)),
-            Err(_) => {
-                let shared = self.shared.clone();
-                self.shared.host.spawn(Box::pin(async move {
-                    let analysis = shared.inner.borrow_mut().analyses.remove(&table_id);
-                    drop(analysis);
-                }));
-            }
-        }
-    }
 }
 
 /// Start the analysis of a result: its computation with the result as its table, none for a result without columns
@@ -824,7 +785,7 @@ fn start_analysis<H: ComputeHost>(
     handles: AnalysisHandles,
     connection_id: Option<String>,
     client_context: Option<String>,
-) -> Result<Option<StartedAnalysis<H>>> {
+) -> Result<Option<StartedAnalysis>> {
     // The handles go to the state with the computation, an analysis that doesn't start it releases them
     let release = || {
         shared.host.release(handles.table);
@@ -849,35 +810,27 @@ fn start_analysis<H: ComputeHost>(
         release();
         return Err(error);
     }
-    shared.inner.borrow_mut().analyses.insert(table_id, Analysis::default());
-    let end = AnalysisEnd { shared: shared.clone(), table_id };
-    Ok(Some(StartedAnalysis { table_id, input, start, data_table, end }))
-}
-
-/// Fail an analysis that was stopped, before its next step
-fn check_stopped<H: ComputeHost>(shared: &Shared<H>, table_id: TableId, title: &str) -> Result<()> {
-    let stopped = shared.inner.borrow().analyses.get(&table_id).is_some_and(|analysis| analysis.stopped);
-    if stopped {
-        Err(cancelled_error(title))
-    } else {
-        Ok(())
-    }
+    shared.inner.borrow_mut().analyses.insert(table_id, Vec::new());
+    Ok(Some(StartedAnalysis { table_id, input, start, data_table }))
 }
 
 /// The steps of an analysis that started, see `ComputeService::analyze_table`
 async fn analyze<H: ComputeHost>(
     shared: &Rc<Shared<H>>,
-    started: StartedAnalysis<H>,
+    started: StartedAnalysis,
     options: AnalyzeTableOptions,
+    stop: &CancellationToken,
 ) -> Result<()> {
-    let StartedAnalysis { table_id, input, start, data_table, end } = started;
+    let StartedAnalysis { table_id, input, start, data_table } = started;
+    // A stopped analysis starts no further step
+    let check_stopped = |title: &str| if stop.is_cancelled() { Err(cancelled_error(title)) } else { Ok(()) };
     let Some(info) = computation_info(shared, table_id) else {
         return Ok(());
     };
 
     // Import the result with the row numbers as the first data frame, the host numbers the rows of its table and keeps
     // the numbered table, the table of the computation from now on
-    check_stopped(shared, table_id, IMPORT_TITLE)?;
+    check_stopped(IMPORT_TITLE)?;
     let import = start.import;
     let row_number_field = start.row_number_field_name.clone();
     let result = data_table.id;
@@ -906,7 +859,7 @@ async fn analyze<H: ComputeHost>(
     apply(shared, created, true)?;
 
     // The statistics
-    check_stopped(shared, table_id, "Table aggregation")?;
+    check_stopped("Table aggregation")?;
     let task = table_aggregation_task(table_id, start.column_groups, input);
     let Some(TaskOutput::TableAggregation(aggregation, column_groups)) = schedule_and_run(shared, task.into()).await?
     else {
@@ -914,7 +867,7 @@ async fn analyze<H: ComputeHost>(
     };
 
     // The system columns
-    check_stopped(shared, table_id, "System column computation")?;
+    check_stopped("System column computation")?;
     let task = system_columns_task(
         table_id,
         column_groups,
@@ -927,15 +880,10 @@ async fn analyze<H: ComputeHost>(
     else {
         return Ok(());
     };
-    // The previews that wait for the data frame read it now
-    let waiters = shared
-        .inner
-        .borrow_mut()
-        .analyses
-        .get_mut(&table_id)
-        .map(|analysis| std::mem::take(&mut analysis.waiters))
-        .unwrap_or_default();
-    drop(waiters);
+    // The previews that wait for the data frame read it now, dropping their senders wakes them
+    if let Some(previews) = shared.inner.borrow_mut().analyses.get_mut(&table_id) {
+        previews.clear();
+    }
     // The filters, the ordering and the searches that the app asked for before the data frame was there
     refresh(shared, table_id);
 
@@ -944,7 +892,7 @@ async fn analyze<H: ComputeHost>(
     let tasks = column_aggregation_tasks(table_id, &column_groups, data_frame, &aggregation, options);
     let count = tasks.len();
     for task in tasks {
-        check_stopped(shared, table_id, "Column aggregation")?;
+        check_stopped("Column aggregation")?;
         if schedule_and_run(shared, ComputationTask::ColumnAggregation(task)).await?.is_none() {
             return Ok(());
         }
@@ -956,7 +904,6 @@ async fn analyze<H: ComputeHost>(
             [("table", table_name.as_str()), ("rows", &rows), ("aggregates", &count), ("duration", &duration)];
         shared.host.log(LogLevel::Info, "Computed column aggregates", &details);
     }
-    drop(end);
     Ok(())
 }
 
@@ -1193,13 +1140,13 @@ impl<H: ComputeHost> ComputeService<H> {
                     {
                         break preview_data_frame_sql(data_frame, &computation.data_table_fields, row_numbers, limit);
                     }
-                    let Some(analysis) = inner.analyses.get_mut(&table_id) else {
+                    let Some(previews) = inner.analyses.get_mut(&table_id) else {
                         return Err(Error::invalid_argument(format!(
                             "the result of the table {table_id} is not analyzed"
                         )));
                     };
                     let (sender, receiver) = oneshot();
-                    analysis.waiters.push(sender);
+                    previews.push(sender);
                     receiver
                 };
                 waiting.await;

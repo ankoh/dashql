@@ -650,80 +650,41 @@ impl Connections {
     }
 
     /// Analyze the result of a query on the computations, see `ExecutorHost::analyze_result`. The call starts the
-    /// computation of the result, the future runs the analysis. The history decides which result of an owner is the
-    /// latest once the query succeeded, the computations of the results that it supersedes go then, which stops their
-    /// analyses. A cancel of the query stops the analysis, the computation stays with what it computed, so does one
-    /// whose analysis failed.
+    /// computation of the result, the future runs the analysis until the token of the query stops it. The history
+    /// decides which result of an owner is the latest once the query succeeded, the computations of the results that
+    /// it supersedes go then, which ends their analyses.
     fn analyze(self: &Rc<Self>, run: &Rc<QueryRun>) -> impl Future<Output = Result<(), HostError>> + 'static {
-        let started = self.start_analysis(run);
+        let analysis = self.start_analysis(run);
         async move {
-            match started? {
-                Some(analysis) => analysis.await,
+            match analysis? {
+                Some(analysis) => analysis.await.map_err(|error| HostError::new(error.what().to_string())),
                 None => Ok(()),
             }
         }
     }
 
-    /// Start the analysis of the result of a query, none for a query without a result to analyze
+    /// Start the analysis of the result of a query on the compute database, none without a result or the database
     fn start_analysis(
-        self: &Rc<Self>,
-        run: &Rc<QueryRun>,
-    ) -> Result<Option<impl Future<Output = Result<(), HostError>> + 'static>, HostError> {
-        let query_id = run.query_id;
-        let token = run.token.clone();
-        let Some(table) = run.result() else {
+        &self,
+        run: &QueryRun,
+    ) -> Result<Option<impl Future<Output = dashql_core::error::Result<()>> + 'static>, HostError> {
+        let Some(table) = run.result().filter(|_| self.platform.has_compute()) else {
             return Ok(None);
         };
-        // The analysis computes on the compute database, a query without one has nothing to analyze
-        if !self.platform.has_compute() {
-            return Ok(None);
-        }
-        if token.is_cancelled() {
-            return Err(HostError::cancelled());
-        }
-        // The module reads the rows and the schema of the result, its data stays with the host
+        // The module reads the rows and the schema of the result, its data stays with the host. The computation takes
+        // handles of its own.
         let shape = self.platform.describe_table(table)?;
-        if shape.schema.fields().is_empty() {
-            return Ok(None);
-        }
         let table = self.platform.duplicate(table)?;
-        let lifetime = match self.platform.register(&lifetime_token()) {
-            Ok(lifetime) => lifetime,
-            Err(error) => {
-                self.release_table(table);
-                return Err(error);
-            }
-        };
-        let handles = AnalysisHandles { table, lifetime };
-        let connection_id = Some(run.connection_id.clone());
-        let analysis = self.computations.analyze_table(
-            query_id,
+        let lifetime = self.platform.register(&lifetime_token()).inspect_err(|_| self.release_table(table))?;
+        Ok(Some(self.computations.analyze_table(
+            run.query_id,
             shape,
-            handles,
-            connection_id,
+            AnalysisHandles { table, lifetime },
+            Some(run.connection_id.clone()),
             None,
             RuntimeAnalyzeOptions::default(),
-        );
-        // A cancel of the query stops the analysis
-        let analyzed = CancellationToken::new();
-        {
-            let connections = self.clone();
-            let analyzed = analyzed.clone();
-            let token = token.clone();
-            self.platform.spawn(Box::pin(async move {
-                if analyzed.run(token.cancelled()).await.is_some() {
-                    connections.computations.stop_analysis(query_id);
-                }
-            }));
-        }
-        Ok(Some(async move {
-            let outcome = analysis.await;
-            analyzed.cancel();
-            if token.is_cancelled() {
-                return Err(HostError::cancelled());
-            }
-            outcome.map_err(|error| HostError::new(error.what().to_string()))
-        }))
+            run.token.clone(),
+        )))
     }
 }
 
