@@ -160,12 +160,6 @@ pub enum RowFilter {
     },
 }
 
-impl From<ScalarFilter> for RowFilter {
-    fn from(filter: ScalarFilter) -> Self {
-        RowFilter::Scalar(filter)
-    }
-}
-
 /// A key of an ordering
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OrderByConstraint {

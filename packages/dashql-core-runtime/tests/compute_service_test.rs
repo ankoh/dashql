@@ -10,6 +10,7 @@ use std::task::{Context, Wake, Waker};
 
 use arrow_array::types::Int32Type;
 use arrow_array::{ArrayRef, Float64Array, Int64Array, ListArray, RecordBatch, StringArray};
+use arrow_schema::{DataType, Field, Schema};
 use dashql_core::error::Result;
 use dashql_core_runtime::compute::host::{ComputeContext, ComputeHost, KeptTable, RunId, TableShape};
 use dashql_core_runtime::compute::service::{AnalysisHandles, ComputeService, TaskOutput};
@@ -18,7 +19,7 @@ use dashql_core_runtime::compute::tasks::result_table::ResultTable;
 use dashql_core_runtime::compute::types::OrderByConstraint;
 use dashql_core_runtime::compute::types::{
     ColumnAggregate, ColumnGroup, ColumnSummaryAnalysis, ComputationTask, DataSearchColumn, DataSearchTask, FilterOp,
-    ScalarFilter, TableFilteringTask, TaskStatus,
+    RowFilter, ScalarFilter, TableFilteringTask, TaskStatus,
 };
 use dashql_core_runtime::compute::{ComputationAction, ComputationEffect, ComputationOutcome, SearchKind};
 use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
@@ -190,10 +191,7 @@ impl ComputeHost for FakeHost {
         let mut database = self.database.borrow_mut();
         let table = database.objects.get(&table).ok_or_else(|| HostError::new(format!("no table {table}")))?;
         // The host names the fields, numbers the rows of its table and keeps the numbered table
-        let table = table
-            .with_field_names(fields)
-            .and_then(|table| table.append_row_numbers(row_number_field))
-            .map_err(|e| HostError::new(e.to_string()))?;
+        let table = imported(table, fields, row_number_field);
         database.calls.push(format!("import {table_name}"));
         database.tables.insert(table_name.to_string(), table.clone());
         let shape = shape(&table);
@@ -294,6 +292,26 @@ fn a<T: arrow_array::Array + 'static>(array: T) -> ArrayRef {
     Arc::new(array)
 }
 
+/// A table as the host imports it: its fields named `names`, in order, and the rows numbered from 1 in an appended
+/// column
+fn imported(table: &ResultTable, names: &[String], row_number_field: &str) -> ResultTable {
+    assert_eq!(names.len(), table.schema().fields().len(), "a name for every field");
+    let mut fields: Vec<Field> =
+        table.schema().fields().iter().zip(names).map(|(field, name)| field.as_ref().clone().with_name(name)).collect();
+    fields.push(Field::new(row_number_field, DataType::Int64, false));
+    let schema = Arc::new(Schema::new_with_metadata(fields, table.schema().metadata().clone()));
+    let mut next: i64 = 1;
+    let mut batches = Vec::new();
+    for batch in table.batches() {
+        let rows = batch.num_rows() as i64;
+        let mut columns = batch.columns().to_vec();
+        columns.push(a(Int64Array::from_iter_values(next..next + rows)));
+        next += rows;
+        batches.push(RecordBatch::try_new(schema.clone(), columns).expect("a batch"));
+    }
+    ResultTable::try_new(schema, batches).expect("a table")
+}
+
 /// What the runtime knows of a table of the host
 fn shape(table: &ResultTable) -> TableShape {
     TableShape { rows: table.num_rows() as u64, schema: table.schema().clone() }
@@ -322,7 +340,7 @@ fn analysis_answer(title: &str, sql: &str) -> std::result::Result<ResultTable, S
             ("_1_count", a(Int64Array::from(vec![3]))),
             ("_1_countd", a(Int64Array::from(vec![2]))),
         ])),
-        "System column computation" => result().append_row_numbers("_rownum").map_err(|e| e.to_string()),
+        "System column computation" => Ok(imported(&result(), &["score".into(), "name".into()], "_rownum")),
         "Column aggregation" if sql.contains("binLowerBound") => Ok(table(vec![
             ("bin", a(Int64Array::from(vec![Some(0), Some(15), None]))),
             ("count", a(Int64Array::from(vec![2, 1, 1]))),
@@ -510,7 +528,7 @@ fn analyzes_a_result() {
 #[test]
 fn a_result_without_columns_has_nothing_to_analyze() {
     let setup = setup(analysis_answer);
-    let empty = ResultTable::try_new(Arc::new(arrow_schema::Schema::empty()), Vec::new()).unwrap();
+    let empty = ResultTable::try_new(Arc::new(Schema::empty()), Vec::new()).unwrap();
     let handles = setup.analysis_handles();
     let stop = CancellationToken::new();
     let analysis = setup.service.analyze_table(1, shape(&empty), handles, None, None, Default::default(), stop);
@@ -582,7 +600,11 @@ fn filters_the_rows_of_an_analyzed_result() {
             input_data_table: data_table.clone(),
             input_data_frame: data_frame,
             row_number_column_name: "_rownum".into(),
-            filters: vec![ScalarFilter { field_name: "_1_bin".into(), op: FilterOp::GreaterEqual, value }.into()],
+            filters: vec![RowFilter::Scalar(ScalarFilter {
+                field_name: "_1_bin".into(),
+                op: FilterOp::GreaterEqual,
+                value,
+            })],
         })
     };
     let task = setup.schedule(filtering(1.0));

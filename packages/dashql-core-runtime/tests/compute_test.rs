@@ -488,7 +488,11 @@ fn filtering_task() {
             input_data_table: input_table(),
             input_data_frame: 1,
             row_number_column_name: "rowNumber".into(),
-            filters: vec![ScalarFilter { field_name: "score".into(), op: FilterOp::Less, value: 20.0 }.into()],
+            filters: vec![RowFilter::Scalar(ScalarFilter {
+                field_name: "score".into(),
+                op: FilterOp::Less,
+                value: 20.0,
+            })],
         }),
     );
     assert_eq!(state.scheduler_tasks().count(), 1);

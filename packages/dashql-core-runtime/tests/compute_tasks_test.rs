@@ -186,7 +186,11 @@ fn sql_scalar_filter() {
 #[test]
 fn sql_in_filter() {
     // Several integers filter with IN, one with =, none keeps no row
-    let sql = SqlFrame::from("t").filter_in("_name_id", vec![2, 5, 9]).filter_in("_kind_id", vec![-1]).to_sql();
+    let filter_in = |field_name: &str, values: Vec<i64>| RowFilter::In { field_name: field_name.into(), values };
+    let sql = SqlFrame::from("t")
+        .row_filter(filter_in("_name_id", vec![2, 5, 9]))
+        .row_filter(filter_in("_kind_id", vec![-1]))
+        .to_sql();
     assert_eq!(
         sql,
         r#"WITH
@@ -195,7 +199,7 @@ fn sql_in_filter() {
   )
 SELECT * FROM __filtered"#
     );
-    let sql = SqlFrame::from("t").filter_in("_name_id", Vec::new()).to_sql();
+    let sql = SqlFrame::from("t").row_filter(filter_in("_name_id", Vec::new())).to_sql();
     assert!(sql.contains(r#"SELECT * FROM "t" WHERE FALSE"#), "{sql}");
 }
 
@@ -583,14 +587,11 @@ fn analysis_names_the_row_numbers_apart_from_the_fields() {
     assert_eq!(start.row_number_field_name, "__rownum");
     assert_eq!(start.fields, vec!["_rownum".to_string()]);
     assert_eq!(start.import.table_name, "__df_3");
-    // The host numbers the rows across the batches, like a table of the runtime
-    let numbered = &input.append_row_numbers(&start.row_number_field_name).expect("numbers");
-    let column = numbered.column_index("__rownum").expect("row numbers");
-    assert_eq!(numbered.int64_values(column).expect("ints"), vec![Some(1), Some(2), Some(3)]);
-    assert_eq!(numbered.batches().len(), 2);
-    // The import crosses as IPC
-    let bytes = numbered.to_ipc_stream().expect("IPC");
-    assert_eq!(&ResultTable::from_ipc_stream(&bytes).expect("a table"), numbered);
+    // The import crosses as IPC, with its batches
+    let bytes = input.to_ipc_stream().expect("IPC");
+    let imported = ResultTable::from_ipc_stream(&bytes).expect("a table");
+    assert_eq!(imported, input);
+    assert_eq!(imported.batches().len(), 2);
 }
 
 fn integer_aggregation(min: i32, max: i32) -> Vec<ColumnGroup> {
@@ -734,7 +735,11 @@ fn table_filtering_lists_the_rows_in_the_order_of_the_input() {
         filters: vec![],
     };
     assert_eq!(plan_table_filtering(&task, 11), None);
-    task.filters.push(ScalarFilter { field_name: "value".into(), op: FilterOp::GreaterEqual, value: 50.0 }.into());
+    task.filters.push(RowFilter::Scalar(ScalarFilter {
+        field_name: "value".into(),
+        op: FilterOp::GreaterEqual,
+        value: 50.0,
+    }));
     task.filters.push(RowFilter::In { field_name: "_name_id".into(), values: vec![1, 4] });
     let plan = plan_table_filtering(&task, 11).expect("a filter");
     let sql = &plan.query.sql;

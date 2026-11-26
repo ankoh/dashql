@@ -289,12 +289,6 @@ impl SqlFrame {
         self
     }
 
-    /// Keep the rows whose field is one of the integers, `IN`, `=` for one
-    pub fn filter_in(mut self, field_name: impl Into<String>, values: Vec<i64>) -> Self {
-        self.row_filters.push(RowFilter::In { field_name: field_name.into(), values });
-        self
-    }
-
     /// Keep the rows that pass a filter
     pub fn row_filter(mut self, filter: RowFilter) -> Self {
         self.row_filters.push(filter);
