@@ -347,9 +347,9 @@ function formatScript(host: AgentCommandHost, call: AgentCall, reply: AgentReply
     return EXIT_OK;
 }
 
-/// Run scripts of a workbook for the agent: the feed shows the run as any other, the events go to `emit`. A run takes
-/// only the connections that the agent may use and that are set up.
-async function runForAgent(host: AgentCommandHost, workbook: WorkbookScripts, scripts: readonly string[], refresh: boolean, signal: AbortSignal, emit: (event: RunEvent) => void): Promise<void> {
+/// Run scripts of a workbook for the agent: the feed shows the run as any other, the events go to `emit` with the
+/// first `rows` rows of every result. A run takes only the connections that the agent may use and that are set up.
+async function runForAgent(host: AgentCommandHost, workbook: WorkbookScripts, scripts: readonly string[], refresh: boolean, rows: number, signal: AbortSignal, emit: (event: RunEvent) => void): Promise<void> {
     const { runtime } = host;
     try {
         await runWorkbookReported(runtime, workbook, {
@@ -358,8 +358,9 @@ async function runForAgent(host: AgentCommandHost, workbook: WorkbookScripts, sc
             refresh,
             signal,
             progressIntervalMs: null,
-            // The feed shows the results of the run as those of its own runs
+            // The feed shows the results of the run as those of its own runs, the rows come from their analyses
             analyze: true,
+            rows,
             prepareConnection: async conn => {
                 if (!host.isConnectionAllowed(conn.connectionId)) return 'DashQL does not let you use this connection, the user can allow it in the prompt';
                 if (conn.connectionHealth !== ConnectionHealth.ONLINE) return 'the connection is not set up in DashQL, the user has to connect it';
@@ -412,7 +413,7 @@ async function runCommand(host: AgentCommandHost, call: AgentCall, reply: AgentR
     const text = new RunText(reply.out, rows);
     let finished: Extract<RunEvent, { type: 'run_finished' }> | null = null;
     let failed = false;
-    await runForAgent(host, workbook, scripts, call.args.refresh === true, signal, event => {
+    await runForAgent(host, workbook, scripts, call.args.refresh === true, rows, signal, event => {
         followRun(host, workbook, event);
         if (event.type === 'run_finished') finished = event;
         if (event.type === 'run_failed' || event.type === 'connection_failed') failed = true;
@@ -516,7 +517,8 @@ async function visCommand(host: AgentCommandHost, call: AgentCall, reply: AgentR
     // The result of the script is the data of the chart
     let done: Extract<RunEvent, { type: 'script_done' }> | null = null;
     const failures: string[] = [];
-    await runForAgent(host, workbook, [fileName], call.args.refresh === true, signal, event => {
+    // The rows that a KPI card is checked with, a result with more is not checked
+    await runForAgent(host, workbook, [fileName], call.args.refresh === true, KPI_CHECK_ROWS, signal, event => {
         followRun(host, workbook, event);
         switch (event.type) {
             case 'script_done':
@@ -557,11 +559,13 @@ async function visCommand(host: AgentCommandHost, call: AgentCall, reply: AgentR
         }
     }
 
-    // The PNG of a Vega-Lite chart, as the feed renders it
+    // The PNG of a Vega-Lite chart, as the feed renders it. The chart takes every row of the result from the history of
+    // the query until charts read what they draw (docs/wip/result_windows.md, step 5).
     let wrote: string | null = null;
-    if (tag.spec != null && table != null) {
+    const chartTable = result?.queryId == null ? undefined : runtime.table(runtime.store.get('query', result.queryId)?.resultTable?.id);
+    if (tag.spec != null && chartTable != null) {
         try {
-            const image = await renderChart(runtime, call.workbookId, fileName, table, size);
+            const image = await renderChart(runtime, call.workbookId, fileName, chartTable, size);
             const path = await host.writeFile(call.workbookId, 'chart', `${name}.png`, image.png);
             wrote = `${path} (${image.width}x${image.height} pixels)`;
         } catch (error) {

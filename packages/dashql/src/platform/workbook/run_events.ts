@@ -15,9 +15,9 @@ export type RunEvent =
     | { type: 'script_started'; script: string }
     /// The latest progress of a query of a running script
     | { type: 'script_progress'; script: string; phase: string | null; percent: number | null; rows: number | null }
-    /// A script ran or the cache served its result: the rows of the result, the table with its first rows or all of
-    /// them, its reusable key and the file of its stored result
-    | { type: 'script_done'; script: string; ms: number; rows: number | null; table: arrow.Table | null; cached: boolean; key: string | null; file: string | null }
+    /// A script ran or the cache served its result: the query of the result, its rows, a table with its schema and its
+    /// first rows (`rows` of the options of the run), its reusable key and the file of its stored result
+    | { type: 'script_done'; script: string; ms: number; queryId: number | null; rows: number | null; table: arrow.Table | null; cached: boolean; key: string | null; file: string | null }
     /// A statement of a script failed: the error and the statement that was sent
     | { type: 'script_failed'; script: string; ms: number; error: string; statement: string | null }
     /// The run stopped a running script, e.g. after another script failed

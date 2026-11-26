@@ -1,6 +1,6 @@
 // A run of a workbook that reports what happens as RunEvents: the page runs a workbook for the `dashql run` and
 // `dashql vis` of an agent (docs/design/agent_integration.md)
-import type * as arrow from 'apache-arrow';
+import * as arrow from 'apache-arrow';
 
 import type * as core from '../core/index.js';
 import type { ConnectionState } from '../platform/connections/connection_state.js';
@@ -41,8 +41,11 @@ export interface ReportedRunOptions {
     /// How often the progress of the running queries is read, null for none
     progressIntervalMs: number | null;
     /// Analyze the results like a run of the feed, so the feed shows them: a tab, not the command line tool that only
-    /// prints them
+    /// prints them. The rows of a result come from its analysis, a run without carries none.
     analyze: boolean;
+    /// The first rows of a result that `script_done` carries, read from the data frame of its computation in the
+    /// compute database (docs/wip/result_windows.md): the whole result doesn't pass through JavaScript for them
+    rows: number;
     /// Set up a connection before the first statement, an error message if it can't be used. Without, the run takes
     /// the connections that can run.
     prepareConnection?: (conn: ConnectionState) => Promise<string | null>;
@@ -133,14 +136,28 @@ export async function runWorkbookReported(runtime: Runtime, workbook: WorkbookSc
         const report = (task: () => Promise<RunEvent | null>) => {
             reports = reports.then(task).then(event => { if (event != null) emit(event); }, error => options.onReportError?.(error));
         };
+        /// The schema and the first rows of the result of a query, null without a computation: a result without
+        /// columns has none, nor has one of a run without analyses. The computation of a result has the id of its query,
+        /// the preview waits for the data frame of an analysis that runs and reads the rows in the order of the result.
+        const firstRows = async (queryId: number): Promise<arrow.Table | null> => {
+            if (runtime.store.get('computation', queryId) == null) return null;
+            try {
+                return arrow.tableFromIPC(await runtime.previewResult(queryId, options.rows));
+            } catch (error) {
+                // The event reports the result without its rows, the rows and the file still tell what it is
+                options.onReportError?.(error);
+                return null;
+            }
+        };
         const resultOf = async (script: string, queryId: number | null, key: string | null, cached: boolean): Promise<RunEvent> => {
             const ms = elapsed(script);
-            // The history of the connection keeps the result table of the query
-            const table: arrow.Table | null = queryId == null ? null : runtime.table(queryOf(queryId)?.resultTable?.id) ?? null;
+            // The history of the connection counts the rows of the result of the query
+            const rows = queryId == null ? null : queryOf(queryId)?.resultTable?.rows ?? null;
+            const table = queryId == null || rows == null ? null : await firstRows(queryId);
             // The executor writes the stored result after the query resolved
             await runtime.module.flushResultWrites();
             const file = queryId == null || options.resultFile == null ? null : await options.resultFile(script);
-            return { type: 'script_done', script, ms, rows: table?.numRows ?? null, table, cached, key, file };
+            return { type: 'script_done', script, ms, queryId, rows, table, cached, key, file };
         };
         const onScript = (script: string, event: ScriptRunEvent) => {
             switch (event.type) {

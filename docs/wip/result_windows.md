@@ -1,7 +1,8 @@
 # Result Windows
 
 Status: steps 1 and 2 landed, and the stored results keep the order of their rows (Row order). The others are planned
-and land one by one. This document fixes how DashQL stops holding whole results in the
+and land one by one, step 5 before step 3: every reader of a whole result moves to the compute database first, then the
+result of the embedded Hyper stops being an Arrow table without a fallback. This document fixes how DashQL stops holding whole results in the
 JavaScript heap: the grid reads the rows it shows, the embedded Hyper writes its results to Parquet without passing
 them through JavaScript, and a result in JavaScript is let go once its file exists.
 
@@ -75,18 +76,20 @@ result. Still in JavaScript: the map of the matching rows of a data search (the 
 of the toolbar, `getMatchingRowCount`), and the tables of the filters, orderings and searches that the host keeps by
 handle, which the charts read.
 
-### 3. Results of the embedded Hyper go to Parquet directly
+### 3. Results of the embedded Hyper stream into the compute database
 
-A script on the embedded Hyper runs as `COPY (<query>) TO '<results mount>/<transient>' WITH (format => 'parquet')`
-and the file is moved to its name, as the stored results are today. No row reaches JavaScript: the write of the stored
-result is the query itself, and a stored result is not read into JavaScript any more but used as its file. The
-analysis creates `__df_<id>` from the file with `__dashql_row` as its row numbers.
+The result of a query on the embedded Hyper streams batch by batch, as today, but a batch doesn't stay in JavaScript:
+it gets its row numbers (`__dashql_row`, Row order) and is appended to a table of the compute database. The stream is
+the only part of Hyper that keeps the order of a query, numbering the rows there needs no change of the query. Rows
+pass JavaScript one batch at a time, none stay. The handle of the result names that table instead of an Arrow table:
+the stored result is a `COPY` of it to its file, the analysis creates `__df_<id>` from it, and the table goes when its
+handle goes. A stored result that a workbook reads back is scanned into such a table as well, ordered by
+`__dashql_row`.
 
-Not decided yet: how the `COPY` numbers the rows in the order of the query (Row order). `row_number() OVER ()` doesn't,
-`row_number() OVER (ORDER BY <the keys of the query>)` needs the core to rewrite the query (aliases, ordinals, keys
-outside the output, `DISTINCT`, `UNION`). The alternative streams the result batch by batch through JavaScript, which
-keeps the order and numbers the rows, into a table of the compute database that is copied to the file: rows pass
-JavaScript but none stay.
+Decided against: the core rewriting the query so that `COPY (<query>) TO` numbers its rows with
+`row_number() OVER (ORDER BY <the keys of the query>)`. No row would reach JavaScript, but the rewrite has to resolve
+aliases, ordinals and keys outside the output, and `DISTINCT` and `UNION` need a query around the query. It saves the
+way through JavaScript, which a measurement has to show as slow first.
 
 ### 4. Remote results let go of their table
 
@@ -94,11 +97,29 @@ A remote result is collected into an Arrow table as today and written to its Par
 exists the table is released, and the result is the file like in step 3. The peak of a remote result stays in the heap
 while it loads, but it doesn't stay there.
 
-### 5. Charts read what they draw
+### 5. The readers of a whole result read the compute database
 
-A chart doesn't take every row of a result: a spec that aggregates runs its aggregation in the compute database, a
-spec of raw marks reads a bounded number of rows. Until this step lands the Arrow table of a result can't go away for
-results that a chart shows.
+Lands before step 3. The readers that take the Arrow table of a result by its handle (`useTable`, `QueryModel.result`,
+`runtime.table`, the computation's `dataTable`) and read its rows:
+
+| Reader | Where | Rows | Reads instead |
+| --- | --- | --- | --- |
+| Vega-Lite chart, the crossfilter | `vegalite_view.tsx` (`arrowTableToRows`) | all | the aggregation of the spec in the compute database, raw marks a bounded number of rows |
+| Chart PNG download | `chart_download_button.tsx` | all | as the chart |
+| Chart of the agent | `agent_commands.ts` (`renderChart`) | all | as the chart |
+| KPI card | `kpi_view.tsx` (`readKpi`) | all of two columns | the rows of the value and x columns, bounded |
+| KPI check of the agent | `agent_commands.ts` (`readKpi`) | at most 1000 | the same bounded read |
+| Markdown card | `markdown_view.tsx` | all | a bounded number of rows |
+| Rows of `run --rows N` of the agent | `agent_output.ts`, `workbook_run_report.ts` | at most 10 000 | a window of the data frame (`readResultRows`) |
+| Arrow and Parquet download | `query_result_download_button.tsx`, `exportArrowTableAsParquet` | all | a `COPY` of the data frame to the file |
+
+Landed: the rows of `run --rows N` and of the KPI check of `vis`. A reported run (`runWorkbookReported`) carries the
+schema and the first `rows` rows of a result, read with `previewResult` from the data frame of its computation; the
+chart of `vis` takes the whole table by the query of the event until the charts move.
+
+The stored result write and the analysis import read the whole table too, step 3 replaces them. The grid, the shell
+preview, the data search, the filters and the ordering read the data frame already. The size of a result in the header
+(`getResultTableBytes`) sums the buffers of the batches; it becomes the size of the file or goes.
 
 ### 6. The table of a result goes
 
