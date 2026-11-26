@@ -128,6 +128,11 @@ export enum WobbleMorphEvent {
     Back = 'back',
 }
 
+/// Set an attribute of an element if it changed, a frame at rest writes nothing
+function writeAttribute(element: Element, name: string, value: string) {
+    if (element.getAttribute(name) !== value) element.setAttribute(name, value);
+}
+
 /// Jitter a duration by ±20%
 function jitter(ms: number): number {
     return ms * (0.8 + 0.4 * Math.random());
@@ -171,7 +176,8 @@ export const Wobble = React.memo(function Wobble(props: WobbleProps): React.Reac
     const cutoutsRef = React.useRef<SVGGElement | null>(null);
 
     React.useEffect(() => {
-        if (paused) return;
+        const svg = svgRef.current;
+        if (paused || svg == null) return;
         const outlines = brand.pieces.map(() => new Float64Array(2 * OUTLINE_POINTS));
         const scratch = new Float64Array(2 * OUTLINE_POINTS);
         const morph: Spring = { value: modeRef.current === WobbleMode.Logo ? 1 : 0, velocity: 0 };
@@ -221,7 +227,8 @@ export const Wobble = React.memo(function Wobble(props: WobbleProps): React.Reac
 
         const render = (now: number) => {
             const t = tuningRef.current;
-            const dt = Math.min((now - last) / 1000, 1 / 20);
+            // The first frame after a resume can carry a time before it
+            const dt = Math.min(Math.max(now - last, 0) / 1000, 1 / 20);
             last = now;
             const elapsed = now - phaseStart;
             const requested = modeRef.current;
@@ -257,8 +264,8 @@ export const Wobble = React.memo(function Wobble(props: WobbleProps): React.Reac
             // A gaze target or the pointer draws the eyes, the face otherwise glances around on its own
             let lookYTarget = 0;
             const gaze = phase === Phase.Face ? gazePoint(now) : null;
-            if (gaze != null && svgRef.current != null) {
-                const rect = svgRef.current.getBoundingClientRect();
+            if (gaze != null) {
+                const rect = svg.getBoundingClientRect();
                 const dx = gaze.x - (rect.left + rect.width / 2);
                 const dy = gaze.y - (rect.top + (rect.height * EYE_Y) / VIEWBOX_SIZE);
                 glanceTarget = dx / Math.hypot(dx, Math.max(1, rect.width * GAZE_SOFTNESS_X));
@@ -291,16 +298,16 @@ export const Wobble = React.memo(function Wobble(props: WobbleProps): React.Reac
                 if (eye == null) continue;
                 const cx = VIEWBOX_SIZE / 2 + (i === 0 ? -EYE_DX : EYE_DX) + glance.value * t.glanceAmplitude;
                 const cy = EYE_Y + lookY.value * t.glanceAmplitude * GAZE_VERTICAL;
-                eye.setAttribute('x', (cx - eyeWidth / 2).toFixed(2));
-                eye.setAttribute('y', (cy - eyeHeight / 2).toFixed(2));
-                eye.setAttribute('width', eyeWidth.toFixed(2));
-                eye.setAttribute('height', eyeHeight.toFixed(2));
+                writeAttribute(eye, 'x', (cx - eyeWidth / 2).toFixed(2));
+                writeAttribute(eye, 'y', (cy - eyeHeight / 2).toFixed(2));
+                writeAttribute(eye, 'width', eyeWidth.toFixed(2));
+                writeAttribute(eye, 'height', eyeHeight.toFixed(2));
                 // The happy eyes, arcs like ^ ^
                 const arc = happyEyeRefs.current[i];
                 if (arc != null) {
                     const w = HAPPY_EYE_WIDTH / 2, h = HAPPY_EYE_HEIGHT / 2;
-                    arc.setAttribute('d', `M${(cx - w).toFixed(2)} ${(cy + h).toFixed(2)}Q${cx.toFixed(2)} ${(cy - 2.2 * h).toFixed(2)} ${(cx + w).toFixed(2)} ${(cy + h).toFixed(2)}`);
-                    arc.setAttribute('opacity', (eyesOpen * squint).toFixed(3));
+                    writeAttribute(arc, 'd', `M${(cx - w).toFixed(2)} ${(cy + h).toFixed(2)}Q${cx.toFixed(2)} ${(cy - 2.2 * h).toFixed(2)} ${(cx + w).toFixed(2)} ${(cy + h).toFixed(2)}`);
+                    writeAttribute(arc, 'opacity', (eyesOpen * squint).toFixed(3));
                 }
             }
 
@@ -311,7 +318,7 @@ export const Wobble = React.memo(function Wobble(props: WobbleProps): React.Reac
                 const path = pathRefs.current[i];
                 if (path == null) continue;
                 if (atLogo) {
-                    path.setAttribute('d', brand.pieces[i].logoPath);
+                    writeAttribute(path, 'd', brand.pieces[i].logoPath);
                     continue;
                 }
                 morphPoints(brand.pieces[i], {
@@ -321,14 +328,14 @@ export const Wobble = React.memo(function Wobble(props: WobbleProps): React.Reac
                     lag: t.lag,
                     ripple: t.ripple,
                 }, outlines[i], scratch);
-                path.setAttribute('d', outlinePath(outlines[i]));
+                writeAttribute(path, 'd', outlinePath(outlines[i]));
             }
 
             // The cutouts of the brand mark fade in once the shape is close to it
             const cutouts = cutoutsRef.current;
             if (cutouts != null) {
                 const reveal = Math.min(Math.max((morph.value - CUTOUT_REVEAL_FROM) / (1 - CUTOUT_REVEAL_FROM), 0), 1);
-                cutouts.setAttribute('opacity', reveal.toFixed(3));
+                writeAttribute(cutouts, 'opacity', reveal.toFixed(3));
             }
 
             // The goo filter melts the halves together, until they are joined again on the way back.
@@ -341,13 +348,30 @@ export const Wobble = React.memo(function Wobble(props: WobbleProps): React.Reac
                 if (wantGoo) gooGroupRef.current?.setAttribute('filter', `url(#${gooId})`);
                 else gooGroupRef.current?.removeAttribute('filter');
             }
-            if (wantGoo) blurRef.current?.setAttribute('stdDeviation', blur.toFixed(2));
+            if (wantGoo && blurRef.current != null) writeAttribute(blurRef.current, 'stdDeviation', blur.toFixed(2));
 
             frame = requestAnimationFrame(render);
         };
+        // The frames stop while Wobble is off the screen, e.g. scrolled away or in a hidden view, and go on when it is
+        // back. The browser stops them on its own while the page is hidden.
+        const resume = () => {
+            if (frame !== 0) return;
+            last = performance.now();
+            frame = requestAnimationFrame(render);
+        };
+        const visibility = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(entries => {
+            if (entries[entries.length - 1].isIntersecting) {
+                resume();
+            } else {
+                cancelAnimationFrame(frame);
+                frame = 0;
+            }
+        });
+        visibility?.observe(svg);
         render(performance.now());
         return () => {
             cancelAnimationFrame(frame);
+            visibility?.disconnect();
             globalThis.removeEventListener?.('pointermove', onPointerMove);
         };
         // The tuning and the mode are read through refs
