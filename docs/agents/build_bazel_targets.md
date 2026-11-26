@@ -273,6 +273,7 @@ bazel run -c opt //packages/dashql-core:bench_pipeline_ctes [-- <filter>]
 bazel run -c opt //packages/dashql-core:bench_session
 bazel run //packages/dashql-app:bench_hyperdb_wasm_backend [-- --rows=100000 --repeat=2 --filter=<case>]
 bazel run --config=release //packages/dashql:bench_typing [-- --passes=3]
+bazel run //packages/dashql-app:perf_workbook -- <file.dashql> [--quiet=<ms>] [--json=<out.json>]
 ```
 
 `bench_pipeline` scans, parses, formats, analyzes and completes TPC-DS q1 against the TPC-DS schema.
@@ -286,6 +287,8 @@ the editor does, and prints the 10th percentile and the median of the steps per 
 `bench_hyperdb_wasm_backend` runs the same queries on the experimental wasm backend of hyperdb-wasm
 (`experimental_wasm_backend`) and on its default backend, checks that the results are equal and prints the
 slowdown of every case. A hyperdb-wasm without the backend only reports that.
+`perf_workbook` imports a `.dashql` file into the app in Chromium and prints the perf marks, the long frames and the
+renders of the components until the app is quiet, see "Perf marks" in `docs/design/dashql_runtime.md`.
 
 ## Type Checking
 

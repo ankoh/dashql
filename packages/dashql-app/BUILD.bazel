@@ -299,7 +299,8 @@ copy_to_directory(
     visibility = ["//visibility:public"],
 )
 
-# The coverage bundle of :coverage_chromium, the pages bundle unminified and with source maps
+# The pages bundle unminified and with source maps: the bundle of :coverage_chromium, and of :perf_workbook, which reads
+# the names of the components
 vite_bin.vite(
     name = "coverage_pages_vite",
     srcs = _vite_web_deps,
@@ -329,6 +330,7 @@ copy_to_directory(
 BROWSER_TEST_DATA = [
     "test/browser_coverage.mjs",
     "test/browser_page_tests.mjs",
+    "test/static_server.mjs",
 ]
 
 # A suite runs a browser with an embedded Hyper per page, about two cores each: a shard of the test files per four cores
@@ -388,6 +390,26 @@ js_run_devserver(
         "//:node_modules",
     ],
     visibility = ["//visibility:public"],
+)
+
+# Imports a .dashql file into the app in Chromium and prints the perf marks, the long frames and the renders until the
+# app is quiet: `bazel run //packages/dashql-app:perf_workbook -- <file.dashql>`, see docs/design/dashql_runtime.md
+js_binary(
+    name = "perf_workbook",
+    args = ["$(rootpath :coverage_pages)"],
+    data = [
+        ":coverage_pages",
+        "test/static_server.mjs",
+        "//:node_modules/playwright-core",
+        "@playwright_chromium//:chromium",
+        "@playwright_chromium//:runtime",
+    ],
+    entry_point = "test/perf_workbook.mjs",
+    env = {"DASHQL_BROWSER_EXECUTABLE": "$(rootpath @playwright_chromium//:chromium)"},
+    no_copy_to_bin = [
+        "@playwright_chromium//:chromium",
+        "@playwright_chromium//:runtime",
+    ],
 )
 
 # Compares the experimental wasm backend of hyperdb-wasm with its default backend

@@ -90,7 +90,7 @@ The tests run in `tests-frame.html`, an iframe of `tests.html` with the policy o
 remote origins of `connect-src`). An iframe loaded from a URL does not inherit the policy of its parent, so
 the frame declares its own. Code under test that evaluates a string fails with an `EvalError`.
 
-The static server of the browser tests (`packages/dashql-app/test/browser_test_driver.mjs`) applies the
+The static server of the browser tests (`packages/dashql-app/test/static_server.mjs`) applies the
 `_headers` of the bundle, so the workers in the tests run under the worker policy of Pages.
 
 ## Electron

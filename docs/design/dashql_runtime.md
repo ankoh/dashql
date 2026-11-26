@@ -603,8 +603,12 @@ To read them:
 - **The performance panel of Chrome.** A recording shows every span on its track in the DashQL group, next to the
   calls of the main thread and the tracks of React, with its detail in the tooltip, e.g. the workbook of a derive or
   the text of a query.
-- **A script.** `performance.getEntriesByType('measure')` lists the spans with their `detail.text`, e.g. from a
-  Playwright page that loads a workbook and changes an input. Sum them by name to compare a change with its base.
+- **The perf script.** `bazel run //packages/dashql-app:perf_workbook -- <file.dashql>` imports the file into the app
+  in a headless Chromium and waits until the app is quiet. It prints the spans summed by name, the slowest spans, the
+  long frames of the main thread with their scripts, and how often each React component rendered. `--json=<file>`
+  also writes them out. Run it before and after a change to compare the two.
+- **A script of your own.** `performance.getEntriesByType('measure')` lists the spans with their `detail.text`, e.g.
+  from a Playwright page that loads a workbook and changes an input.
 
 | Span | Where | What |
 |---|---|---|

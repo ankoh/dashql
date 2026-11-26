@@ -1,11 +1,11 @@
-import { createReadStream, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
-import { createServer } from 'node:http';
+import { realpathSync, writeFileSync } from 'node:fs';
 import { availableParallelism } from 'node:os';
-import { extname, join, normalize, resolve, sep } from 'node:path';
+import { join, resolve } from 'node:path';
 
 const playwright = await import('playwright-core');
 const { mapCoverage, toLcov, toSummary } = await import('./browser_coverage.mjs');
 const { runPageTests } = await import('./browser_page_tests.mjs');
+const { serveBundle } = await import('./static_server.mjs');
 
 const root = resolve(process.argv[2]);
 const requestedFile = process.argv[3] ?? '';
@@ -29,78 +29,7 @@ const shardCount = requestedFile || collectCoverage
 const pageTestsAlongside = shardCount > 1;
 const pageTestConcurrency = pageTestsAlongside ? Math.ceil(shardCount / 2) : 1;
 
-const mimeTypes = {
-    '.br': 'application/octet-stream',
-    '.css': 'text/css; charset=utf-8',
-    '.html': 'text/html; charset=utf-8',
-    '.js': 'text/javascript; charset=utf-8',
-    '.json': 'application/json; charset=utf-8',
-    '.map': 'application/json; charset=utf-8',
-    '.png': 'image/png',
-    '.svg': 'image/svg+xml',
-    '.wasm': 'application/wasm',
-    '.woff2': 'font/woff2',
-};
-
-// The headers of the Cloudflare Pages deployment, read from the _headers file of the bundle. A line without indentation
-// is a URL pattern where `*` matches any characters, the indented `Name: value` lines below it are its headers. The
-// headers of every matching rule apply, a header of several rules joins their values with a comma, as on Pages.
-function readHeaderRules(file) {
-    const rules = [];
-    for (const line of readFileSync(file, 'utf8').split('\n')) {
-        if (line.trim() === '' || line.trimStart().startsWith('#')) continue;
-        if (!/^\s/.test(line)) {
-            const pattern = line.trim().split('*').map(part => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*');
-            rules.push({ pattern: new RegExp(`^${pattern}$`), headers: [] });
-            continue;
-        }
-        const separator = line.indexOf(':');
-        if (separator < 0 || rules.length === 0) throw new Error(`_headers: cannot read the line "${line}"`);
-        rules.at(-1).headers.push([line.slice(0, separator).trim(), line.slice(separator + 1).trim()]);
-    }
-    return rules;
-}
-
-const headerRules = readHeaderRules(join(root, '_headers'));
-
-function responseHeaders(pathname, file, size) {
-    const matched = {};
-    for (const rule of headerRules) {
-        if (!rule.pattern.test(pathname)) continue;
-        for (const [name, value] of rule.headers) {
-            matched[name] = matched[name] == null ? value : `${matched[name]}, ${value}`;
-        }
-    }
-    return { 'Content-Length': String(size), 'Content-Type': mimeTypes[extname(file)] ?? 'application/octet-stream', ...matched };
-}
-
-// The URL of the test frame of a shard lists its files
-const server = createServer({ maxHeaderSize: 1024 * 1024 }, (request, response) => {
-    const pathname = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
-    // Pages serves the app for the routes of its router, since the bundle has no 404.html
-    const relative = normalize(pathname === '/' || extname(pathname) === '' ? 'index.html' : pathname.slice(1));
-    const file = resolve(join(root, relative));
-    if (file !== root && !file.startsWith(`${root}${sep}`)) {
-        response.writeHead(403).end('Forbidden');
-        return;
-    }
-    try {
-        const stat = statSync(file);
-        if (!stat.isFile()) throw new Error('Not a file');
-        response.writeHead(200, responseHeaders(pathname, file, stat.size));
-        createReadStream(file).pipe(response);
-    } catch {
-        response.writeHead(404).end('Not found');
-    }
-});
-
-await new Promise((resolveListening, reject) => {
-    server.once('error', reject);
-    server.listen(0, '127.0.0.1', resolveListening);
-});
-
-const address = server.address();
-if (!address || typeof address === 'string') throw new Error('Static server did not bind a TCP port');
+const server = await serveBundle(root);
 const browser = await browserType.launch({
     // Firefox resolves XPCOM resources relative to the physical app bundle, not a runfiles symlink.
     executablePath: realpathSync(executablePath),
@@ -125,7 +54,7 @@ async function runShard(shard) {
     const query = new URLSearchParams({ autorun: '1' });
     if (requestedFile) query.set('file', requestedFile);
     if (shardCount > 1) query.set('shard', `${shard}/${shardCount}`);
-    await page.goto(`http://127.0.0.1:${address.port}/tests.html?${query}`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${server.url}/tests.html?${query}`, { waitUntil: 'domcontentloaded' });
     // Poll with a timer, animation frames can stop on a page in the background
     const polling = 100;
     try {
@@ -164,7 +93,7 @@ try {
     // A run of a single test file leaves out the pages
     const runPages = async () => requestedFile
         ? { durations: {}, failures: [], scriptCoverages: [] }
-        : await runPageTests(browser, `http://127.0.0.1:${address.port}`, { collectCoverage, concurrency: pageTestConcurrency, outputs });
+        : await runPageTests(browser, server.url, { collectCoverage, concurrency: pageTestConcurrency, outputs });
     const [shards, pages] = pageTestsAlongside
         ? await Promise.all([runShards(), runPages()])
         : [await runShards(), await runPages()];
@@ -214,7 +143,5 @@ try {
     if (summary.status !== 'passed' || browserErrors.length > 0) process.exitCode = 1;
 } finally {
     await browser.close();
-    server.closeIdleConnections();
-    server.closeAllConnections();
-    await new Promise(resolveClosed => server.close(resolveClosed));
+    await server.close();
 }
