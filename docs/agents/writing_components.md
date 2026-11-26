@@ -71,6 +71,9 @@ of a result (`resultRowCount` and `useResultRowCounts` of `components/query_resu
 of a chart (`useResultComputation` of `components/vegalite_view`). An operation that changes state resolves once the
 store shows the change (`settled` of the dispatch), and the component renders with a new model right after. A model is
 the state of one render: the object a handler holds doesn't change after an `await`, the next render brings the new one.
+The operations of a script model keep their identity while the script keeps its key, so a memoized part of a component
+that takes them and the parts of the model it shows doesn't render with every keystroke, e.g. the result of the feed
+card (`ScriptCardResult` of `workbook/feed/script_card.tsx`).
 
 A model binds and decides nothing. A decision that a model or a component would have to make about the runtime, e.g.
 whether a cancel stops the run of the workbook or the query of a script, is a command or an action of the core instead

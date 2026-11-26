@@ -1,17 +1,29 @@
 import * as React from 'react';
 
-/// The handler that a card spreads on its root element, it marks the presses inside of it
+/// The presses inside a card: its root element spreads `onPointerDownCapture`, which marks them. The target keeps its
+/// identity, a memoized part of the card takes it.
 export interface EagerDismissTarget {
     onPointerDownCapture: () => void;
+    /// Did the press that reaches the document start inside the card?
+    pressedInside: React.RefObject<boolean>;
+}
+
+/// The target of the presses inside a card, see `useEagerDismiss`
+export function useEagerDismissTarget(): EagerDismissTarget {
+    const pressedInside = React.useRef(false);
+    return React.useMemo(() => ({
+        onPointerDownCapture: () => { pressedInside.current = true; },
+        pressedInside,
+    }), []);
 }
 
 /// Dismiss what a card shows for a moment, e.g. the more rows of its table, as soon as the user turns to something
 /// else: a pointer press outside of the card, or Escape that nothing else handled (an overlay or an editor prevents
 /// its default). A popup of the card, e.g. the detail of a cell or the search of the table, belongs to the card: React
 /// bubbles the events of a portal through the card although the portal lies outside of it, so the card marks the
-/// presses that reach it and the document dismisses the others.
-export function useEagerDismiss(active: boolean, onDismiss: () => void): EagerDismissTarget {
-    const pressedInside = React.useRef(false);
+/// presses that reach it (`useEagerDismissTarget`) and the document dismisses the others.
+export function useEagerDismiss(target: EagerDismissTarget, active: boolean, onDismiss: () => void): void {
+    const { pressedInside } = target;
     const dismiss = React.useEffectEvent(onDismiss);
     React.useEffect(() => {
         if (!active) return;
@@ -33,7 +45,5 @@ export function useEagerDismiss(active: boolean, onDismiss: () => void): EagerDi
             document.removeEventListener('pointerdown', onPointerDown);
             window.removeEventListener('keydown', onKeyDown);
         };
-    }, [active]);
-    const onPointerDownCapture = React.useCallback(() => { pressedInside.current = true; }, []);
-    return { onPointerDownCapture };
+    }, [active, pressedInside]);
 }

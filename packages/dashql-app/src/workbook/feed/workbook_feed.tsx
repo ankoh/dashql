@@ -28,7 +28,7 @@ import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
 import { getScriptRefs, type ModifyWorkbookScripts, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { createScriptAction, useLiveScriptReader } from '../scripts/script_creation.js';
-import { useOptionalRuntime, useRuntime, useWorkbookDerived, useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
+import { useOptionalRuntime, useRuntime, useViewReader, useWorkbookDerived } from '@akohn/dashql-react/hooks';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { renameAttachment } from '../attachment_rename.js';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
@@ -113,7 +113,8 @@ export interface WorkbookFeedDependencies {
     useAttachmentCommands: () => Pick<Runtime, 'attachFiles' | 'detachFile'>;
     usePickScriptConnection: typeof usePickScriptConnection;
     useKeyEvents: typeof useKeyEvents;
-    useWorkbookScriptMap: typeof useWorkbookScriptMap;
+    /// Reads the scripts in the handlers, the feed doesn't render with their keystrokes
+    useViewReader: typeof useViewReader;
     useWorkbookDerived: typeof useWorkbookDerived;
     useLiveScriptReader: typeof useLiveScriptReader;
     ScriptFeedRow: typeof ScriptFeedRow;
@@ -124,7 +125,7 @@ const DEFAULT_DEPENDENCIES: WorkbookFeedDependencies = {
     useAttachmentCommands: () => useRuntime(),
     usePickScriptConnection,
     useKeyEvents,
-    useWorkbookScriptMap,
+    useViewReader,
     useWorkbookDerived,
     useLiveScriptReader,
     ScriptFeedRow,
@@ -137,6 +138,7 @@ const OVERSCAN_ROW_COUNT = 16;
 const FEED_ENTRY_CHROME_HEIGHT = 50;
 const FEED_EDITOR_LINE_HEIGHT = 18;
 const restrictToVerticalAxis: Modifier = ({ transform }) => ({ ...transform, x: 0 });
+const DRAG_MODIFIERS = [restrictToVerticalAxis];
 
 /// The views of the connections that the scripts run on.
 /// The map keeps its identity while the shown fields are unchanged, the memoized feed rows depend on it.
@@ -175,20 +177,19 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const keywordCase = getKeywordCase(config?.settings);
     const scriptRefs = props.workbookScripts.scriptRefs;
     const scriptOrder = props.workbookScripts.scriptOrder;
-    // The scripts of the workbook, every keystroke changes one of them
-    const scripts = dependencies.useWorkbookScriptMap(props.workbookScripts.workbookId);
-    const scriptsRef = React.useRef(scripts);
-    scriptsRef.current = scripts;
+    // The scripts of the workbook as the handlers read them. The feed doesn't subscribe to them, every keystroke changes
+    // one of them: the rows read their scripts.
+    const readView = dependencies.useViewReader();
     // The estimated heights only matter until a row is measured.
     // Don't re-estimate (and copy the text of every script) whenever any script changes.
     const canonicalEntries = React.useMemo(
         () => getScriptRefs({ scriptRefs, scriptOrder }).map(entry => ({
             ...entry,
             estimatedHeight: estimateFeedEntryHeight(
-                scriptsRef.current[entry.scriptId]?.scriptSession.getText() ?? '',
+                readView('script', entry.scriptId)?.scriptSession.getText() ?? '',
             ),
         })),
-        [scriptRefs, scriptOrder],
+        [scriptRefs, scriptOrder, readView],
     );
     const [displayEntries, setDisplayEntries] = React.useState(() => ({
         source: canonicalEntries,
@@ -263,10 +264,10 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         };
     }, [attachRef, attachmentsVisible, attachmentsEnabled, saveAttachments]);
 
-    // The workbook scripts change with every keystroke and the connection with every query event.
+    // The workbook and the connections change with their views.
     // Callbacks read the latest values through a ref to stay stable for the memoized feed rows.
-    const latest = React.useRef({ workbookScripts: props.workbookScripts, scripts, scriptConnections });
-    latest.current = { workbookScripts: props.workbookScripts, scripts, scriptConnections };
+    const latest = React.useRef({ workbookScripts: props.workbookScripts, scriptConnections });
+    latest.current = { workbookScripts: props.workbookScripts, scriptConnections };
     const pickScriptConnection = dependencies.usePickScriptConnection(modifyWorkbookScripts);
 
     const pendingCreatedScriptKeyRef = React.useRef<number | null>(null);
@@ -368,14 +369,14 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         const view = lastFocusedEditor();
         if (view != null && view !== promptRef?.current?.view) {
             const scriptKey = view.state.field(DashQLProcessorPlugin, false)?.scriptKey;
-            const target = scriptKey != null ? latest.current.scripts[scriptKey] : undefined;
+            const target = scriptKey != null ? readView('script', scriptKey) : null;
             if (target != null && target.fileName !== fileName) {
                 insertMentionAtCursor(view, `:${runtime?.core?.quoteIdentifier(name) ?? quoteSqlIdentifier(name)}`);
                 return;
             }
         }
         promptRef?.current?.mention(name);
-    }, [lastFocusedEditor, promptRef, runtime]);
+    }, [lastFocusedEditor, promptRef, runtime, readView]);
     const handleTargetScript = React.useCallback((fileName: string) => handleMention(scriptDisplayName(fileName), fileName), [handleMention]);
     const handleMentionAttachment = React.useCallback((name: string) => handleMention(name, null), [handleMention]);
     // An attachment renames like a script, the scripts and the draft that read it follow
@@ -412,7 +413,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                 }
                 const workbookScripts = latest.current.workbookScripts;
                 const focused = selection.selectedRef(workbookScripts);
-                const focusedScript = focused != null ? latest.current.scripts[focused.scriptId] : null;
+                const focusedScript = focused != null ? readView('script', focused.scriptId) : null;
                 if (focusedScript?.pendingDiff != null) {
                     event.preventDefault();
                     handleAcceptDiff(focusedScript.scriptKey);
@@ -437,14 +438,14 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                 }
                 const workbookScripts = latest.current.workbookScripts;
                 const focused = selection.selectedRef(workbookScripts);
-                const focusedScript = focused != null ? latest.current.scripts[focused.scriptId] : null;
+                const focusedScript = focused != null ? readView('script', focused.scriptId) : null;
                 if (focusedScript?.pendingDiff != null) {
                     event.preventDefault();
                     handleRejectDiff(focusedScript.scriptKey);
                 }
             },
         },
-    ], [feedActive, handleAcceptDiff, handleRejectDiff, selection]);
+    ], [feedActive, handleAcceptDiff, handleRejectDiff, selection, readView]);
     dependencies.useKeyEvents(keyHandlers);
 
     // The docked prompt floats over the bottom of the feed, the last script scrolls clear of it. An empty feed shows
@@ -601,11 +602,11 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     // The agent of a session in the terminal answers questions in the scripts of the workbook, the prompt follows the
     // session and the feed shows the scripts of the agent
     const handleShowAgentScript = React.useCallback((scriptKey: number) => {
-        const scriptData = latest.current.scripts[scriptKey];
+        const scriptData = readView('script', scriptKey);
         if (scriptData == null) return;
         handleFocus(scriptData.fileName);
         revealScript(scriptKey, 'script');
-    }, [handleFocus, revealScript]);
+    }, [handleFocus, revealScript, readView]);
     React.useImperativeHandle(props.handleRef, () => ({
         follow: followAgentScript,
         show: handleShowAgentScript,
@@ -666,6 +667,8 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     }), [workbookId, entries, scriptReferences, rowsActive, scriptConnections, storageReader, scriptDebugMode, formattingDebugMode, keywordCase, collapsedResults, fold, feedCommands, handleParameterClick, topInset, feedLayout.rowHeights.setRowHeight]);
 
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
+    // The sortable items keep their identity with the entries, every row reads them
+    const sortableIds = React.useMemo(() => entries.map(entry => entry.scriptId), [entries]);
 
     // The head of the feed, the attachments and the parameters: above the greeting on the landing view, otherwise above
     // the first script, where they scroll away with the scripts
@@ -712,10 +715,10 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                 <DndContext
                     sensors={dndSensors}
                     collisionDetection={closestCenter}
-                    modifiers={[restrictToVerticalAxis]}
+                    modifiers={DRAG_MODIFIERS}
                     onDragEnd={handleDragEnd}
                 >
-                    <SortableContext items={entries.map(entry => entry.scriptId)} strategy={verticalListSortingStrategy}>
+                    <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
                         <List
                             key={props.workbookScripts.workbookId}
                             listRef={feedLayout.listRef}

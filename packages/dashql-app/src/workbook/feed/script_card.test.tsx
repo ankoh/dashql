@@ -427,4 +427,18 @@ describe('the card of a script', () => {
         expect(model.run).not.toHaveBeenCalled();
         expect(document.querySelector('[role="dialog"]')).toBeNull();
     });
+
+    it('leaves its result alone when the text of the script changes', () => {
+        const model = fakeScriptModel({ script: fakeScript(1, '01_alpha.sql'), query: fakeQueryModel(succeeded(42)) });
+        const { props } = cardProps(model);
+        const resultPanel = vi.fn(props.resultPanel);
+        render({ ...props, resultPanel });
+        expect(resultPanel).toHaveBeenCalledOnce();
+        // A keystroke: a new model with a new script, the same query and the same operations
+        render({ ...props, resultPanel, model: { ...model, script: { ...model.script } } });
+        expect(resultPanel).toHaveBeenCalledOnce();
+        // A new query renders it
+        render({ ...props, resultPanel, model: { ...model, query: fakeQueryModel(succeeded(43)) } });
+        expect(resultPanel).toHaveBeenCalledTimes(2);
+    });
 });

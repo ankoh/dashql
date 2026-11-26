@@ -192,8 +192,9 @@ function useSnippetMatches(registry: SnippetRegistry, connector: ConnectorType, 
     return text.length === 0 ? { ids: null, error: null } : matches;
 }
 
-/// A library button that opens a browser of SQL snippets, applying a snippet replaces the text of the script
-export function SnippetsOverlay(props: SnippetsOverlayProps): React.ReactElement {
+/// A library button that opens a browser of SQL snippets, applying a snippet replaces the text of the script. Memoized, a
+/// header renders it with every keystroke in its script.
+export const SnippetsOverlay = React.memo(function SnippetsOverlay(props: SnippetsOverlayProps): React.ReactElement {
     const anchorRef = React.useRef<HTMLButtonElement>(null);
     const listRef = React.useRef<HTMLDivElement>(null);
     const searchRef = React.useRef<HTMLInputElement>(null);
@@ -242,7 +243,7 @@ export function SnippetsOverlay(props: SnippetsOverlayProps): React.ReactElement
             </AnchoredOverlay>
         </>
     );
-}
+});
 
 export interface SnippetBrowserProps {
     /// The connector of the script

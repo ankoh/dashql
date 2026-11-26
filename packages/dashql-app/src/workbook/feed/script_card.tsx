@@ -13,6 +13,7 @@ import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_executi
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import type { StorageReader } from '../../storage/storage_provider.js';
 import type { ScriptModel } from '@akohn/dashql-react/models/script_model';
+import type { QueryModel } from '@akohn/dashql-react/models/query_model';
 import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { EntryStatusBar } from '../entry_status_bar.js';
 import { QueryResultRerunButton, StoredResultBean } from '../persistence/stored_result_controls.js';
@@ -20,7 +21,7 @@ import {
     DEFAULT_FEED_ENTRY_HEADER_DEPENDENCIES, FeedEntryHeader, type FeedEntryHeaderDependencies, type FeedEntryHeaderDisplay,
 } from './feed_entry_header.js';
 import { FeedEntryTab, FeedEntryTabStrip, useFeedEntryTabs } from './feed_entry_footer.js';
-import { useEagerDismiss } from './eager_dismiss.js';
+import { useEagerDismiss, useEagerDismissTarget, type EagerDismissTarget } from './eager_dismiss.js';
 import type { ScriptConnectionView } from '../scripts/script_connection_picker.js';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 
@@ -121,7 +122,7 @@ const CheckIcon: Icon = SymbolIcon('check_16');
 const RunIcon: Icon = SymbolIcon('paper_airplane_16');
 const CrossIcon: Icon = SymbolIcon('x_16');
 
-// Memoized since every row of the feed re-renders whenever any script changes
+// Memoized, the row renders again with its script and the card with the parts of the script that it shows
 export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCardProps) => {
     const { model, connection, position, display, result, feed } = props;
     const dependencies = props.dependencies ?? DEFAULT_SCRIPT_CARD_DEPENDENCIES;
@@ -134,83 +135,55 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     // A staged rewrite waiting to be accepted or rejected. The editor shows the diff in place, these buttons are the
     // explicit alternatives.
     const hasPendingDiff = script.pendingDiff != null;
-    // The stored result of the script in the results of the workbook, null without one
-    const storedResult = script.storedResult ?? null;
-    const entryStatus = deriveEntryStatus(query, query?.progress ?? null);
-    // The result tabs live in the status bar, their panel below it
-    const resultTabs = useFeedEntryTabs(model.query, script.annotations.visualizeQuery ?? null);
-    // Picking a tab of a folded result shows it
-    const expandResult = React.useCallback(() => {
-        if (!result.expanded) result.toggle(scriptKey);
-    }, [scriptKey, result]);
-    const { autoCollapse, resetAutoCollapsed } = result;
-    React.useEffect(() => {
-        if (query?.status !== QueryExecutionStatus.SUCCEEDED || query.resultTable !== null) {
-            resetAutoCollapsed(scriptKey, query?.queryId ?? script.latestQueryId ?? null);
-            return;
-        }
-        autoCollapse(scriptKey, query.queryId);
-    }, [autoCollapse, resetAutoCollapsed, script.latestQueryId, query, scriptKey]);
-    const cancel = React.useCallback(() => {
-        if (entryStatus.kind === EntryStatusKind.Query) void model.cancel();
-    }, [model, entryStatus.kind]);
+    // A card with a result shows it below the editor
+    const resultCard = deriveEntryStatus(query, query?.progress ?? null).kind !== EntryStatusKind.Idle;
 
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
     const handleEditorView = React.useCallback((view: EditorView) => {
         setEditorView(view);
         feed.editorView(scriptKey, view);
     }, [feed, scriptKey]);
+    // The commands keep their identity with the script, the parts of the header don't render with every keystroke
     const rename = React.useCallback((name: string) => feed.rename(fileName, name), [feed, fileName]);
+    const target = React.useCallback(() => feed.target(fileName), [feed, fileName]);
+    const pickConnection = React.useCallback((connectionId: string) => feed.pickConnection(fileName, connectionId), [feed, fileName]);
+    const deleteScript = React.useCallback(() => feed.delete(fileName), [feed, fileName]);
+    const addAbove = React.useCallback(() => feed.create(position.index), [feed, position.index]);
+    const addBelow = React.useCallback(() => feed.create(position.index + 1), [feed, position.index]);
+    const moveUp = React.useCallback(() => feed.moveUp(fileName), [feed, fileName]);
+    const moveDown = React.useCallback(() => feed.moveDown(fileName), [feed, fileName]);
 
     // Labels use the display name (the file name without ".sql"), the file name stays the identity of the commands
     const displayName = scriptDisplayName(fileName);
-
-    // The full result table opens in a card over the feed
-    const [tableOpen, setTableOpen] = React.useState(false);
-    const showTable = React.useCallback(() => setTableOpen(true), []);
-    const closeTable = React.useCallback(() => setTableOpen(false), []);
-
-    // More rows of the table grow the card in place for a moment: the card shows them for the query that the user
-    // expanded and only on its table tab, and shows the first rows again as soon as the user presses Escape or
-    // something outside of the card, picks a tab or folds the result
-    const queryId = query?.queryId ?? null;
-    const [moreRowsQueryId, setMoreRowsQueryId] = React.useState<number | null>(null);
-    const moreRows = queryId != null && moreRowsQueryId === queryId && result.expanded
-        && resultTabs.selectedTab === FeedEntryTab.Table;
-    const showMoreRows = React.useCallback(() => setMoreRowsQueryId(queryId), [queryId]);
-    const showFewerRows = React.useCallback(() => setMoreRowsQueryId(null), []);
-    const moreRowsDismiss = useEagerDismiss(moreRows, showFewerRows);
-
-    const resultContentId = `feed-result-${scriptKey}`;
+    // The presses inside the card, the result dismisses its more rows on the others
+    const dismissTarget = useEagerDismissTarget();
     // A read-only workbook shows its cards greyed out
     const readOnly = useWorkbookReadOnly();
-    const hasFooterContent = entryStatus.kind !== EntryStatusKind.Idle;
-    const runScript = () => { if (online) void model.run(); };
     return (
         <article
             className={styles.feed_entry_pair}
             data-read-only={readOnly ? '' : undefined}
             data-electron-drag-region="false"
             onPointerEnter={() => feed.focus(fileName)}
-            onPointerDownCapture={moreRowsDismiss.onPointerDownCapture}
+            onPointerDownCapture={dismissTarget.onPointerDownCapture}
             aria-label={`${displayName} script cell`}
             data-testid="script-cell"
         >
-            <div className={styles.feed_entry_cell} data-result-card={hasFooterContent ? '' : undefined}>
+            <div className={styles.feed_entry_cell} data-result-card={resultCard ? '' : undefined}>
                 <FeedEntryHeader
                     model={model}
                     connection={connection}
                     display={display}
                     editorView={editorView}
                     storageReader={props.storageReader}
-                    onTarget={() => feed.target(fileName)}
-                    onPickConnection={connectionId => feed.pickConnection(fileName, connectionId)}
+                    onTarget={target}
+                    onPickConnection={pickConnection}
                     onRename={rename}
-                    onDelete={() => feed.delete(fileName)}
-                    onAddAbove={() => feed.create(position.index)}
-                    onAddBelow={() => feed.create(position.index + 1)}
-                    onMoveUp={() => feed.moveUp(fileName)}
-                    onMoveDown={() => feed.moveDown(fileName)}
+                    onDelete={deleteScript}
+                    onAddAbove={addAbove}
+                    onAddBelow={addBelow}
+                    onMoveUp={moveUp}
+                    onMoveDown={moveDown}
                     canMoveUp={position.canMoveUp}
                     canMoveDown={position.canMoveDown}
                     dependencies={dependencies}
@@ -250,77 +223,165 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         )}
                     </div>
                 </div>
-                {/* A script that did not run yet shows where its result will be, a read-only workbook only says so */}
-                {!hasFooterContent && (
-                    <div className={styles.feed_entry_footer}>
-                        <EntryStatusBar
-                            status={entryStatus}
-                            // Nothing below the bar, it keeps no line at its bottom
-                            expanded={false}
-                            compact
-                            actions={
-                                <>
-                                    {storedResult != null && <StoredResultBean writtenAtMs={storedResult.writtenAt} current={storedResult.current} />}
-                                    {!readOnly && (
-                                        <Button
-                                            variant={ButtonVariant.Invisible}
-                                            size={ButtonSize.Small}
-                                            leadingVisual={<RunIcon size={12} />}
-                                            onClick={runScript}
-                                            disabled={!online || model.runActive}
-                                            aria-label={`Run ${displayName}`}
-                                            data-testid="feed-idle-run"
-                                        >
-                                            Run
-                                        </Button>
-                                    )}
-                                </>
-                            }
-                        />
-                    </div>
-                )}
-                {hasFooterContent && (
-                    <div className={styles.feed_entry_footer} data-feed-result="">
-                        <EntryStatusBar
-                            status={entryStatus}
-                            onToggleExpanded={() => {
-                                showFewerRows();
-                                result.toggle(scriptKey);
-                            }}
-                            expanded={result.expanded}
-                            controls={resultContentId}
-                            onCancel={entryStatus.indicator === IndicatorStatus.Running ? cancel : undefined}
-                            cancelLabel="Cancel query"
-                            compact
-                            tabs={<FeedEntryTabStrip tabs={resultTabs} expanded={result.expanded} onSelect={() => {
-                                showFewerRows();
-                                expandResult();
-                            }} />}
-                            actions={
-                                <>
-                                    {storedResult != null && <StoredResultBean writtenAtMs={storedResult.writtenAt} current={storedResult.current} />}
-                                    <QueryResultRerunButton
-                                        query={query}
-                                        onRerun={online && !model.runActive ? () => void model.run({ refresh: true }) : undefined}
-                                    />
-                                </>
-                            }
-                        />
-                        {query != null ? (
-                            <div id={resultContentId} hidden={!result.expanded}>
-                                {props.resultPanel({
-                                    selectedTab: resultTabs.selectedTab,
-                                    onShowTable: showTable,
-                                    moreRows,
-                                    onShowMoreRows: showMoreRows,
-                                    onShowFewerRows: showFewerRows,
-                                })}
-                            </div>
-                        ) : null}
-                        {tableOpen && query != null && props.resultTable({ scriptName: displayName, onClose: closeTable })}
-                    </div>
-                )}
+                <ScriptCardResult
+                    scriptKey={scriptKey}
+                    scriptName={displayName}
+                    query={model.query}
+                    visualizeQuery={script.annotations.visualizeQuery ?? null}
+                    latestQueryId={script.latestQueryId ?? null}
+                    storedResult={script.storedResult ?? null}
+                    online={online}
+                    runActive={model.runActive}
+                    run={model.run}
+                    cancel={model.cancel}
+                    result={result}
+                    dismissTarget={dismissTarget}
+                    resultPanel={props.resultPanel}
+                    resultTable={props.resultTable}
+                />
             </div>
         </article>
+    );
+});
+
+/// The result of a card: the status bar of the latest query with its tabs, and the panel of the selected tab
+interface ScriptCardResultProps {
+    scriptKey: number;
+    /// The display name of the script
+    scriptName: string;
+    /// The latest query of the script, null before its first run
+    query: QueryModel | null;
+    visualizeQuery: ScriptModel['script']['annotations']['visualizeQuery'];
+    latestQueryId: number | null;
+    /// The stored result of the script in the results of the workbook, null without one
+    storedResult: ScriptModel['script']['storedResult'];
+    /// Is the connection of the script online?
+    online: boolean;
+    runActive: boolean;
+    run: ScriptModel['run'];
+    cancel: ScriptModel['cancel'];
+    result: ScriptResultFold;
+    /// The presses inside the card
+    dismissTarget: EagerDismissTarget;
+    resultPanel: (slot: ScriptResultSlot) => React.ReactNode;
+    resultTable: (slot: ScriptResultTableSlot) => React.ReactNode;
+}
+
+// Memoized, a keystroke changes the script and leaves its result alone: the props are the parts of the model that the
+// result shows and the operations of the model, which keep their identity
+const ScriptCardResult = React.memo(function ScriptCardResult(props: ScriptCardResultProps) {
+    const { scriptKey, result, run, cancel, online } = props;
+    const query = props.query?.query ?? null;
+    const entryStatus = deriveEntryStatus(query, query?.progress ?? null);
+    // The result tabs live in the status bar, their panel below it
+    const resultTabs = useFeedEntryTabs(props.query, props.visualizeQuery);
+    // Picking a tab of a folded result shows it
+    const expandResult = React.useCallback(() => {
+        if (!result.expanded) result.toggle(scriptKey);
+    }, [scriptKey, result]);
+    const { autoCollapse, resetAutoCollapsed } = result;
+    const { latestQueryId } = props;
+    React.useEffect(() => {
+        if (query?.status !== QueryExecutionStatus.SUCCEEDED || query.resultTable !== null) {
+            resetAutoCollapsed(scriptKey, query?.queryId ?? latestQueryId);
+            return;
+        }
+        autoCollapse(scriptKey, query.queryId);
+    }, [autoCollapse, resetAutoCollapsed, latestQueryId, query, scriptKey]);
+    const cancelQuery = React.useCallback(() => {
+        if (entryStatus.kind === EntryStatusKind.Query) void cancel();
+    }, [cancel, entryStatus.kind]);
+
+    // The full result table opens in a card over the feed
+    const [tableOpen, setTableOpen] = React.useState(false);
+    const showTable = React.useCallback(() => setTableOpen(true), []);
+    const closeTable = React.useCallback(() => setTableOpen(false), []);
+
+    // More rows of the table grow the card in place for a moment: the card shows them for the query that the user
+    // expanded and only on its table tab, and shows the first rows again as soon as the user presses Escape or
+    // something outside of the card, picks a tab or folds the result
+    const queryId = query?.queryId ?? null;
+    const [moreRowsQueryId, setMoreRowsQueryId] = React.useState<number | null>(null);
+    const moreRows = queryId != null && moreRowsQueryId === queryId && result.expanded
+        && resultTabs.selectedTab === FeedEntryTab.Table;
+    const showMoreRows = React.useCallback(() => setMoreRowsQueryId(queryId), [queryId]);
+    const showFewerRows = React.useCallback(() => setMoreRowsQueryId(null), []);
+    useEagerDismiss(props.dismissTarget, moreRows, showFewerRows);
+
+    const resultContentId = `feed-result-${scriptKey}`;
+    const readOnly = useWorkbookReadOnly();
+    const storedResult = props.storedResult;
+    const runScript = () => { if (online) void run(); };
+    // A script that did not run yet shows where its result will be, a read-only workbook only says so
+    if (entryStatus.kind === EntryStatusKind.Idle) {
+        return (
+            <div className={styles.feed_entry_footer}>
+                <EntryStatusBar
+                    status={entryStatus}
+                    // Nothing below the bar, it keeps no line at its bottom
+                    expanded={false}
+                    compact
+                    actions={
+                        <>
+                            {storedResult != null && <StoredResultBean writtenAtMs={storedResult.writtenAt} current={storedResult.current} />}
+                            {!readOnly && (
+                                <Button
+                                    variant={ButtonVariant.Invisible}
+                                    size={ButtonSize.Small}
+                                    leadingVisual={<RunIcon size={12} />}
+                                    onClick={runScript}
+                                    disabled={!online || props.runActive}
+                                    aria-label={`Run ${props.scriptName}`}
+                                    data-testid="feed-idle-run"
+                                >
+                                    Run
+                                </Button>
+                            )}
+                        </>
+                    }
+                />
+            </div>
+        );
+    }
+    return (
+        <div className={styles.feed_entry_footer} data-feed-result="">
+            <EntryStatusBar
+                status={entryStatus}
+                onToggleExpanded={() => {
+                    showFewerRows();
+                    result.toggle(scriptKey);
+                }}
+                expanded={result.expanded}
+                controls={resultContentId}
+                onCancel={entryStatus.indicator === IndicatorStatus.Running ? cancelQuery : undefined}
+                cancelLabel="Cancel query"
+                compact
+                tabs={<FeedEntryTabStrip tabs={resultTabs} expanded={result.expanded} onSelect={() => {
+                    showFewerRows();
+                    expandResult();
+                }} />}
+                actions={
+                    <>
+                        {storedResult != null && <StoredResultBean writtenAtMs={storedResult.writtenAt} current={storedResult.current} />}
+                        <QueryResultRerunButton
+                            query={query}
+                            onRerun={online && !props.runActive ? () => void run({ refresh: true }) : undefined}
+                        />
+                    </>
+                }
+            />
+            {query != null ? (
+                <div id={resultContentId} hidden={!result.expanded}>
+                    {props.resultPanel({
+                        selectedTab: resultTabs.selectedTab,
+                        onShowTable: showTable,
+                        moreRows,
+                        onShowMoreRows: showMoreRows,
+                        onShowFewerRows: showFewerRows,
+                    })}
+                </div>
+            ) : null}
+            {tableOpen && query != null && props.resultTable({ scriptName: props.scriptName, onClose: closeTable })}
+        </div>
     );
 });

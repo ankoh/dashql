@@ -137,6 +137,9 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
     // A right click on the action bar opens the script menu
     const contextMenu = useRowContextMenu();
     const [chartBuilderOpen, setChartBuilderOpen] = React.useState(false);
+    // The operations of the model keep their identity, the snippets don't render with every keystroke
+    const { setText } = model;
+    const applySnippet = React.useCallback((text: string) => void setText(text), [setText]);
     const closeChartBuilder = React.useCallback(() => setChartBuilderOpen(false), []);
     // A read-only workbook shows the connection, the diagnostics and the name, nothing that runs or changes the script
     const readOnly = useWorkbookReadOnly();
@@ -248,7 +251,7 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
                         scriptName={displayName}
                         connectorType={connectorType}
                         disabled={hasPendingDiff}
-                        onApply={text => void model.setText(text)}
+                        onApply={applySnippet}
                         iconSize={14}
                     />
                 </span>

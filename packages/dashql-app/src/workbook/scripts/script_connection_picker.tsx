@@ -104,8 +104,9 @@ interface Props {
     testId?: string;
 }
 
-/// Pick the connection that a script is analyzed and executed with
-export const ScriptConnectionPicker: React.FC<Props> = (props) => {
+/// Pick the connection that a script is analyzed and executed with. Memoized, a header renders it with every keystroke in
+/// its script.
+export const ScriptConnectionPicker: React.FC<Props> = React.memo(function ScriptConnectionPicker(props: Props) {
     const [open, setOpen] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
     const label = props.connection?.label ?? 'Unknown connection';
@@ -149,7 +150,7 @@ export const ScriptConnectionPicker: React.FC<Props> = (props) => {
             />
         </AnchoredOverlay>
     );
-};
+});
 
 interface MenuProps {
     /// The workbook whose connections come first

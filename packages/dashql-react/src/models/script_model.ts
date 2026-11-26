@@ -39,8 +39,12 @@ export interface ScriptModel {
     setVisSpec(spec: string): Promise<void>;
 }
 
+/// The operations of a script model
+type ScriptOperations = Pick<ScriptModel, 'run' | 'cancel' | 'setText' | 'acceptDiff' | 'rejectDiff' | 'setVisSpec'>;
+
 /// The model of a script of a workbook, null while the script is unknown. It renders again when the script, its latest
-/// query or the run of its workbook changes.
+/// query or the run of its workbook changes. The operations keep their identity while the script keeps its key, so a
+/// part of a component that takes only some of them doesn't render again with every keystroke.
 export function useScriptModel(workbookId: string, scriptKey: number | null | undefined): ScriptModel | null {
     const runtime = useOptionalRuntime();
     const script = useScript(scriptKey);
@@ -48,27 +52,24 @@ export function useScriptModel(workbookId: string, scriptKey: number | null | un
     const run = useView('run', workbookId);
     const dispatch = useDispatch({ workbook: workbookId });
     const runActive = run?.state?.busy === true || run?.held != null;
-    return React.useMemo(() => {
-        if (script == null) return null;
-        const key = script.scriptKey;
-        return {
-            workbookId,
-            script,
-            query,
-            runActive,
-            run: async options => {
-                if (runtime == null) return;
-                try {
-                    await runtime.runScript(workbookId, key, { refresh: options?.refresh });
-                } catch (error) {
-                    runtime.logger.warn('Workbook script run failed', { workbookId, scriptKey: key.toString(), error: stringifyError(error) }, 'workbook_execution');
-                }
-            },
-            cancel: async () => await runtime?.cancelScript(workbookId, key),
-            setText: text => dispatch({ kind: 'setScriptText', value: { scriptKey: key, text, withDiff: true } }).settled,
-            acceptDiff: () => dispatch({ kind: 'acceptPendingDiff', value: { scriptKey: key } }).settled,
-            rejectDiff: () => dispatch({ kind: 'rejectPendingDiff', value: { scriptKey: key } }).settled,
-            setVisSpec: spec => dispatch({ kind: 'setScriptVisSpec', value: { scriptKey: key, spec } }).settled,
-        };
-    }, [runtime, workbookId, script, query, runActive, dispatch]);
+    const key = script?.scriptKey ?? null;
+    const operations = React.useMemo((): ScriptOperations | null => key == null ? null : {
+        run: async options => {
+            if (runtime == null) return;
+            try {
+                await runtime.runScript(workbookId, key, { refresh: options?.refresh });
+            } catch (error) {
+                runtime.logger.warn('Workbook script run failed', { workbookId, scriptKey: key.toString(), error: stringifyError(error) }, 'workbook_execution');
+            }
+        },
+        cancel: async () => await runtime?.cancelScript(workbookId, key),
+        setText: text => dispatch({ kind: 'setScriptText', value: { scriptKey: key, text, withDiff: true } }).settled,
+        acceptDiff: () => dispatch({ kind: 'acceptPendingDiff', value: { scriptKey: key } }).settled,
+        rejectDiff: () => dispatch({ kind: 'rejectPendingDiff', value: { scriptKey: key } }).settled,
+        setVisSpec: spec => dispatch({ kind: 'setScriptVisSpec', value: { scriptKey: key, spec } }).settled,
+    }, [runtime, workbookId, key, dispatch]);
+    return React.useMemo(
+        () => script == null || operations == null ? null : { workbookId, script, query, runActive, ...operations },
+        [workbookId, script, query, runActive, operations],
+    );
 }

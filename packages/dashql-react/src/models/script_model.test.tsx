@@ -62,6 +62,11 @@ describe('the model of a script', () => {
             expect(runtime.store.get('script', key)?.pendingDiff).toBeNull();
             await vi.waitFor(() => expect(models[0]!.script.pendingDiff).toBeNull());
             expect(models[0]!.script.scriptSession.getText()).toBe('select 1');
+            // A new model of the changed script keeps the operations
+            expect(models[0]).not.toBe(text);
+            for (const operation of ['run', 'cancel', 'setText', 'acceptDiff', 'rejectDiff', 'setVisSpec'] as const) {
+                expect(models[0]![operation]).toBe(text[operation]);
+            }
 
             // A blank script has nothing to keep, the snippet replaces it
             await act(async () => await blank.setText('select 3'));

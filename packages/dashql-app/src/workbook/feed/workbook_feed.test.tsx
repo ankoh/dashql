@@ -23,6 +23,7 @@ import { FEED_GAP, REVEAL_MARGIN, feedTopSpace } from './workbook_feed_layout.js
 import type { WorkbookPromptFeed } from './workbook_prompt.js';
 import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { EditorView } from '@codemirror/view';
+import type { ViewReader } from '@akohn/dashql-react/hooks';
 import { ScriptReferenceKind } from '@akohn/dashql/platform/workbook/script_reference_check';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -257,6 +258,8 @@ describe('Workbook feed', () => {
         /// The derived state of the workbook that the feed reads, e.g. the checked script references
         derived: null as ReturnType<WorkbookFeedDependencies['useWorkbookDerived']>,
     };
+    // The scripts that the handlers of the feed read, stable like the reader of the runtime
+    const readFeedView = ((kind: string, id: number) => kind === 'script' ? feedState.scripts[id] ?? null : null) as ViewReader;
     // Stable like the storage contexts
     const storageReader = { backend: {} } as unknown as ReturnType<WorkbookFeedDependencies['useStorageReader']>;
     const attachmentCommands = {
@@ -268,7 +271,7 @@ describe('Workbook feed', () => {
         useAttachmentCommands: () => attachmentCommands,
         usePickScriptConnection: () => vi.fn(),
         useKeyEvents: handlers => { feedState.keyHandlers = handlers; },
-        useWorkbookScriptMap: () => feedState.scripts,
+        useViewReader: () => readFeedView,
         useWorkbookDerived: () => feedState.derived,
         useLiveScriptReader: () => (key: number) => feedState.next?.scripts[key] ?? null,
         ScriptFeedRow: (props: RowProps) => {

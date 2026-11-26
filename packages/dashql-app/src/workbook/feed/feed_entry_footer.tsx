@@ -197,7 +197,8 @@ interface FeedEntryFooterProps {
     onShowFewerRows?: () => void;
 }
 
-export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
+// Memoized, the card renders it with the props of its result only
+export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = React.memo(function FeedEntryFooter(props: FeedEntryFooterProps) {
     const model = props.model;
     const { totalRows } = resultRowCount(model);
     const queryTraceId = model?.query.traceId ?? null;
@@ -263,4 +264,4 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
             </div>
         );
     }
-};
+});
