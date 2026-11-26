@@ -90,8 +90,7 @@ function HeaderPlotsCellImpl(props: HeaderPlotsCellProps): React.ReactElement {
     const histogramSelection = crossFilter?.kind === 'histogram'
         ? crossFilter.selection
         : null;
-    const isValueColumn = props.gridLayout.isSystemColumn[props.columnIndex] == 0;
-    const hasNoSummaryByDesign = isValueColumn && columnGroup?.type == LIST_COLUMN;
+    const hasNoSummaryByDesign = columnGroup?.type == LIST_COLUMN;
 
     // Special case, corner cell, top-left
     if (props.columnIndex == 0) {

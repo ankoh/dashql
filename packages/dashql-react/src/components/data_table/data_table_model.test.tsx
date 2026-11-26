@@ -49,7 +49,7 @@ describe('DataTable', () => {
 
     it('shows the rows of the table of a model', async () => {
         const model = nameTable();
-        await render(<DataTable model={model} debugMode={false} columnHeader={TableColumnHeader.OnlyColumnName} fillHeight />);
+        await render(<DataTable model={model} columnHeader={TableColumnHeader.OnlyColumnName} fillHeight />);
         // The grid renders its rows once it measured its host, the headers in portals after it
         await waitForRender(() => {
             const text = root.container.textContent ?? '';
@@ -61,7 +61,7 @@ describe('DataTable', () => {
 
     it('asks the model to order by a column', async () => {
         const model = nameTable();
-        await render(<DataTable model={model} debugMode={false} columnHeader={TableColumnHeader.OnlyColumnName} fillHeight />);
+        await render(<DataTable model={model} columnHeader={TableColumnHeader.OnlyColumnName} fillHeight />);
         await waitForRender(() => {
             expect(root.container.querySelector('button[aria-label^="Sort name"]')).not.toBeNull();
         });
@@ -78,7 +78,7 @@ describe('DataTable', () => {
         const footerRow = (testId: string) => root.container.querySelector<HTMLElement>(`[data-testid="${testId}"]`);
 
         // The preview of the first row counts the two others, the row shows them in place
-        await render(<DataTable model={model} debugMode={false} maxRows={1} onShowTable={onShowTable} onShowMoreRows={onShowMoreRows} onShowFewerRows={onShowFewerRows} />);
+        await render(<DataTable model={model} maxRows={1} onShowTable={onShowTable} onShowMoreRows={onShowMoreRows} onShowFewerRows={onShowFewerRows} />);
         expect(footerRow('data-table-more-rows')?.textContent).toBe('2 more rows');
         expect(footerRow('data-table-fewer-rows')).toBeNull();
         act(() => footerRow('data-table-more-rows')!.click());
@@ -86,12 +86,12 @@ describe('DataTable', () => {
         expect(onShowTable).not.toHaveBeenCalled();
 
         // Without a host that shows them in place, the row opens the full table
-        await render(<DataTable model={model} debugMode={false} maxRows={1} onShowTable={onShowTable} />);
+        await render(<DataTable model={model} maxRows={1} onShowTable={onShowTable} />);
         act(() => footerRow('data-table-more-rows')!.click());
         expect(onShowTable).toHaveBeenCalledTimes(1);
 
         // All rows in place end with the row that shows fewer rows again
-        await render(<DataTable model={model} debugMode={false} fitHeight maxHeight={200} onShowTable={onShowTable} onShowMoreRows={onShowMoreRows} onShowFewerRows={onShowFewerRows} />);
+        await render(<DataTable model={model} fitHeight maxHeight={200} onShowTable={onShowTable} onShowMoreRows={onShowMoreRows} onShowFewerRows={onShowFewerRows} />);
         expect(footerRow('data-table-more-rows')).toBeNull();
         act(() => footerRow('data-table-fewer-rows')!.click());
         expect(onShowFewerRows).toHaveBeenCalledTimes(1);
@@ -104,7 +104,7 @@ describe('DataTable', () => {
             if (props.isOpen) opened.push(props);
             return null;
         };
-        await render(<DataTable model={model} debugMode={false} columnHeader={TableColumnHeader.OnlyColumnName} fillHeight cellDetail={CellDetail} />);
+        await render(<DataTable model={model} columnHeader={TableColumnHeader.OnlyColumnName} fillHeight cellDetail={CellDetail} />);
         await waitForRender(() => {
             expect(Array.from(root.container.querySelectorAll('[role="gridcell"]')).some(element => element.textContent === 'beta')).toBe(true);
         });

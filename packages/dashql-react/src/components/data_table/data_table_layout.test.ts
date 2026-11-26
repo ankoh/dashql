@@ -33,15 +33,13 @@ function columnWidths(layout: DataTableLayout): number[] {
     return Array.from({ length: layout.columnCount }, (_, i) => layout.columnXOffsets[i + 1] - layout.columnXOffsets[i]);
 }
 
-/// A table with an ordinal column a and its bin column, and a string column s and its value ids
-function createTableStateWithSystemColumns() {
+/// A table with an ordinal column a and a string column s
+function createTableStateWithTwoKinds() {
     const ints = (...values: number[]) => vectorFromArray(Int32Array.from(values));
     const table = new arrow.Table({
         rownum: ints(0, 1),
         a: ints(1, 2),
-        a_bin: ints(0, 1),
         s: vectorFromArray(['x', 'y'], new arrow.Utf8()),
-        s_id: ints(0, 1),
     });
     const columnGroups: ComputationColumnGroup[] = [
         { type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } },
@@ -56,44 +54,28 @@ function createTableStateWithSystemColumns() {
 describe('computeTableLayout', () => {
     it('applies resized widths and stretches only the other columns', () => {
         const { state, formatter } = createTableState();
-        const natural = columnWidths(computeTableLayout(formatter, state, false, 1));
+        const natural = columnWidths(computeTableLayout(formatter, state, 1));
         expect(natural).toEqual([ROW_HEADER_WIDTH, MIN_COLUMN_WIDTH, MIN_COLUMN_WIDTH]);
 
-        const resized = computeTableLayout(formatter, state, false, 1, 0, null, new Map([['a', 200]]));
+        const resized = computeTableLayout(formatter, state, 1, 0, null, new Map([['a', 200]]));
         expect(columnWidths(resized)).toEqual([ROW_HEADER_WIDTH, 200, MIN_COLUMN_WIDTH]);
 
-        const stretched = computeTableLayout(formatter, state, false, 1, 600, null, new Map([['a', 80]]));
+        const stretched = computeTableLayout(formatter, state, 1, 600, null, new Map([['a', 80]]));
         expect(columnWidths(stretched)).toEqual([ROW_HEADER_WIDTH, 80, 600 - ROW_HEADER_WIDTH - 80]);
     });
 
-    it('shows the bin and value id columns as system columns', () => {
-        const { state, formatter, table } = createTableStateWithSystemColumns();
-        const fieldNames = (layout: DataTableLayout) => Array.from(layout.arrowFieldByColumnIndex, field => table.schema.fields[field].name);
-
-        const hidden = computeTableLayout(formatter, state, false, 1);
-        expect(fieldNames(hidden)).toEqual(['rownum', 'a', 's']);
-
-        const shown = computeTableLayout(formatter, state, true, 1);
-        expect(fieldNames(shown)).toEqual(['rownum', 'a', 'a_bin', 's', 's_id']);
-        expect([...shown.isSystemColumn]).toEqual([0, 0, 1, 0, 1]);
-        expect([...shown.isTextColumn]).toEqual([0, 0, 0, 1, 0]);
-        expect([...shown.columnGroupByColumnIndex]).toEqual([0, 1, 1, 2, 2]);
-    });
-
-    it('leaves out the system columns that the table does not hold yet', () => {
-        const { state } = createTableStateWithSystemColumns();
-        const ints = (...values: number[]) => vectorFromArray(Int32Array.from(values));
-        const table = new arrow.Table({ rownum: ints(0, 1), a: ints(1, 2), s: vectorFromArray(['x', 'y'], new arrow.Utf8()) });
-        const formatter = new ArrowTableFormatter(table.schema, table.batches, new TestLogger());
-        const layout = computeTableLayout(formatter, { ...state, dataTable: table }, true, 1);
+    it('lays out a column per value column, the bins and the value ids stay in the compute database', () => {
+        const { state, formatter, table } = createTableStateWithTwoKinds();
+        const layout = computeTableLayout(formatter, state, 1);
         expect(Array.from(layout.arrowFieldByColumnIndex, field => table.schema.fields[field].name)).toEqual(['rownum', 'a', 's']);
-        expect([...layout.isSystemColumn]).toEqual([0, 0, 0]);
+        expect([...layout.isTextColumn]).toEqual([0, 0, 1]);
+        expect([...layout.columnGroupByColumnIndex]).toEqual([0, 1, 2]);
     });
 
     it('lays out only the visible column groups next to the row numbers', () => {
-        const { state, formatter, table } = createTableStateWithSystemColumns();
-        const layout = computeTableLayout(formatter, state, true, 1, 0, new Set([2]));
-        expect(Array.from(layout.arrowFieldByColumnIndex, field => table.schema.fields[field].name)).toEqual(['rownum', 's', 's_id']);
+        const { state, formatter, table } = createTableStateWithTwoKinds();
+        const layout = computeTableLayout(formatter, state, 1, 0, new Set([2]));
+        expect(Array.from(layout.arrowFieldByColumnIndex, field => table.schema.fields[field].name)).toEqual(['rownum', 's']);
     });
 });
 

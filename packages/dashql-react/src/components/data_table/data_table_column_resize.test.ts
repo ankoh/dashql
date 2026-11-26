@@ -15,7 +15,6 @@ function createLayout(columnXOffsets: number[]): DataTableLayout {
         columnXOffsets: new Float64Array(columnXOffsets),
         columnAggregateByColumnIndex: new Int32Array(columnCount),
         columnGroupByColumnIndex: new Uint32Array(columnCount),
-        isSystemColumn: new Uint8Array(columnCount),
         isTextColumn: new Uint8Array(columnCount),
         headerRowCount: 1,
     };

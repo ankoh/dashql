@@ -23,7 +23,6 @@ type ToggleSettingKey =
     | 'narrowScreenLayout'
     | 'macWindowLayout'
     | 'scriptDebugMode'
-    | 'tableDebugMode'
     | 'formattingDebugMode'
     | 'forceReLogin'
     | 'experimental_file_attachments';
@@ -303,7 +302,6 @@ export function AppSettings(props: { onClose: () => void; }) {
                         </SegmentedControl>
                     </div>
                     {toggle('scriptDebugMode', 'Script Debug Mode')}
-                    {toggle('tableDebugMode', 'Table Debug Mode')}
                     {toggle('formattingDebugMode', 'Formatting Debug Mode')}
                 </SettingsSection>
                 <SettingsSection title="Login & Setup">

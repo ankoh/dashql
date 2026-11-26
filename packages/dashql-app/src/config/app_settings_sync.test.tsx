@@ -125,8 +125,8 @@ describe('AppSettingsSync', () => {
         const logged = (error: string) => records().some(r => r.keyValues?.error?.includes(error) === true);
         expect(logged('manifest unreadable')).toBe(true);
 
-        act(() => reconfigure(c => c == null ? null : { ...c, settings: { ...c.settings, tableDebugMode: true } }));
+        act(() => reconfigure(c => c == null ? null : { ...c, settings: { ...c.settings, scriptDebugMode: true } }));
         await vi.waitFor(() => expect(logged('disk full')).toBe(true));
-        expect(save.mock.calls[save.mock.calls.length - 1][0].tableDebugMode).toBe(true);
+        expect(save.mock.calls[save.mock.calls.length - 1][0].scriptDebugMode).toBe(true);
     });
 });

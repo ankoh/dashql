@@ -135,10 +135,6 @@
     vertical-align: top;
 }
 
-.header_metadata_cell {
-    background-color: var(--data_table_bg, var(--color_bg_card));
-}
-
 .header_cell_name {
     flex: 1;
     font-size: var(--font_size_subtitle);
@@ -296,10 +292,6 @@
 
     /* Needed for inline-flex alignment */
     vertical-align: top;
-}
-
-.data_cell_metadata {
-    background-color: var(--data_table_bg, var(--color_bg_card));
 }
 
 .data_cell_null {

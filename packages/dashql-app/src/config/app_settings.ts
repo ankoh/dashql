@@ -14,7 +14,6 @@ export interface AppSettings {
     /// Hide the workbench of the workbook page, its workbooks and connections
     workbenchHidden?: boolean;
     scriptDebugMode?: boolean;
-    tableDebugMode?: boolean;
     formattingDebugMode?: boolean;
     keywordCase?: 'lower' | 'upper';
     /// Force the OAuth identity provider to re-prompt for login instead of silently reusing an

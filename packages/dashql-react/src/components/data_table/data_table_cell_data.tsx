@@ -94,7 +94,6 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
         );
     } else {
         // Compute class name inline to avoid object allocation in classNames()
-        const isMetadata = props.gridLayout.isSystemColumn[props.columnIndex] === 1;
         const isNull = formatted == null;
         const displayText = isNull ? null : truncateCellText(formatted);
         const isRightmost = props.columnIndex === props.rightmostVisibleColumn;
@@ -102,7 +101,6 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
             props.gridLayout.columnGroupByColumnIndex[props.columnIndex],
         );
         const isSearchMatch = searchColumnIndex != null
-            && !isMetadata
             && props.matchingRows?.get(dataRow + 1)?.includes(searchColumnIndex) === true;
 
         // Build class string directly - avoids object creation and iteration
@@ -116,9 +114,6 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
             className += focus === CellFocus.Primary
                 ? ` ${styles.data_cell_focused_primary}`
                 : ` ${styles.data_cell_focused_secondary}`;
-        }
-        if (isMetadata) {
-            className += ` ${styles.data_cell_metadata}`;
         }
         if (isRightmost) {
             className += ` ${styles.data_cell_rightmost}`;

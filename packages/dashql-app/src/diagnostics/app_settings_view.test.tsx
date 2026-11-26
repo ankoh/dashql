@@ -94,7 +94,6 @@ describe('AppSettings', () => {
             ['Mac Window Layout', 'macWindowLayout'],
             ['File Attachments', 'experimental_file_attachments'],
             ['Script Debug Mode', 'scriptDebugMode'],
-            ['Table Debug Mode', 'tableDebugMode'],
             ['Formatting Debug Mode', 'formattingDebugMode'],
             ['Force Re-Login', 'forceReLogin'],
         ];

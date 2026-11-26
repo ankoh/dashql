@@ -10,7 +10,6 @@ export interface DataTableLayout {
     columnXOffsets: Float64Array;
     columnAggregateByColumnIndex: Int32Array;
     columnGroupByColumnIndex: Uint32Array;
-    isSystemColumn: Uint8Array;
     isTextColumn: Uint8Array;
     headerRowCount: number;
 }
@@ -21,38 +20,15 @@ const COLUMN_HEADER_ACTION_WIDTH = 24;
 export const ROW_HEADER_WIDTH = 48;
 const FORMATTER_PIXEL_SCALING = 10;
 
-/// Is a system column shown: the bins or the value ids of a column, in the debug view of a table that holds them. The
-/// table of a computation holds none, they stay in the compute database.
-function showsSystemColumn(fieldName: string | null | undefined, showSystemColumns: boolean, fieldIndexByName: ReadonlyMap<string, number>): fieldName is string {
-    return showSystemColumns && fieldName != null && fieldIndexByName.has(fieldName);
-}
-
-function computeColumnCount(columnGroups: ComputationColumnGroup[], showMetaColumns: boolean, fieldIndexByName: ReadonlyMap<string, number>, visibleColumnGroups?: ReadonlySet<number> | null): number {
+function computeColumnCount(columnGroups: ComputationColumnGroup[], visibleColumnGroups?: ReadonlySet<number> | null): number {
     let columnCount = 0;
     for (let groupIndex = 0; groupIndex < columnGroups.length; ++groupIndex) {
         const columnGroup = columnGroups[groupIndex];
         if (columnGroup.type !== ROWNUMBER_COLUMN && visibleColumnGroups != null && !visibleColumnGroups.has(groupIndex)) {
             continue;
         }
-        switch (columnGroup.type) {
-            case ROWNUMBER_COLUMN:
-                ++columnCount;
-                break;
-            case SKIPPED_COLUMN:
-                break;
-            case STRING_COLUMN:
-            case LIST_COLUMN:
-                ++columnCount;
-                if (showsSystemColumn(columnGroup.value.valueIdFieldName, showMetaColumns, fieldIndexByName)) {
-                    ++columnCount;
-                }
-                break;
-            case ORDINAL_COLUMN:
-                ++columnCount;
-                if (showsSystemColumn(columnGroup.value.binFieldName, showMetaColumns, fieldIndexByName)) {
-                    ++columnCount;
-                }
-                break;
+        if (columnGroup.type !== SKIPPED_COLUMN) {
+            ++columnCount;
         }
     }
     return columnCount;
@@ -64,7 +40,7 @@ export interface DataTableLayoutInput {
     dataTable: arrow.Table;
 }
 
-export function computeTableLayout(formatter: ArrowTableFormatter, state: DataTableLayoutInput, showSystemColumns: boolean, headerRowCount: number, containerWidth: number = 0, visibleColumnGroups?: ReadonlySet<number> | null, resizedColumnWidths?: ReadonlyMap<string, number> | null): DataTableLayout {
+export function computeTableLayout(formatter: ArrowTableFormatter, state: DataTableLayoutInput, headerRowCount: number, containerWidth: number = 0, visibleColumnGroups?: ReadonlySet<number> | null, resizedColumnWidths?: ReadonlyMap<string, number> | null): DataTableLayout {
     // Index table fields by name
     const tableSchema = state.dataTable.schema;
     const fieldIndexByName = new Map<string, number>();
@@ -73,12 +49,11 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: DataTa
     }
 
     // Allocate column offsets
-    const columnCount = computeColumnCount(state.columnGroups, showSystemColumns, fieldIndexByName, visibleColumnGroups);
+    const columnCount = computeColumnCount(state.columnGroups, visibleColumnGroups);
     const columnFields = new Uint32Array(columnCount);
     const columnOffsets = new Float64Array(columnCount + 1);
     const columnAggregateIndex = new Int32Array(columnCount);
     const columnGroupByColumnIndex = new Uint32Array(columnCount);
-    const isSystemColumn = new Uint8Array(columnCount);
     const isTextColumn = new Uint8Array(columnCount);
 
     for (let i = 0; i < columnCount; ++i) {
@@ -104,39 +79,7 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: DataTa
             }
             case SKIPPED_COLUMN:
                 break;
-            case ORDINAL_COLUMN: {
-                const outputIndex = nextDisplayColumn++;
-                const valueColumnFormatter = formatter.columns[fieldIndexByName.get(columnGroup.value.inputFieldName)!];
-                let valueColumnWidth = Math.max(
-                    COLUMN_HEADER_ACTION_WIDTH + Math.max(
-                        valueColumnFormatter.getLayoutInfo().valueAvgWidth,
-                        valueColumnFormatter.getColumnName().length) * FORMATTER_PIXEL_SCALING,
-                    MIN_COLUMN_WIDTH
-                );
-                valueColumnWidth = Math.min(valueColumnWidth, MAX_VALUE_COLUMN_WIDTH);
-                columnFields[outputIndex] = fieldIndexByName.get(columnGroup.value.inputFieldName)!;
-                columnOffsets[outputIndex] = nextDisplayOffset;
-                columnAggregateIndex[outputIndex] = groupIndex;
-                columnGroupByColumnIndex[outputIndex] = groupIndex;
-                nextDisplayOffset += valueColumnWidth;
-                if (showsSystemColumn(columnGroup.value.binFieldName, showSystemColumns, fieldIndexByName)) {
-                    const idOutputIndex = nextDisplayColumn++;
-                    const idFieldIndex = fieldIndexByName.get(columnGroup.value.binFieldName)!;
-                    const idColumn = formatter.columns[idFieldIndex];
-                    const idColumnWidth = Math.max(
-                        COLUMN_HEADER_ACTION_WIDTH + Math.max(
-                            idColumn.getLayoutInfo().valueAvgWidth,
-                            idColumn.getColumnName().length) * FORMATTER_PIXEL_SCALING,
-                        MIN_COLUMN_WIDTH
-                    );
-                    columnFields[idOutputIndex] = idFieldIndex;
-                    columnOffsets[idOutputIndex] = nextDisplayOffset;
-                    columnGroupByColumnIndex[idOutputIndex] = groupIndex;
-                    isSystemColumn[idOutputIndex] = 1;
-                    nextDisplayOffset += idColumnWidth;
-                }
-                break;
-            }
+            case ORDINAL_COLUMN:
             case STRING_COLUMN:
             case LIST_COLUMN: {
                 const outputIndex = nextDisplayColumn++;
@@ -153,22 +96,6 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: DataTa
                 columnAggregateIndex[outputIndex] = groupIndex;
                 columnGroupByColumnIndex[outputIndex] = groupIndex;
                 nextDisplayOffset += valueColumnWidth;
-                if (showsSystemColumn(columnGroup.value.valueIdFieldName, showSystemColumns, fieldIndexByName)) {
-                    const idOutputIndex = nextDisplayColumn++;
-                    const idFieldIndex = fieldIndexByName.get(columnGroup.value.valueIdFieldName)!;
-                    const idColumn = formatter.columns[idFieldIndex];
-                    const idColumnWidth = Math.max(
-                        COLUMN_HEADER_ACTION_WIDTH + Math.max(
-                            idColumn.getLayoutInfo().valueAvgWidth,
-                            idColumn.getColumnName().length) * FORMATTER_PIXEL_SCALING,
-                        MIN_COLUMN_WIDTH
-                    );
-                    columnFields[idOutputIndex] = idFieldIndex;
-                    columnOffsets[idOutputIndex] = nextDisplayOffset;
-                    columnGroupByColumnIndex[idOutputIndex] = groupIndex;
-                    isSystemColumn[idOutputIndex] = 1;
-                    nextDisplayOffset += idColumnWidth;
-                }
                 break;
             }
         }
@@ -229,7 +156,6 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: DataTa
         columnXOffsets: columnOffsets,
         columnAggregateByColumnIndex: columnAggregateIndex,
         columnGroupByColumnIndex: columnGroupByColumnIndex,
-        isSystemColumn: isSystemColumn,
         isTextColumn: isTextColumn,
         headerRowCount
     };

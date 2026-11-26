@@ -62,7 +62,6 @@ function HeaderNameCellImpl(props: HeaderNameCellProps): React.ReactElement {
         return (
             <div
                 className={classNames(styles.header_cell, {
-                    [styles.header_metadata_cell]: props.gridLayout.isSystemColumn[props.columnIndex] == 1,
                     [styles.header_cell_rightmost]: isRightmost,
                     [styles.header_cell_clickable]: props.onShowTable != null,
                 })}

@@ -53,7 +53,6 @@ export interface DataTableProps {
     className?: string;
     /// The computation of the table, its tables and its actions
     model: ComputationModel;
-    debugMode: boolean;
     maxRows?: number;
     columnHeader?: TableColumnHeader;
     cellBackground?: string;
@@ -199,17 +198,15 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
                 columnXOffsets: new Float64Array([0]),
                 columnAggregateByColumnIndex: new Int32Array(),
                 columnGroupByColumnIndex: new Uint32Array(),
-                isSystemColumn: new Uint8Array(),
                 isTextColumn: new Uint8Array(),
                 headerRowCount
             };
         }
-        return computeTableLayout(tableFormatter, { columnGroups, dataTable }, props.debugMode, headerRowCount, gridContainerWidth, visibleColumnGroups, resizedColumnWidths);
+        return computeTableLayout(tableFormatter, { columnGroups, dataTable }, headerRowCount, gridContainerWidth, visibleColumnGroups, resizedColumnWidths);
     }, [
         columnGroups,
         dataTable,
         tableFormatter,
-        props.debugMode,
         gridContainerWidth,
         headerRowCount,
         visibleColumnGroups,

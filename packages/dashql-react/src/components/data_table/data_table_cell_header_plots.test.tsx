@@ -31,17 +31,16 @@ const SCORE_STATS = { countFieldName: '_1_count', distinctCountFieldName: null, 
 const NAME: ComputationColumnGroup = { type: STRING_COLUMN, value: valueColumn('name', 'Utf8', { statsFields: NAME_STATS, valueIdFieldName: 'name_id' }) };
 const SCORE: ComputationColumnGroup = { type: ORDINAL_COLUMN, value: valueColumn('score', 'Float64', { inputFieldNullable: false, statsFields: SCORE_STATS, binFieldName: 'score_bin', binCount: 4 }) };
 const EMBEDDING: ComputationColumnGroup = { type: LIST_COLUMN, value: valueColumn('embedding', 'List(Float32)') };
-/// The row numbers, name, score, the value ids of name (a system column), the embedding and a column without aggregate
+/// The row numbers, name, score and the embedding
 const COLUMN_GROUPS: ComputationColumnGroup[] = [{ type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } }, NAME, SCORE, EMBEDDING];
 const LAYOUT: DataTableLayout = {
-    columnCount: 6,
-    arrowFieldByColumnIndex: Uint32Array.from([0, 1, 2, 3, 4, 5]),
-    columnXOffsets: Float64Array.from([0, 48, 248, 448, 648, 848, 1048]),
-    // The aggregates of name and score, the embedding and the last column have none
-    columnAggregateByColumnIndex: Int32Array.from([-1, 1, 2, 1, -1, -1]),
-    columnGroupByColumnIndex: Uint32Array.from([0, 1, 2, 1, 3, 3]),
-    isSystemColumn: Uint8Array.from([1, 0, 0, 1, 0, 1]),
-    isTextColumn: Uint8Array.from([0, 1, 0, 0, 0, 0]),
+    columnCount: 4,
+    arrowFieldByColumnIndex: Uint32Array.from([0, 1, 2, 3]),
+    columnXOffsets: Float64Array.from([0, 48, 248, 448, 648]),
+    // The aggregates of name and score, the embedding has none
+    columnAggregateByColumnIndex: Int32Array.from([-1, 1, 2, -1]),
+    columnGroupByColumnIndex: Uint32Array.from([0, 1, 2, 3]),
+    isTextColumn: Uint8Array.from([0, 1, 0, 0]),
     headerRowCount: 2,
 };
 
@@ -115,7 +114,7 @@ describe('HeaderPlotsCell', () => {
             dataSearchRequestId: null,
             crossFilters: [],
             isVisible: true,
-            rightmostVisibleColumn: 5,
+            rightmostVisibleColumn: 3,
             onRequestFilteredColumnAggregation: vi.fn(),
             onHistogramFilter: vi.fn(),
             onBrushingChange: vi.fn(),
@@ -132,7 +131,7 @@ describe('HeaderPlotsCell', () => {
 
     it('leaves the columns beyond the layout and the hidden columns blank', async () => {
         const props = await succeeded();
-        const beyond = await render({ ...props, columnIndex: 6 });
+        const beyond = await render({ ...props, columnIndex: 4 });
         expect(beyond.className).toBe('');
         expect(beyond.childElementCount).toBe(0);
 
@@ -147,18 +146,13 @@ describe('HeaderPlotsCell', () => {
         expect(corner.className).toBe(styles.plots_corner_cell);
     });
 
-    it('marks list columns as columns without summary and leaves their system columns empty', async () => {
+    it('marks list columns as columns without summary', async () => {
         const props = await succeeded();
-        const list = await render({ ...props, columnIndex: 4 });
+        const list = await render({ ...props, columnIndex: 3 });
         expect(list.classList.contains(styles.plots_no_summary_cell)).toBe(true);
         expect(list.title).toBe('No column summary');
         expect(list.textContent).toBe('No summary');
-        expect(list.classList.contains(styles.plots_cell_rightmost)).toBe(false);
-
-        const system = await render({ ...props, columnIndex: 5 });
-        expect(system.classList.contains(styles.plots_empty_cell)).toBe(true);
-        expect(system.classList.contains(styles.plots_cell_rightmost)).toBe(true);
-        expect(system.textContent).toBe('');
+        expect(list.classList.contains(styles.plots_cell_rightmost)).toBe(true);
     });
 
     it('shows the state of the aggregation of a column', async () => {
