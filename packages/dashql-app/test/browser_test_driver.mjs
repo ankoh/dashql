@@ -74,6 +74,10 @@ async function runShard(shard) {
         const current = await page.evaluate(() => globalThis.__DASHQL_BROWSER_TESTS__);
         const running = current?.files.find(file => file.status === 'running');
         console.error(`Timed out with ${current?.passed ?? 0} passed and ${current?.failed ?? 0} failed; active file: ${running?.file ?? 'none'}`);
+        // The errors of the first failed files, a run that fails every file fails them with the same error
+        for (const file of (current?.files ?? []).filter(file => file.error != null).slice(0, 3)) {
+            console.error(`\n${file.file}\n${file.error.stack ?? file.error.message ?? 'Failed'}`);
+        }
         if (browserErrors.length > 0) console.error(`\nBrowser errors:\n${browserErrors.join('\n')}`);
         throw error;
     }
