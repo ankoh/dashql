@@ -453,15 +453,13 @@ it over, and only the latest lease resets the connection when it closes.
   `useScriptRun`). `useView` is `useSyncExternalStore` over one slice; a component renders again only when its slice
   changes. `useDispatch` dispatches through the facade, see [Dispatch](#dispatch).
 - **Selectors** read a part of the views, a component renders again only when its part changes:
-  `useViewSelector(kind, id, select, isEqual?)` selects from the view of one slice, `useWorkbookScriptsSelector(
-  workbookId, select, isEqual?)` from the scripts of a workbook by key, `useScriptReferences(workbookId, scriptKey)`
-  is the report of one script in the derived view and `useWorkbookInputs(workbookId)` its inputs. The selected value is the previous one while it is
-  equal (`isEqual`, by identity by default), so a selector returns a primitive or a part of the view that keeps its
-  identity (`share` of the projections, the reports of `readScriptReferenceReports`); a new `select` with every render
-  is fine. `useViewReader()` reads the views when it is called, e.g. in a handler, without subscribing. The scripts of
-  a workbook (`useWorkbookScriptMap`, `useWorkbookScriptsSelector`) follow the workbook and its scripts, not the
-  scripts of other workbooks. A list passes its rows no view that each of them reads a part of, each row selects its
-  part: the rows and the editors of the feed read their script, whether it is selected (`useIsScriptSelected` of
+  `useViewSelector(kind, id, select, isEqual?)` selects from the view of one slice, `useScriptReferences(workbookId,
+  scriptKey)` is the report of one script in the derived view and `useWorkbookInputs(workbookId)` its inputs. The
+  selected value is the previous one while it is equal (`isEqual`, by identity by default), so a selector returns a
+  primitive or a part of the view that keeps its identity (`share` of the projections, the reports of
+  `readScriptReferenceReports`); a new `select` with every render is fine. `useViewReader()` reads the views when it
+  is called, e.g. in a handler, without subscribing. A list passes its rows no view that each of them reads a part
+  of, each row selects its part: the rows and the editors of the feed read their script, whether it is selected (`useIsScriptSelected` of
   `workbook/scripts/script_selection.ts`) and its references, and the feed reads its scripts in its handlers only.
 - **Models** (`@akohn/dashql-react/models/...`): a model is what a component shows of the runtime with its operations,
   `useScriptModel`, `useQueryModel` and `useComputationModel`; components take models as props and import nothing of

@@ -6,11 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as dashql from '@akohn/dashql';
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
-import type { ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { analyzeWorkbook, createTestRuntime, type TestRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
 
 import {
-    RuntimeContextProvider, useScriptReferences, useViewReader, useViewSelector, useWorkbookInputs, useWorkbookScriptMap, useWorkbookScriptsSelector,
+    RuntimeContextProvider, useScriptReferences, useViewReader, useViewSelector, useWorkbookInputs,
     type ViewReader,
 } from './hooks.js';
 
@@ -38,7 +38,6 @@ function Probed<T>(props: { use: () => T; probe: Probe<T> }) {
 }
 
 const selectScriptKeys = (workbook: WorkbookScripts | null) => workbook?.scriptKeys ?? null;
-const selectFileNames = (scripts: ScriptDataMap) => Object.values(scripts).map(script => script.fileName).join(',');
 
 // The hooks that read a part of the views, a component renders again only when its part changes
 describe('the selector hooks', () => {
@@ -133,40 +132,6 @@ describe('the selector hooks', () => {
         // The inputs stay
         expect(inputs.value).toEqual([]);
         expect(inputs.renders).toBe(1);
-    });
-
-    it('follows the scripts of its workbook only', () => {
-        const first = rt.addWorkbook(CONNECTION, [['alpha.sql', 'select 1'], ['beta.sql', 'select 2']]);
-        const second = rt.addWorkbook(CONNECTION, [['other.sql', 'select 3']]);
-        const map = probe<ScriptDataMap>();
-        const names = probe<string>();
-        render(<>
-            <Probed probe={map} use={() => useWorkbookScriptMap(first.workbookId)} />
-            <Probed probe={names} use={() => useWorkbookScriptsSelector(first.workbookId, selectFileNames)} />
-        </>);
-        expect(names.value).toBe('alpha.sql,beta.sql');
-
-        // A change of a script of another workbook renders neither
-        apply(second.workbookId, { kind: 'setScriptText', value: { scriptKey: second.scriptKeys[0], text: 'select 4', withDiff: false } });
-        expect([map.renders, names.renders]).toEqual([1, 1]);
-
-        // A change of the text renders the map, the selected names stay
-        apply(first.workbookId, { kind: 'setScriptText', value: { scriptKey: first.scriptKeys[0], text: 'select 5', withDiff: false } });
-        expect([map.renders, names.renders]).toEqual([2, 1]);
-
-        // A created script is followed from then on
-        apply(first.workbookId, { kind: 'createScript', value: { text: 'select 6', base: 'gamma' } });
-        expect(names.value).toBe('alpha.sql,beta.sql,gamma.sql');
-        const created = rt.store.get('workbook', first.workbookId)!.scriptKeys[2];
-        const renders = map.renders;
-        apply(first.workbookId, { kind: 'setScriptText', value: { scriptKey: created, text: 'select 7', withDiff: false } });
-        expect(map.renders).toBe(renders + 1);
-        expect(map.value?.[created]?.scriptSession.getText()).toBe('select 7');
-
-        // A renamed script renders both
-        apply(first.workbookId, { kind: 'renameScript', value: { fileName: 'beta.sql', newName: 'delta' } });
-        expect(names.value).toBe('alpha.sql,delta.sql,gamma.sql');
-        expect(map.value?.[first.scriptKeys[1]]?.fileName).toBe('delta.sql');
     });
 
     it('reads the views when it is called, without rendering again', () => {
