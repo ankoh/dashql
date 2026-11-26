@@ -9,7 +9,7 @@ import { DashQLProcessorPlugin, DashQLUpdateEffect, type DashQLParameterClick } 
 import { DashQLProcessorUpdateOut } from '../editor/completion/dashql_completion_state.js';
 import { isCloudPreview, type ModifyWorkbookScripts, type ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { useSelectedScriptRef } from './script_selection.js';
+import { useIsScriptSelected } from './script_selection.js';
 import { useAgentHasControl } from '../../agent/agent_provider.js';
 import { AppConfig, useAppConfig } from '../../config/app_config.js';
 import { useLogger } from '../../host/logger_provider.js';
@@ -41,6 +41,7 @@ export interface ScriptEditorDependencies {
     useWorkbook: typeof useWorkbook;
     useScript: typeof useScript;
     useWorkbookDerived: typeof useWorkbookDerived;
+    useIsScriptSelected: typeof useIsScriptSelected;
     useAppConfig: typeof useAppConfig;
     useLogger: typeof useLogger;
 }
@@ -51,6 +52,7 @@ const DEFAULT_DEPENDENCIES: ScriptEditorDependencies = {
     useWorkbook,
     useScript,
     useWorkbookDerived,
+    useIsScriptSelected,
     useAppConfig,
     useLogger,
 };
@@ -75,8 +77,8 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     ], [props.lineWrapping, readOnly]);
 
     const scriptData = dependencies.useScript(props.scriptKey);
-    // Only the editor of the selected script shows a semantic focus
-    const selected = useSelectedScriptRef(scripts)?.scriptId === props.scriptKey;
+    // Only the editor of the selected script shows a semantic focus, the selection of another script leaves it alone
+    const selected = dependencies.useIsScriptSelected(props.workbookId, props.scriptKey);
 
     // The runtime analyzes the outdated scripts that the editors show: the selected one right away, the others once
     // the changes pause (`visible_scripts` of the runtime crate)

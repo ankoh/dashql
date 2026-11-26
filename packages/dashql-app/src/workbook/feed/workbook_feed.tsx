@@ -25,7 +25,7 @@ import {
 
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
-import { deleteScript, useScriptSelection, useSelectedScriptRef } from '../scripts/script_selection.js';
+import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
 import { getScriptRefs, type ModifyWorkbookScripts, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { createScriptAction, useLiveScriptReader } from '../scripts/script_creation.js';
 import { useOptionalRuntime, useRuntime, useWorkbookDerived, useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
@@ -276,7 +276,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const [collapsedResults, setCollapsedResults] = React.useState<ReadonlyMap<number, number | null>>(() => new Map());
 
     const selection = useScriptSelection();
-    const selectedFileName = useSelectedScriptRef(props.workbookScripts)?.fileName ?? '';
     const handleFocus = React.useCallback((fileName: string) => {
         selection.selectFile(latest.current.workbookScripts, fileName);
     }, [selection]);
@@ -656,7 +655,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         scriptDebugMode,
         formattingDebugMode,
         keywordCase,
-        focusedFileName: selectedFileName,
         active: rowsActive,
         canTarget: true,
         collapsedResults,
@@ -665,7 +663,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         onParameterClick: handleParameterClick,
         topInset,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [workbookId, entries, scriptReferences, rowsActive, scriptConnections, storageReader, selectedFileName, scriptDebugMode, formattingDebugMode, keywordCase, collapsedResults, fold, feedCommands, handleParameterClick, topInset, feedLayout.rowHeights.setRowHeight]);
+    }), [workbookId, entries, scriptReferences, rowsActive, scriptConnections, storageReader, scriptDebugMode, formattingDebugMode, keywordCase, collapsedResults, fold, feedCommands, handleParameterClick, topInset, feedLayout.rowHeights.setRowHeight]);
 
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
 

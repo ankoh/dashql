@@ -26,6 +26,7 @@ import {
     type ScriptResultFold, type ScriptResultSlot, type ScriptResultTableSlot,
 } from './script_card.js';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
+import { useIsScriptSelected } from '../scripts/script_selection.js';
 import { feedTopSpace } from './workbook_feed_layout.js';
 
 // A row of the feed: the card of a script with the buttons around it. The row connects the card: it resolves the model
@@ -42,7 +43,6 @@ export interface ScriptFeedRowProps {
     scriptDebugMode: boolean;
     formattingDebugMode: boolean;
     keywordCase: dashql.buffers.formatting.KeywordCase;
-    focusedFileName: string;
     active: boolean;
     /// Can a question of the composer target the scripts?
     canTarget: boolean;
@@ -133,15 +133,17 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
     // What the card shows, the identity of each part stays while it is unchanged: the card is memoized
     const position = React.useMemo<ScriptCardPosition>(() => ({ index: entryIndex, canMoveUp, canMoveDown }), [entryIndex, canMoveUp, canMoveDown]);
     const references = scriptKey != null ? props.scriptReferences?.get(scriptKey) ?? null : null;
+    // The selection of another script leaves the row alone
+    const focused = useIsScriptSelected(props.workbookId, scriptKey);
     const display = React.useMemo<ScriptCardDisplay>(() => ({
-        focused: scriptFileName === props.focusedFileName,
+        focused,
         active: props.active,
         canTarget: props.canTarget,
         scriptDebugMode: props.scriptDebugMode,
         formattingDebugMode: props.formattingDebugMode,
         keywordCase: props.keywordCase,
         references,
-    }), [scriptFileName, props.focusedFileName, props.active, props.canTarget, props.scriptDebugMode, props.formattingDebugMode, props.keywordCase, references]);
+    }), [focused, props.active, props.canTarget, props.scriptDebugMode, props.formattingDebugMode, props.keywordCase, references]);
     const expanded = scriptKey == null || !props.collapsedResults.has(scriptKey);
     const result = React.useMemo<ScriptResultFold>(() => ({ ...props.fold, expanded }), [props.fold, expanded]);
     // The parts of the card that read the runtime

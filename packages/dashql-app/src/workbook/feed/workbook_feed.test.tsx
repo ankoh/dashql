@@ -60,7 +60,7 @@ function baseProps() {
         entries: [{ scriptId: 1, fileName: '01_alpha.sql' }, { scriptId: 2, fileName: '02_beta.sql' }],
         scripts, scriptDebugMode: false, formattingDebugMode: false,
         keywordCase: dashql.buffers.formatting.KeywordCase.UPPER,
-        focusedFileName: '01_alpha.sql', active: true, canTarget: true, collapsedResults: new Map(),
+        active: true, canTarget: true, collapsedResults: new Map(),
         fold: { toggle: vi.fn(), autoCollapse: vi.fn(), resetAutoCollapsed: vi.fn() },
         feed: {
             create: vi.fn(), focus: vi.fn(), delete: vi.fn(), rename: vi.fn(), pickConnection: vi.fn(), moveUp: vi.fn(),

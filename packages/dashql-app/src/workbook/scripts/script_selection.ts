@@ -5,8 +5,7 @@ import { Store } from '../../utils/store.js';
 import type { ScriptRef } from '@akohn/dashql/platform/workbook/script_types';
 import type { ModifyWorkbookScripts, ScriptKey, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
-import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
-import { useStoreState } from '../../utils/store_hooks.js';
+import { useOptionalRuntime, useViewSelector } from '@akohn/dashql-react/hooks';
 
 /// The selected script of every workbook (workbookId -> script key). A state of the app, the workbook scripts of the
 /// runtime don't know it: the feed, the commands of a workbook and the editors follow it. Keyed by the script key, a
@@ -15,14 +14,17 @@ import { useStoreState } from '../../utils/store_hooks.js';
 /// script before it (`deleteScript`).
 export type ScriptSelectionState = ReadonlyMap<string, ScriptKey>;
 
+/// The key of the selected script of a workbook by the keys of its scripts. Without a selection, or when the selected
+/// script is gone, the first script.
+export function selectedScriptKey(scriptKeys: readonly ScriptKey[], selected: ScriptKey | null | undefined): ScriptKey | undefined {
+    return selected != null && scriptKeys.includes(selected) ? selected : scriptKeys[0];
+}
+
 /// The selected script of a workbook. Without a selection, or when the selected script is gone, the first script.
 export function selectedScriptRef(workbook: Pick<WorkbookScripts, 'scriptKeys' | 'scriptOrder' | 'scriptRefs'>, selected: ScriptKey | null | undefined): ScriptRef | undefined {
-    const index = selected == null ? -1 : workbook.scriptKeys.indexOf(selected);
-    const fileName = index < 0 ? undefined : workbook.scriptOrder[index];
-    const ref = fileName == null ? undefined : workbook.scriptRefs[fileName];
-    if (ref != null) return ref;
-    const first = workbook.scriptOrder[0];
-    return first == null ? undefined : workbook.scriptRefs[first];
+    const key = selectedScriptKey(workbook.scriptKeys, selected);
+    const fileName = key == null ? undefined : workbook.scriptOrder[workbook.scriptKeys.indexOf(key)];
+    return fileName == null ? undefined : workbook.scriptRefs[fileName];
 }
 
 /// The selected scripts of the workbooks of a runtime
@@ -89,12 +91,18 @@ export function useScriptSelection(): ScriptSelection {
     return scriptSelectionOf(useOptionalRuntime());
 }
 
-/// The selected script of a workbook, null without a workbook
-export function useSelectedScriptRef(workbook: WorkbookScripts | null): ScriptRef | undefined {
+/// The script keys of a workbook, they keep their identity while the scripts of the workbook stay
+const selectScriptKeys = (workbook: WorkbookScripts | null): readonly ScriptKey[] | null => workbook?.scriptKeys ?? null;
+
+/// Is a script the selected script of its workbook, or the first script without a selection? The component renders
+/// again when that flips, not when another script of the workbook is selected, e.g. a card of the feed that the pointer
+/// enters.
+export function useIsScriptSelected(workbookId: string, scriptKey: ScriptKey | null | undefined): boolean {
     const selection = useScriptSelection();
-    const state = useStoreState(selection.store);
-    return React.useMemo(
-        () => workbook == null ? undefined : selectedScriptRef(workbook, state.get(workbook.workbookId)),
-        [workbook, state],
-    );
+    const scriptKeys = useViewSelector('workbook', workbookId, selectScriptKeys);
+    const isSelected = React.useCallback(() => {
+        if (scriptKeys == null || scriptKey == null) return false;
+        return selectedScriptKey(scriptKeys, selection.store.current.get(workbookId)) === scriptKey;
+    }, [selection, workbookId, scriptKeys, scriptKey]);
+    return React.useSyncExternalStore(selection.store.subscribe, isSelected, isSelected);
 }

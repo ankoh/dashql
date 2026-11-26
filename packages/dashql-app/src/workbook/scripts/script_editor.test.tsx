@@ -33,6 +33,7 @@ const dependencies = {
         connectionId: 'main',
     }),
     useWorkbookDerived: () => null,
+    useIsScriptSelected: () => true,
     useAppConfig: () => ({ settings: {} }),
     useLogger: () => ({ debug: vi.fn() }),
 } as unknown as ScriptEditorDependencies;
