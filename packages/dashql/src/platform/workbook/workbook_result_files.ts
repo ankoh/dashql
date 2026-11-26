@@ -94,7 +94,8 @@ interface ResultMount {
 }
 
 /// A file handle that can move itself, not every browser has `move`
-type MovableFileHandle = FileSystemFileHandle & { move?(name: string): Promise<void> };
+/// `move(directory, name)` of the file handles, WebKit doesn't take the name alone
+type MovableFileHandle = FileSystemFileHandle & { move?(directory: FileSystemDirectoryHandle, name: string): Promise<void> };
 
 /// The results of the workbooks in `workbooks/<id>/results/` of a root
 export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = {}): WorkbookResultFiles {
@@ -206,7 +207,7 @@ export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = 
     const moveFile = async (dir: FileSystemDirectoryHandle, from: string, to: string) => {
         const handle = await dir.getFileHandle(from) as MovableFileHandle;
         if (typeof handle.move === 'function') {
-            await handle.move(to);
+            await handle.move(dir, to);
         } else {
             await (await handle.getFile()).stream().pipeTo(await (await dir.getFileHandle(to, { create: true })).createWritable());
             await dir.removeEntry(from);

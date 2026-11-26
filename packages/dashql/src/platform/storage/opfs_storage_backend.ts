@@ -39,10 +39,9 @@ function isMissingDirectory(error: unknown): boolean {
     return domErrorName(error) === 'NotFoundError' || (error instanceof Error && error.message.startsWith('Directory not found'));
 }
 
-/// `FileSystemFileHandle.move()` of Chromium, missing in the other browsers: a new name in the same directory, or a
-/// directory and a name
+/// `FileSystemFileHandle.move()`, with a directory and a name: WebKit doesn't take the name alone
 interface MovableFileHandle {
-    move?(destination: FileSystemDirectoryHandle | string, name?: string): Promise<void>;
+    move?(destination: FileSystemDirectoryHandle, name: string): Promise<void>;
 }
 
 /// Origin Private File System storage backend.
@@ -258,9 +257,8 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
 
     /// Move a single file between (or within) OPFS directories, preserving its contents byte-for-byte.
     ///
-    /// Prefers the non-standard `FileSystemFileHandle.move()` (Chromium) for a true in-place move, and
-    /// falls back to copy-then-delete where it is unavailable (Safari/Firefox). The same-directory case
-    /// (`srcDir === destDir`) is a pure rename.
+    /// Prefers `FileSystemFileHandle.move()` for a true in-place move, and falls back to copy-then-delete
+    /// where it is unavailable. The same-directory case (`srcDir === destDir`) is a pure rename.
     private async moveFile(
         srcDir: FileSystemDirectoryHandle,
         srcName: string,
@@ -273,8 +271,8 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
         const srcHandle = await srcDir.getFileHandle(srcName, { create: false });
         const move = (srcHandle as FileSystemFileHandle & MovableFileHandle).move;
         if (typeof move === 'function') {
-            // move(name) renames in place; move(destDir, name) relocates across directories.
-            await (srcDir === destDir ? move.call(srcHandle, destName) : move.call(srcHandle, destDir, destName));
+            // Also a rename in place names the directory, WebKit has no move(name)
+            await move.call(srcHandle, destDir, destName);
             return;
         }
         // Fallback: stream the source File (a Blob, so this is binary-safe) into the new handle, then
