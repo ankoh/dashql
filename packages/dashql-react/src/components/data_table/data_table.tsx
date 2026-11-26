@@ -13,6 +13,7 @@ import { classNames } from '../../dom/classnames.js';
 import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
 import { useCrossFilters } from './use_cross_filters.js';
 import { useObservedSize } from '../size_observer.js';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../../logger.js';
 import { useScrollbarHeight, useScrollbarsOverlay } from '../../dom/scrollbar.js';
 import { useDataTableOrdering } from './data_table_ordering.js';
@@ -20,7 +21,7 @@ import { useDataTablePortalContainers } from './data_table_portals.js';
 import { ResizedColumnWidths, useDataTableColumnResize } from './data_table_column_resize.js';
 import { DataTableStickyColumn, DataTableStickyHeaders } from './data_table_sticky_views.js';
 import { DataTableFocusStore } from './data_table_focus.js';
-import { resolveSearchedRowIndices } from './visible_rows.js';
+import { useDataTableWindow, type DataTableWindow } from './data_table_window.js';
 
 export { TableColumnHeader } from './data_table_cell.js';
 export { resolveComputationTables, useComputationTables, type ComputationTables } from './computation_tables.js';
@@ -156,16 +157,19 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
     const togglePlots = React.useCallback(() => setPlotsCollapsed(c => !c), []);
     const plotsHeight = plotsCollapsed ? COLUMN_HEADER_PLOTS_COLLAPSED_HEIGHT : COLUMN_HEADER_PLOTS_HEIGHT;
 
-    // Get the row-id indirection column from ordering or filtering
-    const { orderingTable, dataSearchTable } = computationState;
-    const visibleRowIndices = React.useMemo(
-        () => resolveSearchedRowIndices({ orderingTable, dataSearchTable }, tables),
-        [orderingTable, dataSearchTable, tables],
-    );
+    // Track react-window's already-overscanned range for the sticky header and column.
+    const [renderedCells, setRenderedCells] = React.useState<RenderedCells>({
+        rowStart: 0,
+        rowStop: 0,
+        columnStart: 0,
+        columnStop: 0,
+    });
+
+    // The rows that show are read in windows around the rendered rows, the core filters and orders them
+    const { window: rowWindow, rows: totalRowCount } = useDataTableWindow(props.model, renderedCells.rowStart, renderedCells.rowStop);
+    const readRows = props.model.readRows;
 
     // Data row count. Headers are rendered separately via portals
-    // When an indirection table is active, show only the derived visible rows
-    const totalRowCount = visibleRowIndices?.length ?? dataTable.numRows;
     const dataRowCount = props.maxRows != null ? Math.min(totalRowCount, props.maxRows) : totalRowCount;
     const hiddenRowCount = totalRowCount - dataRowCount;
     // The table ends with a row: the count of the hidden rows, or the row that shows fewer rows again
@@ -181,9 +185,9 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
         computationState.searchColumns.map(column => [column.columnGroupIdx, column.columnIdx] as const),
     ), [computationState.searchColumns]);
 
-    // Construct the arrow formatter and update it whenever the data table changes
+    // The layout reads the names of the columns of the schema, the rows are formatted by the formatter of a window
     const tableFormatter = React.useMemo(() => {
-        return new ArrowTableFormatter(dataTable.schema, dataTable.batches, logger);
+        return new ArrowTableFormatter(dataTable.schema, [], logger);
     }, [dataTable, logger]);
 
     // Columns that the user resized by dragging a border, kept while the table is mounted
@@ -221,14 +225,6 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
     // Grid re-renders automatically when cellProps (gridData) changes
     // which includes gridLayout as a dependency
 
-    // Track react-window's already-overscanned range for the sticky header and column.
-    const [renderedCells, setRenderedCells] = React.useState<RenderedCells>({
-        rowStart: 0,
-        rowStop: 0,
-        columnStart: 0,
-        columnStop: 0,
-    });
-
     // Shared cross-filter controller: selection lives on the computation state and drives
     // a single filterTable. Also owns the guarded filtering effect.
     const { crossFilters, histogramFilter, mostFrequentValueFilter, requestFilteredColumnAggregation } = useCrossFilters(
@@ -251,58 +247,46 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
     }, [focusStore]);
 
     // Cell detail overlay state
-    const [cellDetail, setCellDetail] = React.useState<{
-        visibleRow: number;
-        dataRow: number;
-        fieldId: number;
-        formattedValue: string | null;
-        structuredValue: object | null;
-        columnName: string | null;
-    } | null>(null);
+    const [cellDetail, setCellDetail] = React.useState<CellDetail | null>(null);
     const onClickCell: React.MouseEventHandler<HTMLDivElement> = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
         const visibleRow = Number.parseInt(event.currentTarget.dataset["visibleRow"]!);
-        const dataRow = Number.parseInt(event.currentTarget.dataset["tableRow"]!);
         const fieldId = Number.parseInt(event.currentTarget.dataset["tableCol"]!);
-        const field = dataTable.schema.fields[fieldId];
-        if (field == null) return;
-        const isText = field.type.typeId === arrow.Type.Utf8 || field.type.typeId === arrow.Type.LargeUtf8;
-        const isStructured = isArrowStructuredType(field.type);
-        if (!isText && !isStructured) return;
-        const formattedValue = tableFormatter.getValue(dataRow, fieldId);
-        const rawValue = isStructured ? dataTable.getChildAt(fieldId)?.get(dataRow) : null;
-        const structuredValue = rawValue == null ? null : arrowValueToJson(rawValue) as object;
-        const columnName = field.name ?? null;
-        setCellDetail({ visibleRow, dataRow, fieldId, formattedValue, structuredValue, columnName });
-    }, [tableFormatter, dataTable]);
+        if (rowWindow == null) return;
+        const detail = cellDetailOf(rowWindow, visibleRow, fieldId);
+        if (detail != null) setCellDetail(detail);
+    }, [rowWindow]);
     const onNavigateCell = React.useCallback((delta: number) => {
-        setCellDetail(prev => {
-            if (prev == null) return null;
-            const visibleRow = prev.visibleRow + delta;
-            if (visibleRow < 0 || visibleRow >= dataRowCount) return prev;
-            const dataRow = visibleRowIndices == null
-                ? visibleRow
-                : visibleRowIndices[visibleRow];
-            const formattedValue = tableFormatter.getValue(dataRow, prev.fieldId);
-            const field = dataTable.schema.fields[prev.fieldId];
-            const isStructured = isArrowStructuredType(field.type);
-            const rawValue = isStructured ? dataTable.getChildAt(prev.fieldId)?.get(dataRow) : null;
-            const structuredValue = rawValue == null ? null : arrowValueToJson(rawValue) as object;
-            return { ...prev, visibleRow, dataRow, formattedValue, structuredValue };
-        });
-    }, [tableFormatter, dataTable, dataRowCount, visibleRowIndices]);
+        const prev = cellDetail;
+        if (prev == null) return;
+        const visibleRow = prev.visibleRow + delta;
+        if (visibleRow < 0 || visibleRow >= dataRowCount) return;
+        // A row that the window doesn't hold is read on its own
+        const detail = rowWindow == null ? null : cellDetailOf(rowWindow, visibleRow, prev.fieldId);
+        if (detail != null) {
+            setCellDetail(detail);
+            return;
+        }
+        readRows(visibleRow, 1).then(
+            result => {
+                const formatter = new ArrowTableFormatter(result.table.schema, result.table.batches, logger);
+                const single = { offset: result.offset, table: result.table, formatter, dataRows: new Int32Array(result.table.numRows) };
+                const read = cellDetailOf(single, visibleRow, prev.fieldId);
+                if (read != null) setCellDetail(current => current === prev ? read : current);
+            },
+            (error: unknown) => logger.warn('Failed to read the row of a cell', { error: stringifyError(error) }, 'data_table'),
+        );
+    }, [cellDetail, rowWindow, readRows, dataRowCount, logger]);
 
     // Maintain a rendering context for data cells.
     // This context is passed to grid elements as item data.
     const gridData = React.useMemo<DataCellData>(() => ({
-        visibleRowIndices,
+        window: rowWindow,
         gridLayout: gridLayout,
         hideRowHeader: true,
         columnGroups: computationState.columnGroups,
-        tableFormatter: tableFormatter,
         onMouseEnter: onMouseEnterCell,
         onMouseLeave: onMouseLeaveCell,
         onClick: onClickCell,
-        table: dataTable,
         focus: focusStore,
         rightmostVisibleColumn: gridLayout.columnCount - 1,
         matchingRows,
@@ -310,10 +294,8 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
     }), [
         // Data dependencies that legitimately require cell re-renders
         computationState.columnGroups,
-        dataTable,
-        visibleRowIndices,
+        rowWindow,
         gridLayout,
-        tableFormatter,
         matchingRows,
         searchColumnIndexByGroup,
         // Stable callbacks - included for correctness but won't cause re-renders
@@ -360,7 +342,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
         ? scrollbarHeight
         : 0;
     const gridContainerHeight = props.fillHeight ? (gridContainerSize?.height ?? 0) : computeGridHeight(
-        dataTable.numRows,
+        totalRowCount,
         dataRowCount,
         headerHeight,
         horizontalScrollbarHeight,
@@ -519,6 +501,30 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
             />}
         </div>
     );
+}
+
+/// The detail of a cell that is open
+interface CellDetail {
+    visibleRow: number;
+    fieldId: number;
+    formattedValue: string | null;
+    structuredValue: object | null;
+    columnName: string | null;
+}
+
+/// The detail of a cell of a row that shows, null for a row outside of the window or a cell without a detail
+function cellDetailOf(rowWindow: DataTableWindow, visibleRow: number, fieldId: number): CellDetail | null {
+    const windowRow = visibleRow - rowWindow.offset;
+    if (windowRow < 0 || windowRow >= rowWindow.table.numRows) return null;
+    const field = rowWindow.table.schema.fields[fieldId];
+    if (field == null) return null;
+    const isText = field.type.typeId === arrow.Type.Utf8 || field.type.typeId === arrow.Type.LargeUtf8;
+    const isStructured = isArrowStructuredType(field.type);
+    if (!isText && !isStructured) return null;
+    const formattedValue = rowWindow.formatter.getValue(windowRow, fieldId);
+    const rawValue = isStructured ? rowWindow.table.getChildAt(fieldId)?.get(windowRow) : null;
+    const structuredValue = rawValue == null ? null : arrowValueToJson(rawValue) as object;
+    return { visibleRow, fieldId, formattedValue, structuredValue, columnName: field.name ?? null };
 }
 
 /// The row that ends the table: under a cut preview the count of the rows it leaves out, a button that shows them if

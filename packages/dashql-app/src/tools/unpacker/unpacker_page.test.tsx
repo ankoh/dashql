@@ -126,11 +126,13 @@ describe('UnpackerPage', () => {
         expect(dialog()).toBeNull();
         expect(computations()).toBe(1);
 
-        // A closed card keeps its table, it shows again at once
+        // A closed card keeps its computation, its rows are read from it again and the file isn't
         await toggle('workbook_scripts.parquet');
         expect(cells('workbook_scripts.parquet')).toBe('');
         await toggle('workbook_scripts.parquet');
-        expect(cells('workbook_scripts.parquet')).toContain('select 42 as answer');
+        await act(async () => {
+            await vi.waitFor(() => expect(cells('workbook_scripts.parquet')).toContain('select 42 as answer'));
+        });
         expect(computations()).toBe(1);
 
         // Another file replaces the cards and deletes their computations

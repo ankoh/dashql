@@ -4,9 +4,10 @@ import * as styles from './data_table.module.css';
 
 import type { CellComponentProps } from 'react-window';
 
-import { ArrowTableFormatter, isArrowListType } from '@akohn/dashql/platform/compute/arrow_formatter';
+import { isArrowListType } from '@akohn/dashql/platform/compute/arrow_formatter';
 import type { ComputationColumnGroup } from '@akohn/dashql';
 import { DataTableLayout } from './data_table_layout.js';
+import type { DataTableWindow } from './data_table_window.js';
 import { Tag } from '../tag.js';
 import { peekFormat } from './format_peek.js';
 import { CellFocus, DataTableFocusStore, useCellFocus } from './data_table_focus.js';
@@ -25,12 +26,11 @@ function truncateCellText(text: string): string {
 
 export interface DataCellData {
     columnGroups: ComputationColumnGroup[];
-    visibleRowIndices: Int32Array | null;
     focus: DataTableFocusStore;
     gridLayout: DataTableLayout;
     hideRowHeader: boolean;
-    table: arrow.Table;
-    tableFormatter: ArrowTableFormatter;
+    /// The rows that the grid read, a row outside of it renders empty until the next window holds it
+    window: DataTableWindow | null;
     rightmostVisibleColumn: number;
     matchingRows: ReadonlyMap<number, number[]> | null;
     searchColumnIndexByGroup: ReadonlyMap<number, number>;
@@ -44,17 +44,18 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
     const isHiddenRowHeader = props.columnIndex === 0 && props.hideRowHeader;
     const fieldId = inLayout ? props.gridLayout.arrowFieldByColumnIndex[props.columnIndex] : -1;
 
-    // Translate the row index through the visible row ids, if an indirection table is active
-    const dataRow = props.visibleRowIndices != null
-        ? props.visibleRowIndices[props.rowIndex]
-        : props.rowIndex;
+    // The row of the window and the row of the result that it shows, -1 for a row that the window doesn't hold
+    const rowWindow = props.window;
+    const windowRow = rowWindow == null ? -1 : props.rowIndex - rowWindow.offset;
+    const loaded = rowWindow != null && windowRow >= 0 && windowRow < rowWindow.table.numRows;
+    const dataRow = loaded ? rowWindow.dataRows[windowRow] : -1;
 
     // Subscribe to the hovered cell, only the previous and the next focused row re-render
-    const focus = useCellFocus(props.focus, (inLayout && !isHiddenRowHeader) ? dataRow : -1, fieldId);
+    const focus = useCellFocus(props.focus, (inLayout && !isHiddenRowHeader && loaded) ? dataRow : -1, fieldId);
 
     // Format the value and peek into text values only when the value changes
-    const formatted = (inLayout && !isHiddenRowHeader && props.tableFormatter)
-        ? props.tableFormatter.getValue(dataRow, fieldId)
+    const formatted = (inLayout && !isHiddenRowHeader && loaded)
+        ? rowWindow.formatter.getValue(windowRow, fieldId)
         : null;
     const peekText = inLayout && props.columnIndex !== 0 && props.gridLayout.isTextColumn[props.columnIndex] === 1;
     const peekedFormat = React.useMemo(() => peekText ? peekFormat(formatted) : null, [peekText, formatted]);
@@ -66,17 +67,14 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
         return null;
     }
 
-    // Abort if no formatter is available
-    if (!props.tableFormatter) {
+    // A row that the window doesn't hold yet
+    if (!loaded) {
         return (
             <div
-                className={styles.data_cell}
+                className={props.columnIndex == 0 ? styles.row_header_cell : styles.data_cell}
                 style={props.style}
                 data-table-col={fieldId}
-                data-table-row={dataRow}
                 data-visible-row={props.rowIndex}
-                onMouseEnter={props.onMouseEnter}
-                onMouseLeave={props.onMouseLeave}
             />
         );
     }
@@ -122,7 +120,7 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
             className += ` ${styles.data_cell_search_match}`;
         }
 
-        const field = props.table.schema.fields[fieldId];
+        const field = rowWindow.table.schema.fields[fieldId];
         const canOpenDetail = field.type.typeId === arrow.Type.Utf8
             || field.type.typeId === arrow.Type.LargeUtf8
             || isArrowListType(field.type)

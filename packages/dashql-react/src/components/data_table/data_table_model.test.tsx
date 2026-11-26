@@ -18,7 +18,7 @@ import { DataTable, TableColumnHeader, type CellDetailProps } from './data_table
 
 /// A computation of the table 1 with a row number, an ordinal column `id` and a string column `name`
 function nameTable() {
-    const numbers = tableFromArrays({ rownum: Int32Array.from([0, 1, 2]), id: Int32Array.from([7, 8, 9]) });
+    const numbers = tableFromArrays({ rownum: Int32Array.from([1, 2, 3]), id: Int32Array.from([7, 8, 9]) });
     // Plain text, the fixtures would encode strings as a dictionary
     const table = new arrow.Table({
         rownum: numbers.getChild('rownum')!,
@@ -31,6 +31,21 @@ function nameTable() {
         { type: STRING_COLUMN, value: valueColumn('name', 'Utf8') },
     ];
     const computation = mockTableComputation(columnGroups, { dataTableRows: 3 });
+    return fakeComputationModel(computation, new Map([[1, table]]));
+}
+
+/// A computation of the table 1 with 10000 numbered rows of an ordinal column `id`
+function largeTable() {
+    const rows = 10_000;
+    const table = tableFromArrays({
+        rownum: Int32Array.from({ length: rows }, (_, i) => i + 1),
+        id: Int32Array.from({ length: rows }, (_, i) => i * 10),
+    });
+    const columnGroups: ComputationColumnGroup[] = [
+        { type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } },
+        { type: ORDINAL_COLUMN, value: valueColumn('id', 'Int32', { inputFieldNullable: false }) },
+    ];
+    const computation = mockTableComputation(columnGroups, { dataTableRows: rows });
     return fakeComputationModel(computation, new Map([[1, table]]));
 }
 
@@ -57,6 +72,20 @@ describe('DataTable', () => {
                 expect(text).toContain(value);
             }
         });
+    });
+
+    it('reads the rows around the rendered rows and no others', async () => {
+        const model = largeTable();
+        await render(<DataTable model={model} columnHeader={TableColumnHeader.OnlyColumnName} fillHeight />);
+        await waitForRender(() => {
+            expect(root.container.textContent).toContain('90');
+        });
+        // One window from the first row: the rendered rows and the margin below them, far fewer than the table has
+        expect(model.readRows).toHaveBeenCalled();
+        const [offset, limit] = vi.mocked(model.readRows).mock.calls.at(-1)!;
+        expect(offset).toBe(0);
+        expect(limit).toBeLessThan(500);
+        expect(root.container.textContent).not.toContain('99990');
     });
 
     it('asks the model to order by a column', async () => {
