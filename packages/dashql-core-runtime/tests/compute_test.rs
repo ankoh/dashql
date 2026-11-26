@@ -671,7 +671,7 @@ fn the_imported_table_replaces_the_result() {
     assert_eq!(computation.data_frame, Some(1));
     // The rows can be read from the data frame of the import, the system columns don't have to be there
     assert_eq!(computation.row_number_field.as_deref(), Some("rowNumber"));
-    assert_eq!(computation.row_number_column_name, None);
+    assert_eq!(computation.row_number_column_group, None);
     // A table imported for a computation that is gone goes back to the host
     let created = ComputationAction::CreatedDataFrame {
         table_id: 2,
@@ -710,7 +710,6 @@ fn system_columns_replace_the_data_frame() {
     assert_eq!(computation.column_groups, columns);
     // The last row number column counts
     assert_eq!(computation.row_number_column_group, Some(2));
-    assert_eq!(computation.row_number_column_name.as_deref(), Some("_rownum"));
 }
 
 /// The aggregation task of the score column

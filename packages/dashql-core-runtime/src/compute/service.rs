@@ -1396,7 +1396,8 @@ fn filtered_aggregation_request(computation: &TableComputation, column_id: u32) 
 /// same selection, or there is nothing to filter
 fn filtering_task(computation: &TableComputation) -> Option<ComputationTask> {
     let input_data_frame = computation.data_frame?;
-    let row_number_column_name = computation.row_number_column_name.clone()?;
+    computation.row_number_column_group?;
+    let row_number_column_name = computation.row_number_field.clone()?;
     let filters = computation.cross_filters.filter_transforms();
     if let Some(tracked) = &computation.tasks.filtering {
         if tracked.progress.status == TaskStatus::Running {
@@ -1441,7 +1442,8 @@ fn ordering_task(computation: &TableComputation, constraints: Option<&[OrderByCo
         return None;
     }
     let input_data_frame = computation.data_frame?;
-    let row_number_column_name = computation.row_number_column_name.clone()?;
+    computation.row_number_column_group?;
+    let row_number_column_name = computation.row_number_field.clone()?;
     let filtering =
         computation.tasks.filtering.as_ref().is_some_and(|tracked| tracked.progress.status == TaskStatus::Running);
     if filtering || computation.data_search.pending {
@@ -1482,7 +1484,8 @@ fn data_search_task(computation: &TableComputation) -> Option<ComputationTask> {
         return None;
     }
     let input_data_frame = computation.data_frame?;
-    let row_number_column_name = computation.row_number_column_name.clone()?;
+    computation.row_number_column_group?;
+    let row_number_column_name = computation.row_number_field.clone()?;
     if computation.tasks.data_search.as_ref().is_some_and(|tracked| tracked.task.request_id == search.request_id) {
         return None;
     }

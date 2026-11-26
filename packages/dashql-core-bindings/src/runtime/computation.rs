@@ -553,6 +553,7 @@ pub struct ComputationView {
     pub data_search: ComputationSearch,
     pub data_search_table: Option<ComputationDataSearchTable>,
     pub row_number_column_group: Option<u64>,
+    /// The field of the row numbers once the system columns are computed, the cross filters select rows by it
     pub row_number_column_name: Option<String>,
     pub table_aggregation: Option<ComputationTableAggregation>,
     pub column_aggregates: Vec<Option<ComputationColumnAggregate>>,
@@ -648,7 +649,7 @@ impl From<&TableComputation> for ComputationView {
                 request_id: t.request_id,
             }),
             row_number_column_group: c.row_number_column_group.map(|group| group as u64),
-            row_number_column_name: c.row_number_column_name.clone(),
+            row_number_column_name: c.row_number_column_group.and(c.row_number_field.clone()),
             table_aggregation: c.table_aggregation.as_ref().map(|t| ComputationTableAggregation {
                 table: t.table.id,
                 data_frame: t.data_frame,

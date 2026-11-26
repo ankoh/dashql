@@ -96,11 +96,9 @@ pub struct TableComputation {
     pub data_search: ResultSearchState,
     /// The rows that the applied data search matched
     pub data_search_table: Option<DataSearchTable>,
-    /// The column group of the row numbers
+    /// The column group of the row numbers, once the system columns are computed: the filters, the ordering and the
+    /// searches wait for it
     pub row_number_column_group: Option<usize>,
-    /// The field of the row numbers, once the system columns are computed: the filters, the ordering and the searches
-    /// wait for it
-    pub row_number_column_name: Option<String>,
     /// The field of the row numbers that the import appended, every data frame of the computation has it. The reads of
     /// rows need only it and the data frame, they don't wait for the system columns.
     pub row_number_field: Option<String>,
@@ -152,7 +150,6 @@ impl TableComputation {
             data_search: ResultSearchState::default(),
             data_search_table: None,
             row_number_column_group: None,
-            row_number_column_name: None,
             row_number_field: None,
             table_aggregation: None,
             column_aggregates: vec![None; columns],
@@ -997,15 +994,11 @@ fn reduce_computation(
             }
         }
         ComputationAction::SystemColumnsSucceeded { data_frame, column_groups, now, .. } => {
-            let row_numbers = column_groups.iter().enumerate().rev().find_map(|(index, group)| match group {
-                ColumnGroup::RowNumber(group) => Some((index, group.row_number_field_name.clone())),
-                _ => None,
-            });
+            let row_numbers = column_groups.iter().rposition(|group| matches!(group, ColumnGroup::RowNumber(_)));
             computation.version = computation.version.with_data_increment();
             computation.data_frame = Some(data_frame);
             computation.column_groups = column_groups;
-            computation.row_number_column_group = row_numbers.as_ref().map(|(index, _)| *index);
-            computation.row_number_column_name = row_numbers.map(|(_, name)| name);
+            computation.row_number_column_group = row_numbers;
             if let Some(tracked) = &mut computation.tasks.system_columns {
                 tracked.progress.succeed(now);
             }

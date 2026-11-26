@@ -492,7 +492,8 @@ fn analyzes_a_result() {
     setup.service.read(|state| {
         let computation = state.computation(1).expect("a computation");
         assert_eq!(computation.connection_id.as_deref(), Some("connection"));
-        assert_eq!(computation.row_number_column_name.as_deref(), Some("_rownum"));
+        assert_eq!(computation.row_number_field.as_deref(), Some("_rownum"));
+        assert!(computation.row_number_column_group.is_some());
         assert_eq!(computation.data_table.rows(), 4);
         let aggregation = computation.table_aggregation.as_ref().expect("the statistics");
         assert_eq!(aggregation.table.rows(), 1);
