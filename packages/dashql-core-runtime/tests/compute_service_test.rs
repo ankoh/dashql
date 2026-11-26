@@ -180,14 +180,15 @@ impl ComputeHost for FakeHost {
         table: u32,
         row_number_field: &str,
         _context: &ComputeContext,
-    ) -> std::result::Result<(), HostError> {
+    ) -> std::result::Result<KeptTable, HostError> {
         let mut database = self.database.borrow_mut();
         let table = database.objects.get(&table).ok_or_else(|| HostError::new(format!("no table {table}")))?;
-        // The host numbers the rows of its table
+        // The host numbers the rows of its table and keeps the numbered table
         let table = table.append_row_numbers(row_number_field).map_err(|e| HostError::new(e.to_string()))?;
         database.calls.push(format!("import {table_name}"));
-        database.tables.insert(table_name.to_string(), table);
-        Ok(())
+        database.tables.insert(table_name.to_string(), table.clone());
+        let shape = shape(&table);
+        Ok(KeptTable { handle: database.keep(table), shape })
     }
 
     async fn create_table(
@@ -1012,4 +1013,20 @@ fn a_preview_needs_an_analyzed_result() {
     let error = output.borrow_mut().take().expect("the preview finished").unwrap_err();
     assert!(error.to_string().contains("the table 7 has no computation"), "{error}");
     assert!(setup.database.borrow().queries.is_empty());
+}
+
+#[test]
+fn keeps_the_numbered_result_and_reads_no_rows_of_the_system_columns() {
+    let setup = setup(analysis_answer);
+    setup.analyze().unwrap();
+    setup.executor.run_until_stalled();
+    // The table of the computation is the numbered result that the import kept, the result went back to the host
+    let data_table = setup.service.read(|state| state.computation(1).unwrap().data_table.clone());
+    assert_eq!(data_table.rows(), 4);
+    assert!(data_table.schema.field_with_name("_rownum").is_ok());
+    let database = setup.database.borrow();
+    assert!(database.objects.contains_key(&data_table.id));
+    assert_eq!(database.objects.len(), 1, "the numbered result is the one table of the host");
+    // The analysis reads the statistics and the summaries, no rows of the system columns
+    assert!(!database.queries.iter().any(|sql| sql.contains("_rownum")), "{:?}", database.queries);
 }

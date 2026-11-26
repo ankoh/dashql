@@ -74,7 +74,7 @@ pub struct TableComputation {
     pub tasks: ComputationTasks,
     /// The version of the data and the filter
     pub version: ComputationVersion,
-    /// The table
+    /// The table: the result, with its row numbers once it is imported
     pub data_table: ArrowTable,
     /// The fields of the table that the computation was created with, in order
     pub data_table_fields: Vec<String>,
@@ -354,8 +354,9 @@ pub enum ComputationAction {
     },
     /// Drop the computation of a table
     DeleteComputation { table_id: TableId },
-    /// The table was copied into a data frame, it moves the data version
-    CreatedDataFrame { table_id: TableId, data_frame: DataFrameId },
+    /// The table was copied into a data frame with its row numbers, the numbered table replaces the table. It moves
+    /// the data version.
+    CreatedDataFrame { table_id: TableId, data_frame: DataFrameId, data_table: ArrowTable },
     /// An ordering was computed. It is dropped unless it is for the version, the data search and the ordering that
     /// the computation has now.
     TableOrderingSucceeded { table_id: TableId, ordering: OrderingTable, now: Timestamp },
@@ -371,11 +372,10 @@ pub enum ComputationAction {
     },
     /// The statistics of the table were computed
     TableAggregationSucceeded { table_id: TableId, aggregation: TableAggregation, now: Timestamp },
-    /// The system columns were computed: the table and the data frame with them and the column groups that use them.
-    /// It moves the data version.
+    /// The system columns were computed: the data frame with them and the column groups that use them. It moves the
+    /// data version.
     SystemColumnsSucceeded {
         table_id: TableId,
-        data_table: ArrowTable,
         data_frame: DataFrameId,
         column_groups: Vec<ColumnGroup>,
         now: Timestamp,
@@ -434,16 +434,16 @@ impl ComputationAction {
                 held.tables.extend(task_held.tables);
             }
             ComputationAction::ComputationFromQueryResult { data_table, .. } => held.table(data_table),
-            ComputationAction::CreatedDataFrame { data_frame, .. } => held.frame(*data_frame),
+            ComputationAction::CreatedDataFrame { data_frame, data_table, .. } => {
+                held.frame(*data_frame);
+                held.table(data_table);
+            }
             ComputationAction::TableOrderingSucceeded { ordering, .. } => held.ordering(ordering),
             ComputationAction::TableFilteringSucceeded { filter, .. } => held.filter(filter.as_ref()),
             ComputationAction::TableAggregationSucceeded { aggregation, .. } => {
                 held.table_aggregation(Some(aggregation))
             }
-            ComputationAction::SystemColumnsSucceeded { data_table, data_frame, .. } => {
-                held.table(data_table);
-                held.frame(*data_frame);
-            }
+            ComputationAction::SystemColumnsSucceeded { data_frame, .. } => held.frame(*data_frame),
             ComputationAction::ColumnAggregationSucceeded { aggregate, .. } => held.aggregate(Some(aggregate)),
             ComputationAction::FilteredColumnAggregationSucceeded { aggregate, .. } => {
                 held.aggregate(aggregate.as_ref().map(|aggregate| &aggregate.aggregate))
@@ -935,9 +935,10 @@ fn reduce_computation(
     effects: &mut Vec<ComputationEffect>,
 ) -> bool {
     match action {
-        ComputationAction::CreatedDataFrame { data_frame, .. } => {
+        ComputationAction::CreatedDataFrame { data_frame, data_table, .. } => {
             computation.version = computation.version.with_data_increment();
             computation.data_frame = Some(data_frame);
+            computation.data_table = data_table;
         }
         ComputationAction::TableOrderingSucceeded { ordering, now, .. } => {
             // The ordering depends on the data, the filter and the data search
@@ -989,13 +990,12 @@ fn reduce_computation(
                 tracked.progress.succeed(now);
             }
         }
-        ComputationAction::SystemColumnsSucceeded { data_table, data_frame, column_groups, now, .. } => {
+        ComputationAction::SystemColumnsSucceeded { data_frame, column_groups, now, .. } => {
             let row_numbers = column_groups.iter().enumerate().rev().find_map(|(index, group)| match group {
                 ColumnGroup::RowNumber(group) => Some((index, group.row_number_field_name.clone())),
                 _ => None,
             });
             computation.version = computation.version.with_data_increment();
-            computation.data_table = data_table;
             computation.data_frame = Some(data_frame);
             computation.column_groups = column_groups;
             computation.row_number_column_group = row_numbers.as_ref().map(|(index, _)| *index);

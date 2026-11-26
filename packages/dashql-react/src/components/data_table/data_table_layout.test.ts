@@ -80,6 +80,16 @@ describe('computeTableLayout', () => {
         expect([...shown.columnGroupByColumnIndex]).toEqual([0, 1, 1, 2, 2]);
     });
 
+    it('leaves out the system columns that the table does not hold yet', () => {
+        const { state } = createTableStateWithSystemColumns();
+        const ints = (...values: number[]) => vectorFromArray(Int32Array.from(values));
+        const table = new arrow.Table({ rownum: ints(0, 1), a: ints(1, 2), s: vectorFromArray(['x', 'y'], new arrow.Utf8()) });
+        const formatter = new ArrowTableFormatter(table.schema, table.batches, new TestLogger());
+        const layout = computeTableLayout(formatter, { ...state, dataTable: table }, true, 1);
+        expect(Array.from(layout.arrowFieldByColumnIndex, field => table.schema.fields[field].name)).toEqual(['rownum', 'a', 's']);
+        expect([...layout.isSystemColumn]).toEqual([0, 0, 0]);
+    });
+
     it('lays out only the visible column groups next to the row numbers', () => {
         const { state, formatter, table } = createTableStateWithSystemColumns();
         const layout = computeTableLayout(formatter, state, true, 1, 0, new Set([2]));

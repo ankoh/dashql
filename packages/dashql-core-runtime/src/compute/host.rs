@@ -5,8 +5,8 @@
 //! of the task and the run, which the host aborts on `cancel`.
 //!
 //! The Arrow tables of the computations stay with the host, result data never enters the module: the host imports a
-//! result by its handle, and keeps the rows that a task reads under a new handle (`query_table`), the runtime learns
-//! their rows and their schema only. A task that parses what it read, e.g. the statistics or the bins of a summary,
+//! result by its handle and keeps the numbered result under a new handle (`import_table`), and keeps the rows that a
+//! task reads under a new handle (`query_table`), the runtime learns their rows and their schema only. A task that parses what it read, e.g. the statistics or the bins of a summary,
 //! reads a small table as an Arrow IPC stream (`query`) and hands it over (`register_table`). The state names a table
 //! by its handle and releases it with an effect.
 
@@ -54,7 +54,8 @@ pub struct KeptTable {
 #[allow(async_fn_in_trait)] // The futures hold values of the host and run on its thread, they are not Send
 pub trait ComputeHost: Host {
     /// Create the table of a data frame from a table of the host with its rows numbered from 1 in an appended column
-    /// of 64-bit integers that can't be null. The host numbers the rows, the data never enters the module.
+    /// of 64-bit integers that can't be null, and keep the numbered table under a new handle: the table that the grid
+    /// shows. The host numbers the rows, the data never enters the module.
     async fn import_table(
         &self,
         data_frame: DataFrameId,
@@ -62,7 +63,7 @@ pub trait ComputeHost: Host {
         table: Handle,
         row_number_field: &str,
         context: &ComputeContext,
-    ) -> Result<(), HostError>;
+    ) -> Result<KeptTable, HostError>;
     /// Create the table of a data frame from a SELECT. The host tracks the SELECT as a query of the task, e.g. in the
     /// query history of the connection of the computation.
     async fn create_table(

@@ -168,11 +168,11 @@ fn from_query_result(table_id: TableId, lifetime: u32) -> ComputationAction {
     }
 }
 
-/// A state with table 1 of the input table, copied into a data frame
+/// A state with table 1 of the input table, copied into a data frame. The tests keep the input table as the table.
 fn state_with_table(data_frame: DataFrameId) -> ComputationState {
     let mut state = ComputationState::new();
     apply(&mut state, from_query_result(1, 1));
-    apply(&mut state, ComputationAction::CreatedDataFrame { table_id: 1, data_frame });
+    apply(&mut state, ComputationAction::CreatedDataFrame { table_id: 1, data_frame, data_table: input_table() });
     state
 }
 
@@ -441,7 +441,7 @@ fn delete_computation() {
 fn releases_the_previous_computation_when_replacing_the_same_table_id() {
     let mut state = ComputationState::new();
     apply(&mut state, from_query_result(1, 1));
-    apply(&mut state, ComputationAction::CreatedDataFrame { table_id: 1, data_frame: 9 });
+    apply(&mut state, ComputationAction::CreatedDataFrame { table_id: 1, data_frame: 9, data_table: input_table() });
     let revision = state.computation(1).unwrap().revision();
 
     let outcome = apply(&mut state, from_query_result(1, 2));
@@ -631,33 +631,48 @@ fn system_column_computation_task() {
 }
 
 #[test]
-fn system_columns_replace_the_table_and_the_data_frame() {
-    let mut state = state_with_table(1);
+fn the_imported_table_replaces_the_result() {
+    let mut state = ComputationState::new();
+    apply(&mut state, from_query_result(1, 1));
     let before = version(&state);
     let numbered = arrow_table(110, 4);
+    let created = ComputationAction::CreatedDataFrame { table_id: 1, data_frame: 1, data_table: numbered.clone() };
+    let outcome = apply(&mut state, created);
+    // The result goes back to the host, the numbered table is the table of the computation
+    assert_eq!(outcome.effects, vec![ComputationEffect::Release { handle: input_table().id }]);
+    let computation = state.computation(1).unwrap();
+    assert_eq!(computation.version, before.with_data_increment());
+    assert_eq!(computation.data_table, numbered);
+    assert_eq!(computation.data_frame, Some(1));
+    // A table imported for a computation that is gone goes back to the host
+    let created = ComputationAction::CreatedDataFrame { table_id: 2, data_frame: 3, data_table: arrow_table(111, 4) };
+    let outcome = apply(&mut state, created);
+    assert_eq!(
+        outcome.effects,
+        vec![ComputationEffect::ReleaseDataFrame { data_frame: 3 }, ComputationEffect::Release { handle: 111 }]
+    );
+}
+
+#[test]
+fn system_columns_replace_the_data_frame() {
+    let mut state = state_with_table(1);
+    let before = version(&state);
     let mut columns = input_columns();
     columns.push(ColumnGroup::RowNumber(RowNumberColumnGroup { row_number_field_name: "_rownum".into() }));
     let outcome = apply(
         &mut state,
         ComputationAction::SystemColumnsSucceeded {
             table_id: 1,
-            data_table: numbered.clone(),
             data_frame: 2,
             column_groups: columns.clone(),
             now: NOW,
         },
     );
-    // The table that the system columns replace goes back to the host
-    assert_eq!(
-        outcome.effects,
-        vec![
-            ComputationEffect::ReleaseDataFrame { data_frame: 1 },
-            ComputationEffect::Release { handle: input_table().id }
-        ]
-    );
+    // The data frame that the system columns replace goes back to the host, the table stays
+    assert_eq!(outcome.effects, vec![ComputationEffect::ReleaseDataFrame { data_frame: 1 }]);
     let computation = state.computation(1).unwrap();
     assert_eq!(computation.version, before.with_data_increment());
-    assert_eq!(computation.data_table, numbered);
+    assert_eq!(computation.data_table, input_table());
     assert_eq!(computation.data_frame, Some(2));
     assert_eq!(computation.column_groups, columns);
     // The last row number column counts

@@ -159,8 +159,10 @@ The source dataset includes DashQL's stable system row-number field. Authored en
 ignore that field unless explicitly referenced.
 
 When no row-number field is available, the renderer still uses the named runtime source
-but omits cross-filter mask transforms. Once the analyzed table with system columns is
-available, its changed table identity causes one new embed with mask support.
+but omits cross-filter mask transforms. Once the result is imported, the table of the
+computation is the result with its row numbers (the import appends them, the bins and the
+value ids stay in the compute database), and its changed table identity causes one new
+embed with mask support.
 
 Result-grid ordering is intentionally not applied to Vega-Lite. Ordering controls table
 display order, while chart semantics depend only on the source rows and active filters.

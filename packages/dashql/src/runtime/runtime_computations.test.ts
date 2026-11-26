@@ -175,8 +175,17 @@ describe('The computations of the runtime', () => {
         expect(name?.type).toBe(STRING_COLUMN);
         if (name?.type !== STRING_COLUMN) return;
         const idField = name.value.valueIdFieldName!;
+        // The table is the numbered result, the system columns stay in their data frame
+        expect(rt.table(computation.dataTable)!.schema.fields.map(field => field.name)).toEqual(['name', '_rownum']);
         // The ids of dense_rank() in ascending order with nulls last, in the order of the rows
-        const ids = rt.table(computation.dataTable)!.toArray().map(row => [row.name, row[idField]]);
+        const conn = await database!.connect();
+        let ids: unknown[][];
+        try {
+            const frame = await conn.query(`SELECT "name", "${idField}" AS id FROM "__df_${computation.dataFrame}" ORDER BY "_rownum"`);
+            ids = frame.toArray().map(row => [row.name, row.id]);
+        } finally {
+            await conn.close();
+        }
         expect(ids).toEqual([['b', 3n], [null, 4n], ['a', 2n], ['b', 3n], [null, 4n], ['', 1n]]);
 
         // The id of null selects the rows with null

@@ -1,5 +1,6 @@
 //! The system columns of a table: the fractional bin of every ordinal value and the id of every string value, next to
-//! the row numbers. The filters and the summaries over the selected rows use them.
+//! the row numbers. The filters and the summaries over the selected rows use them in the compute database, the task
+//! creates their data frame and reads nothing.
 
 use std::collections::HashSet;
 
@@ -8,19 +9,19 @@ use dashql_core::error::{Error, Result};
 
 use super::columns::{create_unique_column_name, field_type, is_integer_type, to_numeric_of};
 use super::sql::{Binning, SqlFrame};
-use super::{ascending, data_frame_table_name, read_data_frame_sql, TaskQuery};
+use super::{data_frame_table_name, TaskQuery};
 use crate::compute::types::{ColumnGroup, DataFrameId, RowNumberColumnGroup, SystemColumnsTask};
 
 /// The query of the system columns with the column groups that name them
 #[derive(Clone, Debug, PartialEq)]
 pub struct SystemColumnsPlan {
-    /// The query
+    /// The query, its table is not read
     pub query: TaskQuery,
     /// The column groups: the row numbers first, then the columns with their bin and value id fields
     pub column_groups: Vec<ColumnGroup>,
 }
 
-/// The table with the system columns, in the order of the row numbers. The host keeps the table that the query read.
+/// The data frame with the system columns
 #[derive(Clone, Debug, PartialEq)]
 pub struct SystemColumnsResult {
     /// The data frame with the system columns
@@ -88,14 +89,13 @@ pub fn plan_system_columns(
             }
         }
     }
-    let read = read_data_frame_sql(output, Some(vec![ascending(&task.row_number_field_name)]), None);
     let (title, failure) = ("System column computation", "Failed to precompute column");
-    let query = TaskQuery::new(title, failure, output, frame.to_sql(), read);
+    let query = TaskQuery::unread(title, failure, output, frame.to_sql());
     Ok(SystemColumnsPlan { query, column_groups })
 }
 
 impl SystemColumnsPlan {
-    /// The table with the system columns, the host keeps its rows
+    /// The data frame with the system columns
     pub fn finish(self) -> SystemColumnsResult {
         SystemColumnsResult { data_frame: self.query.data_frame, column_groups: self.column_groups }
     }

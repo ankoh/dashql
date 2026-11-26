@@ -2,7 +2,7 @@
 //! summarize a result, filter, order and search it, and the reading of their results.
 //!
 //! A task is sans-IO. Its plan says what the host runs: a `TaskQuery` creates the table of a new data frame from a
-//! SELECT and reads it back. The service (`compute::service`) runs the two statements on the host. The `finish` of a
+//! SELECT and reads it back, the system columns stay unread. The service (`compute::service`) runs the two statements on the host. The `finish` of a
 //! plan returns what the computation state takes: the summaries as Rust values from the small tables that it parses
 //! (the statistics, the bins and the frequent values), the rest names the read table that the host keeps. The analysis
 //! of a result imports the result with row numbers as the first data frame (`TableImport`).
@@ -73,7 +73,7 @@ pub(crate) fn ascending(field: &str) -> OrderByConstraint {
     OrderByConstraint { field: field.to_string(), ascending: None, nulls_first: None }
 }
 
-/// The query of a task: create the table of a data frame from a SELECT, then read the table
+/// The query of a task: create the table of a data frame from a SELECT, then read the table unless nothing reads it
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TaskQuery {
     /// The title of the query in the query history
@@ -84,15 +84,25 @@ pub struct TaskQuery {
     pub table_name: String,
     /// The SELECT of the task, the query history tracks it
     pub sql: String,
-    /// The read of the created table, in the order that the task needs
-    pub read_sql: String,
+    /// The read of the created table, in the order that the task needs, none for a table that only other tasks read
+    pub read_sql: Option<String>,
     /// The message of a failure of the task
     failure: &'static str,
 }
 
 impl TaskQuery {
     fn new(title: &'static str, failure: &'static str, data_frame: DataFrameId, sql: String, read_sql: String) -> Self {
-        Self { title, data_frame, table_name: data_frame_table_name(data_frame), sql, read_sql, failure }
+        Self::unread(title, failure, data_frame, sql).with_read(read_sql)
+    }
+
+    /// The query of a table that the task doesn't read
+    fn unread(title: &'static str, failure: &'static str, data_frame: DataFrameId, sql: String) -> Self {
+        Self { title, data_frame, table_name: data_frame_table_name(data_frame), sql, read_sql: None, failure }
+    }
+
+    fn with_read(mut self, read_sql: String) -> Self {
+        self.read_sql = Some(read_sql);
+        self
     }
 
     /// The error of the task when its query, its read or its finish failed

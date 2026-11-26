@@ -417,8 +417,8 @@ export interface RuntimeMounts {
 
 /** The compute database of the computations, the embedded Hyper of the platform. The context of a call names the computation, the title of its task, the connection and the client context of the computation, and the run that `cancel` aborts. Result data never enters the module: a result is imported as the Arrow table of its handle, the tables that the tasks read stay Arrow tables, the runtime reads only the small ones that it parses as Arrow IPC streams. */
 export interface ComputePlatform {
-    /** Create the table of a data frame from an Arrow table of the handle table, with its rows numbered from 1 in an appended column of 64-bit integers that can't be null */
-    importTable(dataFrame: number, tableName: string, table: unknown, rowNumberField: string, context: ComputeCallContext): Promise<void>;
+    /** Create the table of a data frame from an Arrow table of the handle table, with its rows numbered from 1 in an appended column of 64-bit integers that can't be null. Resolves to the numbered Arrow table, the runtime keeps it in the handle table as the table of the computation */
+    importTable(dataFrame: number, tableName: string, table: unknown, rowNumberField: string, context: ComputeCallContext): Promise<unknown>;
     /** Create the table of a data frame from a SELECT, the host tracks the SELECT as a query of the task */
     createTable(dataFrame: number, tableName: string, sql: string, context: ComputeCallContext): Promise<void>;
     /** Run a query whose small result the runtime parses, resolves to its result as an Arrow IPC stream */
@@ -1488,7 +1488,7 @@ impl ComputeHost for JsPlatform {
         table: Handle,
         row_number_field: &str,
         context: &ComputeContext,
-    ) -> Result<(), HostError> {
+    ) -> Result<KeptTable, HostError> {
         let compute = self.compute()?;
         // The table goes to the compute database as the object of its handle, its rows never enter the module
         let table = self.handle(table);
@@ -1502,8 +1502,16 @@ impl ComputeHost for JsPlatform {
             JsValue::from_str(row_number_field),
             context_js(context)?,
         ];
-        settled(call(&compute, "importTable", &args)).await?;
-        Ok(())
+        let numbered = settled(call(&compute, "importTable", &args)).await?;
+        // The numbered table joins the handle table without an await, a cancelled run leaves nothing behind
+        let handle = self.register(&numbered)?;
+        match self.describe_table(handle) {
+            Ok(shape) => Ok(KeptTable { handle, shape }),
+            Err(error) => {
+                self.release_handle(handle);
+                Err(error)
+            }
+        }
     }
 
     async fn create_table(

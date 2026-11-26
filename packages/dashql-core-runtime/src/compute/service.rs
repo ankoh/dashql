@@ -8,10 +8,10 @@
 //! of every ordinal and string column.
 //!
 //! The tables stay with the host, result data never enters the module: the host imports a result by its handle and
-//! keeps the rows that a filter, an ordering, a search or the system columns read under a new handle
-//! (`ComputeHost::query_table`). A run reads only the small tables that it parses, the statistics, the bins and the
-//! frequent values of a summary and the count of a selection, and hands them over (`ComputeHost::register_table`). The
-//! state names a table by its handle.
+//! keeps the numbered result as the table of the computation (`ComputeHost::import_table`), and keeps the rows that a
+//! filter, an ordering or a search read under a new handle (`ComputeHost::query_table`). The system columns stay in
+//! their data frame, the filters and the summaries read them there. A run reads only the small tables that it parses, the statistics, the bins and the frequent values of a summary and the count
+//! of a selection, and hands them over (`ComputeHost::register_table`). The state names a table by its handle.
 //!
 //! Every run can be cancelled: aborting the lifetime of a computation cancels its runs, `AbortDataSearch` the run of
 //! the search, `cancel_task` the run of a task, `cancel_run` a run by its id, `stop_analysis` the runs of a
@@ -79,8 +79,8 @@ pub enum TaskOutput {
     Ordering(OrderingTable),
     /// The statistics with the column groups that name their fields
     TableAggregation(TableAggregation, Vec<ColumnGroup>),
-    /// The table and the data frame with the system columns, and the column groups that use them
-    SystemColumns(ArrowTable, DataFrameId, Vec<ColumnGroup>),
+    /// The data frame with the system columns, and the column groups that use them
+    SystemColumns(DataFrameId, Vec<ColumnGroup>),
     /// The summary of a column
     ColumnAggregation(ColumnAggregate),
     /// The summary of a column over the selected rows
@@ -485,8 +485,15 @@ async fn run_query_kept<H: ComputeHost>(
     let host = &shared.host;
     let failed = |e: HostError| host_failed(e, |e| query.failed(e));
     host.create_table(query.data_frame, &query.table_name, &query.sql, context).await.map_err(failed)?;
-    let KeptTable { handle, shape } = host.query_table(&query.read_sql, context).await.map_err(failed)?;
+    let read = query.read_sql.as_deref().ok_or_else(|| RunError::Failed(query.failed("the task reads no table")))?;
+    let KeptTable { handle, shape } = host.query_table(read, context).await.map_err(failed)?;
     Ok(ArrowTable::new(handle, shape.rows, shape.schema))
+}
+
+/// Create the table of a query without reading it
+async fn run_create<H: ComputeHost>(shared: &Shared<H>, query: &TaskQuery, context: &ComputeContext) -> RunResult<()> {
+    let failed = |e: HostError| host_failed(e, |e| query.failed(e));
+    shared.host.create_table(query.data_frame, &query.table_name, &query.sql, context).await.map_err(failed)
 }
 
 /// Create the table of a query and read it back to parse it, for the small tables of the statistics and the summaries
@@ -498,7 +505,8 @@ async fn run_query<H: ComputeHost>(
     let host = &shared.host;
     let failed = |e: HostError| host_failed(e, |e| query.failed(e));
     host.create_table(query.data_frame, &query.table_name, &query.sql, context).await.map_err(failed)?;
-    let ipc = host.query(&query.read_sql, context).await.map_err(failed)?;
+    let read = query.read_sql.as_deref().ok_or_else(|| RunError::Failed(query.failed("the task reads no table")))?;
+    let ipc = host.query(read, context).await.map_err(failed)?;
     let table = ResultTable::from_ipc_stream(&ipc).map_err(|e| query.failed(e))?;
     Ok(ReadTable { table, ipc })
 }
@@ -604,17 +612,17 @@ async fn execute<H: ComputeHost>(
             Ok((action, TaskOutput::TableAggregation(table_aggregation, aggregation.column_groups)))
         }
         ComputationTask::SystemColumns(task) => {
+            // The filters and the summaries read the system columns in the compute database, nothing reads their rows
             let plan = plan_system_columns(task, &task.input_table.schema, output)?;
-            let table = run_query_kept(shared, &plan.query, context).await?;
+            run_create(shared, &plan.query, context).await?;
             let columns = plan.finish();
             let action = ComputationAction::SystemColumnsSucceeded {
                 table_id,
-                data_table: table.clone(),
                 data_frame: columns.data_frame,
                 column_groups: columns.column_groups.clone(),
                 now: now(shared),
             };
-            Ok((action, TaskOutput::SystemColumns(table, columns.data_frame, columns.column_groups)))
+            Ok((action, TaskOutput::SystemColumns(columns.data_frame, columns.column_groups)))
         }
         ComputationTask::ColumnAggregation(task) => {
             let plan = plan_column_aggregation(task, schema, output)?;
@@ -867,7 +875,8 @@ async fn analyze<H: ComputeHost>(
         return Ok(());
     };
 
-    // Import the result with the row numbers as the first data frame, the host numbers the rows of its table
+    // Import the result with the row numbers as the first data frame, the host numbers the rows of its table and keeps
+    // the numbered table, the table of the computation from now on
     check_stopped(shared, table_id, IMPORT_TITLE)?;
     let import = start.import;
     let row_number_field = start.row_number_field_name.clone();
@@ -886,11 +895,15 @@ async fn analyze<H: ComputeHost>(
     })
     .await
     .map_err(|error| error.into_error(IMPORT_TITLE));
-    if let Err(error) = imported {
-        drop_data_frame(shared, input);
-        return Err(error);
-    }
-    apply(shared, ComputationAction::CreatedDataFrame { table_id, data_frame: input }, true)?;
+    let data_table = match imported {
+        Ok(KeptTable { handle, shape }) => ArrowTable::new(handle, shape.rows, shape.schema),
+        Err(error) => {
+            drop_data_frame(shared, input);
+            return Err(error);
+        }
+    };
+    let created = ComputationAction::CreatedDataFrame { table_id, data_frame: input, data_table: data_table.clone() };
+    apply(shared, created, true)?;
 
     // The statistics
     check_stopped(shared, table_id, "Table aggregation")?;
@@ -905,13 +918,12 @@ async fn analyze<H: ComputeHost>(
     let task = system_columns_task(
         table_id,
         column_groups,
-        data_table,
+        data_table.clone(),
         input,
         start.row_number_field_name,
         aggregation.clone(),
     );
-    let Some(TaskOutput::SystemColumns(table, data_frame, column_groups)) =
-        schedule_and_run(shared, task.into()).await?
+    let Some(TaskOutput::SystemColumns(data_frame, column_groups)) = schedule_and_run(shared, task.into()).await?
     else {
         return Ok(());
     };
@@ -938,7 +950,7 @@ async fn analyze<H: ComputeHost>(
         }
     }
     if count > 0 {
-        let (table_name, rows, count) = (table_id.to_string(), table.rows().to_string(), count.to_string());
+        let (table_name, rows, count) = (table_id.to_string(), data_table.rows().to_string(), count.to_string());
         let duration = format!("{}", (shared.host.now() - started).max(0.0).floor());
         let details =
             [("table", table_name.as_str()), ("rows", &rows), ("aggregates", &count), ("duration", &duration)];

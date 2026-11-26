@@ -21,7 +21,13 @@ const COLUMN_HEADER_ACTION_WIDTH = 24;
 export const ROW_HEADER_WIDTH = 48;
 const FORMATTER_PIXEL_SCALING = 10;
 
-function computeColumnCount(columnGroups: ComputationColumnGroup[], showMetaColumns: boolean, visibleColumnGroups?: ReadonlySet<number> | null): number {
+/// Is a system column shown: the bins or the value ids of a column, in the debug view of a table that holds them. The
+/// table of a computation holds none, they stay in the compute database.
+function showsSystemColumn(fieldName: string | null | undefined, showSystemColumns: boolean, fieldIndexByName: ReadonlyMap<string, number>): fieldName is string {
+    return showSystemColumns && fieldName != null && fieldIndexByName.has(fieldName);
+}
+
+function computeColumnCount(columnGroups: ComputationColumnGroup[], showMetaColumns: boolean, fieldIndexByName: ReadonlyMap<string, number>, visibleColumnGroups?: ReadonlySet<number> | null): number {
     let columnCount = 0;
     for (let groupIndex = 0; groupIndex < columnGroups.length; ++groupIndex) {
         const columnGroup = columnGroups[groupIndex];
@@ -37,13 +43,13 @@ function computeColumnCount(columnGroups: ComputationColumnGroup[], showMetaColu
             case STRING_COLUMN:
             case LIST_COLUMN:
                 ++columnCount;
-                if (showMetaColumns && columnGroup.value.valueIdFieldName != null) {
+                if (showsSystemColumn(columnGroup.value.valueIdFieldName, showMetaColumns, fieldIndexByName)) {
                     ++columnCount;
                 }
                 break;
             case ORDINAL_COLUMN:
                 ++columnCount;
-                if (showMetaColumns && columnGroup.value.binFieldName != null) {
+                if (showsSystemColumn(columnGroup.value.binFieldName, showMetaColumns, fieldIndexByName)) {
                     ++columnCount;
                 }
                 break;
@@ -52,28 +58,28 @@ function computeColumnCount(columnGroups: ComputationColumnGroup[], showMetaColu
     return columnCount;
 }
 
-/// What the layout of a table reads: its column groups and the table with the system columns
+/// What the layout of a table reads: its column groups and the table
 export interface DataTableLayoutInput {
     columnGroups: ComputationColumnGroup[];
     dataTable: arrow.Table;
 }
 
 export function computeTableLayout(formatter: ArrowTableFormatter, state: DataTableLayoutInput, showSystemColumns: boolean, headerRowCount: number, containerWidth: number = 0, visibleColumnGroups?: ReadonlySet<number> | null, resizedColumnWidths?: ReadonlyMap<string, number> | null): DataTableLayout {
+    // Index table fields by name
+    const tableSchema = state.dataTable.schema;
+    const fieldIndexByName = new Map<string, number>();
+    for (let i = 0; i < tableSchema.fields.length; ++i) {
+        fieldIndexByName.set(tableSchema.fields[i].name, i);
+    }
+
     // Allocate column offsets
-    const columnCount = computeColumnCount(state.columnGroups, showSystemColumns, visibleColumnGroups);
+    const columnCount = computeColumnCount(state.columnGroups, showSystemColumns, fieldIndexByName, visibleColumnGroups);
     const columnFields = new Uint32Array(columnCount);
     const columnOffsets = new Float64Array(columnCount + 1);
     const columnAggregateIndex = new Int32Array(columnCount);
     const columnGroupByColumnIndex = new Uint32Array(columnCount);
     const isSystemColumn = new Uint8Array(columnCount);
     const isTextColumn = new Uint8Array(columnCount);
-    const tableSchema = state.dataTable.schema;
-
-    // Index table fields by name
-    const fieldIndexByName = new Map<string, number>();
-    for (let i = 0; i < tableSchema.fields.length; ++i) {
-        fieldIndexByName.set(tableSchema.fields[i].name, i);
-    }
 
     for (let i = 0; i < columnCount; ++i) {
         columnAggregateIndex[i] = -1;
@@ -113,7 +119,7 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: DataTa
                 columnAggregateIndex[outputIndex] = groupIndex;
                 columnGroupByColumnIndex[outputIndex] = groupIndex;
                 nextDisplayOffset += valueColumnWidth;
-                if (showSystemColumns && columnGroup.value.binFieldName != null) {
+                if (showsSystemColumn(columnGroup.value.binFieldName, showSystemColumns, fieldIndexByName)) {
                     const idOutputIndex = nextDisplayColumn++;
                     const idFieldIndex = fieldIndexByName.get(columnGroup.value.binFieldName)!;
                     const idColumn = formatter.columns[idFieldIndex];
@@ -147,7 +153,7 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: DataTa
                 columnAggregateIndex[outputIndex] = groupIndex;
                 columnGroupByColumnIndex[outputIndex] = groupIndex;
                 nextDisplayOffset += valueColumnWidth;
-                if (showSystemColumns && columnGroup.value.valueIdFieldName != null) {
+                if (showsSystemColumn(columnGroup.value.valueIdFieldName, showSystemColumns, fieldIndexByName)) {
                     const idOutputIndex = nextDisplayColumn++;
                     const idFieldIndex = fieldIndexByName.get(columnGroup.value.valueIdFieldName)!;
                     const idColumn = formatter.columns[idFieldIndex];

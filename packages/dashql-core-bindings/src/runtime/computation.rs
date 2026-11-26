@@ -534,7 +534,7 @@ pub struct ComputationView {
     pub client_context: Option<String>,
     pub tasks: ComputationTasks,
     pub version: ComputationVersionValue,
-    /// The table, with the system columns once they are computed
+    /// The table: the result, with its row numbers once it is imported
     pub data_table: u32,
     pub data_table_rows: u64,
     /// The fields of the table that the computation was created with, in order

@@ -6,7 +6,7 @@ import { resolveDataSearchMatches, type SummaryTables } from '@akohn/dashql/plat
 
 /// The Arrow tables of the view of a computation, resolved by their handles
 export interface ComputationTables {
-    /// The table with the system columns once they are computed
+    /// The result, with its row numbers once it is imported
     dataTable: arrow.Table | null;
     /// The row numbers of the rows that pass the cross filters
     filterTable: arrow.Table | null;

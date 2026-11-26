@@ -175,7 +175,7 @@ impl ComputeHost for ComputeTracker {
         table: Handle,
         row_number_field: &str,
         context: &ComputeContext,
-    ) -> Result<(), HostError> {
+    ) -> Result<KeptTable, HostError> {
         self.inner.platform.import_table(data_frame, table_name, table, row_number_field, context).await
     }
 

@@ -28,8 +28,9 @@ export function clientContextJson(clientContext: EmbeddedClientContext | null | 
 /// The compute database of the computations of the runtime (`ComputePlatform` of the module) over the embedded Hyper,
 /// the calls wait until the platform set it up. The runtime tracks the SELECTs that create the tables of the tasks in a
 /// query history and names their client context. A cancelled run aborts its calls. Result data never enters the
-/// module: a result is imported from its Arrow table with the row numbers appended here, the tables that the tasks
-/// read stay Arrow tables (`queryTable`), only the small ones that the runtime parses cross as Arrow IPC.
+/// module: a result is imported from its Arrow table with the row numbers appended here, the numbered table and the
+/// tables that the tasks read stay Arrow tables (`importTable`, `queryTable`), only the small ones that the runtime
+/// parses cross as Arrow IPC.
 export function createComputePlatform(database: () => Promise<EmbeddedComputeDatabase>): core.ComputePlatform {
     /// The abort controllers of the calls of the runs
     const runs = new Map<number, Set<AbortController>>();
@@ -59,8 +60,10 @@ export function createComputePlatform(database: () => Promise<EmbeddedComputeDat
     return {
         importTable: (_dataFrame, tableName, result, rowNumberField, context) => perfMarks.measure('compute:importTable', async () => {
             if (!isArrowTable(result)) throw new Error(`the result to import into ${tableName} is no table`);
+            // The numbered table shares the columns of the result, the runtime keeps it as the table of the computation
             const table = appendRowNumbers(result as arrow.Table, rowNumberField);
             await inRun(context.run, signal => withConnection(clientContextOf(context.clientContext), conn => conn.insertArrowTable(table, { name: tableName, create: true, abort: signal })));
+            return table;
         }, tableName),
         createTable: (_dataFrame, tableName, sql, context) => perfMarks.measure('compute:createTable', async () => {
             await inRun(context.run, signal => withConnection(clientContextOf(context.clientContext), conn => conn.createTableAs(tableName, sql, signal)));

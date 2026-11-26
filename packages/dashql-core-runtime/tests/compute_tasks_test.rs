@@ -484,7 +484,7 @@ fn data_search_reads_the_matching_rows_ordered_by_row() {
     assert_eq!(plan.query.table_name, "__df_11");
     assert!(plan.query.sql.contains("FROM \"__df_10\""));
     assert!(plan.query.sql.starts_with("WITH search AS ("));
-    assert_eq!(plan.query.read_sql, "SELECT * FROM \"__df_11\"\nORDER BY \"row_idx\" ASC NULLS LAST");
+    assert_eq!(plan.query.read_sql.as_deref(), Some("SELECT * FROM \"__df_11\"\nORDER BY \"row_idx\" ASC NULLS LAST"));
 
     // The host keeps the rows that the search matched
     let result = plan.finish();
@@ -680,8 +680,8 @@ fn system_columns_bin_and_number_the_values_in_the_order_of_the_rows() {
     assert!(sql.contains(r#"AS "_2_bin""#), "{sql}");
     assert!(sql.contains(&format!(r#"CAST("_1_min" AS DOUBLE PRECISION)) / {BIN_COUNT}, 1)"#)), "{sql}");
     assert!(sql.contains(r#"FROM "__df_20""#), "{sql}");
-    // The rows are read in the order of the result
-    assert_eq!(plan.query.read_sql, "SELECT * FROM \"__df_12\"\nORDER BY \"_rownum\" ASC NULLS LAST");
+    // The filters and the summaries read the system columns in the compute database, the task reads nothing
+    assert_eq!(plan.query.read_sql, None);
     assert_eq!(
         plan.column_groups.iter().map(ColumnGroup::type_name).collect::<Vec<_>>(),
         ["ROWNUMBER", "STRING", "ORDINAL", "STRING"]
@@ -708,7 +708,7 @@ fn table_filtering_lists_the_rows_in_the_order_of_the_input() {
     let sql = &plan.query.sql;
     assert!(sql.contains(r#"FROM "__df_10" WHERE "value" >= 50 AND "_name_id" IN (1, 4)"#), "{sql}");
     assert!(sql.contains(r#"SELECT "_rownum" FROM"#), "{sql}");
-    assert_eq!(plan.query.read_sql, "SELECT * FROM \"__df_11\"\nORDER BY \"_rownum\" ASC NULLS LAST");
+    assert_eq!(plan.query.read_sql.as_deref(), Some("SELECT * FROM \"__df_11\"\nORDER BY \"_rownum\" ASC NULLS LAST"));
     let filter = plan.finish();
     assert_eq!(filter.version, ComputationVersion::new(0, 1));
     assert!(filter.data_frame == 11);
@@ -745,7 +745,7 @@ fn table_ordering_orders_equal_rows_by_their_row_number() {
     assert!(sql.contains(r#""_rownum" IN (SELECT "row_idx" FROM "__df_30")"#), "{sql}");
     assert!(sql.contains(r#"SELECT "_rownum", "group" FROM"#), "{sql}");
     // The constraints come first, the row number orders the rest
-    let read_sql = &plan.query.read_sql;
+    let read_sql = plan.query.read_sql.as_deref().unwrap_or_default();
     assert!(read_sql.starts_with(r#"SELECT "_rownum" FROM "__df_11""#), "{read_sql}");
     assert!(read_sql.contains(r#"ORDER BY "group" DESC NULLS LAST, "_rownum" ASC NULLS LAST"#), "{read_sql}");
     assert!(read_sql.trim_end().ends_with(r#""_rownum" ASC NULLS LAST"#), "{read_sql}");
@@ -844,7 +844,10 @@ fn filtered_column_aggregation_counts_the_frequent_values_of_the_selected_rows()
     assert!(plan.plan.query.sql.contains("\"rownum\" IN (SELECT \"rownum\" FROM \"__df_30\")"));
     assert!(plan.plan.query.sql.contains("\"rownum\" IN (SELECT \"row_idx\" FROM \"__df_40\")"));
     assert!(plan.plan.query.sql.contains(&format!("ORDER BY \"count\" DESC NULLS LAST\nLIMIT {FREQUENT_VALUE_COUNT}")));
-    assert_eq!(plan.plan.query.read_sql, "SELECT * FROM \"__df_11\"\nORDER BY \"count\" DESC NULLS LAST");
+    assert_eq!(
+        plan.plan.query.read_sql.as_deref(),
+        Some("SELECT * FROM \"__df_11\"\nORDER BY \"count\" DESC NULLS LAST")
+    );
 
     let frequent = table(vec![
         ("key", a(StringArray::from(vec!["a", "b"]))),
@@ -898,7 +901,7 @@ fn the_frequent_values_decide_what_the_estimated_distinct_count_can_not() {
 #[test]
 fn filtered_column_aggregation_counts_the_bins_of_the_selected_rows() {
     let plan = plan_filtered_column_aggregation(&filtered_task(score_column()), &result_schema(), 11).expect("a plan");
-    assert_eq!(plan.plan.query.read_sql, "SELECT * FROM \"__df_11\"\nORDER BY \"bin\" ASC NULLS LAST");
+    assert_eq!(plan.plan.query.read_sql.as_deref(), Some("SELECT * FROM \"__df_11\"\nORDER BY \"bin\" ASC NULLS LAST"));
     let binned = table(vec![
         ("bin", a(Int32Array::from(vec![0, 1, 2]))),
         ("count", a(Int64Array::from(vec![3, 1, 1]))),
