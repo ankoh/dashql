@@ -1,8 +1,8 @@
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
-import type { AgentSessionState } from '@akohn/dashql/platform/session/agent_session_state';
 
 import type { AgentFollowTarget } from './agent_commands.js';
+import type { AgentSessionState, AgentSessionTurn } from './agent_session_state.js';
 
 export type { AgentFollowTarget };
 
@@ -13,40 +13,8 @@ export interface AgentScript {
     scriptName: string;
 }
 
-/// A step of the agent: a use of a tool or a text between its tools
-export interface AgentStep {
-    kind: 'tool' | 'text';
-    /// What the tool does, in one line, or the text of the agent
-    label: string;
-    /// When it started, in ms since the epoch
-    startedAt: number;
-    /// When it ended, null while it runs
-    endedAt: number | null;
-    failed: boolean;
-}
-
-/// A question that the user asked the agent in the prompt
-export interface AgentQuestion {
-    /// The question in natural language
-    question: string;
-    /// The latest status line of the agent while it works, null once it finished
-    status: string | null;
-    /// Did the user stop the question?
-    interrupted: boolean;
-    /// Why the question failed, e.g. the harness exited with an error
-    error: string | null;
-    /// The final message of the agent
-    note: string | null;
-    /// The uses of tools and the texts of the agent, oldest first
-    steps: AgentStep[];
-}
-
 /// A question with the scripts that the agent wrote for it
-export interface AgentTurn {
-    questionId: number;
-    question: AgentQuestion;
-    scripts: AgentScript[];
-}
+export type AgentTurn = AgentSessionTurn & { scripts: AgentScript[] };
 
 /// The conversation of the agent on a workbook, as the prompt of the workbook shows it. The desktop app runs a harness
 /// of the machine for every question, the agent works on the workbook through the `dashql` commands
@@ -71,25 +39,17 @@ export type AgentActivity =
     | { kind: 'tool'; text: string }
     | { kind: 'thinking' };
 
-/// The question of a conversation for its activity
-type ActivityQuestion = Pick<AgentQuestion, 'status'> & { steps: readonly Pick<AgentStep, 'label' | 'endedAt'>[] };
-
 /// What the agent does for the question that it works on, idle without one
-export function agentActivity(session: { turns: readonly { question: ActivityQuestion }[] }): AgentActivity {
-    const question = [...session.turns].reverse().find(turn => turn.question.status != null)?.question;
-    if (question == null) return { kind: 'idle' };
-    const running = [...question.steps].reverse().find(step => step.endedAt == null);
+export function agentActivity(session: { turns: readonly Pick<AgentSessionTurn, 'status' | 'steps'>[] }): AgentActivity {
+    const turn = [...session.turns].reverse().find(turn => turn.status != null);
+    if (turn == null) return { kind: 'idle' };
+    const running = [...turn.steps].reverse().find(step => step.endedAt == null);
     return running != null ? { kind: 'tool', text: running.label } : { kind: 'thinking' };
 }
 
 /// Does the agent work on a question of the conversation?
-export function isAgentWorking(session: { turns: readonly { question: Pick<AgentQuestion, 'status'> }[] } | null): boolean {
-    return session != null && session.turns.some(turn => turn.question.status != null);
-}
-
-/// The title of the window with a mark while the agent works
-export function agentDocumentTitle(title: string, activity: AgentActivity): string {
-    return activity.kind === 'idle' ? title : `● ${title}`;
+export function isAgentWorking(session: { turns: readonly Pick<AgentSessionTurn, 'status'>[] } | null | undefined): boolean {
+    return session != null && session.turns.some(turn => turn.status != null);
 }
 
 /// A duration in a few characters: `0.4 s`, `12 s`, `2 min 5 s`
@@ -138,18 +98,7 @@ export function agentSessionOf(
                 scripts.push({ scriptKey: ref.scriptId, scriptName: scriptDisplayName(fileName) });
             }
         }
-        return {
-            questionId: turn.turnId,
-            question: {
-                question: turn.question,
-                status: turn.status,
-                interrupted: turn.interrupted,
-                error: turn.error,
-                note: turn.note,
-                steps: turn.steps.map(step => ({ kind: step.kind, label: step.label, startedAt: step.startedAt, endedAt: step.endedAt, failed: step.failed })),
-            },
-            scripts,
-        };
+        return { ...turn, scripts };
     });
     return { workbookId, harness: state.harness, turns, ...handlers };
 }

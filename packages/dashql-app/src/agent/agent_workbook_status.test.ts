@@ -1,19 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { WorkbookStatusTone } from '../workbook/status/workbook_status.js';
-import { harnessLabel, type AgentQuestion, type AgentSession } from './agent_session.js';
+import { harnessLabel, type AgentSession, type AgentTurn } from './agent_session.js';
 import { agentLiveStatuses, diffAgentQuestions } from './agent_workbook_status.js';
 
 /// A conversation of Claude Code with one question
-function sessionWith(question: Partial<AgentQuestion>): AgentSession {
+function sessionWith(turn: Partial<AgentTurn>): AgentSession {
     return {
         workbookId: 'w1',
         harness: 'claude',
-        turns: [{
-            questionId: 1,
-            question: { question: 'how many orders', status: 'working', interrupted: false, error: null, note: null, steps: [], ...question },
-            scripts: [],
-        }],
+        turns: [{ turnId: 1, question: 'how many orders', status: 'working', interrupted: false, error: null, note: null, files: [], steps: [], scripts: [], ...turn }],
         onReset: vi.fn(),
         onShowScript: vi.fn(),
         onStop: vi.fn(),
@@ -23,9 +19,9 @@ function sessionWith(question: Partial<AgentQuestion>): AgentSession {
 describe('the statuses of the agent in the bar of a workbook', () => {
     it('tells the tool that runs and that the agent thinks between its tools', () => {
         const harness = harnessLabel('claude');
-        const live = (question: Partial<AgentQuestion>) => agentLiveStatuses(sessionWith(question), 0).map(({ tone, text, detail }) => ({ tone, text, detail }));
+        const live = (turn: Partial<AgentTurn>) => agentLiveStatuses(sessionWith(turn), 0).map(({ tone, text, detail }) => ({ tone, text, detail }));
         expect(live({})).toEqual([{ tone: WorkbookStatusTone.Progress, text: expect.stringContaining(harness), detail: 'thinking' }]);
-        const running = { kind: 'tool' as const, label: 'dashql edit orders', startedAt: 1, endedAt: null, failed: false };
+        const running = { kind: 'tool' as const, label: 'dashql edit orders', toolUseId: null, startedAt: 1, endedAt: null, failed: false };
         expect(live({ steps: [running] })).toEqual([{ tone: WorkbookStatusTone.Progress, text: expect.stringContaining(harness), detail: 'dashql edit orders' }]);
         // A tool that ended leaves the agent thinking, the last tool is no longer what it does
         expect(live({ status: 'dashql edit orders', steps: [{ ...running, endedAt: 2 }] })[0].detail).toBe('thinking');

@@ -63,7 +63,7 @@ flowchart LR
    turn with a line of the page (`describeAgentCall`: `Write orders`, `Run orders, customers`), failed when its exit
    code is not 0.
 5. The page folds the events into the conversation of the workbook (`reduceAgentSessionEvent` of
-   `platform/session/agent_session_state.ts`): the turns with their steps and texts, the scripts that the agent
+   `agent/agent_session_state.ts`): the turns with their steps and texts, the scripts that the agent
    changed, the answer. The prompt shows them above its editor (see [The page](#the-page)), the feed follows the agent
    to the scripts that it edits and runs.
 
@@ -106,7 +106,7 @@ ticks more.
 ```
 session.json        the address and the token of the server of the main process, readable by the user only
 state.json          the session of every harness on the workbook, a follow-up question resumes it
-conversation.json   the conversation as the page shows it (`AgentSessionFile`), the page reads it after a reload
+conversation.json   the conversation as the page shows it (`AgentSessionState`), the page reads it after a reload
 bin/dashql          the dashql of the agent: the bundled binary with --session <folder>/session.json
 AGENTS.md           the instructions and the guide, for Codex and opencode
 CLAUDE.md           one line, Claude Code gets the instructions in its system prompt
@@ -207,5 +207,4 @@ a command line from the page, a secret on disk besides the token of the session.
 | `dashql` | `//packages/dashql-cli:test`: the command line, the session file, the calls against a fake server with streamed answers and exit codes, the guide |
 | Main process | `//packages/dashql-native:test`: the readers of the three harnesses, the arguments, the server (token, 409, 413, cancel), the process group, the folder |
 | Harnesses | `//tests/agents`: real Claude Code and Codex with a fake model through the compiled host, a fake page that answers the calls, resume |
-| Page | `agent/agent_commands.test.ts` on a test runtime, `agent_session.test.ts`, `agent_prompt_panel.test.tsx`, the composer and prompt tests; the page test `app_agent_web` (the notice of the web app) |
-| Between | `//packages/dashql:test_platform_node`: the conversation of a workbook (`agent_session_state.test.ts`) |
+| Page | `agent/agent_commands.test.ts` on a test runtime, `agent_session_state.test.ts` (the conversation of a workbook), `agent_session.test.ts`, `agent_prompt_panel.test.tsx`, the composer and prompt tests; the page test `app_agent_web` (the notice of the web app) |

@@ -101,10 +101,8 @@ describe('Workbook prompt', () => {
         return { workbookId: 'workbook', harness: 'claude', turns, onReset: vi.fn(), onShowScript: vi.fn(), onStop: vi.fn() };
     }
     /// A question that the agent works on
-    const question = (questionId: number, status: string | null = 'Edit scripts/1_alpha.sql'): AgentTurn => ({
-        questionId,
-        question: { question: 'how many rows', status, interrupted: false, error: null, note: null, steps: [] },
-        scripts: [],
+    const question = (turnId: number, status: string | null = 'Edit scripts/1_alpha.sql'): AgentTurn => ({
+        turnId, question: 'how many rows', status, interrupted: false, error: null, note: null, files: [], steps: [], scripts: [],
     });
 
     let container: HTMLDivElement;

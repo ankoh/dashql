@@ -1,9 +1,10 @@
-import { agentSessionFile, createAgentSessionState, MAX_AGENT_SESSION_STEPS, MAX_AGENT_SESSION_TURNS, parseAgentSessionFile, reduceAgentSessionEvent } from './agent_session_state.js';
+import { describe, expect, it } from 'vitest';
+
+import { createAgentSessionState, MAX_AGENT_SESSION_STEPS, MAX_AGENT_SESSION_TURNS, parseAgentSessionFile, reduceAgentSessionEvent } from './agent_session_state.js';
 
 describe('the conversation of the agent on a workbook', () => {
     it('follows a question from the prompt to the final message', () => {
         let state = createAgentSessionState();
-        const initial = state.version;
         state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'how many orders' }, 1000, 'claude');
         expect(state.harness).toBe('claude');
         expect(state.turns).toHaveLength(1);
@@ -15,12 +16,11 @@ describe('the conversation of the agent on a workbook', () => {
         expect(state.turns[0]).toMatchObject({ status: 'dashql edit orders', files: ['orders.sql'] });
         state = reduceAgentSessionEvent(state, { event: 'Stop', message: 'There are 42 orders' });
         expect(state.turns[0]).toMatchObject({ status: null, note: 'There are 42 orders', interrupted: false });
-        expect(state.version).toBeGreaterThan(initial);
     });
 
     it('takes no events of tools outside a turn', () => {
         let state = createAgentSessionState();
-        state = reduceAgentSessionEvent(state, { event: 'PostToolUse', status: 'ls' });
+        state = reduceAgentSessionEvent(state, { event: 'PostToolUse', status: 'ls', toolUseId: null });
         state = reduceAgentSessionEvent(state, { event: 'Edited', files: ['a.sql'] });
         state = reduceAgentSessionEvent(state, { event: 'Stop', message: 'x' });
         expect(state.turns).toEqual([]);
@@ -59,7 +59,7 @@ describe('the conversation of the agent on a workbook', () => {
         ]);
         // A failed tool, a PostToolUse without a PreToolUse and without an id
         state = reduceAgentSessionEvent(state, { event: 'PostToolUse', status: 'Read a.sql', toolUseId: 't1', error: 'no such file' }, 1400);
-        state = reduceAgentSessionEvent(state, { event: 'PostToolUse', status: 'ls' }, 1500);
+        state = reduceAgentSessionEvent(state, { event: 'PostToolUse', status: 'ls', toolUseId: null }, 1500);
         expect(state.turns[0].steps[0]).toMatchObject({ endedAt: 1400, failed: true });
         expect(state.turns[0].steps[2]).toEqual({ kind: 'tool', label: 'ls', toolUseId: null, startedAt: 1500, endedAt: 1500, failed: false });
         // Stop ends every open step
@@ -71,7 +71,7 @@ describe('the conversation of the agent on a workbook', () => {
     it('keeps the latest steps of a turn and the latest turns', () => {
         let state = createAgentSessionState();
         state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q' });
-        for (let i = 0; i < MAX_AGENT_SESSION_STEPS + 5; ++i) state = reduceAgentSessionEvent(state, { event: 'PostToolUse', status: `step ${i}` });
+        for (let i = 0; i < MAX_AGENT_SESSION_STEPS + 5; ++i) state = reduceAgentSessionEvent(state, { event: 'PostToolUse', status: `step ${i}`, toolUseId: null });
         expect(state.turns[0].steps).toHaveLength(MAX_AGENT_SESSION_STEPS);
         expect(state.turns[0].steps[0].label).toBe('step 5');
         for (let i = 0; i < MAX_AGENT_SESSION_TURNS + 3; ++i) {
@@ -116,7 +116,7 @@ describe('the conversation of the agent on a workbook', () => {
         state = reduceAgentSessionEvent(state, { event: 'Stop', message: 'done' }, 1100);
         state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q2' }, 1200);
         state = reduceAgentSessionEvent(state, { event: 'PreToolUse', status: 'Run a', toolUseId: 't1' }, 1300);
-        const kept = JSON.parse(JSON.stringify(agentSessionFile(state)));
+        const kept = JSON.parse(JSON.stringify(state));
         const read = parseAgentSessionFile(kept);
         expect(read?.harness).toBe('codex');
         expect(read?.turns[0]).toEqual(state.turns[0]);

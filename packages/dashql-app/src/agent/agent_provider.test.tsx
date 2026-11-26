@@ -5,7 +5,6 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type Mock }
 
 import * as dashql from '@akohn/dashql';
 import { newDefaultHyperWasmConnection } from '@akohn/dashql/platform/connections/connection_params';
-import { agentSessionFile, createAgentSessionState, reduceAgentSessionEvent } from '@akohn/dashql/platform/session/agent_session_state';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { testRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
@@ -13,6 +12,7 @@ import { RuntimeContextProvider } from '@akohn/dashql-react/hooks';
 import { LoggerProvider } from '../host/logger_provider.js';
 import { AgentProvider, useAgentControls, useAgentSession, type AgentControls } from './agent_provider.js';
 import type { AgentSession } from './agent_session.js';
+import { createAgentSessionState, reduceAgentSessionEvent } from './agent_session_state.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -106,10 +106,10 @@ describe('the agents of the desktop app', () => {
         let kept = createAgentSessionState();
         kept = reduceAgentSessionEvent(kept, { event: 'UserPromptSubmit', prompt: 'how many orders' }, 1000, 'codex');
         kept = reduceAgentSessionEvent(kept, { event: 'Stop', message: 'There are 42 orders' }, 1100);
-        bridge.kept = JSON.parse(JSON.stringify(agentSessionFile(kept)));
+        bridge.kept = JSON.parse(JSON.stringify(kept));
         await render();
         await vi.waitFor(() => expect(session?.turns).toHaveLength(1));
-        expect(session).toMatchObject({ harness: 'codex', turns: [{ questionId: 1, question: { question: 'how many orders', note: 'There are 42 orders' } }] });
+        expect(session).toMatchObject({ harness: 'codex', turns: [{ turnId: 1, question: 'how many orders', note: 'There are 42 orders' }] });
         // Reading it is no change to keep
         expect(bridge.writeConversation).not.toHaveBeenCalled();
 
@@ -118,7 +118,7 @@ describe('the agents of the desktop app', () => {
             bridge.emit(workbookId, { event: 'Say', text: 'I group them by day.' });
             bridge.emit(workbookId, { event: 'Stop', message: 'Done' });
         });
-        expect(session?.turns.map(turn => turn.questionId)).toEqual([1, 2]);
+        expect(session?.turns.map(turn => turn.turnId)).toEqual([1, 2]);
         await vi.waitFor(() => expect(bridge.writeConversation).toHaveBeenCalledOnce());
         const [keptId, file] = bridge.writeConversation.mock.calls[0];
         expect(keptId).toBe(workbookId);
@@ -145,7 +145,7 @@ describe('the agents of the desktop app', () => {
         await vi.waitFor(() => expect(bridge.replies.some(reply => reply.callId === 1 && reply.exit === 0)).toBe(true));
         act(() => bridge.call({ callId: 2, workbookId, command: 'read', args: { script: 'missing' }, input: null }));
         await vi.waitFor(() => expect(bridge.replies.some(reply => reply.callId === 2 && reply.exit != null)).toBe(true));
-        const steps = session!.turns[0].question.steps;
+        const steps = session!.turns[0].steps;
         expect(steps.map(step => [step.label, step.endedAt != null, step.failed])).toEqual([
             ['List the scripts', true, false],
             ['Read missing', true, true],
@@ -157,12 +157,12 @@ describe('the agents of the desktop app', () => {
         let refuse: (error: Error) => void = () => { };
         bridge.ask.mockImplementationOnce(() => new Promise<void>((_, reject) => { refuse = reject; }));
         ask('q1');
-        expect(session?.turns.map(turn => [turn.question.question, turn.question.status])).toEqual([['q1', 'working']]);
+        expect(session?.turns.map(turn => [turn.question, turn.status])).toEqual([['q1', 'working']]);
         // A second Ask before the harness started is no question
         ask('q2');
         expect(bridge.ask).toHaveBeenCalledOnce();
         // A refused question fails its own turn
         await act(async () => refuse(new Error('Codex is not installed')));
-        expect(session?.turns.map(turn => [turn.question.question, turn.question.status, turn.question.error])).toEqual([['q1', null, 'Codex is not installed']]);
+        expect(session?.turns.map(turn => [turn.question, turn.status, turn.error])).toEqual([['q1', null, 'Codex is not installed']]);
     });
 });

@@ -90,9 +90,8 @@ function useAgentAnsweredAt(session: AgentSession | null): () => number | null {
         const before = working.current;
         const now = new Set<number>();
         for (const turn of session?.turns ?? []) {
-            const { question } = turn;
-            if (question.status != null) now.add(turn.questionId);
-            else if (before.has(turn.questionId) && question.error == null && !question.interrupted) answeredAt.current = performance.now();
+            if (turn.status != null) now.add(turn.turnId);
+            else if (before.has(turn.turnId) && turn.error == null && !turn.interrupted) answeredAt.current = performance.now();
         }
         working.current = now;
     }, [session]);

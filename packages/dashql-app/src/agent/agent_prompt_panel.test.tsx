@@ -23,9 +23,14 @@ function agentSession(overrides: Partial<AgentSession> = {}): AgentSession {
     };
 }
 
+/// A question of the conversation
+function turnOf(turnId: number, question: string, turn: Partial<AgentTurn> = {}): AgentTurn {
+    return { turnId, question, status: null, error: null, interrupted: false, note: null, files: [], steps: [], scripts: [], ...turn };
+}
+
 /// A question that the agent answered
-function answered(questionId: number, question: string, note: string | null): AgentTurn {
-    return { questionId, question: { question, status: null, error: null, interrupted: false, note, steps: [] }, scripts: [] };
+function answered(turnId: number, question: string, note: string | null): AgentTurn {
+    return turnOf(turnId, question, { note });
 }
 
 describe('Agent prompt panel', () => {
@@ -62,18 +67,11 @@ describe('Agent prompt panel', () => {
 
     it('shows what the agent does for a question and stops it', () => {
         const agent = agentSession({
-            turns: [{
-                questionId: 3,
-                question: {
-                    question: 'how many orders',
-                    status: 'Check orders',
-                    error: null,
-                    interrupted: false,
-                    note: null,
-                    steps: [{ kind: 'tool', label: 'Check orders', startedAt: Date.now(), endedAt: null, failed: false }],
-                },
+            turns: [turnOf(3, 'how many orders', {
+                status: 'Check orders',
+                steps: [{ kind: 'tool', label: 'Check orders', toolUseId: null, startedAt: Date.now(), endedAt: null, failed: false }],
                 scripts: [{ scriptKey: 7, scriptName: 'orders' }],
-            }],
+            })],
         });
         expect(agentActivity(agent).kind).toBe('tool');
         render(<AgentPromptPanel session={agent} />);
@@ -92,14 +90,10 @@ describe('Agent prompt panel', () => {
     it('shows that the agent thinks between its steps', () => {
         const now = Date.now();
         const agent = agentSession({
-            turns: [{
-                questionId: 1,
-                question: {
-                    question: 'q', status: 'working', error: null, interrupted: false, note: null,
-                    steps: [{ kind: 'tool', label: 'List the scripts', startedAt: now - 2000, endedAt: now - 1000, failed: false }],
-                },
-                scripts: [],
-            }],
+            turns: [turnOf(1, 'q', {
+                status: 'working',
+                steps: [{ kind: 'tool', label: 'List the scripts', toolUseId: null, startedAt: now - 2000, endedAt: now - 1000, failed: false }],
+            })],
         });
         expect(agentActivity(agent).kind).toBe('thinking');
         render(<AgentPromptPanel session={agent} />);
@@ -107,11 +101,10 @@ describe('Agent prompt panel', () => {
     });
 
     it('shows a question that the user stopped and one that failed', () => {
-        const question = { question: 'drop the table', status: null, interrupted: false, error: null, note: null, steps: [] };
-        render(<AgentPromptPanel session={agentSession({ turns: [{ questionId: 1, question: { ...question, interrupted: true }, scripts: [] }] })} />);
+        render(<AgentPromptPanel session={agentSession({ turns: [turnOf(1, 'drop the table', { interrupted: true })] })} />);
         expect(container.querySelector<HTMLElement>('[data-testid="composer-agent-turn"]')!.dataset.state).toBe('interrupted');
         expect(container.querySelector('[role="note"]')!.textContent).toBe('Stopped without an answer');
-        render(<AgentPromptPanel session={agentSession({ turns: [{ questionId: 1, question: { ...question, error: 'The harness exited with code 1: not logged in' }, scripts: [] }] })} />);
+        render(<AgentPromptPanel session={agentSession({ turns: [turnOf(1, 'drop the table', { error: 'The harness exited with code 1: not logged in' })] })} />);
         expect(container.querySelector<HTMLElement>('[data-testid="composer-agent-turn"]')!.dataset.state).toBe('failed');
         expect(container.querySelector('[data-testid="composer-agent-error"]')!.textContent).toContain('not logged in');
     });
@@ -119,23 +112,15 @@ describe('Agent prompt panel', () => {
     it('shows the steps and the texts of the agent, then its answer as Markdown', () => {
         const now = Date.now();
         const agent = agentSession({
-            turns: [{
-                questionId: 3,
-                question: {
-                    question: 'how many orders',
-                    status: 'Run orders',
-                    error: null,
-                    interrupted: false,
-                    note: null,
-                    steps: [
-                        { kind: 'tool', label: 'Read orders', startedAt: now - 9000, endedAt: now - 8600, failed: false },
-                        { kind: 'text', label: 'The table has **no** region, I join `customers`.', startedAt: now - 8500, endedAt: now - 8500, failed: false },
-                        { kind: 'tool', label: 'Check orders', startedAt: now - 8000, endedAt: now - 7000, failed: true },
-                        { kind: 'tool', label: 'Run orders', startedAt: now - 3000, endedAt: null, failed: false },
-                    ],
-                },
-                scripts: [],
-            }],
+            turns: [turnOf(3, 'how many orders', {
+                status: 'Run orders',
+                steps: [
+                    { kind: 'tool', label: 'Read orders', toolUseId: null, startedAt: now - 9000, endedAt: now - 8600, failed: false },
+                    { kind: 'text', label: 'The table has **no** region, I join `customers`.', toolUseId: null, startedAt: now - 8500, endedAt: now - 8500, failed: false },
+                    { kind: 'tool', label: 'Check orders', toolUseId: null, startedAt: now - 8000, endedAt: now - 7000, failed: true },
+                    { kind: 'tool', label: 'Run orders', toolUseId: null, startedAt: now - 3000, endedAt: null, failed: false },
+                ],
+            })],
         });
         render(<AgentPromptPanel session={agent} />);
         const steps = [...container.querySelectorAll('[data-testid="composer-agent-step"]')];
@@ -151,11 +136,7 @@ describe('Agent prompt panel', () => {
         // Once the agent answered, the steps stay with the answer
         const note = 'There are **42** orders:\n\n- 30 open\n- 12 shipped\n\n<script>alert(1)</script>![x](https://example.com/x.png)';
         const done = agentSession({
-            turns: [{
-                questionId: 3,
-                question: { ...agent.turns[0].question, status: null, note, steps: agent.turns[0].question.steps.map(step => ({ ...step, endedAt: step.endedAt ?? now })) },
-                scripts: [],
-            }],
+            turns: [{ ...agent.turns[0], status: null, note, steps: agent.turns[0].steps.map(step => ({ ...step, endedAt: step.endedAt ?? now })) }],
         });
         render(<AgentPromptPanel session={done} />);
         const answer = answerOf(container)!;
@@ -243,7 +224,7 @@ describe('Agent prompt panel', () => {
     });
 
     it('scrolls to a new question and to the answer', () => {
-        const turn = (questionId: number) => answered(questionId, `question ${questionId}`, 'answer\n\n'.repeat(12));
+        const turn = (turnId: number) => answered(turnId, `question ${turnId}`, 'answer\n\n'.repeat(12));
         const turns = Array.from({ length: 6 }, (_, i) => turn(i + 1));
         render(<AgentPromptPanel session={agentSession({ turns })} />);
         const list = container.querySelector<HTMLElement>('[aria-label="Questions"]')!;
@@ -252,7 +233,7 @@ describe('Agent prompt panel', () => {
         expect(list.scrollTop + list.clientHeight).toBeGreaterThanOrEqual(list.scrollHeight - 1);
 
         act(() => { list.scrollTop = 0; });
-        const asked: AgentTurn = { questionId: 7, question: { question: 'question 7', status: 'working', error: null, interrupted: false, note: null, steps: [] }, scripts: [] };
+        const asked = turnOf(7, 'question 7', { status: 'working' });
         render(<AgentPromptPanel session={agentSession({ turns: [...turns, asked] })} />);
         expect(list.scrollTop + list.clientHeight).toBeGreaterThanOrEqual(list.scrollHeight - 1);
         // The answer of the latest question scrolls into view while the user stays at the bottom

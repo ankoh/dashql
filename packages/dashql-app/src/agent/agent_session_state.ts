@@ -1,28 +1,11 @@
-/// The events of a turn of a harness that the desktop app runs for a question on a workbook, in the order of the turn:
-/// UserPromptSubmit first, Stop last (docs/design/agent_integration.md). Say is a text of the agent between its tools.
-/// Edited names a script that a `dashql` command of the agent changed.
-export type AgentSessionEventName = 'UserPromptSubmit' | 'PreToolUse' | 'PostToolUse' | 'Say' | 'Edited' | 'Stop';
-
-/// An event of a turn, as the main process reads it from the output of the harness
-export interface AgentSessionEvent {
-    event: AgentSessionEventName;
-    /// The question of UserPromptSubmit
-    prompt?: string | null;
-    /// What a tool of PreToolUse or PostToolUse does, in one line
-    status?: string | null;
-    /// The text of Say
-    text?: string | null;
-    /// The scripts that Edited names, by their file names
-    files?: string[];
-    /// The id of the use of a tool, PostToolUse names the same as its PreToolUse
-    toolUseId?: string | null;
-    /// The final message of Stop
-    message?: string | null;
-    /// The error of a failed tool of PostToolUse, or of a turn that failed with Stop
-    error?: string | null;
-    /// Did the user stop the turn? Of Stop
-    interrupted?: boolean;
-}
+/// An event of a turn of a harness that the desktop app runs for a question on a workbook, in the order of the turn
+/// (docs/design/agent_integration.md): the page opens the turn with UserPromptSubmit when it asks, the main process
+/// tells the events of the harness, Stop last. Edited names the scripts that a `dashql` command of the agent changed,
+/// by their file names.
+export type AgentSessionEvent =
+    | DashQLAgentEvent
+    | { event: 'UserPromptSubmit'; prompt: string }
+    | { event: 'Edited'; files: string[] };
 
 /// A step of a turn: a use of a tool, which PreToolUse starts and PostToolUse ends, or a text of the agent, which ends
 /// as it starts
@@ -59,14 +42,12 @@ export interface AgentSessionTurn {
     steps: AgentSessionStep[];
 }
 
-/// The conversation of the agent on a workbook as the page keeps it
+/// The conversation of the agent on a workbook as the page keeps it, plain JSON in the folder of the workbook
 export interface AgentSessionState {
     /// The harness of the latest turn, null before the first
     harness: string | null;
     /// The turns, oldest first
     turns: AgentSessionTurn[];
-    /// Counts the changes, a page tells a new state by it
-    version: number;
 }
 
 /// The turns that a conversation keeps, the oldest go first
@@ -77,7 +58,7 @@ export const MAX_AGENT_SESSION_STEPS = 60;
 export const MAX_AGENT_SESSION_TEXT = 4000;
 
 export function createAgentSessionState(): AgentSessionState {
-    return { harness: null, turns: [], version: 0 };
+    return { harness: null, turns: [] };
 }
 
 /// A turn of a question
@@ -116,21 +97,21 @@ export function reduceAgentSessionEvent(state: AgentSessionState, event: AgentSe
     switch (event.event) {
         case 'UserPromptSubmit': {
             const before = open != null ? [...turns.slice(0, -1), closed(open)] : turns;
-            turns = [...before, newTurn({ ...state, turns: before }, event.prompt ?? '')];
+            turns = [...before, newTurn({ ...state, turns: before }, event.prompt)];
             break;
         }
         case 'Edited': {
             if (open == null) break;
             const files = [...open.files];
-            for (const file of event.files ?? []) if (!files.includes(file)) files.push(file);
+            for (const file of event.files) if (!files.includes(file)) files.push(file);
             turns = [...turns.slice(0, -1), { ...open, files }];
             break;
         }
         case 'PreToolUse':
         case 'PostToolUse': {
             if (open == null) break;
-            const label = event.status ?? 'tool';
-            const toolUseId = event.toolUseId ?? null;
+            const label = event.status;
+            const toolUseId = event.toolUseId;
             const steps = [...open.steps];
             if (event.event === 'PreToolUse') {
                 steps.push({ kind: 'tool', label, toolUseId, startedAt: now, endedAt: null, failed: false });
@@ -141,11 +122,11 @@ export function reduceAgentSessionEvent(state: AgentSessionState, event: AgentSe
                 if (index >= 0) steps[index] = { ...steps[index], endedAt: now, failed };
                 else steps.push({ kind: 'tool', label, toolUseId, startedAt: now, endedAt: now, failed });
             }
-            turns = [...turns.slice(0, -1), { ...open, status: event.status ?? open.status, steps: steps.slice(-MAX_AGENT_SESSION_STEPS) }];
+            turns = [...turns.slice(0, -1), { ...open, status: event.status, steps: steps.slice(-MAX_AGENT_SESSION_STEPS) }];
             break;
         }
         case 'Say': {
-            const text = (event.text ?? '').trim();
+            const text = event.text.trim();
             if (open == null || text.length === 0) break;
             const label = text.length > MAX_AGENT_SESSION_TEXT ? `${text.slice(0, MAX_AGENT_SESSION_TEXT - 1)}…` : text;
             const steps = [...open.steps, { kind: 'text' as const, label, toolUseId: null, startedAt: now, endedAt: now, failed: false }];
@@ -170,18 +151,7 @@ export function reduceAgentSessionEvent(state: AgentSessionState, event: AgentSe
             }
             break;
     }
-    return { harness, turns: turns.slice(-MAX_AGENT_SESSION_TURNS), version: state.version + 1 };
-}
-
-/// The conversation of a workbook as the desktop app keeps it in the folder of the workbook, plain JSON
-export interface AgentSessionFile {
-    harness: string | null;
-    turns: AgentSessionTurn[];
-}
-
-/// The conversation to keep
-export function agentSessionFile(state: AgentSessionState): AgentSessionFile {
-    return { harness: state.harness, turns: state.turns };
+    return { harness, turns: turns.slice(-MAX_AGENT_SESSION_TURNS) };
 }
 
 function isString(value: unknown): value is string {
@@ -232,5 +202,5 @@ export function parseAgentSessionFile(value: unknown): AgentSessionState | null 
     const file = value as Record<string, unknown>;
     if (!Array.isArray(file.turns)) return null;
     const turns = file.turns.map(parseTurn).filter((turn): turn is AgentSessionTurn => turn != null).slice(-MAX_AGENT_SESSION_TURNS);
-    return { harness: isString(file.harness) ? file.harness : null, turns, version: 0 };
+    return { harness: isString(file.harness) ? file.harness : null, turns };
 }

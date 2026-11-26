@@ -22,45 +22,45 @@ export function diffAgentQuestions(prev: AgentSession | null, next: AgentSession
     const lines: WorkbookStatus[] = [];
     const prevTurns = prev.workbookId === next.workbookId ? prev.turns : [];
     for (const turn of next.turns) {
-        const before = prevTurns.find(t => t.questionId === turn.questionId);
+        const before = prevTurns.find(t => t.turnId === turn.turnId);
         if (before == null) {
             lines.push({
-                key: `agent:${turn.questionId}:asked:${now}`,
+                key: `agent:${turn.turnId}:asked:${now}`,
                 source: WorkbookStatusSource.Agent,
                 tone: WorkbookStatusTone.Progress,
-                text: `Asked the agent: ${turn.question.question}`,
+                text: `Asked the agent: ${turn.question}`,
                 at: now,
             });
             continue;
         }
-        if (before.question.status == null || turn.question.status != null) continue;
-        if (turn.question.error != null) {
+        if (before.status == null || turn.status != null) continue;
+        if (turn.error != null) {
             lines.push({
-                key: `agent:${turn.questionId}:failed:${now}`,
+                key: `agent:${turn.turnId}:failed:${now}`,
                 source: WorkbookStatusSource.Agent,
                 tone: WorkbookStatusTone.Failed,
-                text: `The agent failed: ${turn.question.question}`,
-                detail: turn.question.error,
+                text: `The agent failed: ${turn.question}`,
+                detail: turn.error,
                 at: now,
             });
             continue;
         }
-        if (turn.question.interrupted) {
+        if (turn.interrupted) {
             lines.push({
-                key: `agent:${turn.questionId}:interrupted:${now}`,
+                key: `agent:${turn.turnId}:interrupted:${now}`,
                 source: WorkbookStatusSource.Agent,
                 tone: WorkbookStatusTone.Attention,
-                text: `The agent stopped: ${turn.question.question}`,
+                text: `The agent stopped: ${turn.question}`,
                 at: now,
             });
             continue;
         }
         lines.push({
-            key: `agent:${turn.questionId}:answered:${now}`,
+            key: `agent:${turn.turnId}:answered:${now}`,
             source: WorkbookStatusSource.Agent,
             tone: WorkbookStatusTone.Success,
-            text: `The agent answered: ${turn.question.question}`,
-            detail: turn.question.note,
+            text: `The agent answered: ${turn.question}`,
+            detail: turn.note,
             scriptKey: turn.scripts.length > 0 ? turn.scripts[turn.scripts.length - 1].scriptKey : null,
             at: now,
         });

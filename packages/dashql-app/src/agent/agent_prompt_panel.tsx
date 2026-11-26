@@ -6,12 +6,8 @@ import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components
 import { ChevronDownIcon, ChevronRightIcon, SquareFillIcon, SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { MarkdownText } from '@akohn/dashql-react/components/visualization/markdown_view';
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
-import {
-    formatAgentDuration,
-    type AgentSession,
-    type AgentStep,
-    type AgentTurn,
-} from './agent_session.js';
+import { formatAgentDuration, type AgentSession, type AgentTurn } from './agent_session.js';
+import type { AgentSessionStep } from './agent_session_state.js';
 
 const SparklesFillIcon = SymbolIcon('sparkles_fill_16');
 
@@ -37,7 +33,7 @@ const AgentMarkdown: React.FC<{ text: string; className: string; testId?: string
 };
 
 /// The steps of a turn: what every tool did and how long it took, and what the agent said between its tools
-const AgentSteps: React.FC<{ steps: AgentStep[] }> = ({ steps }) => {
+const AgentSteps: React.FC<{ steps: AgentSessionStep[] }> = ({ steps }) => {
     const now = useNow(steps.some(step => step.endedAt == null));
     return (
         <ol className={styles.steps} aria-label="Steps" data-testid="composer-agent-steps">
@@ -73,17 +69,16 @@ const AgentSteps: React.FC<{ steps: AgentStep[] }> = ({ steps }) => {
 /// A collapsed turn shows the question in one line. An expanded turn shows the question, the steps of the agent and the
 /// answer in full.
 const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded: boolean; onToggle: () => void }> = ({ turn, session, expanded, onToggle }) => {
-    const { question } = turn;
-    const working = question.status != null;
+    const working = turn.status != null;
     const indicator = working ? IndicatorStatus.Running
-        : question.error != null ? IndicatorStatus.Failed
-            : question.interrupted ? IndicatorStatus.Skip : IndicatorStatus.Succeeded;
+        : turn.error != null ? IndicatorStatus.Failed
+            : turn.interrupted ? IndicatorStatus.Skip : IndicatorStatus.Succeeded;
     const questionTextId = React.useId();
-    const { steps } = question;
+    const { steps } = turn;
     return (
         <li
             className={styles.turn}
-            data-state={working ? 'working' : question.error != null ? 'failed' : question.interrupted ? 'interrupted' : 'done'}
+            data-state={working ? 'working' : turn.error != null ? 'failed' : turn.interrupted ? 'interrupted' : 'done'}
             data-expanded={expanded ? '' : undefined}
             data-testid="composer-agent-turn"
         >
@@ -106,11 +101,11 @@ const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded
                 <span
                     id={questionTextId}
                     className={styles.turn_question}
-                    title={expanded ? undefined : question.question}
+                    title={expanded ? undefined : turn.question}
                     data-testid="composer-agent-turn-question"
                     onClick={expanded ? undefined : onToggle}
                 >
-                    {question.question}
+                    {turn.question}
                 </span>
                 {turn.scripts.map(script => (
                     <button
@@ -144,18 +139,18 @@ const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded
             {expanded && working && (steps.length === 0 || steps[steps.length - 1].endedAt != null) && (
                 <div className={styles.turn_thinking} data-testid="composer-agent-thinking">Thinking…</div>
             )}
-            {expanded && !working && question.note != null && (
-                <AgentMarkdown text={question.note} className={styles.turn_note} testId="composer-agent-answer" />
+            {expanded && !working && turn.note != null && (
+                <AgentMarkdown text={turn.note} className={styles.turn_note} testId="composer-agent-answer" />
             )}
-            {expanded && question.error != null && <div className={styles.turn_error} role="alert" data-testid="composer-agent-error">{question.error}</div>}
-            {expanded && question.interrupted && question.error == null && question.note == null && <div className={styles.turn_stopped} role="note">Stopped without an answer</div>}
+            {expanded && turn.error != null && <div className={styles.turn_error} role="alert" data-testid="composer-agent-error">{turn.error}</div>}
+            {expanded && turn.interrupted && turn.error == null && turn.note == null && <div className={styles.turn_stopped} role="note">Stopped without an answer</div>}
         </li>
     );
 };
 
 /// Is a turn expanded unless the user toggled it? The latest turn and the turns the agent works on are.
 function isTurnExpandedByDefault(turn: AgentTurn, index: number, turns: readonly AgentTurn[]): boolean {
-    return index === turns.length - 1 || turn.question.status != null;
+    return index === turns.length - 1 || turn.status != null;
 }
 
 /// The conversation with the agent above the editor of the prompt in AI: the questions on the workbook with the steps
@@ -165,22 +160,22 @@ function isTurnExpandedByDefault(turn: AgentTurn, index: number, turns: readonly
 export const AgentPromptPanel: React.FC<{ session: AgentSession; onHide?: () => void }> = ({ session, onHide }) => {
     // The turns that the user expanded or collapsed
     const [toggled, setToggled] = React.useState<ReadonlyMap<number, boolean>>(() => new Map());
-    const toggle = React.useCallback((questionId: number, expanded: boolean) => {
-        setToggled(prev => new Map(prev).set(questionId, expanded));
+    const toggle = React.useCallback((turnId: number, expanded: boolean) => {
+        setToggled(prev => new Map(prev).set(turnId, expanded));
     }, []);
     // The turns scroll within a fixed height, a new question scrolls them to the bottom, a new step or answer of the
     // latest question while the user stays at the bottom
     const turnsRef = React.useRef<HTMLUListElement>(null);
     const atBottomRef = React.useRef(true);
     const latestTurn = session.turns.length > 0 ? session.turns[session.turns.length - 1] : null;
-    const latestQuestionId = latestTurn?.questionId ?? null;
-    const latestSteps = latestTurn?.question.steps.length ?? 0;
-    const latestDone = latestTurn?.question.status == null;
+    const latestTurnId = latestTurn?.turnId ?? null;
+    const latestSteps = latestTurn?.steps.length ?? 0;
+    const latestDone = latestTurn?.status == null;
     React.useLayoutEffect(() => {
         const list = turnsRef.current;
         if (list != null) list.scrollTop = list.scrollHeight;
         atBottomRef.current = true;
-    }, [latestQuestionId]);
+    }, [latestTurnId]);
     React.useLayoutEffect(() => {
         const list = turnsRef.current;
         if (list != null && atBottomRef.current) list.scrollTop = list.scrollHeight;
@@ -221,14 +216,14 @@ export const AgentPromptPanel: React.FC<{ session: AgentSession; onHide?: () => 
             </div>
             <ul ref={turnsRef} className={styles.turns} aria-label="Questions" onScroll={onTurnsScroll}>
                 {session.turns.map((turn, index, turns) => {
-                    const expanded = toggled.get(turn.questionId) ?? isTurnExpandedByDefault(turn, index, turns);
+                    const expanded = toggled.get(turn.turnId) ?? isTurnExpandedByDefault(turn, index, turns);
                     return (
                         <AgentTurnItem
-                            key={turn.questionId}
+                            key={turn.turnId}
                             turn={turn}
                             session={session}
                             expanded={expanded}
-                            onToggle={() => toggle(turn.questionId, !expanded)}
+                            onToggle={() => toggle(turn.turnId, !expanded)}
                         />
                     );
                 })}

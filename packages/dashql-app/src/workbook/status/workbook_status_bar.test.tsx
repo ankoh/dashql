@@ -23,17 +23,12 @@ function agentSession(turns: AgentTurn[] = []): AgentSession {
 }
 
 const working: AgentTurn = {
-    questionId: 1,
-    question: {
-        question: 'how many orders', status: 'Check orders', interrupted: false, error: null, note: null,
-        steps: [{ kind: 'tool', label: 'Check orders', startedAt: 0, endedAt: null, failed: false }],
-    },
+    turnId: 1, question: 'how many orders', status: 'Check orders', interrupted: false, error: null, note: null, files: [],
+    steps: [{ kind: 'tool', label: 'Check orders', toolUseId: null, startedAt: 0, endedAt: null, failed: false }],
     scripts: [],
 };
 const answered: AgentTurn = {
-    questionId: 1,
-    question: { question: 'how many orders', status: null, interrupted: false, error: null, note: 'There are 42 orders', steps: [] },
-    scripts: [],
+    turnId: 1, question: 'how many orders', status: null, interrupted: false, error: null, note: 'There are 42 orders', files: [], steps: [], scripts: [],
 };
 
 function status(key: string, tone: WorkbookStatusTone, text: string, extra: Partial<WorkbookStatus> = {}): WorkbookStatus {

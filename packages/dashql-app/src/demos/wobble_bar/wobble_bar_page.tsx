@@ -33,42 +33,43 @@ const SCRIPTS = [{ scriptKey: 2, scriptName: '2_region_growth' }];
 /// The time of the page, the steps started before it
 const NOW = Date.now();
 const STEPS = [
-    { kind: 'tool' as const, label: 'List the scripts', startedAt: NOW - 14_000, endedAt: NOW - 13_800, failed: false },
-    { kind: 'text' as const, label: 'I compare the revenue of the last two quarters per region.', startedAt: NOW - 12_000, endedAt: NOW - 12_000, failed: false },
-    { kind: 'tool' as const, label: 'Write 2_region_growth', startedAt: NOW - 8_000, endedAt: NOW - 7_400, failed: false },
-    { kind: 'tool' as const, label: 'Run 2_region_growth', startedAt: NOW - 6_000, endedAt: null, failed: false },
+    { kind: 'tool' as const, label: 'List the scripts', toolUseId: null, startedAt: NOW - 14_000, endedAt: NOW - 13_800, failed: false },
+    { kind: 'text' as const, label: 'I compare the revenue of the last two quarters per region.', toolUseId: null, startedAt: NOW - 12_000, endedAt: NOW - 12_000, failed: false },
+    { kind: 'tool' as const, label: 'Write 2_region_growth', toolUseId: null, startedAt: NOW - 8_000, endedAt: NOW - 7_400, failed: false },
+    { kind: 'tool' as const, label: 'Run 2_region_growth', toolUseId: null, startedAt: NOW - 6_000, endedAt: null, failed: false },
 ];
 const WORKING: AgentTurn = {
-    questionId: 1,
-    question: { question: 'Which regions grew the most last quarter?', status: 'Run 2_region_growth', interrupted: false, error: null, note: null, steps: STEPS },
+    turnId: 1,
+    question: 'Which regions grew the most last quarter?',
+    status: 'Run 2_region_growth',
+    interrupted: false,
+    error: null,
+    note: null,
+    files: [],
+    steps: STEPS,
     scripts: SCRIPTS,
 };
 const FAILED: AgentTurn = {
     ...WORKING,
-    question: { ...WORKING.question, status: null, error: 'The harness exited with code 1: Invalid API key, run /login', steps: STEPS.map(step => ({ ...step, endedAt: step.endedAt ?? NOW })) },
+    status: null,
+    error: 'The harness exited with code 1: Invalid API key, run /login',
+    steps: STEPS.map(step => ({ ...step, endedAt: step.endedAt ?? NOW })),
 };
 const ANSWERED: AgentTurn = {
-    questionId: 1,
-    question: {
-        question: 'Which regions grew the most last quarter?',
-        status: null,
-        interrupted: false,
-        error: null,
-        note: 'EMEA grew the most, 18% over the previous quarter. The script 2_region_growth compares the quarters.',
-        steps: STEPS.map(step => ({ ...step, endedAt: step.endedAt ?? NOW })),
-    },
-    scripts: SCRIPTS,
+    ...WORKING,
+    status: null,
+    note: 'EMEA grew the most, 18% over the previous quarter. The script 2_region_growth compares the quarters.',
+    steps: STEPS.map(step => ({ ...step, endedAt: step.endedAt ?? NOW })),
 };
 const LONG_STATUS: AgentTurn = {
-    questionId: 1,
-    question: {
-        question: 'Compare the revenue of every region and product over the last eight quarters',
-        status: 'Write 4_revenue_by_region_and_product_over_the_last_eight_quarters',
-        interrupted: false,
-        error: null,
-        note: null,
-        steps: [{ kind: 'tool' as const, label: 'Write 4_revenue_by_region_and_product_over_the_last_eight_quarters', startedAt: NOW - 2_000, endedAt: null, failed: false }],
-    },
+    turnId: 1,
+    question: 'Compare the revenue of every region and product over the last eight quarters',
+    status: 'Write 4_revenue_by_region_and_product_over_the_last_eight_quarters',
+    interrupted: false,
+    error: null,
+    note: null,
+    files: [],
+    steps: [{ kind: 'tool' as const, label: 'Write 4_revenue_by_region_and_product_over_the_last_eight_quarters', toolUseId: null, startedAt: NOW - 2_000, endedAt: null, failed: false }],
     scripts: [],
 };
 

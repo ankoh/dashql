@@ -235,12 +235,12 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
         agentControls?.ask({ workbookId, question, dialect: describeSqlDialect(composerConnectorType), scriptNames });
     }, [agentControls, workbookId, composerConnectorType, scriptNames]);
     // Every new question of the session follows the agent again and shows the conversation that the user hid
-    const latestQuestionId = session != null && session.turns.length > 0 ? session.turns[session.turns.length - 1].questionId : null;
+    const latestTurnId = session != null && session.turns.length > 0 ? session.turns[session.turns.length - 1].turnId : null;
     const [conversationHidden, setConversationHidden] = React.useState(false);
     React.useEffect(() => {
         setConversationHidden(false);
-        if (latestQuestionId != null) feed.followAgent();
-    }, [latestQuestionId, feed]);
+        if (latestTurnId != null) feed.followAgent();
+    }, [latestTurnId, feed]);
     const hideConversation = React.useCallback(() => setConversationHidden(true), []);
     // The agent tells what it works on, its questions go to the log
     const agentLive = React.useMemo(() => agentLiveStatuses(session, Date.now()), [session]);

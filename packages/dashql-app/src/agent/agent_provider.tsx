@@ -1,6 +1,5 @@
 import * as React from 'react';
 
-import { agentSessionFile, createAgentSessionState, parseAgentSessionFile, reduceAgentSessionEvent, type AgentSessionEvent, type AgentSessionState } from '@akohn/dashql/platform/session/agent_session_state';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
@@ -9,7 +8,8 @@ import { Store } from '../utils/store.js';
 import { useLogger } from '../host/logger_provider.js';
 import { useAppFlavor } from '../config/flavor_provider.js';
 import { useWorkbookResults } from '../storage/workbook_results_provider.js';
-import { agentDocumentTitle, agentSessionOf, isAgentWorking, type AgentSession, type AgentSessionArgs } from './agent_session.js';
+import { agentSessionOf, isAgentWorking, type AgentSession, type AgentSessionArgs } from './agent_session.js';
+import { createAgentSessionState, parseAgentSessionFile, reduceAgentSessionEvent, type AgentSessionEvent, type AgentSessionState } from './agent_session_state.js';
 import { defaultAgentConnectionIds, isAgentConnectionAllowed, type AgentConnectionChoices } from './agent_connections.js';
 import { describeAgentCall, EXIT_FAILED, EXIT_OK, runAgentCommand, type AgentCommandHost, type AgentFollowTarget } from './agent_commands.js';
 import { buildAgentPrompt } from './agent_prompt.js';
@@ -178,7 +178,7 @@ export const AgentProvider: React.FC<React.PropsWithChildren<{ bridge?: DashQLAg
             const state = conversations.current.get(workbookId);
             if (state == null || state === kept.current.get(workbookId) || state.turns.length === 0) return;
             kept.current.set(workbookId, state);
-            bridge.writeConversation(workbookId, agentSessionFile(state))
+            bridge.writeConversation(workbookId, state)
                 .catch(error => logger.warn('Cannot keep the conversation of the agent', { workbookId, error: stringifyError(error) }, LOG_CTX));
         };
         const off = conversations.subscribe(() => {
@@ -324,7 +324,7 @@ export const AgentProvider: React.FC<React.PropsWithChildren<{ bridge?: DashQLAg
         const { workbookId, question } = request;
         const harness = prompt.harness;
         // One question at a time: the page opens the turn itself, a second Ask before the harness started is no question
-        if (bridge == null || conversations.current.get(workbookId)?.turns.at(-1)?.status != null) return;
+        if (bridge == null || isAgentWorking(conversations.current.get(workbookId))) return;
         harnessOf.current.set(workbookId, harness);
         reduce(workbookId, { event: 'UserPromptSubmit', prompt: question });
         const agentPrompt = buildAgentPrompt({
@@ -420,8 +420,7 @@ function useConversations(): Conversations {
 const AgentDocumentTitle: React.FC = () => {
     const conversations = useConversations();
     const title = useAppFlavor().displayName;
-    const working = [...conversations.values()].some(state => isAgentWorking({ turns: state.turns.map(turn => ({ question: turn })) }));
-    const marked = working ? agentDocumentTitle(title, { kind: 'thinking' }) : title;
+    const marked = [...conversations.values()].some(isAgentWorking) ? `● ${title}` : title;
     React.useEffect(() => {
         if (marked === title) return;
         document.title = marked;
@@ -438,8 +437,7 @@ export function useAgentControls(): AgentControls | null {
 /// Does the agent work on a workbook? The editors of its scripts are read-only while it does.
 export function useAgentHasControl(workbookId: string | null): boolean {
     const conversations = useConversations();
-    const state = workbookId == null ? null : conversations.get(workbookId);
-    return state != null && state.turns.some(turn => turn.status != null);
+    return workbookId != null && isAgentWorking(conversations.get(workbookId));
 }
 
 /// The conversation of the agent on a workbook for its prompt, null before the first question. The commands of the

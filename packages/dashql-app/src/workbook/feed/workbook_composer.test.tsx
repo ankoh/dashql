@@ -435,7 +435,7 @@ describe('Workbook composer', () => {
             const onStop = vi.fn();
             const session: Session = {
                 workbookId: 'w1', harness: 'claude', onReset: vi.fn(), onShowScript: vi.fn(), onStop,
-                turns: [{ questionId: 1, question: { question: 'q', status: 'working', interrupted: false, error: null, note: null, steps: [] }, scripts: [] }],
+                turns: [{ turnId: 1, question: 'q', status: 'working', interrupted: false, error: null, note: null, files: [], steps: [], scripts: [] }],
             };
             const editor = await renderAgent(ComposerMode.Ai, true, session);
             act(() => type(editor, 'next question'));
