@@ -22,7 +22,7 @@ import {
 } from '@akohn/dashql/platform/hyperdb/hyperdb_opfs_instance';
 import { PARQUET_EXPORT_DIRECTORY } from '@akohn/dashql/platform/hyperdb/hyperdb_parquet_export';
 import { RESULTS_FOLDER } from '@akohn/dashql/platform/workbook/workbook_result_files';
-import { OPFS_TESTS_FOLDER } from '@akohn/dashql/platform/opfs_root';
+import { OPFS_TESTS_FOLDER, readFileText } from '@akohn/dashql/platform/opfs_root';
 
 /// An OPFS entry that the current app version doesn't use
 export interface OPFSCleanupCandidate {
@@ -248,7 +248,7 @@ type ManifestJson = Record<string, unknown>;
 async function readManifestJson(root: FileSystemDirectoryHandle): Promise<ManifestJson | null> {
     let text: string;
     try {
-        text = await (await (await root.getFileHandle(STORAGE_MANIFEST_FILE, { create: false })).getFile()).text();
+        text = await readFileText(await root.getFileHandle(STORAGE_MANIFEST_FILE, { create: false }));
     } catch (error) {
         if ((error as DOMException).name === 'NotFoundError') return null;
         throw error;
