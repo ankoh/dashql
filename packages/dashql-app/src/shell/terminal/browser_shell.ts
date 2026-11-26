@@ -197,6 +197,17 @@ export async function loadWebglRenderer(terminal: Terminal): Promise<boolean> {
     }
 }
 
+/// Release the WebGL context of a terminal's renderer. The addon of xterm leaves it to the garbage collector, and WebKit
+/// keeps few contexts at once: it drops the oldest, which are then those of disposed terminals and not of the ones that
+/// are still shown. While the addon renders, its canvas is the only one in the terminal, `getContext` returns the context
+/// it has.
+export function releaseWebglRenderer(terminal: Terminal): void {
+    for (const canvas of terminal.element?.querySelectorAll('canvas') ?? []) {
+        const gl = canvas.getContext('webgl2');
+        if (gl != null && !gl.isContextLost()) gl.getExtension('WEBGL_lose_context')?.loseContext();
+    }
+}
+
 /// The color of the shell prompt as 0xRRGGBB, from the `--shell_prompt_color` theme token of an element.
 /// Null if the theme leaves it unset, the prompt is then bold in the default foreground color.
 export function resolveShellPromptColor(element: HTMLElement): number | null {
@@ -247,7 +258,7 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
     const fitAddon: FitAddon = new FitAddon();
     terminal.loadAddon(fitAddon);
     terminal.open(options.container);
-    await loadWebglRenderer(terminal);
+    const webgl = await loadWebglRenderer(terminal);
     const helper = options.container.querySelector<HTMLTextAreaElement>('.xterm-helper-textarea');
     helper?.setAttribute('aria-label', options.inputAriaLabel ?? 'DashQL shell input');
 
@@ -421,6 +432,7 @@ export async function embedDashQLShell(options: BrowserShellOptions): Promise<Br
             completionOverlay.destroy();
             dataSubscription.dispose();
             resizeObserver.disconnect();
+            if (webgl) releaseWebglRenderer(terminal);
             terminal.dispose();
         },
     };
