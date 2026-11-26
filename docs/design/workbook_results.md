@@ -230,7 +230,8 @@ workbook, and starts once that run ended or the connection changed.
 A script whose result was read stays as it is when the workbook is shown again. The view of a script carries its stored
 result (`storedResult`: the name of the file, its key, when it was written, whether the key is the key of the script
 as it is now), which the runtime looks up (`runs/stored_results.rs` of the bindings) from the listing of the folder. A
-workbook is looked up once its changes paused: a change of the workbook (a move of the cursor is none), of a
+workbook is looked up once its changes paused: a change of what the workbook derives, the keys come from its plan (a
+move of the cursor, a registered query or the stored results that a lookup showed are none), of a
 connection of its scripts, a result that a query of it recorded and the end of a run. A lookup plans the keys and lists
 the folder once, a workbook whose analyses are outdated waits for them. A script that can't be planned, e.g. one with
 an unknown reference or an input without a value, leaves the keys of the other scripts alone. The lookup derives the

@@ -80,6 +80,16 @@ enum Changed {
     Workbook,
 }
 
+impl Changed {
+    /// Does the change move what the workbook derives? The keys of the stored results come from the plan too.
+    fn derives(self) -> bool {
+        match self {
+            Changed::Editor { derives } | Changed::Scripts { derives } => derives,
+            Changed::Workbook => true,
+        }
+    }
+}
+
 /// What an action did to a workbook
 pub(crate) struct Applied {
     /// Did the action change the workbook?
@@ -413,8 +423,9 @@ impl Workbooks {
         self.mark_published(workbook_id, workbook);
         if moved {
             self.platform.signal(true);
-            // A move of the cursor changes nothing that a stored result depends on
-            if changed != (Changed::Editor { derives: false }) {
+            // The stored results follow what the workbook derives, their keys come from its plan. The files that a query
+            // or a run wrote look the workbook up on their own.
+            if changed.derives() {
                 let listener = self.changed_listener.borrow().clone();
                 if let Some(listener) = listener {
                     listener(workbook_id);

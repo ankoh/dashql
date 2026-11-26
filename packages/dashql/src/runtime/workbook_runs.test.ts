@@ -810,6 +810,12 @@ describe('the runs of scripts of the runtime', () => {
         await f.rt.clock.elapse();
         await vi.waitFor(() => expect(f.cache!.files.mock.calls.length).toBeGreaterThan(0));
         expect(f.cache!.files.mock.calls.map(([workbookId]) => workbookId)).not.toContain(other.workbookId);
+        // The stored results that the lookup showed change nothing that its keys come from
+        await vi.waitFor(() => expect(f.script('foo.sql').storedResult).toMatchObject({ current: false }));
+        f.cache!.files.mockClear();
+        await f.rt.clock.elapse();
+        await f.rt.clock.elapse();
+        expect(f.cache!.files).not.toHaveBeenCalled();
     });
 
     it('runs create, insert and select across scripts in the order of their dependencies', async () => {

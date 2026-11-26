@@ -3,7 +3,8 @@
 //! the script as it is now; and a workbook that is shown for the first time runs on the embedded Hyper, the scripts of
 //! the other connections show their stored results.
 //!
-//! A workbook is looked up again when it changed (not a move of the cursor), when a connection of its scripts changed,
+//! A workbook is looked up again when what it derives changed (the keys come from its plan; not a move of the cursor,
+//! a registered query or the stored results that a lookup showed), when a connection of its scripts changed,
 //! when a query of it recorded its result and when a run of it ended. The lookups wait until the changes pause like the
 //! analyses of the scripts that the editors show (`background_analysis_delay_ms` of the settings), typing looks the
 //! workbook up once. A lookup lists the results folder of the workbook once, plans the keys of the scripts over the
