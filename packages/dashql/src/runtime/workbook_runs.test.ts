@@ -16,6 +16,7 @@ import { createQueryResponseStreamMetrics, QueryExecutionStatus, QueryType, type
 import { tableFromArrays } from '../platform/testing/arrow_fixtures.js';
 import { memoryWorkbookResultFiles } from '../platform/testing/memory_workbook_result_files.js';
 import { openTestHyperDB } from '../platform/testing/test_hyperdb.js';
+import { TaskStatus } from '../platform/compute/computation_types.js';
 import { TASK_UPDATE_SCHEDULER } from './store/update_scheduler.js';
 import { createTestRuntime, restoreTestWorkbook, type TestRuntime } from './testing/test_runtime.js';
 import type { ScriptRunEvent } from '../platform/workbook/workbook_execution.js';
@@ -686,11 +687,15 @@ describe('the runs of scripts of the runtime', () => {
         const f = await scripts(files.map((name, i): [string, string] => [`${name}.sql`, `select ${i} as ${name};`]), { cache: true });
         expect((await f.core.runWorkbook(f.workbookId, {})).outcome.failure).toBeNull();
         await f.core.module.flushResultWrites();
-        // The analyses of the results follow the run in the compute database, each one flushes at once when it's done.
-        // They would count as flushes of the next run, e.g. in Firefox, where they take longer.
+        // The analyses of the results follow the run in the compute database: the import, the table aggregation, the
+        // system columns and then the column aggregations one after another, the end of each step flushes at once. They
+        // would count as flushes of the next run, e.g. in the browser, where they take longer. An analysis schedules its
+        // next step when the last one ended, so it's done once its system columns are there and no task runs.
         await vi.waitFor(() => {
             for (const name of files) {
-                expect(computationOf(f, f.script(`${name}.sql`).latestQueryId!)?.rowNumberColumnName ?? null).not.toBeNull();
+                const tasks = computationOf(f, f.script(`${name}.sql`).latestQueryId!)?.tasks;
+                expect(tasks?.systemColumnTask?.progress.status).toBe(TaskStatus.TASK_SUCCEEDED);
+                expect(tasks?.columnAggregationTasks.some(task => task?.progress.status === TaskStatus.TASK_RUNNING)).toBe(false);
             }
         }, { timeout: 30_000 });
         await f.rt.clock.elapse();
