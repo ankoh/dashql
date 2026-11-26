@@ -84,31 +84,6 @@ function shellWord(text: string): string {
     return `'${text.replaceAll("'", "'\\''")}'`;
 }
 
-/// What an agent is told in the folder of a workbook, before the guide of `dashql`
-function instructions(harness: AgentHarness, guide: string): string {
-    const input = harness === "claude"
-        ? `Write the new text of a script with the Write tool to \`${INPUT_FOLDER}/<script>.sql\` and pass it with \`--file\`, e.g.
-\`dashql edit orders --file ${INPUT_FOLDER}/orders.sql\`. You may write only into \`${INPUT_FOLDER}/\`, it is emptied for every
-question. Take the current text of a script from \`dashql read\`.`
-        : `Pass the new text of a script to \`dashql edit\` on stdin with a quoted heredoc, as a command of its own with
-nothing after \`<<'EOF'\` on its line:
-
-\`\`\`sh
-dashql edit orders <<'EOF'
-select count(*) from orders
-EOF
-\`\`\``;
-    return `# DashQL workbook
-
-You work on a workbook that is open in DashQL, the user asked the question in DashQL and watches the scripts change
-and run. Work only through the \`dashql\` commands, this folder holds no project files.
-
-${input}
-
-${guide.trim()}
-`;
-}
-
 /// opencode may only run `dashql`, the last matching rule wins
 const OPENCODE_CONFIG = `{
     "$schema": "https://opencode.ai/config.json",
@@ -224,7 +199,7 @@ export class AgentHost {
             turn.run = spawnHarness({
                 harness,
                 program,
-                args: harnessArgs(harness, {prompt, session, guide: instructions(harness, guide)}),
+                args: harnessArgs(harness, {prompt, session, guide}),
                 cwd: folder,
                 env,
                 killGraceMs: this.#options.killGraceMs,
@@ -286,7 +261,8 @@ export class AgentHost {
         const command = path.join(folder, "bin", "dashql");
         await writeFile(command, `#!/bin/sh\nexec ${shellWord(this.#options.dashqlBinary)} --session ${shellWord(sessionFile)} "$@"\n`, {mode: 0o755});
         await chmod(command, 0o755);
-        await writeFile(path.join(folder, "AGENTS.md"), instructions("codex", guide));
+        // The guide of dashql holds the instructions
+        await writeFile(path.join(folder, "AGENTS.md"), guide);
         // Claude Code has the guide in its system prompt
         await writeFile(path.join(folder, "CLAUDE.md"), "The guide of DashQL is in your system prompt. Work only through the `dashql` commands.\n");
         await writeFile(path.join(folder, "opencode.json"), OPENCODE_CONFIG);

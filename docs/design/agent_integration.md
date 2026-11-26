@@ -108,8 +108,8 @@ session.json        the address and the token of the server of the main process,
 state.json          the session of every harness on the workbook, a follow-up question resumes it
 conversation.json   the conversation as the page shows it (`AgentSessionState`), the page reads it after a reload
 bin/dashql          the dashql of the agent: the bundled binary with --session <folder>/session.json
-AGENTS.md           the instructions and the guide, for Codex and opencode
-CLAUDE.md           one line, Claude Code gets the instructions in its system prompt
+AGENTS.md           the guide, for Codex and opencode
+CLAUDE.md           one line, Claude Code gets the guide in its system prompt
 opencode.json       the permissions of opencode: dashql only, no edits and no fetches, it passes texts on stdin
 input/              emptied for every turn: Claude Code writes the text of a script here and passes --file
 results/            the stored results that `dashql run` names
@@ -177,9 +177,10 @@ that the next question resumes.
   its right end. Wobble reads along while the agent works and squints happily when it answered; its bubble is the log
   of the workbook, which notes when questions start and end. The title of the window starts with `●` while an agent
   works.
-- **The prompt of the harness** (`buildAgentPrompt`) answers a question for data in the scripts, with a run, and a
-  question for an explanation in text; the agent keeps its texts between the steps short and ends with its answer in
-  Markdown.
+- **The guide** (`dashql guide`) holds the rules of the work: a question for data is answered in the scripts, with a
+  run, and a question for an explanation in text; the agent keeps its texts between the steps short and ends with its
+  answer in Markdown. The prompt of the harness (`buildAgentPrompt`) adds only what the page knows of the question:
+  the dialect of the next script and the scripts that it references.
 
 ## Adding a command
 

@@ -141,17 +141,14 @@ describe("the agent host", () => {
         expect(statSync(path.join(folder, "session.json")).mode & 0o777).toBe(0o600);
         expect(statSync(folder).mode & 0o777).toBe(0o700);
         expect(readFileSync(path.join(folder, "bin", "dashql"), "utf8")).toContain(`--session '${path.join(folder, "session.json")}' "$@"`);
-        expect(readFileSync(path.join(folder, "AGENTS.md"), "utf8")).toContain("THE GUIDE");
-        expect(readFileSync(path.join(folder, "AGENTS.md"), "utf8")).toContain("<<'EOF'");
+        expect(readFileSync(path.join(folder, "AGENTS.md"), "utf8")).toBe("THE GUIDE\n");
         expect(readFileSync(path.join(folder, "CLAUDE.md"), "utf8")).toContain("system prompt");
         expect(JSON.parse(readFileSync(path.join(folder, "opencode.json"), "utf8")).permission.bash).toEqual({"*": "deny", "dashql *": "allow"});
         expect(JSON.parse(readFileSync(path.join(folder, "state.json"), "utf8"))).toEqual({sessions: {claude: "c-1"}});
         const args = readFileSync(path.join(folder, "args.txt"), "utf8");
         expect(args.split("\n")).not.toContain("--resume");
-        // Claude Code has the guide in its system prompt and writes the texts of scripts into the input folder
-        expect(args).toContain("--append-system-prompt\n# DashQL workbook");
-        expect(args).toContain("--file input/orders.sql");
-        expect(args).toContain("THE GUIDE");
+        // Claude Code has the guide in its system prompt
+        expect(args).toContain("--append-system-prompt\nTHE GUIDE");
 
         // A file of an earlier question is gone, the next question resumes the session of the harness
         writeFileSync(path.join(folder, "input", "old.sql"), "select 0");

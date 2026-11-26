@@ -37,8 +37,9 @@ Commands:
   dashql guide                  This guide.
 
 Pass the text of a script with --file: write it into a file in input/ of your working folder with your file tool, e.g.
-input/revenue.sql, and run dashql edit revenue --file input/revenue.sql. Without a file tool, pass it on stdin with a
-quoted heredoc:
+input/revenue.sql, and run dashql edit revenue --file input/revenue.sql. input/ is emptied for every question, take
+the current text of a script from dashql read. Without a file tool, pass the text on stdin with a quoted heredoc, as a
+command of its own with nothing after <<'SQL' on its line:
   dashql edit revenue <<'SQL'
   select region, sum(amount) as revenue from :orders group by region;
   SQL
@@ -119,13 +120,18 @@ Charts:
 
 How to work:
 1. Learn the workbook: dashql scripts, dashql read for the scripts that matter, and dashql catalog for the tables.
-2. Write SQL into new scripts that build on the existing ones with dashql edit, run them with dashql run and fix the
-   errors. The user watches the runs in DashQL, on the connections that the user lets you use.
+2. Answer a request for data in the scripts: write SQL into new scripts with short snake_case names that build on the
+   existing ones with dashql edit, unless the request is about an existing script, run them with dashql run and fix
+   the errors. The user watches the runs in DashQL, on the connections that the user lets you use.
 3. Chart a result that a chart explains better than a table, and check it with dashql vis. A request for an overview
    or a dashboard gets KPI cards for its key figures first. Move a script with dashql move, e.g. next to the scripts
    of its topic.
-4. The user watches the scripts change and run. Do not recap your steps, the queries or the results: end with one
-   plain sentence that answers the request, or with nothing if the results already answer it.
+4. Answer a request for an explanation, e.g. of a script, a result or an error, in text: read what you need, change
+   scripts only if the request asks for it.
+5. The user watches the scripts change and run and sees what you say between your steps: keep that to a short
+   sentence, do not recap your steps, the queries or the results. End with your answer in Markdown: one sentence when
+   the results already show the data, a few short paragraphs or a list for an explanation. No headings, no tables of
+   results.
 
 A new script whose name another script or an attachment has (in any case) gets a suffix in DashQL, e.g. orders-2:
 dashql edit prints the name, go on with that one. Don't delete or rename the scripts of the workbook, the user keeps

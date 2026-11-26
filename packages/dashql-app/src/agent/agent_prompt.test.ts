@@ -4,20 +4,13 @@ import { buildAgentPrompt, describeSqlDialect } from './agent_prompt.js';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 
 describe('the prompt of a question for the agent', () => {
-    it('names the dialect and the dashql commands', () => {
+    it('names the dialect and the question, the guide holds the rules', () => {
         const prompt = buildAgentPrompt({
             question: 'top customers\0',
             dialect: describeSqlDialect(ConnectorType.TRINO),
             referencedScripts: [],
         });
-        expect(prompt).toContain('speaks Trino');
-        expect(prompt).toContain('`dashql scripts`');
-        expect(prompt).toContain('`dashql edit <script>`, into a new script');
-        expect(prompt).toContain('do not recap your steps');
-        expect(prompt).toContain('asks for an explanation');
-        expect(prompt).toContain('your answer in Markdown');
-        expect(prompt.endsWith('\n\nQuestion:\ntop customers')).toBe(true);
-        expect(prompt).not.toContain('targets these scripts');
+        expect(prompt).toBe('New scripts run on a connection that speaks Trino unless you name another.\n\nQuestion:\ntop customers');
     });
 
     it('names the scripts that the question targets', () => {

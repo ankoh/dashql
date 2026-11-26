@@ -24,28 +24,16 @@ export interface AgentPromptInput {
     referencedScripts: string[];
 }
 
-/// Build the prompt of a question for the agent. The guide of `dashql guide` is in the instructions of the harness, the
-/// prompt only adds the question and how to answer it.
+/// Build the prompt of a question for the agent: the question with what only the page knows of it. The guide of
+/// `dashql guide`, in the instructions of the harness, holds the rules of the work.
 export function buildAgentPrompt(input: AgentPromptInput): string {
-    const lines = [
-        'Answer the question below on the DashQL workbook, through the `dashql` commands only.',
-        `New scripts run on a connection that speaks ${input.dialect} unless you name another.`,
-        'Start with `dashql scripts`, look up tables with `dashql catalog`.',
-        'When the question asks for data, answer it in the scripts: write a query with `dashql edit <script>`, into a new'
-            + ' script with a short snake_case name unless the question is about an existing script, then run it with'
-            + ' `dashql run <script>`.',
-        'When the question asks for an explanation, e.g. of a script, a result or an error, read what you need and answer'
-            + ' in text, change scripts only if the question asks for it.',
-        'The user watches the scripts change and run and sees what you say between your steps: keep that to a short'
-            + ' sentence, do not recap your steps, the queries or the results.',
-        'End with your answer in Markdown: one sentence when the results already show the data, a few short paragraphs or'
-            + ' a list for an explanation. No headings, no tables of results.',
-    ];
-    if (input.referencedScripts.length > 0) {
-        lines.push(`The question targets these scripts, referenced as ${renderScriptReference('<script>')}: ${input.referencedScripts.join(', ')}.`
-            + ' Work on them instead of writing a new script.');
-    }
+    const scripts = input.referencedScripts;
+    const targets = scripts.length === 0
+        ? ''
+        : ` The question targets these scripts, referenced as ${renderScriptReference('<script>')}: ${scripts.join(', ')}. Work on them instead of writing a new script.`;
     // Harnesses reject NUL characters
-    lines.push('', 'Question:', input.question.replace(/\0/g, ''));
-    return lines.join('\n');
+    return `New scripts run on a connection that speaks ${input.dialect} unless you name another.${targets}
+
+Question:
+${input.question.replace(/\0/g, '')}`;
 }
