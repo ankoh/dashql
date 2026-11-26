@@ -205,9 +205,9 @@ struct Run<H: RunHost> {
     shown: RefCell<Option<ExecutionGraphT>>,
     /// The scripts that ran to their end or failed, also in a read of their stored results. A stopped script is none.
     finished: RefCell<BTreeSet<u32>>,
-    /// The failures of the scripts, in the order they failed: the run goes on with the scripts that don't follow them
-    /// and fails with the first once it ended
-    failures: RefCell<Vec<RunFailure>>,
+    /// The first failure of a script: the run goes on with the scripts that don't follow the failed ones and fails with
+    /// it once it ended
+    failure: RefCell<Option<RunFailure>>,
 }
 
 /// A run that started. Dropping the handle doesn't stop the run.
@@ -271,7 +271,7 @@ pub fn start_run<H: RunHost>(
         schedule: RefCell::new(None),
         shown: RefCell::new(None),
         finished: RefCell::new(BTreeSet::new()),
-        failures: RefCell::new(Vec::new()),
+        failure: RefCell::new(None),
     });
     let handle = RunHandle { run: run.clone() };
     (handle, async move { run.execute().await })
@@ -419,7 +419,7 @@ impl<H: RunHost> Run<H> {
     fn fail_script(&self, script: u32, failure: RunFailure) {
         let file = self.file(script);
         let message = failure.message.clone();
-        self.failures.borrow_mut().push(failure);
+        self.failure.borrow_mut().get_or_insert(failure);
         self.emit(|state| state.failed.push(ScriptFailure { file, message }));
     }
 
@@ -1487,19 +1487,13 @@ impl<H: RunHost> Run<H> {
             .map(|connection| self.host.max_concurrent_queries(connection).max(1))
             .collect();
 
-        let scheduled = self.schedule_nodes(&context, &max_concurrent).await;
-        let failure = match scheduled {
-            Err(failure) => {
-                // E.g. the workbook changed, the statements that run already are cancelled
-                self.with_schedule(|schedule| {
-                    if schedule.failure.is_none() {
-                        schedule.failure = Some(failure);
-                    }
-                });
-                self.with_schedule(|schedule| schedule.failure.clone()).flatten()
-            }
-            Ok(()) => self.with_schedule(|schedule| schedule.failure.clone()).flatten(),
-        };
+        if let Err(failure) = self.schedule_nodes(&context, &max_concurrent).await {
+            // E.g. the workbook changed, the statements that run already are cancelled
+            self.with_schedule(|schedule| {
+                schedule.failure.get_or_insert(failure);
+            });
+        }
+        let failure = self.with_schedule(|schedule| schedule.failure.clone()).flatten();
         if failure.is_some() || self.control.cancelled.get() {
             let running = self.with_schedule(|schedule| schedule.running_total).unwrap_or(0);
             if running > 0 {
@@ -1542,8 +1536,8 @@ impl<H: RunHost> Run<H> {
             self.apply(WorkbookAction::SetExecutionVisualization { key, visualization })?;
         }
         // The scripts that failed fail the run once the others ran
-        if let Some(failure) = self.failures.borrow().first() {
-            return Err(failure.clone());
+        if let Some(failure) = self.failure.take() {
+            return Err(failure);
         }
         Ok(outputs)
     }
@@ -1857,7 +1851,7 @@ impl<H: RunHost> Run<H> {
             }
             Err(failure) => {
                 // The failures of statements that the run cancelled are no failures of their scripts
-                let first = self.with_schedule(|schedule| schedule.failure.is_none()).unwrap_or(false)
+                let running = self.with_schedule(|schedule| schedule.failure.is_none()).unwrap_or(false)
                     && !self.control.cancelled.get();
                 let mut details =
                     vec![detail("workbookId", self.workbook_id.clone()), detail("query", query_id.to_string())];
@@ -1871,7 +1865,7 @@ impl<H: RunHost> Run<H> {
                     details.extend(statement.log_fields());
                 }
                 details.push(detail("error", failure.message.clone()));
-                if first {
+                if running {
                     // The script fails, the statements that follow it don't run, the others run on
                     self.log(LogLevel::Warn, "A planned statement failed", details);
                     self.block_followers(context, index, script, &failure.message);
