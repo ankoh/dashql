@@ -112,6 +112,7 @@ rust_test(
     }),
     use_libtest_harness = False,
     deps = [
+        ":dashql_core_runtime",
         "//tests/snapshots:dashql_snapshots",
         "//tests/hyper:hyper_ffi_rs",
         "//proto/fb:dashql_buffers_rs",

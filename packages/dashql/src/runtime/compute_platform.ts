@@ -3,7 +3,8 @@ import type * as core from '../core/index.js';
 import * as perfMarks from '../core/perf_marks.js';
 
 import type { EmbeddedClientContext, EmbeddedComputeDatabase, EmbeddedConnection } from '../platform/embedded_database.js';
-import { appendRowNumbers, isArrowTable } from './store/runtime_tables.js';
+import { appendRowNumbers } from '../platform/utils/arrow_vectors.js';
+import { isArrowTable } from './store/runtime_tables.js';
 
 /// The client context of the opaque JSON of the runtime
 export function clientContextOf(json: string | null | undefined): EmbeddedClientContext | null {

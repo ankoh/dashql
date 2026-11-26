@@ -90,7 +90,7 @@ one command table and knows nothing of the workbook, the page does everything el
 | `catalog [connection]` | The tables of the connections that the agent may use, `CREATE TABLE` statements of `catalogRelationsFile`, and the attachments for the embedded Hyper |
 | `lint <script>` | The diagnostics of the analysis of the script |
 | `format <script>` | Formats the script in the dialect of its connection |
-| `run [<script>...] [--rows N] [--refresh]` | Runs the workbook with `runWorkbookReported`, the feed shows the run; prints every script with the first rows of its result and the Parquet file of the stored result (`results/` of the folder) |
+| `run [<script>...] [--rows N] [--refresh]` | Runs the workbook with `runWorkbookReported`, the feed shows the run; prints every script with the first rows of its result and the Parquet file of the stored result (`results/` of the folder), its rows in the order of `__dashql_row` (`workbook_results.md`) |
 | `vis <script> [--width N] [--height N] [--refresh]` | Checks the `@vis` tag of the script against its result, renders a Vega-Lite chart as PNG into `charts/` of the folder, prints what a KPI card shows |
 | `guide` | Answered by `dashql` itself: the guide of the agent (`src/guide.rs`) |
 

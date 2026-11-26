@@ -67,7 +67,7 @@ planner-snapshots:
           statement-id: 0
           type: SELECT
           sql: |-
-            with foo as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet'))
+            with foo as (select * exclude (__dashql_row) from (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet') natural left join (select null::bigint as __dashql_row where false) as "__dashql_no_rows") as "__dashql_rows")
             select count(*) from foo
           produces-output: true
           barrier: false
@@ -197,7 +197,7 @@ planner-snapshots:
           statement-id: 0
           type: SELECT
           sql: |-
-            with foo as (select * from external('/mnt/external/dashql-run-test/s1.parquet', format => 'parquet'))
+            with foo as (select * exclude (__dashql_row) from (select * from external('/mnt/external/dashql-run-test/s1.parquet', format => 'parquet') natural left join (select null::bigint as __dashql_row where false) as "__dashql_no_rows") as "__dashql_rows")
             select * from foo
           produces-output: true
           barrier: false
@@ -315,7 +315,7 @@ planner-snapshots:
           statement-id: 0
           type: SELECT
           sql: |-
-            with foo as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet'))
+            with foo as (select * exclude (__dashql_row) from (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet') natural left join (select null::bigint as __dashql_row where false) as "__dashql_no_rows") as "__dashql_rows")
             select count(*) from foo
           produces-output: true
           barrier: false
@@ -328,7 +328,7 @@ planner-snapshots:
           statement-id: 0
           type: SELECT
           sql: |-
-            with foo as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet'))
+            with foo as (select * exclude (__dashql_row) from (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet') natural left join (select null::bigint as __dashql_row where false) as "__dashql_no_rows") as "__dashql_rows")
             select sum(amount) from foo
           produces-output: true
           barrier: false
@@ -452,7 +452,7 @@ planner-snapshots:
           statement-id: 0
           type: SELECT
           sql: |-
-            with baz as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet'))
+            with baz as (select * exclude (__dashql_row) from (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet') natural left join (select null::bigint as __dashql_row where false) as "__dashql_no_rows") as "__dashql_rows")
             select * from baz where amount > 1
           produces-output: true
           barrier: false
@@ -465,7 +465,7 @@ planner-snapshots:
           statement-id: 0
           type: SELECT
           sql: |-
-            with baz as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet')),
+            with baz as (select * exclude (__dashql_row) from (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet') natural left join (select null::bigint as __dashql_row where false) as "__dashql_no_rows") as "__dashql_rows"),
             foo as (
             select * from baz where amount > 1
             )
@@ -609,7 +609,7 @@ planner-snapshots:
           statement-id: 0
           type: SELECT
           sql: |-
-            with foo as (select * from external('/mnt/external/dashql-run-test/s1.parquet', format => 'parquet'))
+            with foo as (select * exclude (__dashql_row) from (select * from external('/mnt/external/dashql-run-test/s1.parquet', format => 'parquet') natural left join (select null::bigint as __dashql_row where false) as "__dashql_no_rows") as "__dashql_rows")
             select count(*) from foo
           produces-output: true
           barrier: false
@@ -719,7 +719,7 @@ planner-snapshots:
           statement-id: 0
           type: CREATE_TABLE_AS
           sql: |-
-            create table snapshot as with foo as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet'))
+            create table snapshot as with foo as (select * exclude (__dashql_row) from (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet') natural left join (select null::bigint as __dashql_row where false) as "__dashql_no_rows") as "__dashql_rows")
             select * from foo
           produces-output: false
           barrier: false
@@ -1049,7 +1049,7 @@ planner-snapshots:
           statement-id: 0
           type: SELECT
           sql: |-
-            with foo as (select * from external('/mnt/external/dashql-run-test/s1.parquet', format => 'parquet'))
+            with foo as (select * exclude (__dashql_row) from (select * from external('/mnt/external/dashql-run-test/s1.parquet', format => 'parquet') natural left join (select null::bigint as __dashql_row where false) as "__dashql_no_rows") as "__dashql_rows")
             select * from foo
           produces-output: true
           barrier: false
@@ -1205,8 +1205,8 @@ planner-snapshots:
           statement-id: 0
           type: SELECT
           sql: |-
-            with from_a as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet')),
-            from_b as (select * from external('/mnt/external/dashql-run-test/s1.parquet', format => 'parquet'))
+            with from_a as (select * exclude (__dashql_row) from (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet') natural left join (select null::bigint as __dashql_row where false) as "__dashql_no_rows") as "__dashql_rows"),
+            from_b as (select * exclude (__dashql_row) from (select * from external('/mnt/external/dashql-run-test/s1.parquet', format => 'parquet') natural left join (select null::bigint as __dashql_row where false) as "__dashql_no_rows") as "__dashql_rows")
             select * from from_a a join from_b b using (x)
           produces-output: true
           barrier: false
@@ -1219,8 +1219,8 @@ planner-snapshots:
           statement-id: 0
           type: SELECT
           sql: |-
-            with from_a as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet')),
-            from_b as (select * from external('/mnt/external/dashql-run-test/s1.parquet', format => 'parquet')),
+            with from_a as (select * exclude (__dashql_row) from (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet') natural left join (select null::bigint as __dashql_row where false) as "__dashql_no_rows") as "__dashql_rows"),
+            from_b as (select * exclude (__dashql_row) from (select * from external('/mnt/external/dashql-run-test/s1.parquet', format => 'parquet') natural left join (select null::bigint as __dashql_row where false) as "__dashql_no_rows") as "__dashql_rows"),
             joined as (
             select * from from_a a join from_b b using (x)
             )
@@ -1378,7 +1378,7 @@ planner-snapshots:
           statement-id: 0
           type: SELECT
           sql: |-
-            with foo as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet'))
+            with foo as (select * exclude (__dashql_row) from (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet') natural left join (select null::bigint as __dashql_row where false) as "__dashql_no_rows") as "__dashql_rows")
             select id from foo where amount < 10
           produces-output: true
           barrier: false
@@ -1391,7 +1391,7 @@ planner-snapshots:
           statement-id: 0
           type: SELECT
           sql: |-
-            with foo as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet'))
+            with foo as (select * exclude (__dashql_row) from (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet') natural left join (select null::bigint as __dashql_row where false) as "__dashql_no_rows") as "__dashql_rows")
             select id from foo where amount >= 10
           produces-output: true
           barrier: false
@@ -1404,7 +1404,7 @@ planner-snapshots:
           statement-id: 0
           type: SELECT
           sql: |-
-            with foo as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet')),
+            with foo as (select * exclude (__dashql_row) from (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet') natural left join (select null::bigint as __dashql_row where false) as "__dashql_no_rows") as "__dashql_rows"),
             small as (
             select id from foo where amount < 10
             ),

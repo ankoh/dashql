@@ -4,7 +4,9 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from '
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
+import { copyArrowTableAsParquet } from '../hyperdb/hyperdb_parquet_export.js';
 import { setOPFSRootProvider } from '../opfs_root.js';
+import { RESULT_ROW_COLUMN, resultsMountPath } from '../workbook/workbook_result_files.js';
 import { openNodeComputeDatabase } from './node_hyperdb.js';
 
 /// The instance folders of a root, without the files of their locks
@@ -44,6 +46,45 @@ describe('the embedded Hyper of Node', { timeout: 30_000 }, () => {
         // The results stay with the workbook, the instance goes
         expect(readdirSync(path.join(root, 'instances'))).toEqual([]);
         expect(existsSync(folder)).toBe(true);
+    });
+
+    it('reads the rows of a result in the order they were written, also those of a file of an earlier version', { timeout: 120_000 }, async () => {
+        const root = tempRoot();
+        const hyper = await openNodeComputeDatabase(root);
+        const workbookId = '00000000-0000-4000-8000-000000000002';
+        try {
+            // Hyper scans a table or a file of millions of rows in parallel, in no particular order; at 10 000 rows a
+            // scan still comes in order. Without the ORDER BY of the read this table comes back out of order from the
+            // first row on.
+            const rows = 3_000_000;
+            const descending = Int32Array.from({ length: rows }, (_, i) => rows - i);
+            const table = arrow.tableFromArrays({ value: descending });
+            const name = `a.${'a'.repeat(64)}.00000001.parquet`;
+            expect(await hyper.results.writeTable(hyper.database, workbookId, table, name)).toBe(rows);
+            // The file has the order of its rows in a column, a read leaves it out
+            const connection = await hyper.database.connect();
+            try {
+                const file = await connection.query(`SELECT * FROM external('${resultsMountPath(workbookId)}/${name}', format => 'parquet') LIMIT 0`);
+                expect(file.schema.fields.map(field => field.name)).toEqual(['value', RESULT_ROW_COLUMN]);
+            } finally {
+                await connection.close();
+            }
+            const read = await hyper.results.readTable(hyper.database, workbookId, name);
+            expect(read?.schema.fields.map(field => field.name)).toEqual(['value']);
+            const values = read!.getChild('value')!.toArray() as Int32Array;
+            expect(values.length).toBe(rows);
+            expect(values.findIndex((value, i) => value !== rows - i)).toBe(-1);
+
+            // A file of an earlier version, written without the column, reads with all its columns in the order Hyper
+            // scans it
+            const old = `b.${'b'.repeat(64)}.00000002.parquet`;
+            await copyArrowTableAsParquet(hyper.database, arrow.tableFromArrays({ id: Int32Array.from([1, 2, 3]) }), `${resultsMountPath(workbookId)}/${old}`);
+            const oldRead = await hyper.results.readTable(hyper.database, workbookId, old);
+            expect(oldRead?.schema.fields.map(field => field.name)).toEqual(['id']);
+            expect([...(oldRead!.getChild('id')!.toArray() as Int32Array)].sort()).toEqual([1, 2, 3]);
+        } finally {
+            await hyper.close();
+        }
     });
 
     it('removes the instance folders of processes that are gone and keeps those of living ones', async () => {

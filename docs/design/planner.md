@@ -140,7 +140,7 @@ share). The connections decide what it becomes:
 | Statement | Referenced | Reference |
 |---|---|---|
 | same connection | script | inline: `with foo as (<query of foo>)` |
-| LOCAL connection | script of another connection | scan: the node of `foo` writes its result to `<mount_prefix>/<file>`, MATERIALIZATION edge, `with foo as (select * from external('<path>', format => 'parquet'))` |
+| LOCAL connection | script of another connection | scan: the node of `foo` writes its result to `<mount_prefix>/<file>`, MATERIALIZATION edge, `with foo as (<scan of '<path>' without __dashql_row>)`, see `script_references.md` |
 | REMOTE connection | script of another connection | error |
 | LOCAL connection | attachment | attachment: `with foo as (select * from external('<attachment_prefix>/<file>', format => 'parquet'))` |
 | REMOTE connection | attachment | error |

@@ -93,21 +93,3 @@ export function createRuntimeTables(handles: HandleTable): PlatformTables {
 export function isArrowTable(table: unknown): table is arrow.Table {
     return table != null && typeof table === 'object' && Array.isArray((table as arrow.Table).batches) && (table as arrow.Table).schema != null;
 }
-
-/// A table with its rows numbered from 1 in an appended column of 64-bit integers that can't be null, e.g. a result
-/// that the compute database imports. The batches keep their columns, the row numbers are a new column of each.
-export function appendRowNumbers(table: arrow.Table, name: string): arrow.Table {
-    const fields = [...table.schema.fields, new arrow.Field(name, new arrow.Int64(), false)];
-    const schema = new arrow.Schema(fields, table.schema.metadata);
-    let next = 1n;
-    const batches = table.batches.map(batch => {
-        const rows = batch.numRows;
-        const numbers = new BigInt64Array(rows);
-        for (let i = 0; i < rows; ++i) numbers[i] = next++;
-        const rowNumbers = arrow.makeData({ type: new arrow.Int64(), length: rows, nullCount: 0, data: numbers });
-        const children = [...batch.data.children, rowNumbers] as arrow.Data[];
-        const data = arrow.makeData({ type: new arrow.Struct(fields), length: rows, nullCount: 0, children });
-        return new arrow.RecordBatch(schema, data);
-    });
-    return new arrow.Table(schema, batches);
-}

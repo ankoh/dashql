@@ -38,10 +38,14 @@ select id, amount from orders where amount > 10
 select count(*) from foo
 ```
 
-A scan reference scans a Parquet file of the stored results of the workbook, which the host names and mounts:
+A scan reference scans a Parquet file of the stored results of the workbook, which the host names and mounts. The
+scan leaves out the column of the order of the rows that the host writes into the file, `__dashql_row`
+(`workbook_results.md`): `* EXCLUDE` fails on a file of an earlier version without it, the natural left join with an
+empty relation of the column adds it to such a file and leaves the rows of a file with it as they are.
 
 ```sql
-with foo as (select * from external('/mnt/external/results/<workbook>/<script>.<key>.<gen>.parquet', format => 'parquet'))
+with foo as (select * exclude (__dashql_row) from (select * from external('/mnt/external/results/<workbook>/<script>.<key>.<gen>.parquet', format => 'parquet')
+  natural left join (select null::bigint as __dashql_row where false) as "__dashql_no_rows") as "__dashql_rows")
 select count(*) from foo
 ```
 

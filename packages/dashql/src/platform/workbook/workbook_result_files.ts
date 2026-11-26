@@ -4,6 +4,7 @@ import type { EmbeddedComputeDatabase } from '../embedded_database.js';
 import { copyArrowTableAsParquet } from '../hyperdb/hyperdb_parquet_export.js';
 import { getOPFSRoot } from '../opfs_root.js';
 import { STORAGE_WORKBOOKS_FOLDER } from '../storage/storage_backend.js';
+import { appendRowNumbers } from '../utils/arrow_vectors.js';
 import { crc32CheckStream } from '../utils/crc32.js';
 
 /// The folder of the results in a workbook folder, `workbooks/<id>/results/`
@@ -14,6 +15,14 @@ export const RESULTS_MOUNT_PREFIX = '/mnt/external/results';
 const TRANSIENT_SUFFIX = '.transient.parquet';
 /// The Web Lock of a file, readers hold it shared, a move or removal takes it exclusively if nobody holds it
 const LOCK_PREFIX = 'dashql-workbook-results/';
+/// The last column of a file of a result: the rows numbered from 1 in the order of the result, 64-bit integers. Hyper
+/// scans a table or a file of millions of rows in parallel and returns its rows in no particular order, so the order of
+/// a query with `ORDER BY` would be lost once its result is a file. `writeTable` numbers the rows while the table still
+/// has them in order, `readTable` orders by the column and leaves it out. The scan references of the planner leave it
+/// out too, `RESULT_ROW_COLUMN` of `planner/script_references.rs` holds the same name. The column stays in the bytes of
+/// the file: an exported archive, a published workbook and the file of an agent carry it. Files of earlier versions
+/// don't have it (docs/design/workbook_results.md, Storing Results).
+export const RESULT_ROW_COLUMN = '__dashql_row';
 
 /// The mount path of the results of a workbook
 export function resultsMountPath(workbookId: string): string {
@@ -53,9 +62,10 @@ export interface WorkbookResultFiles {
     /// Keep a file while it is read or written, resolves with the release once the file is pinned. The release
     /// resolves once the file can be moved or removed.
     pin(workbookId: string, name: string): Promise<() => Promise<void>>;
-    /// Write a table as a file that is pinned, resolves with its rows
+    /// Write a table as a file that is pinned, with the order of its rows in `RESULT_ROW_COLUMN`, resolves with its rows
     writeTable(database: EmbeddedComputeDatabase, workbookId: string, table: arrow.Table, name: string): Promise<number>;
-    /// Read a file into a table while it is pinned, null if the file is gone
+    /// Read a file into a table while it is pinned, its rows in order and without `RESULT_ROW_COLUMN`, null if the file
+    /// is gone
     readTable(database: EmbeddedComputeDatabase, workbookId: string, name: string): Promise<arrow.Table | null>;
     /// The bytes of a file, the caller pins it while it reads them
     readFile(workbookId: string, name: string): Promise<Blob>;
@@ -241,7 +251,11 @@ export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = 
         writeTable: async (database, workbookId, table, name) => {
             const since = unmountsOf(workbookId);
             await mount(database, workbookId, since);
-            await writeFile(workbookId, name, since, temporary => copyArrowTableAsParquet(database, table, `${resultsMountPath(workbookId)}/${temporary}`));
+            // The rows of the table are in the order of the result: the stream of a query keeps the order of its
+            // `ORDER BY`, the scan of the temporary table that the copy writes from doesn't. The name is reserved: a
+            // result with a column of the name keeps it as the order of its rows, a second one would collide.
+            const numbered = table.schema.fields.some(field => field.name === RESULT_ROW_COLUMN) ? table : appendRowNumbers(table, RESULT_ROW_COLUMN);
+            await writeFile(workbookId, name, since, temporary => copyArrowTableAsParquet(database, numbered, `${resultsMountPath(workbookId)}/${temporary}`));
             return table.numRows;
         },
         readTable: async (database, workbookId, name) => {
@@ -259,7 +273,17 @@ export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = 
                 const connection = await database.connect({ pooled: true });
                 try {
                     const path = `${resultsMountPath(workbookId)}/${name}`.replace(/'/g, "''");
-                    return await connection.query(`SELECT * FROM external('${path}', format => 'parquet')`);
+                    const source = `external('${path}', format => 'parquet')`;
+                    // The schema without rows, Hyper reads only the footer of the file
+                    const schema = (await connection.query(`SELECT * FROM ${source} LIMIT 0`)).schema;
+                    // A file of an earlier version has no order, its rows come in the order Hyper scans them
+                    if (schema.fields.every(field => field.name !== RESULT_ROW_COLUMN)) {
+                        return await connection.query(`SELECT * FROM ${source}`);
+                    }
+                    // The result of a query streams in the order of its top-level ORDER BY. The column is left out
+                    // once the rows are read, the selected table shares the vectors of the read.
+                    const table = await connection.query(`SELECT * FROM ${source} ORDER BY "${RESULT_ROW_COLUMN}"`);
+                    return table.select(schema.fields.map(field => field.name).filter(field => field !== RESULT_ROW_COLUMN));
                 } finally {
                     await connection.close();
                 }

@@ -1,6 +1,7 @@
 # Result Windows
 
-Status: steps 1 and 2 landed, the others are planned and land one by one. This document fixes how DashQL stops holding whole results in the
+Status: steps 1 and 2 landed, and the stored results keep the order of their rows (Row order). The others are planned
+and land one by one. This document fixes how DashQL stops holding whole results in the
 JavaScript heap: the grid reads the rows it shows, the embedded Hyper writes its results to Parquet without passing
 them through JavaScript, and a result in JavaScript is let go once its file exists.
 
@@ -17,7 +18,7 @@ file therefore holds 500 MB of JavaScript heap, and more on its way:
    it.
 3. The stored result of the script (`writeTable` of `workbook_result_files.ts`) inserts the table into a temporary
    table of the compute database the same way and copies it to Parquet.
-4. A workbook that opens reads its stored results back into JavaScript (`readTable`, `SELECT * FROM external(...)`).
+4. A workbook that opens reads its stored results back into JavaScript (`readTable`, ordered by `__dashql_row`).
 5. The grid reads its cells from the table (`DataCell`, `ArrowTableFormatter`); an ordering, a filter or a search is
    a table of all row numbers in display order that becomes an `Int32Array` of every visible row
    (`resolveVisibleRowIndices`), and a search a map of every matching row.
@@ -79,7 +80,13 @@ handle, which the charts read.
 A script on the embedded Hyper runs as `COPY (<query>) TO '<results mount>/<transient>' WITH (format => 'parquet')`
 and the file is moved to its name, as the stored results are today. No row reaches JavaScript: the write of the stored
 result is the query itself, and a stored result is not read into JavaScript any more but used as its file. The
-analysis creates `__df_<id>` from the file (`CREATE TABLE ... AS SELECT ..., row_number() OVER () FROM external(...)`).
+analysis creates `__df_<id>` from the file with `__dashql_row` as its row numbers.
+
+Not decided yet: how the `COPY` numbers the rows in the order of the query (Row order). `row_number() OVER ()` doesn't,
+`row_number() OVER (ORDER BY <the keys of the query>)` needs the core to rewrite the query (aliases, ordinals, keys
+outside the output, `DISTINCT`, `UNION`). The alternative streams the result batch by batch through JavaScript, which
+keeps the order and numbers the rows, into a table of the compute database that is copied to the file: rows pass
+JavaScript but none stay.
 
 ### 4. Remote results let go of their table
 
@@ -101,8 +108,13 @@ Once nothing reads the whole table, results are no Arrow tables of the handle ta
 
 ## Open questions
 
-- **Row order.** `row_number() OVER ()` has to keep the order of a query with `ORDER BY`, in the `COPY` and in the
-  table created from the file. To be checked in Hyper before step 3.
+- **Row order.** Checked in the Hyper of the Node tests: it keeps no order without being asked. It scans a table or a
+  file of millions of rows in parallel, three scans of one file of 3 000 000 rows disagree at most positions;
+  `row_number() OVER ()` numbers some rows out of order already at 10 000 rows, also in `CREATE TABLE ... AS`, and over
+  an ordered query in no order at all. Only the top-level `ORDER BY` of a query that streams to JavaScript keeps an
+  order. The order of a result is therefore a column of its file, `__dashql_row` (workbook_results.md, Storing
+  Results): `writeTable` numbers the rows of the table it writes, `readTable` orders by the column, a scan reference
+  leaves it out. Before, a stored result of millions of rows read back with rows out of place.
 - **Results without a workbook.** The shell outside a workbook and the queries of agents need a folder for their
   transient files.
 - **Latency of a window.** A read joins a range of positions with `__df_<id>`; measure it on a table of 500 MB before

@@ -654,7 +654,7 @@ planner-snapshots:
           statement-id: 0
           type: SELECT
           sql: |-
-            with open_tickets as (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet'))
+            with open_tickets as (select * exclude (__dashql_row) from (select * from external('/mnt/external/dashql-run-test/s0.parquet', format => 'parquet') natural left join (select null::bigint as __dashql_row where false) as "__dashql_no_rows") as "__dashql_rows")
             select count(*), max(_status) from open_tickets
           produces-output: true
           barrier: false

@@ -9,7 +9,7 @@ import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { HyperDB, type HyperDBClient, type HyperDBResult, type HyperDBSettings } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { exportArrowTableAsParquet, PARQUET_EXPORT_DIRECTORY } from '@akohn/dashql/platform/hyperdb/hyperdb_parquet_export';
-import { createWorkbookResultFiles, resultsMountPath } from '@akohn/dashql/platform/workbook/workbook_result_files';
+import { createWorkbookResultFiles, RESULT_ROW_COLUMN, resultsMountPath } from '@akohn/dashql/platform/workbook/workbook_result_files';
 import { getOPFSRoot } from '@akohn/dashql/platform/opfs_root';
 import { AttachmentMounts } from '@akohn/dashql/platform/workbook/attachment_mounts';
 import { tableFromArrays, vectorFromArray } from '@akohn/dashql/platform/testing/arrow_fixtures';
@@ -437,7 +437,8 @@ describe('HyperDB embedded database integration', () => {
                 const connection = await database!.connect();
                 try {
                     await expect(connection.query(`select * from external('${prefix}/${FILE_A}', format => 'parquet')`)).rejects.toThrow();
-                    expect(toPlainObjects(await connection.query(`select * from external('${prefix}/${FILE_B}', format => 'parquet')`))).toEqual([{ id: 2 }]);
+                    // A scan of the file sees the column of the order of its rows, a read of the results leaves it out
+                    expect(toPlainObjects(await connection.query(`select * from external('${prefix}/${FILE_B}', format => 'parquet')`))).toEqual([{ id: 2, [RESULT_ROW_COLUMN]: 1n }]);
                 } finally {
                     await connection.close();
                 }

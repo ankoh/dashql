@@ -181,6 +181,14 @@ planned). The older files of the script go when the run ended. A script that ran
 whose last statement is a `CREATE TABLE`, has its files removed: they describe an earlier text. A failed, cancelled or skipped run leaves the files alone. The
 caller is not blocked on the write. A failed write only produces a log message.
 
+A file holds the order of its rows in its last column, `__dashql_row`, the rows numbered from 1 in the order of the
+result (`RESULT_ROW_COLUMN` of `workbook_result_files.ts` and of `planner/script_references.rs`). Hyper scans a table or
+a file of millions of rows in parallel, in no particular order, and the order of a query with `ORDER BY` is lost once
+its result is a file: a read of a file orders its rows by the column and leaves it out (`readTable`), a scan reference
+leaves it out (`script_references.md`). The column goes wherever the bytes of the file go, into an exported archive, a
+published workbook and the file of an agent. A file of an earlier version has no column and reads in the order Hyper
+scans it. The name is reserved: a result with a column of the name keeps it as the order of its rows.
+
 The query is in the history of its connection before the runtime describes it. On a read, the executor reads the file
 through the mount while it is pinned, and the history records it like the result of a streamed query, with empty
 metadata and zeroed stream metrics; then the shared success path runs, the analysis of the result follows the query like
@@ -341,6 +349,8 @@ leaves the stored results as they were.
 - Corrupt files are not removed automatically. They fail to read and stay until the next run of the script replaces
   them.
 - Results preserve raw tables only. Analyses and projections run again after a read.
+- A file of an earlier version has no column of the order of its rows: a result of millions of rows reads back with
+  rows out of place until its script runs again.
 
 ## Implementation References
 

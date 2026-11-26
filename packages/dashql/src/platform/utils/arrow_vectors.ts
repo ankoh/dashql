@@ -70,3 +70,23 @@ export function boolVector(values: ReadonlyArray<boolean | null | undefined>): a
     });
     return arrow.makeVector(arrow.makeData({ type: new arrow.Bool(), length: values.length, ...validity(values), data }));
 }
+
+/// A table with its rows numbered from 1 in an appended column of 64-bit integers that can't be null, e.g. a result
+/// that the compute database imports or a stored result with the order of its rows. Hyper numbers rows in no
+/// particular order (`row_number() OVER ()`), the numbers are therefore given while the table still holds the rows in
+/// order. The batches keep their columns, the row numbers are a new column of each.
+export function appendRowNumbers(table: arrow.Table, name: string): arrow.Table {
+    const fields = [...table.schema.fields, new arrow.Field(name, new arrow.Int64(), false)];
+    const schema = new arrow.Schema(fields, table.schema.metadata);
+    let next = 1n;
+    const batches = table.batches.map(batch => {
+        const rows = batch.numRows;
+        const numbers = new BigInt64Array(rows);
+        for (let i = 0; i < rows; ++i) numbers[i] = next++;
+        const rowNumbers = arrow.makeData({ type: new arrow.Int64(), length: rows, nullCount: 0, data: numbers });
+        const children = [...batch.data.children, rowNumbers] as arrow.Data[];
+        const data = arrow.makeData({ type: new arrow.Struct(fields), length: rows, nullCount: 0, children });
+        return new arrow.RecordBatch(schema, data);
+    });
+    return new arrow.Table(schema, batches);
+}

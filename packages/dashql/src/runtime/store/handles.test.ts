@@ -2,7 +2,8 @@ import * as arrow from 'apache-arrow';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { HandleTable } from './handles.js';
-import { appendRowNumbers, createRuntimeTables } from './runtime_tables.js';
+import { createRuntimeTables } from './runtime_tables.js';
+import { appendRowNumbers } from '../../platform/utils/arrow_vectors.js';
 import type { ConnectionParams } from '../../platform/connections/connection_params.js';
 import type { HyperDB } from '../../platform/hyperdb/hyperdb_wasm.js';
 import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '../../platform/query/query_execution_state.js';

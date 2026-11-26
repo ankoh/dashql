@@ -3,11 +3,14 @@
 //! Every valid plan with script references runs on fresh databases, one per connection: the catalog script of a
 //! connection runs first, then the SQL of the nodes in node order, which orders every edge. A materialization is
 //! written with `COPY (<query>) TO <file> WITH (format => 'parquet')` into a temporary directory, which stands for
-//! the mount prefix of the plan. The host computes a result it provides with a plan of its script as target, its
-//! references spliced in. The query of an attachment of a fixture is written the same way, below the attachment prefix.
+//! the mount prefix of the plan, with the column of the order of its rows like the host writes it. The host computes a
+//! result it provides with a plan of its script as target, its references spliced in, and writes it without the column
+//! like a file of an earlier version. The query of an attachment of a fixture is written without it too, below the
+//! attachment prefix.
 //! A fixture with `hyper: skip` is left out.
 
 use dashql_buffers::execution::ExecutionGraphT;
+use dashql_core_runtime::planner::script_references::RESULT_ROW_COLUMN;
 use dashql_snapshots::encode::planner::{
     plan_fixture, Fixture, FixtureAttachment, FixtureConnection, FixtureScript, PlannedFixture,
     PLANNER_ATTACHMENT_PREFIX, PLANNER_MOUNT_PREFIX,
@@ -38,10 +41,18 @@ fn run_nodes(
             .map_err(|e| format!("node {i} ({}): {e}\n{sql}", planned.names[node.script as usize]))?;
         if node.materialization != u32::MAX {
             let path = mount(materializations[node.materialization as usize].path.as_deref().unwrap_or(""));
-            write(connections, node.connection, &sql, &path)?;
+            write_numbered(connections, node.connection, &sql, &path)?;
         }
     }
     Ok(())
+}
+
+/// Write the result of a query as Parquet file with the column of the order of its rows, like the host does. The
+/// numbers are in no particular order here: the validation only runs the scans of the plan on files with the column,
+/// the provided results run them on files without it.
+fn write_numbered(connections: &mut [HyperConnection], connection: u32, query: &str, path: &str) -> Result<(), String> {
+    let numbered = format!("SELECT *, row_number() OVER () AS \"{RESULT_ROW_COLUMN}\" FROM ({query}) AS \"result\"");
+    write(connections, connection, &numbered, path)
 }
 
 /// Write the result of a query as Parquet file

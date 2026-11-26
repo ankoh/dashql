@@ -10,7 +10,7 @@
 //!   `with foo as (<query of foo>) select * from foo`.
 //! - A statement of the LOCAL connection (the embedded Hyper) scans the result of a script of another
 //!   connection, which the host writes to a Parquet file and mounts:
-//!   `with foo as (select * from external('<path>', format => 'parquet')) select * from foo`.
+//!   `with foo as (<scan of the file>) select * from foo`, see `scan_result_file`.
 //! - A statement of a REMOTE connection cannot read a script of another connection.
 //!
 //! A table parameter `:sales` can also read the attachment `sales.parquet` of the session. Only a statement of the
@@ -36,6 +36,41 @@ use dashql_parser::keywords::Keyword;
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::span::TextSpan;
 use std::collections::{BTreeMap, BTreeSet};
+
+/// The last column of a file of a result that the host writes: the rows numbered from 1 in the order of the result,
+/// 64-bit integers. Hyper scans a table or a file of millions of rows in parallel and returns its rows in no particular
+/// order, so the order of a query with `ORDER BY` is lost once its result is a file. The host numbers the rows while
+/// they are still in order (`writeTable` of `workbook_result_files.ts`, which holds the same name) and orders by the
+/// column when it reads a file to show it (docs/design/workbook_results.md, Storing Results). A scan reference has no
+/// order and leaves the column out, see `scan_result_file`. Files of earlier versions don't have it. The name is
+/// reserved: a result with a column of this name keeps it as the order of its rows.
+pub const RESULT_ROW_COLUMN: &str = "__dashql_row";
+
+/// The scan of a file of a result for a scan reference, its columns without `RESULT_ROW_COLUMN`:
+///
+/// ```sql
+/// select * exclude (__dashql_row) from (
+///     select * from external('<path>', format => 'parquet')
+///     natural left join (select null::bigint as __dashql_row where false) as "__dashql_no_rows"
+/// ) as "__dashql_rows"
+/// ```
+///
+/// The planner doesn't know whether a file has the column, a file of an earlier version doesn't, and `* exclude`
+/// fails on a column that the relation doesn't have. The natural left join with an empty relation of just the column
+/// gives every file the column, so the exclusion always finds it:
+/// - a file with the column joins on it, every row of the file stays once (left join) with its own value;
+/// - a file without it shares no column with the relation, the join keeps every row of the file once and adds the
+///   column as null.
+///
+/// The type of the null is the type of the column the host writes, a join on a column of another type would fail.
+fn scan_result_file(path: &str) -> String {
+    let column = quote_identifier(RESULT_ROW_COLUMN);
+    format!(
+        "select * exclude ({column}) from (select * from external('{}', format => 'parquet') \
+         natural left join (select null::bigint as {column} where false) as \"__dashql_no_rows\") as \"__dashql_rows\"",
+        path.replace('\'', "''")
+    )
+}
 
 /// Receives the errors of script references
 pub(crate) trait ReferenceErrors {
@@ -1063,10 +1098,7 @@ pub(crate) fn splice_statement(
             _ => {
                 let Some(&m) = materialization_of.get(&producer) else { continue };
                 let path = materializations.get(m as usize).and_then(|m| m.path.as_deref()).unwrap_or("");
-                ctes.push(format!(
-                    "{cte} as (select * from external('{}', format => 'parquet'))",
-                    path.replace('\'', "''")
-                ));
+                ctes.push(format!("{cte} as ({})", scan_result_file(path)));
                 if !out.inputs.contains(&m) {
                     out.inputs.push(m);
                 }
