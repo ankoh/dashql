@@ -175,7 +175,7 @@ the key it looked for and the key of the stored file.
 ## Storing Results
 
 Every run of a script stores its result: the terminal query of a script runs with the result option `store` and the
-name of the script, and after the query succeeded, or after only the analysis of its result failed, the compute
+name of the script, and once the query succeeded, whatever becomes of the analysis of its result, the compute
 database writes the table as a new file of the script (`<script>.<key>.<gen>.parquet`, named by the run when it
 planned). The older files of the script go when the run ended. A script that ran to its end without a result, e.g. one
 whose last statement is a `CREATE TABLE`, has its files removed: they describe an earlier text. A failed, cancelled or skipped run leaves the files alone. The
@@ -183,7 +183,8 @@ caller is not blocked on the write. A failed write only produces a log message.
 
 The query is in the history of its connection before the runtime describes it. On a read, the executor reads the file
 through the mount while it is pinned, and the history records it like the result of a streamed query, with empty
-metadata and zeroed stream metrics; then the shared analysis and success path runs. The query records whether it was
+metadata and zeroed stream metrics; then the shared success path runs, the analysis of the result follows the query like
+the one of a streamed result and holds up neither the query nor the run. The query records whether it was
 read from the file (`servedFromCache`), for the UI.
 
 Cancellation during a lookup is treated like any other cancellation, the query ends at once. A read runs to its end,

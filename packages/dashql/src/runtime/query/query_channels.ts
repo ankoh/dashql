@@ -10,14 +10,12 @@ import type { PlatformTables } from '../store/runtime_tables.js';
 import type { WorkbookResultFiles } from '../../platform/workbook/workbook_result_files.js';
 import type { QueryExecutionResponseStream, QueryStreamItem } from '../../platform/query/query_execution_state.js';
 import { createTrace } from '../../platform/logger/trace_context.js';
-import { LoggableException, stringifyError, type Logger } from '../../platform/logger/logger.js';
+import { LoggableException, type Logger } from '../../platform/logger/logger.js';
 import type { LogRecord } from '../../platform/logger/log_buffer.js';
 import type { EmbeddedComputeDatabase } from '../../platform/embedded_database.js';
 
 /// The compute database of the platform, it resolves once the platform set it up
 type ComputeDatabase = () => Promise<EmbeddedComputeDatabase>;
-
-const LOG_CTX = 'query_executor';
 
 /// What the platform keeps of a query of a channel: the channel of its connection, its stream and its cancellation.
 /// The runtime describes the query first (`describe`), which creates the record, and forgets it when its run ends
@@ -245,14 +243,7 @@ export class QueryChannels {
 
     /// The error of a failure. What the host failed with stays, the cancellation of the caller is its reason.
     private errorOf(args: QueryExecutionArgs, failure: core.QueryRunFailure, value: unknown): unknown {
-        if (failure.hostValue) {
-            if (failure.kind === 'processing') {
-                return value instanceof LoggableException
-                    ? value
-                    : new LoggableException('Query result processing failed', { error: stringifyError(value) }, LOG_CTX);
-            }
-            return value;
-        }
+        if (failure.hostValue) return value;
         if (failure.kind === 'cancelled') return args.abortSignal?.reason ?? abortError();
         return new LoggableException(failure.message, failure.details, failure.target);
     }

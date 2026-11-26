@@ -1095,10 +1095,9 @@ impl RunHost for RuntimeRunHost {
             publish_results: request.publish_results,
             result,
         };
-        let (query_id, ready, done) = self.connections.run_statement(statement);
+        let (query_id, done) = self.connections.run_statement(statement);
         Ok(StatementHandle {
             query_id,
-            ready,
             done: Box::pin(async move {
                 done.await.map_err(|failure| StatementFailure {
                     message: failure.message.clone(),

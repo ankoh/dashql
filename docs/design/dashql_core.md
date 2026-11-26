@@ -239,17 +239,22 @@ that wants the composition would depend on that rather than copy it.
   (`ExecutorHost::Run`, `ExecutorRun`): the executor gets it with the request and hands it to every call of its host,
   the host never looks a query up by its id. Its token is the one cancellation of the query: `cancelQuery`, a reset
   of the connection, a catalog update that is cancelled and a caller that stops waiting cancel it while the query is
-  described, loads the spec of its client functions, reads its stored result, runs or is analyzed. A channel of the host
+  described, loads the spec of its client functions, reads its stored result or runs; once the query ended, a cancel
+  stops the analysis of its result. A channel of the host
   learns it from the executor (`channel_cancel`), also while it still opens the query, e.g. a query of the embedded
   Hyper that waits for the one before it. Its controls (`QueryControls`) count the views of its profile from the
   registration on. The run owns its result table, the history and the analysis take handles of their own.
 - **The executor** (`executor/`, `QueryExecutor::execute`) reads the file of a stored result or sends the query,
-  reports `QueryEvent`s into the history, touches the relations of the statement (`touched_relations` of the core),
-  analyzes the result on the computations and stores it as the file of its script, also when only the analysis
-  failed. The
-  history applies the start and the end of a query as urgent changes, the rest with the next frame (see
-  [Changes and the flush](dashql_runtime.md#changes-and-the-flush)). It decides the
-  latest result of an owner and reports the superseded queries; the runtime deletes their computations. A query that
+  reports `QueryEvent`s into the history, touches the relations of the statement (`touched_relations` of the core) and
+  stores the result as the file of its script. A query is done once its result is there: the analysis of the result on
+  the computations starts before the query succeeds, so the computation shows the result at once, and runs on after it
+  (`ExecutorHost::analyze_result`). Nothing waits for the analysis, neither the caller nor a run of a workbook; its
+  steps show on the computation. An analysis that fails or is stopped leaves the query succeeded and the computation
+  with what it computed, the log has a warning of a failure. A cancel of the query stops the analysis
+  (`ComputeService::stop_analysis`), a result that a later one supersedes loses its computation and with it the
+  analysis. `previewResult` waits for the system columns of an analysis that runs. The history applies the start and
+  the end of a query as urgent changes, the rest with the next frame (see
+  [Changes and the flush](dashql_runtime.md#changes-and-the-flush)). It decides the latest result of an owner and reports the superseded queries; the runtime deletes their computations. A query that
   was cancelled or failed keeps no result in the history.
 - **A query that the caller failed** (`executeQuery` with a failure) is recorded as failed with it and nothing of it
   runs: no description, no spec, no check of the compute database.
@@ -312,7 +317,9 @@ loader. See [catalog_updates.md](catalog_updates.md) and [catalog_batching.md](c
   and plans again with their files. A script that changed its text or its signature between the two plans, e.g. typed
   while the run looked up the stored results, fails the run: its keys and files come from the first plan.
 - A node starts once its predecessors released it, at most `max_concurrent_queries` statements of a connection at once
-  (four for a Hyper server, one otherwise). A failed statement fails its script: the nodes that follow it don't run, the
+  (four for a Hyper server, one otherwise). A statement is done once its result is there: the analysis of the result
+  holds up neither the nodes that follow it, nor the reads of the stored results, nor the end of the run. A Stop of the
+  run stops the analyses of its results that still run, a run that fails leaves them alone. A failed statement fails its script: the nodes that follow it don't run, the
   scripts of those nodes are `Blocked` and show why, and the other scripts run on. The run fails with the first failure
   once it ended, the `run` state lists every failed script (`failed`). The nodes of a connection that can't run or be
   set up are skipped with what follows them. A script of a connection that can't run uses its stored result whatever

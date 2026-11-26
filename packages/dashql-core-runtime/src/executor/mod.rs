@@ -25,10 +25,11 @@
 //!
 //! The host owns the run of a query (`ExecutorHost::Run`): the id of the query, its cancellation token and its
 //! controls, from the registration of the query on. The executor gets the run with the request and hands it to every
-//! call of the host, the task and its follow-ups hold it, e.g. the write of the stored result after the query
-//! ended. The token is the one cancellation of the query: the requests of the query stop, the query is cancelled at the
-//! backend (a Trino or Hyper query by its request, a channel of the host by `channel_cancel`, also while it opens) and
-//! the task ends as cancelled.
+//! call of the host, the task and its follow-ups hold it: the analysis of the result and the write of the stored
+//! result, which run after the query ended. The token is the one cancellation of the query: the requests of the query
+//! stop, the query is cancelled at the backend (a Trino or Hyper query by its request, a channel of the host by
+//! `channel_cancel`, also while it opens) and the task ends as cancelled. A cancel after the query ended stops the
+//! analysis of its result.
 
 pub mod connectors;
 pub mod ipc;
@@ -122,7 +123,7 @@ pub struct QueryRequest {
     pub target: QueryTarget,
     /// Collect the result? A statement whose output is discarded is drained without a table.
     pub publish_results: bool,
-    /// Analyze the result on the compute database
+    /// Analyze the result on the compute database, after the query and without holding it up
     pub analyze_results: bool,
     /// The stored result of the script of the query, none for a query of no script
     pub result: Option<ResultRequest>,
@@ -143,8 +144,6 @@ pub enum FailureKind {
     Cancelled,
     /// A query that only reads the stored result of its script found no file
     CacheMiss,
-    /// The analysis of the result failed
-    Processing,
 }
 
 /// The error of a failed or cancelled query
@@ -246,10 +245,6 @@ pub enum QueryEvent {
     ReceivedBatch(QueryExecutionMetrics),
     /// The result is complete, the host holds its table
     ReceivedAllBatches { rows: u64, metrics: QueryExecutionMetrics },
-    /// The analysis of the result started
-    ProcessingResults,
-    /// The analysis of the result finished
-    ProcessedResults,
     /// The query succeeded
     Succeeded,
     /// The query failed
@@ -260,10 +255,8 @@ pub enum QueryEvent {
     CacheRecorded { served_from_cache: bool },
     /// The statement may have changed relations of the connection
     TouchRelations,
-    /// A step of the query took a time, `Results` until the result arrived and `Postprocess` for its analysis
+    /// A step of the query took a time, `Results` until the result arrived
     Timing { label: &'static str, elapsed_ms: f64 },
-    /// The result arrived, before its analysis
-    ResultsReady,
     /// A log message of the query
     Log { level: LogLevel, message: String, details: Vec<(String, String)>, target: String },
 }
@@ -339,8 +332,10 @@ pub trait ExecutorHost: HttpHost {
     /// Remove the files of a script whose query ended without a result, they describe an earlier text
     fn result_clear(&self, workbook_id: &str, script: &str) -> impl Future<Output = Result<(), HostError>> + 'static;
 
-    /// Analyze the result of a run on the compute database. A cancellation of the token of the run stops the analysis,
-    /// the host keeps no analysis of a cancelled query and fails with the cancellation.
+    /// Analyze the result of a run on the compute database, after the query and without holding it up. The call starts
+    /// the analysis, e.g. the computation of the result, before the query succeeds, the future runs it to its end. A
+    /// cancellation of the token of the run stops the analysis and fails it with the cancellation; the result stays
+    /// with what its analysis computed, also after a failure.
     fn analyze_result(&self, run: &Rc<Self::Run>) -> impl Future<Output = Result<(), HostError>> + 'static;
 
     /// Send a request whose response carries a part of a result. The body of a successful response may stay with the
@@ -448,7 +443,7 @@ impl<H: ExecutorHost> QueryExecutor<H> {
     }
 
     /// Run a query of a run, a run whose token was cancelled before ends as cancelled. The future settles once the
-    /// query ended, a write of its stored result may still run and hold the run.
+    /// query ended, the analysis of its result and a write of its stored result may still run and hold the run.
     pub fn execute(&self, request: QueryRequest, run: Rc<H::Run>) -> impl Future<Output = QueryOutcome> + 'static {
         let task = QueryTask { host: self.host.clone(), state: self.state.clone(), run, request };
         task.run()
@@ -546,26 +541,9 @@ impl<H: ExecutorHost> QueryTask<H> {
         if !summary.served_from_cache {
             self.touch_relations();
         }
-        self.report(QueryEvent::ResultsReady);
-
+        // The query is done once its result is there, the analysis follows it
         if summary.has_table && self.request.analyze_results {
-            if let Err(failure) = self.analyze().await {
-                if failure.kind == FailureKind::Cancelled {
-                    self.log(LogLevel::Warn, "Cancelled query during result processing", self.query_details());
-                    self.report(QueryEvent::Cancelled { failure: failure.clone(), metrics });
-                    return self.fail(failure);
-                }
-                // The result is fine, only its analysis failed: it is stored all the same
-                if !summary.served_from_cache {
-                    self.store_result(summary.has_table);
-                }
-                let mut details = self.query_details();
-                details.push(("error".to_string(), failure.message.clone()));
-                details.extend(failure.details.iter().cloned());
-                self.log(LogLevel::Warn, "Query result processing failed", details);
-                self.report(QueryEvent::Failed { failure: failure.clone(), metrics: None });
-                return QueryOutcome::Rejected(failure);
-            }
+            self.analyze();
         }
         if !summary.served_from_cache && self.request.publish_results {
             self.store_result(summary.has_table);
@@ -686,19 +664,32 @@ impl<H: ExecutorHost> QueryTask<H> {
         Ok(Some(ResultSummary { has_table: true, served_from_cache: true }))
     }
 
-    /// Analyze the result on the compute database. An analysis that ended stands, a cancel after it changes nothing.
-    async fn analyze(&self) -> Result<(), QueryFailure> {
-        self.report(QueryEvent::ProcessingResults);
-        let started_at = self.host.now();
-        let analyzed = self.host.analyze_result(&self.run).await;
-        self.report(QueryEvent::Timing { label: "Postprocess", elapsed_ms: self.host.now() - started_at });
-        match analyzed {
-            Ok(()) => {}
-            Err(error) if self.token().is_cancelled() || error.is_cancelled() => return Err(QueryFailure::cancelled()),
-            Err(error) => return Err(QueryFailure::from_host(&error).with_kind(FailureKind::Processing)),
-        }
-        self.report(QueryEvent::ProcessedResults);
-        Ok(())
+    /// Analyze the result on the compute database after the query, the query doesn't wait for it. The analysis starts
+    /// now, before the query succeeds, and holds the run, so a cancel of the query stops it. A failure only logs, the
+    /// result stays.
+    fn analyze(&self) {
+        let analysis = self.host.analyze_result(&self.run);
+        let host = self.host.clone();
+        let run = self.run.clone();
+        let details = self.query_details();
+        self.host.spawn(Box::pin(async move {
+            let started_at = host.now();
+            let analyzed = analysis.await;
+            let mut details = details;
+            details.push(("duration".to_string(), format!("{}", (host.now() - started_at).max(0.0).floor())));
+            let (level, message) = match analyzed {
+                Ok(()) => (LogLevel::Debug, "Analyzed a query result"),
+                Err(error) if run.token().is_cancelled() || error.is_cancelled() => {
+                    (LogLevel::Info, "Stopped the analysis of a query result")
+                }
+                Err(error) => {
+                    details.push(("error".to_string(), error.message().to_string()));
+                    (LogLevel::Warn, "The analysis of a query result failed")
+                }
+            };
+            let message = message.to_string();
+            host.report(&run, QueryEvent::Log { level, message, details, target: LOG_TARGET.to_string() });
+        }));
     }
 
     /// Store the result as the file of its script after the query, the query doesn't wait for it. A query that ended

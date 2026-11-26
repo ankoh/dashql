@@ -322,7 +322,7 @@ is a typed method with its contract rather than a generated table, the app reads
 | Facade (`Runtime` of `runtime.ts`) | What |
 |---|---|
 | `analyzeTable` | Analyze a result as a computation |
-| `previewResult` | The first rows of an analyzed result as Arrow IPC, read from its data frame, e.g. for the table of the shell |
+| `previewResult` | The first rows of an analyzed result as Arrow IPC, read from its data frame, e.g. for the table of the shell; waits for the system columns of an analysis that runs |
 | `execute`, `cancel`, `watchProfile` | Run a query on a connection, cancel it, show its profile; `queryCommands` of the options stand in for them |
 | `createConnection`, `connection`, `catalog`, `channel`, `saveConnection`, `retrySave`, `replaceConnections`, `connectionUsage` | Connections and their saves; `replaceConnections` moves the workbooks of connections to another one, writes their files and names the replaced connections that are dead (`ConnectionReplacement` of the registry), the app deletes those; `connectionUsage` counts the workbooks that use a connection and those that keep it, and says whether the user may delete it (`ConnectionRegistry::usage`): ephemeral workbooks and previews don't count, every workbook keeps the embedded Hyper |
 | `setupConnection`, `cancelSetup`, `authenticateSalesforce`, `refreshCatalog` | Setups, the login of the shell and refreshes of catalogs |
@@ -423,9 +423,9 @@ through `applyEditorEvent`; a session outside a workbook (the composer, the shel
 `DashQLScriptSessionReader`, which the editor and the views take.
 
 The shell runs its statements with `runtime.execute` on its connection to the embedded Hyper
-(`connectEmbeddedSession` of `embedded_session.ts`): the executor analyzes the results and tells the
-catalog loader about the relations that a statement touched, and `settleCatalog` waits for the catalog before the
-prompt returns. The session leases the connection (`openSession`, `closeSession` of the module): a later session takes
+(`connectEmbeddedSession` of `embedded_session.ts`): the executor analyzes the results after their queries and tells
+the catalog loader about the relations that a statement touched, `previewResult` waits for the analysis of the result
+that it shows, and `settleCatalog` waits for the catalog before the prompt returns. The session leases the connection (`openSession`, `closeSession` of the module): a later session takes
 it over, and only the latest lease resets the connection when it closes.
 
 ## The app

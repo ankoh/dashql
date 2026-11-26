@@ -492,39 +492,82 @@ describe('the runs of scripts of the runtime', () => {
         expect(f.core.store.get('run', f.workbookId)?.held).toBeNull();
     });
 
-    it('keeps the computation of the earlier result of a script when the analysis of the next one is cancelled', async () => {
-        const f = await scripts([['foo.sql', 'select 1 as a;']]);
-        expect((await f.run('foo.sql')).outcome.failure).toBeNull();
-        const first = f.script('foo.sql').latestQueryId!;
-        expect(f.core.store.get('computation', first) ?? null).not.toBeNull();
-        // The import of the next result waits until the run is stopped
-        let importing: () => void = () => { };
-        const imported = new Promise<void>(resolve => { importing = resolve; });
-        let release: () => void = () => { };
-        const released = new Promise<void>(resolve => { release = resolve; });
-        const connect = database!.connect.bind(database!);
-        vi.spyOn(database!, 'connect').mockImplementation(async (...args: Parameters<HyperDB['connect']>) => {
+    /// Hold the imports of the results of the analyses into the compute database until the test releases them
+    function holdImports(hyper: HyperDB) {
+        const importing = deferred();
+        const released = deferred();
+        const connect = hyper.connect.bind(hyper);
+        vi.spyOn(hyper, 'connect').mockImplementation(async (...args: Parameters<HyperDB['connect']>) => {
             const conn = await connect(...args);
             const insert = conn.insertArrowTable.bind(conn);
             conn.insertArrowTable = async (table, options) => {
-                importing();
-                await released;
+                importing.resolve();
+                await released.promise;
                 return await insert(table, options);
             };
             return conn;
         });
-        const second = f.run('foo.sql');
-        await imported;
-        f.core.module.stopRun(f.workbookId);
-        release();
-        await second;
+        return { importing: importing.promise, release: released.resolve };
+    }
+
+    /// The computation of a query as the runtime holds it now
+    const computationOf = (f: { core: TestRuntime }, queryId: number) => {
         f.core.flush();
+        return f.core.store.get('computation', queryId) ?? null;
+    };
+
+    it('is done before the analysis of the result of a script, which replaces the computation of the earlier result', async () => {
+        const f = await scripts([['foo.sql', 'select 1 as a;']]);
+        expect((await f.run('foo.sql')).outcome.failure).toBeNull();
+        const first = f.script('foo.sql').latestQueryId!;
+        await vi.waitFor(() => expect(computationOf(f, first)?.rowNumberColumnName ?? null).not.toBeNull());
+        // The import of the next result waits, the run doesn't
+        const imports = holdImports(database!);
+        expect((await f.run('foo.sql')).outcome.failure).toBeNull();
+        await imports.importing;
         const latest = f.script('foo.sql').latestQueryId!;
         expect(latest).not.toBe(first);
-        expect(queryView(f.core, latest)?.status).toBe(QueryExecutionStatus.CANCELLED);
-        expect(f.core.store.get('computation', latest) ?? null).toBeNull();
-        expect(f.core.store.get('computation', first) ?? null).not.toBeNull();
-        expect(queryView(f.core, first)?.resultTable).not.toBeNull();
+        expect(queryView(f.core, latest)?.status).toBe(QueryExecutionStatus.SUCCEEDED);
+        expect(f.core.table(queryView(f.core, latest)?.resultTable?.id)?.numRows).toBe(1);
+        // The computation of the result is there with the result as its table, the earlier one went with its result
+        expect(computationOf(f, latest)).not.toBeNull();
+        expect(computationOf(f, latest)?.rowNumberColumnName ?? null).toBeNull();
+        expect(computationOf(f, first)).toBeNull();
+        imports.release();
+        await vi.waitFor(() => expect(computationOf(f, latest)?.rowNumberColumnName ?? null).not.toBeNull());
+    });
+
+    it('stops the analyses of the results of a run that is stopped, the results keep their computations', async () => {
+        const f = await scripts([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select 2 as b;']]);
+        // The statement of bar streams until the run stops it
+        const answer = f.executeQuery.getMockImplementation()!;
+        f.executeQuery.mockImplementation(async (query: string) => {
+            if (!query.includes('select 2')) return await answer(query);
+            f.statements.push(query);
+            return {
+                getMetrics: createQueryResponseStreamMetrics,
+                getSchema: async () => null,
+                read: (abort?: AbortSignal) => ({
+                    [Symbol.asyncIterator]: () => ({
+                        next: () => new Promise<never>((_resolve, reject) => abort?.addEventListener('abort', () => reject(new DOMException('Query was cancelled', 'AbortError')))),
+                    }),
+                }),
+            } satisfies QueryExecutionResponseStream;
+        });
+        const imports = holdImports(database!);
+        const run = f.core.runWorkbook(f.workbookId);
+        await imports.importing;
+        await vi.waitFor(() => expect(f.statements.some(text => text.includes('select 2'))).toBe(true));
+        f.core.module.stopRun(f.workbookId);
+        imports.release();
+        expect((await run).outcome.failure).not.toBeNull();
+        const foo = f.script('foo.sql').latestQueryId!;
+        expect(queryView(f.core, foo)?.status).toBe(QueryExecutionStatus.SUCCEEDED);
+        await settle();
+        await settle();
+        // The analysis stopped with the import, the result keeps its computation without a data frame
+        expect(computationOf(f, foo)).not.toBeNull();
+        expect(computationOf(f, foo)?.dataFrame ?? null).toBeNull();
     });
 
     it('refuses a run of a script while a run holds the workbook', async () => {

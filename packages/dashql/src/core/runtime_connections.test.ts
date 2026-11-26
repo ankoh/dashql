@@ -442,7 +442,7 @@ describe('The queries of the runtime', () => {
         const outcome = await ticket.done;
         expect(outcome).toMatchObject({ status: 'resolved', hasResult: true });
         expect(resultTable(outcome).numRows).toBe(2);
-        expect(events).toContain('resultsReady');
+        expect(events).toContain('timing');
         expect(platform.requests[0].headers).toContainEqual(['X-Trino-User', 'u']);
         const connection = viewOf(runtime, 'connection', 'trino')!;
         expect(connection.queriesFinishedOrdered).toEqual([...before.queriesFinishedOrdered, ticket.queryId]);

@@ -24,7 +24,9 @@ order conflicting accesses. The run (`workbook_run`) executes that graph for a r
 A run is an async task on a `RunHost`. It analyzes the scripts on the workbook, plans them, serves the stored results of the
 workbook, plans again with their files and runs the nodes: a node starts when its predecessors released
 it, at most a number of statements of a connection run at once, a failed statement fails its script and blocks the
-nodes that follow it while the other scripts run on. The run
+nodes that follow it while the other scripts run on. A statement is done once its result is there, the analysis of
+the result (the computation of the data table, the column summaries and the cross filters) runs on after it and holds
+up neither the run nor its other statements; a Stop of the run stops the analyses that still run. The run
 registers the queries, the results and the visualizations of the scripts on the workbook. See
 `docs/design/dashql_core.md`, Runs of workbooks.
 

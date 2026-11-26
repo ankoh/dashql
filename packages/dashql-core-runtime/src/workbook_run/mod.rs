@@ -7,7 +7,9 @@
 //! the plan across their connections: a node starts once its predecessors are done, at most a number of statements
 //! of a connection run at once. The statements run through the host, which hands them to the query executor and keeps
 //! the result tables. The run registers the queries and the results of the scripts on the workbook and captures the
-//! visualization of every output, the host learns that the workbook changed. A failed statement cancels the running
+//! visualization of every output, the host learns that the workbook changed. A statement is done once its result is
+//! there: the analysis of the result runs on after it and holds up neither the statements that follow it nor the end
+//! of the run, a Stop of the run stops the analyses of its results that still run. A failed statement cancels the running
 //! ones, the run settles once they are done and then releases its files: the stored files it kept and the pins of the
 //! files it scans and writes, then it removes its transient files (docs/design/workbook_results.md).
 
@@ -95,10 +97,8 @@ impl std::fmt::Debug for StatementFailure {
 pub struct StatementHandle {
     /// The query of the statement
     pub query_id: QueryId,
-    /// Completes once the result arrived, before its analysis, at the latest when the statement succeeded. A statement
-    /// that fails may never complete it.
-    pub ready: LocalFuture<()>,
-    /// Completes when the statement ended: does it have a result?
+    /// Completes when the statement ended, once its result is there: does it have a result? The analysis of the
+    /// result runs on after it, a cancel of the query stops it.
     pub done: LocalFuture<Result<bool, StatementFailure>>,
 }
 
@@ -115,7 +115,7 @@ pub struct RetainedFile {
 pub trait RunHost: Host {
     /// Run a statement on its connection
     fn execute(&self, request: StatementRequest) -> Result<StatementHandle, StatementFailure>;
-    /// Cancel a statement, completes once it is cancelled
+    /// Cancel a statement, completes once it is cancelled. A statement that ended stops the analysis of its result.
     fn cancel(&self, connection_id: &str, query_id: QueryId) -> impl Future<Output = ()> + 'static;
 
     /// Can the statements of a connection run? The scripts of one that can't use their stored results whatever their

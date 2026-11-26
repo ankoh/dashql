@@ -46,6 +46,8 @@ struct Control {
     finished: Cell<bool>,
     /// The queries that run
     active: RefCell<BTreeMap<QueryId, ActiveQuery>>,
+    /// The queries that ended with a result to analyze, by connection: their analyses may still run, a Stop stops them
+    analyzed: RefCell<Vec<(String, QueryId)>>,
     /// Wakes the run, it waits for a statement or a task
     waker: RefCell<Option<Sender<()>>>,
     /// Was the run woken while it didn't wait?
@@ -221,6 +223,7 @@ impl<H: RunHost> RunHandle<H> {
         }
         run.emit(|state| state.phase = RunPhase::Stopping);
         run.cancel_active();
+        run.stop_analyses();
         run.control.wake();
     }
 }
@@ -245,6 +248,7 @@ pub fn start_run<H: RunHost>(
         cancelled: Cell::new(false),
         finished: Cell::new(false),
         active: RefCell::new(BTreeMap::new()),
+        analyzed: RefCell::new(Vec::new()),
         waker: RefCell::new(None),
         woken: Cell::new(false),
         pending: Cell::new(0),
@@ -477,6 +481,19 @@ impl<H: RunHost> Run<H> {
         for (connection_id, query_id) in cancels {
             let cancel = self.host.cancel(&connection_id, query_id);
             self.spawn(cancel);
+        }
+    }
+
+    /// A query of the run ended with a result whose analysis may still run
+    fn analyzes(&self, connection_id: &str, query_id: QueryId) {
+        self.control.analyzed.borrow_mut().push((connection_id.to_string(), query_id));
+    }
+
+    /// Stop the analyses of the results of the run that still run, the run doesn't wait for them
+    fn stop_analyses(&self) {
+        let analyzed = std::mem::take(&mut *self.control.analyzed.borrow_mut());
+        for (connection_id, query_id) in analyzed {
+            self.host.spawn(Box::pin(self.host.cancel(&connection_id, query_id)));
         }
     }
 
@@ -1281,7 +1298,12 @@ impl<H: RunHost> Run<H> {
         let served = handle.done.await;
         self.control.active.borrow_mut().remove(&query_id);
         let has_result = match served {
-            Ok(has_result) => has_result,
+            Ok(has_result) => {
+                if has_result && self.options.analyze {
+                    self.analyzes(self.connection_of(script), query_id);
+                }
+                has_result
+            }
             Err(failure) if !failure.cache_miss => {
                 // The script shows the error of the query
                 self.finished.borrow_mut().insert(script);
@@ -1482,8 +1504,8 @@ impl<H: RunHost> Run<H> {
             }
             self.cancel_active();
         }
-        // The running statements are done before the files of the run are released. A statement that was released
-        // early, e.g. once its result arrived, may still fail.
+        // The running statements are done before the files of the run are released, the analyses of their results
+        // don't hold the run
         self.settle().await;
         let failure = self.with_schedule(|schedule| schedule.failure.clone()).flatten();
         if failure.is_some() || self.control.cancelled.get() {
@@ -1692,6 +1714,7 @@ impl<H: RunHost> Run<H> {
             result,
             planned: planned.clone(),
         };
+        let analyzes = request.analyze_results;
         self.launched.set(true);
         let handle = match self.host.execute(request) {
             Ok(handle) => handle,
@@ -1723,30 +1746,14 @@ impl<H: RunHost> Run<H> {
 
         let run = self.clone();
         let context = context.clone();
-        let mut ready = handle.ready;
-        let mut done = handle.done;
+        let done = handle.done;
         self.spawn(async move {
             let result: Result<bool, RunFailure> = async {
-                // The statements after it start once its result arrived, a materialized result must be written first
-                let end = if materialization.is_none() {
-                    let first = std::future::poll_fn(|cx| {
-                        if let Poll::Ready(end) = done.as_mut().poll(cx) {
-                            return Poll::Ready(Some(end));
-                        }
-                        ready.as_mut().poll(cx).map(|_| None)
-                    })
-                    .await;
-                    match first {
-                        Some(end) => end,
-                        None => {
-                            run.release(&context, index);
-                            done.await
-                        }
-                    }
-                } else {
-                    done.await
-                };
-                let has_result = end.map_err(RunFailure::from_statement)?;
+                // The statements after it start once its result is there, a materialized result must be written first
+                let has_result = done.await.map_err(RunFailure::from_statement)?;
+                if has_result && analyzes {
+                    run.analyzes(&connection_id, query_id);
+                }
                 if let Some(path) = &materialization {
                     // A failed or cancelled run writes no more files
                     if let Some(failure) = run.with_schedule(|schedule| schedule.failure.clone()).flatten() {

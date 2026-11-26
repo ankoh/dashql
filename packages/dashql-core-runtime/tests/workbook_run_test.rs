@@ -70,8 +70,8 @@ impl Executor {
 struct Statement {
     query_id: QueryId,
     request: StatementRequest,
-    /// Ends the statement in a gated test, its result is ready then too
-    done: Option<(Sender<()>, Sender<Result<bool, StatementFailure>>)>,
+    /// Ends the statement in a gated test
+    done: Option<Sender<Result<bool, StatementFailure>>>,
 }
 
 #[derive(Default)]
@@ -170,20 +170,12 @@ impl RunHost for FakeHost {
                 Ok(request.publish_results)
             };
             state.statements.push(Statement { query_id, request, done: None });
-            return Ok(StatementHandle {
-                query_id,
-                ready: Box::pin(std::future::ready(())),
-                done: Box::pin(std::future::ready(end)),
-            });
+            return Ok(StatementHandle { query_id, done: Box::pin(std::future::ready(end)) });
         }
         let (sender, receiver) = oneshot();
-        let (ready, readiness) = oneshot();
-        state.statements.push(Statement { query_id, request, done: Some((ready, sender)) });
+        state.statements.push(Statement { query_id, request, done: Some(sender) });
         Ok(StatementHandle {
             query_id,
-            ready: Box::pin(async move {
-                readiness.await;
-            }),
             done: Box::pin(async move { receiver.await.unwrap_or_else(|| Err(StatementFailure::new("dropped"))) }),
         })
     }
@@ -192,8 +184,7 @@ impl RunHost for FakeHost {
         let mut state = self.state.borrow_mut();
         state.calls.push(format!("cancel {query_id}"));
         let sender = state.statements.iter_mut().find(|s| s.query_id == query_id).and_then(|s| s.done.take());
-        if let Some((ready, sender)) = sender {
-            ready.send(());
+        if let Some(sender) = sender {
             sender.send(Err(StatementFailure::new("Query was cancelled")));
         }
         std::future::ready(())
@@ -437,8 +428,7 @@ impl Setup {
             .iter_mut()
             .find(|s| s.request.text.contains(text))
             .and_then(|s| s.done.take());
-        let (ready, done) = sender.expect("a running statement");
-        ready.send(());
+        let done = sender.expect("a running statement");
         done.send(end);
         self.executor.run_until_stalled();
     }
@@ -688,6 +678,39 @@ fn runs_one_statement_of_a_connection_at_a_time_and_stops_when_cancelled() {
     assert!(s.calls().contains(&cancel), "{:?}", s.calls());
     assert!(s.state.borrow().states.iter().any(|state| state.phase == RunPhase::Stopping));
     assert_eq!(s.last_state().phase, RunPhase::Cancelled);
+}
+
+#[test]
+fn a_stop_stops_the_analyses_of_the_results_of_the_run() {
+    let main = connection("main", false);
+    let workbook = workbook(&[("1_a.sql", "select 1", &main), ("2_b.sql", "select 2", &main)]);
+    let s = setup(false, None, 1);
+    let (handle, result) = s.start(&workbook, workbook_run());
+    // The first script is done once its result is there, the analysis of its result may still run
+    s.end("select 1", Ok(true));
+    assert_eq!(s.events("1_a.sql"), vec!["planned", "started", "done"]);
+    let first = format!("cancel {}", s.query_of("select 1"));
+    assert!(!s.calls().contains(&first), "{:?}", s.calls());
+    handle.cancel();
+    s.executor.run_until_stalled();
+    assert!(result.borrow().is_some());
+    // The stop cancels the running statement and the query of the result whose analysis may still run
+    let second = format!("cancel {}", s.query_of("select 2"));
+    assert!(s.calls().contains(&first) && s.calls().contains(&second), "{:?}", s.calls());
+}
+
+#[test]
+fn a_failed_run_leaves_the_analyses_of_its_results_alone() {
+    let main = connection("main", false);
+    let workbook = workbook(&[("1_a.sql", "select 1", &main), ("2_b.sql", "select 2", &main)]);
+    let s = setup(false, None, 1);
+    let (_handle, result) = s.start(&workbook, workbook_run());
+    s.end("select 1", Ok(true));
+    s.end("select 2", Err(StatementFailure::new("select 2 failed")));
+    let result = result.borrow_mut().take().expect("the run ended");
+    assert_eq!(result.failure.map(|f| f.kind), Some(RunFailureKind::Error));
+    let first = format!("cancel {}", s.query_of("select 1"));
+    assert!(!s.calls().contains(&first), "{:?}", s.calls());
 }
 
 #[test]

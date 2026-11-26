@@ -191,6 +191,8 @@ struct FakeHost {
     aborted: Rc<RefCell<Vec<String>>>,
     /// The tables that the reads of the cache handed to the runs, by query
     cache_tables: Rc<RefCell<Vec<QueryId>>>,
+    /// The starts and the ends of the analyses: `start`, `end:ok`, `end:failed`, `end:cancelled`
+    analyses: Rc<RefCell<Vec<String>>>,
 }
 
 impl FakeHost {
@@ -202,6 +204,7 @@ impl FakeHost {
             server: RefCell::new(None),
             aborted: Rc::default(),
             cache_tables: Rc::default(),
+            analyses: Rc::default(),
         })
     }
 
@@ -335,15 +338,12 @@ fn event_name(event: &QueryEvent) -> Option<String> {
         QueryEvent::Progress(progress) => format!("progress:{}", progress.phase.clone().unwrap_or_default()),
         QueryEvent::ReceivedBatch(metrics) => format!("batch:{}", metrics.total_rows_received),
         QueryEvent::ReceivedAllBatches { rows, .. } => format!("all:{rows}"),
-        QueryEvent::ProcessingResults => "processing".into(),
-        QueryEvent::ProcessedResults => "processed".into(),
         QueryEvent::Succeeded => "succeeded".into(),
         QueryEvent::Failed { failure, .. } => format!("failed:{}", failure.message),
         QueryEvent::Cancelled { .. } => "cancelled".into(),
         QueryEvent::CacheRecorded { served_from_cache } => format!("cache:{served_from_cache}"),
         QueryEvent::TouchRelations => "touch".into(),
         QueryEvent::Timing { .. } => return None,
-        QueryEvent::ResultsReady => "ready".into(),
         QueryEvent::Log { .. } => return None,
     })
 }
@@ -480,18 +480,27 @@ impl ExecutorHost for FakeHost {
 
     fn analyze_result(&self, run: &Rc<FakeRun>) -> impl Future<Output = Result<(), HostError>> + 'static {
         let state = self.state.borrow();
+        // The analysis starts with the call
+        self.analyses.borrow_mut().push("start".into());
         let (fails, holds) = (state.analysis_fails, state.analysis_holds);
         let cancelled = run.token.cancelled();
+        let analyses = self.analyses.clone();
         async move {
-            if holds {
+            let end = if holds {
                 cancelled.await;
-                return Err(HostError::cancelled());
-            }
-            if fails {
+                Err(HostError::cancelled())
+            } else if fails {
                 Err(HostError::new("no compute"))
             } else {
                 Ok(())
-            }
+            };
+            let name = match &end {
+                Ok(()) => "end:ok",
+                Err(error) if error.is_cancelled() => "end:cancelled",
+                Err(_) => "end:failed",
+            };
+            analyses.borrow_mut().push(name.into());
+            end
         }
     }
 
@@ -740,7 +749,6 @@ fn trino_streams_the_pages_of_a_query() {
             "progress:FINISHED",
             "batch:3",
             "all:3",
-            "ready",
             "succeeded"
         ]
     );
@@ -1084,7 +1092,7 @@ fn hyper_reads_the_result_of_a_query_over_http() {
     let executor = QueryExecutor::new(host.clone());
     let outcome = run(&host, &executor, request(1, QueryTarget::HyperHttp { channel, auth }));
     assert_eq!(resolved(&outcome), Some(true));
-    assert_eq!(host.events(), ["sending", "running", "progress:", "batch:0", "all:3", "ready", "succeeded"]);
+    assert_eq!(host.events(), ["sending", "running", "progress:", "batch:0", "all:3", "succeeded"]);
     // The status of the query is the progress of the whole query
     let progress = host.state.borrow().progress.clone();
     let profile = progress[0].profile_progress.clone().unwrap();
@@ -1249,7 +1257,7 @@ fn a_channel_of_the_host_keeps_its_batches() {
     assert_eq!(resolved(&outcome), Some(true));
     assert_eq!(
         host.events(),
-        ["sending", "running", "progress:host", "batch:2", "batch:3", "all:3", "touch", "ready", "succeeded"]
+        ["sending", "running", "progress:host", "batch:2", "batch:3", "all:3", "touch", "succeeded"]
     );
     assert_eq!(host.state.borrow().channel_calls, ["open"]);
     // Nothing of the result crossed
@@ -1269,7 +1277,7 @@ fn a_statement_without_published_results_is_drained() {
     let mut query = request(1, QueryTarget::Host);
     query.publish_results = false;
     assert_eq!(resolved(&run(&host, &executor, query)), Some(false));
-    assert_eq!(host.events(), ["sending", "running", "ready", "succeeded"]);
+    assert_eq!(host.events(), ["sending", "running", "succeeded"]);
 }
 
 #[test]
@@ -1278,7 +1286,7 @@ fn a_channel_without_a_result_succeeds_without_a_table() {
     host.state.borrow_mut().channel_stream = false;
     let executor = QueryExecutor::new(host.clone());
     assert_eq!(resolved(&run(&host, &executor, request(1, QueryTarget::Host))), Some(false));
-    assert_eq!(host.events(), ["sending", "ready", "succeeded"]);
+    assert_eq!(host.events(), ["sending", "succeeded"]);
     assert!(host.log_messages().contains(&"Query returned no results".to_string()));
 }
 
@@ -1403,7 +1411,28 @@ fn a_cancel_that_races_the_end_of_a_query_ends_it_once() {
 }
 
 #[test]
-fn a_failed_analysis_fails_the_query_and_rejects() {
+fn a_query_succeeds_before_the_analysis_of_its_result() {
+    let host = FakeHost::new();
+    {
+        let mut state = host.state.borrow_mut();
+        state.analysis_holds = true;
+        state.channel.push_back(Ok(ChannelMessage::Batch { metrics: metrics(1) }));
+        state.channel.push_back(Ok(ChannelMessage::End { metrics: metrics(1) }));
+    }
+    let executor = QueryExecutor::new(host.clone());
+    let mut query = request(1, QueryTarget::Host);
+    query.analyze_results = true;
+    query.result = stored("k");
+    let outcome = run(&host, &executor, query);
+    // The analysis started before the query succeeded and still runs, the result is stored
+    assert_eq!(resolved(&outcome), Some(true));
+    assert_eq!(host.events(), ["sending", "running", "batch:1", "all:1", "succeeded", "cache:false"]);
+    assert_eq!(*host.analyses.borrow(), ["start"]);
+    assert_eq!(host.state.borrow().cache_calls, ["write:a.sql:k"]);
+}
+
+#[test]
+fn a_failed_analysis_leaves_the_query_and_its_result_alone() {
     let host = FakeHost::new();
     {
         let mut state = host.state.borrow_mut();
@@ -1415,19 +1444,16 @@ fn a_failed_analysis_fails_the_query_and_rejects() {
     let mut query = request(1, QueryTarget::Host);
     query.analyze_results = true;
     query.result = stored("k");
-    let QueryOutcome::Rejected(failure) = run(&host, &executor, query) else { panic!("expected a rejection") };
-    assert_eq!(failure.kind, FailureKind::Processing);
+    let outcome = run(&host, &executor, query);
     host.advance(0);
-    // The result is fine, it is stored all the same
-    assert_eq!(
-        host.events(),
-        ["sending", "running", "batch:1", "all:1", "ready", "processing", "failed:no compute", "cache:false"]
-    );
+    assert_eq!(resolved(&outcome), Some(true));
+    assert_eq!(host.events(), ["sending", "running", "batch:1", "all:1", "succeeded", "cache:false"]);
+    assert_eq!(*host.analyses.borrow(), ["start", "end:failed"]);
     assert_eq!(host.state.borrow().cache_calls, ["write:a.sql:k"]);
 }
 
 #[test]
-fn a_cancel_during_the_analysis_cancels_the_query_and_writes_no_result() {
+fn a_cancel_after_the_query_stops_the_analysis_of_its_result() {
     let host = FakeHost::new();
     {
         let mut state = host.state.borrow_mut();
@@ -1437,17 +1463,26 @@ fn a_cancel_during_the_analysis_cancels_the_query_and_writes_no_result() {
     let executor = QueryExecutor::new(host.clone());
     let mut query = request(1, QueryTarget::Host);
     query.analyze_results = true;
-    query.result = stored("k");
-    let run = query.run.clone();
-    let outcome = start(&host, &executor, query);
+    let run_of_query = query.run.clone();
+    let outcome = run(&host, &executor, query);
+    assert_eq!(resolved(&outcome), Some(true));
+    run_of_query.token.cancel();
     host.advance(0);
-    assert!(outcome.borrow().is_none());
-    assert_eq!(host.events().last().map(String::as_str), Some("processing"));
-    run.token.cancel();
-    host.advance(0);
-    assert_eq!(resolved(outcome.borrow().as_ref().unwrap()), Some(false));
-    assert_eq!(host.events().last().map(String::as_str), Some("cancelled"));
-    assert!(host.state.borrow().cache_calls.is_empty());
+    // The query stays succeeded
+    assert_eq!(host.events().last().map(String::as_str), Some("succeeded"));
+    assert_eq!(*host.analyses.borrow(), ["start", "end:cancelled"]);
+}
+
+#[test]
+fn a_query_without_a_result_is_not_analyzed() {
+    let host = FakeHost::new();
+    host.state.borrow_mut().channel_stream = false;
+    let executor = QueryExecutor::new(host.clone());
+    let mut query = request(1, QueryTarget::Host);
+    query.analyze_results = true;
+    let outcome = run(&host, &executor, query);
+    assert_eq!(resolved(&outcome), Some(false));
+    assert!(host.analyses.borrow().is_empty());
 }
 
 // The stored results of the scripts
@@ -1480,7 +1515,7 @@ fn a_stored_result_is_read_without_the_backend() {
     query.touches_relations = true;
     assert_eq!(resolved(&run(&host, &executor, query)), Some(true));
     // A read touches no relations and writes nothing
-    assert_eq!(host.events(), ["all:1", "cache:true", "ready", "succeeded"]);
+    assert_eq!(host.events(), ["all:1", "cache:true", "succeeded"]);
     assert_eq!(host.state.borrow().cache_calls, ["read:a.parquet"]);
     assert!(host.state.borrow().channel_calls.is_empty());
 }

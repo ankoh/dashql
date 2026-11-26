@@ -212,7 +212,6 @@ pub enum QueryRunFailureKind {
     Error,
     Cancelled,
     CacheMiss,
-    Processing,
 }
 
 /// The failure of a query, `hostValue` tells whether `value` of the outcome is what the host failed with
@@ -234,7 +233,6 @@ impl From<&QueryFailure> for QueryRunFailure {
                 FailureKind::Error => QueryRunFailureKind::Error,
                 FailureKind::Cancelled => QueryRunFailureKind::Cancelled,
                 FailureKind::CacheMiss => QueryRunFailureKind::CacheMiss,
-                FailureKind::Processing => QueryRunFailureKind::Processing,
             },
             message: failure.message.clone(),
             details: failure.details.iter().cloned().collect(),
@@ -244,12 +242,11 @@ impl From<&QueryFailure> for QueryRunFailure {
     }
 }
 
-/// What the caller of a query hears while it runs: the timings and the result before its analysis
+/// What the caller of a query hears while it runs: the timings of its steps
 #[derive(Serialize, Tsify)]
 #[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum QueryCallerEvent {
     Timing { label: String, elapsed_ms: f64 },
-    ResultsReady,
 }
 
 /// A query that the runtime describes before the executor runs it: its connection, the text and the metadata of the
@@ -305,14 +302,12 @@ pub(crate) struct QueryRun {
     platform: JsPlatform,
 }
 
-/// What the caller of a query hears, apart from what the platform keeps: the timings and the result before its
-/// analysis, and the end of the query for those who wait for it
+/// What the caller of a query hears, apart from what the platform keeps: the timings and the end of the query for
+/// those who wait for it
 #[derive(Default)]
 struct QueryCaller {
-    /// The events of the caller: the timings and the result before its analysis
+    /// The events of the caller: the timings
     events: Option<Function>,
-    /// Hears that the result arrived, before its analysis: a statement of a run of a workbook
-    ready: RefCell<Option<Sender<()>>>,
     /// Hear that the query ended, e.g. a cancel
     ended: RefCell<Vec<Sender<()>>>,
 }
@@ -589,13 +584,11 @@ impl Connections {
                 }
                 return;
             }
-            QueryEvent::ProcessingResults => QueryExecutionAction::QueryProcessingResults { query_id, now },
-            QueryEvent::ProcessedResults => QueryExecutionAction::QueryProcessedResults { query_id, now },
             QueryEvent::Succeeded => QueryExecutionAction::QuerySucceeded { query_id, now },
             QueryEvent::Failed { failure, metrics } => {
-                // The preset failure and a failed analysis are logged already. The failed run shows the error inline, the
-                // log keeps it as a warning.
-                if !run.preset_failure && failure.kind != FailureKind::Processing {
+                // The preset failure is logged already. The failed run shows the error inline, the log keeps it as a
+                // warning.
+                if !run.preset_failure {
                     let mut details = failure.details.clone();
                     details.push(("queryId".into(), query_id.to_string()));
                     self.log_query(run, LogLevel::Warn, &failure.message, &details, &failure.target);
@@ -603,9 +596,6 @@ impl Connections {
                 QueryExecutionAction::QueryFailed { query_id, error: query_error(&failure), metrics, now }
             }
             QueryEvent::Cancelled { failure, metrics } => {
-                // A query that was cancelled while its result was analyzed keeps no computation, the history lets go of
-                // its result
-                self.delete_computation_of(query_id);
                 QueryExecutionAction::QueryCancelled { query_id, error: query_error(&failure), metrics, now }
             }
             QueryEvent::CacheRecorded { served_from_cache } => {
@@ -636,14 +626,6 @@ impl Connections {
                 run.notify(&QueryCallerEvent::Timing { label: label.to_string(), elapsed_ms });
                 return;
             }
-            QueryEvent::ResultsReady => {
-                let ready = run.caller.ready.borrow_mut().take();
-                if let Some(ready) = ready {
-                    ready.send(());
-                }
-                run.notify(&QueryCallerEvent::ResultsReady);
-                return;
-            }
             QueryEvent::Log { level, message, details, target } => {
                 self.log_query(run, level, &message, &details, &target);
                 return;
@@ -667,73 +649,81 @@ impl Connections {
         }
     }
 
-    /// Analyze the result of a query on the computations. The history decides which result of an owner is the latest
-    /// once the query succeeded, the computations of the results that it supersedes go then. A cancel stops the
-    /// analysis: the new computation goes and the earlier result of the owner keeps its computation.
+    /// Analyze the result of a query on the computations, see `ExecutorHost::analyze_result`. The call starts the
+    /// computation of the result, the future runs the analysis. The history decides which result of an owner is the
+    /// latest once the query succeeded, the computations of the results that it supersedes go then, which stops their
+    /// analyses. A cancel of the query stops the analysis, the computation stays with what it computed, so does one
+    /// whose analysis failed.
     fn analyze(self: &Rc<Self>, run: &Rc<QueryRun>) -> impl Future<Output = Result<(), HostError>> + 'static {
-        let connections = self.clone();
-        let run = run.clone();
+        let started = self.start_analysis(run);
         async move {
-            let query_id = run.query_id;
-            let token = run.token.clone();
-            let Some(table) = run.result() else {
-                return Ok(());
-            };
-            // The analysis computes on the compute database, a query without one has nothing to analyze
-            if !connections.platform.has_compute() {
-                return Ok(());
+            match started? {
+                Some(analysis) => analysis.await,
+                None => Ok(()),
             }
-            if token.is_cancelled() {
-                return Err(HostError::cancelled());
+        }
+    }
+
+    /// Start the analysis of the result of a query, none for a query without a result to analyze
+    fn start_analysis(
+        self: &Rc<Self>,
+        run: &Rc<QueryRun>,
+    ) -> Result<Option<impl Future<Output = Result<(), HostError>> + 'static>, HostError> {
+        let query_id = run.query_id;
+        let token = run.token.clone();
+        let Some(table) = run.result() else {
+            return Ok(None);
+        };
+        // The analysis computes on the compute database, a query without one has nothing to analyze
+        if !self.platform.has_compute() {
+            return Ok(None);
+        }
+        if token.is_cancelled() {
+            return Err(HostError::cancelled());
+        }
+        // The module reads the rows and the schema of the result, its data stays with the host
+        let shape = self.platform.describe_table(table)?;
+        if shape.schema.fields().is_empty() {
+            return Ok(None);
+        }
+        let table = self.platform.duplicate(table)?;
+        let lifetime = match self.platform.register(&lifetime_token()) {
+            Ok(lifetime) => lifetime,
+            Err(error) => {
+                self.release_table(table);
+                return Err(error);
             }
-            // The module reads the rows and the schema of the result, its data stays with the host
-            let shape = connections.platform.describe_table(table)?;
-            if shape.schema.fields().is_empty() {
-                return Ok(());
-            }
-            let table = connections.platform.duplicate(table)?;
-            let lifetime = match connections.platform.register(&lifetime_token()) {
-                Ok(lifetime) => lifetime,
-                Err(error) => {
-                    connections.release_table(table);
-                    return Err(error);
+        };
+        let handles = AnalysisHandles { table, lifetime };
+        let connection_id = Some(run.connection_id.clone());
+        let analysis = self.computations.analyze_table(
+            query_id,
+            shape,
+            handles,
+            connection_id,
+            None,
+            RuntimeAnalyzeOptions::default(),
+        );
+        // A cancel of the query stops the analysis
+        let analyzed = CancellationToken::new();
+        {
+            let connections = self.clone();
+            let analyzed = analyzed.clone();
+            let token = token.clone();
+            self.platform.spawn(Box::pin(async move {
+                if analyzed.run(token.cancelled()).await.is_some() {
+                    connections.computations.stop_analysis(query_id);
                 }
-            };
-            let handles = AnalysisHandles { table, lifetime };
-            let connection_id = Some(run.connection_id.clone());
-            let analysis = connections.computations.analyze_table(
-                query_id,
-                shape,
-                handles,
-                connection_id,
-                None,
-                RuntimeAnalyzeOptions::default(),
-            );
-            // A cancel deletes the computation, which cancels the runs of the analysis
-            let analyzed = CancellationToken::new();
-            {
-                let connections = connections.clone();
-                let analyzed = analyzed.clone();
-                let token = token.clone();
-                connections.platform.clone().spawn(Box::pin(async move {
-                    if analyzed.run(token.cancelled()).await.is_some() {
-                        connections.delete_computation_of(query_id);
-                    }
-                }));
-            }
+            }));
+        }
+        Ok(Some(async move {
             let outcome = analysis.await;
             analyzed.cancel();
             if token.is_cancelled() {
-                connections.delete_computation_of(query_id);
                 return Err(HostError::cancelled());
             }
-            if let Err(error) = outcome {
-                // The previous result of the owner stays
-                connections.delete_computation_of(query_id);
-                return Err(HostError::new(error.what().to_string()));
-            }
-            Ok(())
-        }
+            outcome.map_err(|error| HostError::new(error.what().to_string()))
+        }))
     }
 }
 
@@ -1243,13 +1233,12 @@ impl Connections {
 
     /// Run a statement of a run of a workbook on its connection. It is a query of the history of the connection, the
     /// platform describes where it runs with the options of the statement (`queries.describe`): its stored result, whether it
-    /// publishes and analyzes its result, a call of a client function. Returns its id, a future that completes once
-    /// its result arrived and a future of its end: whether it has a result, or its failure. A statement that fails may
-    /// never complete the first.
+    /// publishes and analyzes its result, a call of a client function. Returns its id and a future of its end, once its
+    /// result is there: whether it has a result, or its failure. The analysis of the result runs on after it.
     pub(crate) fn run_statement(
         self: &Rc<Self>,
         statement: Statement,
-    ) -> (QueryId, LocalFuture<()>, LocalFuture<Result<bool, QueryFailure>>) {
+    ) -> (QueryId, LocalFuture<Result<bool, QueryFailure>>) {
         let connection_id = statement.connection_id.as_str();
         let query_id = self.registry.borrow_mut().next_query_id();
         let description = QueryDescription {
@@ -1278,12 +1267,10 @@ impl Connections {
                 FailureKind::Error,
                 format!("Couldn't find a connection with id {connection_id}: {}", error.what()),
             );
-            return (query_id, Box::pin(std::future::pending()), Box::pin(std::future::ready(Err(failure))));
+            return (query_id, Box::pin(std::future::ready(Err(failure))));
         }
-        let (ready_sender, ready) = oneshot();
-        let run = QueryRun::new(query_id, connection_id, &statement.text, log_details, false, &self.platform);
-        *run.caller.ready.borrow_mut() = Some(ready_sender);
-        let run = self.adopt_run(run);
+        let run =
+            self.adopt_run(QueryRun::new(query_id, connection_id, &statement.text, log_details, false, &self.platform));
         // The statement runs in a task of its own to its end, a run that stops waiting cancels it
         let (sender, done) = oneshot();
         let connections = self.clone();
@@ -1295,14 +1282,8 @@ impl Connections {
                 QueryOutcome::Rejected(failure) => Err(failure),
             });
         }));
-        let ready = Box::pin(async move {
-            // A statement that ended without its result never releases what follows it early
-            if ready.await.is_none() {
-                std::future::pending::<()>().await;
-            }
-        });
         let done = Box::pin(async move { done.await.unwrap_or_else(|| Err(QueryFailure::cancelled())) });
-        (query_id, ready, done)
+        (query_id, done)
     }
 
     /// Cancel a query right away: the token of its run is cancelled and the query stops wherever it is, a channel of
