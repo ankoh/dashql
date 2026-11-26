@@ -188,7 +188,8 @@ refresh them from `browser_test_summary.json` in the test outputs when a file ge
 page tests (below) run next to them, half as many at once. A suite claims twelve cores (the `cpu:12` tag of
 `BROWSER_TEST_TAGS` in its `BUILD.bazel`), so two suites don't share a host with sixteen; Bazel runs it alone on a smaller
 host. A CI runner with four cores runs one page at a time, then the page tests one by one: two pages on four cores timed
-tests out.
+tests out. The Linux jobs of `build_trusted.yml` split the browsers, the fastbuild job runs the suites in Firefox and the
+release job in Chromium; the job of pull requests runs both.
 
 ```bash
 # Choose the number of pages

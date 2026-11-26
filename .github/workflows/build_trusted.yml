@@ -172,11 +172,14 @@ jobs:
             - name: Test Everything
               shell: bash
               run: |
+                # The browser suites run in Firefox here and in Chromium in the other Linux job, each run takes minutes
                 bazel test --config=fastbuild \
-                    //packages/... //tests/snapshots/... //tests/hyper/... //tests/trino/... //tools/... //extensions/... \
                     --build_tests_only \
                     --test_output=errors \
-                    --test_summary=detailed
+                    --test_summary=detailed \
+                    -- \
+                    //packages/... //tests/snapshots/... //tests/hyper/... //tests/trino/... //tools/... //extensions/... \
+                    -//packages/dashql-app:test_chromium -//packages/dashql/test/browser:test_chromium
 
     agent_integration:
         name: Agent Integration
@@ -278,11 +281,14 @@ jobs:
             - name: Test Web App
               shell: bash
               run: |
+                # The browser suites run in Chromium here and in Firefox in the other Linux job, each run takes minutes
                 bazel test --config=release \
-                    //packages/... //tests/snapshots/... //tests/hyper/... //tests/trino/... //tools/... //extensions/... \
                     --build_tests_only \
                     --test_output=errors \
-                    --test_summary=detailed
+                    --test_summary=detailed \
+                    -- \
+                    //packages/... //tests/snapshots/... //tests/hyper/... //tests/trino/... //tools/... //extensions/... \
+                    -//packages/dashql-app:test_firefox -//packages/dashql/test/browser:test_firefox
 
             # Kept as long as the npm and Electron packages: a deploy that waits for npm (deploy_gate in publish.yml)
             # can be re-run days later and takes everything from this run
