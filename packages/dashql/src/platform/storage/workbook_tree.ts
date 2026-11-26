@@ -1,6 +1,5 @@
 import type * as app_folder from '@akohn/dashql-jsonschema/app_folder.js';
 import type * as core from '../../core/index.js';
-import { readFileText } from '../opfs_root.js';
 
 // The workbook tree: the folders of the sidebar in `workbooktree/`, every directory a folder with a `dashql-folder.json`
 // that lists its workbooks. The core builds the tree of the folder files and decides how a change of its workbooks
@@ -135,7 +134,7 @@ export async function listWorkbookTreeDirectory(dir: FileSystemDirectoryHandle, 
         if (handle.kind === 'directory') {
             listed.directories.push(await listWorkbookTreeDirectory(handle as FileSystemDirectoryHandle, entry));
         } else if (entry === STORAGE_FOLDER_FILE) {
-            listed.folderFile = await readFileText(handle as FileSystemFileHandle);
+            listed.folderFile = await (await (handle as FileSystemFileHandle).getFile()).text();
         }
     }
     return listed;

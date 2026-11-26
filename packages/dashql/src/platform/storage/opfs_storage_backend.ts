@@ -3,7 +3,7 @@ import { type DataFile, type DataFileContent, type DeleteWorkbookFilesOptions, S
 import type * as core from '../../core/index.js';
 import { RESULTS_FOLDER } from '../workbook/workbook_result_files.js';
 import { sleep } from '../utils/sleep.js';
-import { getOPFSRoot, readFileText } from '../opfs_root.js';
+import { getOPFSRoot } from '../opfs_root.js';
 import { HYPER_CLOUDS_DIRECTORY } from '../hyperdb/hyperdb_opfs_instance.js';
 import {
     INITIAL_WORKBOOK_FOLDER,
@@ -147,8 +147,9 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
 
     async loadWorkbook(workbookId: string): Promise<WorkbookData> {
         const workbookDir = await this.getWorkbookDir(this.workbookRelPath(workbookId), false);
-        // A save of the workbook may rewrite the file while it is read
-        const text = await readFileText(await workbookDir.getFileHandle(STORAGE_WORKBOOK_FILE));
+        const metaFile = await workbookDir.getFileHandle(STORAGE_WORKBOOK_FILE);
+        const file = await metaFile.getFile();
+        const text = await file.text();
         const data: WorkbookData = JSON.parse(text);
 
         // workbookId is required - will throw if missing

@@ -35,17 +35,3 @@ export async function getOPFSRoot(): Promise<FileSystemDirectoryHandle> {
 export function hyperOPFSRoot(): string {
     return appFolder == null ? HYPER_OPFS_MOUNT : `${HYPER_OPFS_MOUNT}/${appFolder}`;
 }
-
-/// Read the text of a file. A snapshot of `getFile()` can't be read anymore once the file is rewritten, e.g. by a writer
-/// whose lock the reader doesn't take: WebKit fails with "Cannot load blob ... due to access control checks", Chromium
-/// with a NotReadableError. The read then takes a new snapshot, up to `attempts` times.
-export async function readFileText(handle: FileSystemFileHandle, attempts: number = 3): Promise<string> {
-    for (let attempt = 1; ; ++attempt) {
-        const file = await handle.getFile();
-        try {
-            return await file.text();
-        } catch (error) {
-            if (attempt >= attempts) throw error;
-        }
-    }
-}
