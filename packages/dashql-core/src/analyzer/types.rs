@@ -10,6 +10,7 @@ use dashql_buffers::parser::{
     AttributeKey, GroupByItemType, IntervalType as IntervalTypeEnum, KnownFunction, Node, NodeType, SymbolSpan,
 };
 use dashql_parser::span::TextSpan;
+use std::borrow::Borrow;
 use std::sync::Arc;
 
 /// An expression id (index into the expressions)
@@ -773,8 +774,8 @@ impl NameScope {
     }
 
     /// Is a FROM item inside one of some aliased joins?
-    pub fn is_hidden(ast: &[Node], source: &ScopeSource, joins: &[&ScopeJoin]) -> bool {
-        joins.iter().any(|join| is_within(ast, source.ast_node_id, join.ast_node_id))
+    pub fn is_hidden(ast: &[Node], source: &ScopeSource, joins: &[impl Borrow<ScopeJoin>]) -> bool {
+        joins.iter().any(|join| is_within(ast, source.ast_node_id, join.borrow().ast_node_id))
     }
 
     /// The FROM items that match a name from an AST node: those that the node sees and that no aliased join hides from
