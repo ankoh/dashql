@@ -115,6 +115,7 @@ async function testAppGreeter(page, navigate) {
     await page.getByTestId('workbook-row-menu').waitFor();
     await page.getByTestId('workbook-ephemeral-row').waitFor();
 
+    await waitForScriptWrite(page, 'select 42 as answer');
     await navigate();
     await scriptEditor(page, 'select 42 as answer').waitFor();
     if (pathnameOf(page) !== workbookPathname) throw new Error(`The reload left the workbook for ${page.url()}`);
