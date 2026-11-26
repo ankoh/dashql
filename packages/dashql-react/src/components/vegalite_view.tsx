@@ -304,8 +304,19 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
     if (!succeeded) {
         return <QueryStatusPlaceholder query={props.model?.query ?? null} />;
     }
+    if (!dataTable && !chartRows.reading) {
+        return <CardPlaceholder message="Result is empty" />;
+    }
+    // A remounted chart reads its rows again, its placeholder keeps the size of the chart. In the virtualized feed a
+    // collapsed placeholder would publish a smaller height of its row until the rows arrive.
     if (!dataTable) {
-        return chartRows.reading ? <CardPlaceholder /> : <CardPlaceholder message="Result is empty" />;
+        return (
+            <div className={props.className ?? styles.root}>
+                <div className={styles.chart} style={{ width: props.width, height: props.height }}>
+                    <CardPlaceholder />
+                </div>
+            </div>
+        );
     }
 
     // When scaling, the chart container is laid out at the enlarged logical size and shrunk with a
