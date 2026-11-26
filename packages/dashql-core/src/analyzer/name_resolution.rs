@@ -1567,7 +1567,10 @@ impl NameResolutionPass {
         loop {
             let Some(s) = state.out.scope(current) else { return false };
             let (Some(parent), false) = (s.parent_scope, s.column_correlation_barrier) else { return false };
-            match self.try_resolve_column_in_scope(state, expr, parent, s.parent_visibility) {
+            let Some(visibility) = state.out.scope(parent).map(|p| p.child_visibility(state.ast, s)) else {
+                return false;
+            };
+            match self.try_resolve_column_in_scope(state, expr, parent, visibility) {
                 Lookup::Resolved => return true,
                 Lookup::Ambiguous | Lookup::Bound => return false,
                 Lookup::Missing => current = parent,
@@ -1634,7 +1637,7 @@ impl NameResolutionPass {
                 return Some(source);
             }
             let (Some(parent), false) = (s.parent_scope, s.column_correlation_barrier) else { return None };
-            visibility = s.parent_visibility;
+            visibility = state.out.scope(parent)?.child_visibility(state.ast, s);
             current = parent;
         }
     }
@@ -1679,7 +1682,7 @@ impl NameResolutionPass {
                 }
             }
             let (Some(parent), false) = (s.parent_scope, s.column_correlation_barrier) else { return None };
-            visibility = s.parent_visibility;
+            visibility = state.out.scope(parent)?.child_visibility(state.ast, s);
             current = parent;
         }
     }
@@ -2613,7 +2616,7 @@ impl NameResolutionPass {
                 self.merge_child_states(node_state, node);
                 if let (Some(target), Some(using)) = (target, using) {
                     let (target, using) = (state.node_id(target), state.node_id(using));
-                    Self::hide_target_from_reads(state, node_state, target, using);
+                    Self::hide_target_from_reads(node_state, target, using);
                 }
                 let result_targets = std::mem::take(&mut node_state.result_targets);
                 let ctes = std::mem::take(&mut node_state.ctes);
@@ -2687,7 +2690,7 @@ impl NameResolutionPass {
                 let [join_type, using, on] =
                     attrs!(state.children(node), [K::SQL_JOIN_TYPE, K::SQL_JOIN_USING, K::SQL_JOIN_ON]);
                 if let Some(on) = on {
-                    Self::restrict_join_condition(state, node_state, node_id, state.node_id(on));
+                    Self::restrict_join_condition(node_state, node_id, state.node_id(on));
                 }
                 if let Some(using) = using.filter(|n| n.node_type() == NodeType::ARRAY) {
                     let mut columns = Vec::new();
@@ -2884,7 +2887,7 @@ impl NameResolutionPass {
         self.merge_child_states(node_state, node);
         if let (Some(target), Some(reads)) = (target, update_from.or(merge_source)) {
             let reads = state.node_id(reads);
-            Self::hide_target_from_reads(state, node_state, target, reads);
+            Self::hide_target_from_reads(node_state, target, reads);
         }
 
         // A WHEN NOT MATCHED [BY TARGET] clause of MERGE sees the source only, a WHEN NOT MATCHED BY SOURCE clause the
@@ -2897,15 +2900,7 @@ impl NameResolutionPass {
                 (Some(target), Some(MergeMatch::NOT_MATCHED_BY_SOURCE)) => SourceVisibility::Only(target),
                 _ => continue,
             };
-            let clause_id = state.node_id(clause);
-            restricted.push(ScopeClause { ast_node_id: clause_id, visibility });
-            for &child in &node_state.child_scopes {
-                if state.out.scope(child).is_some_and(|s| Self::is_within(state, s.ast_node_id, clause_id)) {
-                    if let Some(s) = state.out.scope_mut(child) {
-                        s.parent_visibility = visibility;
-                    }
-                }
-            }
+            restricted.push(ScopeClause { ast_node_id: state.node_id(clause), visibility });
         }
 
         // The written columns: the SET targets of UPDATE, the SET targets and the INSERT columns of the MERGE actions
@@ -2954,16 +2949,8 @@ impl NameResolutionPass {
 
     /// The `ON` condition of a join sees only the FROM items inside the join, also from its subqueries, as in
     /// PostgreSQL: `t join u on u.a = v.id, v` is an invalid reference to the FROM-clause entry v
-    fn restrict_join_condition(state: &mut AnalysisState, node_state: &mut NodeState, join: u32, on: u32) {
-        let visibility = SourceVisibility::Within(join);
-        for &child in &node_state.child_scopes {
-            if state.out.scope(child).is_some_and(|s| Self::is_within(state, s.ast_node_id, on)) {
-                if let Some(s) = state.out.scope_mut(child) {
-                    s.parent_visibility = visibility;
-                }
-            }
-        }
-        node_state.clauses.push(ScopeClause { ast_node_id: on, visibility });
+    fn restrict_join_condition(node_state: &mut NodeState, join: u32, on: u32) {
+        node_state.clauses.push(ScopeClause { ast_node_id: on, visibility: SourceVisibility::Within(join) });
     }
 
     /// The relations that UPDATE, DELETE and MERGE read, the FROM items of UPDATE, the USING items of DELETE and the
@@ -2971,19 +2958,8 @@ impl NameResolutionPass {
     /// joins nor the scopes in them, a function in FROM and a lateral derived table see the FROM items before them
     /// without the target. The condition of a join in them is a clause inside of the reads, it sees the FROM items
     /// inside of its join only, the target is none of them.
-    fn hide_target_from_reads(state: &mut AnalysisState, node_state: &mut NodeState, target: u32, reads: u32) {
+    fn hide_target_from_reads(node_state: &mut NodeState, target: u32, reads: u32) {
         node_state.clauses.push(ScopeClause { ast_node_id: reads, visibility: SourceVisibility::Except(target) });
-        for &child in &node_state.child_scopes {
-            let Some(s) = state.out.scope_mut(child) else { continue };
-            if !is_within(state.ast, s.ast_node_id, reads) {
-                continue;
-            }
-            s.parent_visibility = match s.parent_visibility {
-                SourceVisibility::All => SourceVisibility::Except(target),
-                SourceVisibility::Before(node_id) => SourceVisibility::BeforeExcept(node_id, target),
-                visibility => visibility,
-            };
-        }
     }
 
     /// ON CONFLICT of an INSERT: the columns of the conflict target and the SET targets of DO UPDATE are column refs that
@@ -3005,21 +2981,11 @@ impl NameResolutionPass {
         );
         // The column refs of DO UPDATE see `excluded`, the others of the INSERT don't
         let on_conflict_id = state.node_id(on_conflict);
-        let update: Vec<u32> = [assignments, where_clause].into_iter().flatten().map(|n| state.node_id(n)).collect();
-        let sees_excluded = |state: &AnalysisState, node: u32| update.iter().any(|&u| Self::is_within(state, node, u));
-        let hidden = SourceVisibility::Except(on_conflict_id);
         if assignments.is_some() {
+            let hidden = SourceVisibility::Except(on_conflict_id);
             node_state.clauses.push(ScopeClause { ast_node_id: insert, visibility: hidden });
-            let sees_all = |&u: &u32| ScopeClause { ast_node_id: u, visibility: SourceVisibility::All };
-            node_state.clauses.extend(update.iter().map(sees_all));
-        }
-        for &child in &node_state.child_scopes {
-            let Some(s) = state.out.scope(child) else { continue };
-            if !sees_excluded(state, s.ast_node_id) {
-                if let Some(s) = state.out.scope_mut(child) {
-                    s.parent_visibility = hidden;
-                }
-            }
+            let sees_all = |n: &Node| ScopeClause { ast_node_id: state.node_id(n), visibility: SourceVisibility::All };
+            node_state.clauses.extend([assignments, where_clause].into_iter().flatten().map(sees_all));
         }
 
         let mut columns: Vec<&Node> = Vec::new();

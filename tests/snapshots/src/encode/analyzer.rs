@@ -565,7 +565,10 @@ fn encode_name_scope(e: &Encoder, catalog: &Catalog, scope: &NameScope) -> Optio
     if let Some(parent) = scope.parent_scope {
         m.int("parent", parent as i64);
     }
-    if let Some(visibility) = visibility_name(scope.parent_visibility) {
+    // The FROM items of the parent that the scope sees, its kind restricted by the clause of the parent around it
+    let parent = scope.parent_scope.and_then(|p| e.script.scope(p));
+    let visibility = parent.map_or(scope.parent_visibility, |p| p.child_visibility(&e.script.parsed.nodes, scope));
+    if let Some(visibility) = visibility_name(visibility) {
         m.plain("parent-sources", visibility);
     }
     if scope.column_correlation_barrier {

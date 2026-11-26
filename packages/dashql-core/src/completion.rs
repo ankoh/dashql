@@ -1447,7 +1447,8 @@ impl<'c, 'a> Completion<'c, 'a> {
             if scope.column_correlation_barrier {
                 break;
             }
-            visibility = scope.parent_visibility;
+            let parent = scope.parent_scope.and_then(|p| analyzed.scope(p));
+            visibility = parent.map_or(scope.parent_visibility, |p| p.child_visibility(&analyzed.parsed.nodes, scope));
         }
         visible
     }

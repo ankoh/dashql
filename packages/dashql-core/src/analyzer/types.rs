@@ -706,7 +706,9 @@ pub struct NameScope {
     pub ctes_recursive: bool,
     /// Column refs cannot correlate with any parent scope
     pub column_correlation_barrier: bool,
-    /// The FROM items of the parent scope that the column refs of this scope can see
+    /// The FROM items of the parent scope that the column refs of this scope can see by the kind of the scope: all for a
+    /// subquery, those before it for a lateral FROM item, none for a derived table and a CTE. The clauses of the parent
+    /// restrict them further, see [`NameScope::child_visibility`].
     pub parent_visibility: SourceVisibility,
     /// The FROM items in FROM order
     pub sources: Vec<ScopeSource>,
@@ -741,6 +743,19 @@ impl NameScope {
             .filter(|clause| is_within(ast, node_id, clause.ast_node_id))
             .min_by_key(|clause| clause.ast_node_id);
         clause.map_or(SourceVisibility::All, |clause| clause.visibility)
+    }
+
+    /// The FROM items of the scope that a child scope sees: those of the clause around the child, of them only those
+    /// before a lateral FROM item and none for a derived table or a CTE (`parent_visibility` of the child). A lateral
+    /// FROM item of UPDATE, DELETE and MERGE sees those before it without the target.
+    pub fn child_visibility(&self, ast: &[Node], child: &NameScope) -> SourceVisibility {
+        match (child.parent_visibility, self.visibility_at(ast, child.ast_node_id)) {
+            (SourceVisibility::All, clause) => clause,
+            (SourceVisibility::Before(node_id), SourceVisibility::Except(target)) => {
+                SourceVisibility::BeforeExcept(node_id, target)
+            }
+            (rule, _) => rule,
+        }
     }
 
     /// The aliased joins that hide the FROM items inside them from an AST node: the outermost ones that don't contain

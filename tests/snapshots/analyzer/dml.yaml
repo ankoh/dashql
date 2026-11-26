@@ -520,7 +520,6 @@ analyzer-snapshots:
       name-scopes:
         - scope-id: 0
           parent: 1
-          parent-sources: except
           correlation-barrier: true
           columns:
             - {name: '?', expression: 3}
