@@ -528,12 +528,12 @@ results, and the catalog loader off.
   `hyperdb-wasm` mounts the root at `/mnt/fs` like OPFS. Instance folders are held by a pid file in Node
   (`node_instance_locks.ts`) and by a Web Lock in the browser. Where Node has no Web Locks, `node_locks.ts` stands in
   with locks of the process: a root that two processes use at once is not protected.
-- **The embedded Hyper in Node.** `hyperdb-wasm` is a wasm64 build with 64-bit memory, 64-bit tables and Wasm
-  exceptions with `exnref`. Node 24.15 and later run it without flags; earlier Node 24 releases need exnref, which
-  `checkWasmFeatures` of `@akohn/hyperdb-edge` enables with `v8.setFlagsFromString` before the engine compiles: a flag
-  on the command line would break approving the command by its prefix, and the worker of the engine gets the flag
-  too. Node 22 can't run it (V8 rejects the tables), nor can Bun or Safari
-  (JavaScriptCore has no memory64).
+- **The embedded Hyper in Node.** `hyperdb-wasm` is a wasm32 build with a shared 32-bit memory and Wasm exceptions
+  with `exnref`; up to 0.0.27499 it was a wasm64 build with 64-bit memory and tables, which JavaScriptCore can't run.
+  Node 24.15 and later run it without flags; earlier Node 24 releases need exnref, which `checkWasmFeatures` of
+  `@akohn/hyperdb-edge` enables with `v8.setFlagsFromString` before the engine compiles: a flag on the command line
+  would break approving the command by its prefix, and the worker of the engine gets the flag too. The package
+  requires Node 24 or later. Without memory64 the engine also runs in Safari, in a cross-origin-isolated page.
 
 ## The package on npm
 

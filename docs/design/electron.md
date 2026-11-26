@@ -1,9 +1,9 @@
 # Electron Host
 
 The desktop build of DashQL is an Electron app in `packages/dashql-native`. Electron ships Chromium, which
-runs HyperDB WASM: it supports WebAssembly Memory64, and its custom protocols can return the COOP and COEP
-headers of cross-origin isolation, which `SharedArrayBuffer`, shared Wasm memory and Wasm threads need. The
-tradeoff is distribution size and baseline memory use.
+runs HyperDB WASM: its custom protocols can return the COOP and COEP headers of cross-origin isolation, which
+`SharedArrayBuffer`, shared Wasm memory and Wasm threads need. The tradeoff is distribution size and baseline
+memory use.
 
 The renderer is the same web application as https://dashql.app. It stays unprivileged and reaches native
 capabilities only through a narrow preload bridge.
@@ -72,7 +72,7 @@ handler checks the sender frame against it.
 
 ## Embedded Database
 
-The embedded database is HyperDB WASM, as on the web. HyperDB requires Memory64, Wasm exceptions, Wasm
+The embedded database is HyperDB WASM, as on the web. HyperDB requires Wasm exceptions with `exnref`, Wasm
 pthreads (`SharedArrayBuffer` and a cross-origin-isolated page), a preallocated pthread worker pool, and
 WasmFS with OPFS. Capabilities are tested, not inferred from the Electron version:
 `//packages/dashql-native:startup_smoke_test` launches the app and waits for the startup result the app publishes

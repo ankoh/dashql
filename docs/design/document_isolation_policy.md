@@ -29,7 +29,7 @@ its process. A browser exposes the buffer only when nothing of another site can 
 | Chrome Android | announced for M146, including devices below 2 GB of RAM |
 | Android WebView | not planned, it has no process isolation |
 | Firefox | positive position (2026-08), not implemented in 159 |
-| Safari | portability concern resolved (2026-09), only the venue concern is left: DIP should move into Fetch and HTML; the engine is blocked there anyway, WebKit has no memory64 |
+| Safari | portability concern resolved (2026-09), only the venue concern is left: DIP should move into Fetch and HTML |
 
 DIP is proposed for Interop 2027. Sources: the
 [Chrome blog post](https://developer.chrome.com/blog/document-isolation-policy), the
@@ -51,11 +51,11 @@ Defined in `packages/dashql-app/_headers` and `packages/dashql-app/vite.config.t
 
 - At the top level nothing changes: COOP and COEP isolate the page in every browser, and DIP applies the same
   subresource rule as COEP, so nothing that loads today stops loading.
-- In an iframe of another site, Chromium isolates the page through DIP, and the engine starts. Firefox ignores the
-  header, so there the framed app stays without the engine, as before.
-- COOP and COEP stay. Without them Firefox would lose isolation at the top level, and choosing headers per browser
-  needs a Pages Function. The popup of the OAuth flow, which COOP separates from the app, already works through a
-  `BroadcastChannel` (see [oauth_salesforce.md](oauth_salesforce.md)).
+- In an iframe of another site, Chromium isolates the page through DIP, and the engine starts. Firefox and Safari
+  ignore the header, so there the framed app stays without the engine, as before.
+- COOP and COEP stay. Without them Firefox and Safari would lose isolation at the top level, and choosing headers per
+  browser needs a Pages Function. The popup of the OAuth flow, which COOP separates from the app, already works
+  through a `BroadcastChannel` (see [oauth_salesforce.md](oauth_salesforce.md)).
 - The Electron app keeps COOP and COEP only (`packages/dashql-native/src/app_protocol.ts`). Its pages are always
   top-level, no site embeds them.
 
