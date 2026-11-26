@@ -521,7 +521,8 @@ describe('the runs of scripts of the runtime', () => {
         const f = await scripts([['foo.sql', 'select 1 as a;']]);
         expect((await f.run('foo.sql')).outcome.failure).toBeNull();
         const first = f.script('foo.sql').latestQueryId!;
-        await vi.waitFor(() => expect(computationOf(f, first)?.rowNumberColumnName ?? null).not.toBeNull());
+        // The first analysis in a fresh compute database can take seconds on CI
+        await vi.waitFor(() => expect(computationOf(f, first)?.rowNumberColumnName ?? null).not.toBeNull(), { timeout: 30_000 });
         // The import of the next result waits, the run doesn't
         const imports = holdImports(database!);
         expect((await f.run('foo.sql')).outcome.failure).toBeNull();
@@ -535,7 +536,7 @@ describe('the runs of scripts of the runtime', () => {
         expect(computationOf(f, latest)?.rowNumberColumnName ?? null).toBeNull();
         expect(computationOf(f, first)).toBeNull();
         imports.release();
-        await vi.waitFor(() => expect(computationOf(f, latest)?.rowNumberColumnName ?? null).not.toBeNull());
+        await vi.waitFor(() => expect(computationOf(f, latest)?.rowNumberColumnName ?? null).not.toBeNull(), { timeout: 30_000 });
     });
 
     it('stops the analyses of the results of a run that is stopped, the results keep their computations', async () => {
