@@ -89,6 +89,28 @@ describe('DataTable', () => {
         expect(root.container.textContent).not.toContain('99990');
     });
 
+    it('shows placeholders in the cells of the rows that a read still loads', async () => {
+        const model = nameTable();
+        let resolve: () => void = () => {};
+        const loaded = new Promise<void>(done => { resolve = done; });
+        const read = model.readRows;
+        const readRows = vi.mocked(read).getMockImplementation()!;
+        vi.mocked(read).mockImplementationOnce(async (offset, limit) => {
+            await loaded;
+            return readRows(offset, limit);
+        });
+        await render(<DataTable model={model} columnHeader={TableColumnHeader.OnlyColumnName} fillHeight />);
+        await waitForRender(() => {
+            expect(root.container.querySelectorAll('[data-loading]').length).toBeGreaterThan(0);
+        });
+        expect(root.container.textContent).not.toContain('alpha');
+        act(() => resolve());
+        await waitForRender(() => {
+            expect(root.container.textContent).toContain('alpha');
+        });
+        expect(root.container.querySelector('[data-loading]')).toBeNull();
+    });
+
     it('shows why a read of the rows failed and reads them again on a click', async () => {
         const model = nameTable();
         const read = model.readRows;
@@ -101,6 +123,8 @@ describe('DataTable', () => {
         });
         const calls = vi.mocked(read).mock.calls.length;
         expect(root.container.textContent).not.toContain('alpha');
+        // The cells don't load any more
+        expect(root.container.querySelector('[data-loading]')).toBeNull();
         act(() => footerRow()!.click());
         await waitForRender(() => {
             expect(root.container.textContent).toContain('alpha');

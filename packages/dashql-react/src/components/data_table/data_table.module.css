@@ -327,3 +327,49 @@
     margin-left: 6px;
     text-transform: uppercase;
 }
+
+/* The value of a cell whose row a read still loads: a bar of a varied width that pulses. It shows after a moment, a read
+   that is quick replaces the cell before, and the grid doesn't flicker while it scrolls. The pulse changes only the
+   opacity, it runs on the compositor. The row numbers align their bar to the right like their numbers. */
+.data_cell_skeleton {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    align-items: center;
+    opacity: 0;
+    animation: data_cell_skeleton_appear 150ms ease-out 120ms forwards;
+}
+
+.row_header_cell .data_cell_skeleton {
+    justify-content: flex-end;
+}
+
+.data_cell_skeleton_bar {
+    display: block;
+    height: 8px;
+    max-width: 160px;
+    border-radius: 4px;
+    background-color: color-mix(in srgb, var(--color_fg) 11%, transparent);
+    animation: data_cell_skeleton_pulse 1600ms ease-in-out infinite;
+}
+
+@keyframes data_cell_skeleton_appear {
+    to { opacity: 1; }
+}
+
+@keyframes data_cell_skeleton_pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .data_cell_skeleton {
+        animation: none;
+        opacity: 1;
+    }
+
+    .data_cell_skeleton_bar {
+        animation: none;
+    }
+}

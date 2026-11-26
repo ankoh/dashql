@@ -293,10 +293,12 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
         rightmostVisibleColumn: gridLayout.columnCount - 1,
         matchingRows,
         searchColumnIndexByGroup,
+        rowsFailed: rowsError != null,
     }), [
         // Data dependencies that legitimately require cell re-renders
         computationState.columnGroups,
         rowWindow,
+        rowsError,
         gridLayout,
         matchingRows,
         searchColumnIndexByGroup,

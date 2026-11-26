@@ -29,14 +29,24 @@ export interface DataCellData {
     focus: DataTableFocusStore;
     gridLayout: DataTableLayout;
     hideRowHeader: boolean;
-    /// The rows that the grid read, a row outside of it renders empty until the next window holds it
+    /// The rows that the grid read, a row outside of it renders a placeholder until the next window holds it
     window: DataTableWindow | null;
+    /// Did the read of the rendered rows fail? Their cells stay empty instead of loading, the grid says why.
+    rowsFailed: boolean;
     rightmostVisibleColumn: number;
     matchingRows: ReadonlyMap<number, number[]> | null;
     searchColumnIndexByGroup: ReadonlyMap<number, number>;
     onMouseEnter: (event: React.PointerEvent<HTMLDivElement>) => void;
     onMouseLeave: (event: React.PointerEvent<HTMLDivElement>) => void;
     onClick: (event: React.MouseEvent<HTMLDivElement>) => void;
+}
+
+/// The period of the pulse of a loading cell in milliseconds, the period of `data_cell_skeleton_pulse`
+const SKELETON_PULSE_MS = 1600;
+
+/// The width of the bar of a loading cell in percent of the cell, varied by row and column like text of varied length
+function skeletonWidth(row: number, column: number): number {
+    return 35 + ((row * 7 + column * 13) % 5) * 10;
 }
 
 export function DataCell(props: CellComponentProps<DataCellData>): React.ReactElement | null {
@@ -67,7 +77,8 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
         return null;
     }
 
-    // A row that the window doesn't hold yet
+    // A row that the window doesn't hold yet: a bar in place of the value while a read loads it. The pulses of the bars
+    // of all cells follow one clock, a cell that mounts later joins the pulse where the others are.
     if (!loaded) {
         return (
             <div
@@ -75,7 +86,20 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
                 style={props.style}
                 data-table-col={fieldId}
                 data-visible-row={props.rowIndex}
-            />
+                data-loading={props.rowsFailed ? undefined : 'true'}
+            >
+                {!props.rowsFailed && (
+                    <span className={styles.data_cell_skeleton}>
+                        <span
+                            className={styles.data_cell_skeleton_bar}
+                            style={{
+                                width: `${skeletonWidth(props.rowIndex, props.columnIndex)}%`,
+                                animationDelay: `${-(performance.now() % SKELETON_PULSE_MS)}ms`,
+                            }}
+                        />
+                    </span>
+                )}
+            </div>
         );
     }
     const isRowFocused = focus !== CellFocus.None;
