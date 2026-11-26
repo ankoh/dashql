@@ -122,12 +122,11 @@ describe("the agent host", () => {
     test("runs a question in the folder of the workbook, its agent calls the page, the next question resumes", async () => {
         const {root, host, page} = setup();
         let stopped = page.stopped();
-        await host.ask({workbookId: "w1", harness: "claude", prompt: "the prompt", question: "How many orders?"}, page);
+        await host.ask({workbookId: "w1", harness: "claude", prompt: "the prompt"}, page);
         expect(host.isRunning("w1")).toBe(true);
         await stopped;
         expect(host.isRunning("w1")).toBe(false);
         expect(page.events).toEqual([
-            {event: "UserPromptSubmit", prompt: "How many orders?"},
             // The page tells the dashql commands from their calls
             {event: "Say", text: "I list the scripts."},
             {event: "PreToolUse", status: "ls", toolUseId: "t2"},
@@ -157,7 +156,7 @@ describe("the agent host", () => {
         // A file of an earlier question is gone, the next question resumes the session of the harness
         writeFileSync(path.join(folder, "input", "old.sql"), "select 0");
         stopped = page.stopped();
-        await host.ask({workbookId: "w1", harness: "claude", prompt: "and per day?", question: "and per day?"}, page);
+        await host.ask({workbookId: "w1", harness: "claude", prompt: "and per day?"}, page);
         await stopped;
         expect(readdirSync(path.join(folder, "input"))).toEqual([]);
         const resumed = readFileSync(path.join(folder, "args.txt"), "utf8").split("\n");
@@ -167,8 +166,8 @@ describe("the agent host", () => {
     test("runs one question at a time per workbook and stops a question", async () => {
         const {host, page} = setup();
         const stopped = page.stopped();
-        await host.ask({workbookId: "w1", harness: "claude", prompt: "sleep", question: "Wait"}, page);
-        await expect(host.ask({workbookId: "w1", harness: "claude", prompt: "x", question: "x"}, page)).rejects.toThrow(/still works/);
+        await host.ask({workbookId: "w1", harness: "claude", prompt: "sleep"}, page);
+        await expect(host.ask({workbookId: "w1", harness: "claude", prompt: "x"}, page)).rejects.toThrow(/still works/);
         await host.stop("w1");
         await stopped;
         expect(page.events.at(-1)).toEqual({event: "Stop", message: null, error: null, interrupted: true});
@@ -177,7 +176,7 @@ describe("the agent host", () => {
     test("a page that went away stops its questions", async () => {
         const {host, page} = setup();
         const stopped = page.stopped();
-        await host.ask({workbookId: "w1", harness: "claude", prompt: "sleep", question: "Wait"}, page);
+        await host.ask({workbookId: "w1", harness: "claude", prompt: "sleep"}, page);
         await host.detach(page);
         await stopped;
         expect(host.isRunning("w1")).toBe(false);
@@ -185,9 +184,9 @@ describe("the agent host", () => {
 
     test("refuses unknown workbooks, harnesses and harnesses that the machine lacks", async () => {
         const {host, page} = setup();
-        await expect(host.ask({workbookId: "../x", harness: "claude", prompt: "x", question: "x"}, page)).rejects.toThrow(/workbook id/);
-        await expect(host.ask({workbookId: "w1", harness: "sh" as "claude", prompt: "x", question: "x"}, page)).rejects.toThrow(/Unknown harness/);
-        await expect(host.ask({workbookId: "w1", harness: "codex", prompt: "x", question: "x"}, page)).rejects.toThrow(/Codex is not installed/);
+        await expect(host.ask({workbookId: "../x", harness: "claude", prompt: "x"}, page)).rejects.toThrow(/workbook id/);
+        await expect(host.ask({workbookId: "w1", harness: "sh" as "claude", prompt: "x"}, page)).rejects.toThrow(/Unknown harness/);
+        await expect(host.ask({workbookId: "w1", harness: "codex", prompt: "x"}, page)).rejects.toThrow(/Codex is not installed/);
         expect(page.events).toEqual([]);
         expect(host.isRunning("w1")).toBe(false);
     });
@@ -197,7 +196,7 @@ describe("the agent host", () => {
         const data = new Uint8Array([1, 2, 3]);
         await expect(host.writeFile(page, {workbookId: "w1", kind: "chart", name: "orders.png", data})).rejects.toThrow(/No question runs/);
         const stopped = page.stopped();
-        await host.ask({workbookId: "w1", harness: "claude", prompt: "sleep", question: "Wait"}, page);
+        await host.ask({workbookId: "w1", harness: "claude", prompt: "sleep"}, page);
         expect(await host.writeFile(page, {workbookId: "w1", kind: "chart", name: "orders.png", data})).toBe("charts/orders.png");
         expect([...readFileSync(path.join(root, "workbooks", "w1", "charts", "orders.png"))]).toEqual([1, 2, 3]);
         await expect(host.writeFile(page, {workbookId: "w1", kind: "chart", name: "../x.png", data})).rejects.toThrow(/file name/);
@@ -223,7 +222,7 @@ describe("the agent host", () => {
         await expect(host.writeConversation("../w1", {turns: []})).rejects.toThrow(/workbook id/);
         await expect(host.writeConversation("w1", {turns: ["x".repeat(5 * 1024 * 1024)]})).rejects.toThrow(/Rejected conversation/);
         const stopped = page.stopped();
-        await host.ask({workbookId: "w1", harness: "claude", prompt: "the prompt", question: "q"}, page);
+        await host.ask({workbookId: "w1", harness: "claude", prompt: "the prompt"}, page);
         await stopped;
         expect(existsSync(path.join(root, "workbooks", "w1", "state.json"))).toBe(true);
         await host.forget("w1");

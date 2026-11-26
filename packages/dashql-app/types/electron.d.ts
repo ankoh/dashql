@@ -45,9 +45,8 @@ interface DashQLElectronBridge {
 /// A harness that the app can run
 type DashQLAgentHarness = 'claude' | 'codex' | 'opencode';
 
-/// What a turn of a harness did, in the order of the turn: UserPromptSubmit first, Stop last
+/// What a turn of a harness did, in the order of the turn, Stop last. The page opens the turn itself when it asks.
 type DashQLAgentEvent =
-    | {event: 'UserPromptSubmit'; prompt: string}
     | {event: 'PreToolUse'; status: string; toolUseId: string | null}
     | {event: 'PostToolUse'; status: string; toolUseId: string | null; error?: string | null}
     | {event: 'Say'; text: string}
@@ -73,8 +72,8 @@ interface DashQLAgentReply {
 interface DashQLAgentBridge {
     /// The harnesses and whether the machine has them
     info(): Promise<{harnesses: Array<{id: DashQLAgentHarness; label: string; available: boolean}>}>;
-    /// Start a turn on a workbook: `question` is what the user asked, `prompt` what the harness gets
-    ask(request: {workbookId: string; harness: DashQLAgentHarness; prompt: string; question: string}): Promise<void>;
+    /// Start a turn on a workbook with the prompt that the harness gets, the page opened the turn with the question
+    ask(request: {workbookId: string; harness: DashQLAgentHarness; prompt: string}): Promise<void>;
     /// Stop the turn of a workbook
     stop(workbookId: string): Promise<void>;
     /// Stop the turn of a workbook and forget its conversations, the kept one and the sessions of the harnesses

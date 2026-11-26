@@ -7,7 +7,6 @@ export type AgentHarness = "claude" | "codex" | "opencode";
 
 /// What a turn of a harness did, the shape of DashQLAgentEvent of packages/dashql-app/types/electron.d.ts
 export type AgentEvent =
-    | {event: "UserPromptSubmit"; prompt: string}
     | {event: "PreToolUse"; status: string; toolUseId: string | null}
     | {event: "PostToolUse"; status: string; toolUseId: string | null; error?: string | null}
     | {event: "Say"; text: string}

@@ -55,7 +55,7 @@ export function startDashQLApp({ root, env, searchPath, answer }) {
         async ask(workbookId, harness, question) {
             const first = page.events.length;
             const stopped = page.stopped();
-            await host.ask({ workbookId, harness, prompt: question, question }, page);
+            await host.ask({ workbookId, harness, prompt: question }, page);
             await stopped;
             return page.events.slice(first);
         },

@@ -704,9 +704,9 @@ if (!hasSingleInstanceLock) {
     });
     ipcMain.handle("dashql:agent-ask", async (event, request: unknown) => {
         if (!isTrustedRenderer(event.senderFrame?.url) || request === null || typeof request !== "object") throw new Error("Rejected agent request");
-        const {workbookId, harness, prompt, question} = request as Record<string, unknown>;
-        if (typeof workbookId !== "string" || !isHarness(harness) || typeof prompt !== "string" || typeof question !== "string") throw new Error("Rejected agent request");
-        await requireAgentHost().ask({workbookId, harness, prompt, question}, agentPageOf(event.sender));
+        const {workbookId, harness, prompt} = request as Record<string, unknown>;
+        if (typeof workbookId !== "string" || !isHarness(harness) || typeof prompt !== "string") throw new Error("Rejected agent request");
+        await requireAgentHost().ask({workbookId, harness, prompt}, agentPageOf(event.sender));
     });
     ipcMain.handle("dashql:agent-stop", async (event, workbookId: unknown) => {
         if (!isTrustedRenderer(event.senderFrame?.url) || typeof workbookId !== "string") throw new Error("Rejected agent request");

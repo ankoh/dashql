@@ -323,18 +323,18 @@ export const AgentProvider: React.FC<React.PropsWithChildren<{ bridge?: DashQLAg
     const ask = React.useCallback((request: AgentQuestionRequest) => {
         const { workbookId, question } = request;
         const harness = prompt.harness;
-        if (bridge == null) return;
+        // One question at a time: the page opens the turn itself, a second Ask before the harness started is no question
+        if (bridge == null || conversations.current.get(workbookId)?.turns.at(-1)?.status != null) return;
         harnessOf.current.set(workbookId, harness);
+        reduce(workbookId, { event: 'UserPromptSubmit', prompt: question });
         const agentPrompt = buildAgentPrompt({
             question,
             dialect: request.dialect,
             referencedScripts: collectReferencedScripts(request.scriptNames, question),
         });
         logger.info('Asking the agent', { workbookId, harness }, LOG_CTX);
-        bridge.ask({ workbookId, harness, prompt: agentPrompt, question }).catch(error => {
-            // The main process told no event of a question that it did not start
-            const open = conversations.current.get(workbookId)?.turns.at(-1);
-            if (open == null || open.status == null) reduce(workbookId, { event: 'UserPromptSubmit', prompt: question });
+        bridge.ask({ workbookId, harness, prompt: agentPrompt }).catch(error => {
+            // The main process tells no Stop of a question that it did not start
             reduce(workbookId, { event: 'Stop', error: error instanceof Error ? error.message : stringifyError(error) });
             harnessOf.current.delete(workbookId);
         });

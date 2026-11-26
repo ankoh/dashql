@@ -169,7 +169,6 @@ test('the app runs Codex for a question: the agent calls the workbook with dashq
     });
     try {
         const first = await app.ask('w1', 'codex', 'How many orders?');
-        assert.deepEqual(first[0], { event: 'UserPromptSubmit', prompt: 'How many orders?' });
         assert.deepEqual(first.at(-1), { event: 'Stop', message: 'There are 42 orders.', error: null });
         // The page tells the dashql commands from their calls, the host leaves out the steps that ran them
         assert.deepEqual(stepsOf(first), []);

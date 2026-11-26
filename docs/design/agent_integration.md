@@ -47,16 +47,17 @@ flowchart LR
 
 1. The user writes a question in the prompt in AI and sends it. The page builds the prompt of the harness
    (`buildAgentPrompt` of `agent/agent_prompt.ts`: the question, the dialect of the connection of the next script, the
-   scripts that it references as `:name`) and calls `agent.ask({workbookId, harness, prompt, question})`.
+   scripts that it references as `:name`), opens the turn of the question in the conversation (`UserPromptSubmit`) and
+   calls `agent.ask({workbookId, harness, prompt})`. The prompt in AI takes no second question while the turn runs, a
+   question that the main process refuses ends its turn with the error.
 2. The main process refuses a second question on a workbook while one runs. It prepares the folder of the workbook,
    resolves the harness on the `PATH` of the login shell, and spawns it in its own process group, in the folder, with
    `bin/` of the folder first on the `PATH`. It resumes the session of the harness that the folder keeps for the
    workbook, so a follow-up question continues the conversation.
 3. It reads the stream of the harness line by line (`readers.ts`) and sends the events of the turn to the page:
-   `UserPromptSubmit` with the question first, `PreToolUse` and `PostToolUse` per tool, `Say` with every text of the
-   agent between its tools, exactly one `Stop` last, with the final message, an error, or `interrupted` when the user
-   stopped the turn. The tools that run `dashql` and the writes of Claude Code into `input/` are left out
-   (`isPlumbingStep`): the page tells those steps itself.
+   `PreToolUse` and `PostToolUse` per tool, `Say` with every text of the agent between its tools, exactly one `Stop`
+   last, with the final message, an error, or `interrupted` when the user stopped the turn. The tools that run `dashql`
+   and the writes of Claude Code into `input/` are left out (`isPlumbingStep`): the page tells those steps itself.
 4. The agent runs `dashql` commands. Each one is a call that the main process passes to the page, the page answers on
    the live workbook and the answer goes back as text (see [The commands](#the-commands)). Every call is a step of the
    turn with a line of the page (`describeAgentCall`: `Write orders`, `Run orders, customers`), failed when its exit

@@ -171,7 +171,6 @@ test('the app runs Claude Code for a question: the agent calls the workbook with
     try {
         assert.deepEqual((await app.host.info()).harnesses.find(harness => harness.id === 'claude'), { id: 'claude', label: 'Claude Code', available: true });
         const first = await app.ask('w1', 'claude', 'How many orders?');
-        assert.deepEqual(first[0], { event: 'UserPromptSubmit', prompt: 'How many orders?' });
         // The page tells the dashql commands from their calls, the host leaves out the steps that ran them and wrote
         // their input. -p asks for nothing, a tool that the app does not allow is refused.
         assert.deepEqual(stepsOf(first), [{ status: 'cat /etc/hostname', failed: true }]);

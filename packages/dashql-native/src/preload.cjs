@@ -20,14 +20,13 @@ function listen(channel, listener) {
 }
 
 contextBridge.exposeInMainWorld("dashqlElectron", {
-    // The agents, see docs/design/agent_integration.md: the page passes a harness of a fixed set and the question
+    // The agents, see docs/design/agent_integration.md: the page passes a harness of a fixed set and the prompt
     agent: {
         info: async () => await ipcRenderer.invoke("dashql:agent-info"),
         ask: async (request) => await ipcRenderer.invoke("dashql:agent-ask", {
             workbookId: request.workbookId,
             harness: request.harness,
             prompt: request.prompt,
-            question: request.question,
         }),
         stop: async (workbookId) => await ipcRenderer.invoke("dashql:agent-stop", workbookId),
         forget: async (workbookId) => await ipcRenderer.invoke("dashql:agent-forget", workbookId),

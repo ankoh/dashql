@@ -21,12 +21,11 @@ export interface AgentPage {
     cancelCall(callId: number): void;
 }
 
-/// A question as the page asks it: what the user asked and what the harness gets
+/// A question as the page asks it: the prompt that the harness gets
 export interface AgentQuestion {
     workbookId: string;
     harness: AgentHarness;
     prompt: string;
-    question: string;
 }
 
 export interface AgentHostOptions {
@@ -198,7 +197,7 @@ export class AgentHost {
         const {workbookId, harness, prompt} = question;
         if (typeof workbookId !== "string" || !WORKBOOK_ID.test(workbookId)) throw new Error("Rejected workbook id");
         if (!isHarness(harness)) throw new Error("Unknown harness");
-        if (typeof prompt !== "string" || typeof question.question !== "string" || Buffer.byteLength(prompt) > MAX_PROMPT_BYTES) {
+        if (typeof prompt !== "string" || Buffer.byteLength(prompt) > MAX_PROMPT_BYTES) {
             throw new Error("Rejected question");
         }
         if (this.#turns.has(workbookId)) throw new Error("The agent still works on a question of this workbook");
@@ -218,7 +217,7 @@ export class AgentHost {
             const state = await this.#readState(folder);
             const session = state.sessions[harness] ?? null;
             if (turn.stopped) throw new Error("The question was stopped");
-            page.event(workbookId, {event: "UserPromptSubmit", prompt: question.question});
+            // The page opened the turn when it asked, the events of the harness follow
             started = true;
             let newSession: string | null = null;
             const env = {...(this.#options.env ?? process.env), PATH: [path.join(folder, "bin"), searchPath].filter(part => part.length > 0).join(path.delimiter)};
