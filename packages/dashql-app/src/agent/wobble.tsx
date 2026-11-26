@@ -143,8 +143,9 @@ enum Phase {
 
 /// Wobble, a liquid disk with eyes that glance around and morphs into the DashQL brand mark and back.
 /// The frames write the path data through refs, React renders Wobble once.
-/// It keeps moving with prefers-reduced-motion.
-export function Wobble(props: WobbleProps): React.ReactElement {
+/// It keeps moving with prefers-reduced-motion. It renders again only when a prop changes, the props of a parent that
+/// renders often are stable.
+export const Wobble = React.memo(function Wobble(props: WobbleProps): React.ReactElement {
     const flavorBrand = useFlavorWobbleBrand();
     const { brand = flavorBrand, tuning, mode = WobbleMode.Cycle, paused = false, label, onMorph, gaze, lastInput, className, ...svgProps } = props;
     const tuningRef = React.useRef<WobbleTuning>(DEFAULT_WOBBLE_TUNING);
@@ -395,4 +396,4 @@ export function Wobble(props: WobbleProps): React.ReactElement {
             </g>
         </svg>
     );
-}
+});

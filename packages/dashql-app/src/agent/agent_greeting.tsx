@@ -44,23 +44,53 @@ enum Typing {
 
 /// Wobble with its question right of it, Wobble and the question are siblings for the layout of the parent.
 /// The question is typed character by character. When Wobble starts to melt into the brand mark, it is deleted
-/// and the next question is typed.
+/// and the next question is typed. The question types on its own, the greeting and Wobble render once per question.
 export function AgentGreeting(props: AgentGreetingProps): React.ReactElement {
     const greetings = props.greetings ?? AGENT_GREETINGS;
+    // The questions Wobble left, the question changes with every one
+    const [turn, setTurn] = React.useState(0);
+    const onMorph = React.useCallback((event: WobbleMorphEvent) => {
+        if (event === WobbleMorphEvent.Leaving) setTurn(t => t + 1);
+    }, []);
+    const Question = props.questionElement ?? 'h1';
+    const questionClassName = props.questionClassName == null ? styles.question : `${styles.question} ${props.questionClassName}`;
+    return (
+        <>
+            <Wobble {...props.wobble} onMorph={onMorph} />
+            <TypedQuestion element={Question} className={questionClassName} testId={props.questionTestId}
+                greetings={greetings} turn={turn} />
+        </>
+    );
+}
+
+interface TypedQuestionProps {
+    element: 'h1' | 'p';
+    className: string;
+    testId?: string;
+    greetings: readonly string[];
+    /// The questions Wobble left, the question is deleted and the next one typed when it grows
+    turn: number;
+}
+
+/// The question, typed character by character, it holds the typing so that a character renders only the question
+function TypedQuestion(props: TypedQuestionProps): React.ReactElement {
+    const { greetings, turn } = props;
     const reducedMotion = React.useMemo(() => globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false, []);
     const [index, setIndex] = React.useState(0);
     const [typing, setTyping] = React.useState(reducedMotion ? Typing.Done : Typing.Typing);
     const chars = React.useMemo(() => Array.from(greetings[index % greetings.length]), [greetings, index]);
     const [count, setCount] = React.useState(reducedMotion ? chars.length : 0);
 
-    const onMorph = React.useCallback((event: WobbleMorphEvent) => {
-        if (event !== WobbleMorphEvent.Leaving) return;
+    // Wobble left: delete the question, the next one follows
+    const [seenTurn, setSeenTurn] = React.useState(turn);
+    if (seenTurn !== turn) {
+        setSeenTurn(turn);
         if (reducedMotion) {
             setIndex(i => (i + 1) % greetings.length);
         } else {
             setTyping(Typing.Deleting);
         }
-    }, [greetings.length, reducedMotion]);
+    }
 
     // Type or delete the next character
     React.useEffect(() => {
@@ -86,21 +116,17 @@ export function AgentGreeting(props: AgentGreetingProps): React.ReactElement {
         return () => clearTimeout(timer);
     }, [typing, count, chars, greetings.length, reducedMotion]);
 
-    const Question = props.questionElement ?? 'h1';
-    const questionClassName = props.questionClassName == null ? styles.question : `${styles.question} ${props.questionClassName}`;
+    const Question = props.element;
     return (
-        <>
-            <Wobble {...props.wobble} onMorph={onMorph} />
-            <Question className={questionClassName} data-testid={props.questionTestId} aria-label={chars.join('')}>
-                {/* Every question takes the cell invisibly, the widest one sizes it so Wobble does not move */}
-                {greetings.map(text => (
-                    <span key={text} className={styles.sizer} aria-hidden>{text}</span>
-                ))}
-                <span className={styles.typed} aria-hidden>
-                    {chars.slice(0, count).join('')}
-                    <span className={styles.caret} data-active={typing !== Typing.Done ? '' : undefined} />
-                </span>
-            </Question>
-        </>
+        <Question className={props.className} data-testid={props.testId} aria-label={chars.join('')}>
+            {/* Every question takes the cell invisibly, the widest one sizes it so Wobble does not move */}
+            {greetings.map(text => (
+                <span key={text} className={styles.sizer} aria-hidden>{text}</span>
+            ))}
+            <span className={styles.typed} aria-hidden>
+                {chars.slice(0, count).join('')}
+                <span className={styles.caret} data-active={typing !== Typing.Done ? '' : undefined} />
+            </span>
+        </Question>
     );
 }
