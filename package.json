@@ -50,7 +50,7 @@
     "electron-updater": "^6.8.11",
     "eslint": "^10.15.0",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "globals": "^17.0.0",
+    "globals": "^17.14.0",
     "hyperdb-wasm": "0.0.27500-dev.wasm.g04a478aa",
     "immutable": "^5.2.1",
     "json-schema-to-typescript": "^16.0.0",
