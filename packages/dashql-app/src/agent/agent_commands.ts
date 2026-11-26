@@ -349,13 +349,9 @@ async function runForAgent(host: AgentCommandHost, workbook: WorkbookScripts, sc
     const { runtime } = host;
     try {
         await runWorkbookReported(runtime, workbook, {
-            label: workbook.name ?? workbook.workbookId,
             scripts,
             refresh,
             signal,
-            progressIntervalMs: null,
-            // The feed shows the results of the run as those of its own runs, the rows come from their analyses
-            analyze: true,
             rows,
             prepareConnection: async conn => {
                 if (!host.isConnectionAllowed(workbook, conn.connectionId)) return 'DashQL does not let you use this connection, the user can allow it in the prompt';

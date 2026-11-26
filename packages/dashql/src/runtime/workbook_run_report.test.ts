@@ -38,12 +38,9 @@ describe('a reported run of a workbook', () => {
         const workbook = rt.addWorkbook(connectionId, [['five.sql', 'select n from numbers']], { name: 'report' });
         const events: RunEvent[] = [];
         await runWorkbookReported(rt, workbook, {
-            label: 'report',
             scripts: [],
             refresh: false,
             signal: new AbortController().signal,
-            progressIntervalMs: null,
-            analyze: true,
             rows,
             onReportError: error => { throw error; },
         }, event => events.push(event));
