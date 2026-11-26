@@ -5,7 +5,7 @@ import { Button, ButtonSize, ButtonVariant } from '@akohn/dashql-react/component
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import { ConnectionMenu } from '../workbook/scripts/script_connection_picker.js';
-import { useConnectionList, useConnections } from '@akohn/dashql-react/hooks';
+import { useConnectionList, useConnections, useWorkbook } from '@akohn/dashql-react/hooks';
 import { agentConnections } from './agent_connections.js';
 import type { AgentControls } from './agent_provider.js';
 
@@ -23,9 +23,17 @@ export const AgentConnectionsPicker: React.FC<Props> = (props) => {
     const triggerRef = React.useRef<HTMLButtonElement>(null);
     const connections = useConnections();
     const list = useConnectionList();
+    const workbook = useWorkbook(props.workbookId);
     const { isConnectionAllowed, toggleConnection } = props.connect;
-    const { listed, allowed } = React.useMemo(() => agentConnections(connections, list, isConnectionAllowed), [connections, list, isConnectionAllowed]);
-    const label = `${allowed.connections.length} / ${listed} connections`;
+    const isAllowed = React.useCallback(
+        (connectionId: string) => workbook != null && isConnectionAllowed(workbook, connectionId),
+        [workbook, isConnectionAllowed],
+    );
+    const toggle = React.useCallback((connectionId: string) => {
+        if (workbook != null) toggleConnection(workbook, connectionId);
+    }, [workbook, toggleConnection]);
+    const { listed, allowed } = React.useMemo(() => agentConnections(connections, list, isAllowed), [connections, list, isAllowed]);
+    const label = `${allowed.length} / ${listed} connections`;
     return (
         <AnchoredOverlay
             open={open}
@@ -55,8 +63,8 @@ export const AgentConnectionsPicker: React.FC<Props> = (props) => {
                 workbookId={props.workbookId}
                 label="the agent"
                 connectionId={null}
-                onPick={toggleConnection}
-                checked={isConnectionAllowed}
+                onPick={toggle}
+                checked={isAllowed}
             />
         </AnchoredOverlay>
     );

@@ -25,7 +25,7 @@ beforeEach(() => {
     host = {
         runtime,
         results: null,
-        isConnectionAllowed: connectionId => connectionId === 'embedded',
+        isConnectionAllowed: (_workbook, connectionId) => connectionId === 'embedded',
         writeFile: async (_workbookId, kind, name) => `${kind === 'chart' ? 'charts' : 'results'}/${name}`,
         onEdited: vi.fn<AgentCommandHost['onEdited']>(),
         onFollow: vi.fn<AgentCommandHost['onFollow']>(),

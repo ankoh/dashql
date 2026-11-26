@@ -1,7 +1,7 @@
 import * as React from 'react';
 
-import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
+import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 
 import { Store } from '../utils/store.js';
@@ -10,7 +10,7 @@ import { useAppFlavor } from '../config/flavor_provider.js';
 import { useWorkbookResults } from '../storage/workbook_results_provider.js';
 import { agentSessionOf, isAgentWorking, type AgentSession, type AgentSessionArgs } from './agent_session.js';
 import { createAgentSessionState, parseAgentSessionFile, reduceAgentSessionEvent, type AgentSessionEvent, type AgentSessionState } from './agent_session_state.js';
-import { defaultAgentConnectionIds, isAgentConnectionAllowed, type AgentConnectionChoices } from './agent_connections.js';
+import { isAgentConnectionAllowed, type AgentConnectionChoices } from './agent_connections.js';
 import { describeAgentCall, EXIT_FAILED, EXIT_OK, runAgentCommand, type AgentCommandHost, type AgentFollowTarget } from './agent_commands.js';
 import { buildAgentPrompt } from './agent_prompt.js';
 import { collectReferencedScripts } from './agent_script_references.js';
@@ -93,10 +93,11 @@ export interface AgentControls {
     setHarness: (harness: AgentHarness) => void;
     /// The harnesses and whether the machine has them, empty until the desktop app told
     harnesses: { id: AgentHarness; label: string; available: boolean }[];
-    /// May the agent use a connection? The connections of the workbooks until the user ticks or unticks one
-    isConnectionAllowed: (connectionId: string) => boolean;
-    /// Allow or forbid a connection for the agent
-    toggleConnection: (connectionId: string) => void;
+    /// May the agent use a connection on a workbook? The connections of the workbook and the embedded Hyper until the
+    /// user ticks or unticks one
+    isConnectionAllowed: (workbook: WorkbookScripts, connectionId: string) => boolean;
+    /// Allow or forbid a connection for the agent, on every workbook
+    toggleConnection: (workbook: WorkbookScripts, connectionId: string) => void;
     /// Ask the agent a question on a workbook
     ask: (request: AgentQuestionRequest) => void;
     /// Stop the question that runs on a workbook
@@ -211,59 +212,33 @@ export const AgentProvider: React.FC<React.PropsWithChildren<{ bridge?: DashQLAg
 
     // The workbooks that the page shows, the feed of each follows the agent
     const shown = React.useRef(new Map<string, ShownWorkbook[]>());
-
-    // The connections that the shown workbooks use, and the embedded Hyper that post-processes the results of remote
-    // scripts: the agent gets only these until the user ticks more, every connection would confuse it
-    const [defaultConnectionIds, setDefaultConnectionIds] = React.useState<readonly string[]>([]);
-    const defaultConnectionIdsRef = React.useRef(defaultConnectionIds);
-    defaultConnectionIdsRef.current = defaultConnectionIds;
-    const refreshDefaultConnectionsRef = React.useRef<() => void>(() => { });
-    refreshDefaultConnectionsRef.current = () => {
-        if (runtime == null) return;
-        const next = defaultAgentConnectionIds(
-            runtime.store.all('connection') as ReadonlyMap<string, ConnectionState>,
-            [...shown.current.keys()].map(workbookId => runtime.store.get('workbook', workbookId)?.connectionIds ?? []),
-        );
-        setDefaultConnectionIds(prev => prev.length === next.length && prev.every((connectionId, i) => connectionId === next[i]) ? prev : next);
-    };
-    React.useEffect(() => {
-        refreshDefaultConnectionsRef.current();
-        if (runtime == null) return;
-        const refresh = () => refreshDefaultConnectionsRef.current();
-        const workbooks = runtime.store.subscribeKind('workbook', refresh);
-        // The app adds the embedded Hyper at the end of its setup
-        const connections = runtime.store.subscribeKind('connection', refresh);
-        return () => {
-            workbooks();
-            connections();
-        };
-    }, [runtime]);
     const show = React.useCallback((workbookId: string, entry: ShownWorkbook) => {
         load(workbookId);
         shown.current.set(workbookId, [...(shown.current.get(workbookId) ?? []), entry]);
-        refreshDefaultConnectionsRef.current();
         return () => {
             const rest = (shown.current.get(workbookId) ?? []).filter(other => other !== entry);
             if (rest.length > 0) shown.current.set(workbookId, rest);
             else shown.current.delete(workbookId);
-            refreshDefaultConnectionsRef.current();
         };
     }, [load]);
+
+    // The connections that the agent may use on a workbook, what the user ticked or the defaults of the workbook
     const [choices, setChoices] = React.useState<AgentConnectionChoices>(readTabChoices);
+    const allowedBy = React.useCallback((choices: AgentConnectionChoices, workbook: WorkbookScripts, connectionId: string) =>
+        isAgentConnectionAllowed(connectionId, choices, workbook.connectionIds, runtime?.connection(connectionId)?.embedded === true), [runtime]);
     const isConnectionAllowed = React.useCallback(
-        (connectionId: string) => isAgentConnectionAllowed(connectionId, choices, defaultConnectionIds),
-        [choices, defaultConnectionIds],
+        (workbook: WorkbookScripts, connectionId: string) => allowedBy(choices, workbook, connectionId),
+        [allowedBy, choices],
     );
     const isConnectionAllowedRef = React.useRef(isConnectionAllowed);
     isConnectionAllowedRef.current = isConnectionAllowed;
-    const toggleConnection = React.useCallback((connectionId: string) => {
+    const toggleConnection = React.useCallback((workbook: WorkbookScripts, connectionId: string) => {
         setChoices(prev => {
-            const next = new Map(prev);
-            next.set(connectionId, !isAgentConnectionAllowed(connectionId, next, defaultConnectionIdsRef.current));
+            const next = new Map(prev).set(connectionId, !allowedBy(prev, workbook, connectionId));
             writeTabJson(TAB_AGENT_CONNECTIONS_KEY, Object.fromEntries(next));
             return next;
         });
-    }, []);
+    }, [allowedBy]);
 
     // The events of the turns and the calls of the `dashql` commands of the agents
     React.useEffect(() => {
@@ -271,7 +246,7 @@ export const AgentProvider: React.FC<React.PropsWithChildren<{ bridge?: DashQLAg
         const host: AgentCommandHost = {
             runtime,
             results,
-            isConnectionAllowed: connectionId => isConnectionAllowedRef.current(connectionId),
+            isConnectionAllowed: (workbook, connectionId) => isConnectionAllowedRef.current(workbook, connectionId),
             writeFile: (workbookId, kind, name, data) => bridge.writeFile({ workbookId, kind, name, data }),
             onEdited: (workbookId, fileName) => reduce(workbookId, { event: 'Edited', files: [fileName] }),
             onFollow: (workbookId, scriptKey, target) => {
@@ -450,8 +425,7 @@ export function useAgentSession(args: AgentSessionArgs): AgentSession | null {
     // The feed of the workbook follows the agent
     const followRef = React.useRef(followScript);
     followRef.current = followScript;
-    // Shown once per workbook: the context changes with the connections of the agent, which showing the workbook
-    // changes, an effect on the context would show and hide the workbook in a loop and starve the transitions of the router
+    // Shown once per workbook: the effect follows show, which stays, and not the whole context
     const show = context?.show;
     React.useEffect(() => show?.(workbookId, { follow: (scriptKey, target) => followRef.current(scriptKey, target) }), [show, workbookId]);
     const state = conversations.get(workbookId) ?? null;

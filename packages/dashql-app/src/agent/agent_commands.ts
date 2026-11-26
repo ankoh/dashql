@@ -21,7 +21,7 @@ import { renderVegaLitePng } from '@akohn/dashql-react/vegalite/vegalite_image';
 import { arrowTableToRows, CHART_ROWS } from '@akohn/dashql-react/vegalite/vegalite_rows';
 
 import { createScriptFormatConfig, formatSqlText, formattingDialectForConnector } from '../workbook/scripts/script_format.js';
-import { agentConnections } from './agent_connections.js';
+import { agentConnections, type AgentConnection } from './agent_connections.js';
 import { describeKpi, diagnosticsText, plural, RunText, type AgentDiagnostic } from './agent_output.js';
 
 const LOG_CTX = 'agent_commands';
@@ -51,8 +51,8 @@ export interface AgentCommandHost {
     runtime: Runtime;
     /// The stored results of the workbooks, null without them
     results: WorkbookResultFiles | null;
-    /// May the agent use a connection?
-    isConnectionAllowed: (connectionId: string) => boolean;
+    /// May the agent use a connection on a workbook?
+    isConnectionAllowed: (workbook: WorkbookScripts, connectionId: string) => boolean;
     /// Write a file of a call into the folder of the agent, resolves with its path relative to the folder
     writeFile: (workbookId: string, kind: 'chart' | 'result', name: string, data: Uint8Array) => Promise<string>;
     /// The agent edited or created a script of a workbook
@@ -130,18 +130,18 @@ function scriptOf(runtime: Runtime, workbook: WorkbookScripts, name: string): Sc
     return script;
 }
 
-/// The connections that the agent may use, with their labels
-function allowedConnections(host: AgentCommandHost): { connectionId: string; name: string; embedded?: true }[] {
+/// The connections that the agent may use on a workbook, with their labels
+function allowedConnections(host: AgentCommandHost, workbook: WorkbookScripts): AgentConnection[] {
     const { runtime } = host;
     return agentConnections(
         runtime.store.all('connection') as ReadonlyMap<string, ConnectionState>,
         runtime.store.get('connectionList', 'root'),
-        host.isConnectionAllowed,
-    ).allowed.connections;
+        connectionId => host.isConnectionAllowed(workbook, connectionId),
+    ).allowed;
 }
 
 /// A connection in a line: its name, id, connector and whether it is set up
-function connectionLine(host: AgentCommandHost, connection: { connectionId: string; name: string; embedded?: true }): string {
+function connectionLine(host: AgentCommandHost, connection: AgentConnection): string {
     const state = host.runtime.connection(connection.connectionId);
     const notes = [
         connection.embedded === true ? 'the embedded Hyper' : (state == null ? null : connectorInfoOf(state).names.displayShort),
@@ -154,7 +154,7 @@ function connectionLine(host: AgentCommandHost, connection: { connectionId: stri
 function listScripts(host: AgentCommandHost, call: AgentCall, reply: AgentReplyStream): number {
     const { runtime } = host;
     const workbook = workbookOf(runtime, call.workbookId);
-    const connections = allowedConnections(host);
+    const connections = allowedConnections(host, workbook);
     let out = `Workbook "${workbook.name ?? 'Untitled'}"\n`;
     out += connections.length === 0
         ? 'Connections: DashQL lets you use none, run runs no script. The user can allow them in the prompt.\n'
@@ -211,7 +211,7 @@ async function editScript(host: AgentCommandHost, call: AgentCall, reply: AgentR
     const text = call.input;
     if (text == null) usage('no text: pass the file of the text with --file or pipe it to stdin');
     if (connectionId != null) {
-        const allowed = allowedConnections(host);
+        const allowed = allowedConnections(host, workbook);
         if (!allowed.some(connection => connection.connectionId === connectionId)) {
             fail(`you may not use the connection ${connectionId}, the connections that you may use are ${allowed.map(connection => connection.connectionId).join(', ') || 'none'}`);
         }
@@ -288,7 +288,7 @@ function printCatalog(host: AgentCommandHost, call: AgentCall, reply: AgentReply
     const { runtime } = host;
     const workbook = workbookOf(runtime, call.workbookId);
     const wanted = optionalString(call.args, 'connection');
-    const connections = allowedConnections(host);
+    const connections = allowedConnections(host, workbook);
     const shown = wanted == null ? connections : connections.filter(connection => connection.connectionId === wanted || connection.name.toLowerCase() === wanted.toLowerCase());
     if (shown.length === 0) {
         fail(wanted == null
@@ -362,7 +362,7 @@ async function runForAgent(host: AgentCommandHost, workbook: WorkbookScripts, sc
             analyze: true,
             rows,
             prepareConnection: async conn => {
-                if (!host.isConnectionAllowed(conn.connectionId)) return 'DashQL does not let you use this connection, the user can allow it in the prompt';
+                if (!host.isConnectionAllowed(workbook, conn.connectionId)) return 'DashQL does not let you use this connection, the user can allow it in the prompt';
                 if (conn.connectionHealth !== ConnectionHealth.ONLINE) return 'the connection is not set up in DashQL, the user has to connect it';
                 return null;
             },
