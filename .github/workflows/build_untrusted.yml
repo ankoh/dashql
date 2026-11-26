@@ -60,11 +60,13 @@ jobs:
             - name: Test Everything
               shell: bash
               run: |
+                # Every test but the agent tests, which run in a job of their own
                 bazel test --config=fastbuild \
-                    //packages/... //tests/snapshots/... //tests/hyper/... //tests/trino/... //tools/... //extensions/... \
                     --build_tests_only \
                     --test_output=errors \
-                    --test_summary=detailed
+                    --test_summary=detailed \
+                    -- \
+                    //... -//tests/agents/...
 
     agent_integration:
         name: Agent Integration
