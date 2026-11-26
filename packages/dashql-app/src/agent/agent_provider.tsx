@@ -8,7 +8,7 @@ import { Store } from '../utils/store.js';
 import { useLogger } from '../host/logger_provider.js';
 import { useAppFlavor } from '../config/flavor_provider.js';
 import { useWorkbookResults } from '../storage/workbook_results_provider.js';
-import { agentSessionOf, isAgentWorking, type AgentSession, type AgentSessionArgs } from './agent_session.js';
+import { AGENT_HARNESSES, agentSessionOf, isAgentWorking, type AgentSession, type AgentSessionArgs } from './agent_session.js';
 import { createAgentSessionState, parseAgentSessionFile, reduceAgentSessionEvent, type AgentSessionEvent, type AgentSessionState } from './agent_session_state.js';
 import { isAgentConnectionAllowed, type AgentConnectionChoices } from './agent_connections.js';
 import { describeAgentCall, EXIT_FAILED, EXIT_OK, runAgentCommand, type AgentCommandHost, type AgentFollowTarget } from './agent_commands.js';
@@ -27,13 +27,6 @@ export enum ComposerMode {
 
 /// The harnesses that the desktop app runs
 export type AgentHarness = DashQLAgentHarness;
-
-/// The harnesses in the order of their switch
-export const AGENT_HARNESSES: { id: AgentHarness; label: string }[] = [
-    { id: 'claude', label: 'Claude Code' },
-    { id: 'codex', label: 'Codex' },
-    { id: 'opencode', label: 'opencode' },
-];
 
 /// The key of the mode of the prompt and the harness in the storage of the window
 const TAB_PROMPT_KEY = 'dashql.agent_prompt';
@@ -92,7 +85,7 @@ export interface AgentControls {
     harness: AgentHarness;
     setHarness: (harness: AgentHarness) => void;
     /// The harnesses and whether the machine has them, empty until the desktop app told
-    harnesses: { id: AgentHarness; label: string; available: boolean }[];
+    harnesses: { id: AgentHarness; available: boolean }[];
     /// May the agent use a connection on a workbook? The connections of the workbook and the embedded Hyper until the
     /// user ticks or unticks one
     isConnectionAllowed: (workbook: WorkbookScripts, connectionId: string) => boolean;

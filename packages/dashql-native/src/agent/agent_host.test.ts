@@ -113,9 +113,9 @@ describe("the agent host", () => {
     test("tells which harnesses the machine has", async () => {
         const {host} = setup();
         expect(await host.info()).toEqual({harnesses: [
-            {id: "claude", label: "Claude Code", available: true},
-            {id: "codex", label: "Codex", available: false},
-            {id: "opencode", label: "opencode", available: false},
+            {id: "claude", available: true},
+            {id: "codex", available: false},
+            {id: "opencode", available: false},
         ]});
     });
 
@@ -186,7 +186,7 @@ describe("the agent host", () => {
         const {host, page} = setup();
         await expect(host.ask({workbookId: "../x", harness: "claude", prompt: "x"}, page)).rejects.toThrow(/workbook id/);
         await expect(host.ask({workbookId: "w1", harness: "sh" as "claude", prompt: "x"}, page)).rejects.toThrow(/Unknown harness/);
-        await expect(host.ask({workbookId: "w1", harness: "codex", prompt: "x"}, page)).rejects.toThrow(/Codex is not installed/);
+        await expect(host.ask({workbookId: "w1", harness: "codex", prompt: "x"}, page)).rejects.toThrow(/codex is not installed/);
         expect(page.events).toEqual([]);
         expect(host.isRunning("w1")).toBe(false);
     });

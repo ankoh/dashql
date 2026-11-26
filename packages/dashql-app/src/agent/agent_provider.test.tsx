@@ -23,7 +23,7 @@ class FakeBridge implements DashQLAgentBridge {
     events = new Set<(event: { workbookId: string; event: DashQLAgentEvent }) => void>();
     calls = new Set<(call: DashQLAgentCall) => void>();
     replies: DashQLAgentReply[] = [];
-    info = vi.fn(async () => ({ harnesses: [{ id: 'claude' as const, label: 'Claude Code', available: true }] }));
+    info = vi.fn(async () => ({ harnesses: [{ id: 'claude' as const, available: true }] }));
     ask = vi.fn(async () => { });
     stop = vi.fn(async () => { });
     forget: Mock<DashQLAgentBridge['forget']> = vi.fn(async () => { });

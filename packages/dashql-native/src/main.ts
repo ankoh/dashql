@@ -700,7 +700,7 @@ if (!hasSingleInstanceLock) {
     if (binary !== null) agentHost = new AgentHost({root: path.join(app.getPath("userData"), "agent"), dashqlBinary: binary});
     ipcMain.handle("dashql:agent-info", async (event) => {
         if (!isTrustedRenderer(event.senderFrame?.url)) throw new Error("Rejected agent request");
-        return await agentHost?.info() ?? {harnesses: HARNESSES.map(({id, label}) => ({id, label, available: false}))};
+        return await agentHost?.info() ?? {harnesses: HARNESSES.map(({id}) => ({id, available: false}))};
     });
     ipcMain.handle("dashql:agent-ask", async (event, request: unknown) => {
         if (!isTrustedRenderer(event.senderFrame?.url) || request === null || typeof request !== "object") throw new Error("Rejected agent request");

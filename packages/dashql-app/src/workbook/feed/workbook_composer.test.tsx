@@ -374,9 +374,9 @@ describe('Workbook composer', () => {
             const agent: AgentControls = {
                 available, mode, setMode, harness, setHarness,
                 harnesses: [
-                    { id: 'claude', label: 'Claude Code', available: true },
-                    { id: 'codex', label: 'Codex', available: true },
-                    { id: 'opencode', label: 'opencode', available: false },
+                    { id: 'claude', available: true },
+                    { id: 'codex', available: true },
+                    { id: 'opencode', available: false },
                 ],
                 isConnectionAllowed: () => true, toggleConnection: () => { }, ask: vi.fn(), stop: vi.fn(), reset: vi.fn(),
             };

@@ -7,7 +7,7 @@ import * as dashql from '@akohn/dashql';
 import { RuntimeContextProvider } from '@akohn/dashql-react/hooks';
 import { testRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
 import { AgentPromptPanel } from './agent_prompt_panel.js';
-import { agentActivity, formatAgentDuration, harnessLabel, type AgentSession, type AgentTurn } from './agent_session.js';
+import { agentActivity, formatAgentDuration, type AgentSession, type AgentTurn } from './agent_session.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -239,12 +239,5 @@ describe('Agent prompt panel', () => {
         // The answer of the latest question scrolls into view while the user stays at the bottom
         render(<AgentPromptPanel session={agentSession({ turns: [...turns, turn(7)] })} />);
         expect(list.scrollTop + list.clientHeight).toBeGreaterThanOrEqual(list.scrollHeight - 1);
-    });
-
-    it('names the built-in harnesses', () => {
-        expect(harnessLabel('claude')).toBe('Claude Code');
-        expect(harnessLabel('codex')).toBe('Codex');
-        expect(harnessLabel('opencode')).toBe('opencode');
-        expect(harnessLabel('my-harness')).toBe('my-harness');
     });
 });

@@ -71,7 +71,7 @@ interface DashQLAgentReply {
 
 interface DashQLAgentBridge {
     /// The harnesses and whether the machine has them
-    info(): Promise<{harnesses: Array<{id: DashQLAgentHarness; label: string; available: boolean}>}>;
+    info(): Promise<{harnesses: Array<{id: DashQLAgentHarness; available: boolean}>}>;
     /// Start a turn on a workbook with the prompt that the harness gets, the page opened the turn with the question
     ask(request: {workbookId: string; harness: DashQLAgentHarness; prompt: string}): Promise<void>;
     /// Stop the turn of a workbook

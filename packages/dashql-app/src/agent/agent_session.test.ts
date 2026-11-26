@@ -53,7 +53,9 @@ describe('the conversation of the agent in the bar of a workbook', () => {
 
     it('names the harnesses as users know them', () => {
         expect(harnessLabel('claude')).toBe('Claude Code');
+        expect(harnessLabel('codex')).toBe('Codex');
         expect(harnessLabel('opencode')).toBe('opencode');
+        expect(harnessLabel('my-harness')).toBe('my-harness');
         expect(harnessLabel(null)).toBe('The agent');
     });
 });

@@ -6,18 +6,17 @@ import path from "node:path";
 
 import {createReader, type AgentHarness, type ReaderOutcome, type ReaderSink} from "./readers.js";
 
-/// A harness that the app knows: its id, its name in the app and the program on the PATH
+/// A harness that the app knows: its id and the program on the PATH, the page names it
 export interface HarnessInfo {
     id: AgentHarness;
-    label: string;
     program: string;
 }
 
 /// The harnesses, the renderer picks one by its id and never passes a command
 export const HARNESSES: readonly HarnessInfo[] = [
-    {id: "claude", label: "Claude Code", program: "claude"},
-    {id: "codex", label: "Codex", program: "codex"},
-    {id: "opencode", label: "opencode", program: "opencode"},
+    {id: "claude", program: "claude"},
+    {id: "codex", program: "codex"},
+    {id: "opencode", program: "opencode"},
 ];
 
 export function isHarness(value: unknown): value is AgentHarness {

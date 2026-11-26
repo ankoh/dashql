@@ -181,9 +181,9 @@ export class AgentHost {
     }
 
     /// The harnesses and whether the machine has them
-    async info(): Promise<{harnesses: Array<{id: AgentHarness; label: string; available: boolean}>}> {
+    async info(): Promise<{harnesses: Array<{id: AgentHarness; available: boolean}>}> {
         const searchPath = await this.#path();
-        return {harnesses: HARNESSES.map(({id, label, program}) => ({id, label, available: resolveProgram(program, searchPath) !== null}))};
+        return {harnesses: HARNESSES.map(({id, program}) => ({id, available: resolveProgram(program, searchPath) !== null}))};
     }
 
     /// Is a question running on the workbook?
@@ -210,7 +210,7 @@ export class AgentHost {
         try {
             const searchPath = await this.#path();
             const program = resolveProgram(info.program, searchPath);
-            if (program === null) throw new Error(`${info.label} is not installed: ${info.program} is not on the PATH of your login shell`);
+            if (program === null) throw new Error(`${info.program} is not installed: it is not on the PATH of your login shell`);
             const [server, guide] = await Promise.all([this.server(), this.#readGuide()]);
             const folder = this.folderOf(workbookId);
             await this.#prepareFolder(folder, workbookId, server, guide);

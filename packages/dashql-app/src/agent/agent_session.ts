@@ -62,15 +62,17 @@ export function formatAgentDuration(ms: number): string {
     return rest === 0 ? `${minutes} min` : `${minutes} min ${rest} s`;
 }
 
+/// The harnesses that the desktop app runs, in the order of their switch, with their names as users know them
+export const AGENT_HARNESSES: readonly { id: DashQLAgentHarness; label: string }[] = [
+    { id: 'claude', label: 'Claude Code' },
+    { id: 'codex', label: 'Codex' },
+    { id: 'opencode', label: 'opencode' },
+];
+
 /// The name of a harness as users know it
 export function harnessLabel(harness: string | null): string {
-    switch (harness) {
-        case 'claude': return 'Claude Code';
-        case 'codex': return 'Codex';
-        case 'opencode': return 'opencode';
-        case null: return 'The agent';
-        default: return harness;
-    }
+    if (harness == null) return 'The agent';
+    return AGENT_HARNESSES.find(known => known.id === harness)?.label ?? harness;
 }
 
 /// The workbook that the conversation works on
