@@ -1,4 +1,6 @@
 .page {
+    /* Below the prompt, the sticky bars of the tables in the cards stack inside the page */
+    isolation: isolate;
     width: 100%;
     height: 100%;
     min-width: 0;

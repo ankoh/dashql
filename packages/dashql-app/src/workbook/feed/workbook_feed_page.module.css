@@ -357,11 +357,13 @@
     --status_bar_dock_space: calc(16px + 36px + 16px);
 }
 
-/* Keep the feed laid out behind alternate content so its measurements and scroll position survive. */
+/* Keep the feed laid out behind alternate content so its measurements and scroll position survive. The views under the
+   prompt each stack on their own, the sticky bars of their tables and the gutters of their editors stay below it. */
 .feed_layer,
 .feed_layer_hidden {
     position: absolute;
     inset: 0;
+    isolation: isolate;
 }
 
 .feed_layer_hidden {
@@ -380,6 +382,8 @@
 
 /* The canvas and the inspector of the selected script, side by side */
 .dataflow_layout {
+    /* Below the prompt, like the feed */
+    isolation: isolate;
     display: flex;
     width: 100%;
     height: 100%;
