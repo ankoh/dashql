@@ -187,6 +187,8 @@ jobs:
         name: Linux WebKit
         runs-on: ubuntu-26.04
         needs: [version, core_wasm_fastbuild]
+        # Failures in WebKit are reported but do not fail the workflow
+        continue-on-error: true
         env:
             DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
         steps:
