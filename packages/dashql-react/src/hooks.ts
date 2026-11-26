@@ -8,7 +8,8 @@ import type { ConnectionState } from '@akohn/dashql/platform/connections/connect
 import type { EmbeddedClientContext, EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
-import type { ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
+import type { ScriptData, ScriptDataMap, WorkbookDerived, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
 // The hooks of the runtime (docs/design/dashql_runtime.md), shared by the app and other hosts of the runtime. A component reads the view of a slice, which renders it
 // again when that slice changes and no other, dispatches an action to a slice and resolves the tables of a view by
@@ -82,6 +83,70 @@ export function useView<K extends core.ViewKind>(kind: K, id: core.ViewId<K> | n
     return React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
+/// A value that a component selects from a snapshot of a store, `useSyncExternalStore` with a selector. The component
+/// renders again only when the selected value changes, not with every change of the snapshot: a selected value equal to
+/// the previous one (`isEqual`) is the previous one. The selection of a snapshot is kept while the snapshot keeps its
+/// identity, a new `select` selects again and keeps the value that the component shows while it is equal.
+function useSelection<S, T>(
+    subscribe: (listener: () => void) => () => void,
+    getSnapshot: () => S,
+    select: (snapshot: S) => T,
+    isEqual: (left: T, right: T) => boolean,
+): T {
+    // The value of the last commit, a new selector compares with it
+    const committed = React.useRef<{ value: T } | null>(null);
+    const getSelection = React.useMemo(() => {
+        let held: { snapshot: S; value: T } | null = null;
+        return (): T => {
+            const snapshot = getSnapshot();
+            if (held != null && Object.is(held.snapshot, snapshot)) return held.value;
+            const value = select(snapshot);
+            const prev = held ?? committed.current;
+            held = { snapshot, value: prev != null && isEqual(prev.value, value) ? prev.value : value };
+            return held.value;
+        };
+    }, [getSnapshot, select, isEqual]);
+    const value = React.useSyncExternalStore(subscribe, getSelection, getSelection);
+    React.useEffect(() => {
+        committed.current = { value };
+    }, [value]);
+    return value;
+}
+
+/// A part of the view of a slice, e.g. the report of one script in the derived view of its workbook. `select` gets the
+/// view, null without one. The component renders again only when the selected value changes (`isEqual`, by identity
+/// by default), not with every change of the slice: select a part that keeps its identity while it is unchanged, the
+/// projections of the store keep them (`share`), or a primitive.
+export function useViewSelector<K extends core.ViewKind, T>(
+    kind: K,
+    id: core.ViewId<K> | null | undefined,
+    select: (view: StoreView<K> | null) => T,
+    isEqual: (left: T, right: T) => boolean = Object.is,
+): T {
+    const runtime = React.useContext(RUNTIME_CTX);
+    const store = runtime?.store ?? null;
+    const subscribe = React.useMemo(
+        () => store == null || id == null ? NO_SUBSCRIPTION : (listener: () => void) => store.subscribe(kind, id, listener),
+        [store, kind, id],
+    );
+    const getSnapshot = React.useMemo(
+        (): () => StoreView<K> | null => store == null || id == null ? NO_VIEW : () => store.get(kind, id),
+        [store, kind, id],
+    );
+    return useSelection(subscribe, getSnapshot, select, isEqual);
+}
+
+/// Read the views of the store when a function is called, e.g. in a handler, without subscribing to them: the
+/// component doesn't render again when they change. A read sees the last flush, null without a runtime.
+export type ViewReader = <K extends core.ViewKind>(kind: K, id: core.ViewId<K>) => StoreView<K> | null;
+
+/// The reader of the views of the runtime, it keeps its identity with the runtime
+export function useViewReader(): ViewReader {
+    const runtime = React.useContext(RUNTIME_CTX);
+    const store = runtime?.store ?? null;
+    return React.useCallback<ViewReader>((kind, id) => store?.get(kind, id) ?? null, [store]);
+}
+
 /// The views of every slice of a kind by id, in the order the runtime registered them. The component renders again
 /// when any slice of the kind changes: only views that show all of them use it.
 function useAll<K extends core.ViewKind>(kind: K): ReadonlyMap<core.ViewId<K>, StoreView<K>> {
@@ -128,6 +193,16 @@ export function useWorkbookShown(workbookId: string | null | undefined) {
 export const useScript = (scriptKey: number | null | undefined): ScriptData | null => useView('script', scriptKey);
 /// What the runtime derives from the scripts of a workbook: the checked references, the dataflow and the inputs
 export const useWorkbookDerived = (workbookId: string | null | undefined) => useView('workbookDerived', workbookId);
+/// The checked references of a script, from the derived view of its workbook, null without them. The component renders
+/// again when the report of the script changes, not with the reports of the other scripts: a report that didn't change
+/// keeps its identity.
+export function useScriptReferences(workbookId: string | null | undefined, scriptKey: number | null | undefined): ScriptReferenceReport | null {
+    const select = React.useCallback(
+        (derived: WorkbookDerived | null) => scriptKey == null ? null : derived?.references.get(scriptKey) ?? null,
+        [scriptKey],
+    );
+    return useViewSelector('workbookDerived', workbookId, select);
+}
 /// The list of the workbooks: their ids in the order they were registered with their names, and the workbooks that were
 /// refused a load
 export const useWorkbookList = (): core.WorkbookListView | null => useView('workbookList', 'root');
@@ -135,23 +210,40 @@ export const useWorkbookList = (): core.WorkbookListView | null => useView('work
 /// with the changes of the scripts.
 export const useWorkbooks = (): ReadonlyMap<string, WorkbookScripts> => useAll('workbook');
 
-/// The scripts of a workbook by key. The component renders again when a script of the workbook changes, e.g. with
-/// every keystroke: only the views that show all scripts at once use it.
-export function useWorkbookScriptMap(workbookId: string | null | undefined): ScriptDataMap {
+/// Subscribe to a workbook and to its scripts, not to the scripts of other workbooks. The subscriptions of the scripts
+/// follow the keys of the workbook.
+function subscribeWorkbookScripts(store: Runtime['store'], workbookId: string, listener: () => void): () => void {
+    let keys: readonly number[] | null = null;
+    let scripts: (() => void)[] = [];
+    const follow = () => {
+        const next = store.get('workbook', workbookId)?.scriptKeys ?? null;
+        if (next === keys) return;
+        keys = next;
+        for (const unsubscribe of scripts) unsubscribe();
+        scripts = (next ?? []).map(key => store.subscribe('script', key, listener));
+    };
+    follow();
+    // The store notifies once it took all changes, a new script is read with its workbook
+    const unsubscribeWorkbook = store.subscribe('workbook', workbookId, () => {
+        follow();
+        listener();
+    });
+    return () => {
+        unsubscribeWorkbook();
+        for (const unsubscribe of scripts) unsubscribe();
+    };
+}
+
+/// The subscription and the snapshot of the scripts of a workbook by key, the map keeps its identity while the
+/// workbook and its scripts are unchanged
+function useWorkbookScriptsSnapshot(workbookId: string | null | undefined): [(listener: () => void) => () => void, () => ScriptDataMap] {
     const runtime = React.useContext(RUNTIME_CTX);
     const store = runtime?.store ?? null;
     const cache = React.useRef<{ keys: readonly number[] | null; scripts: (ScriptData | null)[]; map: ScriptDataMap }>({ keys: null, scripts: [], map: {} });
-    const subscribe = React.useMemo(() => {
-        if (store == null || workbookId == null) return NO_SUBSCRIPTION;
-        return (listener: () => void) => {
-            const unsubscribeWorkbook = store.subscribe('workbook', workbookId, listener);
-            const unsubscribeScripts = store.subscribeKind('script', listener);
-            return () => {
-                unsubscribeWorkbook();
-                unsubscribeScripts();
-            };
-        };
-    }, [store, workbookId]);
+    const subscribe = React.useMemo(
+        () => store == null || workbookId == null ? NO_SUBSCRIPTION : (listener: () => void) => subscribeWorkbookScripts(store, workbookId, listener),
+        [store, workbookId],
+    );
     const getSnapshot = React.useCallback((): ScriptDataMap => {
         const keys = workbookId == null ? null : store?.get('workbook', workbookId)?.scriptKeys ?? null;
         const scripts = (keys ?? []).map(key => store?.get('script', key) ?? null);
@@ -166,7 +258,28 @@ export function useWorkbookScriptMap(workbookId: string | null | undefined): Scr
         cache.current = { keys, scripts, map };
         return map;
     }, [store, workbookId]);
+    return [subscribe, getSnapshot];
+}
+
+/// The scripts of a workbook by key. The component renders again when a script of the workbook changes, e.g. with
+/// every keystroke: only the views that show all scripts at once use it, the others read a script
+/// (`useScript`), select what they show (`useWorkbookScriptsSelector`) or read the scripts in a handler
+/// (`useViewReader`).
+export function useWorkbookScriptMap(workbookId: string | null | undefined): ScriptDataMap {
+    const [subscribe, getSnapshot] = useWorkbookScriptsSnapshot(workbookId);
     return React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
+
+/// A value that a component selects from the scripts of a workbook by key, e.g. whether one of them has a staged
+/// rewrite. The component renders again only when the selected value changes (`isEqual`, by identity by default), not
+/// with every keystroke in a script.
+export function useWorkbookScriptsSelector<T>(
+    workbookId: string | null | undefined,
+    select: (scripts: ScriptDataMap) => T,
+    isEqual: (left: T, right: T) => boolean = Object.is,
+): T {
+    const [subscribe, getSnapshot] = useWorkbookScriptsSnapshot(workbookId);
+    return useSelection(subscribe, getSnapshot, select, isEqual);
 }
 
 // The connections
