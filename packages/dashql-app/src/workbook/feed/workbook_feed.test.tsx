@@ -7,7 +7,6 @@ import { ScriptFeedRow, type ScriptFeedRowDependencies } from './workbook_feed_r
 import type { ScriptCardProps } from './script_card.js';
 import { fakeScript, fakeScriptModel } from '@akohn/dashql-react/testing/fake_models';
 import { useScriptModel, type ScriptModel } from '@akohn/dashql-react/models/script_model';
-import { ResizeObserverMock } from '@akohn/dashql-react/testing/resize_observer_mock';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
@@ -59,7 +58,15 @@ const dependencies: ScriptFeedRowDependencies = {
         : `translate3d(${transform.x}px, ${transform.y}px, 0)`,
     ScriptCard: (props: ScriptCardProps) => <article data-testid="script-cell" data-script={props.model.script.fileName} />,
 } as unknown as ScriptFeedRowDependencies;
-vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
+// The size observers report when a test asks them to, see `reportHeights`
+const sizeObservers: { callback: ResizeObserverCallback; targets: Set<Element> }[] = [];
+vi.stubGlobal('ResizeObserver', class {
+    targets = new Set<Element>();
+    constructor(public callback: ResizeObserverCallback) { sizeObservers.push(this); }
+    observe(target: Element) { this.targets.add(target); }
+    unobserve(target: Element) { this.targets.delete(target); }
+    disconnect() { this.targets.clear(); }
+});
 
 function baseProps() {
     const scripts = { 1: fakeScript(1, '01_alpha.sql'), 2: fakeScript(2, '02_beta.sql') } as { [key: number]: ScriptData };
@@ -76,7 +83,7 @@ function baseProps() {
             moveDown: vi.fn(), target: vi.fn(), editorView: vi.fn(),
         },
         onParameterClick: vi.fn(), topInset: 0,
-        onRowHeightChange: vi.fn(), dependencies,
+        dependencies,
     };
 }
 
@@ -190,55 +197,6 @@ describe('V2 workbook feed rows', () => {
         }
     });
 
-    /// The size observers report when the test asks them to, a browser reports a new observer once before the paint
-    function withResizeObserverMock(test: () => void) {
-        const resizeObserver = globalThis.ResizeObserver;
-        ResizeObserverMock.reset();
-        globalThis.ResizeObserver = ResizeObserverMock as unknown as typeof ResizeObserver;
-        try {
-            test();
-        } finally {
-            globalThis.ResizeObserver = resizeObserver;
-        }
-    }
-
-    it('measures a row when its size observer reports, the editor of a mounted row does not exist before', () => {
-        withResizeObserverMock(() => {
-            const props = baseProps();
-            const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 312 } as DOMRect);
-            try {
-                renderRow(root, props);
-                expect(container.querySelector<HTMLElement>('[data-testid="script-feed-row"]')!.style.height).toBe('');
-                expect(props.onRowHeightChange).not.toHaveBeenCalled();
-                ResizeObserverMock.instances[ResizeObserverMock.instances.length - 1].trigger();
-                expect(props.onRowHeightChange).toHaveBeenCalledExactlyOnceWith(0, 312);
-            } finally {
-                rect.mockRestore();
-            }
-        });
-    });
-
-    it('measures a row again when an inserted script takes its index at the same size', () => {
-        withResizeObserverMock(() => {
-            const props = baseProps();
-            const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 120 } as DOMRect);
-            try {
-                renderRow(root, props);
-                ResizeObserverMock.instances[ResizeObserverMock.instances.length - 1].trigger();
-                expect(props.onRowHeightChange).toHaveBeenCalledExactlyOnceWith(0, 120);
-                props.onRowHeightChange.mockClear();
-                // A script inserted above takes the mounted row of index 0, a new size observer reports the same size
-                const inserted = { ...props, entries: [{ scriptId: 3, fileName: '03_gamma.sql' }, ...props.entries],
-                    scripts: { ...props.scripts, 3: fakeScript(3, '03_gamma.sql') } };
-                renderRow(root, inserted);
-                ResizeObserverMock.instances[ResizeObserverMock.instances.length - 1].trigger();
-                expect(props.onRowHeightChange).toHaveBeenCalledExactlyOnceWith(0, 120);
-            } finally {
-                rect.mockRestore();
-            }
-        });
-    });
-
     it('translates a dragged card without applying dnd-kit scale distortion', () => {
         const props = baseProps();
         state.sortableTransform = { x: 0, y: 120, scaleX: 0.8, scaleY: 0.4 };
@@ -287,12 +245,13 @@ describe('Workbook feed', () => {
             feedState.rowProps = props;
             const entry = props.entries[props.index];
             const layout = entry != null ? feedState.rowLayouts.get(entry.scriptId) : undefined;
-            if (layout == null) return <div />;
             return (
                 <div style={props.style}>
-                    <div data-script-key={entry.scriptId}>
-                        <div style={{ height: layout.text }} />
-                        <div data-feed-result="" style={{ height: layout.result }} />
+                    <div data-script-key={entry?.scriptId}>
+                        {layout != null && <>
+                            <div style={{ height: layout.text }} />
+                            <div data-feed-result="" style={{ height: layout.result }} />
+                        </>}
                     </div>
                 </div>
             );
@@ -348,6 +307,34 @@ describe('Workbook feed', () => {
             </WorkbookConnectionAttentionContext.Provider>
         </LoggerProvider>));
     }
+
+    /// The size observer of the feed reports the heights of the cards, by the index of their row
+    function reportHeights(heights: { [index: number]: number }) {
+        for (const observer of sizeObservers) {
+            const reports = [...observer.targets].flatMap(target => {
+                const index = target.parentElement?.getAttribute('data-react-window-index');
+                const height = index == null ? undefined : heights[Number(index)];
+                return height == null ? [] : [{ target, borderBoxSize: [{ blockSize: height }] } as unknown as ResizeObserverEntry];
+            });
+            if (reports.length > 0) act(() => observer.callback(reports, observer as unknown as ResizeObserver));
+        }
+    }
+
+    it('measures the cards of a report at once, also the card of a script inserted above them', () => {
+        render(workbook(['1_alpha.sql', '2_beta.sql']), vi.fn());
+        const rowTop = (scriptKey: number) => container.querySelector(`[data-script-key="${scriptKey}"]`)!.parentElement!.style.transform;
+        const head = feedTopSpace(feedState.rowProps!.topInset);
+        reportHeights([200, 200]);
+        expect(rowTop(2)).toBe(`translateY(${head + 200 + FEED_GAP}px)`);
+
+        // The created script lands above the first script, its card reports at the index of its row
+        const created = workbook(['1_alpha.sql', '2_beta.sql', '3_gamma.sql']);
+        created.scriptOrder = ['3_gamma.sql', '1_alpha.sql', '2_beta.sql'];
+        render(created, vi.fn());
+        reportHeights({ 0: 120 });
+        expect(rowTop(1)).toBe(`translateY(${head + 120 + FEED_GAP}px)`);
+        expect(rowTop(2)).toBe(`translateY(${head + 120 + FEED_GAP + 200 + FEED_GAP}px)`);
+    });
 
     it('shows the head of an empty workbook above the greeting of the prompt instead of the list', () => {
         const onInsets = vi.fn();
@@ -449,18 +436,17 @@ describe('Workbook feed', () => {
 
     it('keeps the rows in view in place when a row above the viewport changes its height', () => {
         render(workbook(['1_alpha.sql', '2_beta.sql', '3_gamma.sql']), vi.fn());
-        for (let i = 0; i < 3; ++i) act(() => feedState.rowProps!.onRowHeightChange(i, 200));
+        reportHeights([200, 200, 200]);
         const list = container.querySelector<HTMLElement>('[data-testid="feed-list"] [role="list"]')!;
         // Scrolled into the second script
         Object.defineProperty(list, 'scrollTop', { value: 300, writable: true, configurable: true });
 
-        act(() => feedState.rowProps!.onRowHeightChange(0, 285));
+        reportHeights({ 0: 285 });
         const shifted = 300 + (285 - 200);
         expect(list.scrollTop).toBe(shifted);
 
         // The script at the top of the viewport and the script below it move only the rows below them
-        act(() => feedState.rowProps!.onRowHeightChange(1, 300));
-        act(() => feedState.rowProps!.onRowHeightChange(2, 300));
+        reportHeights({ 1: 300, 2: 300 });
         expect(list.scrollTop).toBe(shifted);
     });
 
@@ -478,7 +464,7 @@ describe('Workbook feed', () => {
             feedState.next = created;
             const modify = vi.fn(() => ({ ...APPLIED, id: 4 }));
             render(before, modify);
-            for (let i = 0; i < 3; ++i) act(() => feedState.rowProps!.onRowHeightChange(i, 200));
+            reportHeights([200, 200, 200]);
             scrollTo.mockClear();
 
             act(() => feedState.rowProps!.feed.create(2));
@@ -533,8 +519,7 @@ describe('Workbook feed', () => {
         try {
             render(workbook(['1_alpha.sql', '2_beta.sql']), vi.fn());
             act(() => feedState.handle.current!.followAgent());
-            act(() => feedState.rowProps!.onRowHeightChange(0, 400));
-            act(() => feedState.rowProps!.onRowHeightChange(1, 400));
+            reportHeights([400, 400]);
 
             // An edit shows the text of a script taller than the viewport, below the head of the feed, the first script and
             // the gap
@@ -555,7 +540,7 @@ describe('Workbook feed', () => {
         const scrollTo = vi.spyOn(Element.prototype, 'scrollTo').mockImplementation(() => { });
         try {
             render(workbook(['1_alpha.sql', '2_beta.sql']), vi.fn());
-            for (let i = 0; i < 2; ++i) act(() => feedState.rowProps!.onRowHeightChange(i, 200));
+            reportHeights([200, 200]);
             scrollTo.mockClear();
             // Another script of the workbook doesn't scroll
             render(workbook(['1_alpha.sql', '2_beta.sql', '3_gamma.sql']), vi.fn());

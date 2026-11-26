@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { flushSync } from 'react-dom';
 import * as styles from './workbook_feed.module.css';
 import * as dashql from '@akohn/dashql';
 
@@ -56,7 +55,6 @@ export interface ScriptFeedRowProps {
     onParameterClick: (scriptKey: number, click: DashQLParameterClick, view: EditorView) => void;
     /// The height of the inputs above the first script, the first row leaves it free
     topInset: number;
-    onRowHeightChange: (index: number, height: number) => void;
     dependencies?: ScriptFeedRowDependencies;
 }
 
@@ -105,29 +103,6 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
         // post-drop FLIP transform, which otherwise briefly animates the card back toward its old row.
         animateLayoutChanges: () => false,
     });
-    const rowRef = React.useRef<HTMLDivElement | null>(null);
-    const setRowRef = React.useCallback((node: HTMLDivElement | null) => {
-        rowRef.current = node;
-        setNodeRef(node);
-    }, [setNodeRef]);
-    // The height cache stores the height of the script at the index of a row.
-    // A row measures again when its index or its script changes: a new size observer reports the size once, even if
-    // it did not change. That report comes before the paint, when the editor of a mounted row exists. A measure in this
-    // effect would see the card without its editor and move all rows below by the height of the editor.
-    // The rows below move in the same frame, a height applied after the paint would show them at the old height.
-    const rowScriptId = entry?.scriptId;
-    const { index: rowIndex, onRowHeightChange } = props;
-    React.useLayoutEffect(() => {
-        const row = rowRef.current;
-        if (row == null) return;
-        const observer = new ResizeObserver(() => {
-            const height = Math.ceil(row.getBoundingClientRect().height);
-            if (height > 0) flushSync(() => onRowHeightChange(rowIndex, height));
-        });
-        observer.observe(row);
-        return () => observer.disconnect();
-    }, [rowIndex, rowScriptId, onRowHeightChange]);
-
     // What the card shows, the identity of each part stays while it is unchanged: the card is memoized
     const position = React.useMemo<ScriptCardPosition>(() => ({ index: entryIndex, canMoveUp, canMoveDown }), [entryIndex, canMoveUp, canMoveDown]);
     // The references of the script, the reports of the other scripts leave the row alone
@@ -182,6 +157,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
 
     // The row holds the card and the space below it, the first row also the space above the feed.
     // The add buttons sit in these spaces, a button between two scripts shows while either one is hovered.
+    // The feed measures the card, the first child of the row (`useWorkbookFeedLayout`).
     return (
         <div
             className={styles.feed_row}
@@ -189,7 +165,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
             data-testid="script-feed-row"
         >
             <div
-                ref={setRowRef}
+                ref={setNodeRef}
                 className={styles.feed_list_item}
                 data-testid="script-feed-item"
                 data-script-key={entry?.scriptId}

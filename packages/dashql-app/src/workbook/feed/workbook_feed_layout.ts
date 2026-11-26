@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { flushSync } from 'react-dom';
 
 import { useListRef } from 'react-window';
 
@@ -29,7 +30,7 @@ const MIN_ENTRY_HEIGHT = 40;
 /// The heights of the rows of the feed, one row per script.
 /// A row is the card of the script and the space that follows it, the first row also holds the space above the feed
 /// and the inputs of the workbook in it.
-/// The rows measure the cards only, the spaces are added here.
+/// The cards of the rows are measured, the spaces are added here.
 export class FeedRowHeightCache {
     private readonly measuredHeights = new Map<number, number>();
     /// The mean amount that the measured scripts exceed their estimates by.
@@ -137,18 +138,22 @@ export class FeedRowHeightCache {
         return Math.max(0, this.entries.length - 1);
     }
 
-    /// Store the measured height of the card of a row.
+    /// Store the measured heights of the cards of rows, by the index of the row. A card without height is not shown.
     /// Measuring a row also changes the estimates of the unmeasured rows, the shift covers all rows above the viewport.
-    setRowHeight = (index: number, height: number) => {
-        const entry = this.entries[index];
-        if (entry == null) return;
-        if (this.measuredHeights.get(entry.scriptId) === height) return;
+    setRowHeights(heights: Iterable<readonly [index: number, height: number]>) {
         const anchor = this.getRowAtOffset(this.getScrollOffset());
         const anchorOffset = this.getRowOffset(anchor);
-        this.measuredHeights.set(entry.scriptId, height);
+        let changed = false;
+        for (const [index, height] of heights) {
+            const entry = this.entries[index];
+            if (entry == null || height <= 0 || this.measuredHeights.get(entry.scriptId) === height) continue;
+            this.measuredHeights.set(entry.scriptId, height);
+            changed = true;
+        }
+        if (!changed) return;
         this.updateEstimateCorrection();
         this.onChange(this.getRowOffset(anchor) - anchorOffset);
-    };
+    }
 }
 
 /// The space kept around a revealed script
@@ -182,13 +187,37 @@ export function useWorkbookFeedLayout(entries: FeedLayoutEntry[], bottomInset = 
     rowHeightsRef.current.setBottomInset(bottomInset);
     rowHeightsRef.current.setTopInset(topInset);
     const rowHeightCache = rowHeightsRef.current;
+    // One size observer measures the cards of the feed. After each render, the list hands it the rows that it shows,
+    // each marked with its index (`data-react-window-index`), and the observer watches the card in each row.
+    // The browser reports the sizes after the layout and before the paint. All heights of one report go into the cache
+    // together and the feed renders once, right away: a render after the paint would show the rows below a grown card
+    // at their old place for a frame. A card stays observed while its row shows, the list hands over its rows again
+    // after every measure: a card observed anew would report again, and during a report only in the next frame.
+    const [cardObserver] = React.useState(() => {
+        const cards = new Set<Element>();
+        const observer = new ResizeObserver(reports => flushSync(() => rowHeightCache.setRowHeights(reports.flatMap(report => {
+            const index = report.target.parentElement?.getAttribute('data-react-window-index');
+            return index == null ? [] : [[Number(index), Math.ceil(report.borderBoxSize[0].blockSize)] as const];
+        }))));
+        return {
+            observeRowElements: (rows: Element[] | NodeListOf<Element>) => {
+                const shown = new Set(Array.from(rows, row => row.firstElementChild).filter(card => card != null));
+                for (const card of cards) if (!shown.has(card)) { observer.unobserve(card); cards.delete(card); }
+                for (const card of shown) if (!cards.has(card)) { observer.observe(card); cards.add(card); }
+                return () => {};
+            },
+            disconnect: () => { observer.disconnect(); cards.clear(); },
+        };
+    });
+    React.useEffect(() => cardObserver.disconnect, [cardObserver]);
     const rowHeights = React.useMemo(() => ({
         getAverageRowHeight: () => rowHeightCache.getAverageRowHeight(),
         getRowHeight: (index: number) => rowHeightCache.getRowHeight(index),
-        setRowHeight: rowHeightCache.setRowHeight,
-        observeRowElements: () => () => {},
+        // The type of react-window asks for it, the list itself doesn't call it
+        setRowHeight: (index: number, height: number) => rowHeightCache.setRowHeights([[index, height]]),
+        observeRowElements: cardObserver.observeRowElements,
         // eslint-disable-next-line react-hooks/exhaustive-deps -- the cache is mutable, a new object after a measure or a new inset makes the list read its heights again
-    }), [rowHeightCache, heightsVersion, bottomInset, topInset]);
+    }), [rowHeightCache, cardObserver, heightsVersion, bottomInset, topInset]);
     // A row above the viewport changed its height: the rows in view stay in place.
     // The browser can't anchor the scroll position itself, the list positions its rows with transforms.
     React.useLayoutEffect(() => {

@@ -69,7 +69,7 @@ describe('FeedRowHeightCache', () => {
             { scriptId: 1, estimatedHeight: 122 },
             { scriptId: 2, estimatedHeight: 202 },
         ], onChange);
-        heights.setRowHeight(0, 137);
+        heights.setRowHeights([[0, 137]]);
         heights.updateEntries([
             { scriptId: 2, estimatedHeight: 202 },
             { scriptId: 1, estimatedHeight: 162 },
@@ -89,27 +89,28 @@ describe('FeedRowHeightCache', () => {
             onChange,
             () => scrollOffset,
         );
-        for (let index = 0; index < 4; ++index) heights.setRowHeight(index, 100);
+        heights.setRowHeights([0, 1, 2, 3].map(index => [index, 100] as const));
         onChange.mockClear();
         return { heights, onChange };
     }
 
-    it('reports how far a row above the viewport moves the row at the top of the viewport', () => {
+    it('reports once how far the rows of a measure move the row at the top of the viewport', () => {
         const { heights, onChange } = measuredHeights(200);
-        heights.setRowHeight(0, 150);
+        // The row above the viewport moves it, the row at its top doesn't
+        heights.setRowHeights([[0, 150], [1, 130]]);
         expect(onChange).toHaveBeenCalledExactlyOnceWith(50);
     });
 
     it('keeps the scroll position when the top row of the viewport or a row below it changes', () => {
         const { heights, onChange } = measuredHeights(200);
-        heights.setRowHeight(1, 150);
-        heights.setRowHeight(3, 150);
+        heights.setRowHeights([[1, 150]]);
+        heights.setRowHeights([[3, 150]]);
         expect(onChange.mock.calls).toEqual([[0], [0]]);
     });
 
     it('keeps the scroll position at the top of the feed', () => {
         const { heights, onChange } = measuredHeights(0);
-        heights.setRowHeight(0, 150);
+        heights.setRowHeights([[0, 150]]);
         expect(onChange).toHaveBeenCalledExactlyOnceWith(0);
     });
 
@@ -121,7 +122,7 @@ describe('FeedRowHeightCache', () => {
             () => 300,
         );
         // The script below the viewport measures 80px above its estimate, so do the estimates of the two rows above
-        heights.setRowHeight(3, 180);
+        heights.setRowHeights([[3, 180]]);
         expect(onChange).toHaveBeenCalledExactlyOnceWith(160);
     });
 
@@ -131,8 +132,7 @@ describe('FeedRowHeightCache', () => {
             { scriptId: 2, estimatedHeight: 104 },
             { scriptId: 3, estimatedHeight: 140 },
         ]);
-        heights.setRowHeight(0, 504);
-        heights.setRowHeight(1, 304);
+        heights.setRowHeights([[0, 504], [1, 304]]);
 
         // Both measured scripts exceed their estimates by 300px on average
         expect([0, 1, 2].map(index => heights.getEntrySpan(index)[1] - heights.getEntrySpan(index)[0])).toEqual([
@@ -145,7 +145,7 @@ describe('FeedRowHeightCache', () => {
         const rowCount = 200;
         const heights = new FeedRowHeightCache(Array.from({ length: rowCount }, (_, i) => ({ scriptId: i, estimatedHeight: 104 })));
         const laidOut = 20;
-        for (let index = 0; index < laidOut; ++index) heights.setRowHeight(index, 520);
+        heights.setRowHeights(Array.from({ length: laidOut }, (_, index) => [index, 520] as const));
 
         // react-window sizes the list as the row count times the mean of the rows it has laid out
         const extrapolated = rowCount * heights.getRowOffset(laidOut) / laidOut;
@@ -158,7 +158,7 @@ describe('FeedRowHeightCache', () => {
             { scriptId: 1, estimatedHeight: 122 },
             { scriptId: 2, estimatedHeight: 202 },
         ]);
-        heights.setRowHeight(0, 137);
+        heights.setRowHeights([[0, 137]]);
 
         // Script 2 is not measured, it follows the 15px excess of script 1
         const first = TOP + 137 + GAP;

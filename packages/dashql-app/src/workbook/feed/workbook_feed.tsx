@@ -660,8 +660,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         feed: feedCommands,
         onParameterClick: handleParameterClick,
         topInset,
-        onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [workbookId, entries, rowsActive, scriptConnections, storageReader, scriptDebugMode, formattingDebugMode, keywordCase, collapsedResults, fold, feedCommands, handleParameterClick, topInset, feedLayout.rowHeights.setRowHeight]);
+    }), [workbookId, entries, rowsActive, scriptConnections, storageReader, scriptDebugMode, formattingDebugMode, keywordCase, collapsedResults, fold, feedCommands, handleParameterClick, topInset]);
 
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
     // The sortable items keep their identity with the entries, every row reads them
