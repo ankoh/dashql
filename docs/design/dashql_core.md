@@ -296,8 +296,9 @@ database (`ComputeHost::import_table`), the host keeps the numbered result as th
 grid and the charts show. The system columns (the bins and the value ids) stay in their data frame, the filters and
 the summaries read them there and nothing reads their rows. The one read of rows besides the small tables that tasks
 parse and the row numbers of filters, orderings and searches are the preview of a result (`ComputeService::preview`,
-`previewResult` of the facade): its first rows from the data frame of the computation, bounded by a limit, for the
-tables of the shell, and the windows of the grid (`ComputeService::read_rows`, `readResultRows`): the rows that show
+`previewResult` of the facade): its rows from an offset in the order of the result, bounded by a limit, from the
+data frame of the computation, e.g. the first rows for the tables of the shell and the last rows for a KPI card, and
+the windows of the grid (`ComputeService::read_rows`, `readResultRows`): the rows that show
 from an offset, bounded by a limit, with the count of the rows that show. The core decides which rows show and their
 order (`compute/tasks/row_window.rs`): an ordering orders the rows that were filtered and searched when it ran, a data
 search that it doesn't cover narrows them further, and a filter and a data search without an ordering are counted by a

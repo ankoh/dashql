@@ -1,21 +1,24 @@
 import * as React from 'react';
 
-import type * as arrow from 'apache-arrow';
 import { buffers } from '@akohn/dashql';
 import { ArrowTableFormatter } from '@akohn/dashql/platform/compute/arrow_formatter';
-import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
+import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
+import type { QueryModel } from '../../models/query_model.js';
 import * as styles from './markdown_view.module.css';
 import { CardPlaceholder, QueryStatusPlaceholder } from '../card_placeholder.js';
+import { useResultRows } from './result_rows.js';
 import { useLogger } from '../../logger.js';
 
 type MarkdownNode = buffers.visualization.MarkdownNodeT;
 type MarkdownSpec = buffers.visualization.MarkdownSpecT;
 const NodeType = buffers.visualization.MarkdownNodeType;
 
+/// The first rows of a result that a Markdown card renders, a document per row
+export const MARKDOWN_CARD_ROWS = 100;
+
 export interface MarkdownViewProps {
-    query: QueryExecutionState | null;
-    /// The result table of the query, the view renders the document once per row
-    resultTable: arrow.Table | null;
+    /// The query, the view renders the document once per row of its result
+    model: QueryModel | null;
     spec: MarkdownSpec | null;
 }
 
@@ -126,11 +129,13 @@ export function MarkdownText(props: { document: MarkdownNode; className?: string
     );
 }
 
-/// The Markdown document of a visualization, rendered once per row of the result with the formatted values of its fields
+/// The Markdown document of a visualization, rendered once per row of the result with the formatted values of its
+/// fields. The view reads the first rows of the result, at most `MARKDOWN_CARD_ROWS`.
 export function MarkdownView(props: MarkdownViewProps): React.ReactElement {
     const logger = useLogger();
-    const succeeded = props.query?.status === QueryExecutionStatus.SUCCEEDED;
-    const table = succeeded ? props.resultTable : null;
+    const query = props.model?.query ?? null;
+    const succeeded = query?.status === QueryExecutionStatus.SUCCEEDED;
+    const { table, rows, reading } = useResultRows(props.model, 'first', MARKDOWN_CARD_ROWS);
 
     const renderedRows = React.useMemo(() => {
         if (props.spec == null || table == null) return null;
@@ -155,9 +160,15 @@ export function MarkdownView(props: MarkdownViewProps): React.ReactElement {
         return <CardPlaceholder message="No visualization available" />;
     }
     if (!succeeded) {
-        return <QueryStatusPlaceholder query={props.query} />;
+        return <QueryStatusPlaceholder query={query} />;
     }
-    if (renderedRows == null || renderedRows.length === 0) {
+    if (reading) {
+        return <CardPlaceholder />;
+    }
+    if (renderedRows == null) {
+        return <CardPlaceholder message="No visualization available" />;
+    }
+    if (renderedRows.length === 0) {
         return <CardPlaceholder message="Result is empty" />;
     }
     const document = props.spec.document;
@@ -172,6 +183,11 @@ export function MarkdownView(props: MarkdownViewProps): React.ReactElement {
                     {renderNode(document, fields, String(row))}
                 </article>
             ))}
+            {rows > renderedRows.length && (
+                <p className={styles.more} data-testid="markdown-more-rows">
+                    {rows - renderedRows.length} more rows
+                </p>
+            )}
         </div>
     );
 }

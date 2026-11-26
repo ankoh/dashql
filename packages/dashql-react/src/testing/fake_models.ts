@@ -7,7 +7,8 @@ import type { QueryModel } from '../models/query_model.js';
 import type { ComputationModel } from '../models/computation_model.js';
 import type * as arrow from 'apache-arrow';
 import type { ComputationView } from '@akohn/dashql';
-import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
+import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
+import { mockTableComputation } from './computation_mocks.js';
 
 /// A script as the tests of components need it: its key, its file name, its text and nothing that runs
 export function fakeScript(scriptKey: number, fileName: string, text = 'SELECT 1', overrides: Partial<ScriptData> = {}): ScriptData {
@@ -64,6 +65,20 @@ export function fakeComputationModel(
             if (table == null) throw new Error(`no table ${computation.dataTable}`);
             return { offset, rows: table.numRows, table: table.slice(offset, offset + limit) };
         }),
+        previewRows: vi.fn(async (offset: number, limit: number) => {
+            const table = tables.get(computation.dataTable);
+            if (table == null) throw new Error(`no table ${computation.dataTable}`);
+            return table.slice(offset, offset + limit);
+        }),
         ...overrides,
     };
+}
+
+/// The model of a query that succeeded with a result table: its computation reads the rows of the table
+export function fakeResultModel(table: arrow.Table, query: Partial<QueryExecutionState> = {}): QueryModel {
+    const computation = mockTableComputation([], { dataTableRows: table.numRows });
+    return fakeQueryModel(
+        { queryId: 1, status: QueryExecutionStatus.SUCCEEDED, resultTable: { id: 1, rows: table.numRows }, ...query },
+        { computation: fakeComputationModel(computation, new Map([[computation.dataTable, table]])) },
+    );
 }

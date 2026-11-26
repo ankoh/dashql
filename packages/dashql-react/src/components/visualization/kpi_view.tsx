@@ -1,20 +1,20 @@
 import * as React from 'react';
 
-import type * as arrow from 'apache-arrow';
 import { buffers } from '@akohn/dashql';
-import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
-import { formatKpiChange, kpiBase, readKpi, type KpiReading } from '@akohn/dashql/platform/workbook/kpi_reading';
+import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
+import { formatKpiChange, kpiBase, KPI_CARD_ROWS, readKpi, type KpiReading } from '@akohn/dashql/platform/workbook/kpi_reading';
+import type { QueryModel } from '../../models/query_model.js';
 import * as styles from './kpi_view.module.css';
 import { CardPlaceholder, QueryStatusPlaceholder } from '../card_placeholder.js';
 import { useObservedSize } from '../size_observer.js';
+import { useResultRows } from './result_rows.js';
 import { useLogger } from '../../logger.js';
 
 type KpiSpec = buffers.visualization.KpiSpecT;
 
 export interface KpiViewProps {
-    query: QueryExecutionState | null;
-    /// The result table of the query: the value of its last row is the figure, its rows the chart behind it
-    resultTable: arrow.Table | null;
+    /// The query: the value of the last row of its result is the figure, the last rows the chart behind it
+    model: QueryModel | null;
     spec: KpiSpec | null;
 }
 
@@ -117,13 +117,15 @@ function KpiChart(props: { reading: KpiReading; width: number; height: number })
 }
 
 /// A KPI card: the value of the last row of the result, large, with its change and a chart of the value across the
-/// rows behind it. A result of one row shows only the value.
+/// rows behind it. A result of one row shows only the value. The card reads the last rows of the result, at most
+/// `KPI_CARD_ROWS`.
 export function KpiView(props: KpiViewProps): React.ReactElement {
     const logger = useLogger();
     const rootRef = React.useRef<HTMLDivElement>(null);
     const size = useObservedSize(rootRef);
-    const succeeded = props.query?.status === QueryExecutionStatus.SUCCEEDED;
-    const table = succeeded ? props.resultTable : null;
+    const query = props.model?.query ?? null;
+    const succeeded = query?.status === QueryExecutionStatus.SUCCEEDED;
+    const { table, reading: readingRows } = useResultRows(props.model, 'last', KPI_CARD_ROWS);
 
     const reading = React.useMemo(() => {
         if (props.spec == null || table == null) return null;
@@ -139,7 +141,10 @@ export function KpiView(props: KpiViewProps): React.ReactElement {
         return <CardPlaceholder message="No visualization available" />;
     }
     if (!succeeded) {
-        return <QueryStatusPlaceholder query={props.query} />;
+        return <QueryStatusPlaceholder query={query} />;
+    }
+    if (readingRows) {
+        return <CardPlaceholder />;
     }
     if (reading == null) {
         return <CardPlaceholder message="No visualization available" />;

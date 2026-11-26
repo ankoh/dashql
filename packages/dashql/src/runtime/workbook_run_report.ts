@@ -142,7 +142,7 @@ export async function runWorkbookReported(runtime: Runtime, workbook: WorkbookSc
         const firstRows = async (queryId: number): Promise<arrow.Table | null> => {
             if (runtime.store.get('computation', queryId) == null) return null;
             try {
-                return arrow.tableFromIPC(await runtime.previewResult(queryId, options.rows));
+                return arrow.tableFromIPC(await runtime.previewResult(queryId, 0, options.rows));
             } catch (error) {
                 // The event reports the result without its rows, the rows and the file still tell what it is
                 options.onReportError?.(error);

@@ -919,14 +919,28 @@ fn previews_the_first_rows_of_a_result_from_its_data_frame() {
     setup.analyze().unwrap();
     let data_frame =
         setup.service.read(|state| state.computation(1).and_then(|computation| computation.data_frame)).unwrap();
-    let output = setup.run(setup.service.preview(1, 2));
+    let output = setup.run(setup.service.preview(1, 0, 2));
     let ipc = output.borrow_mut().take().expect("the preview finished").unwrap();
     assert!(ResultTable::from_ipc_stream(&ipc).is_ok());
     // The fields of the result in the order of its rows, without the system columns
     let queries = setup.database.borrow().queries.clone();
     let preview = queries.last().expect("a preview query");
-    assert!(preview.starts_with(&format!(r#"SELECT "score", "name" FROM "__df_{data_frame}""#)), "{preview}");
+    assert!(preview.contains(&format!(r#"FROM "__df_{data_frame}" WHERE "_rownum" > 0 AND "_rownum" <= 2"#)), "{preview}");
+    assert!(preview.contains(r#"SELECT "score", "name" FROM"#), "{preview}");
     assert!(preview.contains(r#"ORDER BY "_rownum""#), "{preview}");
+    assert!(preview.ends_with("LIMIT 2"), "{preview}");
+}
+
+#[test]
+fn previews_the_rows_of_a_result_from_an_offset() {
+    let setup = setup(analysis_answer);
+    setup.analyze().unwrap();
+    let output = setup.run(setup.service.preview(1, 3, 2));
+    output.borrow_mut().take().expect("the preview finished").unwrap();
+    // The row numbers are the positions of the rows, the preview reads the positions after the offset
+    let queries = setup.database.borrow().queries.clone();
+    let preview = queries.last().expect("a preview query");
+    assert!(preview.contains(r#"WHERE "_rownum" > 3 AND "_rownum" <= 5"#), "{preview}");
     assert!(preview.ends_with("LIMIT 2"), "{preview}");
 }
 
@@ -1029,7 +1043,7 @@ fn an_analysis_starts_its_computation_when_it_is_called() {
 fn a_preview_waits_for_the_system_columns_of_an_analysis() {
     let setup = setup(analysis_answer);
     let (release, analysis) = setup.start_held_analysis(&CancellationToken::new());
-    let preview = setup.run(setup.service.preview(1, 2));
+    let preview = setup.run(setup.service.preview(1, 0, 2));
     assert!(preview.borrow().is_none());
     release.send(());
     setup.executor.run_until_stalled();
@@ -1042,7 +1056,7 @@ fn a_stopped_analysis_keeps_its_computation_with_what_it_computed() {
     let setup = setup(analysis_answer);
     let stop = CancellationToken::new();
     let (_release, analysis) = setup.start_held_analysis(&stop);
-    let preview = setup.run(setup.service.preview(1, 2));
+    let preview = setup.run(setup.service.preview(1, 0, 2));
     stop.cancel();
     setup.executor.run_until_stalled();
     let error = analysis.borrow_mut().take().expect("the analysis ended").unwrap_err();
@@ -1076,7 +1090,7 @@ fn an_analysis_that_is_stopped_before_its_first_step_runs_none() {
 #[test]
 fn a_preview_needs_an_analyzed_result() {
     let setup = setup(analysis_answer);
-    let output = setup.run(setup.service.preview(7, 10));
+    let output = setup.run(setup.service.preview(7, 0, 10));
     let error = output.borrow_mut().take().expect("the preview finished").unwrap_err();
     assert!(error.to_string().contains("the table 7 has no computation"), "{error}");
     assert!(setup.database.borrow().queries.is_empty());

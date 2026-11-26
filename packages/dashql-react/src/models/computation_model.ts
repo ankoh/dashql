@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as arrow from 'apache-arrow';
 
 import type * as core from '@akohn/dashql';
 import type { ComputationView } from '@akohn/dashql';
@@ -23,6 +24,9 @@ export interface ComputationModel {
     /// Read a window of the rows that show: those that pass the filters and the data search, in the order of the
     /// ordering, from `offset`, at most `limit`
     readRows(offset: number, limit: number): Promise<ResultRowWindow>;
+    /// Read rows of the result in its order, from `offset`, at most `limit`, without the columns of the computation.
+    /// The filters, the searches and the ordering don't apply, e.g. the last rows of a KPI card
+    previewRows(offset: number, limit: number): Promise<arrow.Table>;
 }
 
 export type { ResultRowWindow };
@@ -31,7 +35,7 @@ export type { ResultRowWindow };
 const NO_TABLES: SummaryTables = { table: () => undefined };
 
 /// The rows of no runtime
-const noRows = async (): Promise<ResultRowWindow> => {
+const noRows = async (): Promise<never> => {
     throw new Error('there is no runtime to read the rows from');
 };
 
@@ -45,6 +49,9 @@ export function useComputationModel(computation: ComputationView | null | undefi
         const readRows = runtime == null
             ? noRows
             : (offset: number, limit: number) => runtime.readResultRows(tableId, offset, limit);
-        return { computation, tables: runtime ?? NO_TABLES, dispatch, readRows };
+        const previewRows = runtime == null
+            ? noRows
+            : async (offset: number, limit: number) => arrow.tableFromIPC(await runtime.previewResult(tableId, offset, limit));
+        return { computation, tables: runtime ?? NO_TABLES, dispatch, readRows, previewRows };
     }, [runtime, computation, dispatch]);
 }

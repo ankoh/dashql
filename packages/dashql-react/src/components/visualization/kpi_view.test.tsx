@@ -11,6 +11,8 @@ import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/pl
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { KpiView } from './kpi_view.js';
+import { fakeQueryModel, fakeResultModel } from '../../testing/fake_models.js';
+import { waitForRender } from '../../testing/react_act.js';
 import { LoggerContext } from '../../logger.js';
 
 const Spec = buffers.visualization.KpiSpecT;
@@ -37,30 +39,35 @@ describe('KpiView', () => {
         container.remove();
     });
 
-    function render(table: arrow.Table | null, kpi = spec(), query: QueryExecutionState | null = SUCCEEDED) {
+    /// Render the card of a query, with a table the query succeeded with it as its result. Waits until the card read
+    /// the rows of the result.
+    async function render(table: arrow.Table | null, kpi = spec(), query: Partial<QueryExecutionState> = SUCCEEDED) {
+        const model = table == null ? fakeQueryModel({ queryId: 1, ...query }) : fakeResultModel(table, query);
         act(() => root.render(
             <LoggerContext.Provider value={new TestLogger()}>
-                <KpiView query={query} resultTable={table} spec={kpi} />
+                <KpiView model={model} spec={kpi} />
             </LoggerContext.Provider>,
         ));
+        if (table != null) await waitForRender(() => expect(container.querySelector('[data-testid="card-placeholder"]:not(:has(span))')).toBeNull());
+        return model;
     }
 
     const text = (testId: string) => container.querySelector(`[data-testid="${testId}"]`)?.textContent ?? null;
 
-    it('shows the value, its change and the chart', () => {
-        render(tableFromArrays({ day: new Int32Array([1, 2]), revenue: new Int32Array([100, 110]) }));
+    it('shows the value, its change and the chart', async () => {
+        await render(tableFromArrays({ day: new Int32Array([1, 2]), revenue: new Int32Array([100, 110]) }));
         expect(text('kpi-value')).toBe('110');
         expect(text('kpi-change')).toBe('▲ +10%');
         expect(container.querySelector('[data-testid="kpi-change"]')!.getAttribute('data-direction')).toBe('up');
         expect(container.querySelector('[data-testid="kpi-chart"]')).not.toBeNull();
     });
 
-    it('shows a single row without change and chart, and a dash without rows', () => {
-        render(tableFromArrays({ total: new Int32Array([42]) }));
+    it('shows a single row without change and chart, and a dash without rows', async () => {
+        await render(tableFromArrays({ total: new Int32Array([42]) }));
         expect(text('kpi-value')).toBe('42');
         expect(text('kpi-change')).toBeNull();
         expect(container.querySelector('[data-testid="kpi-chart"]')).toBeNull();
-        render(tableFromArrays({ total: new Int32Array([]) }));
+        await render(tableFromArrays({ total: new Int32Array([]) }));
         expect(text('kpi-value')).toBe('–');
     });
 
@@ -71,24 +78,31 @@ describe('KpiView', () => {
         const running = { queryId: 1, status: QueryExecutionStatus.RUNNING } as QueryExecutionState;
         const chartWidth = () => container.querySelector('[data-testid="kpi-chart"]')?.getAttribute('width') ?? null;
         // The card mounts while its query runs, the view of the result comes later
-        render(null, spec(), running);
-        render(table);
+        await render(null, spec(), running);
+        await render(table);
         expect(chartWidth()).toBe('300');
         container.style.width = '360px';
         await vi.waitFor(() => expect(chartWidth()).toBe('360'));
         // A rerun replaces the view of the result, the chart follows the size of the new one
-        render(null, spec(), { ...running, queryId: 2 } as QueryExecutionState);
-        render(table, spec(), { queryId: 2, status: QueryExecutionStatus.SUCCEEDED } as QueryExecutionState);
+        await render(null, spec(), { ...running, queryId: 2 });
+        await render(table, spec(), { queryId: 2, status: QueryExecutionStatus.SUCCEEDED });
         expect(chartWidth()).toBe('360');
         container.style.width = '320px';
         await vi.waitFor(() => expect(chartWidth()).toBe('320'));
     });
 
-    it('shows a placeholder for a missing column and a query that did not succeed', () => {
-        render(tableFromArrays({ total: new Int32Array([1]) }), spec('revenue'));
+    it('shows a placeholder for a missing column and a query that did not succeed', async () => {
+        await render(tableFromArrays({ total: new Int32Array([1]) }), spec('revenue'));
         expect(text('card-placeholder')).toContain('Result has no column revenue');
-        render(null, spec(), { queryId: 1, status: QueryExecutionStatus.RUNNING } as QueryExecutionState);
+        await render(null, spec(), { queryId: 1, status: QueryExecutionStatus.RUNNING });
         expect(container.querySelector('[data-testid="kpi-view"]')).toBeNull();
         expect(container.querySelector('[data-testid="card-placeholder"]')).not.toBeNull();
+    });
+
+    it('reads the last rows of the result', async () => {
+        const values = Int32Array.from({ length: 1200 }, (_, i) => i);
+        const model = await render(tableFromArrays({ day: values, revenue: values }));
+        expect(text('kpi-value')).toBe('1,199');
+        expect(model.computation!.previewRows).toHaveBeenCalledWith(200, 1000);
     });
 });

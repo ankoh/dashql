@@ -29,7 +29,7 @@ use std::sync::Arc;
 use arrow_array::ArrayRef;
 use dashql_core::error::{Error, Result};
 
-use crate::compute::types::{DataFrameId, OrderByConstraint};
+use crate::compute::types::{DataFrameId, FilterOp, OrderByConstraint};
 use result_table::ResultTable;
 use sql::SqlFrame;
 
@@ -55,15 +55,19 @@ pub fn read_data_frame_sql(
     frame.to_sql()
 }
 
-/// The read of the first rows of a result from its data frame: the fields of the result in the order of its rows, the
-/// row numbers that the import appended order them, the columns that the computation added stay out
+/// The read of rows of a result from its data frame: the fields of the result in the order of its rows from `offset`,
+/// at most `limit`. The row numbers that the import appended are the positions of the rows and order them, the
+/// columns that the computation added stay out.
 pub fn preview_data_frame_sql(
     data_frame: DataFrameId,
     fields: &[String],
     row_number_field: &str,
+    offset: u64,
     limit: u64,
 ) -> String {
     SqlFrame::from(data_frame_table_name(data_frame))
+        .filter(row_number_field.to_string(), FilterOp::Greater, offset as f64)
+        .filter(row_number_field.to_string(), FilterOp::LessEqual, offset.saturating_add(limit) as f64)
         .order_by(vec![ascending(row_number_field)], Some(limit))
         .project(fields.to_vec())
         .to_sql()

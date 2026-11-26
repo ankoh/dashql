@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act } from '../../testing/react_act.js';
+import { act, waitForRender } from '../../testing/react_act.js';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -7,10 +7,10 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { buffers } from '@akohn/dashql';
 import type * as arrow from 'apache-arrow';
-import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { MarkdownText, MarkdownView, type MarkdownViewProps } from './markdown_view.js';
+import { fakeResultModel } from '../../testing/fake_models.js';
 import { LoggerContext } from '../../logger.js';
 
 const Node = buffers.visualization.MarkdownNodeT;
@@ -21,15 +21,19 @@ function node(nodeType: buffers.visualization.MarkdownNodeType, options: Partial
     return Object.assign(new Node(nodeType), options);
 }
 
-const SUCCEEDED = { queryId: 1, status: QueryExecutionStatus.SUCCEEDED } as QueryExecutionState;
-
 /// The view of a succeeded query with a result table
-function View(props: Omit<MarkdownViewProps, 'query' | 'resultTable'> & { table: arrow.Table }) {
+function View(props: Omit<MarkdownViewProps, 'model'> & { table: arrow.Table }) {
+    const model = React.useMemo(() => fakeResultModel(props.table), [props.table]);
     return (
         <LoggerContext.Provider value={new TestLogger()}>
-            <MarkdownView query={SUCCEEDED} resultTable={props.table} spec={props.spec} />
+            <MarkdownView model={model} spec={props.spec} />
         </LoggerContext.Provider>
     );
+}
+
+/// Wait until the view read the rows of the result
+async function rowsRead(container: HTMLElement) {
+    await waitForRender(() => expect(container.querySelector('[data-markdown-row]')).not.toBeNull());
 }
 
 describe('MarkdownView', () => {
@@ -47,7 +51,7 @@ describe('MarkdownView', () => {
         container.remove();
     });
 
-    it('renders every result row using formatted Arrow values', () => {
+    it('renders every result row using formatted Arrow values', async () => {
         const table = tableFromArrays({
             product: ['Alpha', 'Beta'],
             revenue: new Int32Array([1234567, 2000]),
@@ -65,6 +69,7 @@ describe('MarkdownView', () => {
                 ] }))}
             />,
         ));
+        await rowsRead(container);
 
         expect(container.querySelectorAll('[data-markdown-row]')).toHaveLength(2);
         expect(Array.from(container.querySelectorAll('h2')).map(node => node.textContent)).toEqual(['Alpha', 'Beta']);
@@ -72,7 +77,7 @@ describe('MarkdownView', () => {
         expect(container.textContent).toContain('2,000');
     });
 
-    it('renders interpolated Markdown syntax as plain text', () => {
+    it('renders interpolated Markdown syntax as plain text', async () => {
         const table = tableFromArrays({ value: ['**owned** [click](javascript:alert(1))\n# heading'] });
 
         act(() => root.render(
@@ -86,6 +91,7 @@ describe('MarkdownView', () => {
                 ] }))}
             />,
         ));
+        await rowsRead(container);
 
         expect(container.querySelector('script')).toBeNull();
         expect(container.querySelector('strong')).toBeNull();
@@ -94,7 +100,7 @@ describe('MarkdownView', () => {
         expect(container.textContent).toContain('**owned** [click](javascript:alert(1))\n# heading');
     });
 
-    it('renders core-approved links and formatted image alt text', () => {
+    it('renders core-approved links and formatted image alt text', async () => {
         const table = tableFromArrays({ product: ['Alpha'] });
 
         act(() => root.render(
@@ -108,9 +114,30 @@ describe('MarkdownView', () => {
                 ] }))}
             />,
         ));
+        await rowsRead(container);
 
         expect(container.querySelector('a')).toMatchObject({ target: '_blank', rel: 'noopener noreferrer' });
         expect(container.querySelector('img')?.alt).toBe('Alpha');
+    });
+});
+
+describe('MarkdownView rows', () => {
+    it('renders the first rows of a long result and counts the others', async () => {
+        const container = document.createElement('div');
+        const root = createRoot(container);
+        const table = tableFromArrays({ n: Int32Array.from({ length: 150 }, (_, i) => i) });
+        act(() => root.render(
+            <View
+                table={table}
+                spec={new Spec('', ['n'], node(NodeType.DOCUMENT, { children: [
+                    node(NodeType.PARAGRAPH, { children: [node(NodeType.FIELD, { value: 'n' })] }),
+                ] }))}
+            />,
+        ));
+        await rowsRead(container);
+        expect(container.querySelectorAll('[data-markdown-row]')).toHaveLength(100);
+        expect(container.querySelector('[data-testid="markdown-more-rows"]')?.textContent).toBe('50 more rows');
+        act(() => root.unmount());
     });
 });
 

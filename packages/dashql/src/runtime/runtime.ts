@@ -344,11 +344,12 @@ export class Runtime {
         await this.settled(analysis);
     }
 
-    /// The first rows of an analyzed result, at most `limit`, in the order of the result and without the columns of
-    /// its computation, as an Arrow IPC stream, e.g. for the table of a terminal. The rows come from the data frame of
-    /// the computation, the result itself doesn't pass through the module. Fails for a result without a computation.
-    async previewResult(tableId: number, limit: number): Promise<Uint8Array> {
-        return await this.live().previewResult(tableId, limit);
+    /// Rows of an analyzed result from `offset`, at most `limit`, in the order of the result and without the columns of
+    /// its computation, as an Arrow IPC stream, e.g. the first rows for the table of a terminal. The filters, the
+    /// searches and the ordering of the grid don't apply. The rows come from the data frame of the computation, the
+    /// result itself doesn't pass through the module. Fails for a result without a computation.
+    async previewResult(tableId: number, offset: number, limit: number): Promise<Uint8Array> {
+        return await this.live().previewResult(tableId, offset, limit);
     }
 
     /// A window of the rows that the grid of an analyzed result shows: the rows that pass its filters and its data

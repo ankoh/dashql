@@ -19,6 +19,7 @@ import { detectPlanEngine } from '@akohn/dashql-react/utils/plan_engine';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import * as styles from './shell_query_result_overlay.module.css';
 import { useQueryModel, type QueryModel } from '@akohn/dashql-react/models/query_model';
+import { useResultRows } from '@akohn/dashql-react/components/visualization/result_rows';
 
 export interface ShellQueryResultOverlayDependencies {
     QueryResultDetails: typeof QueryResultDetails;
@@ -81,8 +82,10 @@ const ResultOverlay: React.FC<Props> = ({
     const [lockedHeight, setLockedHeight] = React.useState<{ queryId: number; height: number } | null>(null);
     const currentLockedHeight = lockedHeight?.queryId === query.queryId ? lockedHeight.height : null;
     const model = dependencies.useResultModel(query);
-    const resultTable = model?.result ?? null;
-    const planText = React.useMemo(() => getPlanResultText(resultTable), [resultTable]);
+    // A plan is a result of one row with one column, the overlay reads that row
+    const firstRow = useResultRows(model, 'first', 1);
+    const planRow = firstRow.rows === 1 ? firstRow.table : null;
+    const planText = React.useMemo(() => getPlanResultText(planRow), [planRow]);
     const planEngine = detectPlanEngine(planText) ?? dashql.buffers.profile.ProfileEngine.HYPER;
     const { plan, execution, rotate } = dependencies.useQueryProfile(planEngine, planText);
     const hasPlan = plan != null;

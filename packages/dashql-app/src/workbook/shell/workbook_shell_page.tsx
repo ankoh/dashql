@@ -132,7 +132,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
             async (queryId, limit) => {
                 const current = runtimeRef.current;
                 if (current == null) throw new Error('the preview of a result needs a RuntimeProvider');
-                return await current.previewResult(queryId, limit);
+                return await current.previewResult(queryId, 0, limit);
             },
         );
         const lastCommand = createShellLastCommand(reopenResultQuery);

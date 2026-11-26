@@ -12,6 +12,8 @@ const KpiChart = buffers.visualization.KpiChart;
 
 /// The rows of a result that dashql vis reads for a KPI card, a result with more is no KPI
 export const KPI_CHECK_ROWS = 1000;
+/// The last rows of a result that a KPI card reads from the compute database: the value, its change and the chart
+export const KPI_CARD_ROWS = 1000;
 
 /// What a KPI card shows of a result
 export interface KpiReading {

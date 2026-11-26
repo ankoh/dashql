@@ -988,15 +988,17 @@ impl Runtime {
         }))
     }
 
-    /// The first rows of an analyzed result, at most `limit`, in the order of the result and without the columns of
-    /// its computation, as an Arrow IPC stream, e.g. for the table of a terminal. The rows are read from the data
-    /// frame of the computation, the result itself doesn't enter the module. Rejects for a table that has no
-    /// computation or whose analysis isn't done.
+    /// Rows of an analyzed result from `offset`, at most `limit`, in the order of the result and without the columns
+    /// of its computation, as an Arrow IPC stream, e.g. the first rows for the table of a terminal. The filters, the
+    /// searches and the ordering of the grid don't apply. The rows are read from the data frame of the computation, the
+    /// result itself doesn't enter the module. Rejects for a table that has no computation or whose analysis isn't
+    /// done.
     #[wasm_bindgen(js_name = previewResult, unchecked_return_type = "Promise<Uint8Array>")]
-    pub fn preview_result(&self, table_id: f64, limit: f64) -> Result<Promise, JsError> {
+    pub fn preview_result(&self, table_id: f64, offset: f64, limit: f64) -> Result<Promise, JsError> {
         let table_id = integer(table_id, "table id")? as TableId;
+        let offset = integer(offset, "offset")?;
         let limit = integer(limit, "limit")?;
-        let preview = self.computations.preview(table_id, limit);
+        let preview = self.computations.preview(table_id, offset, limit);
         Ok(future_to_promise(async move {
             let ipc = preview.await.map_err(task_error)?;
             Ok(js_sys::Uint8Array::from(ipc.as_slice()).into())

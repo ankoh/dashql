@@ -5,7 +5,7 @@ import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { RuntimeContextProvider, useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import type { QueryModel } from '@akohn/dashql-react/models/query_model';
-import { fakeQueryModel } from '@akohn/dashql-react/testing/fake_models';
+import { fakeQueryModel, fakeResultModel } from '@akohn/dashql-react/testing/fake_models';
 
 /// The Arrow tables of the results of the tests, by their handle
 const TABLES = new Map<number, arrow.Table>();
@@ -64,6 +64,19 @@ export function queryModelOf(query: QueryExecutionState | null | undefined): Que
     if (model == null) {
         const result = query.resultTable == null ? null : TABLES.get(query.resultTable.id) ?? null;
         model = fakeQueryModel(query, { result });
+        MODELS.set(query, model);
+    }
+    return model;
+}
+
+/// The model of a query of a test without a runtime whose result is analyzed: the table of `resultTableOf` is its
+/// result, and its computation reads the rows of the table
+export function analyzedQueryModelOf(query: QueryExecutionState | null | undefined): QueryModel | null {
+    if (query == null) return null;
+    let model = MODELS.get(query);
+    if (model == null) {
+        const result = query.resultTable == null ? null : TABLES.get(query.resultTable.id) ?? null;
+        model = result == null ? fakeQueryModel(query) : { ...fakeResultModel(result, query), result };
         MODELS.set(query, model);
     }
     return model;

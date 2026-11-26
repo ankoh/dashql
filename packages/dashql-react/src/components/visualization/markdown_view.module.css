@@ -28,3 +28,8 @@
 .row pre {
     overflow: auto;
 }
+
+.more {
+    margin: 20px 0 0;
+    color: var(--color_fg_muted);
+}

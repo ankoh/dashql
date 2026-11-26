@@ -48,9 +48,9 @@ export function VisualizationDispatch(props: VisualizationDispatchProps): React.
                 />
             );
         case 'markdown':
-            return <MarkdownView query={props.model?.query ?? null} resultTable={props.model?.result ?? null} spec={vq.markdownSpec} />;
+            return <MarkdownView model={props.model} spec={vq.markdownSpec} />;
         case 'kpi':
-            return <KpiView query={props.model?.query ?? null} resultTable={props.model?.result ?? null} spec={vq.kpiSpec} />;
+            return <KpiView model={props.model} spec={vq.kpiSpec} />;
         case 'table':
             return <>{props.table()}</>;
     }

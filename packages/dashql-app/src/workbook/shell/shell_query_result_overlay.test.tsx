@@ -1,8 +1,8 @@
 import * as React from 'react';
 import type * as dashql from '@akohn/dashql';
-import { act } from '@akohn/dashql-react/testing/react_act';
+import { act, waitForRender } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -16,7 +16,7 @@ import {
 /// A query of the overlay, the tests set the fields that it reads
 type OverlayQuery = React.ComponentProps<typeof ShellQueryResultOverlay>['query'];
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
-import { queryModelOf, resultTableOf, WithResultTables } from '../../tests/result_tables.js';
+import { analyzedQueryModelOf, resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
 const dependencies: ShellQueryResultOverlayDependencies = {
     QueryResultDetails: () => <div data-testid="mock-query-results" style={{ height: 240 }}>Query results</div>,
@@ -28,7 +28,7 @@ const dependencies: ShellQueryResultOverlayDependencies = {
         rejected: planText != null && !planText.includes('executiontarget'),
     }),
     QueryProfileView: () => <div data-testid="mock-plan-view">Query plan viewer</div>,
-    useResultModel: queryModelOf,
+    useResultModel: analyzedQueryModelOf,
 };
 
 // Tab ids of the vertical tabs in the overlay
@@ -139,7 +139,7 @@ describe('ShellQueryResultOverlay', () => {
         expect(document.activeElement).toBe(dialog());
     });
 
-    it('adds and selects a Plan tab for a valid 1x1 plan result', () => {
+    it('adds and selects a Plan tab for a valid 1x1 plan result', async () => {
         const plan = '{"operator":"executiontarget","operatorId":1}';
         act(() => root.render(
             <WithResultTables><ShellQueryResultOverlay
@@ -152,6 +152,7 @@ describe('ShellQueryResultOverlay', () => {
                 dependencies={dependencies}
             /></WithResultTables>,
         ));
+        await waitForRender(() => expect(tabButton(PLAN_TAB)).not.toBeNull());
 
         const planButton = tabButton(PLAN_TAB)!;
         const resultsButton = tabButton(DATA_TAB)!;
@@ -176,25 +177,28 @@ describe('ShellQueryResultOverlay', () => {
         expect(dialog().style.minHeight).not.toBe('');
     });
 
-    it('keeps only the Data tab for ordinary 1x1 JSON results', () => {
+    it('keeps only the Data tab for ordinary 1x1 JSON results', async () => {
+        const query = {
+            queryId: 42,
+            status: QueryExecutionStatus.SUCCEEDED,
+            resultTable: resultTableOf(tableFromArrays({ value: ['{"key":1}'] })),
+        } as unknown as OverlayQuery;
+        const firstRowRead = () => (analyzedQueryModelOf(query)!.computation!.previewRows as Mock).mock.results.length > 0;
         act(() => root.render(
             <WithResultTables><ShellQueryResultOverlay
-                query={{
-                    queryId: 42,
-                    status: QueryExecutionStatus.SUCCEEDED,
-                    resultTable: resultTableOf(tableFromArrays({ value: ['{"key":1}'] })),
-                } as unknown as OverlayQuery}
+                query={query}
                 onClose={vi.fn()}
                 dependencies={dependencies}
             /></WithResultTables>,
         ));
+        await waitForRender(() => expect(firstRowRead()).toBe(true));
 
         expect(tabButton(PLAN_TAB)).toBeNull();
         expect(queryResults()).not.toBeNull();
         expect(dialog().style.height).toBe('');
     });
 
-    it('expands the Plan tab to fill the window', () => {
+    it('expands the Plan tab to fill the window', async () => {
         const plan = '{"operator":"executiontarget","operatorId":1}';
         vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 272 } as DOMRect);
         act(() => root.render(
@@ -208,6 +212,7 @@ describe('ShellQueryResultOverlay', () => {
                 dependencies={dependencies}
             /></WithResultTables>,
         ));
+        await waitForRender(() => expect(tabButton(PLAN_TAB)).not.toBeNull());
 
         const overlayExpanded = () => dialog().closest('[data-expanded]')!.getAttribute('data-expanded');
         expect(overlayExpanded()).toBe('false');
@@ -231,7 +236,7 @@ describe('ShellQueryResultOverlay', () => {
         expect(dialog().style.height).toBe('272px');
     });
 
-    it('locks the initial result height before selecting the Plan tab', () => {
+    it('locks the initial result height before selecting the Plan tab', async () => {
         const plan = '{"operator":"executiontarget","operatorId":1}';
         const getBoundingClientRect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect')
             .mockReturnValue({ height: 272 } as DOMRect);
@@ -247,6 +252,7 @@ describe('ShellQueryResultOverlay', () => {
                 dependencies={dependencies}
             /></WithResultTables>,
         ));
+        await waitForRender(() => expect(tabButton(PLAN_TAB)).not.toBeNull());
 
         expect(dialog().style.height).toBe('272px');
         expect(dialog().style.minHeight).not.toBe('');

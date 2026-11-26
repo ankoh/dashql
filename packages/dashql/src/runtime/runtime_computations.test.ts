@@ -120,10 +120,10 @@ describe('The computations of the runtime', () => {
         // An ordering of the grid doesn't change the order of the preview
         rt.dispatch({ computation: 1 }, { kind: 'orderBy', value: { constraints: [{ field: 'score', ascending: true }] } });
         await settled(rt, view => view.orderingTable != null);
-        const preview = arrow.tableFromIPC(await rt.previewResult(1, 3));
+        const preview = arrow.tableFromIPC(await rt.previewResult(1, 0, 3));
         expect(preview.schema.fields.map(field => field.name)).toEqual(['score', 'name']);
         expect(preview.toArray().map(row => [row.score, row.name])).toEqual([[42, 'a'], [10, 'b'], [10, 'a']]);
-        await expect(rt.previewResult(2, 3)).rejects.toThrow('the table 2 has no computation');
+        await expect(rt.previewResult(2, 0, 3)).rejects.toThrow('the table 2 has no computation');
     }, 60_000);
 
     it('filters, orders and searches an analyzed result', async () => {
