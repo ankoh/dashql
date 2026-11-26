@@ -115,7 +115,8 @@ bazel test //...
 | `//packages/dashql-core-profile:all` | Query profile unit tests, and the plan and progress snapshot tests, Clippy with the safety lints |
 | `//packages/dashql-dataflow:all` | Dataflow layout and routing unit tests, Clippy with the safety lints |
 | `//<package>:rustfmt_test` | `rustfmt --check` of the Rust files of a package with Rust code, part of its `:all`, see "rustfmt" |
-| `//packages/dashql-core:dashql_core_unit_tests` | Core unit tests |
+| `//packages/dashql-core:dashql_core_unit_tests` | Core unit tests, the tests in `src/` |
+| `//packages/dashql-core:tests`, `//packages/dashql-core-runtime:tests` | The tests in `tests/` of the core and of the runtime, one binary per crate with a module per file (`tests/main.rs`) |
 | `//tests/snapshots:parser_snapshot_test` | Parser snapshot tests |
 | `//packages/dashql-core:analyzer_snapshot_test` | Analyzer snapshot tests |
 | `//packages/dashql-core:formatter_snapshot_test` | Formatter snapshot tests |
@@ -221,7 +222,15 @@ bazel test --test_output=all //packages/dashql-core:dashql_core_unit_tests
 
 # See output for failed tests only (default)
 bazel test --test_output=errors //packages/dashql-core:dashql_core_unit_tests
+
+# The tests of one file of tests/, a module of the test binary of the crate
+bazel test //packages/dashql-core-runtime:tests --test_arg=workbook_run_test::
 ```
+
+The files in `tests/` of `dashql-core` and `dashql-core-runtime` are modules of one test binary per crate: a change of
+the core links one binary instead of one per file. A new file goes into `tests/main.rs`. Tests with a harness of their
+own (the snapshot tests), with `hyperd` (the Hyper validations) or a slow one (`formatter_roundtrip_test`) keep a target
+of their own.
 
 ### Snapshot Tests
 

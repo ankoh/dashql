@@ -46,29 +46,30 @@ rust_safety_test(
     deps = [":dashql_core_runtime"],
 )
 
+# The tests of the runtime in one libtest binary, a module per file of tests/ (tests/main.rs), so that a change of the
+# runtime or the core links one test binary instead of one per file. Run the tests of a file with --test_arg=<file>::
 rust_test(
-    name = "workbook_test",
+    name = "tests",
     size = "small",
-    srcs = ["tests/workbook_test.rs"],
+    srcs = glob(["tests/*_test.rs"]) + ["tests/main.rs"],
+    # The recordings of Trino are compiled in with include_str!
+    compile_data = ["//tests/snapshots/profiles/trino/recordings:files"],
+    crate_root = "tests/main.rs",
+    # The generated spec of the Data 360 extension
+    data = ["//extensions/d360-api:files"],
     edition = "2021",
     deps = [
         ":dashql_core_runtime",
+        "//packages/dashql-core-profile:dashql_core_profile",
         "//packages/dashql-core:dashql_core",
+        "//packages/dashql-parser:dashql_parser",
         "//proto/fb:dashql_buffers_rs",
+        "@core_crates//:arrow-array",
+        "@core_crates//:arrow-ipc",
+        "@core_crates//:arrow-schema",
+        "@core_crates//:base64",
+        "@core_crates//:flatbuffers",
         "@core_crates//:serde_json",
-    ],
-)
-
-# The planner with the script sessions of a workbook
-rust_test(
-    name = "planner_test",
-    size = "small",
-    srcs = ["tests/planner_test.rs"],
-    edition = "2021",
-    deps = [
-        ":dashql_core_runtime",
-        "//packages/dashql-core:dashql_core",
-        "//proto/fb:dashql_buffers_rs",
     ],
 )
 
@@ -116,222 +117,6 @@ rust_test(
         "//tests/snapshots:dashql_snapshots",
         "//tests/hyper:hyper_ffi_rs",
         "//proto/fb:dashql_buffers_rs",
-    ],
-)
-
-rust_test(
-    name = "connections_test",
-    size = "small",
-    srcs = ["tests/connections_test.rs"],
-    edition = "2021",
-    deps = [
-        ":dashql_core_runtime",
-        "//packages/dashql-core:dashql_core",
-        "//proto/fb:dashql_buffers_rs",
-        "@core_crates//:serde_json",
-    ],
-)
-
-rust_test(
-    name = "query_test",
-    size = "small",
-    srcs = ["tests/query_test.rs"],
-    edition = "2021",
-    deps = [
-        ":dashql_core_runtime",
-        "//packages/dashql-core-profile:dashql_core_profile",
-        "//proto/fb:dashql_buffers_rs",
-        "@core_crates//:flatbuffers",
-        "@core_crates//:serde_json",
-    ],
-)
-
-rust_test(
-    name = "compute_test",
-    size = "small",
-    srcs = ["tests/compute_test.rs"],
-    edition = "2021",
-    deps = [
-        ":dashql_core_runtime",
-        "@core_crates//:arrow-array",
-    ],
-)
-
-# The tasks of the computations on a fake compute host
-# The runs of workbooks on a fake host
-rust_test(
-    name = "workbook_run_test",
-    size = "small",
-    srcs = ["tests/workbook_run_test.rs"],
-    edition = "2021",
-    deps = [
-        ":dashql_core_runtime",
-        "//packages/dashql-core:dashql_core",
-        "//proto/fb:dashql_buffers_rs",
-    ],
-)
-
-rust_test(
-    name = "compute_service_test",
-    size = "small",
-    srcs = ["tests/compute_service_test.rs"],
-    edition = "2021",
-    deps = [
-        ":dashql_core_runtime",
-        "//packages/dashql-core:dashql_core",
-        "@core_crates//:arrow-array",
-        "@core_crates//:arrow-schema",
-    ],
-)
-
-rust_test(
-    name = "compute_tasks_test",
-    size = "small",
-    srcs = ["tests/compute_tasks_test.rs"],
-    edition = "2021",
-    deps = [
-        ":dashql_core_runtime",
-        "@core_crates//:arrow-array",
-        "@core_crates//:arrow-schema",
-    ],
-)
-
-rust_test(
-    name = "catalog_loader_test",
-    size = "small",
-    srcs = ["tests/catalog_loader_test.rs"],
-    edition = "2021",
-    deps = [
-        ":dashql_core_runtime",
-        "//packages/dashql-core:dashql_core",
-        "//proto/fb:dashql_buffers_rs",
-        "@core_crates//:arrow-array",
-        "@core_crates//:arrow-schema",
-        "@core_crates//:flatbuffers",
-        "@core_crates//:serde_json",
-    ],
-)
-
-# The catalog loader as a service on a fake host: the queue, the relations of statements, Salesforce, client functions
-rust_test(
-    name = "catalog_loader_service_test",
-    size = "small",
-    srcs = ["tests/catalog_loader_service_test.rs"],
-    data = ["//extensions/d360-api:files"],
-    edition = "2021",
-    deps = [
-        ":dashql_core_runtime",
-        "@core_crates//:arrow-array",
-        "@core_crates//:serde_json",
-    ],
-)
-
-rust_test(
-    name = "trino_test",
-    size = "small",
-    srcs = ["tests/trino_test.rs"],
-    # The recorded Trino responses that the tests replay
-    compile_data = ["//tests/snapshots/profiles/trino/recordings:files"],
-    edition = "2021",
-    deps = [
-        ":dashql_core_runtime",
-        "@core_crates//:arrow-array",
-        "@core_crates//:arrow-schema",
-        "@core_crates//:serde_json",
-    ],
-)
-
-# The runtime of client functions against made-up specs and responses
-rust_test(
-    name = "clfn_test",
-    size = "small",
-    srcs = ["tests/clfn_test.rs"],
-    edition = "2021",
-    deps = [
-        ":dashql_core_runtime",
-        "@core_crates//:arrow-array",
-        "@core_crates//:serde_json",
-    ],
-)
-
-# The client functions with the generated spec of the Data 360 extension
-rust_test(
-    name = "clfn_spec_test",
-    size = "small",
-    srcs = ["tests/clfn_spec_test.rs"],
-    data = ["//extensions/d360-api:files"],
-    edition = "2021",
-    deps = [
-        ":dashql_core_runtime",
-        "//packages/dashql-core:dashql_core",
-        "//packages/dashql-parser:dashql_parser",
-        "//proto/fb:dashql_buffers_rs",
-        "@core_crates//:serde_json",
-    ],
-)
-
-rust_test(
-    name = "salesforce_test",
-    size = "small",
-    srcs = ["tests/salesforce_test.rs"],
-    edition = "2021",
-    deps = [
-        ":dashql_core_runtime",
-        "@core_crates//:base64",
-        "@core_crates//:serde_json",
-    ],
-)
-
-# The analyses of the scripts that the editors show on a clock of the test
-rust_test(
-    name = "visible_scripts_test",
-    size = "small",
-    srcs = ["tests/visible_scripts_test.rs"],
-    edition = "2021",
-    deps = [":dashql_core_runtime"],
-)
-
-rust_test(
-    name = "hyper_test",
-    size = "small",
-    srcs = ["tests/hyper_test.rs"],
-    edition = "2021",
-    deps = [
-        ":dashql_core_runtime",
-        "@core_crates//:arrow-array",
-        "@core_crates//:arrow-ipc",
-        "@core_crates//:arrow-schema",
-        "@core_crates//:base64",
-        "@core_crates//:serde_json",
-    ],
-)
-
-# The query executor on a fake host: Trino, Hyper over HTTP, client functions, a channel of the host and the cache
-rust_test(
-    name = "executor_test",
-    size = "small",
-    srcs = ["tests/executor_test.rs"],
-    edition = "2021",
-    deps = [
-        ":dashql_core_runtime",
-        "//proto/fb:dashql_buffers_rs",
-        "@core_crates//:arrow-array",
-        "@core_crates//:flatbuffers",
-        "@core_crates//:arrow-schema",
-        "@core_crates//:serde_json",
-    ],
-)
-
-# The setups of the connectors and the health checks on a fake host
-rust_test(
-    name = "connection_setup_test",
-    size = "small",
-    srcs = ["tests/connection_setup_test.rs"],
-    edition = "2021",
-    deps = [
-        ":dashql_core_runtime",
-        "@core_crates//:base64",
-        "@core_crates//:serde_json",
     ],
 )
 
