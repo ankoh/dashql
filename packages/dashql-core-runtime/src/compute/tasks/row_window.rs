@@ -40,10 +40,11 @@ pub struct RowWindow {
     pub ipc: Vec<u8>,
 }
 
-/// Plan the read of the rows that show from an offset, at most `limit`. None for a result that has no data frame yet.
+/// Plan the read of the rows that show from an offset, at most `limit`. None for a result that isn't imported yet: the
+/// data frame of the import has the row numbers, the system columns don't have to be there.
 pub fn plan_row_window(computation: &TableComputation, offset: u64, limit: u64) -> Option<RowWindowPlan> {
     let data_frame = computation.data_frame?;
-    let row_number = computation.row_number_column_name.clone()?;
+    let row_number = computation.row_number_field.clone()?;
     let mut frame = SqlFrame::from(data_frame_table_name(data_frame));
     let mut joins = 0;
     let mut known = computation.data_table.rows();

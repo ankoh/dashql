@@ -55,8 +55,20 @@ result does for its first rows today:
 
 Landed as `plan_row_window` (`compute/tasks/row_window.rs`) and `ComputeService::read_rows`, `readResultRows` of the
 facade and `readRows` of the computation model. A window resolves with its rows (the fields of the result and its row
-numbers) and the count of the rows that show: the state knows it, or a query counts the rows of a filter and a data
-search that no ordering covers. The rule of which rows show moved there from `visible_rows.ts`.
+numbers, last) and the count of the rows that show: the state knows it, or a query counts the rows of a filter and a
+data search that no ordering covers. The rule of which rows show moved there from `visible_rows.ts`.
+
+The grid has no other source of its rows, so a read must not fail where the table it replaced showed rows (`read` of
+`compute/service.rs`):
+
+- A read needs the import of the result and nothing after it: the data frame of the import has the row numbers
+  (`row_number_field` of the computation). The statistics, the system columns and the summaries can fail, e.g. Hyper
+  can't cast an `oid` for the system columns; the grid then has no summaries and no filters, but its rows.
+- The import names the fields of a result uniquely and never empty (`data_frame_field_names`): a join that repeats
+  `id` failed to import before, and its grid stayed empty.
+- A read that fails after its computation changed (its lifetime or its revision) is planned again: a filter, a search
+  or an ordering replaced a table that it joined, or the result ran again. The stop of an analysis, e.g. a cancel of its
+  query, cancels the steps of the analysis, not the reads.
 
 Not done yet: the tables of the tasks have no position column, a window reads `ORDER BY ... LIMIT ... OFFSET` over the
 selection, only a result without a filter, a search and an ordering reads a range of row numbers. A read deep into an

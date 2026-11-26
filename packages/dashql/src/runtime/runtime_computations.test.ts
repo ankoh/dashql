@@ -133,6 +133,35 @@ describe('The computations of the runtime', () => {
         expect(rows.toArray().map((row, i) => [row.score, row.name, rowNumbers[i]])).toEqual([[10, 'a', 3], [30, 'c', 4]]);
     }, 60_000);
 
+    it('reads the rows of a result whose fields repeat a name and whose system columns fail', async () => {
+        database = await openTestHyperDB('runtime_computations_test');
+        runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, core: dql, computeDatabase: async () => database! });
+        // A join repeats the name of its keys, Hyper can't cast an oid for the system columns, a remote result may
+        // leave a name empty, which Hyper refuses in a query
+        const conn = await database.connect();
+        const queried = await conn.query(`SELECT 1 AS id, 2 AS id, 3::oid AS o, 'x' AS e`).finally(() => conn.close());
+        const fields = queried.schema.fields.map(field => field.name === 'e' ? field.clone({ name: '' }) : field);
+        const schema = new arrow.Schema(fields, queried.schema.metadata);
+        const result = new arrow.Table(queried.batches.map(batch => new arrow.RecordBatch(schema, arrow.makeData({
+            type: new arrow.Struct(fields), length: batch.numRows, nullCount: 0, children: batch.data.children,
+        }))));
+        expect(result.schema.fields.map(field => field.name)).toEqual(['id', 'id', 'o', '']);
+        await expect(runtime.analyzeTable(1, result)).rejects.toThrow(/invalid cast/);
+        const view = runtime.store.get('computation', 1)!;
+        expect(view.dataTableFields).toEqual(['id', 'id_1', 'o', 'column_4']);
+        expect(view.rowNumberColumnName).toBeNull();
+        // The grid shows the imported rows under the names of the computation, the row numbers last
+        const window = await runtime.readResultRows(1, 0, 10);
+        expect(window.rows).toBe(1);
+        expect(window.table.schema.fields.map(field => field.name)).toEqual(['id', 'id_1', 'o', 'column_4', '_rownum']);
+        expect(window.table.getChildAt(0)?.get(0)).toBe(1);
+        expect(window.table.getChildAt(1)?.get(0)).toBe(2);
+        expect(window.table.getChildAt(3)?.get(0)).toBe('x');
+        expect(Number(window.table.getChildAt(4)?.get(0))).toBe(1);
+        // The table of the computation has the same names, the layout of the grid finds its columns by them
+        expect(runtime.table(view.dataTable)?.schema.fields.map(field => field.name)).toEqual(['id', 'id_1', 'o', 'column_4', '_rownum']);
+    }, 60_000);
+
     it('copies an analyzed result into a Parquet file from its data frame', async () => {
         const rt = await analyzed();
         const parquet = await exportParquet(database!, path => rt.exportResultParquet(1, path));

@@ -184,6 +184,33 @@ impl ResultTable {
         Ok(None)
     }
 
+    /// The table with its fields named `names`, in order
+    pub fn with_field_names(&self, names: &[String]) -> Result<ResultTable> {
+        if names.len() != self.schema.fields().len() {
+            return Err(Error::invalid_argument(format!(
+                "{} names for {} fields",
+                names.len(),
+                self.schema.fields().len()
+            )));
+        }
+        let fields: Vec<Field> = self
+            .schema
+            .fields()
+            .iter()
+            .zip(names)
+            .map(|(field, name)| field.as_ref().clone().with_name(name))
+            .collect();
+        let schema = Arc::new(Schema::new_with_metadata(fields, self.schema.metadata().clone()));
+        let batches = self
+            .batches
+            .iter()
+            .map(|batch| {
+                RecordBatch::try_new(schema.clone(), batch.columns().to_vec()).map_err(arrow_error("naming the fields"))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        Ok(ResultTable { schema, batches })
+    }
+
     /// The table with an appended column of 64-bit integers that number the rows from 1, it can't be null
     pub fn append_row_numbers(&self, field_name: &str) -> Result<ResultTable> {
         let mut fields: Vec<Arc<Field>> = self.schema.fields().iter().cloned().collect();

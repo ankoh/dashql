@@ -18,7 +18,9 @@ use dashql_core_runtime::compute::tasks::analyze_table::{
 use dashql_core_runtime::compute::tasks::column_aggregation::{
     plan_column_aggregation, plan_filtered_column_aggregation, ColumnAggregateResult, FREQUENT_VALUE_COUNT,
 };
-use dashql_core_runtime::compute::tasks::columns::{build_column_groups, small_integer_domain_size, BIN_COUNT};
+use dashql_core_runtime::compute::tasks::columns::{
+    build_column_groups, data_frame_field_names, small_integer_domain_size, BIN_COUNT,
+};
 use dashql_core_runtime::compute::tasks::data_search::{
     build_column_search_sql, build_data_search_sql, collect_searchable_result_columns, parse_column_search_matches,
     plan_data_search,
@@ -537,6 +539,36 @@ fn analysis_classifies_the_columns() {
     let ColumnGroup::Ordinal(first) = &groups[0] else { panic!("an ordinal column") };
     assert_eq!(first.bin_count, BIN_COUNT);
     assert!(!first.input_field_nullable);
+}
+
+#[test]
+fn the_compute_database_names_the_fields_uniquely() {
+    let names = |fields: &[&str]| {
+        let schema =
+            Schema::new(fields.iter().map(|name| Field::new(*name, DataType::Int32, true)).collect::<Vec<_>>());
+        data_frame_field_names(&schema)
+    };
+    // The names of a result stay where they are unique and not empty
+    assert_eq!(names(&["a", "b"]), ["a", "b"]);
+    // A repeated name takes a number, an empty one its position, neither takes the name of another field
+    assert_eq!(names(&["id", "id", "id"]), ["id", "id_1", "id_2"]);
+    assert_eq!(names(&["a", "a_1", "a"]), ["a", "a_1", "a_2"]);
+    assert_eq!(names(&["", "x", ""]), ["column_1", "x", "column_3"]);
+    assert_eq!(names(&["column_2", ""]), ["column_2", "column_2_1"]);
+    // The analysis starts with these names, its column groups and its row numbers too
+    let schema = Schema::new(vec![Field::new("a", DataType::Int32, true), Field::new("a", DataType::Utf8, true)]);
+    let start = start_table_analysis(&schema, 1).expect("columns");
+    assert_eq!(start.fields, ["a", "a_1"]);
+    let inputs: Vec<&str> = start
+        .column_groups
+        .iter()
+        .map(|group| match group {
+            ColumnGroup::Ordinal(group) => group.input_field_name.as_str(),
+            ColumnGroup::String(group) => group.input_field_name.as_str(),
+            _ => "",
+        })
+        .collect();
+    assert_eq!(inputs, ["a", "a_1"]);
 }
 
 #[test]

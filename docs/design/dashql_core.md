@@ -254,7 +254,10 @@ that wants the composition would depend on that rather than copy it.
   steps show on the computation. An analysis that fails or is stopped leaves the query succeeded and the computation
   with what it computed, the log has a warning of a failure. The analysis runs with the token of the query
   (`ComputeService::analyze_table`), so a cancel of the query stops it; a result that a later one supersedes loses its
-  computation and with it the analysis. `previewResult` waits for the system columns of an analysis that runs. The history applies the start and
+  computation and with it the analysis, but not the reads of its rows. `previewResult` and the windows of the grid wait
+  for the import of an analysis that runs, the first step: a later step that fails costs the summaries and the filters,
+  not the rows. The import names the fields of a result uniquely (`data_frame_field_names`), a result that names two
+  fields alike, e.g. a join, or leaves a name empty imports as `id`, `id_1` and `column_<n>`. The history applies the start and
   the end of a query as urgent changes, the rest with the next frame (see
   [Changes and the flush](dashql_runtime.md#changes-and-the-flush)). It decides the latest result of an owner and reports the superseded queries; the runtime deletes their computations. A query that
   was cancelled or failed keeps no result in the history.

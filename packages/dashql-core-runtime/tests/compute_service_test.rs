@@ -88,6 +88,10 @@ struct Database {
     changes: Vec<Vec<ComputationEffect>>,
     /// Holds the next creation of a table of a title until the test releases it
     gates: BTreeMap<&'static str, Receiver<()>>,
+    /// Holds the next query of a title until the test releases it, e.g. a read of rows
+    query_gates: BTreeMap<&'static str, Receiver<()>>,
+    /// Fails the next query of a title with an error, e.g. a table that went away while it ran
+    query_failures: BTreeMap<&'static str, String>,
     /// The titles whose creations of tables the host cancels, e.g. a compute database that went away
     cancels: BTreeSet<&'static str>,
     /// The handles that the host keeps: the tables that the tasks handed over and the ones of the analyses
@@ -179,13 +183,17 @@ impl ComputeHost for FakeHost {
         _data_frame: u64,
         table_name: &str,
         table: u32,
+        fields: &[String],
         row_number_field: &str,
         _context: &ComputeContext,
     ) -> std::result::Result<KeptTable, HostError> {
         let mut database = self.database.borrow_mut();
         let table = database.objects.get(&table).ok_or_else(|| HostError::new(format!("no table {table}")))?;
-        // The host numbers the rows of its table and keeps the numbered table
-        let table = table.append_row_numbers(row_number_field).map_err(|e| HostError::new(e.to_string()))?;
+        // The host names the fields, numbers the rows of its table and keeps the numbered table
+        let table = table
+            .with_field_names(fields)
+            .and_then(|table| table.append_row_numbers(row_number_field))
+            .map_err(|e| HostError::new(e.to_string()))?;
         database.calls.push(format!("import {table_name}"));
         database.tables.insert(table_name.to_string(), table.clone());
         let shape = shape(&table);
@@ -213,7 +221,15 @@ impl ComputeHost for FakeHost {
         Ok(())
     }
 
-    async fn query(&self, sql: &str, _context: &ComputeContext) -> std::result::Result<Vec<u8>, HostError> {
+    async fn query(&self, sql: &str, context: &ComputeContext) -> std::result::Result<Vec<u8>, HostError> {
+        let gate = self.database.borrow_mut().query_gates.remove(context.title);
+        if let Some(gate) = gate {
+            gate.await;
+        }
+        let failure = self.database.borrow_mut().query_failures.remove(context.title);
+        if let Some(failure) = failure {
+            return Err(HostError::new(failure));
+        }
         self.database.borrow_mut().queries.push(sql.to_string());
         // The search of the column names reads no table, it matches the column group of the name
         if sql.contains("AS columns(column_idx") {
@@ -1063,15 +1079,138 @@ fn an_analysis_starts_its_computation_when_it_is_called() {
 }
 
 #[test]
-fn a_preview_waits_for_the_system_columns_of_an_analysis() {
+fn a_preview_reads_the_imported_rows_while_the_system_columns_are_computed() {
     let setup = setup(analysis_answer);
     let (release, analysis) = setup.start_held_analysis(&CancellationToken::new());
+    let input =
+        setup.service.read(|state| state.computation(1).and_then(|computation| computation.data_frame)).unwrap();
     let preview = setup.run(setup.service.preview(1, 0, 2, false));
-    assert!(preview.borrow().is_none());
+    assert!(preview.borrow().as_ref().is_some_and(|preview| preview.is_ok()));
+    let queries = setup.database.borrow().queries.clone();
+    assert!(queries.last().is_some_and(|sql| sql.contains(&format!(r#"FROM "__df_{input}""#))), "{queries:?}");
     release.send(());
     setup.executor.run_until_stalled();
-    assert!(preview.borrow().as_ref().is_some_and(|preview| preview.is_ok()));
     assert!(analysis.borrow().as_ref().is_some_and(|analysis| analysis.is_ok()));
+}
+
+#[test]
+fn a_read_of_rows_waits_for_the_import() {
+    let setup = setup(analysis_answer);
+    let (release, gate): (Sender<()>, Receiver<()>) = oneshot();
+    setup.database.borrow_mut().gates.insert("Table aggregation", gate);
+    let analysis = setup.run(setup.start_analysis(&CancellationToken::new()));
+    let read = setup.run(setup.service.read_rows(1, 0, 10));
+    // The import ran, the read doesn't wait for the statistics
+    let window = read.borrow_mut().take().expect("the read finished").unwrap();
+    assert_eq!(window.rows, 4);
+    assert_eq!(ResultTable::from_ipc_stream(&window.ipc).unwrap().num_rows(), 4);
+    release.send(());
+    setup.executor.run_until_stalled();
+    assert!(analysis.borrow().as_ref().is_some_and(|analysis| analysis.is_ok()));
+}
+
+#[test]
+fn the_rows_of_a_result_show_when_a_step_of_its_analysis_fails() {
+    let setup = setup(|title, sql| match title {
+        "System column computation" => Err("invalid cast".into()),
+        _ => analysis_answer(title, sql),
+    });
+    let error = setup.analyze().unwrap_err();
+    assert!(error.to_string().contains("invalid cast"), "{error}");
+    // The summaries are missing, the rows of the import are there
+    let output = setup.run(setup.service.read_rows(1, 0, 10));
+    let window = output.borrow_mut().take().expect("the read finished").unwrap();
+    assert_eq!(window.rows, 4);
+    let output = setup.run(setup.service.preview(1, 0, 2, true));
+    assert!(output.borrow_mut().take().expect("the preview finished").is_ok());
+}
+
+#[test]
+fn a_read_that_failed_since_its_computation_changed_reads_again() {
+    let setup = setup(analysis_answer);
+    setup.analyze().unwrap();
+    // A read that runs while a filter changes the rows that show, the table that it read went away meanwhile
+    let (release, gate): (Sender<()>, Receiver<()>) = oneshot();
+    setup.database.borrow_mut().query_gates.insert("Result rows", gate);
+    let read = setup.run(setup.service.read_rows(1, 0, 10));
+    setup.service.histogram_filter(1, 1, Some((0.0, 1.0))).unwrap();
+    setup.executor.run_until_stalled();
+    let filter = setup.service.read(|state| state.computation(1).unwrap().filter_table.clone()).unwrap();
+    setup.database.borrow_mut().query_failures.insert("Result rows", "the table is gone".into());
+    release.send(());
+    setup.executor.run_until_stalled();
+    // The read is planned again on the computation as it is now: the rows that pass the filter
+    let window = read.borrow_mut().take().expect("the read finished").unwrap();
+    assert_eq!(window.rows, 2);
+    let queries = setup.database.borrow().queries.clone();
+    let sql = queries.last().expect("a read");
+    assert!(sql.contains(&format!(r#"IN (SELECT "_rownum" FROM "__df_{}")"#, filter.data_frame)), "{sql}");
+}
+
+#[test]
+fn a_read_that_fails_on_an_unchanged_computation_fails() {
+    let setup = setup(analysis_answer);
+    setup.analyze().unwrap();
+    let data_frame =
+        setup.service.read(|state| state.computation(1).and_then(|computation| computation.data_frame)).unwrap();
+    setup.database.borrow_mut().tables.remove(&format!("__df_{data_frame}"));
+    let output = setup.run(setup.service.read_rows(1, 0, 10));
+    let error = output.borrow_mut().take().expect("the read finished").unwrap_err();
+    assert!(error.to_string().contains("reading the rows failed"), "{error}");
+}
+
+#[test]
+fn a_stop_of_an_analysis_lets_a_read_of_rows_finish() {
+    let setup = setup(analysis_answer);
+    let stop = CancellationToken::new();
+    let (_release, analysis) = setup.start_held_analysis(&stop);
+    let (release_read, gate): (Sender<()>, Receiver<()>) = oneshot();
+    setup.database.borrow_mut().query_gates.insert("Result rows", gate);
+    let read = setup.run(setup.service.read_rows(1, 0, 10));
+    stop.cancel();
+    setup.executor.run_until_stalled();
+    assert!(analysis.borrow().as_ref().is_some_and(|analysis| analysis.is_err()));
+    // The step of the analysis was cancelled, the read wasn't
+    assert_eq!(setup.database.borrow().cancelled.len(), 1);
+    release_read.send(());
+    setup.executor.run_until_stalled();
+    let window = read.borrow_mut().take().expect("the read finished").unwrap();
+    assert_eq!(window.rows, 4);
+}
+
+#[test]
+fn a_result_that_names_two_fields_alike_is_imported_with_unique_names() {
+    let setup = setup(|_, _| Err("no summaries in this test".into()));
+    let result = table(vec![
+        ("id", a(Int64Array::from(vec![1, 2]))),
+        ("id", a(Int64Array::from(vec![3, 4]))),
+        ("", a(StringArray::from(vec!["x", "y"]))),
+    ]);
+    let handles = {
+        let mut database = setup.database.borrow_mut();
+        AnalysisHandles { table: database.keep(result.clone()), lifetime: database.handle() }
+    };
+    let options = AnalyzeTableOptions::default();
+    let analysis =
+        setup.service.analyze_table(1, shape(&result), handles, None, None, options, CancellationToken::new());
+    let output = setup.run(analysis);
+    assert!(output.borrow().as_ref().is_some_and(|output| output.is_err()));
+    let (data_frame, fields) = setup.service.read(|state| {
+        let computation = state.computation(1).unwrap();
+        (computation.data_frame.unwrap(), computation.data_table_fields.clone())
+    });
+    assert_eq!(fields, vec!["id", "id_1", "column_3"]);
+    // The data frame and the numbered table that the grid shows have the names of the computation
+    let names = |table: &ResultTable| -> Vec<String> {
+        table.schema().fields().iter().map(|field| field.name().clone()).collect()
+    };
+    let imported = setup.database.borrow().tables.get(&format!("__df_{data_frame}")).cloned().unwrap();
+    assert_eq!(names(&imported), vec!["id", "id_1", "column_3", "_rownum"]);
+    let output = setup.run(setup.service.read_rows(1, 0, 10));
+    let window = output.borrow_mut().take().expect("the read finished").unwrap();
+    assert_eq!(window.rows, 2);
+    let sql = setup.database.borrow().queries.last().cloned().unwrap();
+    assert!(sql.contains(r#"SELECT "id", "id_1", "column_3", "_rownum" FROM"#), "{sql}");
 }
 
 #[test]
@@ -1093,9 +1232,8 @@ fn a_stopped_analysis_keeps_its_computation_with_what_it_computed() {
         let status = computation.tasks.system_columns.as_ref().map(|task| task.progress.status);
         assert_eq!(status, Some(TaskStatus::Cancelled));
     });
-    // A preview that waited for the system columns fails
-    let error = preview.borrow_mut().take().expect("the preview ended").unwrap_err();
-    assert!(error.to_string().contains("is not analyzed"), "{error}");
+    // A preview reads the rows that were imported
+    assert!(preview.borrow_mut().take().expect("the preview ended").is_ok());
 }
 
 #[test]

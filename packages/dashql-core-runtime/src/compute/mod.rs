@@ -98,8 +98,12 @@ pub struct TableComputation {
     pub data_search_table: Option<DataSearchTable>,
     /// The column group of the row numbers
     pub row_number_column_group: Option<usize>,
-    /// The field of the row numbers
+    /// The field of the row numbers, once the system columns are computed: the filters, the ordering and the searches
+    /// wait for it
     pub row_number_column_name: Option<String>,
+    /// The field of the row numbers that the import appended, every data frame of the computation has it. The reads of
+    /// rows need only it and the data frame, they don't wait for the system columns.
+    pub row_number_field: Option<String>,
     /// The statistics of the table
     pub table_aggregation: Option<TableAggregation>,
     /// The summaries of the columns, by column group
@@ -149,6 +153,7 @@ impl TableComputation {
             data_search_table: None,
             row_number_column_group: None,
             row_number_column_name: None,
+            row_number_field: None,
             table_aggregation: None,
             column_aggregates: vec![None; columns],
             filtered_column_aggregates: vec![None; columns],
@@ -354,9 +359,9 @@ pub enum ComputationAction {
     },
     /// Drop the computation of a table
     DeleteComputation { table_id: TableId },
-    /// The table was copied into a data frame with its row numbers, the numbered table replaces the table. It moves
-    /// the data version.
-    CreatedDataFrame { table_id: TableId, data_frame: DataFrameId, data_table: ArrowTable },
+    /// The table was copied into a data frame with its row numbers in a field, the numbered table replaces the table.
+    /// It moves the data version.
+    CreatedDataFrame { table_id: TableId, data_frame: DataFrameId, data_table: ArrowTable, row_number_field: String },
     /// An ordering was computed. It is dropped unless it is for the version, the data search and the ordering that
     /// the computation has now.
     TableOrderingSucceeded { table_id: TableId, ordering: OrderingTable, now: Timestamp },
@@ -935,10 +940,11 @@ fn reduce_computation(
     effects: &mut Vec<ComputationEffect>,
 ) -> bool {
     match action {
-        ComputationAction::CreatedDataFrame { data_frame, data_table, .. } => {
+        ComputationAction::CreatedDataFrame { data_frame, data_table, row_number_field, .. } => {
             computation.version = computation.version.with_data_increment();
             computation.data_frame = Some(data_frame);
             computation.data_table = data_table;
+            computation.row_number_field = Some(row_number_field);
         }
         ComputationAction::TableOrderingSucceeded { ordering, now, .. } => {
             // The ordering depends on the data, the filter and the data search

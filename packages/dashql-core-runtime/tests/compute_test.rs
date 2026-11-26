@@ -172,7 +172,15 @@ fn from_query_result(table_id: TableId, lifetime: u32) -> ComputationAction {
 fn state_with_table(data_frame: DataFrameId) -> ComputationState {
     let mut state = ComputationState::new();
     apply(&mut state, from_query_result(1, 1));
-    apply(&mut state, ComputationAction::CreatedDataFrame { table_id: 1, data_frame, data_table: input_table() });
+    apply(
+        &mut state,
+        ComputationAction::CreatedDataFrame {
+            table_id: 1,
+            data_frame,
+            data_table: input_table(),
+            row_number_field: "rowNumber".into(),
+        },
+    );
     state
 }
 
@@ -441,7 +449,15 @@ fn delete_computation() {
 fn releases_the_previous_computation_when_replacing_the_same_table_id() {
     let mut state = ComputationState::new();
     apply(&mut state, from_query_result(1, 1));
-    apply(&mut state, ComputationAction::CreatedDataFrame { table_id: 1, data_frame: 9, data_table: input_table() });
+    apply(
+        &mut state,
+        ComputationAction::CreatedDataFrame {
+            table_id: 1,
+            data_frame: 9,
+            data_table: input_table(),
+            row_number_field: "rowNumber".into(),
+        },
+    );
     let revision = state.computation(1).unwrap().revision();
 
     let outcome = apply(&mut state, from_query_result(1, 2));
@@ -636,7 +652,12 @@ fn the_imported_table_replaces_the_result() {
     apply(&mut state, from_query_result(1, 1));
     let before = version(&state);
     let numbered = arrow_table(110, 4);
-    let created = ComputationAction::CreatedDataFrame { table_id: 1, data_frame: 1, data_table: numbered.clone() };
+    let created = ComputationAction::CreatedDataFrame {
+        table_id: 1,
+        data_frame: 1,
+        data_table: numbered.clone(),
+        row_number_field: "rowNumber".into(),
+    };
     let outcome = apply(&mut state, created);
     // The result goes back to the host, the numbered table is the table of the computation
     assert_eq!(outcome.effects, vec![ComputationEffect::Release { handle: input_table().id }]);
@@ -644,8 +665,16 @@ fn the_imported_table_replaces_the_result() {
     assert_eq!(computation.version, before.with_data_increment());
     assert_eq!(computation.data_table, numbered);
     assert_eq!(computation.data_frame, Some(1));
+    // The rows can be read from the data frame of the import, the system columns don't have to be there
+    assert_eq!(computation.row_number_field.as_deref(), Some("rowNumber"));
+    assert_eq!(computation.row_number_column_name, None);
     // A table imported for a computation that is gone goes back to the host
-    let created = ComputationAction::CreatedDataFrame { table_id: 2, data_frame: 3, data_table: arrow_table(111, 4) };
+    let created = ComputationAction::CreatedDataFrame {
+        table_id: 2,
+        data_frame: 3,
+        data_table: arrow_table(111, 4),
+        row_number_field: "rowNumber".into(),
+    };
     let outcome = apply(&mut state, created);
     assert_eq!(
         outcome.effects,

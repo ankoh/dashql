@@ -417,8 +417,8 @@ export interface RuntimeMounts {
 
 /** The compute database of the computations, the embedded Hyper of the platform. The context of a call names the computation, the title of its task, the connection and the client context of the computation, and the run that `cancel` aborts. Result data never enters the module: a result is imported as the Arrow table of its handle, the tables that the tasks read stay Arrow tables, the runtime reads only the small ones that it parses as Arrow IPC streams. */
 export interface ComputePlatform {
-    /** Create the table of a data frame from an Arrow table of the handle table, with its rows numbered from 1 in an appended column of 64-bit integers that can't be null. Resolves to the numbered Arrow table, the runtime keeps it in the handle table as the table of the computation */
-    importTable(dataFrame: number, tableName: string, table: unknown, rowNumberField: string, context: ComputeCallContext): Promise<unknown>;
+    /** Create the table of a data frame from an Arrow table of the handle table, with its fields named `fields` in order and its rows numbered from 1 in an appended column of 64-bit integers that can't be null. Resolves to the numbered Arrow table, the runtime keeps it in the handle table as the table of the computation */
+    importTable(dataFrame: number, tableName: string, table: unknown, fields: string[], rowNumberField: string, context: ComputeCallContext): Promise<unknown>;
     /** Create the table of a data frame from a SELECT, the host tracks the SELECT as a query of the task */
     createTable(dataFrame: number, tableName: string, sql: string, context: ComputeCallContext): Promise<void>;
     /** Run a query whose small result the runtime parses, resolves to its result as an Arrow IPC stream */
@@ -1486,6 +1486,7 @@ impl ComputeHost for JsPlatform {
         data_frame: u64,
         table_name: &str,
         table: Handle,
+        fields: &[String],
         row_number_field: &str,
         context: &ComputeContext,
     ) -> Result<KeptTable, HostError> {
@@ -1499,6 +1500,7 @@ impl ComputeHost for JsPlatform {
             JsValue::from_f64(data_frame as f64),
             JsValue::from_str(table_name),
             table,
+            fields.iter().map(|field| JsValue::from_str(field)).collect::<js_sys::Array>().into(),
             JsValue::from_str(row_number_field),
             context_js(context)?,
         ];

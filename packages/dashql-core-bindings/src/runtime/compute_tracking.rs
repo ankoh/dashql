@@ -173,10 +173,11 @@ impl ComputeHost for ComputeTracker {
         data_frame: u64,
         table_name: &str,
         table: Handle,
+        fields: &[String],
         row_number_field: &str,
         context: &ComputeContext,
     ) -> Result<KeptTable, HostError> {
-        self.inner.platform.import_table(data_frame, table_name, table, row_number_field, context).await
+        self.inner.platform.import_table(data_frame, table_name, table, fields, row_number_field, context).await
     }
 
     async fn create_table(

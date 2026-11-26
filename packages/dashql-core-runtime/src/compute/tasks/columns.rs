@@ -88,6 +88,35 @@ pub fn create_unique_column_name(prefix: &str, field_names: &mut HashSet<String>
     name
 }
 
+/// The names of the fields of a result in the compute database, in order: the names of the result, unique and not
+/// empty, since a table can't have two columns of one name or a column without one. A result may name fields alike,
+/// e.g. `SELECT a.id, b.id`, or leave a name empty, e.g. a remote result. A field that repeats a name takes it with a
+/// number, `id_1`, a field without a name `column_<position from 1>`, neither takes a name of another field.
+pub fn data_frame_field_names(schema: &Schema) -> Vec<String> {
+    let given: HashSet<&str> = schema.fields().iter().map(|field| field.name().as_str()).collect();
+    let mut taken: HashSet<String> = HashSet::new();
+    let mut names = Vec::with_capacity(schema.fields().len());
+    for (index, field) in schema.fields().iter().enumerate() {
+        let name = field.name();
+        if !name.is_empty() && taken.insert(name.clone()) {
+            names.push(name.clone());
+            continue;
+        }
+        let free = |candidate: &String| !given.contains(candidate.as_str()) && !taken.contains(candidate);
+        let unnamed = format!("column_{}", index + 1);
+        let base = if name.is_empty() { &unnamed } else { name };
+        let mut candidate = base.clone();
+        let mut number = 1;
+        while candidate == *name || !free(&candidate) {
+            candidate = format!("{base}_{number}");
+            number += 1;
+        }
+        taken.insert(candidate.clone());
+        names.push(candidate);
+    }
+    names
+}
+
 /// The column groups of the grid of a result, one per field: ordinal, string, list or skipped
 pub fn build_column_groups(schema: &Schema) -> Vec<ColumnGroup> {
     schema

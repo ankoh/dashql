@@ -59,10 +59,11 @@ export function createComputePlatform(database: () => Promise<EmbeddedComputeDat
         }
     };
     return {
-        importTable: (_dataFrame, tableName, result, rowNumberField, context) => perfMarks.measure('compute:importTable', async () => {
+        importTable: (_dataFrame, tableName, result, fields, rowNumberField, context) => perfMarks.measure('compute:importTable', async () => {
             if (!isArrowTable(result)) throw new Error(`the result to import into ${tableName} is no table`);
-            // The numbered table shares the columns of the result, the runtime keeps it as the table of the computation
-            const table = appendRowNumbers(result as arrow.Table, rowNumberField);
+            // The numbered table shares the columns of the result under the names of the compute database, the runtime
+            // keeps it as the table of the computation
+            const table = appendRowNumbers(result as arrow.Table, rowNumberField, fields);
             await inRun(context.run, signal => withConnection(clientContextOf(context.clientContext), conn => conn.insertArrowTable(table, { name: tableName, create: true, abort: signal })));
             return table;
         }, tableName),

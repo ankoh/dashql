@@ -74,9 +74,14 @@ export function boolVector(values: ReadonlyArray<boolean | null | undefined>): a
 /// A table with its rows numbered from 1 in an appended column of 64-bit integers that can't be null, e.g. a result
 /// that the compute database imports or a stored result with the order of its rows. Hyper numbers rows in no
 /// particular order (`row_number() OVER ()`), the numbers are therefore given while the table still holds the rows in
-/// order. The batches keep their columns, the row numbers are a new column of each.
-export function appendRowNumbers(table: arrow.Table, name: string): arrow.Table {
-    const fields = [...table.schema.fields, new arrow.Field(name, new arrow.Int64(), false)];
+/// order. The batches keep their columns, the row numbers are a new column of each. With `names` the fields take these
+/// names, in order, e.g. the unique names of the compute database for a result that names two fields alike.
+export function appendRowNumbers(table: arrow.Table, name: string, names?: readonly string[]): arrow.Table {
+    if (names != null && names.length !== table.schema.fields.length) {
+        throw new Error(`${names.length} names for the ${table.schema.fields.length} fields of a table`);
+    }
+    const named = names == null ? table.schema.fields : table.schema.fields.map((field, i) => field.clone({ name: names[i] }));
+    const fields = [...named, new arrow.Field(name, new arrow.Int64(), false)];
     const schema = new arrow.Schema(fields, table.schema.metadata);
     let next = 1n;
     const batches = table.batches.map(batch => {

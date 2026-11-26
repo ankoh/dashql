@@ -16,9 +16,9 @@
 
 use std::collections::HashSet;
 
-use arrow_schema::Schema;
+use arrow_schema::{Field, Schema};
 
-use super::columns::{build_column_groups, create_unique_column_name};
+use super::columns::{build_column_groups, create_unique_column_name, data_frame_field_names};
 use super::{data_frame_table_name, TableImport};
 use crate::compute::types::{
     ArrowTable, ColumnAggregationTask, ColumnGroup, ComputationVersion, DataFrameId, SystemColumnsTask,
@@ -44,7 +44,7 @@ impl Default for AnalyzeTableOptions {
 /// The start of the analysis of a result
 #[derive(Clone, Debug, PartialEq)]
 pub struct TableAnalysisStart {
-    /// The fields of the result in order
+    /// The fields of the result in order, by their names in the compute database (`data_frame_field_names`)
     pub fields: Vec<String>,
     /// The column groups of the result
     pub column_groups: Vec<ColumnGroup>,
@@ -61,15 +61,20 @@ pub fn row_number_field_name(schema: &Schema) -> String {
     create_unique_column_name(ROW_NUMBER_FIELD_PREFIX, &mut names)
 }
 
-/// Start the analysis of a result with the data frame of its import, none for a result without columns
+/// Start the analysis of a result with the data frame of its import, none for a result without columns. The import
+/// names the fields by their names in the compute database, which the computation uses from here on.
 pub fn start_table_analysis(schema: &Schema, input: DataFrameId) -> Option<TableAnalysisStart> {
     if schema.fields().is_empty() {
         return None;
     }
-    let row_number_field_name = row_number_field_name(schema);
+    let fields = data_frame_field_names(schema);
+    let named: Vec<Field> =
+        schema.fields().iter().zip(&fields).map(|(field, name)| field.as_ref().clone().with_name(name)).collect();
+    let schema = Schema::new_with_metadata(named, schema.metadata().clone());
+    let row_number_field_name = row_number_field_name(&schema);
     Some(TableAnalysisStart {
-        fields: schema.fields().iter().map(|field| field.name().clone()).collect(),
-        column_groups: build_column_groups(schema),
+        fields,
+        column_groups: build_column_groups(&schema),
         row_number_field_name,
         import: TableImport { data_frame: input, table_name: data_frame_table_name(input) },
     })

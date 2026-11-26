@@ -108,6 +108,8 @@ struct Run {
     search: Option<u64>,
     /// The request of a search of the columns
     column_search: Option<u64>,
+    /// Is it a read of rows, which the stop of an analysis doesn't cancel?
+    read: bool,
     /// Cancels the run
     cancel: CancelHandle,
 }
@@ -257,19 +259,20 @@ impl<H: ComputeHost> ComputeService<H> {
         let started = start_analysis(&shared, table_id, table, handles, connection_id, client_context);
         async move {
             let Some(started) = started? else { return Ok(()) };
-            // A stop cancels the runs of the computation, e.g. the step that runs
+            // A stop cancels the runs of the computation, e.g. the step that runs. The reads of its rows go on, the
+            // rows that were imported stay readable.
             let ended = CancellationToken::new();
             let watch = (shared.clone(), ended.clone(), stop.clone());
             shared.host.spawn(Box::pin(async move {
                 let (shared, ended, stop) = watch;
                 if ended.run(stop.cancelled()).await.is_some() {
-                    let runs = shared.inner.borrow_mut().take_runs(|run| run.table_id == table_id);
+                    let runs = shared.inner.borrow_mut().take_runs(|run| run.table_id == table_id && !run.read);
                     cancel_runs(&shared, runs);
                 }
             }));
             let analyzed = analyze(&shared, started, options, &stop).await;
             ended.cancel();
-            // The previews that wait for the analysis look again
+            // The reads that wait for the analysis look again
             shared.inner.borrow_mut().analyses.remove(&table_id);
             analyzed
         }
@@ -430,12 +433,20 @@ fn host_failed(error: HostError, failed: impl FnOnce(HostError) -> Error) -> Run
     }
 }
 
-/// What a run runs for: a task, a data search or a search of the columns
+/// What a run runs for: a task, a data search, a search of the columns or a read of rows
 #[derive(Clone, Copy, Default)]
 struct RunOf {
     task: Option<TaskId>,
     search: Option<u64>,
     column_search: Option<u64>,
+    read: bool,
+}
+
+impl RunOf {
+    /// A read of rows
+    fn read() -> Self {
+        Self { read: true, ..Self::default() }
+    }
 }
 
 /// Run a future as a run of a computation that can be cancelled. The future gets the context of the run. A run whose
@@ -461,12 +472,12 @@ where
         run,
     };
     let (future, cancel) = cancellable(future(context));
-    let RunOf { task, search, column_search } = of;
+    let RunOf { task, search, column_search, read } = of;
     shared
         .inner
         .borrow_mut()
         .runs
-        .insert(run, Run { table_id, lifetime: info.lifetime, task, search, column_search, cancel });
+        .insert(run, Run { table_id, lifetime: info.lifetime, task, search, column_search, read, cancel });
     let result = future.await;
     shared.inner.borrow_mut().runs.remove(&run);
     result.unwrap_or(Err(RunError::Cancelled))
@@ -712,7 +723,7 @@ async fn run_task<H: ComputeHost>(shared: &Rc<Shared<H>>, task_id: TaskId) -> Re
         _ => None,
     };
     let result =
-        in_run(shared, table_id, &info, title, RunOf { task: Some(task_id), search, column_search: None }, |context| {
+        in_run(shared, table_id, &info, title, RunOf { task: Some(task_id), search, ..RunOf::default() }, |context| {
             let shared = shared.clone();
             let task = task.clone();
             let schema = info.schema.clone();
@@ -842,6 +853,7 @@ async fn analyze<H: ComputeHost>(
     check_stopped(IMPORT_TITLE)?;
     let import = start.import;
     let row_number_field = start.row_number_field_name.clone();
+    let fields = start.fields.clone();
     let result = data_table.id;
     let imported = in_run(shared, table_id, &info, IMPORT_TITLE, RunOf::default(), |context| {
         let shared = shared.clone();
@@ -850,7 +862,7 @@ async fn analyze<H: ComputeHost>(
             let failed = |e: HostError| Error::invalid_argument(format!("importing the result failed: {e}"));
             shared
                 .host
-                .import_table(input, &name, result, &row_number_field, &context)
+                .import_table(input, &name, result, &fields, &row_number_field, &context)
                 .await
                 .map_err(|e| host_failed(e, failed))
         }
@@ -864,8 +876,17 @@ async fn analyze<H: ComputeHost>(
             return Err(error);
         }
     };
-    let created = ComputationAction::CreatedDataFrame { table_id, data_frame: input, data_table: data_table.clone() };
+    let created = ComputationAction::CreatedDataFrame {
+        table_id,
+        data_frame: input,
+        data_table: data_table.clone(),
+        row_number_field: start.row_number_field_name.clone(),
+    };
     apply(shared, created, true)?;
+    // The reads that wait for the rows read them now, dropping their senders wakes them
+    if let Some(reads) = shared.inner.borrow_mut().analyses.get_mut(&table_id) {
+        reads.clear();
+    }
 
     // The statistics
     check_stopped("Table aggregation")?;
@@ -889,10 +910,6 @@ async fn analyze<H: ComputeHost>(
     else {
         return Ok(());
     };
-    // The previews that wait for the data frame read it now, dropping their senders wakes them
-    if let Some(previews) = shared.inner.borrow_mut().analyses.get_mut(&table_id) {
-        previews.clear();
-    }
     // The filters, the ordering and the searches that the app asked for before the data frame was there
     refresh(shared, table_id);
 
@@ -1134,9 +1151,8 @@ impl<H: ComputeHost> ComputeService<H> {
     /// `offset` in the order of the result, its fields without the columns of the computation, as an Arrow IPC stream.
     /// They are read from the data frame of the computation, so the preview is as small as its limit and the result
     /// itself stays with the host. Filters, searches and orderings of the grid don't apply. With `row_numbers` the row
-    /// numbers of the rows follow the fields, e.g. for a chart whose cross filters select rows by them. A preview of a
-    /// result whose analysis runs waits for the system columns. Fails for a table whose analysis ended without them, or
-    /// once its computation is gone.
+    /// numbers of the rows follow the fields, e.g. for a chart whose cross filters select rows by them. A preview reads
+    /// like every read of rows (`read`).
     pub fn preview(
         &self,
         table_id: TableId,
@@ -1146,9 +1162,9 @@ impl<H: ComputeHost> ComputeService<H> {
     ) -> impl Future<Output = Result<Vec<u8>>> + 'static {
         let shared = self.shared.clone();
         async move {
-            let sql = analyzed(&shared, table_id, |computation| {
+            let plan = |computation: &TableComputation| {
                 let data_frame = computation.data_frame?;
-                let row_number_field = computation.row_number_column_name.as_deref()?;
+                let row_number_field = computation.row_number_field.as_deref()?;
                 Some(preview_data_frame_sql(
                     data_frame,
                     &computation.data_table_fields,
@@ -1157,10 +1173,8 @@ impl<H: ComputeHost> ComputeService<H> {
                     limit,
                     row_numbers,
                 ))
-            })
-            .await?;
-            let info = computation_info(&shared, table_id).ok_or_else(|| no_computation(table_id))?;
-            in_run(&shared, table_id, &info, PREVIEW_TITLE, RunOf::default(), |context| {
+            };
+            read(&shared, table_id, PREVIEW_TITLE, plan, |sql, context| {
                 let shared = shared.clone();
                 async move {
                     let failed = |e: HostError| Error::invalid_argument(format!("reading the preview failed: {e}"));
@@ -1168,30 +1182,27 @@ impl<H: ComputeHost> ComputeService<H> {
                 }
             })
             .await
-            .map_err(|error| error.into_error(PREVIEW_TITLE))
         }
     }
 
     /// Write all rows of a result into a Parquet file at a path of the compute database, e.g. a folder that the host
     /// mounted for a download: the fields of the result in its order, without the columns of the computation. Hyper
-    /// copies the rows from the data frame of the computation, they don't pass through the host. Waits for the system
-    /// columns of an analysis that runs like a preview, and fails like one.
+    /// copies the rows from the data frame of the computation, they don't pass through the host. Reads like every read
+    /// of rows (`read`).
     pub fn export_parquet(&self, table_id: TableId, path: String) -> impl Future<Output = Result<()>> + 'static {
         let shared = self.shared.clone();
         async move {
-            let sql = analyzed(&shared, table_id, |computation| {
+            let plan = |computation: &TableComputation| {
                 let data_frame = computation.data_frame?;
-                let row_number_field = computation.row_number_column_name.as_deref()?;
+                let row_number_field = computation.row_number_field.as_deref()?;
                 Some(copy_data_frame_to_parquet_sql(
                     data_frame,
                     &computation.data_table_fields,
                     row_number_field,
                     &path,
                 ))
-            })
-            .await?;
-            let info = computation_info(&shared, table_id).ok_or_else(|| no_computation(table_id))?;
-            in_run(&shared, table_id, &info, PARQUET_TITLE, RunOf::default(), |context| {
+            };
+            read(&shared, table_id, PARQUET_TITLE, plan, |sql, context| {
                 let shared = shared.clone();
                 async move {
                     let failed =
@@ -1201,15 +1212,13 @@ impl<H: ComputeHost> ComputeService<H> {
                 }
             })
             .await
-            .map_err(|error| error.into_error(PARQUET_TITLE))
         }
     }
 
     /// A window of the rows that the grid of a result shows: the rows that pass the filters and the data search in
     /// the order of the ordering, from `offset`, at most `limit`, with the fields of the result and its row numbers,
     /// as an Arrow IPC stream with the count of the rows that show. The rows are read from the data frame of the
-    /// computation, a window is as small as its limit. Waits for the system columns of an analysis that runs like a
-    /// preview, and fails like one.
+    /// computation, a window is as small as its limit. Reads like every read of rows (`read`).
     pub fn read_rows(
         &self,
         table_id: TableId,
@@ -1218,9 +1227,8 @@ impl<H: ComputeHost> ComputeService<H> {
     ) -> impl Future<Output = Result<RowWindow>> + 'static {
         let shared = self.shared.clone();
         async move {
-            let plan = analyzed(&shared, table_id, |computation| plan_row_window(computation, offset, limit)).await?;
-            let info = computation_info(&shared, table_id).ok_or_else(|| no_computation(table_id))?;
-            in_run(&shared, table_id, &info, ROWS_TITLE, RunOf::default(), |context| {
+            let plan = |computation: &TableComputation| plan_row_window(computation, offset, limit);
+            read(&shared, table_id, ROWS_TITLE, plan, |plan, context| {
                 let shared = shared.clone();
                 async move {
                     let failed = |e: HostError| Error::invalid_argument(format!("reading the rows failed: {e}"));
@@ -1238,7 +1246,43 @@ impl<H: ComputeHost> ComputeService<H> {
                 }
             })
             .await
-            .map_err(|error| error.into_error(ROWS_TITLE))
+        }
+    }
+}
+
+/// A read of the rows of a result: the window of a grid, a preview or an export. It is planned once the result is
+/// imported, the summaries and the system columns don't have to be there: a step of the analysis that fails costs the
+/// summaries, not the rows. A read waits for the import of an analysis that runs and fails for a table whose import
+/// failed, or once its computation is gone. A read that fails after its computation changed, e.g. the system columns
+/// replaced the data frame that it read, a filter dropped the table that it joined or the result ran again, is
+/// planned again on the computation as it is now: it failed since the state moved on, not since the read is wrong.
+async fn read<H, P, T, F>(
+    shared: &Rc<Shared<H>>,
+    table_id: TableId,
+    title: &'static str,
+    plan: impl Fn(&TableComputation) -> Option<P>,
+    run: impl Fn(P, ComputeContext) -> F,
+) -> Result<T>
+where
+    H: ComputeHost,
+    F: Future<Output = RunResult<T>>,
+{
+    // The computation as a read planned it: a new computation of the table has a lifetime of its own
+    let version_of = |computation: &TableComputation| (computation.lifetime, computation.revision());
+    loop {
+        let (planned, planned_on) = analyzed(shared, table_id, |computation| {
+            plan(computation).map(|planned| (planned, version_of(computation)))
+        })
+        .await?;
+        let info = computation_info(shared, table_id).ok_or_else(|| no_computation(table_id))?;
+        let error = match in_run(shared, table_id, &info, title, RunOf::read(), |context| run(planned, context)).await {
+            Ok(value) => return Ok(value),
+            Err(error) => error,
+        };
+        let now = shared.inner.borrow().state.computation(table_id).map(version_of);
+        match now {
+            Some(now) if now != planned_on => continue,
+            _ => return Err(error.into_error(title)),
         }
     }
 }
@@ -1247,8 +1291,8 @@ fn no_computation(table_id: TableId) -> Error {
     Error::invalid_argument(format!("the table {table_id} has no computation"))
 }
 
-/// What a read plans of a computation once its result is analyzed: waits for the system columns of an analysis that
-/// runs. Fails for a table whose analysis ended without them, or once its computation is gone.
+/// What a read plans of a computation once it can: waits while an analysis runs and the plan needs more of it, e.g. the
+/// import. Fails for a table whose analysis ended without what the plan needs, or once its computation is gone.
 async fn analyzed<H: ComputeHost, T>(
     shared: &Rc<Shared<H>>,
     table_id: TableId,
@@ -1559,7 +1603,7 @@ fn start_column_search<H: ComputeHost>(
     let task_shared = shared.clone();
     shared.host.spawn(Box::pin(async move {
         let shared = task_shared;
-        let of = RunOf { task: None, search: None, column_search: Some(request_id) };
+        let of = RunOf { column_search: Some(request_id), ..RunOf::default() };
         let searched = in_run(&shared, table_id, &info, "Column search", of, |context| {
             let shared = shared.clone();
             async move {
