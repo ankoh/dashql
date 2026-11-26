@@ -49,7 +49,6 @@ export const ConnectionOverviewPage: React.FC<Props> = ({ connectionId, onClose 
                     </h2>
                 </header>
                 <div>
-                    {/* The metrics of the Hyper log are a demo, demos.html#/hyper_log */}
                     {isHyperConnection(connection)
                         ? <ConnectionEngineFacts connection={connection} />
                         : (

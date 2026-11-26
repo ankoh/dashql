@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { HyperDBSourceConnection } from '../shared/hyperdb_incremental_extract.js';
+import type { HyperDBSourceConnection } from '../shared/data_source.js';
 import { deleteTicksBeforeSql, insertTicksSql, MAX_PENDING_BATCHES, TickWriter, type Tick } from './tick_feed.js';
 
 function tick(symbol: string, price: number, ts = Date.UTC(2026, 0, 2, 3, 4, 5, 678)): Tick {

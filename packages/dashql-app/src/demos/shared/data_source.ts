@@ -1,12 +1,20 @@
 import * as React from 'react';
 
-import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
+import type { EmbeddedClientContext, EmbeddedComputeDatabase, EmbeddedConnection } from '@akohn/dashql/platform/embedded_database';
 import { useEmbeddedDatabaseSetup } from '../../host/embedded_database_provider.js';
-import type { HyperDBSourceDatabase } from './hyperdb_incremental_extract.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../../host/logger_provider.js';
 
 const LOG_CTX = 'demos';
+
+/// A connection to the Hyper that a demo reads, e.g. an embedded connection
+export type HyperDBSourceConnection = Pick<EmbeddedConnection, 'query' | 'execute' | 'close'>;
+
+/// The Hyper that a demo reads
+export interface HyperDBSourceDatabase {
+    /// Connect to the Hyper, the client context describes the queries of the connection
+    connect(options?: { clientContext?: EmbeddedClientContext }): Promise<HyperDBSourceConnection>;
+}
 
 /// The data source of a demo, the HyperDB WASM of the page
 export interface DemoDataSource {

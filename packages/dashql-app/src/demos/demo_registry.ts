@@ -21,12 +21,6 @@ export const DEMOS: readonly DemoEntry[] = [
         load: () => import('./stock_analysis/stock_analysis_page.js'),
     },
     {
-        id: 'hyper_log',
-        title: 'Hyper Log',
-        description: 'The query metrics and the resource usage of a Hyper from its log, extracted into a monitoring database every 5 seconds while a workload sends queries.',
-        load: () => import('./hyper_log/hyper_log_page.js'),
-    },
-    {
         id: 'plan_flow',
         title: 'Query Progress Flow',
         description: 'The progress of a replayed Trino query with a CPU timeline, a sidebar and edges as thick as their rows, horizontal and vertical.',

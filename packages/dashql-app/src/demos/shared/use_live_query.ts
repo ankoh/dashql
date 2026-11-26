@@ -1,7 +1,7 @@
 import type * as arrow from 'apache-arrow';
 import * as React from 'react';
 
-import type { HyperDBSourceConnection, HyperDBSourceDatabase } from './hyperdb_incremental_extract.js';
+import type { HyperDBSourceConnection, HyperDBSourceDatabase } from './data_source.js';
 
 /// The latest result of a query that runs again and again
 export interface LiveQueryState {

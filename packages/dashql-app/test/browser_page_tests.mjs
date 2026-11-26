@@ -542,13 +542,6 @@ async function testDemos(page, navigate) {
     await page.getByRole('button', { name: '100/s' }).click();
     await page.goBack();
 
-    // The monitor extracts the log every 5 seconds, the table of its queries shows the workload after the first poll
-    await page.getByRole('link', { name: /Hyper Log/ }).click();
-    await page.getByTestId('workload-counts').getByText(/^[1-9]\d* queries/).waitFor();
-    await page.getByText(/workload_events/).first().waitFor({ timeout: 30_000 });
-    await page.getByRole('button', { name: 'Off', exact: true }).click();
-    await page.goBack();
-
     await page.getByRole('link', { name: /UI Foundations/ }).click();
     await page.getByText('UI Design System', { exact: true }).waitFor();
     await page.goBack();
