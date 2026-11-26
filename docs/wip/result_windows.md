@@ -1,11 +1,10 @@
 # Result Windows
 
-Status: steps 1 and 2 landed, step 5 but the Arrow download, and the stored results keep the order of their rows
-(Row order). The others are planned and land one by one, step 5 before step 3: every reader of a whole result moves to
-the compute database first, then the result of the embedded Hyper stops being an Arrow table without a fallback. This
-document fixes how DashQL stops holding whole results in the JavaScript heap: the grid reads the rows it shows, the
-embedded Hyper writes its results to Parquet without passing them through JavaScript, and a result in JavaScript is
-let go once its file exists.
+Status: steps 1, 2 and 5 landed, and the stored results keep the order of their rows (Row order). The others are planned
+and land one by one, step 5 before step 3: every reader of a whole result moves to the compute database first, then the
+result of the embedded Hyper stops being an Arrow table without a fallback. This document fixes how DashQL stops holding
+whole results in the JavaScript heap: the grid reads the rows it shows, the embedded Hyper writes its results to Parquet
+without passing them through JavaScript, and a result in JavaScript is let go once its file exists.
 
 ## Where results live today
 
@@ -114,7 +113,6 @@ Lands before step 3. The readers that take the Arrow table of a result by its ha
 | Plan tab of the shell | `shell_query_result_overlay.tsx` (`getPlanResultText`) | one cell | the first row (`previewRows`) |
 | Rows of `run --rows N` of the agent | `agent_output.ts`, `workbook_run_report.ts` | at most 10 000 | a window of the data frame (`readResultRows`) |
 | Parquet download | `query_result_download_button.tsx` | all | a `COPY` of the data frame to the file (`exportResultParquet`) |
-| Arrow download | `query_result_download_button.tsx` | all | open, Hyper writes no Arrow in WebAssembly |
 
 Landed: the rows of `run --rows N` and of the KPI check of `vis`, the KPI card, the Markdown card and the charts. The
 cards and the charts read rows of the result from an offset in its order (`previewResult` of the facade, `previewRows`
@@ -129,8 +127,8 @@ The Parquet download is a `COPY` of the data frame of the computation into a fil
 for the download (`exportResultParquet` of the facade, `ComputeService::export_parquet`, `exportParquet` of
 `hyperdb_parquet_export.ts`): Hyper writes the rows, they don't pass through JavaScript until the file is read for the
 download. Hyper writes a `COPY` in the order of its query: a CSV of 3 000 000 rows sorted descending came out in order.
-The Arrow download still writes the Arrow table of the result: hyperdb-wasm knows the formats `arrowstream` and
-`arrowfile` for `COPY ... TO` but fails with "this operator is not supported in WebAssembly".
+There is no Arrow download: hyperdb-wasm knows the formats `arrowstream` and `arrowfile` for `COPY ... TO` but fails
+with "this operator is not supported in WebAssembly", and Parquet serves the download better.
 
 A chart draws the first `CHART_ROWS` (10 000) rows of its result with their row numbers, for its cross filters; its PNG
 download draws the same rows. Every view that caps the rows of a result shows a warning triangle with the rows that

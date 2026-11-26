@@ -89,32 +89,6 @@ describe('FeedEntryFooter', () => {
         ));
     }
 
-    async function chooseDownloadFormat(format: 'arrow' | 'parquet') {
-        const button = container.querySelector<HTMLButtonElement>('[data-testid="download-query-result"]')!;
-        expect(button).not.toBeNull();
-        expect(button.disabled).toBe(false);
-        act(() => button.click());
-        const item = document.querySelector<HTMLButtonElement>(`[data-testid="download-format-${format}"]`)!;
-        expect(item).not.toBeNull();
-        await act(async () => item.click());
-    }
-
-    it('downloads the full original result as Arrow from the feed header without opening Details', async () => {
-        const resultTable = tableFromArrays({ value: [10, 20, 30] });
-        renderFooter(resultTable);
-
-        await chooseDownloadFormat('arrow');
-
-        expect(onShowTable).not.toHaveBeenCalled();
-        expect(download).toHaveBeenCalledTimes(1);
-        const [bytes, filename] = download.mock.calls[0] as [Uint8Array, string];
-        expect(filename).toBe('query-result-42.arrow');
-        expect(new TextDecoder().decode(bytes.subarray(0, 6))).toBe('ARROW1');
-        const exported = arrow.tableFromIPC(bytes);
-        expect(exported.schema.fields.map(field => field.name)).toEqual(['value']);
-        expect(Array.from(exported.getChild('value')!)).toEqual([10, 20, 30]);
-    });
-
     it('opens Details from the expand button beside the download button', () => {
         renderFooter(tableFromArrays({ value: [10, 20, 30] }));
         const download = container.querySelector('[data-testid="download-query-result"]')!;

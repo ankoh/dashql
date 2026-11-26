@@ -12,7 +12,7 @@ interface Props {
     model: QueryModel;
 }
 
-/// Download the result of a query as Arrow or Parquet
+/// Download the result of a query as Parquet
 export function QueryResultDownloadButton({ model }: Props) {
     const computeDatabase = useComputeDatabase();
     const runtime = useOptionalRuntime();
