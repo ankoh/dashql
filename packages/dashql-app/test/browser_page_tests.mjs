@@ -700,10 +700,13 @@ async function runPageTest(newContext, origin, { name, options, test }, { collec
         errors.push(`Unexpected request: ${route.request().url()}`);
         return route.abort();
     });
+    // The document that a navigation leaves reports the work it is cut off from, e.g. WebKit cancels the reads of OPFS
+    // files in flight and logs them as errors
+    let leaving = false;
     page.on('console', message => {
-        if (message.type() === 'error' && !isBenignConsoleError(message.text())) errors.push(message.text());
+        if (!leaving && message.type() === 'error' && !isBenignConsoleError(message.text())) errors.push(message.text());
     });
-    page.on('pageerror', error => { if (!isBenignPageError(error)) errors.push(formatPageError(error)); });
+    page.on('pageerror', error => { if (!leaving && !isBenignPageError(error)) errors.push(formatPageError(error)); });
     const profiler = collectCoverage ? await context.newCDPSession(page) : null;
     if (profiler) {
         await profiler.send('Profiler.enable');
@@ -716,7 +719,12 @@ async function runPageTest(newContext, origin, { name, options, test }, { collec
     /// Load a path of the origin, or reload the page without a path
     const navigate = async path => {
         await takeCoverage();
-        await (path == null ? page.reload() : page.goto(`${origin}${path}`));
+        leaving = true;
+        try {
+            await (path == null ? page.reload() : page.goto(`${origin}${path}`));
+        } finally {
+            leaving = false;
+        }
     };
     try {
         await test(page, navigate);
