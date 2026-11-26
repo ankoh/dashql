@@ -28,6 +28,7 @@ use std::sync::Arc;
 
 use arrow_array::ArrayRef;
 use dashql_core::error::{Error, Result};
+use dashql_core::utils::quote_string_literal;
 
 use crate::compute::types::{DataFrameId, FilterOp, OrderByConstraint};
 use result_table::ResultTable;
@@ -77,6 +78,22 @@ pub fn preview_data_frame_sql(
         .order_by(vec![ascending(row_number_field)], Some(limit))
         .project(columns)
         .to_sql()
+}
+
+/// The copy of all rows of a result from its data frame into a Parquet file at a path of the host: the fields of the
+/// result in the order of its rows, the columns that the computation added stay out. Hyper writes the rows in the order
+/// of the query.
+pub fn copy_data_frame_to_parquet_sql(
+    data_frame: DataFrameId,
+    fields: &[String],
+    row_number_field: &str,
+    path: &str,
+) -> String {
+    let rows = SqlFrame::from(data_frame_table_name(data_frame))
+        .order_by(vec![ascending(row_number_field)], None)
+        .project(fields.to_vec())
+        .to_sql();
+    format!("COPY (\n{rows}\n) TO {} WITH (format => 'parquet')", quote_string_literal(path))
 }
 
 /// An ascending key of an ordering with nulls last

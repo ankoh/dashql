@@ -950,6 +950,24 @@ fn previews_the_rows_of_a_result_from_an_offset_with_their_row_numbers() {
 }
 
 #[test]
+fn copies_a_result_into_a_parquet_file_from_its_data_frame() {
+    let setup = setup(analysis_answer);
+    setup.analyze().unwrap();
+    let data_frame =
+        setup.service.read(|state| state.computation(1).and_then(|computation| computation.data_frame)).unwrap();
+    let output = setup.run(setup.service.export_parquet(1, "/mnt/external/export's/result.parquet".to_string()));
+    output.borrow_mut().take().expect("the export finished").unwrap();
+    // All rows in the order of the result, the fields without the system columns, the path quoted
+    let queries = setup.database.borrow().queries.clone();
+    let copy = queries.last().expect("a copy");
+    assert!(copy.starts_with("COPY ("), "{copy}");
+    assert!(copy.contains(&format!(r#"SELECT "score", "name" FROM "__df_{data_frame}""#)), "{copy}");
+    assert!(copy.contains(r#"ORDER BY "_rownum""#), "{copy}");
+    assert!(!copy.contains("LIMIT"), "{copy}");
+    assert!(copy.ends_with("TO '/mnt/external/export''s/result.parquet' WITH (format => 'parquet')"), "{copy}");
+}
+
+#[test]
 fn reads_windows_of_the_rows_that_show() {
     let setup = setup(analysis_answer);
     setup.analyze().unwrap();

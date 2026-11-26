@@ -5,6 +5,7 @@ import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { createRuntime, type Runtime } from './runtime.js';
 import { ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN, TaskStatus, resolveMatchingRows, resolveSummaries } from '../platform/compute/computation_types.js';
 import { openTestHyperDB } from '../platform/testing/test_hyperdb.js';
+import { exportParquet } from '../platform/hyperdb/hyperdb_parquet_export.js';
 import type { HyperDB } from '../platform/hyperdb/hyperdb_wasm.js';
 import { TestLogger } from '../platform/testing/test_logger.js';
 import { newDefaultHyperWasmConnection } from '../platform/connections/connection_params.js';
@@ -132,6 +133,21 @@ describe('The computations of the runtime', () => {
         expect(rows.toArray().map((row, i) => [row.score, row.name, rowNumbers[i]])).toEqual([[10, 'a', 3], [30, 'c', 4]]);
     }, 60_000);
 
+    it('copies an analyzed result into a Parquet file from its data frame', async () => {
+        const rt = await analyzed();
+        const parquet = await exportParquet(database!, path => rt.exportResultParquet(1, path));
+        expect(new TextDecoder().decode(parquet.subarray(0, 4))).toBe('PAR1');
+        // The fields of the result in its order, without the columns of the computation
+        const path = await database!.registerMemoryDirectory({ 'result.parquet': new Blob([parquet as Uint8Array<ArrayBuffer>]) }, '/mnt/external/runtime-computations-export');
+        const conn = await database!.connect();
+        try {
+            const read = await conn.query(`SELECT * FROM external('${path}/result.parquet')`);
+            expect(read.schema.fields.map(field => field.name)).toEqual(['score', 'name']);
+            expect(read.toArray().map(row => [row.score, row.name])).toEqual([[42, 'a'], [10, 'b'], [10, 'a'], [30, 'c']]);
+        } finally {
+            await conn.close();
+        }
+    }, 60_000);
 
     it('filters, orders and searches an analyzed result', async () => {
         const rt = await analyzed();

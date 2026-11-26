@@ -24,10 +24,20 @@ export async function copyArrowTableAsParquet(database: EmbeddedComputeDatabase,
 }
 
 /// Write an Arrow table as Parquet file to OPFS with Hyper and read the file back.
-/// Hyper only copies into registered targets, so every export mounts its own OPFS directory read-write.
 export async function exportArrowTableAsParquet(
     database: EmbeddedComputeDatabase,
     table: arrow.Table,
+    getRoot: () => Promise<FileSystemDirectoryHandle> = getOPFSRoot,
+): Promise<Uint8Array> {
+    return await exportParquet(database, path => copyArrowTableAsParquet(database, table, path), getRoot);
+}
+
+/// Let Hyper write a Parquet file to OPFS and read the file back, e.g. the copy of a result from the compute database.
+/// `write` gets the path of the file in the compute database. Hyper only copies into registered targets, so every
+/// export mounts its own OPFS directory read-write.
+export async function exportParquet(
+    database: EmbeddedComputeDatabase,
+    write: (path: string) => Promise<void>,
     getRoot: () => Promise<FileSystemDirectoryHandle> = getOPFSRoot,
 ): Promise<Uint8Array> {
     const root = await getRoot();
@@ -37,7 +47,7 @@ export async function exportArrowTableAsParquet(
     try {
         const path = await database.registerExternalDirectory(directory, `/mnt/external/parquet-export-${id}`, 'readwrite');
         try {
-            await copyArrowTableAsParquet(database, table, `${path}/${PARQUET_EXPORT_FILE}`);
+            await write(`${path}/${PARQUET_EXPORT_FILE}`);
         } finally {
             await database.removeExternalDirectory(path);
         }

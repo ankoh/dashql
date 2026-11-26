@@ -55,7 +55,9 @@ use super::tasks::system_columns::plan_system_columns;
 use super::tasks::table_aggregation::plan_table_aggregation;
 use super::tasks::table_filtering::plan_table_filtering;
 use super::tasks::table_ordering::plan_table_ordering;
-use super::tasks::{data_frame_table_name, preview_data_frame_sql, TableStats, TaskQuery};
+use super::tasks::{
+    copy_data_frame_to_parquet_sql, data_frame_table_name, preview_data_frame_sql, TableStats, TaskQuery,
+};
 use super::types::{
     same_ordering, ArrowTable, ColumnAggregate, ColumnAggregationTask, ColumnGroup, ColumnSummary,
     ColumnSummaryAnalysis, ComputationTask, DataFrameId, DataSearchTable, DataSearchTask, FilterTable,
@@ -72,6 +74,8 @@ const IMPORT_TITLE: &str = "Table import";
 const PREVIEW_TITLE: &str = "Result preview";
 /// The title of the read of a window of the rows of a result
 const ROWS_TITLE: &str = "Result rows";
+/// The title of the copy of a result into a Parquet file
+const PARQUET_TITLE: &str = "Result Parquet export";
 
 /// What a task computed, the values of the action that it applied
 #[derive(Clone, Debug, PartialEq)]
@@ -1165,6 +1169,39 @@ impl<H: ComputeHost> ComputeService<H> {
             })
             .await
             .map_err(|error| error.into_error(PREVIEW_TITLE))
+        }
+    }
+
+    /// Write all rows of a result into a Parquet file at a path of the compute database, e.g. a folder that the host
+    /// mounted for a download: the fields of the result in its order, without the columns of the computation. Hyper
+    /// copies the rows from the data frame of the computation, they don't pass through the host. Waits for the system
+    /// columns of an analysis that runs like a preview, and fails like one.
+    pub fn export_parquet(&self, table_id: TableId, path: String) -> impl Future<Output = Result<()>> + 'static {
+        let shared = self.shared.clone();
+        async move {
+            let sql = analyzed(&shared, table_id, |computation| {
+                let data_frame = computation.data_frame?;
+                let row_number_field = computation.row_number_column_name.as_deref()?;
+                Some(copy_data_frame_to_parquet_sql(
+                    data_frame,
+                    &computation.data_table_fields,
+                    row_number_field,
+                    &path,
+                ))
+            })
+            .await?;
+            let info = computation_info(&shared, table_id).ok_or_else(|| no_computation(table_id))?;
+            in_run(&shared, table_id, &info, PARQUET_TITLE, RunOf::default(), |context| {
+                let shared = shared.clone();
+                async move {
+                    let failed =
+                        |e: HostError| Error::invalid_argument(format!("writing the Parquet file failed: {e}"));
+                    shared.host.query(&sql, &context).await.map_err(|e| host_failed(e, failed))?;
+                    Ok(())
+                }
+            })
+            .await
+            .map_err(|error| error.into_error(PARQUET_TITLE))
         }
     }
 

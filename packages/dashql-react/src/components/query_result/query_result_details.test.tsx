@@ -123,7 +123,7 @@ describe('TableDetails', () => {
         expect(download).not.toHaveBeenCalled();
     });
 
-    it('downloads the complete result as Parquet through the export of the host', async () => {
+    it('downloads the complete result as Parquet from the compute database through the export of the host', async () => {
         const resultTable = tableFromArrays({ value: [10, 20, 30] });
         const parquet = new TextEncoder().encode('PAR1');
         const exportParquet = vi.fn(async () => parquet);
@@ -136,7 +136,8 @@ describe('TableDetails', () => {
         act(() => downloadButton(container).click());
         await act(async () => downloadFormatItem('parquet')!.click());
 
-        expect(exportParquet).toHaveBeenCalledWith(resultTable);
+        // The table of the computation, Hyper copies its data frame into the file
+        expect(exportParquet).toHaveBeenCalledWith(1);
         expect(download).toHaveBeenCalledWith(parquet, 'query-result-42.parquet');
     });
 

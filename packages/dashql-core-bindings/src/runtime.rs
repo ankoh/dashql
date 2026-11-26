@@ -1012,6 +1012,20 @@ impl Runtime {
         }))
     }
 
+    /// Write all rows of an analyzed result into a Parquet file at a path of the compute database, e.g. a folder that
+    /// the platform mounted for a download, in the order of the result and without the columns of its computation.
+    /// Hyper copies the rows from the data frame of the computation, they don't pass through the module or the host.
+    /// Rejects like `previewResult`.
+    #[wasm_bindgen(js_name = exportResultParquet, unchecked_return_type = "Promise<void>")]
+    pub fn export_result_parquet(&self, table_id: f64, path: String) -> Result<Promise, JsError> {
+        let table_id = integer(table_id, "table id")? as TableId;
+        let export = self.computations.export_parquet(table_id, path);
+        Ok(future_to_promise(async move {
+            export.await.map_err(task_error)?;
+            Ok(JsValue::UNDEFINED)
+        }))
+    }
+
     /// A window of the rows that the grid of an analyzed result shows: the rows that pass its filters and its data
     /// search in the order of its ordering, from `offset`, at most `limit`, with the fields of the result and its row
     /// numbers, as an Arrow IPC stream, and the count of the rows that show. The rows are read from the data frame of

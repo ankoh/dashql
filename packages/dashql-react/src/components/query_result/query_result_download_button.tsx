@@ -18,17 +18,18 @@ const enum DownloadFormat {
     Parquet = 'parquet',
 }
 
-/// Write an Arrow table as Parquet
-export type ExportParquet = (table: arrow.Table) => Promise<Uint8Array>;
+/// Write all rows of an analyzed result, the table of a computation, as Parquet
+export type ExportParquet = (tableId: number) => Promise<Uint8Array>;
 
 export interface QueryResultDownloadButtonProps {
     /// The query, the download writes all of its result
     model: QueryModel;
-    /// Write the result as Parquet, without it the menu offers Parquet disabled
+    /// Write the result as Parquet from the compute database, without it the menu offers Parquet disabled
     exportParquet: ExportParquet | null;
 }
 
-/// Download the result of a query as an Arrow IPC file or, with a database that exports it, as Parquet
+/// Download the result of a query as an Arrow IPC file or, with a database that exports it, as Parquet. Hyper writes
+/// the Parquet file from the data frame of the computation of the result, the rows don't pass through JavaScript.
 export function QueryResultDownloadButton({ model, exportParquet }: QueryResultDownloadButtonProps) {
     const { query, result: resultTable } = model;
     const { downloadFile } = useHost();
@@ -37,21 +38,27 @@ export function QueryResultDownloadButton({ model, exportParquet }: QueryResultD
     const [downloading, setDownloading] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
     const hasResult = query.status === QueryExecutionStatus.SUCCEEDED && resultTable != null;
+    // Hyper writes the Parquet file from the data frame of the computation of the result
+    const computation = model.computation?.computation ?? null;
+    const parquetTableId = exportParquet != null && query.status === QueryExecutionStatus.SUCCEEDED && computation?.dataFrame != null
+        ? computation.tableId
+        : null;
 
     const downloadResult = async (format: DownloadFormat) => {
         setOpen(false);
-        if (!hasResult || downloading) return;
+        if (downloading) return;
         setDownloading(true);
         try {
             switch (format) {
                 case DownloadFormat.Arrow: {
+                    if (!hasResult) return;
                     const bytes = arrow.tableToIPC(resultTable!, 'file');
                     await downloadFile(bytes, `query-result-${query.queryId}.arrow`);
                     break;
                 }
                 case DownloadFormat.Parquet: {
-                    if (exportParquet == null) throw new Error('the host cannot export Parquet');
-                    const bytes = await exportParquet(resultTable!);
+                    if (exportParquet == null || parquetTableId == null) return;
+                    const bytes = await exportParquet(parquetTableId);
                     await downloadFile(bytes, `query-result-${query.queryId}.parquet`);
                     break;
                 }
@@ -81,7 +88,7 @@ export function QueryResultDownloadButton({ model, exportParquet }: QueryResultD
                     size={ButtonSize.Small}
                     aria-label="Download query result"
                     data-testid="download-query-result"
-                    disabled={!hasResult || downloading}
+                    disabled={(!hasResult && parquetTableId == null) || downloading}
                 >
                     <DownloadIcon size={16} />
                 </IconButton>
@@ -89,12 +96,12 @@ export function QueryResultDownloadButton({ model, exportParquet }: QueryResultD
         >
             <div className={styles.menu} role="dialog" aria-label="Download query result">
                 <ActionList.List aria-label="Download formats">
-                    <ActionList.ListItem data-testid="download-format-arrow" onClick={() => downloadResult(DownloadFormat.Arrow)}>
+                    <ActionList.ListItem data-testid="download-format-arrow" disabled={!hasResult} onClick={() => downloadResult(DownloadFormat.Arrow)}>
                         <ActionList.ItemText>Download as Arrow</ActionList.ItemText>
                     </ActionList.ListItem>
                     <ActionList.ListItem
                         data-testid="download-format-parquet"
-                        disabled={exportParquet == null}
+                        disabled={parquetTableId == null}
                         onClick={() => downloadResult(DownloadFormat.Parquet)}
                     >
                         <ActionList.ItemText>Download as Parquet</ActionList.ItemText>

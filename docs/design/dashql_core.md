@@ -302,7 +302,9 @@ the windows of the grid (`ComputeService::read_rows`, `readResultRows`): the row
 from an offset, bounded by a limit, with the count of the rows that show. The core decides which rows show and their
 order (`compute/tasks/row_window.rs`): an ordering orders the rows that were filtered and searched when it ran, a data
 search that it doesn't cover narrows them further, and a filter and a data search without an ordering are counted by a
-query. See [result_windows.md](../wip/result_windows.md).
+query. The Parquet download of a result is a `COPY` of its data frame into a file that the platform mounted
+(`ComputeService::export_parquet`, `exportResultParquet`), Hyper writes the rows. See
+[result_windows.md](../wip/result_windows.md).
 See [vegalite_crossfilter.md](vegalite_crossfilter.md).
 
 ### The catalog loader

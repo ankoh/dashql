@@ -353,6 +353,14 @@ export class Runtime {
         return await this.live().previewResult(tableId, offset, limit, rowNumbers);
     }
 
+    /// Write all rows of an analyzed result into a Parquet file at a path of the compute database, e.g. a folder that is
+    /// mounted for a download, in the order of the result and without the columns of its computation. Hyper copies the
+    /// rows from the data frame of the computation, they don't pass through JavaScript. Fails for a result without a
+    /// computation.
+    async exportResultParquet(tableId: number, path: string): Promise<void> {
+        await this.live().exportResultParquet(tableId, path);
+    }
+
     /// A window of the rows that the grid of an analyzed result shows: the rows that pass its filters and its data
     /// search in the order of its ordering, from `offset`, at most `limit`, with the fields of the result and its row
     /// numbers, and the count of the rows that show. The core reads them from the data frame of the computation
