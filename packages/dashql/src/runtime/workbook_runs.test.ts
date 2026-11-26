@@ -686,6 +686,13 @@ describe('the runs of scripts of the runtime', () => {
         const f = await scripts(files.map((name, i): [string, string] => [`${name}.sql`, `select ${i} as ${name};`]), { cache: true });
         expect((await f.core.runWorkbook(f.workbookId, {})).outcome.failure).toBeNull();
         await f.core.module.flushResultWrites();
+        // The analyses of the results follow the run in the compute database, each one flushes at once when it's done.
+        // They would count as flushes of the next run, e.g. in Firefox, where they take longer.
+        await vi.waitFor(() => {
+            for (const name of files) {
+                expect(computationOf(f, f.script(`${name}.sql`).latestQueryId!)?.rowNumberColumnName ?? null).not.toBeNull();
+            }
+        }, { timeout: 30_000 });
         await f.rt.clock.elapse();
         await settle();
         // The run checks the stored result of every script, each check is a step of its own that waits for the frame:
