@@ -10,7 +10,7 @@ import type { ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/work
 import { analyzeWorkbook, createTestRuntime, type TestRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
 
 import {
-    RuntimeContextProvider, useScriptReferences, useViewReader, useViewSelector, useWorkbookScriptMap, useWorkbookScriptsSelector,
+    RuntimeContextProvider, useScriptReferences, useViewReader, useViewSelector, useWorkbookInputs, useWorkbookScriptMap, useWorkbookScriptsSelector,
     type ViewReader,
 } from './hooks.js';
 
@@ -108,12 +108,14 @@ describe('the selector hooks', () => {
         expect(values).toHaveLength(2);
     });
 
-    it('renders a reader of the references of a script only when its report changes', () => {
+    it('renders a reader of the references of a script only when its report changes, and of the inputs only when they change', () => {
         const workbook = rt.addWorkbook(CONNECTION, [['alpha.sql', 'select 1 as x'], ['beta.sql', 'select x from :alpha'], ['gamma.sql', 'select x from :alpha']]);
         const [, beta, gamma] = workbook.scriptKeys;
         const betaReport = probe<ScriptReferenceReport | null>();
         const gammaReport = probe<ScriptReferenceReport | null>();
+        const inputs = probe<unknown[] | null>();
         render(<>
+            <Probed probe={inputs} use={() => useWorkbookInputs(workbook.workbookId)} />
             <Probed probe={betaReport} use={() => useScriptReferences(workbook.workbookId, beta)} />
             <Probed probe={gammaReport} use={() => useScriptReferences(workbook.workbookId, gamma)} />
         </>);
@@ -128,6 +130,9 @@ describe('the selector hooks', () => {
         expect(betaReport.value?.marks).toHaveLength(2);
         expect(betaReport.renders).toBe(2);
         expect(gammaReport.renders).toBe(1);
+        // The inputs stay
+        expect(inputs.value).toEqual([]);
+        expect(inputs.renders).toBe(1);
     });
 
     it('follows the scripts of its workbook only', () => {

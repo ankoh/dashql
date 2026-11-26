@@ -13,8 +13,8 @@ import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
 import type { StorageReader } from '../../storage/storage_provider.js';
 import type { getScriptRefs } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
-import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
 import { useScriptModel } from '@akohn/dashql-react/models/script_model';
+import { useScriptReferences } from '@akohn/dashql-react/hooks';
 import { ScriptEditor } from '../scripts/script_editor.js';
 import type { EditorView } from '@codemirror/view';
 import type { DashQLParameterClick } from '../editor/dashql_processor.js';
@@ -46,8 +46,6 @@ export interface ScriptFeedRowProps {
     active: boolean;
     /// Can a question of the composer target the scripts?
     canTarget: boolean;
-    /// The checked script references of the scripts, by script key
-    scriptReferences?: ReadonlyMap<number, ScriptReferenceReport>;
     /// The folded results by script key, see `ScriptResultFold`
     collapsedResults: ReadonlyMap<number, number | null>;
     /// Fold the results, the rest of `ScriptResultFold`
@@ -132,7 +130,8 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
 
     // What the card shows, the identity of each part stays while it is unchanged: the card is memoized
     const position = React.useMemo<ScriptCardPosition>(() => ({ index: entryIndex, canMoveUp, canMoveDown }), [entryIndex, canMoveUp, canMoveDown]);
-    const references = scriptKey != null ? props.scriptReferences?.get(scriptKey) ?? null : null;
+    // The references of the script, the reports of the other scripts leave the row alone
+    const references = useScriptReferences(props.workbookId, scriptKey);
     // The selection of another script leaves the row alone
     const focused = useIsScriptSelected(props.workbookId, scriptKey);
     const display = React.useMemo<ScriptCardDisplay>(() => ({

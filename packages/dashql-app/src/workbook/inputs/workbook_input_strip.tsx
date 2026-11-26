@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import type { ModifyWorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import { useWorkbookDerived } from '@akohn/dashql-react/hooks';
+import { useWorkbookInputs } from '@akohn/dashql-react/hooks';
 import { StageSection } from '../stage_section.js';
 import { WorkbookInputCard } from './workbook_input_card.js';
 import { useApplyWorkbookInput } from './use_apply_workbook_input.js';
@@ -19,7 +19,7 @@ const NO_INPUTS: WorkbookInput[] = [];
 
 /// The inputs of a workbook as chips in the section "Parameters" at the top of a view. Renders nothing without inputs.
 export function WorkbookInputStrip(props: Props): React.ReactElement | null {
-    const inputs = useWorkbookDerived(props.workbookId)?.inputs ?? NO_INPUTS;
+    const inputs = useWorkbookInputs(props.workbookId) ?? NO_INPUTS;
     const { apply, literalOf, busyInputs } = useApplyWorkbookInput(props.workbookId, props.modifyWorkbookScripts);
     if (inputs.length === 0) return null;
     return (

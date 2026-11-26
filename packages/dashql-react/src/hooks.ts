@@ -9,6 +9,7 @@ import type { EmbeddedClientContext, EmbeddedComputeDatabase } from '@akohn/dash
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
+import type { WorkbookInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
 import type { ScriptData, ScriptDataMap, WorkbookDerived, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
 // The hooks of the runtime (docs/design/dashql_runtime.md), shared by the app and other hosts of the runtime. A component reads the view of a slice, which renders it
@@ -203,6 +204,10 @@ export function useScriptReferences(workbookId: string | null | undefined, scrip
     );
     return useViewSelector('workbookDerived', workbookId, select);
 }
+const selectInputs = (derived: WorkbookDerived | null) => derived?.inputs ?? null;
+/// The inputs of a workbook, from its derived view, null without them. The component renders again when the inputs
+/// change, not with the references or the dataflow of the scripts.
+export const useWorkbookInputs = (workbookId: string | null | undefined): WorkbookInput[] | null => useViewSelector('workbookDerived', workbookId, selectInputs);
 /// The list of the workbooks: their ids in the order they were registered with their names, and the workbooks that were
 /// refused a load
 export const useWorkbookList = (): core.WorkbookListView | null => useView('workbookList', 'root');

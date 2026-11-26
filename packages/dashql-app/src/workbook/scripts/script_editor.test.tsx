@@ -32,7 +32,7 @@ const dependencies = {
         scriptSession: { getText: () => 'SELECT\n    1;' },
         connectionId: 'main',
     }),
-    useWorkbookDerived: () => null,
+    useScriptReferences: () => null,
     useIsScriptSelected: () => true,
     useAppConfig: () => ({ settings: {} }),
     useLogger: () => ({ debug: vi.fn() }),

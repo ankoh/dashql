@@ -13,7 +13,7 @@ import { useIsScriptSelected } from './script_selection.js';
 import { useAgentHasControl } from '../../agent/agent_provider.js';
 import { AppConfig, useAppConfig } from '../../config/app_config.js';
 import { useLogger } from '../../host/logger_provider.js';
-import { useDispatch, useOptionalRuntime, useScript, useWorkbook, useWorkbookDerived } from '@akohn/dashql-react/hooks';
+import { useDispatch, useOptionalRuntime, useScript, useScriptReferences, useWorkbook } from '@akohn/dashql-react/hooks';
 import { Logger } from '@akohn/dashql/platform/logger/logger';
 import { getKeywordCase } from './script_format.js';
 import { applyScriptTextChanges } from '@akohn/dashql/platform/workbook/script_reference_check';
@@ -40,7 +40,7 @@ export interface ScriptEditorDependencies {
     createCodeMirrorExtensions: typeof createCodeMirrorExtensions;
     useWorkbook: typeof useWorkbook;
     useScript: typeof useScript;
-    useWorkbookDerived: typeof useWorkbookDerived;
+    useScriptReferences: typeof useScriptReferences;
     useIsScriptSelected: typeof useIsScriptSelected;
     useAppConfig: typeof useAppConfig;
     useLogger: typeof useLogger;
@@ -51,7 +51,7 @@ const DEFAULT_DEPENDENCIES: ScriptEditorDependencies = {
     createCodeMirrorExtensions,
     useWorkbook,
     useScript,
-    useWorkbookDerived,
+    useScriptReferences,
     useIsScriptSelected,
     useAppConfig,
     useLogger,
@@ -116,9 +116,9 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
         if (view == null || view.state.readOnly === readOnly) return;
         view.dispatch({ effects: READ_ONLY.reconfigure(EditorState.readOnly.of(readOnly)) });
     }, [view, readOnly]);
-    // The checked script references of the script, the runtime checks every script of the workbook
-    const derived = dependencies.useWorkbookDerived(props.workbookId);
-    const references = derived?.references.get(props.scriptKey) ?? null;
+    // The checked script references of the script, the runtime checks every script of the workbook. The editor renders
+    // again when the report of its script changes, not with the reports of the others.
+    const references = dependencies.useScriptReferences(props.workbookId, props.scriptKey);
     // After the effect above, which may replace the editor state
     React.useEffect(() => {
         if (view == null || shownScriptReferences(view.state) === references) return;

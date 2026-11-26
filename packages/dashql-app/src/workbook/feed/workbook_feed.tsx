@@ -26,9 +26,9 @@ import {
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
-import { getScriptRefs, type ModifyWorkbookScripts, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import { getScriptRefs, type ModifyWorkbookScripts, type WorkbookDerived, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { createScriptAction, useLiveScriptReader } from '../scripts/script_creation.js';
-import { useOptionalRuntime, useRuntime, useViewReader, useWorkbookDerived } from '@akohn/dashql-react/hooks';
+import { useOptionalRuntime, useRuntime, useViewReader, useViewSelector } from '@akohn/dashql-react/hooks';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { renameAttachment } from '../attachment_rename.js';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
@@ -49,7 +49,6 @@ import { WorkbookDataCard } from './workbook_data_card.js';
 import { WorkbookInputStrip } from '../inputs/workbook_input_strip.js';
 import { StageLabel, StageSection } from '../stage_section.js';
 import { WorkbookInputOverlay, type WorkbookInputOverlayTarget } from '../inputs/workbook_input_overlay.js';
-import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
 import {
     scriptConnectionView,
@@ -115,7 +114,8 @@ export interface WorkbookFeedDependencies {
     useKeyEvents: typeof useKeyEvents;
     /// Reads the scripts in the handlers, the feed doesn't render with their keystrokes
     useViewReader: typeof useViewReader;
-    useWorkbookDerived: typeof useWorkbookDerived;
+    /// Selects the attachments that collide with the scripts from the derived view of the workbook
+    useViewSelector: typeof useViewSelector;
     useLiveScriptReader: typeof useLiveScriptReader;
     ScriptFeedRow: typeof ScriptFeedRow;
 }
@@ -126,7 +126,7 @@ const DEFAULT_DEPENDENCIES: WorkbookFeedDependencies = {
     usePickScriptConnection,
     useKeyEvents,
     useViewReader,
-    useWorkbookDerived,
+    useViewSelector,
     useLiveScriptReader,
     ScriptFeedRow,
 };
@@ -139,6 +139,8 @@ const FEED_ENTRY_CHROME_HEIGHT = 50;
 const FEED_EDITOR_LINE_HEIGHT = 18;
 const restrictToVerticalAxis: Modifier = ({ transform }) => ({ ...transform, x: 0 });
 const DRAG_MODIFIERS = [restrictToVerticalAxis];
+/// The attachments whose table parameter has the name of a script, they keep their identity while they are the same
+const selectCollidingAttachments = (derived: WorkbookDerived | null) => derived?.collidingAttachments ?? NO_FILE_NAMES;
 
 /// The views of the connections that the scripts run on.
 /// The map keeps its identity while the shown fields are unchanged, the memoized feed rows depend on it.
@@ -212,10 +214,9 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const [attachmentError, setAttachmentError] = React.useState<string | null>(null);
     // The view of the workbook lists its attachments, a changed attachment is listed again
     const attachments = props.workbookScripts.attachments ?? NO_ATTACHMENTS;
-    // The checked script references and the attachments whose table parameter has the name of a script, the runtime
-    // derives them again when an analysis changes
-    const derived = dependencies.useWorkbookDerived(workbookId);
-    const collidingAttachments = derived?.collidingAttachments ?? NO_FILE_NAMES;
+    // The attachments whose table parameter has the name of a script, the runtime derives them again when an analysis
+    // changes. The rows and the editors read the checked references of their scripts.
+    const collidingAttachments = dependencies.useViewSelector('workbookDerived', workbookId, selectCollidingAttachments);
     // A read-only workbook adds no scripts and no attachments
     const readOnly = useWorkbookReadOnly();
     const attachmentsEnabled = !readOnly && (props.conn?.readsAttachments ?? false);
@@ -563,14 +564,13 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const bodyRef = React.useRef<HTMLDivElement>(null);
     const [inputOverlay, setInputOverlay] = React.useState<WorkbookInputOverlayTarget | null>(null);
     const closeInputOverlay = React.useCallback(() => setInputOverlay(null), []);
-    const scriptReferencesRef = React.useRef<ReadonlyMap<number, ScriptReferenceReport> | undefined>(undefined);
     const handleParameterClick = React.useCallback((scriptKey: number, click: DashQLParameterClick, view: EditorView) => {
         if (!click.table) {
             setInputOverlay({ name: click.name, view, from: click.from, to: click.to });
             return;
         }
         // Every use of a name references the same script
-        const mark = scriptReferencesRef.current?.get(scriptKey)?.marks.find(m => m.parameter === click.name);
+        const mark = readView('workbookDerived', workbookId)?.references.get(scriptKey)?.marks.find(m => m.parameter === click.name);
         const fileName = mark?.target ?? null;
         const target = fileName == null ? null : latest.current.workbookScripts.scriptRefs[fileName]?.scriptId;
         if (fileName == null || target == null || target === scriptKey) return;
@@ -578,7 +578,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         followAgentRef.current = false;
         followedRef.current = { scriptKey: target, target: 'script' };
         setFollowRequest(n => n + 1);
-    }, [handleFocus]);
+    }, [handleFocus, readView, workbookId]);
 
     const handleCreate = React.useCallback((index: number) => {
         const prev = latest.current.workbookScripts;
@@ -624,8 +624,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         feedListRef.current?.scrollToRow({ index: entries.length - 1, align: 'end' });
     }, [entries.length, feedListRef]);
 
-    const scriptReferences = derived?.references;
-    scriptReferencesRef.current = scriptReferences;
     // The rows mount their editors once the list has a width. The list takes a width only after the size observer of
     // a container that was hidden reports, and a wrapped editor that measures at no width estimates the height of its
     // lines at a few characters per row, and gets no resize event to correct that.
@@ -649,7 +647,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     }), [handleToggleResultExpanded, handleAutoCollapseResult, handleResetAutoCollapsedResult]);
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
         workbookId,
-        scriptReferences,
         connections: scriptConnections,
         entries,
         storageReader: storageReader,
@@ -664,7 +661,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         onParameterClick: handleParameterClick,
         topInset,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [workbookId, entries, scriptReferences, rowsActive, scriptConnections, storageReader, scriptDebugMode, formattingDebugMode, keywordCase, collapsedResults, fold, feedCommands, handleParameterClick, topInset, feedLayout.rowHeights.setRowHeight]);
+    }), [workbookId, entries, rowsActive, scriptConnections, storageReader, scriptDebugMode, formattingDebugMode, keywordCase, collapsedResults, fold, feedCommands, handleParameterClick, topInset, feedLayout.rowHeights.setRowHeight]);
 
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
     // The sortable items keep their identity with the entries, every row reads them

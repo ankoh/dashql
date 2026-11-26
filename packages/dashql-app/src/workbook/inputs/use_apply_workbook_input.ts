@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import type { ModifyWorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { inputConsumerScripts, workbookInputLiteral, type WorkbookInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
-import { useOptionalRuntime, useView, useWorkbookDerived, useWorkbookExecution } from '@akohn/dashql-react/hooks';
+import { useOptionalRuntime, useView, useWorkbookExecution, useWorkbookInputs } from '@akohn/dashql-react/hooks';
 
 const NO_INPUTS: ReadonlySet<string> = new Set();
 
@@ -11,9 +11,9 @@ const NO_INPUTS: ReadonlySet<string> = new Set();
 /// runtime holds them while the run that applies their change runs or waits, so every view of the workbook agrees.
 export function useApplyWorkbookInput(workbookId: string, modifyWorkbookScripts: ModifyWorkbookScripts) {
     const execution = useWorkbookExecution(workbookId);
-    const derived = useWorkbookDerived(workbookId);
-    const inputsRef = React.useRef(derived?.inputs ?? null);
-    inputsRef.current = derived?.inputs ?? null;
+    const inputs = useWorkbookInputs(workbookId);
+    const inputsRef = React.useRef(inputs);
+    inputsRef.current = inputs;
     const executionRef = React.useRef(execution);
     executionRef.current = execution;
 

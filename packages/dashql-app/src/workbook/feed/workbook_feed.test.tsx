@@ -6,7 +6,7 @@ import * as dashql from '@akohn/dashql';
 import { ScriptFeedRow, type ScriptFeedRowDependencies } from './workbook_feed_row.js';
 import type { ScriptCardProps } from './script_card.js';
 import { fakeScript, fakeScriptModel } from '@akohn/dashql-react/testing/fake_models';
-import type { ScriptModel } from '@akohn/dashql-react/models/script_model';
+import { useScriptModel, type ScriptModel } from '@akohn/dashql-react/models/script_model';
 import { ResizeObserverMock } from '@akohn/dashql-react/testing/resize_observer_mock';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
@@ -21,9 +21,17 @@ import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_tes
 import { WorkbookFeed, type WorkbookFeedDependencies } from './workbook_feed.js';
 import { FEED_GAP, REVEAL_MARGIN, feedTopSpace } from './workbook_feed_layout.js';
 import type { WorkbookPromptFeed } from './workbook_prompt.js';
-import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookDerived, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { EditorView } from '@codemirror/view';
-import type { ViewReader } from '@akohn/dashql-react/hooks';
+import { RuntimeContextProvider, useViewReader, useViewSelector, type ViewReader } from '@akohn/dashql-react/hooks';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
+import { createTestRuntime, type TestRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
+import { useKeyEvents } from '@akohn/dashql-react/dom/key_events';
+import { usePickScriptConnection } from '../scripts/script_connection_picker.js';
+import { useLiveScriptReader } from '../scripts/script_creation.js';
+import { scriptSelectionOf } from '../scripts/script_selection.js';
 import { ScriptReferenceKind } from '@akohn/dashql/platform/workbook/script_reference_check';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -256,10 +264,11 @@ describe('Workbook feed', () => {
         /// The heights of the text and the results of the scripts that the rows lay out
         rowLayouts: new Map<number, { text: number; result: number }>(),
         /// The derived state of the workbook that the feed reads, e.g. the checked script references
-        derived: null as ReturnType<WorkbookFeedDependencies['useWorkbookDerived']>,
+        derived: null as WorkbookDerived | null,
     };
-    // The scripts that the handlers of the feed read, stable like the reader of the runtime
-    const readFeedView = ((kind: string, id: number) => kind === 'script' ? feedState.scripts[id] ?? null : null) as ViewReader;
+    // The scripts and the derived view that the feed reads, stable like the reader of the runtime
+    const readFeedView = ((kind: string, id: number) => kind === 'script' ? feedState.scripts[id] ?? null
+        : kind === 'workbookDerived' ? feedState.derived : null) as ViewReader;
     // Stable like the storage contexts
     const storageReader = { backend: {} } as unknown as ReturnType<WorkbookFeedDependencies['useStorageReader']>;
     const attachmentCommands = {
@@ -272,7 +281,7 @@ describe('Workbook feed', () => {
         usePickScriptConnection: () => vi.fn(),
         useKeyEvents: handlers => { feedState.keyHandlers = handlers; },
         useViewReader: () => readFeedView,
-        useWorkbookDerived: () => feedState.derived,
+        useViewSelector: ((kind: string, id: string, select: (view: unknown) => unknown) => select(readFeedView(kind as 'workbookDerived', id))) as WorkbookFeedDependencies['useViewSelector'],
         useLiveScriptReader: () => (key: number) => feedState.next?.scripts[key] ?? null,
         ScriptFeedRow: (props: RowProps) => {
             feedState.rowProps = props;
@@ -590,4 +599,108 @@ describe('Workbook feed', () => {
         expect(modify).toHaveBeenLastCalledWith({ kind: 'rejectPendingDiff', value: { scriptKey: 1 } });
     });
 
+});
+
+// The rows of the feed read their parts of the runtime: a change renders the rows whose part changed, not every row
+describe('Workbook feed on a runtime', () => {
+    const HYPER = { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as ConnectionParams;
+    let rt: TestRuntime;
+    let container: HTMLDivElement;
+    let root: Root;
+    beforeEach(async () => {
+        rt = await createTestRuntime();
+        await rt.addConnection({ connectionId: 'database', params: HYPER });
+        container = document.createElement('div');
+        document.body.appendChild(container);
+        root = createRoot(container);
+    });
+    afterEach(async () => {
+        act(() => root.unmount());
+        container.remove();
+        await rt.destroy();
+    });
+
+    it('renders the card of a changed script, of a selected script and of a script whose references changed', async () => {
+        const workbook = rt.addWorkbook('database', [['alpha.sql', 'select 1 as x'], ['beta.sql', 'select x from :alpha'], ['gamma.sql', 'select 2']]);
+        const [, beta, gamma] = workbook.scriptKeys;
+        // The renders of the cards by script key, the card is memoized like the card of the feed
+        const renders = new Map<number, number>();
+        const counted = () => workbook.scriptKeys.map(key => renders.get(key) ?? 0);
+        const CountingCard = React.memo((props: ScriptCardProps) => {
+            const key = props.model.script.scriptKey;
+            renders.set(key, (renders.get(key) ?? 0) + 1);
+            return <article data-testid="script-cell" />;
+        });
+        const rowDependencies: ScriptFeedRowDependencies = {
+            useScriptModel, useSortable, translateTransform: CSS.Translate.toString, ScriptCard: CountingCard as unknown as ScriptFeedRowDependencies['ScriptCard'],
+        };
+        const storageReader = { backend: {} } as unknown as ReturnType<WorkbookFeedDependencies['useStorageReader']>;
+        const attachmentCommands = { attachFiles: vi.fn(), detachFile: vi.fn() } as unknown as ReturnType<WorkbookFeedDependencies['useAttachmentCommands']>;
+        const dependencies: WorkbookFeedDependencies = {
+            useStorageReader: () => storageReader,
+            useAttachmentCommands: () => attachmentCommands,
+            usePickScriptConnection, useKeyEvents, useViewReader, useViewSelector, useLiveScriptReader,
+            ScriptFeedRow: props => <ScriptFeedRow {...props} dependencies={rowDependencies} />,
+        };
+        const modify: ModifyWorkbookScripts = action => rt.dispatch({ workbook: workbook.workbookId }, action);
+        act(() => root.render(<RuntimeContextProvider value={rt}>
+            <LoggerProvider>
+                <WorkbookFeed workbookScripts={rt.store.get('workbook', workbook.workbookId)!} modifyWorkbookScripts={modify}
+                    conn={rt.connection('database') ?? null} active={true} dependencies={dependencies} />
+            </LoggerProvider>
+        </RuntimeContextProvider>));
+        // The mount may render a card more than once
+        expect(counted().every(count => count > 0)).toBe(true);
+
+        // Run a step, the renders of the cards and whether the scripts changed by script key. A card renders when its
+        // script changes, or when the part of the selection or of the references that it shows changes.
+        const step = (run: () => void) => {
+            renders.clear();
+            const before = workbook.scriptKeys.map(key => rt.store.get('script', key));
+            act(run);
+            const changed = workbook.scriptKeys.map((key, i) => rt.store.get('script', key) !== before[i]);
+            return { renders: counted(), changed };
+        };
+        const stepAsync = async (run: () => Promise<void>) => {
+            renders.clear();
+            const before = workbook.scriptKeys.map(key => rt.store.get('script', key));
+            await act(run);
+            const changed = workbook.scriptKeys.map((key, i) => rt.store.get('script', key) !== before[i]);
+            return { renders: counted(), changed };
+        };
+
+        // Type into a script like its editor
+        const type = (scriptKey: number, text: string) => {
+            const script = rt.store.get('script', scriptKey)!;
+            const end = BigInt(script.scriptSession.getText().length);
+            const editor = dashql.buffers.editor;
+            const event = new editor.EditorEventT(
+                script.scriptSession.getTextVersion(), [new editor.EditorTextChangeT(end, end, text)],
+                new editor.EditorSelectionT(end + BigInt(text.length), end + BigInt(text.length)),
+                editor.EditorEventOrigin.USER, editor.EditorEventIntent.EDIT, editor.EditorEventAction.TYPE, true,
+            );
+            expect(rt.applyEditorEvent(script, event, script.editorUpdate)?.status).toBe(editor.EditorUpdateStatus.OK);
+            rt.flush();
+        };
+
+        // A keystroke in a script renders its card
+        const typed = step(() => type(gamma, '0'));
+        expect(rt.store.get('script', gamma)?.scriptSession.getText()).toBe('select 20');
+        expect(typed).toEqual({ renders: [0, 0, 1], changed: [false, false, true] });
+
+        // Selecting another script renders the cards of the script that was selected, the first, and of the selected one
+        expect(step(() => scriptSelectionOf(rt).select(workbook.workbookId, gamma))).toEqual({ renders: [1, 0, 1], changed: [false, false, false] });
+
+        // A second reference in beta renders beta as it is typed, and once the typing paused with its references, alpha
+        // and gamma keep their reports
+        expect(step(() => type(beta, ' union all select x from :alpha'))).toEqual({ renders: [0, 1, 0], changed: [false, true, false] });
+        const derived = rt.store.get('workbookDerived', workbook.workbookId);
+        const paused = await stepAsync(async () => {
+            await rt.clock.elapse();
+            rt.flush();
+        });
+        expect(rt.store.get('workbookDerived', workbook.workbookId)).not.toBe(derived);
+        expect(rt.store.get('workbookDerived', workbook.workbookId)?.references.get(beta)?.marks).toHaveLength(2);
+        expect(paused).toEqual({ renders: [0, 1, 0], changed: [false, false, false] });
+    });
 });
