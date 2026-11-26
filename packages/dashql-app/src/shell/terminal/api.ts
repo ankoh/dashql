@@ -29,7 +29,7 @@ export interface DashQLShellEnvironment {
         signal?: AbortSignal,
         onProgress?: (message: string) => void,
         onResult?: (queryId: number, rowCount: number) => void,
-        onTiming?: (label: string, elapsedMs: number) => void,
+        onTiming?: (elapsedMs: number) => void,
     ): Promise<void>;
     /// The first rows of a result that `executeQuery` reported, at most `limit`, as an Arrow IPC stream. A shell whose
     /// environment has none shows every result in the overlay.
@@ -389,7 +389,8 @@ export class DashQLShell {
         try {
             let operation = start();
             let queryStartedAt: number | null = null;
-            const queryTimings: Array<{ label: string; elapsedMs: number }> = [];
+            // The milliseconds until the results of the queries arrived
+            const resultTimings: number[] = [];
             while (operation.status === DashQLShellStatus.PENDING) {
                 const effect = this.requireEffect(operation);
                 if (effect.type === DashQLShellEffectType.EXECUTE_QUERY && this.settings.timer) {
@@ -402,7 +403,7 @@ export class DashQLShell {
                     onResult,
                     queryStartedAt == null
                         ? undefined
-                        : (label, elapsedMs) => { queryTimings.push({ label, elapsedMs }); },
+                        : elapsedMs => { resultTimings.push(elapsedMs); },
                 );
                 if (this.shell == null) {
                     throw new DashQLShellError(DashQLShellStatus.STALE_EFFECT, 'DashQL shell was destroyed');
@@ -412,15 +413,10 @@ export class DashQLShell {
                     : this.completeEffect(effect.id, completion.status, completion.data);
             }
             const output = this.requireComplete(operation);
-            if (queryTimings.length === 0) return output;
+            if (resultTimings.length === 0) return output;
             const separator = output.length === 0 || /(?:\r\n|\n|\r)$/.test(output) ? '' : '\r\n';
-            const timingsByLabel = new Map<string, number>();
-            for (const timing of queryTimings) {
-                timingsByLabel.set(timing.label, (timingsByLabel.get(timing.label) ?? 0) + timing.elapsedMs);
-            }
-            const timings = Array.from(timingsByLabel, ([label, elapsedMs]) => `${label}: ${formatElapsed(elapsedMs)}`)
-                .join(' | ');
-            return `${output}${separator}${timings}\r\n`;
+            const resultsMs = resultTimings.reduce((sum, elapsedMs) => sum + elapsedMs, 0);
+            return `${output}${separator}Results: ${formatElapsed(resultsMs)}\r\n`;
         } finally {
             this.lifecycleAbort.signal.removeEventListener('abort', abortExecution);
             signal?.removeEventListener('abort', abortExecution);
@@ -485,7 +481,7 @@ export class DashQLShell {
         signal?: AbortSignal,
         onProgress?: (message: string) => void,
         onResult?: DashQLShellResultCallback,
-        onTiming?: (label: string, elapsedMs: number) => void,
+        onTiming?: (elapsedMs: number) => void,
     ): Promise<DashQLShellEffectResult> {
         if (
             effect.type !== DashQLShellEffectType.EXECUTE_QUERY &&

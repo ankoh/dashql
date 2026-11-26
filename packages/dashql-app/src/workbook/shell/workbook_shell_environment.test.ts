@@ -30,9 +30,9 @@ describe('workbook shell environment', () => {
         expect(cancel).not.toHaveBeenCalled();
     });
 
-    it('forwards labeled timings from the query executor', async () => {
+    it('forwards the timing of the result from the query executor', async () => {
         const execute = vi.fn<QueryExecutor>((_connectionId, args) => {
-            args.onTiming?.('Results', 12.5);
+            args.onTiming?.(12.5);
             return [7, Promise.resolve(tableFromArrays({ value: [42] }))];
         });
         const environment = createWorkbookShellEnvironment('workbook', 'connection-7', execute, vi.fn());
@@ -40,7 +40,7 @@ describe('workbook shell environment', () => {
 
         await environment.executeQuery('SELECT 42', undefined, undefined, undefined, onTiming);
 
-        expect(onTiming).toHaveBeenCalledWith('Results', 12.5);
+        expect(onTiming).toHaveBeenCalledWith(12.5);
     });
 
     it('releases statements without columns instead of reporting a result', async () => {

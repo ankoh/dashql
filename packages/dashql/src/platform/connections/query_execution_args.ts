@@ -16,8 +16,8 @@ export interface QueryExecutionArgs {
     /// Receives trace-scoped query execution log messages as they are emitted. Intended for
     /// transient progress surfaces such as the workbook shell.
     onLog?: (message: string) => void;
-    /// Reports labeled query lifecycle timings before the complete execution promise resolves.
-    onTiming?: (label: string, elapsedMs: number) => void;
+    /// Reports the milliseconds until the result arrived, before the complete execution promise resolves.
+    onTiming?: (elapsedMs: number) => void;
 }
 
 /// Run a query on a connection, returns the id of the query and its result table, null for a query without one

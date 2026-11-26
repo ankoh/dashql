@@ -45,7 +45,7 @@ export function createWorkbookShellEnvironment(
         previewResult,
         releaseResult,
         async executeQuery(query, signal, onProgress, onResult, onTiming) {
-            const reportTiming = (label: string, elapsedMs: number) => reportShellTiming(onTiming, label, elapsedMs);
+            const reportTiming = (elapsedMs: number) => reportShellTiming(onTiming, elapsedMs);
             const clientFunctionCall = resolveCall(query) ?? undefined;
             const [queryId, execution] = executeQuery(connectionId, {
                 query,

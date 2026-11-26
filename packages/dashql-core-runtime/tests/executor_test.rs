@@ -138,8 +138,8 @@ type Server = Box<dyn FnMut(&HttpRequest) -> Answer>;
 struct State {
     /// The events of the queries without the logs
     events: Vec<String>,
-    /// The labels of the timings, kept apart from the events: they are no step of the lifecycle
-    timings: Vec<String>,
+    /// The timings of the results, kept apart from the events: they are no step of the lifecycle
+    timings: Vec<f64>,
     /// The progress updates of the queries
     progress: Vec<QueryExecutionProgress>,
     logs: Vec<(LogLevel, String, Vec<(String, String)>)>,
@@ -389,7 +389,7 @@ impl ExecutorHost for FakeHost {
                 state.results.insert(run.query_id, *rows as usize);
             }
             QueryEvent::Progress(progress) => state.progress.push((**progress).clone()),
-            QueryEvent::Timing { label, .. } => state.timings.push(label.to_string()),
+            QueryEvent::Timing { elapsed_ms } => state.timings.push(*elapsed_ms),
             _ => {}
         }
         if let Some(name) = event_name(&event) {
@@ -752,7 +752,7 @@ fn trino_streams_the_pages_of_a_query() {
             "succeeded"
         ]
     );
-    assert!(host.state.borrow().timings.iter().any(|label| label == "Results"));
+    assert_eq!(host.state.borrow().timings.len(), 1);
     assert_eq!(host.state.borrow().results.get(&1), Some(&3));
     // The statement stats go into the progress model of the query, every update carries its structured progress
     let progress = host.state.borrow().progress.clone();

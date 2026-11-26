@@ -36,7 +36,7 @@ describe('embedded database shell environment', () => {
 
     it('reports progress, the timings of the executor and the result by the id of its query', async () => {
         const { execute } = executor(async args => {
-            args.onTiming?.('Results', 1);
+            args.onTiming?.(1);
             return tableFromArrays({ value: [2, 3] });
         });
         const environment = createEmbeddedDatabaseShellEnvironment(execute, 'shell');
@@ -47,7 +47,7 @@ describe('embedded database shell environment', () => {
         await environment.executeQuery('SELECT value', undefined, onProgress, onResult, onTiming);
 
         expect(onProgress).toHaveBeenCalledWith('Executing query');
-        expect(onTiming).toHaveBeenCalledWith('Results', 1);
+        expect(onTiming).toHaveBeenCalledWith(1);
         expect(onResult).toHaveBeenCalledWith(1, 2);
     });
 

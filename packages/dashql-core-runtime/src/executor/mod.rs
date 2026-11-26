@@ -255,8 +255,8 @@ pub enum QueryEvent {
     CacheRecorded { served_from_cache: bool },
     /// The statement may have changed relations of the connection
     TouchRelations,
-    /// A step of the query took a time, `Results` until the result arrived
-    Timing { label: &'static str, elapsed_ms: f64 },
+    /// The result arrived, `elapsed_ms` after the query was sent
+    Timing { elapsed_ms: f64 },
     /// A log message of the query
     Log { level: LogLevel, message: String, details: Vec<(String, String)>, target: String },
 }
@@ -592,7 +592,7 @@ impl<H: ExecutorHost> QueryTask<H> {
         let end = connectors::run(&mut stream, &self.request.target, &self.request.text).await;
         *metrics = stream.metrics_if_started();
         let end = end?;
-        self.report(QueryEvent::Timing { label: "Results", elapsed_ms: self.host.now() - started_at });
+        self.report(QueryEvent::Timing { elapsed_ms: self.host.now() - started_at });
         let Some(end) = end else {
             self.log(LogLevel::Warn, "Query returned no results", self.query_details());
             return Ok(ResultSummary { has_table: false, served_from_cache: false });

@@ -32,7 +32,7 @@ export function createEmbeddedDatabaseShellEnvironment(
                 metadata: { ...SHELL_QUERY_METADATA },
                 abortSignal: signal,
                 analyzeResults: true,
-                onTiming: (label, elapsedMs) => reportShellTiming(onTiming, label, elapsedMs),
+                onTiming: elapsedMs => reportShellTiming(onTiming, elapsedMs),
             });
             let table;
             try {

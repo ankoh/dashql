@@ -242,11 +242,11 @@ impl From<&QueryFailure> for QueryRunFailure {
     }
 }
 
-/// What the caller of a query hears while it runs: the timings of its steps
+/// What the caller of a query hears while it runs: the time until its result arrived
 #[derive(Serialize, Tsify)]
 #[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
 pub enum QueryCallerEvent {
-    Timing { label: String, elapsed_ms: f64 },
+    Timing { elapsed_ms: f64 },
 }
 
 /// A query that the runtime describes before the executor runs it: its connection, the text and the metadata of the
@@ -622,8 +622,8 @@ impl Connections {
                 }
                 return;
             }
-            QueryEvent::Timing { label, elapsed_ms } => {
-                run.notify(&QueryCallerEvent::Timing { label: label.to_string(), elapsed_ms });
+            QueryEvent::Timing { elapsed_ms } => {
+                run.notify(&QueryCallerEvent::Timing { elapsed_ms });
                 return;
             }
             QueryEvent::Log { level, message, details, target } => {

@@ -15,9 +15,9 @@ export const SHELL_QUERY_METADATA: QueryMetadataView = {
 };
 
 /// Report a timing to an optional observer, observers must not interrupt the query execution
-export function reportShellTiming(onTiming: ((label: string, elapsedMs: number) => void) | undefined, label: string, elapsedMs: number): void {
+export function reportShellTiming(onTiming: ((elapsedMs: number) => void) | undefined, elapsedMs: number): void {
     try {
-        onTiming?.(label, elapsedMs);
+        onTiming?.(elapsedMs);
     } catch {
         // Timing observers must not interrupt query execution.
     }

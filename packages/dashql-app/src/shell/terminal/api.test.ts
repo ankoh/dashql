@@ -413,14 +413,13 @@ describe('DashQL shell Wasm', () => {
         await expect(shell.submitPrompt()).resolves.toBe('usage: .timer [on|off]\r\n');
     });
 
-    it('reports labeled environment timings and total elapsed time', async () => {
+    it('reports the time until the results arrived', async () => {
         shell.destroy();
         shell = await DashQLShell.create({
             environment: {
                 executeQuery: async (_query, _signal, _onProgress, onResult, onTiming) => {
-                    onTiming?.('Results', 1234);
-                    onTiming?.('Postprocess', 12);
-                    onTiming?.('Postprocess', 3);
+                    onTiming?.(1200);
+                    onTiming?.(34);
                     onResult?.(1, 1);
                 },
             },
@@ -432,7 +431,7 @@ describe('DashQL shell Wasm', () => {
         shell.setPrompt('SELECT 42;');
 
         await expect(shell.submitPrompt()).resolves.toMatch(
-            /^Query completed \(1 row\)\r\nResults: 1\.234 s \| Postprocess: 15 ms\r\n$/,
+            /^Query completed \(1 row\)\r\nResults: 1\.234 s\r\n$/,
         );
     });
 

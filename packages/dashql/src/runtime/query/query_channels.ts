@@ -207,7 +207,7 @@ export class QueryChannels {
             undefined,
             event => {
                 try {
-                    if (event.type === 'timing') args.onTiming?.(event.label, event.elapsedMs);
+                    if (event.type === 'timing') args.onTiming?.(event.elapsedMs);
                 } catch {
                     // An observer must not interrupt the query
                 }
