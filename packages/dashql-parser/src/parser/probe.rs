@@ -39,7 +39,7 @@ pub struct PrefixSnapshot {
 
 impl PrefixSnapshot {
     /// The state stack that takes a token at the cursor, the regular one unless only an alternative does
-    pub fn stack_for(&self, token: SymbolKind) -> &[StateId] {
+    fn stack_for(&self, token: SymbolKind) -> &[StateId] {
         let mut scratch = Vec::new();
         if self.alternatives.is_empty() || lac_check(&self.state_stack, token, &mut scratch) {
             return &self.state_stack;
@@ -276,12 +276,14 @@ pub fn collect_expected_symbols(states: &[StateId]) -> Vec<SymbolKind> {
         .collect()
 }
 
-/// Capture the state stack when the cursor token would be read
+/// Capture the state stack when the cursor token would be read, and the one when the token before it would be read
 struct PrefixCapture<'a> {
     /// The symbol index of the cursor token
     target: u32,
     /// The captured snapshot
     out: &'a mut PrefixSnapshot,
+    /// The state stack when the token before the cursor token would be read
+    before: Option<Vec<StateId>>,
     /// The shifts until the parser recovered from an error, the `errstatus` of the driver
     recovery: u8,
 }
@@ -295,6 +297,9 @@ impl Policy for PrefixCapture<'_> {
         _tokens: &mut Tokens,
         stop: &mut bool,
     ) {
+        if self.before.is_none() && self.target.checked_sub(1).is_some_and(|before| pre_index >= before) {
+            self.before = Some(states.to_vec());
+        }
         if pre_index >= self.target {
             self.out.reached_target = true;
             self.out.recovering = self.recovery > 0;
@@ -310,34 +315,25 @@ impl Policy for PrefixCapture<'_> {
     }
 }
 
-/// The state stack when a token would be read
-fn capture_prefix(symbols: &[Symbol], target: u32) -> PrefixSnapshot {
-    let mut prefix = PrefixSnapshot::default();
-    let mut states = vec![0];
-    let mut tokens = Tokens { symbols, next_index: 0 };
-    drive(&mut PrefixCapture { target, out: &mut prefix, recovery: 0 }, &mut states, &mut tokens);
-    prefix
-}
-
 /// Parse until the cursor token and collect the expected symbols there. A keyword right before the cursor counts
 /// with each of its lookahead tokens that fits, the token at the cursor decides which one the scanner reads.
 pub fn parse_until_with_snapshot(symbols: &[Symbol], target: u32) -> ExpectedAtCursor {
-    let mut out = ExpectedAtCursor { prefix: capture_prefix(symbols, target), ..Default::default() };
+    let mut out = ExpectedAtCursor::default();
+    let mut capture = PrefixCapture { target, out: &mut out.prefix, before: None, recovery: 0 };
+    drive(&mut capture, &mut vec![0], &mut Tokens { symbols, next_index: 0 });
+    let before = capture.before;
     if !out.prefix.reached_target || out.prefix.state_stack.is_empty() {
         return out;
     }
     let previous = target.checked_sub(1).and_then(|i| symbols.get(i as usize)).map(|s| s.kind);
-    if let Some(variants) = previous.map(token_variants).filter(|variants| variants.len() > 1) {
-        let before = capture_prefix(symbols, target - 1);
-        if before.reached_target {
-            for variant in variants {
-                let mut states = before.state_stack.clone();
-                if feed(&mut states, variant)
-                    && states != out.prefix.state_stack
-                    && !out.prefix.alternatives.contains(&states)
-                {
-                    out.prefix.alternatives.push(states);
-                }
+    if let (Some(variants), Some(before)) = (previous.map(token_variants).filter(|v| v.len() > 1), before) {
+        for variant in variants {
+            let mut states = before.clone();
+            if feed(&mut states, variant)
+                && states != out.prefix.state_stack
+                && !out.prefix.alternatives.contains(&states)
+            {
+                out.prefix.alternatives.push(states);
             }
         }
     }
