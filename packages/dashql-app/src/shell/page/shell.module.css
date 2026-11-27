@@ -6,9 +6,19 @@
     background: var(--background);
 }
 
-/* The window around the shell is as dark as the shell. Safari of iOS shows the page behind its bars: the status bar
-   above the shell, and the band of the address bar between the shell and the keyboard. */
+/* The window around the shell is as dark as the shell. A transparent root turns white in Safari of iOS. */
 :global(html),
 :global(body) {
+    background-color: var(--chrome_bg_100);
+}
+
+/* The shell ends where the visible part of the window ends, above the bars that Safari of iOS draws over the page:
+   the address bar and the arrows of the keyboard. Safari shows the elements of the page behind those bars, not the
+   background of the body, and tints the status bar and its own bars after a fixed element at the edges of the window.
+   This one fills the whole window, also below the visible part, so the shell goes on behind the bars. */
+.backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
     background-color: var(--chrome_bg_100);
 }

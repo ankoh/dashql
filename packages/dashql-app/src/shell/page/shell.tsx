@@ -99,13 +99,16 @@ export const Shell: React.FC = () => {
                                         <DashQLCoreProvider>
                                             <ShellRuntime>
                                                 <ShellQueryHistoryProvider key={shellGeneration}>
-                                                    <div ref={setRoot} className={styles.root}>
-                                                        <ShellNavBar
-                                                            engineVersion={engineVersion}
-                                                            onReset={resetShell}
-                                                        />
-                                                        <ShellPage onEngineVersion={setEngineVersion} />
-                                                    </div>
+                                                    <>
+                                                        <div className={styles.backdrop} aria-hidden="true" />
+                                                        <div ref={setRoot} className={styles.root}>
+                                                            <ShellNavBar
+                                                                engineVersion={engineVersion}
+                                                                onReset={resetShell}
+                                                            />
+                                                            <ShellPage onEngineVersion={setEngineVersion} />
+                                                        </div>
+                                                    </>
                                                 </ShellQueryHistoryProvider>
                                             </ShellRuntime>
                                         </DashQLCoreProvider>
