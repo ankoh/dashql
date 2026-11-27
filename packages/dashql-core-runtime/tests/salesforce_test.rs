@@ -172,12 +172,7 @@ fn decodes_base64url_jwt_parts_without_changing_the_raw_token() {
         get_salesforce_data_cloud_url(Some("configured.example.com")).unwrap(),
         "https://configured.example.com/"
     );
-    let info = collect_salesforce_auth_info(&core, &token).unwrap();
-    assert_eq!(info.core_access_token.as_deref(), Some("opaque-core-token"));
-    assert_eq!(info.core_tenant_id.as_deref(), Some("tenant-1"));
-    assert_eq!(info.offcore_tenant_id.as_deref(), Some("tenant-1"));
-    assert_eq!(info.offcore_instance_url.as_deref(), Some("https://data.example.com/"));
-    assert_eq!(info.offcore_raw_jwt, raw);
+    assert_eq!(token.jwt.payload["audienceTenantId"], "tenant-1");
     // The token crosses to the connection state as JSON and back
     let json = serde_json::to_string(&token).unwrap();
     assert_eq!(serde_json::from_str::<SalesforceDataCloudAccessToken>(&json).unwrap(), token);

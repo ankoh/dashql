@@ -13,8 +13,7 @@ use std::rc::Rc;
 use serde_json::Value;
 
 use super::api::{
-    collect_salesforce_auth_info, data_cloud_access_token_request, form_post, read_core_access_token_response,
-    read_data_cloud_access_token_response,
+    data_cloud_access_token_request, form_post, read_core_access_token_response, read_data_cloud_access_token_response,
 };
 use super::types::{SalesforceConnectionParams, SalesforceCoreAccessToken, SalesforceTokens};
 use crate::connections::{ConnectorType, SALESFORCE_CATALOG_DATABASE};
@@ -103,10 +102,12 @@ impl SharedSalesforceChannel {
     /// The headers of every request to the Hyper of Data Cloud: the tenant as the audience and the Data Cloud JWT
     pub fn auth(&self) -> Headers {
         let state = self.state.borrow();
-        let info = collect_salesforce_auth_info(&state.tokens.core, &state.tokens.data_cloud);
-        let audience = info.as_ref().and_then(|info| info.offcore_tenant_id.clone()).unwrap_or_default();
-        let jwt = info.map(|info| info.offcore_raw_jwt).unwrap_or_default();
-        Headers::from_pairs([("audience", audience), ("authorization", format!("Bearer {jwt}"))])
+        let jwt = &state.tokens.data_cloud.jwt;
+        let audience = jwt.payload.get("audienceTenantId").and_then(Value::as_str).filter(|_| !jwt.raw.is_empty());
+        Headers::from_pairs([
+            ("audience", audience.unwrap_or_default().to_string()),
+            ("authorization", format!("Bearer {}", jwt.raw)),
+        ])
     }
 
     /// Does the Data Cloud token expire soon? A token without a readable expiry never does.

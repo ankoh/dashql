@@ -61,23 +61,6 @@ impl fmt::Display for SalesforceError {
 
 impl std::error::Error for SalesforceError {}
 
-/// The auth infos of a Data Cloud connection
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct SalesforceAuthInfo {
-    /// The core tenant id
-    pub core_tenant_id: Option<String>,
-    /// The core access token
-    pub core_access_token: Option<String>,
-    /// The offcore JWT
-    pub offcore_raw_jwt: String,
-    /// The offcore instance URL
-    pub offcore_instance_url: Option<String>,
-    /// The offcore tenant id
-    pub offcore_tenant_id: Option<String>,
-    /// The data space
-    pub dataspace: String,
-}
-
 /// The data space of a Data Cloud token: the nested attribute, the flat one of older tokens, or the default
 pub fn get_salesforce_data_space(access: &SalesforceDataCloudAccessToken) -> String {
     let Some(attributes) = access.jwt.payload.get("customAttributes").and_then(Value::as_object) else {
@@ -127,25 +110,6 @@ pub fn get_salesforce_data_cloud_url(endpoint: Option<&str>) -> Result<String, S
         return Err(invalid());
     }
     Ok(url.to_string())
-}
-
-/// The auth infos of the tokens, none without a JWT
-pub fn collect_salesforce_auth_info(
-    core: &SalesforceCoreAccessToken,
-    offcore: &SalesforceDataCloudAccessToken,
-) -> Option<SalesforceAuthInfo> {
-    if offcore.jwt.raw.is_empty() {
-        return None;
-    }
-    let tenant = offcore.jwt.payload.get("audienceTenantId").and_then(Value::as_str).map(str::to_string);
-    Some(SalesforceAuthInfo {
-        offcore_raw_jwt: offcore.jwt.raw.clone(),
-        offcore_instance_url: Some(offcore.instance_url.clone()).filter(|u| !u.is_empty()),
-        offcore_tenant_id: tenant.clone(),
-        core_tenant_id: tenant,
-        core_access_token: Some(core.access_token.clone()).filter(|t| !t.is_empty()),
-        dataspace: get_salesforce_data_space(offcore),
-    })
 }
 
 /// Should a key of a response be redacted? Credentials and identities at every level, not the routing context.
