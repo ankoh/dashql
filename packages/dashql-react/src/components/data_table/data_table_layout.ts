@@ -1,6 +1,5 @@
 import * as arrow from 'apache-arrow';
 
-import { ArrowTableFormatter } from "@akohn/dashql/platform/compute/arrow_formatter";
 import type { ComputationColumnGroup } from '@akohn/dashql';
 import { LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN } from "@akohn/dashql/platform/compute/computation_types";
 
@@ -18,7 +17,8 @@ const MAX_VALUE_COLUMN_WIDTH = 300;
 export const MIN_COLUMN_WIDTH = 120;
 const COLUMN_HEADER_ACTION_WIDTH = 24;
 export const ROW_HEADER_WIDTH = 48;
-const FORMATTER_PIXEL_SCALING = 10;
+/// The pixels of a character of a column name
+const NAME_CHARACTER_WIDTH = 10;
 
 function computeColumnCount(columnGroups: ComputationColumnGroup[], visibleColumnGroups?: ReadonlySet<number> | null): number {
     let columnCount = 0;
@@ -34,15 +34,17 @@ function computeColumnCount(columnGroups: ComputationColumnGroup[], visibleColum
     return columnCount;
 }
 
-/// What the layout of a table reads: its column groups and the table
+/// What the layout of a table reads: its column groups and the schema of the table
 export interface DataTableLayoutInput {
     columnGroups: ComputationColumnGroup[];
-    dataTable: arrow.Table;
+    schema: arrow.Schema;
 }
 
-export function computeTableLayout(formatter: ArrowTableFormatter, state: DataTableLayoutInput, headerRowCount: number, containerWidth: number = 0, visibleColumnGroups?: ReadonlySet<number> | null, resizedColumnWidths?: ReadonlyMap<string, number> | null): DataTableLayout {
+/// The layout of the columns of a table. A column is as wide as its name, between the minimum and the maximum width,
+/// the values don't widen it.
+export function computeTableLayout(state: DataTableLayoutInput, headerRowCount: number, containerWidth: number = 0, visibleColumnGroups?: ReadonlySet<number> | null, resizedColumnWidths?: ReadonlyMap<string, number> | null): DataTableLayout {
     // Index table fields by name
-    const tableSchema = state.dataTable.schema;
+    const tableSchema = state.schema;
     const fieldIndexByName = new Map<string, number>();
     for (let i = 0; i < tableSchema.fields.length; ++i) {
         fieldIndexByName.set(tableSchema.fields[i].name, i);
@@ -83,15 +85,10 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: DataTa
             case STRING_COLUMN:
             case LIST_COLUMN: {
                 const outputIndex = nextDisplayColumn++;
-                const valueColumnFormatter = formatter.columns[fieldIndexByName.get(columnGroup.value.inputFieldName)!];
-                let valueColumnWidth = Math.max(
-                    COLUMN_HEADER_ACTION_WIDTH + Math.max(
-                        valueColumnFormatter.getLayoutInfo().valueAvgWidth,
-                        valueColumnFormatter.getColumnName().length) * FORMATTER_PIXEL_SCALING,
-                    MIN_COLUMN_WIDTH
-                );
-                valueColumnWidth = Math.min(valueColumnWidth, MAX_VALUE_COLUMN_WIDTH);
-                columnFields[outputIndex] = fieldIndexByName.get(columnGroup.value.inputFieldName)!;
+                const fieldIndex = fieldIndexByName.get(columnGroup.value.inputFieldName)!;
+                const nameWidth = COLUMN_HEADER_ACTION_WIDTH + tableSchema.fields[fieldIndex].name.length * NAME_CHARACTER_WIDTH;
+                const valueColumnWidth = Math.min(Math.max(nameWidth, MIN_COLUMN_WIDTH), MAX_VALUE_COLUMN_WIDTH);
+                columnFields[outputIndex] = fieldIndex;
                 columnOffsets[outputIndex] = nextDisplayOffset;
                 columnAggregateIndex[outputIndex] = groupIndex;
                 columnGroupByColumnIndex[outputIndex] = groupIndex;

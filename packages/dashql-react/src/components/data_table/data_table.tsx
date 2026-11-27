@@ -186,37 +186,15 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
         computationState.searchColumns.map(column => [column.columnGroupIdx, column.columnIdx] as const),
     ), [computationState.searchColumns]);
 
-    // The layout reads the names of the columns of the schema, the rows are formatted by the formatter of a window
-    const tableFormatter = React.useMemo(() => {
-        return new ArrowTableFormatter(dataTable.schema, [], logger);
-    }, [dataTable, logger]);
-
     // Columns that the user resized by dragging a border, kept while the table is mounted
     const [resizedColumnWidths, setResizedColumnWidths] = React.useState<ResizedColumnWidths>(() => new Map());
 
-    // Determine grid dimensions and column widths
-    const gridLayout = React.useMemo<DataTableLayout>(() => {
-        if (!tableFormatter) {
-            return {
-                columnCount: 0,
-                arrowFieldByColumnIndex: new Uint32Array(),
-                columnXOffsets: new Float64Array([0]),
-                columnAggregateByColumnIndex: new Int32Array(),
-                columnGroupByColumnIndex: new Uint32Array(),
-                isTextColumn: new Uint8Array(),
-                headerRowCount
-            };
-        }
-        return computeTableLayout(tableFormatter, { columnGroups, dataTable }, headerRowCount, gridContainerWidth, visibleColumnGroups, resizedColumnWidths);
-    }, [
-        columnGroups,
-        dataTable,
-        tableFormatter,
-        gridContainerWidth,
-        headerRowCount,
-        visibleColumnGroups,
-        resizedColumnWidths,
-    ]);
+    // The widths of the columns follow their names in the schema, the rows are formatted by the formatter of a window
+    const schema = dataTable.schema;
+    const gridLayout = React.useMemo<DataTableLayout>(
+        () => computeTableLayout({ columnGroups, schema }, headerRowCount, gridContainerWidth, visibleColumnGroups, resizedColumnWidths),
+        [columnGroups, schema, gridContainerWidth, headerRowCount, visibleColumnGroups, resizedColumnWidths],
+    );
 
     // Compute helper to resolve column widths
     const getColumnWidth = React.useCallback((column: number) =>
