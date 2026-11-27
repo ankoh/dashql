@@ -41,8 +41,6 @@ pub const LEGACY_SESSION_FILE: &str = "dashql-session.json";
 /// The entries of the `.gitignore` of a native workbook folder: the former query result cache and Hyper databases. The
 /// results of the scripts stay in the origin private file system.
 pub const GITIGNORE_ENTRIES: [&str; 2] = ["cache/", "*.hyper"];
-/// The folder of the clouds in the OPFS root, a local cloud attaches a database of it
-pub const HYPER_CLOUDS_DIRECTORY: &str = "clouds";
 
 /// Where the files of a workbook live
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

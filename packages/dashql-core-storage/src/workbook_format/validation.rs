@@ -6,8 +6,8 @@ use serde_json::Value;
 
 use crate::workbook_format::data::{WorkbookData, WORKBOOK_FORMAT_VERSION};
 use crate::workbook_format::json::is_truthy;
-use crate::workbook_format::layout::HYPER_CLOUDS_DIRECTORY;
 use dashql_core_runtime::connections::ConnectorType;
+use dashql_core_runtime::hyper::local_cloud::embedded_cloud_databases;
 
 /// Is a string a UUID of any version, in the canonical 8-4-4-4-12 hex shape? Case doesn't matter.
 pub fn is_valid_uuid(value: &str) -> bool {
@@ -143,30 +143,6 @@ pub fn validate_workbook_data(data: &WorkbookData) -> Result<(), WorkbookValidat
     validate_workbook_json(&data.to_json())
 }
 
-/// The databases of the clouds folder that params of the embedded Hyper attach, as (path, alias). A connection that
-/// attaches one is a local cloud, a connection of its own.
-pub fn embedded_cloud_databases(hyper: &Value) -> Vec<(String, String)> {
-    let protocol = hyper.get("protocol").and_then(Value::as_str).unwrap_or("WASM");
-    if hyper.get("protocol").is_some_and(|p| !p.is_null() && !p.is_string()) || protocol != "WASM" {
-        return Vec::new();
-    }
-    let prefix = format!("{HYPER_CLOUDS_DIRECTORY}/");
-    hyper
-        .get("attachedDatabases")
-        .and_then(Value::as_array)
-        .map(|databases| {
-            databases
-                .iter()
-                .filter_map(|database| {
-                    let path = database.get("path")?.as_str()?;
-                    let alias = database.get("alias")?.as_str()?;
-                    (path.starts_with(&prefix) && !alias.is_empty()).then(|| (path.to_string(), alias.to_string()))
-                })
-                .collect()
-        })
-        .unwrap_or_default()
-}
-
 /// Are the params those of the embedded Hyper of the app? A local cloud attaches a database of the clouds folder and
 /// is a connection of its own.
 pub fn is_local_hyper_wasm_params(params: &Value) -> bool {
@@ -174,7 +150,7 @@ pub fn is_local_hyper_wasm_params(params: &Value) -> bool {
         return false;
     };
     let protocol = hyper.get("protocol").filter(|p| !p.is_null());
-    protocol.is_none_or(|p| p.as_str() == Some("WASM")) && embedded_cloud_databases(hyper).is_empty()
+    protocol.is_none_or(|p| p.as_str() == Some("WASM")) && embedded_cloud_databases(hyper.as_object()).is_empty()
 }
 
 /// A workbook that failed its validation and was refused a load. It holds what the workbench needs to show and delete
