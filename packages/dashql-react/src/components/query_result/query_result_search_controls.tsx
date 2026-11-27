@@ -122,7 +122,7 @@ function SearchControl(props: SearchControlProps) {
                     data-testid={`${testId}-button`}
                     title={`${props.kind} search`}
                 >
-                    {props.kind}
+                    <span className={styles.button_label}>{props.kind}</span>
                 </Button>
             )}
             {props.state.error != null && (

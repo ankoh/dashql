@@ -17,6 +17,7 @@ import { TabHeader } from '@akohn/dashql-react/components/tab_header';
 import { getPlanResultText } from '../../shell/terminal/shell_result.js';
 import { detectPlanEngine } from '@akohn/dashql-react/utils/plan_engine';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
+import { PHONE_WIDTH_QUERY, useMediaQuery } from '@akohn/dashql-react/dom/media_query';
 import * as styles from './shell_query_result_overlay.module.css';
 import { useQueryModel, type QueryModel } from '@akohn/dashql-react/models/query_model';
 import { useResultRows } from '@akohn/dashql-react/components/visualization/result_rows';
@@ -103,9 +104,10 @@ const ResultOverlay: React.FC<Props> = ({
         }
     }, [hasPlan, query.queryId, selectedTab]);
 
-    // Only the plan tab can be expanded to fill the window
+    // Only the plan tab can be expanded to fill the window. On a phone the overlay always fills it.
+    const phone = useMediaQuery(PHONE_WIDTH_QUERY);
     const [planExpanded, setPlanExpanded] = React.useState(false);
-    const expanded = planExpanded && selectedTab === ResultTab.Plan;
+    const expanded = phone || (planExpanded && selectedTab === ResultTab.Plan);
 
     const closeButton = React.useMemo(() => (
         <IconButton
@@ -155,8 +157,8 @@ const ResultOverlay: React.FC<Props> = ({
         [ResultTab.Data]: () => model == null ? <></> : (
             <ResultDetails
                 model={model}
-                fitHeight
-                maxHeight={MAX_OVERLAY_HEIGHT}
+                fitHeight={!phone}
+                maxHeight={phone ? undefined : MAX_OVERLAY_HEIGHT}
                 columnHeader={TableColumnHeader.WithColumnPlots}
                 actions={closeButton}
             />
@@ -167,7 +169,7 @@ const ResultOverlay: React.FC<Props> = ({
                 <div className={styles.plan_body}>{plan != null && <ProfileViewComponent plan={plan} execution={execution} onRotate={rotate} />}</div>
             </div>
         ),
-    }), [closeButton, planActions, plan, execution, rotate, ProfileViewComponent, model, ResultDetails]);
+    }), [closeButton, planActions, plan, execution, rotate, ProfileViewComponent, model, ResultDetails, phone]);
     useFocusTrap({
         containerRef: dialogRef as React.RefObject<HTMLElement>,
         initialFocusRef: dialogRef as React.RefObject<HTMLElement>,
@@ -199,15 +201,20 @@ const ResultOverlay: React.FC<Props> = ({
                     minHeight: selectedTab === ResultTab.Plan ? MIN_PLAN_OVERLAY_HEIGHT : undefined,
                 }}
             >
-                <VerticalTabs
-                    className={styles.tabs}
-                    variant={VerticalTabVariant.Stacked}
-                    tabKeys={tabKeys}
-                    tabProps={tabProps}
-                    tabRenderers={tabRenderers}
-                    selectedTab={selectedTab}
-                    selectTab={tab => setSelectedTab(tab as ResultTab)}
-                />
+                {/* A phone has no room for the rail of a single tab */}
+                {phone && tabKeys.length === 1 ? (
+                    <div className={styles.single_tab}>{tabRenderers[ResultTab.Data]()}</div>
+                ) : (
+                    <VerticalTabs
+                        className={styles.tabs}
+                        variant={VerticalTabVariant.Stacked}
+                        tabKeys={tabKeys}
+                        tabProps={tabProps}
+                        tabRenderers={tabRenderers}
+                        selectedTab={selectedTab}
+                        selectTab={tab => setSelectedTab(tab as ResultTab)}
+                    />
+                )}
             </section>
         </Overlay>
     );

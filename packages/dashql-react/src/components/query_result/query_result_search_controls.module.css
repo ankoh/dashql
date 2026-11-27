@@ -50,3 +50,16 @@
         width: clamp(76px, 26vw, 112px);
     }
 }
+
+/* A phone shows the icon of a search, the header keeps room for its other actions. The name stays for screen
+   readers. */
+@media only screen and (max-width: 600px) {
+    .button_label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+}

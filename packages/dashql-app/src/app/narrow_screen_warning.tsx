@@ -1,22 +1,14 @@
-import * as React from 'react';
-
 import * as baseStyles from '@akohn/dashql-react/components/banner_page.module.css';
 import * as styles from './narrow_screen_warning.module.css';
 
 import { Button, ButtonVariant } from '@akohn/dashql-react/components/button';
 import { CompactNavBar } from './navbar.js';
+import { useMediaQuery } from '@akohn/dashql-react/dom/media_query';
 
 const NARROW_SCREEN_QUERY = '(max-width: 799px)';
 
 export function useNarrowScreenWarning(settingsReady: boolean, narrowScreenLayout: boolean): boolean {
-    const [narrow, setNarrow] = React.useState(() => window.matchMedia(NARROW_SCREEN_QUERY).matches);
-    React.useEffect(() => {
-        const media = window.matchMedia(NARROW_SCREEN_QUERY);
-        const update = () => setNarrow(media.matches);
-        update();
-        media.addEventListener('change', update);
-        return () => media.removeEventListener('change', update);
-    }, []);
+    const narrow = useMediaQuery(NARROW_SCREEN_QUERY);
     return settingsReady && narrow && !narrowScreenLayout;
 }
 
