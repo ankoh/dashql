@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Run one Bazel command of an agent under resource governance:
 # - up to MAX_SLOTS Bazel commands at once across all worktrees, each holds a slot,
-# - a command that runs the browser tests (test_chromium, test_firefox, coverage, or a whole package pattern of the
-#   app) also holds the one browser slot, so only one browser suite runs at a time,
+# - a test or coverage that runs browser tests (test_chromium, test_firefox, coverage, or a pattern such as
+#   `//packages/dashql/...` that holds suites of `test/browser`) also holds the one browser slot, so only one
+#   browser suite runs at a time,
 # - a command starts only while the machine has room: the 1-minute load below MAX_LOAD and at least MIN_FREE_GB of
 #   available memory, otherwise it waits and checks again,
 # - each run gets a capped JVM, few jobs, one local test job, a share of RAM and CPUs, and the tests few workers of
@@ -21,9 +22,13 @@ mkdir -p "$DIR"
 cmd="$1"; shift
 
 browser=0
-for a in "$@"; do
-    case "$a" in *test_chromium*|*test_firefox*|*test_webkit*|*coverage_chromium*|*dashql-app/...*|*dashql-app:all*|//...) browser=1 ;; esac
-done
+if [ "$cmd" = test ] || [ "$cmd" = coverage ]; then
+    # A pattern (`/...`, `:all`, `:*`) can hold browser suites, e.g. `//packages/dashql/...` holds those of
+    # `test/browser`, so it takes the browser slot as well
+    for a in "$@"; do
+        case "$a" in *test_chromium*|*test_firefox*|*test_webkit*|*coverage_chromium*|*test/browser*|*/...|*:all|*:\*) browser=1 ;; esac
+    done
+fi
 test_env=()
 if [ "$cmd" = test ] || [ "$cmd" = coverage ]; then
     test_env=(--test_env=VITEST_MAX_WORKERS=3 --test_env=DASHQL_BROWSER_TEST_SHARDS=2)
