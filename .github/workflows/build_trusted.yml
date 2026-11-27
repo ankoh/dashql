@@ -327,8 +327,8 @@ jobs:
                     -- \
                     //... -//tests/agents/...
 
-            # Kept as long as the npm and Electron packages: a deploy that waits for npm (deploy_gate in publish.yml)
-            # can be re-run days later and takes everything from this run
+            # Kept as long as the npm and Electron packages: a failed deploy of publish.yml can be re-run days later and
+            # takes everything from this run
             - uses: actions/upload-artifact@v7
               with:
                 name: dashql_app_pages

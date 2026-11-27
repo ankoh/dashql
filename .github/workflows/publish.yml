@@ -76,8 +76,6 @@ jobs:
         permissions:
             contents: read
             id-token: write
-        outputs:
-            version: ${{ steps.publish.outputs.version }}
         steps:
             - uses: actions/setup-node@v6
               with:
@@ -94,66 +92,29 @@ jobs:
             # bazel/versioning.bzl) and the dist-tag is read back from it: 0.0.20-latest.125.ged768a7d4 is latest,
             # 0.0.20-dev.125.ged768a7d4 dev, 0.0.19 stable.
             - name: Publish @akohn/dashql
-              id: publish
               env:
-                  NPM_DIR: ${{ runner.temp }}/npm
+                  TARBALL: ${{ runner.temp }}/npm/dashql.tgz
               run: |
                   set -euo pipefail
                   echo "npm $(npm --version)"
-                  for tarball in dashql.tgz; do
-                      manifest="$(tar -xzOf "${NPM_DIR}/${tarball}" package/package.json)"
-                      name="$(node -e 'const m = JSON.parse(process.argv[1]); console.log(m.name)' "${manifest}")"
-                      version="$(node -e 'const m = JSON.parse(process.argv[1]); console.log(m.version)' "${manifest}")"
-                      echo "version=${version}" >> "${GITHUB_OUTPUT}"
-                      tag="stable"
-                      if [[ "${version}" == *-* ]]; then
-                          tag="${version#*-}"
-                          tag="${tag%%.*}"
-                      fi
-                      if [[ "$(npm view "${name}@${version}" version 2>/dev/null || true)" == "${version}" ]]; then
-                          echo "${name}@${version} is on npm already"
-                          continue
-                      fi
-                      npm publish "${NPM_DIR}/${tarball}" --access public --tag "${tag}"
-                  done
-
-    # The gate of the pages and the desktop app, right before they go out. When it times out, "Re-run failed jobs" runs
-    # it and the deploys again, days later perhaps (the artifacts are kept 7 days), while tip and npm_publish keep their
-    # results of the first attempt. So it asks again whether the commit is still the tip of main: a re-run must not put
-    # an older page over a newer one.
-    deploy_gate:
-        name: Gate deploy
-        needs: [npm_publish]
-        runs-on: ubuntu-26.04
-        timeout-minutes: 15
-        permissions:
-            contents: read
-        outputs:
-            deploy: ${{ steps.tip.outputs.deploy }}
-        steps:
-            - name: Compare the commit with the tip of main again
-              id: tip
-              env:
-                  GH_TOKEN: ${{ github.token }}
-                  COMMIT: ${{ inputs.commit }}
-                  REQUIRE_TIP: ${{ inputs.require_tip }}
-              run: |
-                  set -euo pipefail
-                  if [[ "${REQUIRE_TIP}" == "true" ]]; then
-                      TIP="$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)"
-                      echo "tip of main: ${TIP}, this commit: ${COMMIT}"
-                      if [[ "${TIP}" != "${COMMIT}" ]]; then
-                          echo "a newer commit is on main, nothing is deployed"
-                          echo "deploy=false" >> "${GITHUB_OUTPUT}"
-                          exit 0
-                      fi
+                  manifest="$(tar -xzOf "${TARBALL}" package/package.json)"
+                  name="$(node -e 'const m = JSON.parse(process.argv[1]); console.log(m.name)' "${manifest}")"
+                  version="$(node -e 'const m = JSON.parse(process.argv[1]); console.log(m.version)' "${manifest}")"
+                  tag="stable"
+                  if [[ "${version}" == *-* ]]; then
+                      tag="${version#*-}"
+                      tag="${tag%%.*}"
                   fi
-                  echo "deploy=true" >> "${GITHUB_OUTPUT}"
+                  if [[ "$(npm view "${name}@${version}" version 2>/dev/null || true)" == "${version}" ]]; then
+                      echo "${name}@${version} is on npm already"
+                      exit 0
+                  fi
+                  npm publish "${TARBALL}" --access public --tag "${tag}"
 
     desktop_release:
         name: Electron Release
-        needs: [deploy_gate]
-        if: needs.deploy_gate.outputs.deploy == 'true' && inputs.publish_desktop_release
+        needs: [tip]
+        if: needs.tip.outputs.publish == 'true' && inputs.publish_desktop_release
         runs-on: ubuntu-26.04
         permissions:
             contents: read
@@ -225,8 +186,8 @@ jobs:
 
     pages_deploy:
         name: dashql.app
-        needs: [deploy_gate]
-        if: needs.deploy_gate.outputs.deploy == 'true' && inputs.publish_latest_pages
+        needs: [tip]
+        if: needs.tip.outputs.publish == 'true' && inputs.publish_latest_pages
         runs-on: ubuntu-26.04
         permissions:
             contents: read
@@ -257,8 +218,8 @@ jobs:
 
     stable_pages_deploy:
         name: stable.dashql.app
-        needs: [deploy_gate]
-        if: needs.deploy_gate.outputs.deploy == 'true' && inputs.publish_stable_pages
+        needs: [tip]
+        if: needs.tip.outputs.publish == 'true' && inputs.publish_stable_pages
         runs-on: ubuntu-26.04
         permissions:
             contents: read
@@ -289,8 +250,8 @@ jobs:
 
     dev_pages_deploy:
         name: dev.dashql.app
-        needs: [deploy_gate]
-        if: needs.deploy_gate.outputs.deploy == 'true' && inputs.publish_dev_pages
+        needs: [tip]
+        if: needs.tip.outputs.publish == 'true' && inputs.publish_dev_pages
         runs-on: ubuntu-26.04
         permissions:
             contents: read
@@ -322,8 +283,8 @@ jobs:
     org_pages_deploy:
         name: dashql.org
         # Behind the gate like dashql.app: a re-run checks the tip of main again, and both sites of a commit go out together
-        needs: [deploy_gate]
-        if: needs.deploy_gate.outputs.deploy == 'true' && inputs.publish_latest_pages
+        needs: [tip]
+        if: needs.tip.outputs.publish == 'true' && inputs.publish_latest_pages
         runs-on: ubuntu-26.04
         permissions:
             contents: read
@@ -355,8 +316,8 @@ jobs:
     coverage_pages_deploy:
         name: coverage.dashql.app
         # Behind the gate like the other sites: a re-run checks the tip of main again, everything of a commit goes out together
-        needs: [deploy_gate]
-        if: needs.deploy_gate.outputs.deploy == 'true' && inputs.publish_latest_pages
+        needs: [tip]
+        if: needs.tip.outputs.publish == 'true' && inputs.publish_latest_pages
         runs-on: ubuntu-26.04
         # Like the coverage job: without a report the last good page stays, and the publish does not fail
         continue-on-error: true
