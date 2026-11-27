@@ -21,7 +21,7 @@ import { useDataTablePortalContainers } from './data_table_portals.js';
 import { ResizedColumnWidths, useDataTableColumnResize } from './data_table_column_resize.js';
 import { DataTableStickyColumn, DataTableStickyHeaders } from './data_table_sticky_views.js';
 import { DataTableFocusStore } from './data_table_focus.js';
-import { useDataTableWindow, type DataTableWindow } from './data_table_window.js';
+import { useDataTableWindow } from './data_table_window.js';
 
 export { TableColumnHeader } from './data_table_cell.js';
 export { resolveComputationTables, useComputationTables, type ComputationTables } from './computation_tables.js';
@@ -253,7 +253,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
         const visibleRow = Number.parseInt(event.currentTarget.dataset["visibleRow"]!);
         const fieldId = Number.parseInt(event.currentTarget.dataset["tableCol"]!);
         if (rowWindow == null) return;
-        const detail = cellDetailOf(rowWindow, visibleRow, fieldId);
+        const detail = cellDetailOf(rowWindow.table, rowWindow.formatter, visibleRow - rowWindow.offset, visibleRow, fieldId);
         if (detail != null) setCellDetail(detail);
     }, [rowWindow]);
     const onNavigateCell = React.useCallback((delta: number) => {
@@ -262,7 +262,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
         const visibleRow = prev.visibleRow + delta;
         if (visibleRow < 0 || visibleRow >= dataRowCount) return;
         // A row that the window doesn't hold is read on its own
-        const detail = rowWindow == null ? null : cellDetailOf(rowWindow, visibleRow, prev.fieldId);
+        const detail = rowWindow == null ? null : cellDetailOf(rowWindow.table, rowWindow.formatter, visibleRow - rowWindow.offset, visibleRow, prev.fieldId);
         if (detail != null) {
             setCellDetail(detail);
             return;
@@ -270,8 +270,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
         readRows(visibleRow, 1).then(
             result => {
                 const formatter = new ArrowTableFormatter(result.table.schema, result.table.batches, logger);
-                const single = { offset: result.offset, table: result.table, formatter, dataRows: new Int32Array(result.table.numRows) };
-                const read = cellDetailOf(single, visibleRow, prev.fieldId);
+                const read = cellDetailOf(result.table, formatter, visibleRow - result.offset, visibleRow, prev.fieldId);
                 if (read != null) setCellDetail(current => current === prev ? read : current);
             },
             (error: unknown) => logger.warn('Failed to read the row of a cell', { error: stringifyError(error) }, 'data_table'),
@@ -522,17 +521,17 @@ interface CellDetail {
     columnName: string | null;
 }
 
-/// The detail of a cell of a row that shows, null for a row outside of the window or a cell without a detail
-function cellDetailOf(rowWindow: DataTableWindow, visibleRow: number, fieldId: number): CellDetail | null {
-    const windowRow = visibleRow - rowWindow.offset;
-    if (windowRow < 0 || windowRow >= rowWindow.table.numRows) return null;
-    const field = rowWindow.table.schema.fields[fieldId];
+/// The detail of a cell in a row of a table of rows that show, the row that shows as `visibleRow`. Null for a row
+/// outside of the table or a cell without a detail.
+function cellDetailOf(table: arrow.Table, formatter: ArrowTableFormatter, row: number, visibleRow: number, fieldId: number): CellDetail | null {
+    if (row < 0 || row >= table.numRows) return null;
+    const field = table.schema.fields[fieldId];
     if (field == null) return null;
     const isText = field.type.typeId === arrow.Type.Utf8 || field.type.typeId === arrow.Type.LargeUtf8;
     const isStructured = isArrowStructuredType(field.type);
     if (!isText && !isStructured) return null;
-    const formattedValue = rowWindow.formatter.getValue(windowRow, fieldId);
-    const rawValue = isStructured ? rowWindow.table.getChildAt(fieldId)?.get(windowRow) : null;
+    const formattedValue = formatter.getValue(row, fieldId);
+    const rawValue = isStructured ? table.getChildAt(fieldId)?.get(row) : null;
     const structuredValue = rawValue == null ? null : arrowValueToJson(rawValue) as object;
     return { visibleRow, fieldId, formattedValue, structuredValue, columnName: field.name ?? null };
 }

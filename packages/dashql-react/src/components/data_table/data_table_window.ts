@@ -119,8 +119,7 @@ export function useDataTableWindow(model: ComputationModel, start: number, stop:
     const readRows = React.useRef(model.readRows);
     readRows.current = model.readRows;
     // The read that runs: its key and rows, a newer one replaces it
-    const pending = React.useRef<{ seq: number; key: string; offset: number; limit: number } | null>(null);
-    const seq = React.useRef(0);
+    const pending = React.useRef<{ key: string; offset: number; limit: number } | null>(null);
 
     React.useEffect(() => {
         const current = state?.key === key ? state : null;
@@ -137,11 +136,11 @@ export function useDataTableWindow(model: ComputationModel, start: number, stop:
         }
         const offset = Math.max(0, start - WINDOW_MARGIN_ROWS);
         const limit = Math.max(0, stop - start + 1) + 2 * WINDOW_MARGIN_ROWS;
-        const read = { seq: ++seq.current, key, offset, limit };
+        const read = { key, offset, limit };
         pending.current = read;
         readRows.current(offset, limit).then(
             (result: ResultRowWindow) => {
-                if (pending.current?.seq !== read.seq) return;
+                if (pending.current !== read) return;
                 pending.current = null;
                 const formatter = new ArrowTableFormatter(result.table.schema, result.table.batches, logger);
                 const window = { offset: result.offset, table: result.table, formatter, dataRows: dataRowsOf(result.table) };
@@ -149,7 +148,7 @@ export function useDataTableWindow(model: ComputationModel, start: number, stop:
                 setState({ key, table, rows: result.rows, window });
             },
             (error: unknown) => {
-                if (pending.current?.seq !== read.seq) return;
+                if (pending.current !== read) return;
                 pending.current = null;
                 const message = stringifyError(error);
                 logger.warn('Failed to read the rows of a table', { error: message }, 'data_table');
