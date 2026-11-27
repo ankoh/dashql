@@ -696,28 +696,19 @@ impl<'a> ScriptDiff<'a> {
                 claim(&mut source_match, &mut target_matched, ScriptDiffOpCode::MOVE, source_id, target_id);
             }
         }
-        // Similar statements in the same section update
-        for section_index in 0..=lcs.len() {
-            let (sources, targets) = section(section_index);
-            for source_id in sources {
-                if !unmatched(&source_match, source_id) {
-                    continue;
-                }
-                if let Some(target_id) = self.best_update_target(source_id, targets.clone(), &target_matched) {
-                    claim(&mut source_match, &mut target_matched, ScriptDiffOpCode::UPDATE, source_id, target_id);
-                }
-            }
-        }
-        // Similar statements in different sections update, the statement moves
-        for section_index in 0..=lcs.len() {
-            let (sources, targets) = section(section_index);
-            for source_id in sources {
-                if !unmatched(&source_match, source_id) {
-                    continue;
-                }
-                let others = (0..target_count).filter(|t| !targets.contains(t));
-                if let Some(target_id) = self.best_update_target(source_id, others, &target_matched) {
-                    claim(&mut source_match, &mut target_matched, ScriptDiffOpCode::UPDATE, source_id, target_id);
+        // Similar statements update, those in the same section first, then those in different sections, the statement
+        // moves
+        for same_section in [true, false] {
+            for section_index in 0..=lcs.len() {
+                let (sources, targets) = section(section_index);
+                for source_id in sources {
+                    if !unmatched(&source_match, source_id) {
+                        continue;
+                    }
+                    let candidates = (0..target_count).filter(|t| targets.contains(t) == same_section);
+                    if let Some(target_id) = self.best_update_target(source_id, candidates, &target_matched) {
+                        claim(&mut source_match, &mut target_matched, ScriptDiffOpCode::UPDATE, source_id, target_id);
+                    }
                 }
             }
         }
