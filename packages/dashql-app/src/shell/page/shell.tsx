@@ -35,20 +35,28 @@ const ShellRuntime = (props: { children?: React.ReactNode }) => {
     return <StandaloneRuntime channels={channels}>{props.children}</StandaloneRuntime>;
 };
 
-/// Keep an element in the visible part of the window. The keyboard of iOS covers the window instead of shrinking it,
-/// the prompt of the shell would sit behind it. A zoomed page keeps its height.
+/// Pad the shell to the part of the window that nothing covers. The shell fills the whole window, Safari of iOS draws
+/// its status bar, its address bar and, with the keyboard open, the arrows above the keys over the page, and its
+/// keyboard covers the window instead of shrinking it. The visual viewport ends above all of them, the background of
+/// the shell goes on behind them while the prompt and the keys stay visible. A zoomed page keeps no padding.
 /// iOS scrolls the page to the focused prompt after the last resize of the keyboard, and that scroll fires no event of
-/// the visual viewport, only one of the window. A height measured before it leaves a band between the keys of the
-/// shell and the keyboard, so every resize and scroll measures again.
-function useVisualViewportHeight(element: HTMLElement | null) {
+/// the visual viewport, only one of the window, so every resize and scroll measures again.
+function useVisualViewportPadding(element: HTMLElement | null) {
     React.useEffect(() => {
         const viewport = window.visualViewport;
         if (viewport == null || element == null) return;
         const fit = () => {
             const zoomed = viewport.scale > 1.01;
-            const height = zoomed ? '' : `${viewport.height}px`;
-            if (element.style.height !== height) element.style.height = height;
-            // The element starts at the top of the visible part
+            const box = element.getBoundingClientRect();
+            const top = zoomed ? 0 : Math.max(0, Math.round(viewport.offsetTop - box.top));
+            const bottom = zoomed ? 0 : Math.max(0, Math.round(box.bottom - viewport.offsetTop - viewport.height));
+            if (element.style.getPropertyValue('--covered_top') !== `${top}px`) {
+                element.style.setProperty('--covered_top', `${top}px`);
+            }
+            if (element.style.getPropertyValue('--covered_bottom') !== `${bottom}px`) {
+                element.style.setProperty('--covered_bottom', `${bottom}px`);
+            }
+            // The shell starts at the top of the visible part
             if (!zoomed && (window.scrollY !== 0 || window.scrollX !== 0)) window.scrollTo(0, 0);
         };
         fit();
@@ -59,7 +67,8 @@ function useVisualViewportHeight(element: HTMLElement | null) {
             viewport.removeEventListener('resize', fit);
             viewport.removeEventListener('scroll', fit);
             window.removeEventListener('scroll', fit);
-            element.style.height = '';
+            element.style.removeProperty('--covered_top');
+            element.style.removeProperty('--covered_bottom');
         };
     }, [element]);
 }
@@ -69,7 +78,7 @@ export const Shell: React.FC = () => {
     const [shellGeneration, setShellGeneration] = React.useState(0);
     // The providers mount the root once they are ready
     const [root, setRoot] = React.useState<HTMLDivElement | null>(null);
-    useVisualViewportHeight(root);
+    useVisualViewportPadding(root);
 
     // A file dropped on the page doesn't open in place of the shell
     React.useEffect(() => {
@@ -99,16 +108,13 @@ export const Shell: React.FC = () => {
                                         <DashQLCoreProvider>
                                             <ShellRuntime>
                                                 <ShellQueryHistoryProvider key={shellGeneration}>
-                                                    <>
-                                                        <div className={styles.backdrop} aria-hidden="true" />
-                                                        <div ref={setRoot} className={styles.root}>
-                                                            <ShellNavBar
-                                                                engineVersion={engineVersion}
-                                                                onReset={resetShell}
-                                                            />
-                                                            <ShellPage onEngineVersion={setEngineVersion} />
-                                                        </div>
-                                                    </>
+                                                    <div ref={setRoot} className={styles.root}>
+                                                        <ShellNavBar
+                                                            engineVersion={engineVersion}
+                                                            onReset={resetShell}
+                                                        />
+                                                        <ShellPage onEngineVersion={setEngineVersion} />
+                                                    </div>
                                                 </ShellQueryHistoryProvider>
                                             </ShellRuntime>
                                         </DashQLCoreProvider>

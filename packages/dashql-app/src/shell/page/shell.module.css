@@ -1,9 +1,18 @@
+/* The shell fills the whole window, also behind the bars of Safari of iOS, and keeps its content in the part that
+   none of them covers: the safe area, and the visual viewport that the page measures (--covered_top,
+   --covered_bottom). The terminal pads its own bottom (--shell_inset_bottom), so it goes on behind the address bar
+   and the keyboard. Safari tints its bars after the color of a fixed element at the edges of the window. */
 .root {
+    --shell_inset_bottom: max(var(--covered_bottom, 0px), env(safe-area-inset-bottom, 0px));
+    position: fixed;
+    inset: 0;
     display: grid;
     grid-template-rows: 40px minmax(0, 1fr);
-    width: 100%;
-    height: 100%;
+    box-sizing: border-box;
+    padding: calc(var(--covered_top, 0px) + env(safe-area-inset-top, 0px)) env(safe-area-inset-right, 0px) 0
+        env(safe-area-inset-left, 0px);
     background: var(--background);
+    background-color: var(--chrome_bg_100);
 }
 
 /* The window around the shell is as dark as the shell. A transparent root turns white in Safari of iOS. */
@@ -12,13 +21,3 @@
     background-color: var(--chrome_bg_100);
 }
 
-/* The shell ends where the visible part of the window ends, above the bars that Safari of iOS draws over the page:
-   the address bar and the arrows of the keyboard. Safari shows the elements of the page behind those bars, not the
-   background of the body, and tints the status bar and its own bars after a fixed element at the edges of the window.
-   This one fills the whole window, also below the visible part, so the shell goes on behind the bars. */
-.backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    background-color: var(--chrome_bg_100);
-}
