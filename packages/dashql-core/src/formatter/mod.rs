@@ -3769,13 +3769,9 @@ impl<'a> Formatter<'a> {
             let (text, suffix) = self.fmt.render_with_suffix(self.statement_reg(statement), &options);
             output.extend_from_slice(text.as_bytes());
             // A comment at the end of the last line of the statement follows it like the comments after its last node
-            if let Some(suffix) = suffix {
-                let text_of = |c: &TextSpan| input.get(c.offset as usize..c.end() as usize).unwrap_or_default();
-                let trimmed = |c: &&TextSpan| text_of(c).trim_ascii_end() == suffix.as_bytes();
-                if let Some(&comment) = within.iter().find(|c| trimmed(c) && !rest.contains(*c)) {
-                    rest.push(comment);
-                    rest.sort_by_key(|c| c.offset);
-                }
+            if let Some(&comment) = suffix.and_then(|offset| within.iter().find(|c| c.offset == offset)) {
+                rest.push(comment);
+                rest.sort_by_key(|c| c.offset);
             }
 
             // The other comments follow the statement on its line, on a line of their own the next statement would

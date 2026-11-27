@@ -105,6 +105,8 @@ pub struct FormattingOperation<'a> {
     /// Is the join a list of items, like the arguments of a call? A list in parentheses that break starts its line, so
     /// the items after its breaks line up with its first one, without the hanging indentation.
     pub list: bool,
+    /// The offset of the comment of a line suffix in the script
+    pub comment_offset: u32,
 }
 
 /// The options for rendering a formatting program
@@ -201,12 +203,13 @@ impl<'a> FormattingProgram<'a> {
         self.push(FormattingOperation { code: FormattingOpCode::Break, ..Default::default() })
     }
 
-    /// A text at the end of the line, see `FormattingOpCode::LineSuffix`
-    pub fn line_suffix(&self, text: &'a str) -> FmtReg {
+    /// A comment at the end of the line, its text and its offset in the script, see `FormattingOpCode::LineSuffix`
+    pub fn line_suffix(&self, text: &'a str, comment_offset: u32) -> FmtReg {
         self.push(FormattingOperation {
             code: FormattingOpCode::LineSuffix,
             text,
             verbatim: true,
+            comment_offset,
             ..Default::default()
         })
     }
@@ -418,21 +421,20 @@ impl<'a> FormattingProgram<'a> {
 
     /// Render a document, a line suffix that no line break followed ends it
     pub fn render(&self, root: FmtReg, options: &FormattingRenderOptions) -> String {
-        let (mut output, suffix) = self.render_with_suffix(root, options);
-        if let Some(suffix) = suffix {
+        let program = self.program.borrow();
+        let (mut output, suffix) = render(&program, root, options);
+        if let Some((suffix, _)) = suffix {
             output.push(' ');
-            output.push_str(&suffix);
+            output.push_str(suffix);
         }
         output
     }
 
-    /// Render a document, and return the line suffix that no line break followed separately
-    pub fn render_with_suffix(&self, root: FmtReg, options: &FormattingRenderOptions) -> (String, Option<String>) {
-        if root == 0 {
-            return (String::new(), None);
-        }
+    /// Render a document without the line suffix that no line break followed, and return the offset of its comment
+    pub fn render_with_suffix(&self, root: FmtReg, options: &FormattingRenderOptions) -> (String, Option<u32>) {
         let program = self.program.borrow();
-        render(&program, root, options)
+        let (output, suffix) = render(&program, root, options);
+        (output, suffix.map(|(_, offset)| offset))
     }
 }
 
@@ -674,11 +676,11 @@ fn parenthesis_fits_inline(
 }
 
 /// The state of a rendered line
-struct Line {
+struct Line<'a> {
     /// The width of the line in characters
     width: usize,
-    /// The comment that ends the line, written before the next line break
-    suffix: Option<String>,
+    /// The comment that ends the line, written before the next line break, and its offset in the script
+    suffix: Option<(&'a str, u32)>,
 }
 
 fn append_line_break(output: &mut String, line: &mut Line, indentation: usize, debug_mode: bool) {
@@ -687,9 +689,9 @@ fn append_line_break(output: &mut String, line: &mut Line, indentation: usize, d
         output.push_str(&line.width.to_string());
         output.push_str("*/");
     }
-    if let Some(suffix) = line.suffix.take() {
+    if let Some((suffix, _)) = line.suffix.take() {
         output.push(' ');
-        output.push_str(&suffix);
+        output.push_str(suffix);
     }
     output.push('\n');
     output.extend(std::iter::repeat_n(' ', indentation));
@@ -770,11 +772,11 @@ fn push_join(
     }
 }
 
-fn render(
-    program: &[FormattingOperation],
+fn render<'a>(
+    program: &[FormattingOperation<'a>],
     root: FmtReg,
     options: &FormattingRenderOptions,
-) -> (String, Option<String>) {
+) -> (String, Option<(&'a str, u32)>) {
     let mut output = String::new();
     let mut line = Line { width: 0, suffix: None };
     let force_inline = options.mode == FormattingMode::INLINE;
@@ -853,9 +855,8 @@ fn render(
                 // Text after a line suffix goes on the next line, a separator stays in front of the suffix
                 if line.suffix.is_some() {
                     text = text.trim_start_matches(' ');
-                    if let Some(separator) = text.chars().next().filter(|c| matches!(c, ',' | ';')) {
-                        let rest = text.get(1..).unwrap_or_default();
-                        output.push(separator);
+                    if let Some(rest) = text.strip_prefix(',') {
+                        output.push(',');
                         line.width += 1;
                         text = rest.trim_start_matches(' ');
                     }
@@ -879,7 +880,7 @@ fn render(
                 if line.suffix.is_some() {
                     append_line_break(&mut output, &mut line, command.indentation, options.debug_mode);
                 }
-                line.suffix = Some(doc.text.to_string());
+                line.suffix = Some((doc.text, doc.comment_offset));
             }
             FormattingOpCode::LineStart => {
                 let line_text = output.rsplit('\n').next().unwrap_or_default();
@@ -957,6 +958,19 @@ mod tests {
         let regs: Vec<FmtReg> = items.iter().map(|i| f.text(i)).collect();
         let break_separator = f.concat(&[f.text(","), f.break_()]);
         f.list(&regs, f.text(", "), break_separator, policy, true)
+    }
+
+    #[test]
+    fn renders_line_suffixes_before_the_next_line_break() {
+        let f = FormattingProgram::new();
+        let opts = options(FormattingMode::COMPACT, 120);
+        // A comma stays in front of the suffix, the text after it goes on the next line
+        let doc = f.concat(&[f.text("a"), f.line_suffix("-- c", 7), f.text(", b")]);
+        assert_eq!(f.render(doc, &opts), "a, -- c\nb");
+        // A suffix that no line break follows is returned by its offset, two comments with the same text differ
+        let doc = f.concat(&[f.text("a"), f.line_suffix("-- c", 7), f.text("b"), f.line_suffix("-- c", 15)]);
+        assert_eq!(f.render_with_suffix(doc, &opts), ("a -- c\nb".to_string(), Some(15)));
+        assert_eq!(f.render(doc, &opts), "a -- c\nb -- c");
     }
 
     #[test]

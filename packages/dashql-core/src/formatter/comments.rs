@@ -688,7 +688,7 @@ impl<'a> Formatter<'a> {
                 let comment_text =
                     text.get(comment.offset as usize..comment.end() as usize).unwrap_or_default().trim_end();
                 match other {
-                    CommentPlace::After(_) => suffix.push(self.fmt.line_suffix(comment_text)),
+                    CommentPlace::After(_) => suffix.push(self.fmt.line_suffix(comment_text, comment.offset)),
                     // A line comment on a line of its own
                     CommentPlace::Before(_) if !is_block_comment(input, &comment) => {
                         prefix.extend([self.fmt.line_start(), self.fmt.verbatim(comment_text), self.fmt.break_()])
