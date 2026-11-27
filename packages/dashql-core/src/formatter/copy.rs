@@ -4,7 +4,7 @@
 //! The parser keeps no difference between `copy ... from stdin` and a COPY without a location, nor between the
 //! optional `with` and `as` of the COPY options and their absence. The formatter writes `stdin` and `with`.
 
-use super::{is_true, value_u8, FmtReg, Formatter, K};
+use super::{bool_value, value_u8, FmtReg, Formatter, K};
 use dashql_buffers::parser::{
     CopyDirection, CopyOption, DatabaseCopyDirection, DatabaseLocality, DatabaseOption, Node, NodeType, StreamType,
 };
@@ -458,9 +458,9 @@ impl<'a> Formatter<'a> {
         );
         let Some(name) = name else { return self.format_unimplemented(node) };
         let mut parts = vec![f.text("unload "), self.format_database_keyword(locality), self.reg_or_placeholder(name)];
-        match forcefully {
-            Some(forcefully) if is_true(Some(forcefully)) => parts.push(f.text(" forcefully")),
-            Some(_) => parts.push(f.text(" gracefully")),
+        match bool_value(forcefully) {
+            Some(true) => parts.push(f.text(" forcefully")),
+            Some(false) => parts.push(f.text(" gracefully")),
             None => {}
         }
         if defragment.is_some() {

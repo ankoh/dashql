@@ -4,7 +4,7 @@
 //! `TABLE` and `PRIVILEGES` and their absence. The formatter writes `role` (`group` for adding and dropping members),
 //! `on table` and `all`.
 
-use super::{is_true, value_u8, FmtReg, Formatter, K};
+use super::{bool_value, value_u8, FmtReg, Formatter, K};
 use dashql_buffers::parser::{AlterRoleAction, GrantTargetType, Node, Privilege, RoleOption, RoleType};
 use dashql_parser::attrs;
 
@@ -202,9 +202,9 @@ impl<'a> Formatter<'a> {
             return self.reg_or_placeholder(arg);
         };
         let keyword = match RoleOption(value_u8(kind)) {
-            RoleOption::PASSWORD => match encrypted {
-                Some(encrypted) if is_true(Some(encrypted)) => "encrypted password ",
-                Some(_) => "unencrypted password ",
+            RoleOption::PASSWORD => match bool_value(encrypted) {
+                Some(true) => "encrypted password ",
+                Some(false) => "unencrypted password ",
                 None => "password ",
             },
             RoleOption::INHERIT if arg.is_none() => return f.text("inherit"),

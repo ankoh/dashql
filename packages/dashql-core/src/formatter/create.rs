@@ -201,9 +201,9 @@ impl<'a> Formatter<'a> {
         parts.push(f.text(" as"));
         let header = f.concat(&parts);
         // `with check option` is `with cascaded check option`, the default
-        let check = match check_local {
-            Some(local) if super::is_true(Some(local)) => f.text("with local check option"),
-            Some(_) => f.text("with check option"),
+        let check = match super::bool_value(check_local) {
+            Some(true) => f.text("with local check option"),
+            Some(false) => f.text("with check option"),
             None => f.empty(),
         };
         self.space_join(&[header, self.reg(statement), check], FormattingJoinPolicy::BreakAllOrNone, false)
@@ -310,9 +310,9 @@ impl<'a> Formatter<'a> {
         if let Some(columns) = attributes {
             parts.push(f.parenthesized_list(self.reg(columns)));
         }
-        match pass_through {
-            Some(pass_through) if super::is_true(Some(pass_through)) => parts.push(f.text(" pass through")),
-            Some(_) => parts.push(f.text(" no pass through")),
+        match super::bool_value(pass_through) {
+            Some(true) => parts.push(f.text(" pass through")),
+            Some(false) => parts.push(f.text(" no pass through")),
             None => {}
         }
         if let Some(semantics) = semantics {
@@ -330,9 +330,9 @@ impl<'a> Formatter<'a> {
         if !super::is_true(set) {
             return f.text("with row semantics");
         }
-        match pruning {
-            Some(pruning) if super::is_true(Some(pruning)) => f.text("with set semantics prune when empty"),
-            Some(_) => f.text("with set semantics keep when empty"),
+        match super::bool_value(pruning) {
+            Some(true) => f.text("with set semantics prune when empty"),
+            Some(false) => f.text("with set semantics keep when empty"),
             None => f.text("with set semantics"),
         }
     }

@@ -6,7 +6,7 @@
 //! table t` and the `prepare` of `deallocate prepare p`. The formatter writes `from` after a fetch direction and
 //! leaves out the others.
 
-use super::{is_true, value_u8, FmtReg, Formatter, FormattingJoinPolicy, K};
+use super::{bool_value, value_u8, FmtReg, Formatter, FormattingJoinPolicy, K};
 use dashql_buffers::parser::{
     CursorOption, DefinitionType, DropBehavior, DropObjectType, FetchDirection, Node, RenameObjectType, SequenceOption,
     SessionParameter,
@@ -118,9 +118,9 @@ impl<'a> Formatter<'a> {
             parts.push(f.text(" "));
         }
         parts.push(f.text("cursor "));
-        match with_hold {
-            Some(hold) if is_true(Some(hold)) => parts.push(f.text("with hold ")),
-            Some(_) => parts.push(f.text("without hold ")),
+        match bool_value(with_hold) {
+            Some(true) => parts.push(f.text("with hold ")),
+            Some(false) => parts.push(f.text("without hold ")),
             None => {}
         }
         parts.push(f.text("for"));

@@ -1,13 +1,8 @@
 //! SQL/JSON functions and external streams.
 
-use super::{value_u8, FmtReg, Formatter, FormattingJoinPolicy, K};
-use dashql_buffers::parser::{JsonBehavior, JsonWrapper, Node, NodeType};
+use super::{bool_value, value_u8, FmtReg, Formatter, FormattingJoinPolicy, K};
+use dashql_buffers::parser::{JsonBehavior, JsonWrapper, Node};
 use dashql_parser::attrs;
-
-/// The value of a BOOL node, None without the node
-fn bool_value(node: Option<&Node>) -> Option<bool> {
-    node.filter(|n| n.node_type() == NodeType::BOOL).map(|n| n.children_begin_or_value() != 0)
-}
 
 impl<'a> Formatter<'a> {
     /// A JSON function: its name and its arguments in parentheses, the clauses after the arguments
@@ -24,7 +19,7 @@ impl<'a> Formatter<'a> {
     }
 
     /// `null on null` or `absent on null`
-    fn json_nulls_clause(&self, absent: Option<&Node>) -> FmtReg {
+    pub(super) fn json_nulls_clause(&self, absent: Option<&Node>) -> FmtReg {
         match bool_value(absent) {
             Some(true) => self.fmt.text("absent on null"),
             Some(false) => self.fmt.text("null on null"),

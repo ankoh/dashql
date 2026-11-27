@@ -256,6 +256,11 @@ fn is_name_list(key: AttributeKey) -> bool {
     )
 }
 
+/// The value of a BOOL node, None without the node
+fn bool_value(node: Option<&Node>) -> Option<bool> {
+    node.filter(|n| n.node_type() == NodeType::BOOL).map(|n| n.children_begin_or_value() != 0)
+}
+
 /// Is the node a true BOOL?
 fn is_true(node: Option<&Node>) -> bool {
     node.is_some_and(|n| n.node_type() == NodeType::BOOL && n.children_begin_or_value() != 0)
@@ -2485,11 +2490,12 @@ impl<'a> Formatter<'a> {
             call_parts.push(order_reg);
         }
         // `json_arrayagg(a absent on null)`
-        if let Some(absent_on_null) = absent_on_null {
+        if absent_on_null.is_some() {
             if call_parts.is_empty() {
                 return self.format_unimplemented(node);
             }
-            call_parts.push(f.text(if is_true(Some(absent_on_null)) { " absent on null" } else { " null on null" }));
+            call_parts.push(f.text(" "));
+            call_parts.push(self.json_nulls_clause(absent_on_null));
         }
 
         let call_body = f.concat(&call_parts);
