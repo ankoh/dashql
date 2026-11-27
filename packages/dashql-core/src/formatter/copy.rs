@@ -11,13 +11,21 @@ use dashql_buffers::parser::{
 use dashql_parser::attrs;
 
 impl<'a> Formatter<'a> {
-    /// Are the options of COPY, of an external table or of an external stream the legacy options, which have no
-    /// commas and no parentheses?
-    pub(super) fn are_legacy_copy_options(&self, options: &'a Node) -> bool {
-        self.children(options).first().is_some_and(|option| {
-            option.node_type() == NodeType::OBJECT_SQL_COPY_OPTION
-                && self.children(option).iter().any(|a| a.attribute_key() == K::SQL_COPY_OPTION_KIND)
-        })
+    /// Is an option of COPY, of an external table or of an external stream a legacy option, like `csv` or
+    /// `force quote a, b`? The legacy options have no commas and no parentheses.
+    pub(super) fn is_legacy_copy_option(&self, option: &Node) -> bool {
+        option.node_type() == NodeType::OBJECT_SQL_COPY_OPTION
+            && self.children(option).iter().any(|a| a.attribute_key() == K::SQL_COPY_OPTION_KIND)
+    }
+
+    /// Are the options of COPY, of an external table or of an external stream the legacy options?
+    pub(super) fn are_legacy_copy_options(&self, options: &Node) -> bool {
+        self.children(options).first().is_some_and(|option| self.is_legacy_copy_option(option))
+    }
+
+    /// Are the columns of an external table or stream a list of column definitions, not the table of `like t`?
+    pub(super) fn is_column_list(&self, schema: &Node) -> bool {
+        self.children(schema).first().is_some_and(|c| c.node_type() == NodeType::OBJECT_SQL_COLUMN_DEF)
     }
 
     /// The options of COPY: the legacy options as written, the others in parentheses
@@ -171,11 +179,7 @@ impl<'a> Formatter<'a> {
             None => f.text("()"),
             // The schema of the file
             Some(schema) if schema.node_type() == NodeType::OBJECT_SQL_CREATE_EXTERNAL_TABLE_INFER_SCHEMA => f.empty(),
-            Some(schema)
-                if self.children(schema).first().is_some_and(|c| c.node_type() == NodeType::OBJECT_SQL_COLUMN_DEF) =>
-            {
-                f.parenthesized_list(self.reg_or_placeholder(schema))
-            }
+            Some(schema) if self.is_column_list(schema) => f.parenthesized_list(self.reg_or_placeholder(schema)),
             Some(schema) => f.concat(&[f.text("like "), self.reg_or_placeholder(schema)]),
         }
     }

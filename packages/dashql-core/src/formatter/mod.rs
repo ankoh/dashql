@@ -798,9 +798,7 @@ impl<'a> Formatter<'a> {
             }
             // The columns of `force quote a, b`, or the values of a generic option in parentheses
             K::SQL_COPY_OPTION_VALUE => {
-                let parent = self.ast.get(node.parent() as usize);
-                if parent.is_some_and(|p| self.children(p).iter().any(|a| a.attribute_key() == K::SQL_COPY_OPTION_KIND))
-                {
+                if self.ast.get(node.parent() as usize).is_some_and(|option| self.is_legacy_copy_option(option)) {
                     self.format_comma_list(node, true)
                 } else {
                     f.parenthesized_list(self.format_comma_list(node, false))
@@ -808,7 +806,7 @@ impl<'a> Formatter<'a> {
             }
             // The columns of an external table or stream, or the table of `like t`
             K::SQL_CREATE_EXTERNAL_TABLE_SCHEMA | K::SQL_CREATE_EXTERNAL_STREAM_SCHEMA => {
-                if self.children(node).first().is_some_and(|c| c.node_type() == NodeType::OBJECT_SQL_COLUMN_DEF) {
+                if self.is_column_list(node) {
                     self.format_comma_list(node, false)
                 } else {
                     self.format_qualified_name(node)
