@@ -125,6 +125,28 @@ describe('DashQLCompletionListPlugin', () => {
         await vi.waitFor(() => expect(count()).toBe('1'));
     });
 
+    it('accepts a candidate that is clicked or tapped', async () => {
+        const editor = completingEditor();
+        await waitForSelected();
+        const rows = [...list().querySelectorAll<HTMLElement>(`.${styles.candidate_container}`)];
+        expect(rows.length).toBeGreaterThan(1);
+        const name = rows[1].querySelector(`.${styles.candidate_name}`)!.textContent!;
+        rows[1].querySelector(`.${styles.candidate_name}`)!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await vi.waitFor(() => expect(editor.state.doc.toString()).toContain(name));
+        expect(editor.state.doc.toString()).not.toBe(ORDERS_COMPLETION_TEXT);
+        expect(editor.state.selection.main.head).toBeGreaterThan(ORDERS_COMPLETION_TEXT.length);
+    });
+
+    it('steps through the catalog objects of an entry without accepting it', async () => {
+        const editor = completingEditor();
+        await waitForSelected();
+        const arrow = selected().querySelector('[aria-label="Next catalog object"]')!;
+        arrow.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+        arrow.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        await vi.waitFor(() => expect(selected().querySelector(`.${styles.info_selected_count}`)?.textContent).toBe('2'));
+        expect(editor.state.doc.toString()).toBe(ORDERS_COMPLETION_TEXT);
+    });
+
     it('hides the list when the completion ends', async () => {
         const editor = completingEditor();
         await vi.waitFor(() => expect(list().classList.contains(styles.hidden)).toBe(false));

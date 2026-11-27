@@ -385,6 +385,11 @@ a word typed in full at the end of a line would otherwise take the top candidate
 newline again. Typing starts a new completion that isn't navigated. Ctrl-N and Ctrl-P are Ctrl on macOS too; Chrome on
 Linux and Windows keeps Ctrl-N for a new window, the desktop app passes it on.
 
+A click or a tap on an entry of the list selects it and accepts it like Tab (`DashQLCompletionPickCandidateEffect`),
+an entry typed out already closes the list. The arrows of an entry step through its catalog objects without accepting
+it. The list keeps the focus in the editor, so the keyboard of a touch screen stays open, and its entries are taller on
+a touch screen.
+
 ### Visual hints
 
 The editor renders inline decorations for pending patches:

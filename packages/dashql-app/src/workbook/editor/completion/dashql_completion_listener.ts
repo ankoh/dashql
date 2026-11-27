@@ -2,7 +2,7 @@ import { EditorState, Prec, StateEffectType } from '@codemirror/state';
 import { EditorView, keymap, KeyBinding, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { insertTab } from '@codemirror/commands';
 
-import { DashQLCompletionAbortEffect, DashQLCompletionNextCandidateEffect, DashQLCompletionNextCandidateVariantEffect, DashQLCompletionPreviousCandidateEffect, DashQLCompletionPreviousCandidateVariantEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectCatalogObjectEffect, DashQLProcessorPlugin, hasEmptyCompletionTarget } from '../dashql_processor.js';
+import { DashQLCompletionAbortEffect, DashQLCompletionNextCandidateEffect, DashQLCompletionPickCandidateEffect, DashQLCompletionNextCandidateVariantEffect, DashQLCompletionPreviousCandidateEffect, DashQLCompletionPreviousCandidateVariantEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectCatalogObjectEffect, DashQLProcessorPlugin, hasEmptyCompletionTarget } from '../dashql_processor.js';
 import { type DashQLCompletionState, DashQLCompletionStatus } from './dashql_completion_state.js';
 import { applyCompletion, shouldAutoQualifyNonDefaultTable, updateCursorWithCompletion } from './dashql_completion_patches.js';
 
@@ -130,6 +130,21 @@ function acceptCandidate(view: EditorView, completion: DashQLCompletionState) {
                 )
         }
     });
+}
+
+/// Accept the candidate at an index of the list, a click or a tap on it. A candidate that is typed out already has
+/// nothing to apply, the list closes.
+export function pickCandidate(view: EditorView, index: number) {
+    if (view.state.field(DashQLProcessorPlugin).scriptCompletion?.status !== DashQLCompletionStatus.AVAILABLE) {
+        return;
+    }
+    view.dispatch({ effects: DashQLCompletionPickCandidateEffect.of(index) });
+    const picked = view.state.field(DashQLProcessorPlugin).scriptCompletion;
+    if (picked?.status === DashQLCompletionStatus.AVAILABLE && picked.candidateId === index && picked.candidatePatch.length > 0) {
+        acceptCandidate(view, picked);
+    } else {
+        view.dispatch({ effects: DashQLCompletionAbortEffect.of(null) });
+    }
 }
 
 function onTab(view: EditorView) {

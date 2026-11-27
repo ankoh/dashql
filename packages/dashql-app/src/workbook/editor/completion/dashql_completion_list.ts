@@ -3,6 +3,7 @@ import { EditorState } from '@codemirror/state';
 
 import { DashQLCompletionNextCandidateVariantEffect, DashQLCompletionPreviousCandidateVariantEffect, DashQLProcessorPlugin } from '../dashql_processor.js';
 import { DashQLCompletionState, DashQLCompletionStatus } from './dashql_completion_state.js';
+import { pickCandidate } from './dashql_completion_listener.js';
 import { CandidateListRenderer, collectCandidates, placeBelowOrAbove, readSyntaxError, type Position } from './completion_list_view.js';
 
 
@@ -21,6 +22,7 @@ class CompletionList {
         this.list = new CandidateListRenderer(
             () => view.dispatch({ effects: DashQLCompletionPreviousCandidateVariantEffect.of(null) }),
             () => view.dispatch({ effects: DashQLCompletionNextCandidateVariantEffect.of(null) }),
+            index => pickCandidate(view, index),
         );
     }
     /// Destroy the container

@@ -139,6 +139,8 @@ export const DashQLCompletionPreviousCandidateEffect: StateEffectType<null> = St
 export const DashQLCompletionNextCandidateVariantEffect: StateEffectType<null> = StateEffect.define<null>();
 /// Effect to select the previous candidate variant
 export const DashQLCompletionPreviousCandidateVariantEffect: StateEffectType<null> = StateEffect.define<null>();
+/// Effect to select the candidate at an index of the list, e.g. the one that was clicked
+export const DashQLCompletionPickCandidateEffect: StateEffectType<number> = StateEffect.define<number>();
 
 /// Effect to accept a pending diff (keep the new text, clear the overlay)
 export const DashQLDiffAcceptEffect: StateEffectType<null> = StateEffect.define<null>();
@@ -541,6 +543,16 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                 state = copyLazily(state, prevState);
                 state.scriptCompletion = stepped;
             }
+            break;
+
+        } else if (effect.is(DashQLCompletionPickCandidateEffect)) {
+            // Like the steps to the candidate, starting at its first catalog object
+            if (effect.value < 0 || effect.value >= completionBuffer.candidatesLength()) {
+                break;
+            }
+            const picked = { ...state.scriptCompletion, candidateId: effect.value, catalogObjectId: 0, navigated: true };
+            state = copyLazily(state, prevState);
+            state.scriptCompletion = computePatches(picked, transaction.newDoc, transaction.newSelection.main.anchor, UpdatePatchStartingFrom.Candidate);
             break;
 
         } else if (effect.is(DashQLCompletionSelectCandidateEffect)) {

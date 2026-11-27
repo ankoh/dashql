@@ -57,6 +57,7 @@
 
 .candidate_container {
     position: relative;
+    cursor: pointer;
     display: grid;
     grid-template-rows: max-content max-content;
     grid-template-columns: 28px auto;
@@ -266,4 +267,12 @@
 }
 .hidden {
     display: none;
+}
+
+/* A thumb needs a taller entry than a pointer */
+@media (pointer: coarse) {
+    .candidate_container {
+        padding-top: 9px;
+        padding-bottom: 9px;
+    }
 }

@@ -299,7 +299,7 @@ class CandidateRenderer {
     /// The span for the catalog object count
     readonly objectTotalSpan: HTMLSpanElement;
 
-    constructor(candidate: VirtualCandidate, selectPreviousVariant: () => void, selectNextVariant: () => void) {
+    constructor(candidate: VirtualCandidate, selectPreviousVariant: () => void, selectNextVariant: () => void, pick: () => void) {
         this.rendered = null;
         this.rootElement = document.createElement('div');
         this.iconElement = document.createElement('span');
@@ -336,6 +336,11 @@ class CandidateRenderer {
         this.navArrowRightElement.addEventListener('mousedown', event => {
             event.preventDefault();
             selectNextVariant();
+        });
+        // A click or a tap on the entry accepts it, the arrows only step through its catalog objects
+        this.rootElement.addEventListener('click', event => {
+            if (event.target instanceof Node && this.navContainerElement.contains(event.target)) return;
+            pick();
         });
 
         this.objectContainerElement = document.createElement('div');
@@ -555,12 +560,14 @@ export class CandidateListRenderer {
     readonly syntaxError: SyntaxErrorRenderer;
     readonly selectPreviousVariant: () => void;
     readonly selectNextVariant: () => void;
+    readonly pickCandidate: (index: number) => void;
 
-    constructor(selectPreviousVariant: () => void, selectNextVariant: () => void) {
+    constructor(selectPreviousVariant: () => void, selectNextVariant: () => void, pickCandidate: (index: number) => void) {
         this.rootVisible = true;
         this.rootPosition = { top: null, bottom: null, left: -1 };
         this.selectPreviousVariant = selectPreviousVariant;
         this.selectNextVariant = selectNextVariant;
+        this.pickCandidate = pickCandidate;
 
         this.rootElement = document.createElement('div');
         this.rootElement.className = styles.overlay_container;
@@ -632,7 +639,9 @@ export class CandidateListRenderer {
         }
         // Create new rendered
         for (let i = n; i < candidates.length; ++i) {
-            const entry = new CandidateRenderer(candidates[i], this.selectPreviousVariant, this.selectNextVariant);
+            // An entry keeps its index, the list reuses the entries by their position
+            const index = i;
+            const entry = new CandidateRenderer(candidates[i], this.selectPreviousVariant, this.selectNextVariant, () => this.pickCandidate(index));
             this.listContainer.appendChild(entry.rootElement);
             this.renderedCandidates.push(entry);
         }
