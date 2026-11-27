@@ -3,8 +3,10 @@
 use arrow_array::RecordBatch;
 
 use super::columns::{batches_with_rows, Booleans, StringLists, Strings};
-use super::sql::{functions_sql, quote_identifier, FunctionMetadata};
+use super::sql::quote_identifier;
+use super::tables::{catalog_functions_sql, CatalogFunction, CatalogFunctionParam};
 use super::{CatalogLoadError, CatalogQuery};
+use crate::connections::DEFAULT_DATABASE_NAME;
 use crate::query::QueryType;
 
 /// The query of the functions of `pg_proc`, of the catalog of an attached database if a session attaches several: Hyper
@@ -107,9 +109,19 @@ pub fn catalog_sql_from_pg_proc(
     batches: &[RecordBatch],
     database_name: Option<&str>,
 ) -> Result<PgProcFunctions, CatalogLoadError> {
+    let database_name = database_name.filter(|database| !database.is_empty()).unwrap_or(DEFAULT_DATABASE_NAME);
+    let function =
+        |schema_name: Option<&str>, function_name: &str, is_aggregate, return_type, params| CatalogFunction {
+            database_name: database_name.to_string(),
+            schema_name: schema_name.unwrap_or("").to_string(),
+            function_name: function_name.to_string(),
+            is_aggregate,
+            return_type,
+            params,
+        };
     let mut functions = Vec::new();
     let mut skipped = Vec::new();
-    let mut unsupported_functions: Vec<FunctionMetadata> = Vec::new();
+    let mut unsupported_functions: Vec<CatalogFunction> = Vec::new();
     for batch in batches_with_rows(batches) {
         let schemas = Strings::of(batch, "function_schema")?;
         let names = Strings::of(batch, "function_name")?;
@@ -145,16 +157,16 @@ pub fn catalog_sql_from_pg_proc(
                 || modes.iter().any(|mode| !matches!(mode.as_str(), "i" | "o" | "b" | "v" | "t"));
             if unsupported {
                 skipped.push(format!("{}.{function_name}", schema_name.unwrap_or("")));
-                unsupported_functions.push(FunctionMetadata {
-                    schema_name: schema_name.map(str::to_string),
-                    function_name: function_name.to_string(),
-                    arguments: None,
-                    return_type: None,
-                    is_aggregate: kinds.get(row) == Some("a"),
-                });
+                unsupported_functions.push(function(
+                    schema_name,
+                    function_name,
+                    kinds.get(row) == Some("a"),
+                    None,
+                    Vec::new(),
+                ));
                 continue;
             }
-            let arguments: Vec<String> = types
+            let params: Vec<CatalogFunctionParam> = types
                 .iter()
                 .enumerate()
                 .filter(|(index, _)| modes.get(*index).map(String::as_str) != Some("o"))
@@ -165,25 +177,27 @@ pub fn catalog_sql_from_pg_proc(
                         .flatten()
                         .filter(|name| !name.is_empty())
                         .unwrap_or_else(|| format!("arg{}", index + 1));
-                    format!("{} {sql_type}", quote_identifier(&name))
+                    CatalogFunctionParam { name: Some(name), param_type: Some(sql_type.clone()) }
                 })
                 .collect();
-            functions.push(FunctionMetadata {
-                schema_name: schema_name.map(str::to_string),
-                function_name: function_name.to_string(),
-                arguments: Some(arguments.join(", ")),
-                return_type: return_type.map(str::to_string),
-                is_aggregate: kinds.get(row) == Some("a"),
-            });
+            functions.push(function(
+                schema_name,
+                function_name,
+                kinds.get(row) == Some("a"),
+                return_type.map(str::to_string),
+                params,
+            ));
         }
     }
     for function in unsupported_functions {
-        let declared = |other: &FunctionMetadata| {
+        let declared = |other: &CatalogFunction| {
             other.schema_name == function.schema_name && other.function_name == function.function_name
         };
         if !functions.iter().any(declared) {
             functions.push(function);
         }
     }
-    Ok(PgProcFunctions { sql: functions_sql(database_name, &functions), skipped })
+    // Sorted by schema and name, one statement per line
+    functions.sort_by(|a, b| a.schema_name.cmp(&b.schema_name).then_with(|| a.function_name.cmp(&b.function_name)));
+    Ok(PgProcFunctions { sql: catalog_functions_sql(&functions), skipped })
 }
