@@ -25,6 +25,7 @@ yarn-error.log
 /todo.md
 
 /.claude/settings.local.json
+/.claude/skills/kiss-review/reviewed.md
 /.claude/worktrees
 /.cursor
 

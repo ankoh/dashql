@@ -62,11 +62,11 @@ code without tests and snapshots (`git ls-files <paths> | xargs wc -l`). The are
 
 Adjust the list when the code has moved (new packages, merged ones) and write the adjusted list back here.
 
-Which areas were reviewed when is kept outside the repo, in `~/.local/state/dashql/kiss-review.md`, one line per
-area and run: `<date> <START short hash> <area>`. Without an argument, take about 6 areas: first the ones the file
-never lists (or all, if the file is missing), then those reviewed longest ago. Bring one forward if a lot changed in
-it since its last review (`git diff --shortstat <its commit> START -- <paths>`). At the end of the run, append a line
-per reviewed area (create the file if needed).
+Which areas were reviewed when is kept in `reviewed.md` in this folder, ignored by git, one line per area and run:
+`<date> <START short hash> <area>`. It is a hint, not a must: without an argument, take about 6 areas, first the ones
+the file never lists (all, if the file is missing), then those reviewed longest ago. Bring one forward if a lot
+changed in it since its last review (`git diff --shortstat <its commit> START -- <paths>`). At the end of the run,
+append a line per reviewed area (create the file if needed).
 
 ### Reviewers
 
