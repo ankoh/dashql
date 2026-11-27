@@ -52,7 +52,20 @@ export function createWebHyperDBClientOptions(): { workerUrl: URL; engineUrl: st
     return { workerUrl, engineUrl: engineScript.url, wasmUrl: HYPERDB_WASM_URL, revoke: engineScript.revoke };
 }
 
+/// Stop the worker of an engine at once.
+/// The terminate of the engine shuts it down first and waits for the answers of the worker, a page that unloads doesn't
+/// wait for them, and the worker would run on with its memory. hyperdb-wasm has no public call that stops the worker
+/// without the shutdown, its client has one.
+function stopEngineWorker(engine: HyperDBEngine): void {
+    const client = (engine as unknown as { client: { terminate(): Promise<void> } }).client;
+    void client.terminate().catch(() => { /* the worker is gone either way */ });
+}
+
 /// Start a HyperDB engine in a browser worker.
+/// A page that goes away stops the worker of its engine right away. The engine reserves a shared WebAssembly.Memory
+/// with a maximum of 4 GiB, and WebKit charges that maximum against the address space of its process. A reload asks
+/// for another 4 GiB, and Safari of iOS fails it with "Out of memory" while the worker of the last page still holds
+/// its memory. A page that goes to the back-forward cache keeps its engine.
 async function createWebHyperDBEngine(
     settings: HyperDBSettings,
     onSetupProgress?: (progress: SetupProgress) => void,
@@ -65,8 +78,13 @@ async function createWebHyperDBEngine(
         revoke();
         throw error;
     }
+    const stopOnPageHide = (event: PageTransitionEvent) => {
+        if (!event.persisted) stopEngineWorker(engine);
+    };
+    window.addEventListener('pagehide', stopOnPageHide);
     const terminate = engine.terminate.bind(engine);
     engine.terminate = async () => {
+        window.removeEventListener('pagehide', stopOnPageHide);
         try {
             await terminate();
         } finally {

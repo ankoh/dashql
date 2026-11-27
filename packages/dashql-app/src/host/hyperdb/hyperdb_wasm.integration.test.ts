@@ -218,6 +218,23 @@ describe('HyperDB embedded database integration', () => {
         }
     }, 60_000);
 
+    it('stops the engine of a page that unloads, not of one that goes to the back-forward cache', async () => {
+        const factory = globalThis.__DASHQL_TEST_HYPERDB_FACTORY__;
+        globalThis.__DASHQL_TEST_HYPERDB_FACTORY__ = undefined;
+        try {
+            const unloadingDatabase = await setupWebHyperDB('page_hide_test', new TestLogger());
+            const connection = await unloadingDatabase.connect();
+            window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: true }));
+            expect(toPlainObjects(await connection.query('SELECT 1::INTEGER AS answer'))).toEqual([{ answer: 1 }]);
+            window.dispatchEvent(new PageTransitionEvent('pagehide', { persisted: false }));
+            await expect(connection.query('SELECT 2::INTEGER AS answer')).rejects.toThrow('engine worker terminated');
+            // An unloading page never gets to terminate its database, the next page removes the stale OPFS instance
+            await unloadingDatabase.terminate().catch(() => {});
+        } finally {
+            globalThis.__DASHQL_TEST_HYPERDB_FACTORY__ = factory;
+        }
+    }, 60_000);
+
     it('queries a browser Blob through a registered WasmFS path', async () => {
         const connection = await database!.connect();
         const blob = new Blob(['value,name\n1,alpha\n2,beta\n'], { type: 'text/csv' });

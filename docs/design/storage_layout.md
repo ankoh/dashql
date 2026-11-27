@@ -166,6 +166,12 @@ The databases are scratch space: data frames are computed again when queries run
 drops the three databases and removes the folder. A Web Lock `dashql-instance-<uuid>` is held while the window lives,
 and the startup of the next instance removes every instance folder whose lock is free, e.g. after a crash.
 
+A window that unloads (`pagehide`, not into the back-forward cache) gets no time for `HyperDB.terminate()`, whose
+shutdown waits for answers of the engine worker. It stops the worker right away instead, so the worker doesn't hold
+its shared WebAssembly.Memory into the reload: WebKit charges the 4 GiB maximum of that memory against the address
+space of its process, and Safari of iOS fails the memory of the reloaded page with "Out of memory" while the last one
+is held. The folder of the unloaded instance goes with the startup of the next one.
+
 Earlier app versions kept these folders in the OPFS root as `dashql-workbook-<uuid>/` and let Hyper write its logs
 to the default folder `logs/<process-id>/` in the OPFS root, the cleanup removes both. Hyper still creates an
 empty `logs/` folder at startup, before the instance settings apply.
