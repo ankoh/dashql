@@ -14,8 +14,8 @@ use dashql_buffers::parser::{
 use dashql_parser::attrs;
 
 impl<'a> Formatter<'a> {
-    /// `cascade` or `restrict`
-    pub(super) fn format_drop_behavior_kind(&self, node: &'a Node) -> FmtReg {
+    /// `cascade` or `restrict`, how a command treats the objects that depend on those that it drops or changes
+    pub(super) fn format_drop_behavior(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
         match DropBehavior(value_u8(node)) {
             DropBehavior::CASCADE => f.text("cascade"),

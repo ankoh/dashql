@@ -310,8 +310,8 @@ parser-snapshots:
                       - type: NAME
                         text: "u"
               - key: SQL_DROP_CASCADE
-                type: BOOL
-                value: 1
+                type: ENUM_SQL_DROP_BEHAVIOR
+                value: CASCADE
         - type: DROP_TABLE
           ast-begin: 9
           ast-size: 4
@@ -330,8 +330,8 @@ parser-snapshots:
                   - type: NAME
                     text: "t"
               - key: SQL_DROP_CASCADE
-                type: BOOL
-                value: 0
+                type: ENUM_SQL_DROP_BEHAVIOR
+                value: RESTRICT
         - type: DROP_VIEW
           ast-begin: 13
           ast-size: 7
@@ -359,8 +359,8 @@ parser-snapshots:
                       - type: NAME
                         text: "v2"
               - key: SQL_DROP_CASCADE
-                type: BOOL
-                value: 1
+                type: ENUM_SQL_DROP_BEHAVIOR
+                value: CASCADE
       scanner-errors: []
       parser-errors: []
       line-breaks:

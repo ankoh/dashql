@@ -1,5 +1,5 @@
 sql_drop_table_stmt:
-    DROP TABLE sql_qualified_name sql_drop_more_names sql_alter_drop_behavior {
+    DROP TABLE sql_qualified_name sql_drop_more_names sql_cmd_opt_drop_behavior {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_DROP_TABLE,
@@ -10,7 +10,7 @@ sql_drop_table_stmt:
             ],
         )
     }
-  | DROP TABLE IF_P EXISTS sql_qualified_name sql_drop_more_names sql_alter_drop_behavior {
+  | DROP TABLE IF_P EXISTS sql_qualified_name sql_drop_more_names sql_cmd_opt_drop_behavior {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_DROP_TABLE,
@@ -25,7 +25,7 @@ sql_drop_table_stmt:
     ;
 
 sql_drop_view_stmt:
-    DROP VIEW sql_qualified_name sql_drop_more_names sql_alter_drop_behavior {
+    DROP VIEW sql_qualified_name sql_drop_more_names sql_cmd_opt_drop_behavior {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_DROP_VIEW,
@@ -36,7 +36,7 @@ sql_drop_view_stmt:
             ],
         )
     }
-  | DROP VIEW IF_P EXISTS sql_qualified_name sql_drop_more_names sql_alter_drop_behavior {
+  | DROP VIEW IF_P EXISTS sql_qualified_name sql_drop_more_names sql_cmd_opt_drop_behavior {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_DROP_VIEW,

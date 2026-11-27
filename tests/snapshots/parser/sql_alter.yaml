@@ -638,8 +638,8 @@ parser-snapshots:
                         type: NAME
                         text: "a"
                       - key: SQL_ALTER_ACTION_CASCADE
-                        type: BOOL
-                        value: 1
+                        type: ENUM_SQL_DROP_BEHAVIOR
+                        value: CASCADE
       scanner-errors: []
       parser-errors: []
       line-breaks: []
@@ -774,8 +774,8 @@ parser-snapshots:
                   - type: NAME
                     text: "analytics"
               - key: SQL_SCHEMA_CASCADE
-                type: BOOL
-                value: 1
+                type: ENUM_SQL_DROP_BEHAVIOR
+                value: CASCADE
       scanner-errors: []
       parser-errors: []
       line-breaks: []
@@ -806,8 +806,8 @@ parser-snapshots:
                   - type: NAME
                     text: "analytics"
               - key: SQL_SCHEMA_CASCADE
-                type: BOOL
-                value: 0
+                type: ENUM_SQL_DROP_BEHAVIOR
+                value: RESTRICT
       scanner-errors: []
       parser-errors: []
       line-breaks: []
@@ -970,8 +970,8 @@ parser-snapshots:
                         type: BOOL
                         value: 1
                       - key: SQL_ALTER_ACTION_CASCADE
-                        type: BOOL
-                        value: 1
+                        type: ENUM_SQL_DROP_BEHAVIOR
+                        value: CASCADE
         - type: ALTER_TABLE
           ast-begin: 29
           ast-size: 7
@@ -1000,8 +1000,8 @@ parser-snapshots:
                         type: NAME
                         text: "c"
                       - key: SQL_ALTER_ACTION_CASCADE
-                        type: BOOL
-                        value: 0
+                        type: ENUM_SQL_DROP_BEHAVIOR
+                        value: RESTRICT
         - type: ALTER_TABLE
           ast-begin: 36
           ast-size: 7
@@ -1236,8 +1236,8 @@ parser-snapshots:
                       - type: NAME
                         text: "s2"
               - key: SQL_SCHEMA_CASCADE
-                type: BOOL
-                value: 1
+                type: ENUM_SQL_DROP_BEHAVIOR
+                value: CASCADE
       scanner-errors: []
       parser-errors: []
       line-breaks:

@@ -3362,7 +3362,7 @@ impl<'a> Formatter<'a> {
             NodeType::OBJECT_SQL_ROLE_ELEMENT => self.format_role_element(node),
             NodeType::OBJECT_SQL_ALTER_ROLE => self.format_alter_role(node),
             NodeType::OBJECT_SQL_DROP_ROLE => self.format_drop_role(node),
-            NodeType::ENUM_SQL_DROP_BEHAVIOR => self.format_drop_behavior_kind(node),
+            NodeType::ENUM_SQL_DROP_BEHAVIOR => self.format_drop_behavior(node),
             NodeType::ENUM_SQL_GRANT_TARGET_TYPE
             | NodeType::ENUM_SQL_ROLE_OPTION
             | NodeType::ENUM_SQL_ALTER_ROLE_ACTION => f.empty(),

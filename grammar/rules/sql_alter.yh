@@ -7,7 +7,6 @@
 %type<Node> sql_alter_relation_move;
 %type<Node> sql_create_schema_stmt;
 %type<Node> sql_drop_schema_stmt;
-%type<Node> sql_alter_drop_behavior;
 %type<Node> sql_alter_schema_stmt;
 %type<Node> sql_alter_only;
 %type<Node> sql_schema_if;

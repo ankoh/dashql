@@ -417,7 +417,7 @@ impl<'a> Formatter<'a> {
         self.format_command_clauses(&[
             f.concat(&[f.text(object), if_exists_reg]),
             self.format_drop_names(name, more_names),
-            self.format_drop_behavior_clause(cascade),
+            cascade.map_or(f.empty(), |cascade| self.reg_or_placeholder(cascade)),
         ])
     }
 
@@ -474,33 +474,13 @@ impl<'a> Formatter<'a> {
                 self.format_command_clauses(&[
                     f.concat(&[f.text("drop schema"), condition]),
                     self.format_drop_names(name, more_names),
-                    self.format_drop_behavior_clause(cascade),
+                    cascade.map_or(f.empty(), |cascade| self.reg_or_placeholder(cascade)),
                 ])
             }
             (NodeType::OBJECT_SQL_ALTER_SCHEMA, Some(name), Some(new_name)) => {
                 f.concat(&[f.text("alter schema "), self.reg(name), f.text(" rename to "), self.reg(new_name)])
             }
             _ => self.format_unimplemented(node),
-        }
-    }
-
-    /// `cascade` or `restrict`, the last clause of a DROP
-    fn format_drop_behavior_clause(&self, cascade: Option<&'a Node>) -> FmtReg {
-        let f = &self.fmt;
-        match cascade {
-            Some(cascade) if cascade.children_begin_or_value() != 0 => f.text("cascade"),
-            Some(_) => f.text("restrict"),
-            None => f.empty(),
-        }
-    }
-
-    /// ` cascade` or ` restrict` after the action of an ALTER TABLE
-    fn format_drop_behavior(&self, cascade: Option<&'a Node>) -> FmtReg {
-        let f = &self.fmt;
-        match cascade {
-            Some(cascade) if cascade.children_begin_or_value() != 0 => f.text(" cascade"),
-            Some(_) => f.text(" restrict"),
-            None => f.empty(),
         }
     }
 
@@ -541,6 +521,8 @@ impl<'a> Formatter<'a> {
                 K::SQL_ALTER_ACTION_USING,
             ],
         );
+        // ` cascade` or ` restrict` after the action
+        let cascade = cascade.map_or(f.empty(), |cascade| f.concat(&[f.text(" "), self.reg_or_placeholder(cascade)]));
         match (node.node_type(), column, new_name, new_table, column_type) {
             (NodeType::OBJECT_SQL_ALTER_ADD_COLUMN, Some(column), _, _, _) => {
                 let condition = if condition.is_some() { f.text("if not exists ") } else { f.empty() };
@@ -550,13 +532,7 @@ impl<'a> Formatter<'a> {
                 // Trino writes the condition before the column, Hyper after it
                 let condition = if condition.is_some() { f.text("if exists ") } else { f.empty() };
                 let condition_after = if condition_after.is_some() { f.text(" if exists") } else { f.empty() };
-                f.concat(&[
-                    f.text("drop column "),
-                    condition,
-                    self.reg(column),
-                    condition_after,
-                    self.format_drop_behavior(cascade),
-                ])
+                f.concat(&[f.text("drop column "), condition, self.reg(column), condition_after, cascade])
             }
             (NodeType::OBJECT_SQL_ALTER_RENAME_COLUMN, Some(column), Some(new_name), _, _) => {
                 f.concat(&[f.text("rename column "), self.reg(column), f.text(" to "), self.reg(new_name)])
@@ -574,12 +550,7 @@ impl<'a> Formatter<'a> {
             (NodeType::OBJECT_SQL_ALTER_DROP_CONSTRAINT, _, _, _, _) => match constraint {
                 Some(constraint) => {
                     let condition = if condition.is_some() { f.text("if exists ") } else { f.empty() };
-                    f.concat(&[
-                        f.text("drop constraint "),
-                        condition,
-                        self.reg_or_placeholder(constraint),
-                        self.format_drop_behavior(cascade),
-                    ])
+                    f.concat(&[f.text("drop constraint "), condition, self.reg_or_placeholder(constraint), cascade])
                 }
                 None => self.format_unimplemented(node),
             },

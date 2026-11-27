@@ -42,14 +42,14 @@ sql_alter_table_action:
             &[attr(Key::SQL_ALTER_ACTION_IF, bool_node(loc(&[@3, @4, @5]), true)), attr(Key::SQL_ALTER_ACTION_COLUMN, $6)],
         )
     }
-  | DROP sql_alter_opt_column sql_col_id sql_alter_drop_behavior {
+  | DROP sql_alter_opt_column sql_col_id sql_cmd_opt_drop_behavior {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_ALTER_DROP_COLUMN,
             &[attr(Key::SQL_ALTER_ACTION_COLUMN, $3), attr(Key::SQL_ALTER_ACTION_CASCADE, $4)],
         )
     }
-  | DROP sql_alter_opt_column IF_P EXISTS sql_col_id sql_alter_drop_behavior {
+  | DROP sql_alter_opt_column IF_P EXISTS sql_col_id sql_cmd_opt_drop_behavior {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_ALTER_DROP_COLUMN,
@@ -60,7 +60,7 @@ sql_alter_table_action:
             ],
         )
     }
-  | DROP sql_alter_opt_column sql_col_id IF_P EXISTS sql_alter_drop_behavior {
+  | DROP sql_alter_opt_column sql_col_id IF_P EXISTS sql_cmd_opt_drop_behavior {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_ALTER_DROP_COLUMN,
@@ -94,7 +94,7 @@ sql_alter_table_action:
         )
     }
   | ADD_P sql_table_constraint { ctx.object(@$,NodeType::OBJECT_SQL_ALTER_ADD_CONSTRAINT,&[attr(Key::SQL_ALTER_ACTION_CONSTRAINT,$2)]) }
-  | DROP CONSTRAINT sql_col_id sql_alter_drop_behavior {
+  | DROP CONSTRAINT sql_col_id sql_cmd_opt_drop_behavior {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_ALTER_DROP_CONSTRAINT,
@@ -104,7 +104,7 @@ sql_alter_table_action:
             ],
         )
     }
-  | DROP CONSTRAINT IF_P EXISTS sql_col_id sql_alter_drop_behavior {
+  | DROP CONSTRAINT IF_P EXISTS sql_col_id sql_cmd_opt_drop_behavior {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_ALTER_DROP_CONSTRAINT,
@@ -188,7 +188,7 @@ CREATE_P SCHEMA sql_schema_if sql_qualified_name sql_schema_authorization sql_sc
     }
     ;
 sql_drop_schema_stmt:
-    DROP SCHEMA sql_qualified_name sql_drop_more_names sql_alter_drop_behavior {
+    DROP SCHEMA sql_qualified_name sql_drop_more_names sql_cmd_opt_drop_behavior {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_DROP_SCHEMA,
@@ -199,7 +199,7 @@ sql_drop_schema_stmt:
             ],
         )
     }
-  | DROP SCHEMA IF_P EXISTS sql_qualified_name sql_drop_more_names sql_alter_drop_behavior {
+  | DROP SCHEMA IF_P EXISTS sql_qualified_name sql_drop_more_names sql_cmd_opt_drop_behavior {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_DROP_SCHEMA,
@@ -211,13 +211,6 @@ sql_drop_schema_stmt:
             ],
         )
     }
-    ;
-
-// True for CASCADE and false for RESTRICT, which is what a statement without either means as well
-sql_alter_drop_behavior:
-    CASCADE { bool_node(@$, true) }
-  | RESTRICT { bool_node(@$, false) }
-  | %empty { null() }
     ;
 
 sql_alter_schema_stmt:
