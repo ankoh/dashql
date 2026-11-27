@@ -366,17 +366,25 @@ export function SnippetBrowser(props: SnippetBrowserProps): React.ReactElement {
         <section className={styles.overlay} role="dialog" aria-labelledby={titleId} data-testid="snippets-overlay">
             <header className={styles.header}>
                 <h2 id={titleId}>Snippets</h2>
-                <IconButton
-                    variant={ButtonVariant.Invisible}
-                    size={ButtonSize.Small}
-                    aria-label="Close snippets"
-                    data-testid="snippets-close"
-                    onClick={props.onClose}
-                >
-                    <XIcon size={16} />
-                </IconButton>
+                {/* Use applies the snippet of the preview, in the header it stays in reach on a narrow screen too */}
+                <div className={styles.header_actions}>
+                    {selected != null && (
+                        <Button variant={ButtonVariant.Primary} size={ButtonSize.Small} data-testid="snippet-apply" onClick={apply}>
+                            Use
+                        </Button>
+                    )}
+                    <IconButton
+                        variant={ButtonVariant.Invisible}
+                        size={ButtonSize.Small}
+                        aria-label="Close snippets"
+                        data-testid="snippets-close"
+                        onClick={props.onClose}
+                    >
+                        <XIcon size={16} />
+                    </IconButton>
+                </div>
             </header>
-            <div ref={bodyRef} className={styles.body} style={{ gridTemplateColumns: `${listWidth.width}px minmax(0, 1fr)` }}>
+            <div ref={bodyRef} className={styles.body} style={{ '--snippet_list_width': `${listWidth.width}px` } as React.CSSProperties}>
                 <div className={styles.sidebar}>
                     <div
                         className={styles.resize_handle}
@@ -417,16 +425,9 @@ export function SnippetBrowser(props: SnippetBrowserProps): React.ReactElement {
                 </div>
                 <div className={styles.preview} data-testid="snippet-preview" data-snippet-id={selected?.id}>
                     {selected != null && (
-                        <>
-                            <div className={styles.preview_header}>
-                                <Button variant={ButtonVariant.Primary} size={ButtonSize.Small} data-testid="snippet-apply" onClick={apply}>
-                                    Use
-                                </Button>
-                            </div>
-                            <div className={styles.preview_text} data-testid="snippet-text">
-                                <ReadonlySqlView text={preview.text} editorUpdate={preview.editorUpdate} onResize={onPreviewResize} />
-                            </div>
-                        </>
+                        <div className={styles.preview_text} data-testid="snippet-text">
+                            <ReadonlySqlView text={preview.text} editorUpdate={preview.editorUpdate} onResize={onPreviewResize} />
+                        </div>
                     )}
                 </div>
             </div>

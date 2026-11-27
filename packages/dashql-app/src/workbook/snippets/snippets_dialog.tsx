@@ -5,6 +5,7 @@ import { SnippetBrowser } from './snippets_overlay.js';
 import type { SnippetRegistry } from './snippet_registry.js';
 import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
 import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
+import { PHONE_WIDTH_QUERY, useMediaQuery } from '@akohn/dashql-react/dom/media_query';
 import { usePendingRequest } from '../../utils/use_pending_request.js';
 
 const IGNORE_OUTSIDE_CLICK = () => {};
@@ -43,6 +44,8 @@ interface SnippetsDialogProps {
 function SnippetsDialog(props: SnippetsDialogProps): React.ReactElement {
     const overlayRef = React.useRef<HTMLDivElement>(null);
     const listRef = React.useRef<HTMLDivElement>(null);
+    // A phone has no room around the dialog, it fills the window and stacks the list over the preview
+    const phone = useMediaQuery(PHONE_WIDTH_QUERY);
 
     useFocusTrap({
         containerRef: overlayRef as React.RefObject<HTMLElement>,
@@ -56,6 +59,7 @@ function SnippetsDialog(props: SnippetsDialogProps): React.ReactElement {
             centered
             width={OverlaySize.XXL}
             height={OverlaySize.L}
+            expanded={phone}
             preventFocusOnOpen
             onEscape={props.onClose}
             onClickOutside={IGNORE_OUTSIDE_CLICK}

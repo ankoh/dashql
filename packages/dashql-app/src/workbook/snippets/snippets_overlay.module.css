@@ -17,6 +17,13 @@
     border-bottom: 1px solid var(--color_border);
 }
 
+/* The apply button and the close button on the right */
+.header_actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .header h2 {
     margin: 0;
     font-size: 13px;
@@ -27,6 +34,7 @@
     flex: 1 1 auto;
     min-height: 0;
     display: grid;
+    grid-template-columns: var(--snippet_list_width) minmax(0, 1fr);
 }
 
 /* The search field above the snippet list */
@@ -100,12 +108,19 @@
     overflow: auto;
 }
 
-/* The bar above the text of the snippet with the apply button on the right */
-.preview_header {
-    flex: 0 0 auto;
-    padding: 8px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    border-bottom: 1px solid var(--color_border);
+/* A phone has no room for two columns, the list sits above the preview. The width is PHONE_WIDTH_QUERY. */
+@media (max-width: 600px) {
+    .body {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, 2fr) minmax(0, 3fr);
+    }
+
+    .sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--color_border);
+    }
+
+    .resize_handle {
+        display: none;
+    }
 }
