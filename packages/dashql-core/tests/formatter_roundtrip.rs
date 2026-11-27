@@ -17,14 +17,6 @@ use std::sync::Arc;
 #[path = "../../dashql-parser/src/parser/hyper_cases.rs"]
 mod hyper_cases;
 
-/// Scripts that the formatter rejects on purpose, of the parser snapshots and the Hyper cases of the parser. The
-/// formatter reports them as not fully formatted.
-const UNFORMATTABLE: &[&str] = &[
-    // DEFAULT is only formatted as a value of INSERT and MERGE and of assignments
-    "select somefunc(default);",
-    "values (default)",
-];
-
 /// Scripts whose formatted output spells a construct differently, with another tree of the same meaning
 const RESPELLED: &[&str] = &[
     // Array types are written as `t[]`
@@ -69,7 +61,7 @@ fn config(mode: FormattingMode) -> FormattingConfigT {
 }
 
 /// The scripts of the round trip: the error-free scripts of the parser snapshots and the Hyper cases of the parser,
-/// with their names, without the scripts that the formatter rejects on purpose
+/// with their names
 fn corpus() -> Vec<(String, String, ParsedScript)> {
     let snapshots =
         load_category("parser").unwrap().into_iter().filter_map(|case| Some((case.trial_name(), case.input()?)));
@@ -77,7 +69,7 @@ fn corpus() -> Vec<(String, String, ParsedScript)> {
     let mut scripts = Vec::new();
     for (name, input) in snapshots.chain(hyper) {
         let parsed = parse(Arc::new(scan(&input, 0, 2)));
-        if is_valid(&parsed) && !UNFORMATTABLE.contains(&input.trim()) {
+        if is_valid(&parsed) {
             scripts.push((name, input, parsed));
         }
     }

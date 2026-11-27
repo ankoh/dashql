@@ -16,8 +16,7 @@ the formatter.
    clause that the formatter drops without a placeholder and a node that ends up under another parent, like a join on
    the right of a CROSS JOIN without its parentheses; `RESPELLED` lists the scripts whose output spells a
    construct with another tree of the same meaning (`array(t)` and `t array` as `t[]`). The test reports the unformattable node types of
-   every failure. `UNFORMATTABLE` lists the scripts the formatter rejects on purpose and reports as not fully formatted:
-   `DEFAULT` outside of the values of `INSERT` and `MERGE` and of assignments, also in `values (default)`.
+   every failure.
 
    This is the breadth gate and the grammar-change gate in one: a new parser fixture that uses syntax without a
    formatter handler fails CI.
@@ -40,4 +39,4 @@ A grammar change that emits new AST nodes or attributes needs:
 - focused formatter snapshot inputs, including optional modifiers and narrow-width wrapping,
 - Hyper validation or AST-equivalence coverage for meaning-sensitive constructs.
 
-The parser fixture for the new syntax then passes the round-trip gate without extending `UNFORMATTABLE`.
+The parser fixture for the new syntax then passes the round-trip gate.

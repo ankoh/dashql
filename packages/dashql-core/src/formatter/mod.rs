@@ -3104,29 +3104,6 @@ impl<'a> Formatter<'a> {
         }
     }
 
-    /// Is a DEFAULT expression a value of an INSERT ... VALUES?
-    fn is_in_insert_values(&self, node: &Node) -> bool {
-        let mut parent_id = node.parent() as usize;
-        let mut depth = 0;
-        while depth < self.ast.len() {
-            let Some(parent) = self.ast.get(parent_id) else { break };
-            if parent.attribute_key() == K::SQL_INSERT_SOURCE {
-                let [values] = attrs!(self.children(parent), [K::SQL_SELECT_VALUES]);
-                return parent.node_type() == NodeType::OBJECT_SQL_SELECT && values.is_some();
-            }
-            if parent.node_type() == NodeType::OBJECT_SQL_INSERT {
-                break;
-            }
-            let next_parent = parent.parent() as usize;
-            if next_parent == parent_id {
-                break;
-            }
-            parent_id = next_parent;
-            depth += 1;
-        }
-        false
-    }
-
     /// Is a node the left operand of a chain of an operator, an expression with that operator without parentheses?
     fn continues_chain(&self, lhs: &Node, op: ExpressionOperator) -> bool {
         if lhs.node_type() != NodeType::OBJECT_SQL_NARY_EXPRESSION || self.state(lhs).needs_parentheses {
@@ -3153,12 +3130,6 @@ impl<'a> Formatter<'a> {
             if op_node.node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR
                 && ExpressionOperator(value_u8(op_node)) == ExpressionOperator::DEFAULT
             {
-                if !self.is_in_insert_values(node)
-                    && !self.is_assignment_value(node)
-                    && !self.is_merge_insert_value(node)
-                {
-                    return self.format_unimplemented(node);
-                }
                 return self.reg(op_node);
             }
         }

@@ -3,7 +3,7 @@
 //! `when not matched` and `when not matched by target` are the same, the formatter writes the short form.
 
 use super::{value_u8, FmtReg, Formatter, FormattingJoinPolicy, K};
-use dashql_buffers::parser::{MergeAction, MergeMatch, Node, NodeType};
+use dashql_buffers::parser::{MergeAction, MergeMatch, Node};
 use dashql_parser::attrs;
 
 impl<'a> Formatter<'a> {
@@ -123,13 +123,5 @@ impl<'a> Formatter<'a> {
             }
             _ => self.format_unimplemented(node),
         }
-    }
-
-    /// Is a DEFAULT expression a value that a WHEN clause of MERGE inserts?
-    pub(super) fn is_merge_insert_value(&self, node: &Node) -> bool {
-        node.attribute_key() == K::NONE
-            && self.ast.get(node.parent() as usize).is_some_and(|values| {
-                values.node_type() == NodeType::ARRAY && values.attribute_key() == K::SQL_MERGE_ACTION_VALUES
-            })
     }
 }
