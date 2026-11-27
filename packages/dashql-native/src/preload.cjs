@@ -60,15 +60,6 @@ contextBridge.exposeInMainWorld("dashqlElectron", {
         writeTextFile: async (path, data) => await ipcRenderer.invoke("dashql:fs", "writeTextFile", path, data),
     },
     getInitialDeepLinks: async () => await ipcRenderer.invoke("dashql:get-initial-deep-links"),
-    getRuntimeCapabilities: async () => {
-        const versions = await ipcRenderer.invoke("dashql:runtime-capabilities");
-        return {
-            ...versions,
-            crossOriginIsolated: globalThis.crossOriginIsolated,
-            secureContext: globalThis.isSecureContext,
-            sharedArrayBuffer: typeof globalThis.SharedArrayBuffer === "function",
-        };
-    },
     nativeProxyRequest: async (request) => await ipcRenderer.invoke("dashql:native-proxy-request", {
         body: new Uint8Array(request.body),
         headers: request.headers.map((header) => [header[0], header[1]]),

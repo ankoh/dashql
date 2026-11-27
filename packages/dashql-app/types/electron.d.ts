@@ -19,7 +19,6 @@ interface DashQLElectronBridge {
     /// The file system, see packages/dashql/src/platform/electron_fs.ts
     fs: import('@akohn/dashql/platform/electron_fs').ElectronFsBridge;
     getInitialDeepLinks(): Promise<Array<{type: "event" | "workbook" | "zip"; value: string}>>;
-    getRuntimeCapabilities(): Promise<unknown>;
     nativeProxyRequest(request: unknown): Promise<unknown>;
     onDeepLink(listener: (link: {type: "event" | "workbook" | "zip"; value: string}) => void): () => void;
     /// Write the pending changes before a window closes, the main process waits until the handler resolves

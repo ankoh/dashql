@@ -628,17 +628,6 @@ if (!hasSingleInstanceLock) {
         throw new Error("Rejected filesystem operation");
     });
 
-    ipcMain.handle("dashql:runtime-capabilities", (event) => {
-        if (!isTrustedRenderer(event.senderFrame?.url)) {
-            throw new Error("Rejected runtime capability request from an untrusted frame");
-        }
-        return {
-            chrome: process.versions.chrome,
-            electron: process.versions.electron,
-            node: process.versions.node,
-        };
-    });
-
     ipcMain.handle("dashql:open-external", async (event, requestedUrl: unknown) => {
         if (!isTrustedRenderer(event.senderFrame?.url) || typeof requestedUrl !== "string") {
             throw new Error("Rejected external URL request");
