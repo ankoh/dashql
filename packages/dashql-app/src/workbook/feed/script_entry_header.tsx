@@ -54,30 +54,29 @@ export const ScriptEntryHeader: React.FC<ScriptEntryHeaderProps> = React.memo((p
         () => connectionState == null ? null : scriptConnectionView(connectionState, labeler(connectionState)),
         [connectionState, labeler],
     );
-    const pickConnection = usePickScriptConnection(modifyWorkbookScripts);
+    // The connection picker is memoized, its command keeps its identity with the script
+    const pickScriptConnection = usePickScriptConnection(modifyWorkbookScripts);
+    const pickConnection = React.useCallback((connectionId: string) => pickScriptConnection(fileName, connectionId), [pickScriptConnection, fileName]);
 
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
     const keywordCase = getKeywordCase(config?.settings);
-    const display = React.useMemo<FeedEntryHeaderDisplay>(() => ({
+    const display: FeedEntryHeaderDisplay = {
         // There is no composer outside of the feed
         focused: true, canTarget: false, scriptDebugMode, formattingDebugMode, keywordCase, references: props.scriptReferences,
-    }), [scriptDebugMode, formattingDebugMode, keywordCase, props.scriptReferences]);
+    };
 
     const readScript = useLiveScriptReader();
-    const rename = React.useCallback((name: string) => {
-        renameScript(workbookScripts, modifyWorkbookScripts, fileName, name, props.draftRenameRef?.current, key => readScript(key)?.fileName ?? null);
-    }, [workbookScripts, modifyWorkbookScripts, fileName, props.draftRenameRef, readScript]);
     const selection = useScriptSelection();
-    const { onDelete } = props;
-    const script = model?.script ?? null;
-    const remove = React.useCallback(() => {
-        if (script == null) return;
-        if (onDelete != null) onDelete(script);
-        else deleteScript(selection, workbookScripts, modifyWorkbookScripts, fileName);
-    }, [script, onDelete, selection, workbookScripts, modifyWorkbookScripts, fileName]);
 
     if (model == null) return null;
+    const rename = (name: string) => {
+        renameScript(workbookScripts, modifyWorkbookScripts, fileName, name, props.draftRenameRef?.current, key => readScript(key)?.fileName ?? null);
+    };
+    const remove = () => {
+        if (props.onDelete != null) props.onDelete(model.script);
+        else deleteScript(selection, workbookScripts, modifyWorkbookScripts, fileName);
+    };
     return (
         <FeedEntryHeader
             model={model}
@@ -86,7 +85,7 @@ export const ScriptEntryHeader: React.FC<ScriptEntryHeaderProps> = React.memo((p
             editorView={props.editorView ?? null}
             storageReader={storageReader}
             onTarget={NO_TARGET}
-            onPickConnection={connectionId => pickConnection(fileName, connectionId)}
+            onPickConnection={pickConnection}
             onRename={rename}
             onDelete={remove}
             onEdit={props.onEdit}

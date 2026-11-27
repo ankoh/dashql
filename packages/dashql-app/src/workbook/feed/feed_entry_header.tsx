@@ -122,16 +122,16 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
     );
     const { editorView } = props;
     const { formattingDebugMode, keywordCase } = display;
-    const format = React.useCallback((mode: dashql.buffers.formatting.FormattingMode) => {
+    const format = (mode: dashql.buffers.formatting.FormattingMode) => {
         formatScriptEditor(editorView, script, mode, text => void model.setText(text), formattingDebugMode, keywordCase, formattingDialect);
-    }, [formatScriptEditor, editorView, script, model, formattingDebugMode, keywordCase, formattingDialect]);
-    const { storageReader, onRename } = props;
+    };
+    const { storageReader } = props;
     const workbookId = model.workbookId;
-    const storage = React.useMemo<ScriptStorage>(() => ({
+    const storage: ScriptStorage = {
         fileName,
         resolvePath: () => `${displayPath(workbookId, storageReader.getWorkbookLocation(workbookId))}/${STORAGE_SCRIPTS_FOLDER}/${fileName}`,
-        onRename,
-    }), [fileName, workbookId, storageReader, onRename]);
+        onRename: props.onRename,
+    };
     // Is the name being edited in the tag of the entry? Rename in the script menu starts it
     const [renaming, setRenaming] = React.useState(false);
     // A right click on the action bar opens the script menu

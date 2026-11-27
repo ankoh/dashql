@@ -142,15 +142,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
         setEditorView(view);
         feed.editorView(scriptKey, view);
     }, [feed, scriptKey]);
-    // The commands keep their identity with the script, the parts of the header don't render with every keystroke
-    const rename = React.useCallback((name: string) => feed.rename(fileName, name), [feed, fileName]);
-    const target = React.useCallback(() => feed.target(fileName), [feed, fileName]);
+    // The connection picker of the header is memoized, its command keeps its identity with the script
     const pickConnection = React.useCallback((connectionId: string) => feed.pickConnection(fileName, connectionId), [feed, fileName]);
-    const deleteScript = React.useCallback(() => feed.delete(fileName), [feed, fileName]);
-    const addAbove = React.useCallback(() => feed.create(position.index), [feed, position.index]);
-    const addBelow = React.useCallback(() => feed.create(position.index + 1), [feed, position.index]);
-    const moveUp = React.useCallback(() => feed.moveUp(fileName), [feed, fileName]);
-    const moveDown = React.useCallback(() => feed.moveDown(fileName), [feed, fileName]);
 
     // Labels use the display name (the file name without ".sql"), the file name stays the identity of the commands
     const displayName = scriptDisplayName(fileName);
@@ -172,14 +165,14 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                     display={display}
                     editorView={editorView}
                     storageReader={props.storageReader}
-                    onTarget={target}
+                    onTarget={() => feed.target(fileName)}
                     onPickConnection={pickConnection}
-                    onRename={rename}
-                    onDelete={deleteScript}
-                    onAddAbove={addAbove}
-                    onAddBelow={addBelow}
-                    onMoveUp={moveUp}
-                    onMoveDown={moveDown}
+                    onRename={name => feed.rename(fileName, name)}
+                    onDelete={() => feed.delete(fileName)}
+                    onAddAbove={() => feed.create(position.index)}
+                    onAddBelow={() => feed.create(position.index + 1)}
+                    onMoveUp={() => feed.moveUp(fileName)}
+                    onMoveDown={() => feed.moveDown(fileName)}
                     canMoveUp={position.canMoveUp}
                     canMoveDown={position.canMoveDown}
                     dependencies={dependencies}
@@ -268,10 +261,6 @@ const ScriptCardResult = React.memo(function ScriptCardResult(props: ScriptCardR
     const entryStatus = deriveEntryStatus(query, query?.progress ?? null);
     // The result tabs live in the status bar, their panel below it
     const resultTabs = useFeedEntryTabs(props.query, props.visualizeQuery);
-    // Picking a tab of a folded result shows it
-    const expandResult = React.useCallback(() => {
-        if (!result.expanded) result.toggle(scriptKey);
-    }, [scriptKey, result]);
     const { autoCollapse, resetAutoCollapsed } = result;
     const { latestQueryId } = props;
     React.useEffect(() => {
@@ -281,10 +270,6 @@ const ScriptCardResult = React.memo(function ScriptCardResult(props: ScriptCardR
         }
         autoCollapse(scriptKey, query.queryId);
     }, [autoCollapse, resetAutoCollapsed, latestQueryId, query, scriptKey]);
-    const cancelQuery = React.useCallback(() => {
-        if (entryStatus.kind === EntryStatusKind.Query) void cancel();
-    }, [cancel, entryStatus.kind]);
-
     // The full result table opens in a card over the feed
     const [tableOpen, setTableOpen] = React.useState(false);
     const showTable = React.useCallback(() => setTableOpen(true), []);
@@ -344,12 +329,15 @@ const ScriptCardResult = React.memo(function ScriptCardResult(props: ScriptCardR
                 }}
                 expanded={result.expanded}
                 controls={resultContentId}
-                onCancel={entryStatus.indicator === IndicatorStatus.Running ? cancelQuery : undefined}
+                onCancel={entryStatus.indicator === IndicatorStatus.Running ? () => {
+                    if (entryStatus.kind === EntryStatusKind.Query) void cancel();
+                } : undefined}
                 cancelLabel="Cancel query"
                 compact
                 tabs={<FeedEntryTabStrip tabs={resultTabs} expanded={result.expanded} onSelect={() => {
                     showFewerRows();
-                    expandResult();
+                    // Picking a tab of a folded result shows it
+                    if (!result.expanded) result.toggle(scriptKey);
                 }} />}
                 actions={
                     <>
