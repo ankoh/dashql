@@ -250,7 +250,7 @@ fn vis_tag_lines(lines: &[String], max_width: usize) -> Vec<String> {
         }
         "table" | "kpi" => {
             // Args are separated by single spaces, args with problems stay as written
-            let args = crate::vis_args::normalize_args(rest).unwrap_or_else(|| rest.to_string());
+            let args = crate::vis_args::normalize_args(rest, "").unwrap_or_else(|_| rest.to_string());
             let header = if args.is_empty() { kind.to_string() } else { format!("{kind} {args}") };
             std::iter::once(header).chain(body.iter().cloned()).collect()
         }
@@ -262,7 +262,7 @@ fn vis_tag_lines(lines: &[String], max_width: usize) -> Vec<String> {
 /// stay as written
 fn args_tag_lines(lines: &[String]) -> Vec<String> {
     let Some((header, body)) = lines.split_first() else { return Vec::new() };
-    let args = crate::vis_args::normalize_args(header).unwrap_or_else(|| header.trim().to_string());
+    let args = crate::vis_args::normalize_args(header, "").unwrap_or_else(|_| header.trim().to_string());
     std::iter::once(args).chain(body.iter().cloned()).collect()
 }
 

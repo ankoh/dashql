@@ -23,7 +23,8 @@ pub(crate) enum ArgValue {
     Number(String),
     /// Nothing follows the `=`
     Missing,
-    /// A value that the scanner rejected, e.g. a quoted name without its closing quote, it has a problem of its own
+    /// A value that the scanner rejected, e.g. a quoted name without its closing quote, it has a problem of its own with
+    /// the range of the value
     Invalid,
 }
 
@@ -77,12 +78,13 @@ pub(crate) fn scan_args(text: &str, kind: &str) -> Args {
         SymbolValue::None => None,
     };
     let is_number = |symbol: &Symbol| symbol.kind == S_ICONST || symbol.kind == S_FCONST;
-    // A value that the scanner rejected starts after the `=`
+    // A value that the scanner rejected starts after the `=`, its range is the one of the problem
     let rejected_at = |at: usize| {
-        scanned.errors.iter().any(|e| {
-            let begin = e.location.offset as usize;
-            begin >= at && text.get(at..begin).is_some_and(|gap| gap.trim().is_empty())
-        })
+        scanned
+            .errors
+            .iter()
+            .map(|e| e.location.offset as usize..e.location.end() as usize)
+            .find(|error| error.start >= at && text.get(at..error.start).is_some_and(|gap| gap.trim().is_empty()))
     };
     let mut i = 0;
     while let Some(symbol) = symbol_at(i) {
@@ -135,8 +137,10 @@ pub(crate) fn scan_args(text: &str, kind: &str) -> Args {
                 i += 2;
                 (ArgValue::Number(written(number.clone()).to_string()), number)
             }
-            _ if rejected_at(after_equals) => (ArgValue::Invalid, after_equals..after_equals),
-            _ => (ArgValue::Missing, after_equals..after_equals),
+            _ => match rejected_at(after_equals) {
+                Some(rejected) => (ArgValue::Invalid, rejected),
+                None => (ArgValue::Missing, after_equals..after_equals),
+            },
         };
         out.args.push(Arg { key, key_range: range(symbol), value, value_range });
     }
@@ -149,21 +153,19 @@ pub(crate) fn scan_args(text: &str, kind: &str) -> Args {
 }
 
 /// The args of a text as written, each `key=value` without whitespace around the `=` and separated by single spaces.
-/// None if the args have problems, they then stay as written.
-pub(crate) fn normalize_args(text: &str) -> Option<String> {
-    let scanned = scan_args(text, "");
+/// The problems of the args if they have some (see `scan_args`), they then stay as written.
+pub(crate) fn normalize_args(text: &str, kind: &str) -> Result<String, Vec<(Range<usize>, String)>> {
+    let scanned = scan_args(text, kind);
     if !scanned.problems.is_empty() {
-        return None;
+        return Err(scanned.problems);
     }
     let written = |range: Range<usize>| text.get(range).unwrap_or_default();
-    Some(
-        scanned
-            .args
-            .iter()
-            .map(|arg| format!("{}={}", written(arg.key_range.clone()), written(arg.value_range.clone())))
-            .collect::<Vec<_>>()
-            .join(" "),
-    )
+    Ok(scanned
+        .args
+        .iter()
+        .map(|arg| format!("{}={}", written(arg.key_range.clone()), written(arg.value_range.clone())))
+        .collect::<Vec<_>>()
+        .join(" "))
 }
 
 /// Where the cursor is in the args of a text, for the completion
@@ -175,58 +177,28 @@ pub(crate) enum ArgCursor {
     Value { key: String, range: Range<usize> },
 }
 
-/// Find the arg at a cursor of a text
+/// Find the arg at a cursor of a text: the key or the value of an arg whose range holds the cursor, also at its end,
+/// the value of a key in the whitespace after its `=`, and text that is no arg as a key
 pub(crate) fn arg_at(text: &str, at: usize) -> ArgCursor {
-    let scanned = scan(text, 0, 0);
-    let symbols = arg_symbols(&scanned);
-    let symbol_at = |i: usize| symbols.get(i).copied();
-    let is_equals = |i: usize| symbol_at(i).is_some_and(|s| s.kind == S_EQUALS);
-    // The key of the `=` at an index
-    let key_of = |equals: usize| match symbol_at(equals.checked_sub(1)?)?.value {
-        SymbolValue::Name(id) => Some(scanned.names.get(id).text.clone()),
-        SymbolValue::Text(text) => Some(text.to_string()),
-        SymbolValue::None => None,
-    };
-    let empty = ArgCursor::Key { range: at..at, has_equals: false };
-    // A quoted value without its closing quote is no symbol but a problem of the scanner that runs to the end
-    let open = scanned.errors.iter().find(|e| (e.location.offset as usize) < at && at <= e.location.end() as usize);
-    if let Some(error) = open {
-        let begin = error.location.offset as usize;
-        let equals = symbols.iter().rposition(|s| (s.location.end() as usize) <= begin).filter(|&e| is_equals(e));
-        if let Some(key) = equals.and_then(key_of) {
-            return ArgCursor::Value { key, range: begin..error.location.end() as usize };
+    let Args { args, problems } = scan_args(text, "");
+    let holds = |range: &Range<usize>| range.start <= at && at <= range.end;
+    for arg in &args {
+        if holds(&arg.key_range) {
+            return ArgCursor::Key { range: arg.key_range.clone(), has_equals: true };
+        }
+        if arg.key_range.end < at && at <= arg.value_range.end {
+            let range = if at < arg.value_range.start { at..at } else { arg.value_range.clone() };
+            return ArgCursor::Value { key: arg.key.clone(), range };
         }
     }
-    // The last symbol that starts before the cursor
-    let Some(current) = symbols.iter().rposition(|s| (s.location.offset as usize) < at) else { return empty };
-    let Some(symbol) = symbol_at(current) else { return empty };
-    let symbol_range = range(symbol);
-    if symbol.kind == S_EQUALS {
-        // After a `=` and its whitespace a value follows
-        return match key_of(current) {
-            Some(key) => ArgCursor::Value { key, range: at..at },
-            None => empty,
-        };
+    if let Some((range, _)) = problems.into_iter().find(|(range, _)| holds(range)) {
+        return ArgCursor::Key { range, has_equals: false };
     }
-    if at > symbol_range.end {
-        return empty;
+    // In the whitespace after a `=` that no value follows
+    match args.into_iter().rev().find(|arg| arg.value_range.end <= at) {
+        Some(arg) if arg.value == ArgValue::Missing => ArgCursor::Value { key: arg.key, range: at..at },
+        _ => ArgCursor::Key { range: at..at, has_equals: false },
     }
-    if current.checked_sub(1).is_some_and(is_equals) {
-        if let Some(key) = current.checked_sub(1).and_then(key_of) {
-            return ArgCursor::Value { key, range: symbol_range };
-        }
-    }
-    // A sign belongs to its number
-    let sign = current
-        .checked_sub(1)
-        .and_then(symbol_at)
-        .filter(|sign| matches!(sign.kind, S_MINUS | S_PLUS) && sign.location.end() == symbol.location.offset);
-    if let Some(sign) = sign.filter(|_| current.checked_sub(2).is_some_and(is_equals)) {
-        if let Some(key) = current.checked_sub(2).and_then(key_of) {
-            return ArgCursor::Value { key, range: range(sign).start..symbol_range.end };
-        }
-    }
-    ArgCursor::Key { range: symbol_range, has_equals: is_equals(current + 1) }
 }
 
 #[cfg(test)]
@@ -288,10 +260,10 @@ mod tests {
     #[test]
     fn normalizes_whitespace_but_keeps_what_is_written() {
         assert_eq!(
-            normalize_args(r#"  value = "Total  Revenue"   x=Day "#).as_deref(),
-            Some(r#"value="Total  Revenue" x=Day"#)
+            normalize_args(r#"  value = "Total  Revenue"   x=Day "#, "").as_deref(),
+            Ok(r#"value="Total  Revenue" x=Day"#)
         );
-        assert_eq!(normalize_args("width:3"), None);
+        assert!(normalize_args("width:3", "").is_err());
     }
 
     #[test]
@@ -302,6 +274,7 @@ mod tests {
         assert_eq!(arg_at("val", 3), key(0..3, false));
         assert_eq!(arg_at("val=x", 2), key(0..3, true));
         assert_eq!(arg_at("value=", 6), value("value", 6..6));
+        assert_eq!(arg_at("value = ", 8), value("value", 8..8));
         assert_eq!(arg_at("value=re", 8), value("value", 6..8));
         assert_eq!(arg_at("value = re", 10), value("value", 8..10));
         assert_eq!(arg_at(r#"value="To"#, 9), value("value", 6..9));

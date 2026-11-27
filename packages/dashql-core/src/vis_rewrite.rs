@@ -56,10 +56,9 @@ impl VisRenderer {
             }
             "markdown" => Ok(VisRenderer::Markdown(body.to_string())),
             // The args stay on the line of the tag
-            "kpi" => match crate::vis_args::normalize_args(body) {
-                Some(args) => Ok(VisRenderer::Kpi(args)),
-                None => {
-                    let problems = crate::vis_args::scan_args(body, "vis kpi").problems;
+            "kpi" => match crate::vis_args::normalize_args(body, "vis kpi") {
+                Ok(args) => Ok(VisRenderer::Kpi(args)),
+                Err(problems) => {
                     let message =
                         problems.into_iter().next().map_or_else(|| "invalid @vis kpi args".to_string(), |(_, m)| m);
                     Err(Error::invalid_argument(message))
