@@ -540,8 +540,9 @@ analyzed right away, the other shown ones once the changes pause, see
 ## Node
 
 The runtime runs in Node over `createNodePlatform` (`runtime/node/node_platform.ts`), e.g. in the tests of the
-runtime: a `NativeStorageBackend` of a workbook folder, the embedded Hyper as its compute database and its stored
-results, and the catalog loader off.
+runtime: the storage of the caller (a `NativeStorageBackend` of a workbook folder, or none), fetch, the core from its
+file, the task scheduler and no OAuth. A host that wants a compute database or stored results starts the embedded
+Hyper with `startNodeHyperEngine` and passes them in the options of the runtime.
 
 - **The root of Node.** A host in Node brings a folder with the layout of the origin private file system
   ([storage_layout.md](storage_layout.md)).

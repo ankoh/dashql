@@ -6,14 +6,32 @@ import path from 'node:path';
 
 import { copyArrowTableAsParquet } from '../hyperdb/hyperdb_parquet_export.js';
 import { setOPFSRootProvider } from '../opfs_root.js';
-import { RESULT_ROW_COLUMN, resultsMountPath } from '../workbook/workbook_result_files.js';
-import { openNodeComputeDatabase } from './node_hyperdb.js';
+import { createWorkbookResultFiles, RESULT_ROW_COLUMN, resultsMountPath } from '../workbook/workbook_result_files.js';
+import { startNodeHyperEngine } from './node_hyperdb.js';
+import { PROCESS_LOCKS } from './node_locks.js';
 
 /// The instance folders of a root, without the files of their locks
 const instanceFolders = (root: string) => readdirSync(path.join(root, 'instances'), { withFileTypes: true }).filter(entry => entry.isDirectory()).map(entry => entry.name);
 
 function tempRoot(): string {
     return mkdtempSync(path.join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-root-'));
+}
+
+/// Start the embedded Hyper in a root with an instance of its own, like a window of the app, and the stored results
+async function openNodeComputeDatabase(root: string) {
+    const engine = await startNodeHyperEngine(root);
+    const database = await engine.createDatabase({ compute: 'compute.hyper', default: 'user.hyper' });
+    return {
+        database,
+        results: createWorkbookResultFiles({ locks: PROCESS_LOCKS as unknown as LockManager }),
+        async close() {
+            try {
+                await database.terminate();
+            } finally {
+                await engine.close();
+            }
+        },
+    };
 }
 
 // Every test starts an engine of its own, which compiles hyperdb-wasm: a few seconds, more while other tests run

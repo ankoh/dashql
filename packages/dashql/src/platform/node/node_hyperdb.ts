@@ -1,7 +1,7 @@
 // The embedded Hyper of Node: the build of hyperdb-wasm for Node over a folder of the host with the layout of the origin
 // private file system (docs/design/storage_layout.md). The folder is the root of the files of the app and the storage of
 // the engine, so the engine sees it at `/mnt/fs` like the browser build sees the origin private file system, and the
-// query result cache, the instances and the attachments keep their paths.
+// stored results, the instances and the attachments keep their paths.
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -11,10 +11,8 @@ import { HyperDB, type HyperDBEngine, type MountFile } from '../hyperdb/hyperdb_
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '../hyperdb/hyperdb_settings.js';
 import { setOPFSRootProvider } from '../opfs_root.js';
 import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance, HYPER_INSTANCES_DIRECTORY } from '../hyperdb/hyperdb_opfs_instance.js';
-import { createWorkbookResultFiles, type WorkbookResultFiles } from '../workbook/workbook_result_files.js';
 import { openNodeRoot } from './node_directory_handle.js';
 import { nodeInstanceLocks } from './node_instance_locks.js';
-import { PROCESS_LOCKS } from './node_locks.js';
 
 /// The folder of the files that statements of an instance mount, e.g. the Arrow IPC of an insert
 const INSTANCE_FILES_DIRECTORY = 'files';
@@ -107,41 +105,6 @@ export async function startNodeHyperEngine(folder: string): Promise<NodeHyperEng
                 await engine.terminate();
             } finally {
                 await instance.dispose();
-            }
-        },
-    };
-}
-
-/// The embedded Hyper of Node with the stored results of the workbooks of the root
-export interface NodeComputeDatabase {
-    /// The folder of the host that is the root of the files of the app
-    readonly root: string;
-    readonly database: HyperDB;
-    readonly results: WorkbookResultFiles;
-    /// Stop the engine and remove the folder of the instance
-    close(): Promise<void>;
-}
-
-/// Start the embedded Hyper in a folder of the host with an instance of its own, like a window of the app
-export async function openNodeComputeDatabase(folder: string): Promise<NodeComputeDatabase> {
-    const engine = await startNodeHyperEngine(folder);
-    let database: HyperDB;
-    try {
-        // The database of the embedded Hyper connector is scratch space of the instance like in a window of the app
-        database = await engine.createDatabase({ compute: 'compute.hyper', default: 'user.hyper' });
-    } catch (error) {
-        await engine.close();
-        throw error;
-    }
-    return {
-        root: engine.root,
-        database,
-        results: createWorkbookResultFiles({ locks: PROCESS_LOCKS as unknown as LockManager }),
-        async close() {
-            try {
-                await database.terminate();
-            } finally {
-                await engine.close();
             }
         },
     };
