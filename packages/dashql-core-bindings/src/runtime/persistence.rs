@@ -366,14 +366,6 @@ impl Persistence {
         }
     }
 
-    /// Wait until no write runs, at once without storage
-    pub fn settle(&self) -> PersistenceFuture<()> {
-        match self.writer() {
-            Some(writer) => Box::pin(writer.settle()),
-            None => Box::pin(std::future::ready(())),
-        }
-    }
-
     /// Write the scripts that a hold keeps, e.g. while the window closes
     pub fn recover_held_scripts(&self) -> PersistenceFuture<()> {
         match self.writer() {

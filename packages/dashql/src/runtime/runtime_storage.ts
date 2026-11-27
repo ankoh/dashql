@@ -105,11 +105,6 @@ export class StorageCommands {
         await this.module?.storage({ kind: 'flush', closing: options.closing ?? false });
     }
 
-    /// Wait for the writes that started without running the pending ones
-    async settle(): Promise<void> {
-        await this.module?.storage({ kind: 'settle' });
-    }
-
     /// Hold the writes of the writer, or of a workbook, for a reason. Holds are counted, each is released on its own.
     hold(reason: core.StorageHoldReason, workbookId: string | null = null): void {
         this.module?.storageHold(reason, workbookId);
@@ -146,13 +141,6 @@ export class StorageCommands {
     async flushWorkbook(workbookId: string): Promise<boolean> {
         const module = this.module;
         return module != null && (await module.storage({ kind: 'flushWorkbook', workbookId })) === true;
-    }
-
-    /// Delete a workbook from the storage, its pending writes are discarded. Rejects with what the storage failed with.
-    async deleteWorkbook(workbookId: string): Promise<void> {
-        const module = this.module;
-        if (module == null) throw new Error('the runtime was destroyed');
-        await module.storage({ kind: 'deleteWorkbook', workbookId });
     }
 
     /// Are the writes of a workbook held, e.g. after one of its files changed outside the app?

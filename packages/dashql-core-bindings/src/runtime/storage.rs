@@ -259,12 +259,8 @@ pub enum StorageCommand {
         #[tsify(optional)]
         closing: bool,
     },
-    /// Wait for the writes that started, without running the pending ones
-    Settle,
     /// Write the pending writes of a workbook and wait for them, resolves whether every write reached the storage
     FlushWorkbook { workbook_id: String },
-    /// Delete a workbook from the storage, its pending writes are discarded. Rejects with what the storage failed with.
-    DeleteWorkbook { workbook_id: String },
     /// Another tab takes over the app: the pending writes are written, then nothing is written any more, not even by a
     /// flush when the page hides
     HandOver,

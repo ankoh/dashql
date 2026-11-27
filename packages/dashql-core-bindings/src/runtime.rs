@@ -2153,10 +2153,8 @@ impl Runtime {
 
     // The storage writer
 
-    /// Run a command of the storage writer that waits for writes: flush and settle it, flush or delete a workbook, hand
-    /// over to another tab.
-    /// `flushWorkbook` resolves whether every write of the workbook reached the storage, `deleteWorkbook` rejects with
-    /// what the storage failed with.
+    /// Run a command of the storage writer that waits for writes: flush it, flush a workbook, hand over to another tab.
+    /// `flushWorkbook` resolves whether every write of the workbook reached the storage.
     #[wasm_bindgen(js_name = storage, unchecked_return_type = "Promise<unknown>")]
     pub fn storage_command(&self, command: Ts<StorageCommand>) -> Result<Promise, JsError> {
         let command = from_js(&command)?;
@@ -2173,22 +2171,9 @@ impl Runtime {
                     Ok(JsValue::UNDEFINED)
                 })
             }
-            StorageCommand::Settle => {
-                let settle = writer.settle();
-                future_to_promise(async move {
-                    settle.await;
-                    Ok(JsValue::UNDEFINED)
-                })
-            }
             StorageCommand::FlushWorkbook { workbook_id } => {
                 let flush = writer.flush_workbook(&workbook_id);
                 future_to_promise(async move { Ok(JsValue::from_bool(flush.await)) })
-            }
-            StorageCommand::DeleteWorkbook { workbook_id } => {
-                let deletion = writer.delete_workbook(&workbook_id);
-                future_to_promise(async move {
-                    deletion.await.map(|_| JsValue::UNDEFINED).map_err(|error| error_value(&error))
-                })
             }
             StorageCommand::HandOver => {
                 let handover = writer.hand_over();
