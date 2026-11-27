@@ -1,10 +1,13 @@
-import * as core from '@akohn/dashql';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import * as core from '../../core/index.js';
 
-import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import { OPFSDirectoryMock } from '@akohn/dashql/platform/testing/opfs_mock';
-import { fsStore, makeFsMock, resetFsStore } from '@akohn/dashql/platform/testing/test_fs_mock';
+import { TestLogger } from '../testing/test_logger.js';
+import { OPFSDirectoryMock } from '../testing/opfs_mock.js';
+import { fsStore, makeFsMock, resetFsStore } from '../testing/test_fs_mock.js';
 import { migrateStorage as migrateStorageWithCore } from './storage_migration.js';
+
+/// The bridge of the desktop app as far as the migration reaches it
+const electronGlobal = globalThis as { dashqlElectron?: unknown };
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -27,7 +30,7 @@ function notebook(notebookId: string, databaseId: string): string {
 }
 
 // The steps are tested in the core (`storage_migration_test.rs`), these tests run them in the core over the storage
-// root and the native folders of the app
+// root and the native folders of the desktop app
 describe('storage migration', () => {
     let dql: core.DashQL;
     // The versions of the core
@@ -56,14 +59,14 @@ describe('storage migration', () => {
         root = new OPFSDirectoryMock('', files, dirs) as unknown as FileSystemDirectoryHandle;
         resetFsStore();
         claims = [];
-        globalThis.dashqlElectron = {
+        electronGlobal.dashqlElectron = {
             fs: makeFsMock(),
             claimWorkbookFolder: async (path: string) => { claims.push(path); return true; },
-        } as unknown as DashQLElectronBridge;
+        };
     });
 
     afterEach(() => {
-        delete globalThis.dashqlElectron;
+        delete electronGlobal.dashqlElectron;
     });
 
     it('migrates to the versions of the app', async () => {

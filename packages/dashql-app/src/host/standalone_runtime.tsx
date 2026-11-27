@@ -2,12 +2,12 @@ import * as React from 'react';
 import type * as core from '@akohn/dashql';
 
 import { createRuntime, type ChannelConnector } from '@akohn/dashql/runtime/runtime';
+import { FRAME_UPDATE_SCHEDULER } from '@akohn/dashql/runtime/store/update_scheduler';
 import { RuntimeContextProvider, useOwnedRuntime } from '@akohn/dashql-react/hooks';
 
 import { useLogger } from './logger_provider.js';
 import { useEmbeddedDatabaseSetup } from './embedded_database_provider.js';
 import { useOptionalHttpClient } from './http/http_client_provider.js';
-import { FRAME_UPDATE_SCHEDULER } from '../utils/store_hooks.js';
 import { useDashQLCore } from './core_provider.js';
 
 /// A runtime without the storage of the app, e.g. of the shell of Hyper or of a tool, on the embedded database and the

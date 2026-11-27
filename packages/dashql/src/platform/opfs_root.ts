@@ -35,3 +35,12 @@ export async function getOPFSRoot(): Promise<FileSystemDirectoryHandle> {
 export function hyperOPFSRoot(): string {
     return appFolder == null ? HYPER_OPFS_MOUNT : `${HYPER_OPFS_MOUNT}/${appFolder}`;
 }
+
+/// Ask the browser not to evict the origin private file system under storage pressure, it is the only copy of the
+/// workbooks of a browser. Whether the browser keeps it, null without a persistent storage.
+export async function requestPersistentStorage(): Promise<boolean | null> {
+    if (rootProvider != null) return null;
+    // A page has `persist`, the module type checks without the DOM
+    const storage = navigator.storage as StorageManager & { persist?: () => Promise<boolean> } | undefined;
+    return (await storage?.persist?.()) ?? null;
+}

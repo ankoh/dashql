@@ -14,3 +14,10 @@ export const TASK_UPDATE_SCHEDULER: UpdateScheduler = {
     beforeFrame: callback => setTimeout(callback, 0),
     cancelFrame: handle => clearTimeout(handle as ReturnType<typeof setTimeout>),
 };
+
+/// Schedules with the frames of a page: changes that may wait for a frame wait for the next one
+export const FRAME_UPDATE_SCHEDULER: UpdateScheduler = {
+    afterTask: callback => queueMicrotask(callback),
+    beforeFrame: callback => requestAnimationFrame(callback),
+    cancelFrame: handle => cancelAnimationFrame(handle as number),
+};

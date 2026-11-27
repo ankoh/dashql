@@ -320,7 +320,7 @@ otherwise carry all of DashQL. Neither calls the other, and they don't overlap: 
 | `isUnknownHyperDBSettingError` | `hyperdb_settings.ts` | `@akohn/hyperdb-edge` |
 | `HyperDB` implementing `EmbeddedComputeDatabase` (pooled connections, attached databases, mounts) | `packages/dashql/src/platform/hyperdb/hyperdb_wasm.ts` | Stays, the runtime's view of Hyper |
 | The engine settings of the app | `HYPERDB_WASM_ENGINE_SETTINGS` | Stays: the redo log is for the local cloud, the resource log every second for the connection overview, the HTTP allowlist is a choice of the app |
-| OPFS, the web worker, the Parquet export through OPFS | `hyperdb_opfs*.ts`, `hyperdb_provider_web.ts`, `hyperdb_parquet_export.ts` | Stays |
+| OPFS, the web worker, the Parquet export through OPFS | `hyperdb_opfs*.ts`, `hyperdb_web.ts`, `hyperdb_parquet_export.ts` | Stays |
 
 The modules in `src/` import nothing of Node (`//packages/hyperdb-edge:tsc_typecheck_test` checks them against the
 WebWorker lib), so the runtime's boundary test can accept them; only the Node platform of the runtime would import

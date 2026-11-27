@@ -1,6 +1,6 @@
 /// The client context of the queries of a connection that Hyper logs as ctx.client, so that its log attributes them
 export interface DashQLClientContext {
-    /// The fields of the app
+    /// The fields of DashQL
     dashql: {
         /// The connection that the queries are attributed to
         connectionId?: string;

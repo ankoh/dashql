@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { isOutOfMemoryError, startWaitingForMemory } from './hyperdb_memory_wait.js';
+import { getHyperDBWebSupportError, isOutOfMemoryError, startWaitingForMemory, type HyperDBWebCapabilities } from './hyperdb_web.js';
+
+function capabilities(overrides: Partial<HyperDBWebCapabilities> = {}): HyperDBWebCapabilities {
+    return {
+        crossOriginIsolated: true,
+        hasSharedArrayBuffer: true,
+        ...overrides,
+    };
+}
 
 /// A start that fails with the given errors one after another, then returns the engine
 function failingStart(errors: Error[]): { start: () => Promise<string>; attempts: () => number } {
@@ -14,6 +22,16 @@ function failingStart(errors: Error[]): { start: () => Promise<string>; attempts
         attempts: () => attempts,
     };
 }
+
+describe('HyperDB web support', () => {
+    it('explains missing isolation', () => {
+        expect(getHyperDBWebSupportError(capabilities({ crossOriginIsolated: false }))).toContain('cross-origin-isolated');
+    });
+
+    it('accepts isolated browsers with SharedArrayBuffer', () => {
+        expect(getHyperDBWebSupportError(capabilities())).toBeNull();
+    });
+});
 
 describe('HyperDB memory wait', () => {
     it('recognizes the memory that WebKit refuses', () => {

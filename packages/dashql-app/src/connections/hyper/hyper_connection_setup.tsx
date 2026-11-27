@@ -3,8 +3,8 @@ import * as connection from '@akohn/dashql-jsonschema/connection.js';
 
 import type { ChannelConnector } from '@akohn/dashql/runtime/runtime';
 import { HyperDatabaseClient } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';
-import { connectEmbeddedHyper } from '@akohn/dashql/platform/connections/embedded_database_channel';
-import { connectionClientContext } from './hyper_client_context.js';
+import { connectEmbeddedChannel } from '@akohn/dashql/runtime/embedded_channels';
+import { connectionClientContext } from '@akohn/dashql/platform/connections/hyper/hyper_client_context';
 import type { EmbeddedDatabaseSetupFn } from '../../host/embedded_database_provider.js';
 import { getHyperLinkTabState } from './hyper_link_tab.js';
 
@@ -21,15 +21,11 @@ export interface ChannelClients {
 /// Connect a channel that a setup of a connection asks for
 export async function connectChannel(clients: ChannelClients, connectionId: string, request: core.RuntimeChannelRequest): Promise<unknown> {
     // The Hyper log attributes the queries of the channel to the connection by its client context
-    const clientContext = connectionClientContext(connectionId);
+    if (request.kind === 'embedded') return await connectEmbeddedChannel(clients.setupEmbeddedDatabase, connectionId, request);
     const params = request.params as connection.HyperConnectionParams;
-    if (request.kind === 'embedded') {
-        const database = await clients.setupEmbeddedDatabase('hyper_wasm_connector');
-        return await connectEmbeddedHyper(database, request.session, clientContext);
-    }
     const client = clients.grpcClient;
     if (!client) throw new Error(`gRPC client is not available (required for protocol ${params.protocol})`);
-    return await client.connect(params, clientContext);
+    return await client.connect(params, connectionClientContext(connectionId));
 }
 
 /// What connects the channels of the setups of the runtime of the app, with the clients of the app as they are when a

@@ -1,12 +1,12 @@
 import * as React from 'react';
 import { type StorageBackend, StorageBackendType } from '@akohn/dashql/platform/storage/storage_backend';
-import { OPFSStorageBackend } from '@akohn/dashql/platform/storage/opfs_storage_backend';
 import { CompositeStorageBackend } from '@akohn/dashql/platform/storage/composite_storage_backend';
+import { openPageStorage } from '@akohn/dashql/platform/storage/page_storage';
+import { migrateStorage } from '@akohn/dashql/platform/storage/storage_migration';
 import { type WorkbookLocation } from '@akohn/dashql/platform/storage/workbook_locator';
 import { type WorkbookTreeFolder, emptyWorkbookTree } from '@akohn/dashql/platform/storage/workbook_tree';
 import { useLogger } from '../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
-import { migrateStorage } from './storage_migration.js';
 import { useAppHandOver } from '../host/app_hand_over.js';
 import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import { APP_SETUP_NOT_STARTED, AppSetupPage } from '../app/app_setup_page.js';
@@ -65,19 +65,8 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
                 return;
             }
 
-            // OPFS is the only copy of browser workbooks, ask the browser not to evict it under storage pressure
-            void navigator.storage?.persist?.().then(persisted => {
-                logger.info("Requested persistent storage", { persisted: persisted.toString() }, "storage_provider");
-            }, error => {
-                logger.warn("Failed to request persistent storage", { error: stringifyError(error) }, "storage_provider");
-            });
-
             logger.info("Initializing storage backend", {}, "storage_provider");
-            // The backends ask the core about the names of attachments and folders and the changes of the workbook tree
-            const instance = await setupCore('storage_provider');
-            const opfsBackend = new OPFSStorageBackend(instance);
-            const composite = new CompositeStorageBackend(instance, opfsBackend, logger);
-            await composite.initialize();
+            const composite = await openPageStorage(await setupCore('storage_provider'), logger);
 
             const initDuration = performance.now() - initStartTime;
             logger.info("Storage backend initialized", {

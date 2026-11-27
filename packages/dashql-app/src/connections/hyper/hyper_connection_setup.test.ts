@@ -3,7 +3,7 @@ import * as connection from '@akohn/dashql-jsonschema/connection.js';
 
 import { connectChannel, type ChannelClients } from './hyper_connection_setup.js';
 import { HyperDatabaseChannel, HyperDatabaseClient } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';
-import { connectionClientContext } from './hyper_client_context.js';
+import { connectionClientContext } from '@akohn/dashql/platform/connections/hyper/hyper_client_context';
 import type { EmbeddedClientContext, EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
 
 /// The clients of a test, none by default

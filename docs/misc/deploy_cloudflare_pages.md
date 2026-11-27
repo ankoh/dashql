@@ -53,7 +53,7 @@ defines the cross-origin isolation headers and browser cache policy:
   - `/static/wasm/*.br` and `/static/assets/hyperdb-wasm.wasm.*.br`: `Content-Encoding: br` and
     `Content-Type: application/wasm`. The browser decompresses before `fetch()` or
     `WebAssembly.instantiateStreaming()` sees the bytes. For such responses `Content-Length` is the compressed size,
-    so loaders must not use it as the total of a progress bar (`utils/content_length.ts`).
+    so loaders must not use it as the total of a progress bar (`decodedContentLength` of `@akohn/dashql-react/platform/content_length`).
   - The Electron app protocol and the browser test server serve every `*.wasm.br` the same way. Dev, `reloc` and
     `electron` builds stay uncompressed.
 - HTML entrypoints: stored with mandatory revalidation.

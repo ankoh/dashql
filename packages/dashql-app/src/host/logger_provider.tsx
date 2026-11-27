@@ -1,7 +1,6 @@
 import * as React from 'react';
 
-import { Logger } from '@akohn/dashql/platform/logger/logger';
-import { WebLogger } from './web_logger.js';
+import { BufferLogger, type Logger } from '@akohn/dashql/platform/logger/logger';
 import { LoggerContext, useLogger } from '@akohn/dashql-react/logger';
 
 let GLOBAL_LOGGER: Logger | null;
@@ -16,7 +15,7 @@ type Props = {
 
 export const LoggerProvider: React.FC<Props> = (props: Props) => {
     const logger = React.useMemo<Logger>(() => {
-        const logger: Logger = new WebLogger();
+        const logger: Logger = new BufferLogger();
         GLOBAL_LOGGER = logger;
         return logger;
     }, []);

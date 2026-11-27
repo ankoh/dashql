@@ -35,7 +35,7 @@ import { useSnippetsDialog } from '../../workbook/snippets/snippets_dialog.js';
 import { decodeShareScript, readShareScriptFromLocation } from './shell_share.js';
 import { splitShellScript } from '../terminal/shell_script.js';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { getHyperDBWebSupportError } from '../../host/hyperdb/hyperdb_web_support.js';
+import { getHyperDBWebSupportError } from '@akohn/dashql/platform/hyperdb/hyperdb_web';
 import * as styles from './shell_page.module.css';
 
 const LOG_CTX = 'standalone_shell';

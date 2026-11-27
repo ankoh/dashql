@@ -1,17 +1,14 @@
+// The embedded Hyper of the app: `setupWebHyperDB` of @akohn/dashql with the files of hyperdb-wasm that the app serves,
+// and the engines that the browser tests share.
 import type { Logger } from '@akohn/dashql/platform/logger/logger';
-import { stringifyError } from '@akohn/dashql/platform/logger/logger';
-import type { EmbeddedDatabaseOptions, SetupProgress } from '../embedded_database_provider.js';
-
-import { HyperDB, type HyperDBClient, type HyperDBSettings } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
-import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
+import type { HyperDB, HyperDBClient } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import {
-    EXPERIMENTAL_WASM_BACKEND_SETTING,
-    HYPERDB_WASM_ENGINE_SETTINGS,
-    isUnknownHyperDBSettingError,
-} from '@akohn/dashql/platform/hyperdb/hyperdb_settings';
-import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance } from '@akohn/dashql/platform/hyperdb/hyperdb_opfs_instance';
-import { startWaitingForMemory } from './hyperdb_memory_wait.js';
-import { getHyperDBWebSupportError } from './hyperdb_web_support.js';
+    createWebHyperDBClientOptions as createClientOptions,
+    setupWebHyperDB as setupWebHyperDBOf,
+    type EmbeddedDatabaseOptions,
+    type HyperDBWebAssets,
+    type SetupProgress,
+} from '@akohn/dashql/platform/hyperdb/hyperdb_web';
 
 declare global {
     var __DASHQL_TEST_HYPERDB_CLIENT__: ((
@@ -32,95 +29,20 @@ import workerUrl from '@dashql/hyperdb-wasm-worker?url';
 import workerBridgeUrl from './hyperdb_worker_bridge.js?url&no-inline';
 import wasmUrl from '@dashql/hyperdb-wasm?url';
 
-const HYPERDB_ENGINE_URL = new URL(engineUrl as string, import.meta.url);
-const HYPERDB_WORKER_URL = new URL(workerUrl as string, import.meta.url);
-const HYPERDB_WASM_URL = new URL(wasmUrl as string, import.meta.url);
+/// The files of hyperdb-wasm that the app serves, the WebAssembly compressed with Brotli in the pages build
+export const HYPERDB_WEB_ASSETS: HyperDBWebAssets = {
+    engine: new URL(engineUrl as string, import.meta.url),
+    wasm: new URL(wasmUrl as string, import.meta.url),
+    worker: new URL(workerUrl as string, import.meta.url),
+    workerBridge: new URL(workerBridgeUrl as string, import.meta.url),
+};
 
-function createEngineScript(): { url: string; revoke: () => void } {
-    const source = `self.HYPERDB_WASM_MODULE=self.Module??{};self.HYPERDB_WASM_MODULE.locateFile=(path,prefix)=>path==='hyperdb-wasm.wasm'?${JSON.stringify(HYPERDB_WASM_URL.href)}:prefix+path;importScripts(${JSON.stringify(HYPERDB_ENGINE_URL.href)});`;
-    const url = URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
-    return { url, revoke: () => URL.revokeObjectURL(url) };
+/// The worker options of a browser engine client of the app
+export function createWebHyperDBClientOptions(): ReturnType<typeof createClientOptions> {
+    return createClientOptions(HYPERDB_WEB_ASSETS);
 }
 
-/// The worker options of a browser engine client.
-/// The engine script is an object URL that must be revoked once the engine terminated.
-export function createWebHyperDBClientOptions(): { workerUrl: URL; engineUrl: string; wasmUrl: URL; revoke: () => void } {
-    const supportError = getHyperDBWebSupportError();
-    if (supportError != null) throw new Error(supportError);
-    const engineScript = createEngineScript();
-    const workerUrl = new URL(workerBridgeUrl as string, import.meta.url);
-    workerUrl.searchParams.set('workerUrl', HYPERDB_WORKER_URL.href);
-    return { workerUrl, engineUrl: engineScript.url, wasmUrl: HYPERDB_WASM_URL, revoke: engineScript.revoke };
-}
-
-/// Stop the worker of an engine at once.
-/// The terminate of the engine shuts it down first and waits for the answers of the worker, a page that unloads doesn't
-/// wait for them, and the worker would run on with its memory. hyperdb-wasm has no public call that stops the worker
-/// without the shutdown, its client has one.
-function stopEngineWorker(engine: HyperDBEngine): void {
-    const client = (engine as unknown as { client: { terminate(): Promise<void> } }).client;
-    void client.terminate().catch(() => { /* the worker is gone either way */ });
-}
-
-/// Start a HyperDB engine in a browser worker.
-/// A page that goes away stops the worker of its engine right away. The engine reserves a shared WebAssembly.Memory
-/// with a maximum of 4 GiB, and WebKit charges that maximum against the address space of its process. A reload asks
-/// for another 4 GiB, and Safari of iOS fails it with "Out of memory" while the worker of the last page still holds
-/// its memory. A page that goes to the back-forward cache keeps its engine.
-async function createWebHyperDBEngine(
-    settings: HyperDBSettings,
-    onSetupProgress?: (progress: SetupProgress) => void,
-): Promise<HyperDBEngine> {
-    const { revoke, ...options } = createWebHyperDBClientOptions();
-    let engine: HyperDBEngine;
-    try {
-        engine = await HyperDBEngine.create({ ...options, onSetupProgress, settings });
-    } catch (error) {
-        revoke();
-        throw error;
-    }
-    const stopOnPageHide = (event: PageTransitionEvent) => {
-        if (!event.persisted) stopEngineWorker(engine);
-    };
-    window.addEventListener('pagehide', stopOnPageHide);
-    const terminate = engine.terminate.bind(engine);
-    engine.terminate = async () => {
-        window.removeEventListener('pagehide', stopOnPageHide);
-        try {
-            await terminate();
-        } finally {
-            revoke();
-        }
-    };
-    return engine;
-}
-
-/// Start a HyperDB engine in a browser worker, on the experimental wasm backend if requested.
-/// A build of hyperdb-wasm without the backend rejects its setting, the engine then starts on the default backend.
-async function createWebHyperDBEngineWithOptions(
-    context: string,
-    logger: Logger,
-    settings: HyperDBSettings,
-    options: EmbeddedDatabaseOptions,
-    onSetupProgress?: (progress: SetupProgress) => void,
-): Promise<HyperDBEngine> {
-    if (!options.experimentalWasmBackend) {
-        return await createWebHyperDBEngine(settings, onSetupProgress);
-    }
-    try {
-        const engine = await createWebHyperDBEngine({ ...settings, [EXPERIMENTAL_WASM_BACKEND_SETTING]: true }, onSetupProgress);
-        logger.info('Started HyperDB on the experimental wasm backend', { context }, 'hyperdb');
-        return engine;
-    } catch (error) {
-        if (!isUnknownHyperDBSettingError(error, EXPERIMENTAL_WASM_BACKEND_SETTING)) throw error;
-        logger.warn('HyperDB has no experimental wasm backend, starting the default backend', {
-            context,
-            error: stringifyError(error),
-        }, 'hyperdb');
-        return await createWebHyperDBEngine(settings, onSetupProgress);
-    }
-}
-
+/// Set up the embedded Hyper of the app, the one of the browser tests if they installed a factory
 export async function setupWebHyperDB(
     context: string,
     logger: Logger,
@@ -130,73 +52,5 @@ export async function setupWebHyperDB(
     if (globalThis.__DASHQL_TEST_HYPERDB_FACTORY__) {
         return await globalThis.__DASHQL_TEST_HYPERDB_FACTORY__(context, logger, onSetupProgress);
     }
-    const initStart = performance.now();
-    try {
-        logger.info('Creating HyperDB WASM engine', { context }, 'hyperdb');
-        // The steps of the setup, in the debug log
-        let stepStart = performance.now();
-        const step = (name: string) => {
-            const now = performance.now();
-            logger.debug('Set up a step of HyperDB WASM', { context, step: name, durationMs: (now - stepStart).toFixed(1) }, 'hyperdb');
-            stepStart = now;
-        };
-        await cleanupStaleHyperDBOPFSInstances();
-        step('remove stale OPFS instances');
-        const instance = await createHyperDBOPFSInstance();
-        step('create OPFS instance');
-        let engine: HyperDBEngine | null = null;
-        try {
-            engine = await startWaitingForMemory(
-                () => createWebHyperDBEngineWithOptions(
-                    context,
-                    logger,
-                    { ...HYPERDB_WASM_ENGINE_SETTINGS, ...options.engineSettings, log_file_path: instance.logDirectoryPath },
-                    options,
-                    onSetupProgress,
-                ),
-                (error, waitMs) => logger.warn('HyperDB WASM got no memory, waiting for the memory of the last page', {
-                    context,
-                    error: stringifyError(error),
-                    waitMs: waitMs.toString(),
-                }, 'hyperdb'),
-            );
-            step('start engine');
-            const database = await HyperDB.create(engine, {
-                computeDatabasePath: instance.computeDatabasePath,
-                defaultDatabasePath: instance.userDatabasePath,
-                snippetsDatabasePath: instance.snippetsDatabasePath,
-                logger,
-            });
-            step('create databases');
-            const terminate = database.terminate.bind(database);
-            database.terminate = async () => {
-                await terminate();
-                await instance.dispose();
-            };
-
-            logger.info('Instantiated HyperDB WASM', {
-                context,
-                duration: Math.floor(performance.now() - initStart).toString(),
-            }, 'hyperdb');
-            return database;
-        } catch (error) {
-            try {
-                await engine?.terminate();
-                await instance.dispose();
-            } catch (cleanupError) {
-                logger.warn('Cleaning up failed HyperDB setup failed', {
-                    context,
-                    error: stringifyError(cleanupError),
-                }, 'hyperdb');
-            }
-            throw error;
-        }
-    } catch (error) {
-        logger.error('Instantiating HyperDB WASM failed', {
-            context,
-            error: stringifyError(error),
-            duration: Math.floor(performance.now() - initStart).toString(),
-        }, 'hyperdb');
-        throw error;
-    }
+    return await setupWebHyperDBOf(context, logger, HYPERDB_WEB_ASSETS, onSetupProgress, options);
 }

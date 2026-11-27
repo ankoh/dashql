@@ -3,7 +3,7 @@ import * as React from 'react';
 import * as baseStyles from '@akohn/dashql-react/components/banner_page.module.css';
 import * as styles from './app_ownership_gate.module.css';
 
-import { AppOwnership, AppOwnershipTimeoutError, getAppOwnershipEnvironment, type AppOwnershipEnvironment } from '../host/app_ownership.js';
+import { AppOwnership, AppOwnershipTimeoutError, getAppOwnershipEnvironment, type AppOwnershipEnvironment } from '@akohn/dashql/platform/app_ownership';
 import { APP_HAND_OVER_CTX, APP_RESTART_CTX, reloadTab, type AppHandOverHook } from '../host/app_hand_over.js';
 import { Button, ButtonVariant } from '@akohn/dashql-react/components/button';
 import { CompactNavBar } from './navbar.js';

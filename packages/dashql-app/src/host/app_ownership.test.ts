@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { AppOwnership, AppOwnershipTimeoutError, type AppOwnershipEnvironment } from './app_ownership.js';
+import { AppOwnership, AppOwnershipTimeoutError, type AppOwnershipEnvironment } from '@akohn/dashql/platform/app_ownership';
 import type { ConnectionParams } from '@akohn/dashql/platform/storage/storage_backend';
 import { TEST_CONNECTION_ID, WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { createTestRuntime } from '@akohn/dashql/runtime/testing/test_runtime';

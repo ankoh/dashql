@@ -4,10 +4,11 @@ import type * as core from '@akohn/dashql';
 import { createRuntime, type QueryCommands, type Runtime } from '@akohn/dashql/runtime/runtime';
 import { createRuntimeArchives } from '@akohn/dashql/runtime/workbook_archives';
 import type { HttpClient } from '@akohn/dashql/platform/http_client';
-import { stringifyError } from '@akohn/dashql/platform/logger/logger';
+import { FRAME_UPDATE_SCHEDULER } from '@akohn/dashql/runtime/store/update_scheduler';
 
 import { AppOAuthFlow } from '../oauth/app_oauth_flow.js';
-import { RuntimeContextProvider, useOwnedRuntime } from '@akohn/dashql-react/hooks';
+import { RuntimeContextProvider } from '@akohn/dashql-react/hooks';
+import { flushRuntimeStorage, usePageRuntime } from '@akohn/dashql-react/platform/page_runtime';
 import { mockSalesforceHttp, mockSalesforceOAuthFlow } from '@akohn/dashql/platform/connections/salesforce/salesforce_api_client_mock';
 import { createChannelConnector, type ChannelClients } from '../connections/hyper/hyper_connection_setup.js';
 import { NativeHyperDatabaseClient } from '../connections/hyper/native_hyperdb_grpc_client.js';
@@ -20,7 +21,6 @@ import { usePlatformType } from './platform_type.js';
 import { useWorkbookResults } from '../storage/workbook_results_provider.js';
 import { useStorageReader } from '../storage/storage_provider.js';
 import { useAppHandOver } from './app_hand_over.js';
-import { FRAME_UPDATE_SCHEDULER } from '../utils/store_hooks.js';
 import { useDashQLCore } from './core_provider.js';
 import { useAppConfig } from '../config/app_config.js';
 
@@ -71,7 +71,7 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; queryCo
     const ref = React.useRef(latest);
     ref.current = latest;
 
-    const runtime = useOwnedRuntime(() => {
+    const runtime = usePageRuntime(() => {
         // The desktop app speaks Hyper over gRPC through its native proxy, the runtime speaks Hyper over HTTP itself
         const grpcClient = isDesktopHost() ? new NativeHyperDatabaseClient(logger) : null;
         const clients = (): ChannelClients => ({
@@ -102,41 +102,13 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; queryCo
     return <AppRuntimeServices runtime={runtime}>{props.children}</AppRuntimeServices>;
 }
 
-/// What the app does with its runtime: the flushes of the storage writer and the handover to another tab
+/// What the app does with its runtime besides a page: the flush before Electron closes a window and the handover to
+/// another tab
 function AppRuntimeServices(props: { runtime: Runtime; children?: React.ReactNode }) {
     const { runtime } = props;
-    const logger = useLogger();
 
-    // The app shows whether runs can read results once the compute database is set up, it is set up right away
-    React.useEffect(() => runtime.computeDatabase.prepare(), [runtime]);
-
-    // Write the pending changes when the page goes away, the writer debounces them. Browsers don't wait for the writes
-    // when the page unloads, a hidden page usually still finishes them. Electron asks for the writes before it closes a
-    // window and waits for them.
-    React.useEffect(() => {
-        const writer = runtime.storage;
-        // A page that goes away keeps the scripts that a change outside the app holds as recovery copies next to them,
-        // a page that goes to the back-forward cache comes back with them pending
-        const flush = async (closing: boolean) => {
-            try {
-                await writer.flush({ closing });
-            } catch (error) {
-                logger.error("Failed to flush the storage writer", { error: stringifyError(error) }, "runtime");
-            }
-        };
-        const flushIfHidden = () => {
-            if (document.visibilityState === 'hidden') void flush(false);
-        };
-        const flushOnPageHide = (event: PageTransitionEvent) => void flush(!event.persisted);
-        window.addEventListener('pagehide', flushOnPageHide);
-        document.addEventListener('visibilitychange', flushIfHidden);
-        const removeElectronFlush = globalThis.dashqlElectron?.onFlush(() => flush(true));
-        return () => {
-            window.removeEventListener('pagehide', flushOnPageHide);
-            document.removeEventListener('visibilitychange', flushIfHidden);
-            removeElectronFlush?.();
-        };
-    }, [runtime, logger]);
+    // Electron asks for the writes before it closes a window and waits for them
+    React.useEffect(() => globalThis.dashqlElectron?.onFlush(() => flushRuntimeStorage(runtime, true)), [runtime]);
 
     // Another tab takes over the app, the pending writes finish first and nothing is written after
     useAppHandOver(async () => {

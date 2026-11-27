@@ -27,3 +27,12 @@ export const ELECTRON_FILE_SYSTEM: FileSystem = {
     writeFile: (path, data) => bridge().writeFile(path, data),
     writeTextFile: (path, data) => bridge().writeTextFile(path, data),
 };
+
+/// Claim a native workbook folder that the manifest registers for the app, false outside of the desktop app and for a
+/// missing folder. Folders registered before the app granted folders are claimed once, later starts reject the claim.
+export async function claimElectronWorkbookFolder(nativePath: string): Promise<boolean> {
+    const electron = (globalThis as { dashqlElectron?: { claimWorkbookFolder(path: string): Promise<unknown> } }).dashqlElectron;
+    if (electron === undefined) return false;
+    await electron.claimWorkbookFolder(nativePath);
+    return await ELECTRON_FILE_SYSTEM.exists(nativePath);
+}

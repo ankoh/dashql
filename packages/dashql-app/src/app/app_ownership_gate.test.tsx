@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppOwnershipGate } from './app_ownership_gate.js';
 import { useAppHandOver, useAppRestart, type AppRestart } from '../host/app_hand_over.js';
 import { LoggerProvider } from '../host/logger_provider.js';
-import type { AppOwnershipEnvironment } from '../host/app_ownership.js';
+import type { AppOwnershipEnvironment } from '@akohn/dashql/platform/app_ownership';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

@@ -19,7 +19,7 @@ its process. A browser exposes the buffer only when nothing of another site can 
   `isolate-and-credentialless`: they are fetched without credentials). The embedder, the subframes and popups don't
   matter. An isolated document has no synchronous access to same-origin documents that are not isolated, and a
   `SharedArrayBuffer` cannot be posted to them. When the browser cannot afford the process, `crossOriginIsolated`
-  stays false, so code has to check it at runtime (`hyperdb_web_support.ts` already does).
+  stays false, so code has to check it at runtime (`getHyperDBWebSupportError` of `@akohn/dashql/platform/hyperdb/hyperdb_web` already does).
 
 ## Browser support
 

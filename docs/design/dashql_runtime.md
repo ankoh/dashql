@@ -48,7 +48,8 @@ the module, supplies its I/O and holds the views, see [core_first.md](../agents/
   `query/cache_pins.ts` (the releases of the pins of the result files that the runtime keeps, by id),
   `runtime_storage.ts` (the storage of the platform and `StorageCommands`, the commands of the storage writer),
   `workbook_archives.ts`, `platform_requests.ts` (the fetches and OAuth flows that `destroy` aborts),
-  `embedded_session.ts` (the session of the shell on a connection to the embedded Hyper) and
+  `embedded_session.ts` (the session of the shell on a connection to the embedded Hyper), `embedded_channels.ts` (the
+  channels of the embedded Hyper that a setup asks for) and
   `node/node_platform.ts`. A module belongs here when it names `RuntimeOptions`, the handle table or a platform type of
   the core.
 - **`src/platform`** is everything else that more than the app uses. It never imports the runtime.
@@ -159,18 +160,38 @@ platform object no more: a call fails, a timer never fires, and the effects on h
 
 | | Browser | Desktop app | Node |
 |---|---|---|---|
-| Created in | `RuntimeProvider` of the app | `RuntimeProvider` of the app | `createNodePlatform` (`runtime/node/node_platform.ts`), e.g. the tests of the runtime |
-| Scheduler | `FRAME_UPDATE_SCHEDULER` of the app (`utils/store_hooks.ts`: microtask, `requestAnimationFrame`) | the same | `TASK_UPDATE_SCHEDULER` (`store/update_scheduler.ts`: microtask, `setTimeout`) |
+| Created in | `RuntimeProvider` of the app over `usePageRuntime` (below) | `RuntimeProvider` of the app | `createNodePlatform` (`runtime/node/node_platform.ts`), e.g. the tests of the runtime |
+| Scheduler | `FRAME_UPDATE_SCHEDULER` (`store/update_scheduler.ts`: microtask, `requestAnimationFrame`) | the same | `TASK_UPDATE_SCHEDULER` (`store/update_scheduler.ts`: microtask, `setTimeout`) |
 | HTTP | fetch (`WebHttpClient`), limited by CORS | the native proxy (`NativeHttpClient` of the app) | fetch (`WebHttpClient`) |
-| Storage | OPFS (composite backend of the app) | OPFS and native workbook folders over the Electron bridge | `NativeStorageBackend` over `NODE_FILE_SYSTEM`, one workbook folder |
-| Embedded Hyper | `hyperdb-wasm` in a worker, cross-origin isolated (`platform/hyperdb/`) | the same | the `node` build of `hyperdb-wasm` (`platform/node/node_hyperdb.ts`) |
-| Core Wasm | URL from the bundler | the same | the file of `@akohn/dashql/wasm` (`platform/node/node_core.ts`) |
+| Storage | OPFS (`migrateStorage` of `platform/storage/storage_migration.ts`, then `openPageStorage` of `platform/storage/page_storage.ts`: the composite backend) | OPFS and native workbook folders over the Electron bridge | `NativeStorageBackend` over `NODE_FILE_SYSTEM`, one workbook folder |
+| Embedded Hyper | `hyperdb-wasm` in a worker, cross-origin isolated (`setupWebHyperDB` of `platform/hyperdb/hyperdb_web.ts` with the files of the engine that the page serves) | the same | the `node` build of `hyperdb-wasm` (`platform/node/node_hyperdb.ts`) |
+| Core Wasm | URL from the bundler (`DashQLCoreProvider` of `@akohn/dashql-react/platform/core_provider`) | the same | the file of `@akohn/dashql/wasm` (`platform/node/node_core.ts`) |
 | OAuth | popup and the redirect page `oauth.html` (`AppOAuthFlow`) | the browser of the system, a link back to the app or the loopback server of the desktop app | refused |
-| Channels | `createChannelConnector` of `connections/hyper/hyper_connection_setup.tsx` | the same, gRPC through the native proxy | none, the options of the caller (`RuntimeOptions.channels`) |
+| Channels | `createChannelConnector` of `connections/hyper/hyper_connection_setup.tsx`, the embedded Hyper through `connectEmbeddedChannel` of `runtime/embedded_channels.ts` | the same, gRPC through the native proxy | none, the options of the caller (`RuntimeOptions.channels`) |
 | Archives | `createRuntimeArchives` | the same | none |
 
 `createNodePlatform` is async: it loads the core from its file unless one is passed. The shell of Hyper creates a
 runtime without storage (`StandaloneRuntime`, below).
+
+### A page of another host
+
+The parts of the browser platform that are not about the app are in the packages, so that another host of the
+runtime, e.g. a console of its own, builds a page from them without the app:
+
+| What | Where |
+|---|---|
+| The core, fetched with progress and instantiated once | `DashQLCoreProvider` (prop `wasmUrl`), `useDashQLCore`, `useDashQLCoreSetup`, `useDashQLCoreSetupProgress` of `@akohn/dashql-react/platform/core_provider` |
+| The embedded Hyper, started when first needed | `EmbeddedDatabaseProvider` (prop `setupDatabase`), `useEmbeddedDatabaseSetup`, `useEmbeddedDatabaseTermination` of `@akohn/dashql-react/platform/embedded_database_provider`; `setupWebHyperDB(context, logger, assets)` of `@akohn/dashql/platform/hyperdb/hyperdb_web` with the URLs of the files of `hyperdb-wasm` (`HyperDBWebAssets`) |
+| The storage | `migrateStorage` and `openPageStorage` of `@akohn/dashql/platform/storage/` |
+| One tab that writes the storage | `AppOwnership` of `@akohn/dashql/platform/app_ownership` (Web Locks and a broadcast channel) |
+| The channels of the embedded Hyper | `createEmbeddedChannelConnector` of `@akohn/dashql/runtime/embedded_channels` |
+| The runtime of the page | `usePageRuntime(create)` of `@akohn/dashql-react/platform/page_runtime`: `useOwnedRuntime`, the compute database prepared right away, the storage writer flushed when the page hides |
+| The log | `BufferLogger` of `@akohn/dashql/platform/logger/logger` in `LoggerContext` of `@akohn/dashql-react/logger` |
+
+The app wraps them: its `DashQLCoreProvider` adds the overlay after a panic of the core, its
+`EmbeddedDatabaseProvider` the files of the engine that it serves and the termination before another tab takes over,
+its `RuntimeProvider` the flush before Electron closes a window and the handover. The OAuth flow and its redirect page
+are still the app's (`AppOAuthFlow`, `oauth/`).
 
 ## The seam
 
@@ -434,10 +455,11 @@ it over, and only the latest lease resets the connection when it closes.
 ## The app
 
 - **`RuntimeProvider`** (`packages/dashql-app/src/host/runtime_provider.tsx`) creates the runtime over the
-  providers of the app once the core is there and shows the loading page until then. It flushes the storage writer when
-  the page hides and when Electron closes a window (a page that goes away flushes with `closing`), hands over to another
-  tab (`storage.handOver()`: the pending writes are written, then the tab writes nothing any more), asks for the
-  compute database right away, and destroys the runtime with the component. `useOwnedRuntime` creates the runtime with
+  providers of the app once the core is there and shows the loading page until then. `usePageRuntime` flushes the
+  storage writer when the page hides (a page that goes away flushes with `closing`), asks for the compute database
+  right away and destroys the runtime with the component; the app adds the flush when Electron closes a window and the
+  handover to another tab (`storage.handOver()`: the pending writes are written, then the tab writes nothing any
+  more). `useOwnedRuntime` creates the runtime with
   the first render, keeps it in a ref and destroys it in a task after the cleanup of its effect unless the effect runs
   again: StrictMode and Fast Refresh keep the same runtime.
 - **`StandaloneRuntime`** (`host/standalone_runtime.tsx`) gives the shell of Hyper a runtime of its own with the core, the HTTP

@@ -197,6 +197,19 @@ export abstract class Logger {
     }
 }
 
+/// A logger that keeps its records in its buffer, e.g. the one of a page that shows its log
+export class BufferLogger extends Logger {
+    public destroy(): void { }
+
+    protected flushPendingRecords(): void {
+        const pending = this.pendingRecords;
+        this.pendingRecords = [];
+        for (const record of pending) {
+            this.outputBuffer.push(record);
+        }
+    }
+}
+
 /// A logger view that tags every record with a fixed trace context
 export class TracedLogger {
     constructor(
