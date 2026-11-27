@@ -324,7 +324,7 @@ describe('CompositeStorageBackend V2 flat routing', () => {
         expect(await backend.loadScripts(TEST_WORKBOOK_ID)).toEqual([{ name: '02_native.sql', sql: 'SELECT 2' }]);
     });
 
-    it('registers a native folder of an older version, the runtime migrates it through the folder of the workbook', async () => {
+    it('registers a native folder of an older version, the restore migrates it through the folder of the workbook', async () => {
         const dir = '/tmp/session';
         const { workbookId, ...workbook } = testWorkbook();
         fsStore.files.set(`${dir}/dashql-session.json`, JSON.stringify({ ...workbook, formatVersion: 10, sessionId: workbookId }));
@@ -337,7 +337,7 @@ describe('CompositeStorageBackend V2 flat routing', () => {
             storage: backend,
         });
         try {
-            expect(await runtime.module.migrateWorkbookFolder(workbookId)).toBe('migrated');
+            await runtime.restoreWorkbook(workbookId);
         } finally {
             await runtime.destroy();
         }

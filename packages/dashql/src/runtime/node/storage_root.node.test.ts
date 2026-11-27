@@ -99,13 +99,10 @@ describe('the migrations of the runtime', () => {
         const storage = new NativeStorageBackend(path.join(dir, 'folder'), NODE_FILE_SYSTEM);
         const runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, core: await testCore(), storage });
         try {
-            // The folder is its own storage, the id is only known after the migration
-            expect(await runtime.module.migrateWorkbookFolder('')).toBe('migrated');
-            expect(await runtime.module.migrateWorkbookFolder('')).toBe('current');
-            const { workbookId } = await storage.loadWorkbook('');
-            expect(workbookId).toBe(SESSION_A);
-            await runtime.restoreWorkbook(workbookId);
-            expect(runtime.store.get('workbook', workbookId)?.scriptOrder).toEqual(['a.sql']);
+            // The folder is its own storage, the restore reads its workbook file of an older format and migrates it
+            await runtime.restoreWorkbook(SESSION_A);
+            expect(runtime.store.get('workbook', SESSION_A)?.scriptOrder).toEqual(['a.sql']);
+            expect((await storage.loadWorkbook(SESSION_A)).workbookId).toBe(SESSION_A);
         } finally {
             await runtime.destroy();
         }

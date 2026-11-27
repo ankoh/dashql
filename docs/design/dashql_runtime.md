@@ -344,8 +344,8 @@ The app calls the module only through the facade, which also passes on the comma
 `allocateId`, `catalogRelationsFile`, `bindHyperLink`, `revealConnectionSecrets`, `exportConnection`,
 `exportedResults`, `withStoredResult`, `dropImport`, `checkWorkbookFolders` and `answerExternalChange`;
 `//packages/dashql-app:component_boundary_test` fails on a `runtime.module` in a module of the app. The tests reach the
-module (`runtime.module`) for the rest, e.g. `runCatalogLoader`, `resultKeys`,
-`migrateWorkbookFolder`, `queryProgressRecording` and `followQueryProgress`.
+module (`runtime.module`) for the rest, e.g. `runCatalogLoader`, `resultKeys`, `queryProgressRecording` and
+`followQueryProgress`.
 
 **Reported runs.** `runWorkbookReported` (`src/runtime/workbook_run_report.ts`) runs the scripts of a workbook and
 reports what happens as `RunEvent`s (`src/platform/workbook/run_events.ts`): the page prints them for the `dashql run`

@@ -1715,22 +1715,6 @@ impl Runtime {
         Ok(to_js(&migrations::StorageVersions::current())?.into())
     }
 
-    /// Bring the folder of a workbook that the platform keeps in a folder of its own (`storage.workbookFolder`) to the
-    /// current workbook format, e.g. the folder of a run of the command line tool before it reads the workbook id.
-    /// Resolves with the outcome (`current`, `migrated`, `missing`, `unsupported`, `newer`), null for a workbook of the
-    /// storage root. The restore migrates the folder of a workbook itself.
-    #[wasm_bindgen(js_name = migrateWorkbookFolder, unchecked_return_type = "Promise<'current' | 'migrated' | 'missing' | 'unsupported' | 'newer' | null>")]
-    pub fn migrate_workbook_folder(&self, workbook_id: String) -> Promise {
-        let platform = self.platform.clone();
-        let stamps = self.storage.stamps.clone();
-        future_to_promise(async move {
-            match migrations::migrate_workbook_folder(&platform, &stamps, &workbook_id).await {
-                Ok(outcome) => Ok(outcome.map(|outcome| JsValue::from_str(outcome.as_str())).unwrap_or(JsValue::NULL)),
-                Err(error) => Err(storage::error_value(&error)),
-            }
-        })
-    }
-
     /// The workbook tables of the format with their columns, e.g. the schema of a cloud
     #[wasm_bindgen(js_name = workbookTables, unchecked_return_type = "WorkbookTableSchema[]")]
     pub fn workbook_tables() -> Result<JsValue, JsError> {

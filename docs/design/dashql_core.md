@@ -414,7 +414,7 @@ See [workbook_graph_execution.md](workbook_graph_execution.md).
   [workbook_tables.md](workbook_tables.md) and [native_file_sync.md](native_file_sync.md).
 - **Commands over the format.** `exportWorkbook`, `exportConnection`, `readImport`, `commitImport`, `dropImport`
   (archives through `archives` of the platform, results by handle), the static `migrateStorage`,
-  `migrateWorkbookFolder`, `checkWorkbookFolders` with `answerExternalChange` for folders that change outside the app,
+  `checkWorkbookFolders` with `answerExternalChange` for folders that change outside the app,
   and `withStoredResult`, which pins the file of the stored result of a script while the command line tool or the tab
   of an agent session hands it on (`workbook_results.md`).
 

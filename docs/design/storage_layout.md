@@ -252,9 +252,8 @@ Two versions describe the stored data. Both migrations are steps of the runtime 
   in `migration.rs`. `migrate_folder` reads the top-level files of the folder, migrates them in memory, and writes the
   changed files first and removes the others after. A folder whose workbook file is at the current version is only
   read. Besides the startup, the runtime migrates a folder that the platform keeps elsewhere (`storage.workbookFolder`,
-  a native workbook folder or the folder of a run of the command line tool) whenever it reads a workbook file of an
-  older format, e.g. after a checkout of an older commit, a native folder that an import registers, and the folder of `migrateWorkbookFolder`, which the command line tool calls
-  before it reads the workbook id.
+  a native workbook folder or a folder that is the storage of a runtime in Node) whenever it reads a workbook file of
+  an older format, e.g. after a checkout of an older commit or a native folder that an import registers.
   Version 11 renames `dashql-session.json` as `dashql-workbook.json`, with `workbookId` and `workbookPath` in place of
   `sessionId` and `sessionPath`. The steps up to version 10 keep the names of sessions, the layout of their version.
 
