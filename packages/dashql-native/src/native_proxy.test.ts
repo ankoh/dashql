@@ -38,6 +38,26 @@ describe("NativeProxyService", () => {
         service.close();
     });
 
+    it("waits for a slow response and ignores an answer to an unknown request", async () => {
+        vi.useFakeTimers();
+        try {
+            const child = new FakeUtilityProcess();
+            const service = new NativeProxyService(child as never);
+            child.emit("message", {type: "ready"});
+            await service.ready();
+            const request = service.request({body: new Uint8Array(), headers: [], method: "GET", url: "dashql-native://localhost/grpc/channel/1/stream/1"});
+            await vi.waitFor(() => expect(child.sent).toHaveLength(1));
+            const id = (child.sent[0] as {id: number}).id;
+            await vi.advanceTimersByTimeAsync(120_000);
+            child.emit("message", {body: new Uint8Array(), headers: [], id: id + 100, status: 200, statusText: "OK"});
+            child.emit("message", {body: new Uint8Array([1]), headers: [], id, status: 200, statusText: "OK"});
+            expect((await request).status).toBe(200);
+            service.close();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it("rejects pending requests when the utility process exits", async () => {
         const child = new FakeUtilityProcess();
         const service = new NativeProxyService(child as never);

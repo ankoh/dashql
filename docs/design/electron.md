@@ -88,10 +88,10 @@ Rust addon. The renderer keeps an HTTP-shaped contract: `nativeProxyFetch`
 build on it; there are no operation-specific typed APIs.
 
 - The main process starts the utility process and multiplexes requests through `NativeProxyService`
-  (`src/native_proxy.ts`): a ready handshake, increasing request IDs, a 30 s per-request timeout, and
-  rejection of pending calls when the process exits. Requests are bounded to 64 MiB bodies, 128 headers and
-  8192-character header values; methods are DELETE, GET, PATCH and POST; routes are `health`, `grpc/` and
-  `http/`. The renderer cannot call `health`.
+  (`src/native_proxy.ts`): a ready handshake, increasing request IDs, and rejection of pending calls when the
+  process exits. It sets no timeout of its own, the page sends its read timeouts with the requests. Requests are
+  bounded to 64 MiB bodies, 128 headers and 8192-character header values; methods are DELETE, GET, PATCH and POST;
+  routes are `health`, `grpc/` and `http/`. The renderer cannot call `health`.
 - The addon (`packages/dashql-native/proxy/src/napi.rs`) exports `health()` and an async `route()`. The router
   (`src/proxy_router.rs`) serves `/http/streams`, `/http/stream/{id}`, `/grpc/channels` and
   `/grpc/channel/{id}/{unary,streams,stream/{id}}`. Streams are polled in batches.

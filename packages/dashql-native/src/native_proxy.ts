@@ -23,11 +23,9 @@ interface NativeProxyMessage extends Partial<NativeProxyResponse> {
 interface PendingRequest {
     reject(error: Error): void;
     resolve(response: NativeProxyResponse): void;
-    timeout: NodeJS.Timeout;
 }
 
 const MAX_REQUEST_BYTES = 64 * 1024 * 1024;
-const REQUEST_TIMEOUT_MS = 30_000;
 const ALLOWED_METHODS = new Set(["DELETE", "GET", "PATCH", "POST"]);
 const ALLOWED_ROUTES = /^(?:\/health|\/(grpc|http)\/)/;
 
@@ -81,11 +79,7 @@ export class NativeProxyService {
 
         const id = this.nextRequestId++;
         return await new Promise<NativeProxyResponse>((resolve, reject) => {
-            const timeout = setTimeout(() => {
-                this.pending.delete(id);
-                reject(new Error(`Native proxy request ${id} timed out`));
-            }, REQUEST_TIMEOUT_MS);
-            this.pending.set(id, {reject, resolve, timeout});
+            this.pending.set(id, {reject, resolve});
             this.child.postMessage({...request, id});
         });
     }
@@ -114,12 +108,8 @@ export class NativeProxyService {
         }
         const id = message.id!;
         const pending = this.pending.get(id);
-        if (pending === undefined) {
-            this.fail(new Error(`Native proxy returned unknown request ID ${id}`));
-            return;
-        }
+        if (pending === undefined) return;
         this.pending.delete(id);
-        clearTimeout(pending.timeout);
         if (message.error !== undefined) {
             pending.reject(new Error(message.error));
             return;
@@ -146,7 +136,6 @@ export class NativeProxyService {
 
     private rejectPending(error: Error): void {
         for (const pending of this.pending.values()) {
-            clearTimeout(pending.timeout);
             pending.reject(error);
         }
         this.pending.clear();
