@@ -170,9 +170,12 @@ export function spawnHarness(options: HarnessSpawn): HarnessRun {
         const message = `Cannot start ${options.program}: ${error instanceof Error ? error.message : String(error)}`;
         return {done: Promise.resolve({message: "", error: message, stopped: false}), stop: () => {}};
     }
+    // Decoded by the streams, which keep a character that a chunk splits until its rest arrives
+    child.stdout?.setEncoding("utf8");
+    child.stderr?.setEncoding("utf8");
     let stderr = "";
-    child.stderr?.on("data", (chunk: Buffer) => {
-        stderr += chunk.toString("utf8");
+    child.stderr?.on("data", (chunk: string) => {
+        stderr += chunk;
         if (stderr.length > STDERR_LIMIT) stderr = stderr.slice(-STDERR_LIMIT);
     });
     let pending = "";
@@ -183,8 +186,8 @@ export function spawnHarness(options: HarnessSpawn): HarnessRun {
             console.error("Failed to read a line of a harness", error);
         }
     };
-    child.stdout?.on("data", (chunk: Buffer) => {
-        pending += chunk.toString("utf8");
+    child.stdout?.on("data", (chunk: string) => {
+        pending += chunk;
         let end;
         while ((end = pending.indexOf("\n")) >= 0) {
             readLine(pending.slice(0, end));

@@ -83,6 +83,14 @@ describe("a run of a harness", () => {
         expect(readFileSync(path.join(dir, "cwd.txt"), "utf8").trim()).toBe(dir);
     });
 
+    test("keeps a character that the output splits between two chunks", async () => {
+        const dir = tempDir();
+        // The two bytes of ü, written apart
+        const program = script(dir, "claude", `#!/bin/sh\nprintf '{"type":"result","subtype":"success","result":"Gr\\303'\nsleep 0.2\nprintf '\\274n"}\\n'\n`);
+        const run = spawnHarness({harness: "claude", program, args: [], cwd: dir, env: {PATH: "/usr/bin:/bin"}, sink: {tool: () => {}, say: () => {}, session: () => {}}});
+        expect(await run.done).toEqual({message: "Grün", error: null, stopped: false});
+    });
+
     test("tells a harness that failed with the end of its stderr", async () => {
         const dir = tempDir();
         const program = script(dir, "codex", "#!/bin/sh\necho 'error: unexpected argument' >&2\nexit 2\n");
