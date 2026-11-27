@@ -279,8 +279,8 @@ These targets regenerate `tests/snapshots/<category>/<name>.yaml` from the templ
   queries to `tests/<folder>.tpl.yaml` with the `EXPLAIN (FORMAT JSON)` plan of every query, outside Bazel since it
   needs the Hyper API; then run `//tests/snapshots/profiles/hyper/tests:update`.
 - The bundled function catalog of the embedded Hyper (`packages/dashql-core-runtime/src/catalog_loader/prefetched_hyper_functions.sql`)
-  is the `pg_proc` of hyperdb-wasm: after an update of hyperdb-wasm, run `bazel run //scripts:update_hyper_functions`,
-  see `docs/design/catalog_updates.md`.
+  is the `pg_proc` of hyperdb-wasm: after an update of hyperdb-wasm, run `bazel run //scripts:update_hyper_functions`
+  (a bump of Renovate runs it), see `docs/design/catalog_updates.md`.
 
 ### Benchmarks
 

@@ -112,7 +112,8 @@ query of its relations, whose database is new at every start.
 
 The bundled catalog is the `pg_proc` of hyperdb-wasm, every function by its name (`name() RETURNS any`, `CREATE
 AGGREGATE` for an aggregate), regenerated after an update of hyperdb-wasm with `bazel run
-//scripts:update_hyper_functions` (`scripts/update_hyper_functions.mjs`, the filter of `pg_proc.rs`). Both lists of a
+//scripts:update_hyper_functions` (`scripts/update_hyper_functions.mjs`, the filter of `pg_proc.rs`). A bump of
+Renovate runs it as a post-upgrade task (`.github/renovate.json`). Both lists of a
 Hyper are all functions of the engine: the descriptor of the functions carries `functions_complete`, and the analyzer
 warns about calls of other functions ([Function checks](core_analysis_catalog.md#function-checks)). A function of
 `pg_proc` whose signature DashQL doesn't model (a set or table result, a qualified custom type) is declared by its name

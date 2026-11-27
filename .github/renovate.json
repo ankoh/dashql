@@ -117,6 +117,16 @@
             }
         },
         {
+            "description": "The bundled function catalog of the embedded Hyper is the pg_proc of hyperdb-wasm, see docs/design/catalog_updates.md.",
+            "matchPackageNames": ["hyperdb-wasm"],
+            "postUpgradeTasks": {
+                "commands": ["bazel run //scripts:update_hyper_functions"],
+                "installTools": { "bazelisk": {} },
+                "fileFilters": ["packages/dashql-core-runtime/src/catalog_loader/prefetched_hyper_functions.sql"],
+                "executionMode": "branch"
+            }
+        },
+        {
             "description": "Tableau publishes the Hyper API on PyPI more often than the C++ archives we download. Take the versions from the release notes, which only link the archives that exist. The page has no release dates, so minimumReleaseAge would hold every version back.",
             "matchDatasources": ["custom.tableauhyperapi_cxx"],
             "extractVersion": "/tableauhyperapi-cxx-linux-x86_64-release-main\\.(?<version>\\d+\\.\\d+\\.\\d+)\\.r[0-9a-f]+\\.zip$",
