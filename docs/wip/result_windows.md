@@ -51,12 +51,12 @@ result does for its first rows today:
 - With one: the table of the filter, the ordering or the search numbers its rows in display order (a position
   column, `row_number()` over the order of the task), and the read joins a range of positions with `__df_<id>`.
   Which table applies (the ordering of a filtered and searched table covers both) is decided in the core, not in
-  `visible_rows.ts`.
+  the grid.
 
 Landed as `plan_row_window` (`compute/tasks/row_window.rs`) and `ComputeService::read_rows`, `readResultRows` of the
 facade and `readRows` of the computation model. A window resolves with its rows (the fields of the result and its row
 numbers, last) and the count of the rows that show: the state knows it, or a query counts the rows of a filter and a
-data search that no ordering covers. The rule of which rows show moved there from `visible_rows.ts`.
+data search that no ordering covers.
 
 The grid has no other source of its rows, so a read must not fail where the table it replaced showed rows (`read` of
 `compute/service.rs`):

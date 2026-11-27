@@ -26,7 +26,6 @@ import { useDataTableWindow, type DataTableWindow } from './data_table_window.js
 export { TableColumnHeader } from './data_table_cell.js';
 export { resolveComputationTables, useComputationTables, type ComputationTables } from './computation_tables.js';
 export type { ComputationDispatch } from './use_cross_filters.js';
-export { forEachIntegerValue } from './visible_rows.js';
 export { peekFormat, type FormatHint } from './format_peek.js';
 
 

@@ -6,7 +6,6 @@ import type { ComputationView } from '@akohn/dashql';
 import type { ComputationModel, ResultRowWindow } from '../../models/computation_model.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../../logger.js';
-import { forEachIntegerValue } from './visible_rows.js';
 
 // The rows that the grid shows are read in windows: the rows that it renders and some rows around them. The core
 // decides which rows show and in which order, the grid only knows their count and the window it read
@@ -37,6 +36,31 @@ export interface DataTableRows {
     error: string | null;
     /// Read the rendered rows again after a read failed
     retry: () => void;
+}
+
+/// Visit the values of an integer column as numbers, like `Number(column.get(i))` (nulls become 0).
+/// Integer chunks are read from their value buffers directly. A chunk's values are already narrowed
+/// to the chunk's window, so value `i` of the chunk is `values[i]`, exactly what `Vector.get` reads.
+export function forEachIntegerValue(column: arrow.Vector, visit: (value: number, index: number) => void): void {
+    if (column.type.typeId !== arrow.Type.Int) {
+        for (let i = 0; i < column.length; ++i) {
+            visit(Number(column.get(i)), i);
+        }
+        return;
+    }
+    let index = 0;
+    for (const chunk of column.data) {
+        const values = chunk.values as ArrayLike<number | bigint>;
+        if (chunk.nullCount === 0) {
+            for (let i = 0; i < chunk.length; ++i) {
+                visit(Number(values[i]), index++);
+            }
+        } else {
+            for (let i = 0; i < chunk.length; ++i) {
+                visit(chunk.getValid(i) ? Number(values[i]) : 0, index++);
+            }
+        }
+    }
 }
 
 /// The rows of a window by position, the row numbers of a result count from 1. A window has the fields of the result

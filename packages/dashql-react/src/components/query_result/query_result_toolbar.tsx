@@ -5,7 +5,8 @@ import type { ComputationModel } from '../../models/computation_model.js';
 import type { QueryModel } from '../../models/query_model.js';
 import { QueryResultSearchControls } from './query_result_search_controls.js';
 import { useQueryResultSearch } from './use_query_result_search.js';
-import { forEachIntegerValue, useComputationTables, type ComputationDispatch, type ComputationTables } from '../data_table/data_table.js';
+import { useComputationTables, type ComputationDispatch, type ComputationTables } from '../data_table/data_table.js';
+import { forEachIntegerValue } from '../data_table/data_table_window.js';
 
 /// The dispatch of no computation, the search shows nothing then
 const NO_DISPATCH: ComputationDispatch = () => ({ ok: false, changed: false, error: 'no computation', id: null });
