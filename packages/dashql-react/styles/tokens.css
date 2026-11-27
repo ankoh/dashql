@@ -131,6 +131,8 @@
     --shell_fg: #e6edf3;
     --shell_fg_muted: rgba(230, 237, 243, 0.7);
     --shell_fg_subtle: hsla(0, 0%, 100%, 0.45);
+    /* The block cursor of the prompt, white like the one of a terminal; it blends by difference with the text */
+    --shell_cursor: #ffffff;
 
     /* Backdrop of pages with a lot of empty space, like the session feed: a soft light in the middle,
        a faint dot grid, and a vignette that fades the grid out toward the edges. Centered in the element it paints.

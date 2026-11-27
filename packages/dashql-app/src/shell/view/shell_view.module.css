@@ -176,14 +176,14 @@
     width: 1ch;
     margin-left: 0;
     border-left: none;
-    background: #ffffff;
+    background: var(--shell_cursor);
 }
 
 /* Without the focus the block stays as an outline, as in a terminal */
 .prompt_editor :global(.cm-editor:not(.cm-focused) .cm-cursor) {
     display: block;
     box-sizing: border-box;
-    border: 1px solid #ffffff;
+    border: 1px solid var(--shell_cursor);
     background: none;
 }
 

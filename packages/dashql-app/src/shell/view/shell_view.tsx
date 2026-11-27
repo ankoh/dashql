@@ -207,7 +207,7 @@ export function ShellView(props: ShellViewProps): React.ReactElement {
         const feed = feedRef.current;
         if (feed != null && atEnd.current) feed.scrollTop = feed.scrollHeight;
     }, []);
-    React.useLayoutEffect(stickToEnd, [entries]);
+    React.useLayoutEffect(stickToEnd, [entries, stickToEnd]);
     // A keyboard that opens shrinks the feed, a prompt of several lines grows it
     React.useEffect(() => {
         const feed = feedRef.current;
