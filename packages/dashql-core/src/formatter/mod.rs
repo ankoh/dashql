@@ -680,68 +680,20 @@ impl<'a> Formatter<'a> {
         }
 
         match node.attribute_key() {
-            K::SQL_SELECT_TARGETS
-            | K::SQL_SELECT_FROM
-            | K::SQL_SELECT_GROUPS
-            | K::SQL_SELECT_ORDER
-            | K::SQL_WINDOW_FRAME_PARTITION
-            | K::SQL_WINDOW_FRAME_ORDER
-            | K::SQL_RELATION_ARG_PARTITION
-            | K::SQL_RELATION_ARG_ORDER
-            | K::SQL_FUNCTION_WITHIN_GROUP
-            | K::SQL_FUNCTION_ARGUMENTS
-            | K::SQL_FUNCTION_ORDER
-            | K::SQL_EXPRESSION_ARGS
-            | K::SQL_DESCRIPTOR_COLUMNS
-            | K::SQL_ROW_TYPE_FIELDS
-            | K::SQL_CASE_CLAUSES
-            | K::SQL_CREATE_TABLE_ELEMENTS
-            | K::SQL_CREATE_AS_COLUMNS
-            | K::SQL_VIEW_COLUMNS
-            | K::SQL_VIEW_OPTIONS
-            | K::SQL_CREATE_FUNCTION_OPTION_VALUE
-            | K::SQL_SELECT_WINDOWS
-            | K::SQL_SELECT_ROW_LOCKING
-            | K::SQL_ROW_LOCKING_OF
-            | K::SQL_GROUP_BY_ITEM_ARG
-            | K::SQL_NUMERIC_TYPE_MODIFIERS
-            | K::SQL_GENERIC_TYPE_MODIFIERS
-            | K::SQL_TYPENAME_ARRAY
-            | K::SQL_ATTACH_DATABASE_OPTIONS
-            | K::SQL_INSERT_COLUMNS
-            | K::SQL_INSERT_RETURNING
-            | K::SQL_INSERT_ON_CONFLICT_TARGET
-            | K::SQL_INSERT_ON_CONFLICT_ASSIGNMENTS
-            | K::SQL_ASSIGNMENT_COLUMNS
-            | K::SQL_ASSIGNMENT_VALUE
-            | K::SQL_DELETE_USING
-            | K::SQL_DELETE_RETURNING
-            | K::SQL_CTE_COLUMNS
-            | K::SQL_GRAPH_ELEMENT_TABLE_LABELS
-            | K::SQL_GRAPH_MATCH_PATTERNS
-            | K::SQL_RESULT_TARGET_EXCLUDE
-            | K::SQL_TYPETEST_TYPES
-            | K::SQL_FUNCTION_TABLE_ROWS_FROM
-            | K::SQL_COLUMN_DEF_OPTIONS
-            | K::SQL_CTE_OPTIONS
-            | K::SQL_CONST_CAST_FUNC_ARGS_LIST
-            | K::SQL_ROWSFROM_ITEM_COLUMNS
-            | K::SQL_TABLE_CONSTRAINT_DEFINITION
-            | K::SQL_COLUMN_CONSTRAINT_DEFINITION
-            | K::SQL_CREATE_TABLE_OPTIONS
-            | K::SQL_JSON_MEMBERS
-            | K::SQL_JSON_VALUES
-            | K::SQL_JSON_PASSING
-            | K::SQL_TABLEREF_OPTIONS
-            | K::SQL_FUNCTION_EXTRA_ARGUMENTS
-            | K::SQL_CONST_CAST_FUNC_ARGS_ORDER
-            | K::SQL_SEMANTIC_CLAUSE_TARGETS => self.format_comma_list(node, true),
+            // An array without a key that none of the cases above knows
+            K::NONE => self.format_unimplemented(node),
             // The parameters of a lambda stay on one line, its body breaks
             K::SQL_LAMBDA_PARAM => self.comma_concat(&self.array_regs(node)),
             K::SQL_SEMANTIC_VIEW_CLAUSES => {
-                let parts = self.array_regs(node);
-                self.space_join(&parts, FormattingJoinPolicy::BreakAllOrNone, false)
+                self.space_join(&self.array_regs(node), FormattingJoinPolicy::BreakAllOrNone, false)
             }
+            // The names of DROP start their line when the command breaks, like the lists below
+            K::SQL_DROP_NAME
+                if self.ast.get(node.parent() as usize).is_some_and(|p| p.node_type() == NodeType::OBJECT_SQL_DROP) =>
+            {
+                self.format_comma_list(node, false)
+            }
+            // Lists that start their line when their command breaks, or that their parent puts in parentheses
             K::SQL_PROPERTY_GRAPH_VERTEX_TABLES
             | K::SQL_PROPERTY_GRAPH_EDGE_TABLES
             | K::SQL_GRAPH_ELEMENT_TABLE_KEY
@@ -749,24 +701,50 @@ impl<'a> Formatter<'a> {
             | K::SQL_GRAPH_VERTEX_REFERENCE_COLUMNS
             | K::SQL_GRAPH_PROPERTIES_COLUMNS
             | K::SQL_GRAPH_PROPERTIES_EXCLUDE
-            | K::SQL_GRAPH_TABLE_COLUMNS => self.format_comma_list(node, false),
+            | K::SQL_GRAPH_TABLE_COLUMNS
+            | K::EXT_EXPLAIN_OPTIONS
+            | K::SQL_CALL_ARGS
+            | K::SQL_CREATE_FUNCTION_PARAMS
+            | K::SQL_CREATE_FUNCTION_ORDER_PARAMS
+            | K::SQL_CREATE_FUNCTION_WITH_OPTIONS
+            | K::SQL_FUNCTION_RETURN_TYPE_ATTRIBUTES
+            | K::SQL_GRANT_ACCESS_PRIVILEGE_COLUMNS
+            | K::SQL_FUNCTION_WITH_ARGUMENTS_ARGUMENTS
+            | K::SQL_TRUNCATE_RELATIONS
+            | K::SQL_DROP_FUNCTION_ARGUMENTS
+            | K::SQL_PREPARE_PARAMETER_TYPES
+            | K::SQL_EXECUTE_ARGS
+            | K::SQL_ANALYZE_COLUMNS
+            | K::SQL_CREATE_INDEX_INDEX_PARAMS
+            | K::SQL_CREATE_INDEX_OPTIONS
+            | K::SQL_CREATE_DEFINITION_DEFINITION
+            | K::SQL_CREATE_DEFINITION_ARGS
+            | K::SQL_COPY_COLUMNS
+            | K::SQL_FUNCTION_CALL_ARGS
+            | K::SQL_VALIDATE_DATABASE_OPTIONS
+            | K::SQL_MERGE_ACTION_COLUMNS
+            | K::SQL_MERGE_ACTION_VALUES
+            | K::SQL_ALTER_TABLE_ACTIONS => self.format_comma_list(node, false),
             K::SQL_SUBQUERY_OPERATOR
             | K::SQL_DEFINITION_ARG_VALUE
             | K::SQL_EXPRESSION_OPERATOR
             | K::SQL_ORDER_USING => self.format_operator_path(node),
+            // Lists without commas, the statements of CREATE SCHEMA are on lines of their own
             K::SQL_TABLE_CONSTRAINT_ATTRIBUTES
             | K::SQL_TABLE_CONSTRAINT_KEY_ACTIONS
             | K::SQL_COLUMN_CONSTRAINT_KEY_ACTIONS
             | K::SQL_TABLE_LIKE_OPTIONS
             | K::SQL_COLUMN_DEF_CONSTRAINTS
-            | K::SQL_CREATE_FUNCTION_OPTIONS => self.format_space_list(node),
-            // Lists that their parent puts in parentheses
-            K::EXT_EXPLAIN_OPTIONS
-            | K::SQL_CALL_ARGS
-            | K::SQL_CREATE_FUNCTION_PARAMS
-            | K::SQL_CREATE_FUNCTION_ORDER_PARAMS
-            | K::SQL_CREATE_FUNCTION_WITH_OPTIONS
-            | K::SQL_FUNCTION_RETURN_TYPE_ATTRIBUTES => self.format_comma_list(node, false),
+            | K::SQL_CREATE_FUNCTION_OPTIONS
+            | K::SQL_CREATE_ROLE_OPTIONS
+            | K::SQL_DECLARE_CURSOR_OPTIONS
+            | K::SQL_CREATE_SEQUENCE_OPTIONS
+            | K::SQL_ALTER_SEQUENCE_OPTIONS
+            | K::SQL_CREATE_DATABASE_OPTIONS
+            | K::SQL_CREATE_DATABASE_COPY_OPTIONS
+            | K::SQL_CREATE_DATABASE_COPY_SOURCE_OPTIONS
+            | K::SQL_ALTER_DATABASE_OPTIONS
+            | K::SQL_SCHEMA_STATEMENTS => self.format_space_list(node),
             K::EXT_EXPLAIN_EXPRESSIONS => {
                 self.comma_join(&self.array_regs(node), Some(FormattingJoinPolicy::ForceBreak), false)
             }
@@ -802,17 +780,6 @@ impl<'a> Formatter<'a> {
                 let indent_after_breaks = !self.is_pretty();
                 self.comma_join(&rows, Some(policy), indent_after_breaks)
             }
-            // The privileges, roles and names of GRANT, REVOKE and the commands of roles
-            K::SQL_GRANT_PRIVILEGES
-            | K::SQL_REVOKE_PRIVILEGES
-            | K::SQL_GRANT_ROLE_ROLES
-            | K::SQL_REVOKE_ROLE_ROLES
-            | K::SQL_ROLE_ELEMENT_ARG => self.format_comma_list(node, true),
-            key if is_name_list(key) => self.format_comma_list(node, true),
-            K::SQL_GRANT_ACCESS_PRIVILEGE_COLUMNS | K::SQL_FUNCTION_WITH_ARGUMENTS_ARGUMENTS => {
-                self.format_comma_list(node, false)
-            }
-            K::SQL_CREATE_ROLE_OPTIONS => self.format_space_list(node),
             // The options of ALTER ROLE, or the members that ALTER GROUP adds or drops
             K::SQL_ALTER_ROLE_ARGS => {
                 if self.children(node).first().is_some_and(|c| c.node_type() == NodeType::OBJECT_SQL_ROLE_ELEMENT) {
@@ -821,54 +788,6 @@ impl<'a> Formatter<'a> {
                     self.format_comma_list(node, true)
                 }
             }
-            K::SQL_GRANT_ACCESS_PRIVILEGE_NAME
-            | K::SQL_GRANT_ROLE_GRANTOR
-            | K::SQL_REVOKE_ROLE_GRANTOR
-            | K::SQL_CREATE_ROLE_ROLE
-            | K::SQL_ALTER_ROLE_ROLE
-            | K::SQL_FUNCTION_WITH_ARGUMENTS_NAME => self.format_qualified_name(node),
-            // The lists of the utility commands
-            // The names of DROP and TRUNCATE start their line when the command breaks
-            K::SQL_DROP_NAME
-                if self.ast.get(node.parent() as usize).is_some_and(|p| p.node_type() == NodeType::OBJECT_SQL_DROP) =>
-            {
-                self.format_comma_list(node, false)
-            }
-            K::SQL_TRUNCATE_RELATIONS => self.format_comma_list(node, false),
-            K::SQL_DROP_FUNCTION_ARGUMENTS
-            | K::SQL_PREPARE_PARAMETER_TYPES
-            | K::SQL_EXECUTE_ARGS
-            | K::SQL_ANALYZE_COLUMNS
-            | K::SQL_CREATE_INDEX_INDEX_PARAMS
-            | K::SQL_CREATE_INDEX_OPTIONS
-            | K::SQL_CREATE_DEFINITION_DEFINITION
-            | K::SQL_CREATE_DEFINITION_ARGS => self.format_comma_list(node, false),
-            K::SQL_DECLARE_CURSOR_OPTIONS | K::SQL_CREATE_SEQUENCE_OPTIONS | K::SQL_ALTER_SEQUENCE_OPTIONS => {
-                self.format_space_list(node)
-            }
-            K::SQL_DROP_FUNCTION_NAME
-            | K::SQL_CLOSE_STREAM_NAME
-            | K::SQL_SHOW_ARG
-            | K::SQL_ANALYZE_TABLE
-            | K::SQL_COMMENT_NAME
-            | K::SQL_CREATE_SEQUENCE_NAME
-            | K::SQL_ALTER_SEQUENCE_NAME
-            | K::SQL_CREATE_INDEX_RELATION
-            | K::SQL_CREATE_DEFINITION_NAME
-            | K::SQL_CREATE_DEFINITION_FROM
-            | K::SQL_RENAME_OBJECT_NAME
-            | K::SQL_RENAME_OBJECT_ARG => self.format_qualified_name(node),
-            // The lists of COPY, external tables and databases
-            K::SQL_COPY_PARTITION_BY | K::SQL_DETACH_DATABASE_ALIAS | K::SQL_ARRAY_EXPRESSION_ARGS => {
-                self.format_comma_list(node, true)
-            }
-            K::SQL_COPY_COLUMNS | K::SQL_FUNCTION_CALL_ARGS | K::SQL_VALIDATE_DATABASE_OPTIONS => {
-                self.format_comma_list(node, false)
-            }
-            K::SQL_CREATE_DATABASE_OPTIONS
-            | K::SQL_CREATE_DATABASE_COPY_OPTIONS
-            | K::SQL_CREATE_DATABASE_COPY_SOURCE_OPTIONS
-            | K::SQL_ALTER_DATABASE_OPTIONS => self.format_space_list(node),
             // The legacy options of COPY without commas, or the others that their parent puts in parentheses
             K::SQL_COPY_OPTIONS | K::SQL_CREATE_EXTERNAL_TABLE_OPTIONS | K::SQL_CREATE_EXTERNAL_STREAM_OPTIONS => {
                 if self.are_legacy_copy_options(node) {
@@ -895,20 +814,29 @@ impl<'a> Formatter<'a> {
                     self.format_qualified_name(node)
                 }
             }
-            K::SQL_COPY_RELATION | K::SQL_CREATE_EXTERNAL_TABLE_NAME | K::SQL_CREATE_EXTERNAL_STREAM_NAME => {
-                self.format_qualified_name(node)
-            }
-            // The lists of UPDATE and MERGE
-            K::SQL_UPDATE_ASSIGNMENTS
-            | K::SQL_UPDATE_FROM
-            | K::SQL_UPDATE_RETURNING
-            | K::SQL_MERGE_RETURNING
-            | K::SQL_MERGE_ACTION_TARGET
-            | K::SQL_MERGE_CLAUSES => self.format_comma_list(node, true),
-            K::SQL_MERGE_ACTION_COLUMNS | K::SQL_MERGE_ACTION_VALUES => self.format_comma_list(node, false),
-            // The statements of CREATE SCHEMA, which their parent puts on lines of their own
-            K::SQL_SCHEMA_STATEMENTS => self.format_space_list(node),
-            K::SQL_TEMP_NAME
+            // Qualified names
+            K::SQL_GRANT_ACCESS_PRIVILEGE_NAME
+            | K::SQL_GRANT_ROLE_GRANTOR
+            | K::SQL_REVOKE_ROLE_GRANTOR
+            | K::SQL_CREATE_ROLE_ROLE
+            | K::SQL_ALTER_ROLE_ROLE
+            | K::SQL_FUNCTION_WITH_ARGUMENTS_NAME
+            | K::SQL_DROP_FUNCTION_NAME
+            | K::SQL_CLOSE_STREAM_NAME
+            | K::SQL_SHOW_ARG
+            | K::SQL_ANALYZE_TABLE
+            | K::SQL_COMMENT_NAME
+            | K::SQL_CREATE_SEQUENCE_NAME
+            | K::SQL_ALTER_SEQUENCE_NAME
+            | K::SQL_CREATE_INDEX_RELATION
+            | K::SQL_CREATE_DEFINITION_NAME
+            | K::SQL_CREATE_DEFINITION_FROM
+            | K::SQL_RENAME_OBJECT_NAME
+            | K::SQL_RENAME_OBJECT_ARG
+            | K::SQL_COPY_RELATION
+            | K::SQL_CREATE_EXTERNAL_TABLE_NAME
+            | K::SQL_CREATE_EXTERNAL_STREAM_NAME
+            | K::SQL_TEMP_NAME
             | K::SQL_CREATE_TABLE_NAME
             | K::SQL_FUNCTION_NAME
             | K::SQL_CONST_CAST_FUNC_NAME
@@ -938,21 +866,8 @@ impl<'a> Formatter<'a> {
             | K::SQL_EXTERNAL_STREAM_NAME
             | K::SQL_SEMANTIC_VIEW_NAME
             | K::SQL_GENERIC_TYPE_QUALIFIERS => self.format_qualified_name(node),
-            K::SQL_SELECT_DISTINCT
-            | K::SQL_SELECT_WITH_CTES
-            | K::SQL_COMBINE_INPUT
-            | K::SQL_JOIN_INPUT
-            | K::SQL_TABLE_CONSTRAINT_COLUMNS
-            | K::SQL_TABLE_CONSTRAINT_REFERENCES_COLUMNS
-            | K::SQL_COLUMN_CONSTRAINT_REFERENCES_COLUMNS
-            | K::SQL_JOIN_USING
-            | K::SQL_FUNCTION_TRIM_INPUT
-            | K::SQL_ALIAS_COLUMN_NAMES
-            | K::SQL_ALIAS_COLUMN_DEFS
-            | K::EXT_VARARG_ARRAY_VALUES => self.format_comma_list(node, true),
-            // The actions of ALTER TABLE start their line when the command breaks
-            K::SQL_ALTER_TABLE_ACTIONS => self.format_comma_list(node, false),
-            _ => self.format_unimplemented(node),
+            // Any other list is a comma-separated list that indents the lines after its breaks
+            _ => self.format_comma_list(node, true),
         }
     }
 
