@@ -32,9 +32,6 @@ impl<'a> Formatter<'a> {
 
     pub(super) fn format_create(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        if !self.state(node).is_statement_root {
-            return self.format_unimplemented(node);
-        }
         let [name, elements, if_not_exists, temp, options, on_commit] = attrs!(
             self.children(node),
             [
@@ -484,22 +481,6 @@ impl<'a> Formatter<'a> {
                 f.concat(&[f.text("alter schema "), self.reg(name), f.text(" rename to "), self.reg(new_name)])
             }
             _ => self.format_unimplemented(node),
-        }
-    }
-
-    /// Mark the statements of CREATE SCHEMA as statement roots
-    pub(super) fn mark_schema_statement_roots(&mut self, root_id: usize) {
-        let Some(root) = self.ast.get(root_id) else { return };
-        if root.node_type() != NodeType::OBJECT_SQL_CREATE_SCHEMA {
-            return;
-        }
-        let [statements] = attrs!(self.children(root), [K::SQL_SCHEMA_STATEMENTS]);
-        let Some(statements) = statements else { return };
-        let begin = statements.children_begin_or_value() as usize;
-        for id in begin..begin + statements.children_count() as usize {
-            if let Some(state) = self.node_states.get_mut(id) {
-                state.is_statement_root = true;
-            }
         }
     }
 

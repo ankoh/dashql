@@ -87,8 +87,6 @@ entry when you find another one. The headings name where the behavior lives.
 - **Keyword upper-casing** (`append_generated_text`) only touches exact lower-case keywords in
   generated text, so source `TRUE` or `Select` stay as written. Line widths count characters, not display
   columns, and the wrapping of comments counts bytes.
-- **`format_node_at` does not mark statement roots**, so a CREATE TABLE formatted that way renders
-  `'<OBJECT_SQL_CREATE>'`.
 - **An empty property graph** formats as `Text("")`, a non-empty document.
 - **Unformattable nodes** are recorded in visit order and can repeat.
 - **Unknown enum values** are unformattable, and unknown operators get precedence 0, non-associative

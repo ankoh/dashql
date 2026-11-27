@@ -61,8 +61,6 @@ pub struct FormattingNodeState {
     pub associativity: FormattingAssociativity,
     /// Must the n-ary expression be parenthesized within its parent expression?
     pub needs_parentheses: bool,
-    /// Is the node the root of a statement, or the statement of an EXPLAIN?
-    pub is_statement_root: bool,
     /// The formatted document of the node
     pub reg: FmtReg,
 }
@@ -296,7 +294,7 @@ pub struct Formatter<'a> {
 
 impl<'a> Formatter<'a> {
     pub fn new(parsed: &'a ParsedScript) -> Self {
-        let mut formatter = Self {
+        Self {
             scanned: &parsed.scanned,
             replace_obfuscated_literals: false,
             parsed,
@@ -306,9 +304,7 @@ impl<'a> Formatter<'a> {
             node_states: vec![FormattingNodeState::default(); parsed.nodes.len()],
             unformattable_nodes: RefCell::new(Vec::new()),
             copied_damaged_text: Cell::new(false),
-        };
-        formatter.mark_statement_roots();
-        formatter
+        }
     }
 
     /// Emit executable literals instead of the obfuscated literal markers of Hyper
@@ -339,7 +335,6 @@ impl<'a> Formatter<'a> {
     /// Format the script, the output may contain partial UTF-8 sequences where comments were wrapped
     pub fn format_bytes(&mut self, config: &FormattingConfigT) -> Vec<u8> {
         self.prepare(config);
-        self.mark_statement_roots();
         self.prepare_precedence();
         for i in 0..self.ast.len() {
             self.identify_parentheses(self.ast.len() - 1 - i);
@@ -348,7 +343,7 @@ impl<'a> Formatter<'a> {
         self.write_output()
     }
 
-    /// Format a single node (without the statement roots that only `format` marks)
+    /// Format a single node
     pub fn format_node_at(&mut self, node_id: usize, config: &FormattingConfigT) -> String {
         if node_id >= self.ast.len() {
             return String::new();
@@ -371,29 +366,6 @@ impl<'a> Formatter<'a> {
         self.node_states.resize(self.ast.len(), FormattingNodeState::default());
         self.unformattable_nodes.borrow_mut().clear();
         self.copied_damaged_text.set(false);
-    }
-
-    fn mark_statement_roots(&mut self) {
-        for statement in &self.parsed.statements {
-            if let Some(state) = self.node_states.get_mut(statement.root as usize) {
-                state.is_statement_root = true;
-                self.mark_explain_inner_statement_root(statement.root as usize);
-                self.mark_schema_statement_roots(statement.root as usize);
-            }
-        }
-    }
-
-    fn mark_explain_inner_statement_root(&mut self, root_id: usize) {
-        let Some(root_node) = self.ast.get(root_id) else { return };
-        if root_node.node_type() != NodeType::OBJECT_EXT_EXPLAIN {
-            return;
-        }
-        if let Some(child) = self.children(root_node).iter().find(|c| c.attribute_key() == K::EXT_EXPLAIN_STATEMENT) {
-            let inner_id = self.node_id(child);
-            if let Some(state) = self.node_states.get_mut(inner_id) {
-                state.is_statement_root = true;
-            }
-        }
     }
 
     // -----------------------------------------------------------------------------------------
@@ -4120,16 +4092,16 @@ mod tests {
 
     #[test]
     fn records_unformattable_nodes() {
-        // CREATE TABLE is only formatted as statement root, format_node_at does not mark the roots
-        let parsed = parse(Arc::new(scan("create table t (a int)", 0, 2)));
-        let root = parsed.statements[0].root as usize;
+        // A CREATE TABLE without a name cannot be formatted
+        let mut parsed = parse(Arc::new(scan("", 0, 2)));
+        parsed.nodes = vec![Node::new(&SymbolSpan::default(), NodeType::OBJECT_SQL_CREATE, K::NONE, u32::MAX, 0, 0)];
+        parsed.statements.clear();
         let mut formatter = Formatter::new(&parsed);
         let mut config = FormattingConfigT::default();
         config.mode = FormattingMode::INLINE;
-        assert_eq!(formatter.format(&config), "create table t (a integer);");
-        assert!(formatter.is_fully_formatted());
-        assert!(formatter.format_node_at(root, &config).contains("OBJECT_SQL_CREATE"));
-        assert_eq!(formatter.unformattable_nodes(), vec![root as u32]);
+        assert!(formatter.format_node_at(0, &config).contains("OBJECT_SQL_CREATE"));
+        assert_eq!(formatter.unformattable_nodes(), vec![0]);
+        assert!(!formatter.is_fully_formatted());
         assert_eq!(formatter.format_node_at(parsed.nodes.len(), &config), "");
     }
 
