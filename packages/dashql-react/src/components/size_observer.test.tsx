@@ -43,7 +43,9 @@ describe('useSettledHeight', () => {
         const rendersBefore = renders;
 
         element!.style.height = '100px';
-        await vi.waitFor(() => expect(onHeight).toHaveBeenCalledTimes(2), { timeout: TRANSITION_MS * 10 });
+        // The end needs rendering updates of the browser. The WebKit of CI reported nothing within ten times the
+        // transition, the bound is as generous as for the other waits on frames
+        await vi.waitFor(() => expect(onHeight).toHaveBeenCalledTimes(2), { timeout: 10_000 });
         // The frames of the transition reported nothing in between
         expect(onHeight.mock.calls).toEqual([[40], [100]]);
         expect(renders).toBe(rendersBefore);
