@@ -1,5 +1,7 @@
-import {access, lstat, readFile, realpath, rename, writeFile} from "node:fs/promises";
+import {access, lstat, readFile, realpath} from "node:fs/promises";
 import path from "node:path";
+
+import {writeFileAtomically} from "./atomic_write.js";
 
 /// The files that mark a workbook folder: `STORAGE_WORKBOOK_FILE` of the app and its names before workbooks were
 /// called sessions, and notebooks before that
@@ -82,9 +84,7 @@ export class FolderGrants {
     private save(): Promise<void> {
         const roots = [...this.roots];
         this.saving = this.saving.catch(() => {}).then(async () => {
-            const temporary = `${this.file}.tmp`;
-            await writeFile(temporary, JSON.stringify(roots, null, 2));
-            await rename(temporary, this.file);
+            await writeFileAtomically(this.file, JSON.stringify(roots, null, 2));
         });
         return this.saving;
     }

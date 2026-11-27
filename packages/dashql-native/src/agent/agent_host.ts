@@ -284,7 +284,7 @@ export class AgentHost {
         const state = await this.#readState(folder);
         if (id === null) delete state.sessions[harness];
         else state.sessions[harness] = id;
-        await writeFile(path.join(folder, "state.json"), `${JSON.stringify(state, null, 4)}\n`, {mode: 0o600});
+        await writeFileAtomically(path.join(folder, "state.json"), `${JSON.stringify(state, null, 4)}\n`, 0o600);
     }
 
     /// Stop the turn of a workbook, resolves once it ended
