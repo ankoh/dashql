@@ -1,11 +1,10 @@
-import type * as core from '../../core/index.js';
+import * as core from '../../core/index.js';
 import type { Logger } from '../../platform/logger/logger.js';
 import type { RuntimeOptions } from '../runtime.js';
 import type { StorageBackend } from '../../platform/storage/storage_backend.js';
 import type { OAuthFlow } from '../../platform/oauth_flow.js';
 import { TASK_UPDATE_SCHEDULER } from '../store/update_scheduler.js';
 import { WebHttpClient } from '../../platform/web_http_client.js';
-import { createDashQLCoreSetup } from '../../platform/node/node_core.js';
 
 /// Node has no OAuth flow, a connection that needs one can't be authorized in Node
 const NO_OAUTH_FLOW: OAuthFlow = {
@@ -26,7 +25,7 @@ export interface NodePlatformOptions {
     core?: core.DashQL;
 }
 
-/// The platform of Node for createRuntime: fetch, the core from its file, updates at the end of a task
+/// The platform of Node for createRuntime: fetch, the core from its file next to the glue, updates at the end of a task
 export async function createNodePlatform(options: NodePlatformOptions): Promise<RuntimeOptions> {
     return {
         logger: options.logger,
@@ -34,6 +33,6 @@ export async function createNodePlatform(options: NodePlatformOptions): Promise<
         http: new WebHttpClient(),
         scheduler: TASK_UPDATE_SCHEDULER,
         oauthFlow: NO_OAUTH_FLOW,
-        core: options.core ?? await createDashQLCoreSetup()('runtime'),
+        core: options.core ?? await core.DashQL.create(),
     };
 }

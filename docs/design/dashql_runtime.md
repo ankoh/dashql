@@ -165,7 +165,7 @@ platform object no more: a call fails, a timer never fires, and the effects on h
 | HTTP | fetch (`WebHttpClient`), limited by CORS | the native proxy (`NativeHttpClient` of the app) | fetch (`WebHttpClient`) |
 | Storage | OPFS (`migrateStorage` of `platform/storage/storage_migration.ts`, then `openPageStorage` of `platform/storage/page_storage.ts`: the composite backend) | OPFS and native workbook folders over the Electron bridge | `NativeStorageBackend` over `NODE_FILE_SYSTEM`, one workbook folder |
 | Embedded Hyper | `hyperdb-wasm` in a worker, cross-origin isolated (`setupWebHyperDB` of `platform/hyperdb/hyperdb_web.ts` with the files of the engine that the page serves) | the same | the `node` build of `hyperdb-wasm` (`platform/node/node_hyperdb.ts`) |
-| Core Wasm | URL from the bundler (`DashQLCoreProvider` of `@akohn/dashql-react/platform/core_provider`) | the same | the file of `@akohn/dashql/wasm` (`platform/node/node_core.ts`) |
+| Core Wasm | URL from the bundler (`DashQLCoreProvider` of `@akohn/dashql-react/platform/core_provider`) | the same | the file of `@akohn/dashql/wasm` next to its glue, which `DashQL.create()` reads |
 | OAuth | popup and the redirect page `oauth.html` (`AppOAuthFlow`) | the browser of the system, a link back to the app or the loopback server of the desktop app | refused |
 | Channels | `createChannelConnector` of `connections/hyper/hyper_connection_setup.tsx`, the embedded Hyper through `connectEmbeddedChannel` of `runtime/embedded_channels.ts` | the same, gRPC through the native proxy | none, the options of the caller (`RuntimeOptions.channels`) |
 | Archives | `createRuntimeArchives` | the same | none |
