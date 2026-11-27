@@ -66,8 +66,9 @@ jobs:
                       echo "publish=false" >> "${GITHUB_OUTPUT}"
                   fi
 
-    # @akohn/dashql of the build. Trusted publishing: npm takes the OIDC token of the run, there is no npm token, and it
-    # checks the calling workflow (on_push_main.yml, on_push_dev.yml, on_push_tag.yml), see the README.
+    # @akohn/dashql and @akohn/dashql-react of the build. Trusted publishing: npm takes the OIDC token of the run, there
+    # is no npm token, and it checks the calling workflow (on_push_main.yml, on_push_dev.yml, on_push_tag.yml), see the
+    # README. Each package names this repository and workflow as its trusted publisher on npmjs.com.
     npm_publish:
         name: npm
         needs: [tip]
@@ -90,26 +91,29 @@ jobs:
             # A version that is on npm already is the same build (the version carries the dist-tag and the commit), a
             # re-run skips it. The build names the version after the dist-tag (npm_tag of build_trusted.yml,
             # bazel/versioning.bzl) and the dist-tag is read back from it: 0.0.20-latest.125.ged768a7d4 is latest,
-            # 0.0.20-dev.125.ged768a7d4 dev, 0.0.19 stable.
-            - name: Publish @akohn/dashql
+            # 0.0.20-dev.125.ged768a7d4 dev, 0.0.19 stable. @akohn/dashql goes first, @akohn/dashql-react takes it as a
+            # peer of the same version. The artifact keeps the folders of the archives under bazel-bin/packages.
+            - name: Publish @akohn/dashql and @akohn/dashql-react
               env:
-                  TARBALL: ${{ runner.temp }}/npm/dashql.tgz
+                  ARCHIVES: ${{ runner.temp }}/npm
               run: |
                   set -euo pipefail
                   echo "npm $(npm --version)"
-                  manifest="$(tar -xzOf "${TARBALL}" package/package.json)"
-                  name="$(node -e 'const m = JSON.parse(process.argv[1]); console.log(m.name)' "${manifest}")"
-                  version="$(node -e 'const m = JSON.parse(process.argv[1]); console.log(m.version)' "${manifest}")"
-                  tag="stable"
-                  if [[ "${version}" == *-* ]]; then
-                      tag="${version#*-}"
-                      tag="${tag%%.*}"
-                  fi
-                  if [[ "$(npm view "${name}@${version}" version 2>/dev/null || true)" == "${version}" ]]; then
-                      echo "${name}@${version} is on npm already"
-                      exit 0
-                  fi
-                  npm publish "${TARBALL}" --access public --tag "${tag}"
+                  for TARBALL in "${ARCHIVES}/dashql/dashql.tgz" "${ARCHIVES}/dashql-react/dashql-react.tgz"; do
+                      manifest="$(tar -xzOf "${TARBALL}" package/package.json)"
+                      name="$(node -e 'const m = JSON.parse(process.argv[1]); console.log(m.name)' "${manifest}")"
+                      version="$(node -e 'const m = JSON.parse(process.argv[1]); console.log(m.version)' "${manifest}")"
+                      tag="stable"
+                      if [[ "${version}" == *-* ]]; then
+                          tag="${version#*-}"
+                          tag="${tag%%.*}"
+                      fi
+                      if [[ "$(npm view "${name}@${version}" version 2>/dev/null || true)" == "${version}" ]]; then
+                          echo "${name}@${version} is on npm already"
+                          continue
+                      fi
+                      npm publish "${TARBALL}" --access public --tag "${tag}"
+                  done
 
     desktop_release:
         name: Electron Release

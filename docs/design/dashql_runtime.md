@@ -550,6 +550,15 @@ checks its files, the exports of the bindings in Node and their declarations for
 bindings and a runtime over the platform of Node from `dist/`; `//packages/dashql/test/browser` runs the bindings of the
 archive in Chromium and Firefox.
 
+`//packages/dashql-react:npm_tarball` (`dashql-react.tgz`) is `@akohn/dashql-react` on npm, for hosts outside of this
+repository; in the workspace it stays a source package. Its `npm/build.mjs` compiles the modules of `src/` without the
+tests and `src/testing`, every module keeps its path, the CSS modules become `dashql_<class>_<hash>` and one
+`dist/style.css`, and the SVG symbol atlas ships as `dist/symbols.svg` ([ui_icons.md](ui_icons.md)). It has the version of
+the build and takes `@akohn/dashql` as a peer of exactly that version, the views change with it. CI publishes both
+archives of a build. `:tarball_consumer_test` installs the archive like a host: it renders a page of its components in
+Node, type checks it against the declarations and bundles it with Vite. See
+[packages/dashql-react/README.md](../../packages/dashql-react/README.md).
+
 ## Tests
 
 Every feature of the runtime runs, and is tested, in Node and in the browsers. In Node, `:test_core_node`,

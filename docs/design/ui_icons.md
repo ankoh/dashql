@@ -90,7 +90,7 @@ bazel-bin/packages/dashql-react/dependencies/svg-symbols/symbols.generated.svg
 ```
 
 The app copies it to `bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg`
-(`//packages/dashql-app:dep_svg_symbols`).
+(`//packages/dashql-app:dep_svg_symbols`), the package on npm ships it as `dist/symbols.svg`.
 
 The generator parses every input as XML, finds all SVG-namespace `<symbol>` descendants, and appends
 each symbol element to a new root `<svg>`. It does not validate ids, deduplicate symbols, rewrite
@@ -128,6 +128,9 @@ places:
 - `tsconfig.json` maps the module to the same Bazel output for TypeScript resolution.
 - `packages/dashql-app/types/svg-symbols.d.ts` and `packages/dashql-react/src/assets.d.ts` declare its default
   export.
+- The package on npm replaces the module with `dist/svg_symbols.js`, the URL of `dist/symbols.svg` next to it
+  (`new URL('./symbols.svg', import.meta.url)`), which the bundler of a host emits as an asset of its own. The atlas
+  is a file, not a data URL: browsers don't resolve the `<use>` of a data URL.
 
 The imported value is an atlas URL, not parsed SVG markup and not a map of symbol names. Append
 `#<symbol-id>` to create an SVG external fragment reference.

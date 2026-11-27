@@ -247,20 +247,24 @@ jobs:
                     --experimental_remote_require_cached \
                     //packages/dashql-core-bindings:core_wasm //packages/dashql-dataflow:dataflow_wasm
 
-            - name: Build and validate the npm tarball of @akohn/dashql
+            - name: Build and validate the npm tarballs of @akohn/dashql and @akohn/dashql-react
               shell: bash
               run: |
                   bazel build --config=release \
-                      //packages/dashql:npm_tarball
+                      //packages/dashql:npm_tarball \
+                      //packages/dashql-react:npm_tarball
                   bazel test --config=release \
                       //packages/dashql:all \
+                      //packages/dashql-react:tarball_consumer_test \
                       --test_output=errors
 
-            - name: Upload the npm tarball of @akohn/dashql
+            - name: Upload the npm tarballs of @akohn/dashql and @akohn/dashql-react
               uses: actions/upload-artifact@v7
               with:
                   name: dashql_npm
-                  path: ./bazel-bin/packages/dashql/dashql.tgz
+                  path: |
+                      ./bazel-bin/packages/dashql/dashql.tgz
+                      ./bazel-bin/packages/dashql-react/dashql-react.tgz
                   if-no-files-found: error
                   retention-days: 7
 

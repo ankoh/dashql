@@ -14,7 +14,8 @@ start with `packages/` or `extensions/`.
 
 - Build and release: `agents/build_rust_coverage.md` (coverage), `agents/rust_analyzer.md` (rust-project.json),
   `misc/build_bazel_cache.md` (remote cache), `misc/build_signing.md` (macOS signing),
-  `misc/deploy_cloudflare_pages.md` (deploying dashql.app), `design/test_data.md` (datasets of data.dashql.app)
+  `misc/deploy_cloudflare_pages.md` (deploying dashql.app), `design/test_data.md` (datasets of data.dashql.app),
+  `packages/dashql/README.md` and `packages/dashql-react/README.md` (the packages on npm)
 - SQL: `agents/sql_scripts.md` (reentrant scripts), `agents/core_sql_formatting.md` (extending the formatter),
   `design/sql_formatter_coverage.md` (its test gates), `design/sql_grammar.md` (deviations from PostgreSQL)
 - Parser and analysis: `design/core_parser.md`, `design/core_quirks.md` (kept on purpose),

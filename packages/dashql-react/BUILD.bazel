@@ -1,18 +1,47 @@
 load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
-load("@aspect_rules_js//js:defs.bzl", "js_test")
+load("@aspect_bazel_lib//lib:tar.bzl", "mtree_mutate", "mtree_spec", "tar")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("//bazel:eslint.bzl", "eslint_test")
 
 # DashQL in React (docs/design/dashql_runtime.md): the hooks of the views, actions and commands of a runtime, the models
 # that components show, and the design tokens, fonts and brand code (styles/, fonts/, src/brand, src/theme) shared by the
-# app (//packages/dashql-app), the website (//packages/dashql-org) and other hosts of the runtime. A source package,
-# nothing is compiled: consumers bundle the TypeScript and the stylesheets themselves. Linked as
-# //:node_modules/@akohn/dashql-react, the dev servers read packages/dashql-react directly.
+# app (//packages/dashql-app), the website (//packages/dashql-org) and other hosts of the runtime. In the workspace a
+# source package, nothing is compiled: the app and the website bundle the TypeScript and the stylesheets themselves.
+# Linked as //:node_modules/@akohn/dashql-react, the dev servers read packages/dashql-react directly. On npm it is
+# compiled, see :npm_tarball below.
 
 package(default_visibility = ["//visibility:public"])
 
 _SOURCES = glob(["src/**/*.css", "src/**/*.json", "src/**/*.ts", "src/**/*.tsx"])
+
+# What the modules import: @akohn/dashql with the generated packages of its sources, React and the libraries of the
+# components
+_DEPENDENCIES = [
+    "//:node_modules/@akohn/dashql",
+    "//:node_modules/@primer/behaviors",
+    "//:node_modules/@types/react",
+    "//:node_modules/@types/d3",
+    "//:node_modules/@types/react-dom",
+    "//:node_modules/apache-arrow",
+    "//:node_modules/react",
+    "//:node_modules/d3",
+    "//:node_modules/react-dom",
+    "//:node_modules/react-window",
+    "//:node_modules/vega",
+    "//:node_modules/vega-embed",
+    "//:node_modules/vega-interpreter",
+    "//packages/dashql:dep_jsonschema",
+    "//packages/dashql:dep_protobuf",
+    "//:node_modules/@bufbuild/protobuf",
+    "//:node_modules/@zip.js/zip.js",
+    "//:node_modules/@akohn/hyperdb-edge",
+    "//:node_modules/flatbuffers",
+    "//:node_modules/hyperdb-wasm",
+    "//:node_modules/immutable",
+    "//:node_modules/vega-lite",
+]
 
 copy_to_bin(
     name = "typecheck_inputs",
@@ -27,30 +56,8 @@ typescript_bin.tsc_test(
     chdir = package_name(),
     data = [
         ":typecheck_inputs",
-        "//:node_modules/@akohn/dashql",
-        "//:node_modules/@primer/behaviors",
-        "//:node_modules/@types/react",
-        "//:node_modules/@types/d3",
-        "//:node_modules/@types/react-dom",
-        "//:node_modules/apache-arrow",
-        "//:node_modules/react",
-        "//:node_modules/d3",
-        "//:node_modules/react-dom",
-        "//:node_modules/react-window",
-        "//:node_modules/vega",
-        "//:node_modules/vega-embed",
-        "//:node_modules/vega-interpreter",
         "//:node_modules/vitest",
-        "//packages/dashql:dep_jsonschema",
-        "//packages/dashql:dep_protobuf",
-        "//:node_modules/@bufbuild/protobuf",
-        "//:node_modules/@zip.js/zip.js",
-        "//:node_modules/@akohn/hyperdb-edge",
-        "//:node_modules/flatbuffers",
-        "//:node_modules/hyperdb-wasm",
-        "//:node_modules/immutable",
-        "//:node_modules/vega-lite",
-    ],
+    ] + _DEPENDENCIES,
 )
 
 # The tests of the components and their helpers, the browser tests of the app run them (//packages/dashql-app:test_chromium)
@@ -67,13 +74,16 @@ js_test(
     entry_point = "test/boundary_test.mjs",
 )
 
-_PACKAGE_FILES = ["package.json"] + _SOURCES + glob([
+# The fonts and the stylesheets of the tokens, they ship as they are
+_ASSET_FILES = glob([
     "fonts/*.css",
     "fonts/*.ttf",
     "fonts/*.txt",
     "styles/*.css",
     "styles/flavors/*.css",
 ])
+
+_PACKAGE_FILES = ["package.json"] + _SOURCES + _ASSET_FILES
 
 # The files of the package at their paths in the workspace, for the dev server of the app, see //packages/dashql:dev_srcs
 copy_to_bin(
@@ -106,12 +116,159 @@ genrule(
     tools = ["svg/generate_svg_symbols.py"],
 )
 
+# The source package, linked in the workspace
 npm_package(
     name = "npm_package",
     package = "@akohn/dashql-react",
     srcs = _PACKAGE_FILES,
     include_transitive_sources = False,
     include_transitive_types = False,
+)
+
+# The package on npm, see npm/build.mjs and README.md
+
+# The modules of the package on npm: all of src/ but the tests and their helpers
+_MODULES = glob(
+    [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+    ],
+    exclude = [
+        "src/**/*.test.ts",
+        "src/**/*.test.tsx",
+        "src/**/*.d.ts",
+        "src/testing/**",
+    ],
+)
+
+js_binary(
+    name = "npm_build",
+    data = [
+        "//:node_modules/typescript",
+        "//:node_modules/vite",
+    ],
+    entry_point = "npm/build.mjs",
+    visibility = ["//visibility:private"],
+)
+
+# The modules of src/ as JavaScript (Vite, the modules keep their paths) with their declarations (tsc) and one
+# stylesheet in dist/, the SVG symbol atlas next to them
+js_run_binary(
+    name = "bundle",
+    srcs = _SOURCES + [
+        "package.json",
+        "tsconfig.bazel.json",
+        ":svg_symbols",
+    ] + _DEPENDENCIES,
+    # The paths are relative to the package, where the build runs
+    args = ["dependencies/svg-symbols/symbols.generated.svg"] + _MODULES,
+    chdir = package_name(),
+    out_dirs = ["dist"],
+    tool = ":npm_build",
+)
+
+genrule(
+    name = "notice",
+    srcs = ["//:NOTICE"],
+    outs = ["NOTICE"],
+    cmd = "cp $(location //:NOTICE) $@",
+)
+
+genrule(
+    name = "license",
+    srcs = ["//:LICENSE"],
+    outs = ["LICENSE"],
+    cmd = "cp $(location //:LICENSE) $@",
+)
+
+# The version of the package is the npm version of the build (DASHQL_VERSION_NPM) like the one of @akohn/dashql, which
+# it takes as a peer of exactly that version: the views of the runtime change with it
+genrule(
+    name = "npm_manifest",
+    srcs = [
+        "npm/package.json",
+        "@dashql_app_version//:version.env",
+    ],
+    outs = ["npm_files/package.json"],
+    cmd = """
+        VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_NPM"{print $$2}' "$(location @dashql_app_version//:version.env)")
+        sed -E -e 's/^(  "version": )"[^"]*"/\\1"'"$${VERSION}"'"/' \\
+            -e 's/^(    "@akohn\\/dashql": )"[^"]*"/\\1"'"$${VERSION}"'"/' "$(location npm/package.json)" > $@
+        grep -qF "  \\"version\\": \\"$${VERSION}\\"," $@
+        grep -qF "    \\"@akohn/dashql\\": \\"$${VERSION}\\"," $@
+    """,
+)
+
+npm_package(
+    name = "npm_dist_package",
+    package = "@akohn/dashql-react",
+    # No Bazel linking consumers: publish metadata comes only from npm/package.json.
+    srcs = _ASSET_FILES + [
+        "README.md",
+        ":bundle",
+        ":license",
+        ":notice",
+        ":npm_manifest",
+    ],
+    include_transitive_sources = False,
+    include_transitive_types = False,
+    replace_prefixes = {"npm_files/": ""},
+)
+
+mtree_spec(
+    name = "npm_tarball_mtree",
+    srcs = [":npm_dist_package"],
+)
+
+mtree_mutate(
+    name = "npm_mtree",
+    mtree = ":npm_tarball_mtree",
+    package_dir = "package",
+    strip_prefix = "packages/dashql-react/npm_dist_package",
+)
+
+# The archive that CI publishes, and a second one of the same files that :tarball_consumer_test compares with it
+[
+    tar(
+        name = name,
+        testonly = name != "npm_tarball",
+        srcs = [":npm_dist_package"],
+        out = out,
+        args = [
+            "--format=ustar",
+            "--uid=0",
+            "--gid=0",
+            "--uname=root",
+            "--gname=root",
+        ],
+        compress = "gzip",
+        mtree = ":npm_mtree",
+    )
+    for name, out in [
+        ("npm_tarball", "dashql-react.tgz"),
+        ("npm_tarball_reproducibility", "dashql-react-rebuilt.tgz"),
+    ]
+]
+
+# The archive as a host installs it: its files and metadata, a page of its components rendered in Node, type checked
+# against its declarations and bundled by Vite
+js_test(
+    name = "tarball_consumer_test",
+    data = [
+        "npm/package.json",
+        ":license",
+        ":notice",
+        ":npm_manifest",
+        ":npm_tarball",
+        ":npm_tarball_reproducibility",
+        "//:node_modules/@types/react",
+        "//:node_modules/@types/react-dom",
+        "//:node_modules/react",
+        "//:node_modules/react-dom",
+        "//:node_modules/typescript",
+        "//:node_modules/vite",
+    ],
+    entry_point = "test/npm/tarball_consumer.mjs",
 )
 
 # ESLint with the rules of the root eslint.config.mjs, see docs/agents/build_bazel_targets.md
