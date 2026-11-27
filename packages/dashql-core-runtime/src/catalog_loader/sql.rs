@@ -40,29 +40,8 @@ pub fn qualified_table_name(database_name: Option<&str>, schema_name: &str, tabl
     format!("{}.{}.{}", quote_identifier(database), quote_identifier(schema_name), quote_identifier(table_name))
 }
 
-/// Where the functions of a connection come from
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CatalogSource {
-    InformationSchema,
-    PgClass,
-    SalesforceMetadataApi,
-    /// The bundled function catalog of Hyper
-    Hyper,
-    Unknown,
-}
-
-impl CatalogSource {
-    /// The name of the source in the header of the function script
-    pub fn label(self) -> &'static str {
-        match self {
-            CatalogSource::InformationSchema => "SQL information_schema",
-            CatalogSource::PgClass => "SQL pg_proc",
-            CatalogSource::SalesforceMetadataApi => "Salesforce Connect /ssot/metadata API",
-            CatalogSource::Hyper => "Bundled Hyper function catalog",
-            CatalogSource::Unknown => "-",
-        }
-    }
-}
+/// The source of the bundled function catalog of Hyper
+pub const BUNDLED_HYPER_FUNCTIONS_SOURCE: &str = "Bundled Hyper function catalog";
 
 /// The source of the functions that a Hyper connection read from its `pg_proc`
 pub const HYPER_PG_PROC_SOURCE: &str = "Hyper pg_proc";
