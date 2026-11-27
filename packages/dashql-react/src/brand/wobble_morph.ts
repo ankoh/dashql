@@ -20,7 +20,7 @@ const FACE_SEAM_OVERLAP = (3 * Math.PI) / 180;
 /// The share of a spring overshoot past the face that moves the points
 const FACE_OVERSHOOT = 0.3;
 
-/// The two pieces of the DashQL brand mark, `static/svg/logo/dashql.svg`, with the transforms of their groups
+/// The two pieces of the DashQL brand mark, `svg/logo/dashql.svg`, with the transforms of their groups
 const DASHQL_PIECE_UPPER: BrandShape = {
     d: 'M171.857,146.784C172.231,148.654 173.873,150 175.779,150C189.377,150 241.375,150 257.621,150C258.819,150 259.954,149.463 260.714,148.536C261.474,147.609 261.778,146.391 261.543,145.216C259.52,135.099 254.853,111.766 253.143,103.216C252.769,101.346 251.128,100 249.221,100C241.703,100 223.297,100 215.779,100C213.872,100 212.231,98.654 211.857,96.784C210.051,87.756 204.949,62.244 203.143,53.216C202.769,51.346 201.128,50 199.221,50C190.646,50 167.521,50 157.379,50C156.181,50 155.046,50.537 154.286,51.464C153.526,52.391 153.222,53.609 153.457,54.784C156.947,72.235 168.94,132.201 171.857,146.784Z',
     map: (x, y) => dashqlPoint(x, y, -12.5),
@@ -364,7 +364,7 @@ export interface WobbleBrand {
     cutouts: readonly BrandCutout[];
 }
 
-/// The DashQL brand mark, `static/svg/logo/dashql.svg`.
+/// The DashQL brand mark, `svg/logo/dashql.svg`.
 /// The upper right face half turns into the upper right piece of the brand mark, the lower left half into the
 /// lower left piece. The diagonal runs from the top left to the bottom right.
 export const DASHQL_BRAND: WobbleBrand = {

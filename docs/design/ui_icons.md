@@ -6,8 +6,8 @@ code imports the atlas URL and addresses a symbol by fragment identifier.
 
 ```mermaid
 flowchart LR
-    I[static/svg/icons/*.svg] --> G[dep_svg_symbols]
-    L[static/svg/logo/*.svg] --> G
+    I[svg/icons/*.svg] --> G[svg_symbols]
+    L[svg/logo/*.svg] --> G
     G --> A[symbols.generated.svg]
     A --> V[Vite asset URL]
     V --> U[svg use: atlas URL + symbol id]
@@ -18,15 +18,15 @@ allows the browser and bundler to handle one shared asset.
 
 ## Source Layout
 
-Atlas inputs live under:
+Atlas inputs belong to `@akohn/dashql-react`, which shares the components that show them:
 
 ```text
-packages/dashql-app/static/svg/
+packages/dashql-react/svg/
   icons/   # UI glyphs
   logo/    # DashQL and connector/product marks
 ```
 
-Files under `static/svg/experimental/` are not atlas inputs. Adding an SVG there does not make its
+Files under `svg/experimental/` are not atlas inputs. Adding an SVG there does not make its
 symbol available to application code.
 
 Each atlas source is a complete SVG document with one or more `<symbol>` elements. In the usual case,
@@ -82,13 +82,15 @@ symbol designed for the displayed size where one exists, rather than shrinking a
 
 ## Atlas Generation
 
-`packages/dashql-app/BUILD.bazel` defines two filegroups over `static/svg/icons/*.svg` and
-`static/svg/logo/*.svg`. The `dep_svg_symbols` genrule passes them to
-`packages/dashql-app/utils/generate_svg_symbols.py` and writes:
+`packages/dashql-react/BUILD.bazel` defines two filegroups over `svg/icons/*.svg` and `svg/logo/*.svg`. The
+`svg_symbols` genrule passes them to `packages/dashql-react/svg/generate_svg_symbols.py` and writes:
 
 ```text
-bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg
+bazel-bin/packages/dashql-react/dependencies/svg-symbols/symbols.generated.svg
 ```
+
+The app copies it to `bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg`
+(`//packages/dashql-app:dep_svg_symbols`).
 
 The generator parses every input as XML, finds all SVG-namespace `<symbol>` descendants, and appends
 each symbol element to a new root `<svg>`. It does not validate ids, deduplicate symbols, rewrite
@@ -98,7 +100,7 @@ Do not edit `symbols.generated.svg`; it is a Bazel output. Change a source SVG a
 generator target instead:
 
 ```bash
-bazel build //packages/dashql-app:dep_svg_symbols
+bazel build //packages/dashql-react:svg_symbols
 ```
 
 The generated atlas is a declared dependency of the Vite web, native, development, and application
@@ -124,7 +126,8 @@ places:
 
 - `packages/dashql-app/vite.config.tpl.ts` aliases the module to the generated SVG.
 - `tsconfig.json` maps the module to the same Bazel output for TypeScript resolution.
-- `packages/dashql-app/types/svg-symbols.d.ts` declares its default export.
+- `packages/dashql-app/types/svg-symbols.d.ts` and `packages/dashql-react/src/assets.d.ts` declare its default
+  export.
 
 The imported value is an atlas URL, not parsed SVG markup and not a map of symbol names. Append
 `#<symbol-id>` to create an SVG external fragment reference.
@@ -218,13 +221,13 @@ decorative in one place and meaningful in another.
 
 ## Adding An Icon
 
-1. Search `packages/dashql-app/static/svg/icons/` and `static/svg/logo/` for an existing symbol and
+1. Search `packages/dashql-react/svg/icons/` and `svg/logo/` for an existing symbol and
    size variant before adding one.
 2. Add a complete SVG document to the appropriate directory using the source shape above.
 3. Make the filename, symbol id, `viewBox`, preview `<use>`, and intended color behavior agree.
-4. Build the atlas with `bazel build //packages/dashql-app:dep_svg_symbols`.
+4. Build the atlas with `bazel build //packages/dashql-react:svg_symbols`.
 5. Confirm the symbol id appears in
-   `bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg` and inspect the icon
+   `bazel-bin/packages/dashql-react/dependencies/svg-symbols/symbols.generated.svg` and inspect the icon
    in its consuming UI.
 6. Run the relevant Bazel verification target. For application code changes, use at least:
 

@@ -6,7 +6,8 @@ load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("//bazel:eslint.bzl", "eslint_test")
 
 # The website and blog at dashql.org, a static Astro site.
-# Code, tokens and fonts shared with the app come from //packages/dashql-react, the brand assets from //packages/dashql-app.
+# Code, tokens, fonts, logos and icons shared with the app come from //packages/dashql-react, the favicons from
+# //packages/dashql-app.
 
 npm_link_all_packages(name = "node_modules")
 
@@ -21,25 +22,25 @@ _SVG_ICONS = [
     "device_desktop_24",
 ]
 
-# One SVG with a <symbol> per logo and icon, like //packages/dashql-app:dep_svg_symbols
+# One SVG with a <symbol> per logo and the icons above, like //packages/dashql-react:svg_symbols
 genrule(
     name = "svg_symbols",
     srcs = [
-        "//packages/dashql-app:svg_icon_files",
-        "//packages/dashql-app:svg_logo_files",
+        "//packages/dashql-react:svg_icon_files",
+        "//packages/dashql-react:svg_logo_files",
     ],
     outs = ["dependencies/svg-symbols/symbols.generated.svg"],
     cmd = """
         ICONS=""
-        for f in $(locations //packages/dashql-app:svg_icon_files); do
+        for f in $(locations //packages/dashql-react:svg_icon_files); do
             case " {icons} " in
                 *" $$(basename "$$f" .svg) "*) ICONS="$$ICONS $$f" ;;
             esac
         done
-        python3 $(location //packages/dashql-app:utils/generate_svg_symbols.py) --output $@ \
-            $(locations //packages/dashql-app:svg_logo_files) $$ICONS
+        python3 $(location //packages/dashql-react:svg/generate_svg_symbols.py) --output $@ \
+            $(locations //packages/dashql-react:svg_logo_files) $$ICONS
     """.format(icons = " ".join(_SVG_ICONS)),
-    tools = ["//packages/dashql-app:utils/generate_svg_symbols.py"],
+    tools = ["//packages/dashql-react:svg/generate_svg_symbols.py"],
 )
 
 genrule(

@@ -9,7 +9,7 @@ import { dirname, join, resolve } from 'node:path';
 // The package root of @akohn/dashql-react, the tokens, fonts and brand code shared with the app. A source package: the
 // dev server reads packages/dashql-react, Vite watches it and updates the page in place.
 const reactPath = resolve(process.cwd(), '__REACT_PATH__');
-// The SVG symbols of the brand logos, generated from //packages/dashql-app:svg_logo_files
+// The SVG symbols of the brand logos, generated from //packages/dashql-react:svg_logo_files
 const svgSymbolsPath = resolve(process.cwd(), '__SVG_SYMBOLS_PATH__');
 // The favicons of the app, //packages/dashql-app:favicons
 const faviconsPath = resolve(process.cwd(), '../dashql-app/static/favicons/dashql');

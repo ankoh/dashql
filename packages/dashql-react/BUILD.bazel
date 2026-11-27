@@ -81,6 +81,31 @@ copy_to_bin(
     srcs = _PACKAGE_FILES,
 )
 
+# The SVG symbol atlas (docs/design/ui_icons.md): one SVG with a <symbol> per logo and icon of svg/, which
+# SymbolIcon names as `@akohn/dashql-svg-symbols`. The app copies it, the website takes a part of the icons.
+exports_files(["svg/generate_svg_symbols.py"])
+
+filegroup(
+    name = "svg_logo_files",
+    srcs = glob(["svg/logo/*.svg"]),
+)
+
+filegroup(
+    name = "svg_icon_files",
+    srcs = glob(["svg/icons/*.svg"]),
+)
+
+genrule(
+    name = "svg_symbols",
+    srcs = [
+        ":svg_icon_files",
+        ":svg_logo_files",
+    ],
+    outs = ["dependencies/svg-symbols/symbols.generated.svg"],
+    cmd = "python3 $(location svg/generate_svg_symbols.py) --output $@ $(locations :svg_logo_files) $(locations :svg_icon_files)",
+    tools = ["svg/generate_svg_symbols.py"],
+)
+
 npm_package(
     name = "npm_package",
     package = "@akohn/dashql-react",
