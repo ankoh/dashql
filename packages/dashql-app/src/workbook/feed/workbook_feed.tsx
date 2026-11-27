@@ -50,6 +50,7 @@ import { WorkbookInputStrip } from '../inputs/workbook_input_strip.js';
 import { StageLabel, StageSection } from '../stage_section.js';
 import { WorkbookInputOverlay, type WorkbookInputOverlayTarget } from '../inputs/workbook_input_overlay.js';
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
+import { useObservedSize } from '@akohn/dashql-react/components/size_observer';
 import {
     scriptConnectionView,
     usePickScriptConnection,
@@ -454,21 +455,14 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const landing = entries.length === 0;
     const bottomInset = landing ? 0 : props.bottomInset ?? 0;
     // The head stands above the first script and scrolls with the scripts, the first row leaves its height free. The
-    // list mounts again for another workbook, with a new head: the observer follows the element of the callback ref.
-    const [inputsElement, inputsRef] = React.useState<HTMLDivElement | null>(null);
-    const [headHeight, setHeadHeight] = React.useState(0);
-    React.useLayoutEffect(() => {
-        if (inputsElement == null) return;
-        const measure = () => setHeadHeight(Math.ceil(inputsElement.getBoundingClientRect().height));
-        measure();
-        const observer = new ResizeObserver(measure);
-        observer.observe(inputsElement);
-        return () => observer.disconnect();
-    }, [inputsElement]);
+    // list mounts again for another workbook, with a new head: the size observer follows the element of the ref.
+    const inputsRef = React.useRef<HTMLDivElement>(null);
+    const headHeight = Math.ceil(useObservedSize(inputsRef)?.height ?? 0);
     const topInset = entries.length === 0 ? 0 : headHeight;
     const feedLayout = useWorkbookFeedLayout(entries, bottomInset, topInset);
     const { listRef: feedListRef, getEntrySpan } = feedLayout;
-    // The head above an empty feed, the prompt places the greeting below it
+    // The head above an empty feed, the prompt places the greeting below it. Its height counts its padding above the
+    // greeting, which the content box of the size observer leaves out.
     const [landingHeadElement, landingHeadRef] = React.useState<HTMLDivElement | null>(null);
     const [landingHeadHeight, setLandingHeadHeight] = React.useState(0);
     React.useLayoutEffect(() => {
