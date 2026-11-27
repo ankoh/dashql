@@ -133,7 +133,6 @@ pub struct HttpStreamManager {
 
 impl HttpStreamManager {
     /// Start a server stream
-    #[allow(dead_code)]
     pub fn start_server_stream(
         self: &Arc<Self>,
         client: reqwest::Client,
@@ -220,7 +219,6 @@ impl HttpStreamManager {
     }
 
     /// Read from a server stream
-    #[allow(dead_code)]
     pub async fn read_server_stream(
         self: &Arc<Self>,
         stream_id: usize,
@@ -346,7 +344,6 @@ impl HttpStreamManager {
     }
 
     /// Cancellation is done by just dropping everything, see `start_server_stream`
-    #[allow(dead_code)]
     pub async fn destroy_server_stream(self: &Arc<Self>, stream_id: usize) {
         if let Ok(mut streams) = self.server_streams.write() {
             streams.remove(&stream_id);

@@ -65,9 +65,6 @@ impl Default for GrpcServerStreamBatch {
 
 /// A gRPC server stream whose messages are buffered by a background reader task
 pub struct GRPCServerStream {
-    /// The channel id
-    #[allow(dead_code)]
-    channel_id: usize,
     /// The response queue reading. Dropping it stops the reader task, which cancels the call.
     response_receiver: Mutex<tokio::sync::mpsc::Receiver<GrpcServerStreamEvent>>,
 }
@@ -83,10 +80,8 @@ pub struct GrpcStreamManager {
 
 impl GrpcStreamManager {
     /// Start a server stream
-    #[allow(dead_code)]
     pub fn start_server_stream<T: Into<Vec<u8>> + Send + 'static>(
         self: &Arc<Self>,
-        channel_id: usize,
         mut streaming: tonic::Streaming<T>,
     ) -> Result<usize, Status> {
         // Allocate an identifier for the stream
@@ -95,7 +90,7 @@ impl GrpcStreamManager {
 
         // Register the receiver
         let (sender, receiver) = tokio::sync::mpsc::channel(STREAM_CAPACITY);
-        let stream_entry = Arc::new(GRPCServerStream { channel_id, response_receiver: Mutex::new(receiver) });
+        let stream_entry = Arc::new(GRPCServerStream { response_receiver: Mutex::new(receiver) });
         if let Ok(mut streams) = self.server_streams.write() {
             streams.insert(stream_id, stream_entry);
         }
@@ -150,7 +145,6 @@ impl GrpcStreamManager {
     }
 
     /// Read from a server stream
-    #[allow(dead_code)]
     pub async fn read_server_stream(
         self: &Arc<Self>,
         channel_id: usize,
@@ -249,7 +243,6 @@ impl GrpcStreamManager {
     }
 
     /// Cancellation is done by just dropping everything, see `start_server_stream`
-    #[allow(dead_code)]
     pub async fn destroy_server_stream(self: &Arc<Self>, stream_id: usize) {
         if let Ok(mut streams) = self.server_streams.write() {
             streams.remove(&stream_id);
@@ -318,7 +311,7 @@ mod test {
 
         // Setup the stream manager
         let reg = Arc::new(GrpcStreamManager::default());
-        let stream_id = reg.start_server_stream(0, res.into_inner()).unwrap();
+        let stream_id = reg.start_server_stream(res.into_inner()).unwrap();
 
         // Read batched messages
         let batch =

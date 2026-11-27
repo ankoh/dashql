@@ -10,7 +10,6 @@ mod http_stream_manager;
 mod proxy_headers;
 mod proxy_router;
 mod status;
-mod trace_context;
 
 #[cfg(test)]
 mod proto;

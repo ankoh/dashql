@@ -23,7 +23,6 @@ rust_library(
         "@crates//:lazy_static",
         "@crates//:log",
         "@crates//:mime",
-        "@crates//:once_cell",
         "@crates//:regex-automata",
         "@crates//:reqwest",
         "@crates//:serde",
@@ -32,7 +31,6 @@ rust_library(
         "@crates//:tonic",
         "@crates//:tracing",
         "@crates//:url",
-        "@crates//:uuid",
     ],
 )
 

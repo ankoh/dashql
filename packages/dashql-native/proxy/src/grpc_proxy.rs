@@ -336,7 +336,7 @@ impl GrpcProxy {
 
         // Register the output stream
         let streaming = response.into_inner();
-        let stream_id = self.streams.start_server_stream(channel_id, streaming)?;
+        let stream_id = self.streams.start_server_stream(streaming)?;
 
         Ok((stream_id, response_headers))
     }

@@ -22,9 +22,3 @@ pub const HEADER_NAME_GRPC_MESSAGE: &'static str = "dashql-grpc-message";
 /// trailer (the gRPC richer error model). Carries Hyper's `ErrorInfo`.
 pub const HEADER_NAME_GRPC_STATUS_DETAILS: &'static str = "dashql-grpc-status-details-bin";
 pub const HEADER_NAME_ERROR: &'static str = "dashql-error";
-#[allow(dead_code)]
-pub const HEADER_NAME_TRACE_ID: &'static str = "dashql-trace-id";
-#[allow(dead_code)]
-pub const HEADER_NAME_SPAN_ID: &'static str = "dashql-span-id";
-#[allow(dead_code)]
-pub const HEADER_NAME_PARENT_SPAN_ID: &'static str = "dashql-parent-span-id";
