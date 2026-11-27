@@ -10,9 +10,8 @@ type KpiSpec = buffers.visualization.KpiSpecT;
 const KpiDelta = buffers.visualization.KpiDelta;
 const KpiChart = buffers.visualization.KpiChart;
 
-/// The rows of a result that dashql vis reads for a KPI card, a result with more is no KPI
-export const KPI_CHECK_ROWS = 1000;
-/// The last rows of a result that a KPI card reads from the compute database: the value, its change and the chart
+/// The last rows of a result that a KPI card reads from the compute database: the value, its change and the chart.
+/// dashql vis checks a card with as many, a result with more is no KPI.
 export const KPI_CARD_ROWS = 1000;
 
 /// What a KPI card shows of a result

@@ -3,12 +3,12 @@
 // the live workbook and answers with text and an exit code
 import * as vegaLite from 'vega-lite';
 import * as core from '@akohn/dashql';
-import * as arrow from 'apache-arrow';
+import type * as arrow from 'apache-arrow';
 
 import { ConnectionHealth, connectorInfoOf, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { CHART_IMAGE_HEIGHT, CHART_IMAGE_SCALE, CHART_IMAGE_WIDTH, chartSpecProblems, compileProblems, type VegaLiteCompile } from '@akohn/dashql/platform/workbook/chart_config';
-import { KPI_CARD_ROWS, KPI_CHECK_ROWS, kpiProblems, readKpi } from '@akohn/dashql/platform/workbook/kpi_reading';
+import { KPI_CARD_ROWS, kpiProblems, readKpi } from '@akohn/dashql/platform/workbook/kpi_reading';
 import type { RunEvent } from '@akohn/dashql/platform/workbook/run_events';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import type { ScriptData, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
@@ -467,8 +467,9 @@ async function visCommand(host: AgentCommandHost, call: AgentCall, reply: AgentR
     // The result of the script is the data of the chart
     let done: Extract<RunEvent, { type: 'script_done' }> | null = null;
     const failures: string[] = [];
-    // The rows that a KPI card is checked with, a result with more is not checked
-    await runForAgent(host, workbook, [fileName], call.args.refresh === true, KPI_CHECK_ROWS, signal, event => {
+    // The run reads the rows that the view reads: the first rows that a chart draws, the rows of a KPI card
+    const rows = tag.spec != null ? CHART_ROWS : KPI_CARD_ROWS;
+    await runForAgent(host, workbook, [fileName], call.args.refresh === true, rows, signal, event => {
         followRun(host, workbook, event);
         switch (event.type) {
             case 'script_done':
@@ -500,8 +501,8 @@ async function visCommand(host: AgentCommandHost, call: AgentCall, reply: AgentR
 
     // A KPI card is checked with the rows of the result
     if (tag.kpi != null && table != null && resultRows != null) {
-        if (resultRows > KPI_CHECK_ROWS || resultRows > table.numRows) {
-            problems.push(`⚠ the result has ${resultRows} rows, the KPI card reads only the last ${KPI_CARD_ROWS} and is checked with at most ${KPI_CHECK_ROWS}: aggregate the query, e.g. by day or week`);
+        if (resultRows > table.numRows) {
+            problems.push(`⚠ the result has ${resultRows} rows, the KPI card reads only the last ${KPI_CARD_ROWS}: aggregate the query, e.g. by day or week`);
         } else {
             const reading = readKpi(table, tag.kpi);
             if (reading.missing == null) out += `  KPI card: ${describeKpi(reading, tag.kpi)}\n`;
@@ -509,16 +510,16 @@ async function visCommand(host: AgentCommandHost, call: AgentCall, reply: AgentR
         }
     }
 
-    // The PNG of a Vega-Lite chart, as the feed renders it: the first rows of the result, at most as many as a chart
-    // draws, read from the compute database
+    // The PNG of a Vega-Lite chart, as the feed renders it: the first rows of the result that the run read, at most
+    // as many as a chart draws
     let wrote: string | null = null;
-    if (tag.spec != null && result?.queryId != null && resultRows != null) {
+    if (tag.spec != null && result != null && resultRows != null) {
         if (resultRows > CHART_ROWS) {
             problems.push(`⚠ the result has ${resultRows} rows, the chart draws only the first ${CHART_ROWS} and warns about the others: aggregate the query, e.g. by day or week`);
         }
         try {
-            const chartTable = arrow.tableFromIPC(await runtime.previewResult(result.queryId, 0, CHART_ROWS, false));
-            const image = await renderChart(runtime, call.workbookId, fileName, chartTable, size);
+            if (table == null) throw new Error('the result has no rows to draw');
+            const image = await renderChart(runtime, call.workbookId, fileName, table, size);
             const path = await host.writeFile(call.workbookId, 'chart', `${name}.png`, image.png);
             wrote = `${path} (${image.width}x${image.height} pixels)`;
         } catch (error) {
