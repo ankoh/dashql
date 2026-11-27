@@ -95,7 +95,7 @@ The catalog loader of the runtime publishes the batches of an update (`catalog_l
 
 | Path | Inputs |
 |---|---|
-| Restoring a connection catalog (`restore/catalog.rs` of `dashql_core_runtime`) | Persisted relation and function SQL of `connections/<id>/`; durable connections only (`publish_catalog_batch_sync`). |
+| Restoring a connection catalog (`restore/catalog.rs` of `dashql_core_storage`) | Persisted relation and function SQL of `connections/<id>/`; durable connections only (`publish_catalog_batch_sync`). |
 | Hyper refresh (`catalog_loader/hyper.rs`) | Functions from `pg_proc` for a Hyper server and Database.com, the bundled function SQL (`prefetched_hyper_functions.sql`) for the WASM protocol. `require_functions` is set unless the live `pg_proc` catalog is used, `functions_complete` for both (`CatalogDescriptor.functions_complete`, unless the descriptor declares no function). |
 | Salesforce refresh (`catalog_loader/salesforce.rs`) | The bundled functions |
 

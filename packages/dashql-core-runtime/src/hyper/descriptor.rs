@@ -1,5 +1,5 @@
-//! What the descriptor of the Hyper connector says about params that `connections` doesn't port yet: whether a
-//! connection reads the attachments of a workbook. The params to share are `connections::sharing`.
+//! What the descriptor of the Hyper connector says about params: whether a connection reads the attachments of a
+//! workbook. The params to share are `connections::sharing`.
 
 use serde_json::Value;
 

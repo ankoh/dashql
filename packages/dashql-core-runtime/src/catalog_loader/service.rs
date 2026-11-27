@@ -4,7 +4,7 @@
 //! requests refreshes (`enqueue`). The service decides with the scheduler (`CatalogLoader`) what to update and runs an
 //! update as a task: it drives the `CatalogUpdate` of the connection, runs its metadata queries through the query
 //! executor of the host (`CatalogLoaderHost::run_query`), fetches the Data Cloud metadata of a Salesforce connection
-//! over `HttpHost::fetch`, parses the catalog batches here and publishes into the catalog of the connection. The host
+//! over `HttpHost::fetch` and publishes what the update read into the catalog of the connection. The host
 //! applies the start and the end of an update to the connection through its registry (`update_started`,
 //! `update_finished`) and keeps the cancellation of an update: it calls `cancel` when it aborts one, e.g. when the
 //! connection is reset. The client functions of the connections are registered on their catalogs on the way, the
@@ -36,7 +36,6 @@ use crate::workbook::CatalogHandle;
 
 /// The target of the log messages of the loader
 pub const LOG_TARGET: &str = "catalog_loader";
-/// The target of the log messages about the metadata of Salesforce
 /// The reason of an update that a forced refresh aborted
 pub const SUPERSEDED_MESSAGE: &str = "Superseded by forced catalog refresh";
 

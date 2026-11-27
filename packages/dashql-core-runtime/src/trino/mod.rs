@@ -9,7 +9,7 @@
 //! - `arrow`: the Arrow types of Trino types and the rows of a page as a record batch.
 //! - `stream`: a query, from the statement to the last page, with the QueryInfos of its profile.
 //! - `shared`: the channel of a connection that its queries share, with the one refresh of its access token.
-//! - `descriptor`: the params to share, the login hint and the signature of cached results.
+//! - `descriptor`: the login hint of the params.
 //!
 //! The state of a Trino connection and its setup actions are in `connections`, the setup of a connection is
 //! `connection_setup::setup_trino`, the catalog loader of Trino is not here.

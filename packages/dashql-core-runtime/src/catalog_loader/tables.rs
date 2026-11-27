@@ -439,7 +439,7 @@ impl CatalogStateFile {
                 })
                 .collect()
         };
-        // `pending` comes first, like the file of the TypeScript runtime
+        // `pending` comes first
         format!(
             "{{\"pending\":{},\"gone\":{}}}",
             Value::Array(relations(&self.pending)),
