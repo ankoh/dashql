@@ -5,7 +5,7 @@
 //! that doesn't parse touches nothing that we know of.
 
 use crate::catalog::Catalog;
-use crate::pack::{drop_name_paths, pack_parsed_statement, read_name_path};
+use crate::pack::{pack_parsed_statement, read_name_path};
 use crate::script::Script;
 use dashql_buffers::analyzer::QualifiedTableNameT;
 use dashql_buffers::catalog::TouchedRelationsT;
@@ -102,10 +102,17 @@ pub fn touched_relations_of_statement(parsed: &ParsedScript, statement_id: usize
             }
             return out;
         }
-        // `drop table a, b` drops both
+        // `drop table a, b` drops both. A name with an indirection names none, the target of the statement holds only
+        // the first name.
         StatementType::DROP_TABLE | StatementType::DROP_VIEW => {
-            let paths = drop_name_paths(parsed, statement_id);
-            return paths.iter().filter_map(|path| name_of_path(path, &None, &None)).collect();
+            let more = attribute(root, AttributeKey::SQL_DROP_MORE_NAMES).filter(|m| m.node_type() == NodeType::ARRAY);
+            let names = attribute(root, AttributeKey::SQL_DROP_NAME)
+                .into_iter()
+                .chain(more.map(|m| parsed.children(m)).unwrap_or_default());
+            let paths = names.filter(|n| {
+                n.node_type() == NodeType::ARRAY && parsed.children(n).iter().all(|p| p.node_type() == NodeType::NAME)
+            });
+            return paths.filter_map(|n| name_of_path(&read(n), &None, &None)).collect();
         }
         // A statement that `EXPLAIN` runs creates its table
         StatementType::EXPLAIN => {

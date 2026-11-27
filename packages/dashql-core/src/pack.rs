@@ -285,32 +285,6 @@ fn pack_statement(parsed: &ParsedScript, statement: &Statement) -> StatementT {
     out
 }
 
-/// The names of the relations that a DROP TABLE or DROP VIEW drops, `drop table a, s.b` drops `[a]` and `[s, b]`. A name
-/// of more than three parts or with an indirection names none, the target of the statement holds only the first name.
-pub fn drop_name_paths(parsed: &ParsedScript, statement_id: usize) -> Vec<Vec<String>> {
-    let Some(statement) = parsed.statements.get(statement_id) else { return Vec::new() };
-    let Some(root) = parsed.nodes.get(statement.root as usize) else { return Vec::new() };
-    if !matches!(root.node_type(), NodeType::OBJECT_SQL_DROP_TABLE | NodeType::OBJECT_SQL_DROP_VIEW) {
-        return Vec::new();
-    }
-    let children = parsed.children(root);
-    let first = children.iter().find(|c| c.attribute_key() == AttributeKey::SQL_DROP_NAME);
-    let more = children
-        .iter()
-        .find(|c| c.attribute_key() == AttributeKey::SQL_DROP_MORE_NAMES && c.node_type() == NodeType::ARRAY)
-        .map(|m| parsed.children(m))
-        .unwrap_or_default();
-    first
-        .into_iter()
-        .chain(more)
-        .filter(|n| n.node_type() == NodeType::ARRAY)
-        .filter(|n| {
-            (1..=3).contains(&n.children_count()) && parsed.children(n).iter().all(|p| p.node_type() == NodeType::NAME)
-        })
-        .map(|n| read_name_path(parsed, n))
-        .collect()
-}
-
 /// The parts of a name: a name node, or the array of names of a qualified name
 pub fn read_name_path(parsed: &ParsedScript, node: &Node) -> Vec<String> {
     let name = |n: &Node| parsed.scanned.names.get(n.children_begin_or_value()).text.clone();

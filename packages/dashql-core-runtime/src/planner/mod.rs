@@ -40,7 +40,6 @@ use dashql_core::catalog::{
     Catalog, CatalogEntryId, CatalogEntryRef, QualifiedCatalogObjectId, QualifiedTableName, TableDeclaration,
 };
 use dashql_core::compiler::{compile_visualization, produces_output, read_executable_text, read_executable_text_with};
-use dashql_core::pack;
 use dashql_core::script::Script;
 use dashql_parser::attrs;
 use dashql_parser::parser::ParsedScript;
@@ -978,31 +977,18 @@ fn plan_statements(request: &SessionPlanRequest) -> Plan {
             let ddl = drop
                 || matches!(ty, Type::CREATE_TABLE | Type::CREATE_TABLE_AS | Type::CREATE_VIEW | Type::SELECT_INTO);
             if ddl {
-                // `drop table a, b` drops every relation that it names
-                let targets: Vec<Name> = if drop {
-                    pack::drop_name_paths(parsed, statement_id)
+                // The relations that the statement creates or drops, `drop table a, b` drops every one that it names
+                let targets: Vec<Name> =
+                    dashql_core::touched_relations::touched_relations_of_statement(parsed, statement_id)
                         .into_iter()
-                        .filter_map(|path| match path.as_slice() {
-                            [table] => Some((String::new(), String::new(), table.clone())),
-                            [schema, table] => Some((String::new(), schema.clone(), table.clone())),
-                            [database, schema, table] => Some((database.clone(), schema.clone(), table.clone())),
-                            _ => None,
-                        })
-                        .collect()
-                } else {
-                    let packed = pack::pack_parsed_statement(parsed, statement_id);
-                    packed
-                        .target
                         .map(|t| {
                             (
                                 t.database_name.unwrap_or_default(),
                                 t.schema_name.unwrap_or_default(),
-                                t.relation_name.unwrap_or_default(),
+                                t.table_name.unwrap_or_default(),
                             )
                         })
-                        .into_iter()
-                        .collect()
-                };
+                        .collect();
                 if targets.is_empty() {
                     barrier!("missing DDL target");
                 }
