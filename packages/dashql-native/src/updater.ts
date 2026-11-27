@@ -1,6 +1,6 @@
 import type {BrowserWindow} from "electron";
 import electronUpdater, {type ProgressInfo, type UpdateInfo} from "electron-updater";
-import {type UpdateChannel, updateFeedUrlForChannel} from "./update_feed.js";
+import {channelOf, type UpdateChannel, updateFeedUrlForChannel} from "./update_feed.js";
 
 const {autoUpdater} = electronUpdater;
 
@@ -20,26 +20,20 @@ export interface ElectronUpdater {
     install(): void;
 }
 
-function channelFor(version: string): "latest" | "stable" {
-    return version.includes("-") ? "latest" : "stable";
-}
-
 export function createElectronUpdater(
     currentVersion: string,
     window: () => BrowserWindow | null,
-    onStatus: (status: UpdateStatus) => void = () => {},
 ): ElectronUpdater {
     let status: UpdateStatus = {status: "disabled"};
     let available: UpdateInfo | null = null;
     let availableChannel: UpdateChannel | null = null;
-    const installedChannel = channelFor(currentVersion);
+    const installedChannel = channelOf(currentVersion);
     let configuredChannel = installedChannel;
 
     const publish = (next: UpdateStatus): UpdateStatus => {
         status = next;
         const target = window();
         if (target !== null && !target.isDestroyed()) target.webContents.send("dashql:update-status", next);
-        onStatus(next);
         return next;
     };
 

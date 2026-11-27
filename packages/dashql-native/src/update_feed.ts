@@ -5,11 +5,11 @@ export function architectureName(arch: string): "arm64" | "x64" {
 
 export type UpdateChannel = "latest" | "stable";
 
-export function updateFeedUrlForChannel(channel: UpdateChannel, arch: string): string {
-    return `https://get.dashql.app/channels/${channel}/macos/${architectureName(arch)}`;
+/// The channel of a version: prereleases are latest builds
+export function channelOf(version: string): UpdateChannel {
+    return version.includes("-") ? "latest" : "stable";
 }
 
-export function updateFeedUrl(version: string, arch: string): string {
-    const channel = version.includes("-") ? "latest" : "stable";
-    return updateFeedUrlForChannel(channel, arch);
+export function updateFeedUrlForChannel(channel: UpdateChannel, arch: string): string {
+    return `https://get.dashql.app/channels/${channel}/macos/${architectureName(arch)}`;
 }
