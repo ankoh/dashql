@@ -1321,7 +1321,7 @@ impl Runtime {
     }
 
     /// Log in to Salesforce with the params of the connector, without a connection, e.g. the login of the shell. The
-    /// names of the steps go to the listener (`LoginStep`, e.g. `REQUESTING_CORE_AUTH_TOKEN`), never a code or a token;
+    /// names of the steps go to the listener (`login_step_name`, e.g. `REQUESTING_CORE_AUTH_TOKEN`), never a code or a token;
     /// `cancelSetup` with the id stops the login. The outcome of a success has the tokens and the user.
     #[wasm_bindgen(js_name = authenticateSalesforce, unchecked_return_type = "Promise<SetupOutcome>")]
     pub fn authenticate_salesforce(

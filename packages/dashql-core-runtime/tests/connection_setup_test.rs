@@ -14,8 +14,8 @@ use std::task::{Context, Poll, Wake, Waker};
 use serde_json::{json, Value};
 
 use dashql_core_runtime::connection_setup::{
-    authenticate_salesforce, check_health, setup_hyper, setup_salesforce, setup_trino, HyperChannelKind,
-    HyperChannelRequest, LoginStep, OAuthCallback, OAuthEvents, OAuthHost, ProbeResult, SetupFailure, SetupHost,
+    authenticate_salesforce, check_health, login_step_name, setup_hyper, setup_salesforce, setup_trino,
+    HyperChannelKind, HyperChannelRequest, OAuthCallback, OAuthEvents, OAuthHost, ProbeResult, SetupFailure, SetupHost,
 };
 use dashql_core_runtime::connections::{
     ChannelId, ConnectionAction, ConnectionChannel, ConnectionHealth, ConnectionParams, ConnectionState, ConnectorType,
@@ -301,7 +301,7 @@ fn step_name(action: &ConnectionAction) -> String {
                 SalesforceAction::ChannelSetupCancelled(_) => "SF_CHANNEL_SETUP_CANCELLED",
                 SalesforceAction::ChannelSetupFailed(_) => "SF_CHANNEL_SETUP_FAILED",
                 SalesforceAction::ChannelReady(_) => "SF_CHANNEL_READY",
-                _ => LoginStep::of(&ConnectionAction::Salesforce(action.clone())).expect("a step of the login").name(),
+                _ => login_step_name(&ConnectionAction::Salesforce(action.clone())).expect("a step of the login"),
             },
         ),
         ConnectionAction::Hyper(action) => (
@@ -323,8 +323,8 @@ impl SetupHost for FakeHost {
         self.actions.borrow_mut().push(step_name(action));
         self.dispatched.borrow_mut().push(action.clone());
         if self.login.get() {
-            if let Some(step) = LoginStep::of(action) {
-                self.login_steps.borrow_mut().push(step.name());
+            if let Some(step) = login_step_name(action) {
+                self.login_steps.borrow_mut().push(step);
             }
         }
     }

@@ -198,7 +198,7 @@ that wants the composition would depend on that rather than copy it.
   connection at once as an action of the connection, and awaits the platform for the OAuth flow, the token requests and
   a channel of the host; the PKCE verifier and the code stay in the function. Its outcome resolves, a failure is in the view of the connection and the log.
   Params that don't read fail a setup before it cancels the one that runs. A login (`authenticateSalesforce`) has no
-  connection: its listener hears the names of its steps (`LoginStep`), the tokens are in its outcome.
+  connection: its listener hears the names of its steps (`login_step_name`), the tokens are in its outcome.
 - **Setup attempts are fenced by epochs.** A setup begins an attempt (`ConnectionState::begin_setup`) and its steps
   carry the epoch (`ConnectionAction::SetupStep`). A later setup, a reset or a delete begins the next one; the steps of
   a replaced attempt change nothing and the channel of the host of such a ready step is closed. A cancellation stops

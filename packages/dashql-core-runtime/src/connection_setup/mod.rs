@@ -14,7 +14,7 @@
 //! (`ConnectionChannel`): Trino, Hyper over HTTP and the Hyper of Salesforce are channels that the module speaks
 //! itself, only the gRPC channel of the desktop app and the embedded Hyper are objects of the host that it connects and
 //! keeps under a handle. A login of Salesforce has no connection, its listener hears the names of its steps
-//! (`salesforce::LoginStep`), the tokens are in its outcome.
+//! (`salesforce::login_step_name`), the tokens are in its outcome.
 //!
 //! A cancelled setup ends at the next step: the token stops the host call that runs, the setup reports the cancellation
 //! as an action of the connection. A failed host call keeps what the host failed with, the caller gets it
@@ -43,7 +43,7 @@ use crate::query::QueryMetadata;
 pub use health_check::check_health;
 pub use hyper::{setup_hyper, HyperChannelKind, HyperChannelRequest};
 pub use oauth::{OAuthCallback, OAuthEvents, OAuthHost};
-pub use salesforce::{authenticate_salesforce, setup_salesforce, LoginStep, SalesforceAuthentication};
+pub use salesforce::{authenticate_salesforce, login_step_name, setup_salesforce, SalesforceAuthentication};
 pub use trino::setup_trino;
 
 /// The target of the log messages of the setups

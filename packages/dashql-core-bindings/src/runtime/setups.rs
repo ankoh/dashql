@@ -7,7 +7,7 @@
 //! connection whose channel is ready but that is not online yet runs the health check. A setup is known by an id, the
 //! id of its connection or of a login; a new setup of an id cancels the one that runs, a reset or a delete of the
 //! connection cancels it as well. Params that don't read fail the setup before it cancels the one that runs. A login
-//! has no connection: its listener hears the names of its steps (`LoginStep`), never a code, a verifier or a token,
+//! has no connection: its listener hears the names of its steps (`login_step_name`), never a code, a verifier or a token,
 //! and its outcome holds the tokens.
 
 use std::collections::BTreeMap;
@@ -15,8 +15,8 @@ use std::future::Future;
 use std::rc::{Rc, Weak};
 
 use dashql_core_runtime::connection_setup::{
-    authenticate_salesforce, check_health, setup_hyper, setup_salesforce, setup_trino, HyperChannelKind,
-    HyperChannelRequest, LoginStep, OAuthCallback, OAuthEvents, OAuthHost, ProbeResult, SetupFailure, SetupHost,
+    authenticate_salesforce, check_health, login_step_name, setup_hyper, setup_salesforce, setup_trino,
+    HyperChannelKind, HyperChannelRequest, OAuthCallback, OAuthEvents, OAuthHost, ProbeResult, SetupFailure, SetupHost,
     LOG_TARGET,
 };
 use dashql_core_runtime::connections::open_setup::OpenSetup;
@@ -300,8 +300,8 @@ impl SetupHost for RuntimeSetupHost {
     fn dispatch(&self, action: &ConnectionAction) {
         // A login reports the names of its steps to its listener
         let Some(connection_id) = &self.connection_id else {
-            if let (Some(events), Some(step)) = (&self.events, LoginStep::of(action)) {
-                let _ = events.call1(&JsValue::NULL, &JsValue::from_str(step.name()));
+            if let (Some(events), Some(step)) = (&self.events, login_step_name(action)) {
+                let _ = events.call1(&JsValue::NULL, &JsValue::from_str(step));
             }
             return;
         };

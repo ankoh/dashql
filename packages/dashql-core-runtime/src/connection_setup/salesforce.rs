@@ -4,7 +4,7 @@
 //! app and hands back its callback. The setup exchanges the code for the core token, reads the user info, exchanges
 //! the core token for the Data Cloud token over fetch and hands the channel with the tokens to the connection.
 //! `authenticate_salesforce` is a login without a connection, e.g. of the shell: its listener hears the names of the
-//! steps (`LoginStep`), the tokens are in its outcome.
+//! steps (`login_step_name`), the tokens are in its outcome.
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -39,87 +39,34 @@ pub struct SalesforceAuthentication {
     pub user_info: Option<SalesforceCoreUserInfo>,
 }
 
-/// A step of a login as its listener hears it: the progress, never a code, a verifier or a token
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LoginStep {
-    Started,
-    Cancelled,
-    Failed,
-    GeneratingPkceChallenge,
-    GeneratedPkceChallenge,
-    NativeLinkOpened,
-    WebWindowOpened,
-    WebWindowClosed,
-    ReceivedCoreAuthCode,
-    RequestingCoreAuthToken,
-    ReceivedCoreAuthToken,
-    ReceivedCoreUserInfo,
-    RequestingDataCloudAccessToken,
-    ReceivedDataCloudAccessToken,
-}
-
-impl LoginStep {
-    /// The step of a login of an action of the setup, none for the steps of the channel
-    pub fn of(action: &ConnectionAction) -> Option<Self> {
-        let ConnectionAction::Salesforce(action) = action else { return None };
-        Some(match action {
-            SalesforceAction::SetupStarted { .. } => LoginStep::Started,
-            SalesforceAction::SetupCancelled(_) => LoginStep::Cancelled,
-            SalesforceAction::SetupFailed(_) => LoginStep::Failed,
-            SalesforceAction::GeneratingPkceChallenge => LoginStep::GeneratingPkceChallenge,
-            SalesforceAction::GeneratedPkceChallenge => LoginStep::GeneratedPkceChallenge,
-            SalesforceAction::OAuthNativeLinkOpened => LoginStep::NativeLinkOpened,
-            SalesforceAction::OAuthWebWindowOpened => LoginStep::WebWindowOpened,
-            SalesforceAction::OAuthWebWindowClosed => LoginStep::WebWindowClosed,
-            SalesforceAction::ReceivedCoreAuthCode { .. } => LoginStep::ReceivedCoreAuthCode,
-            SalesforceAction::RequestingCoreAuthToken => LoginStep::RequestingCoreAuthToken,
-            SalesforceAction::ReceivedCoreAuthToken => LoginStep::ReceivedCoreAuthToken,
-            SalesforceAction::ReceivedCoreUserInfo { .. } => LoginStep::ReceivedCoreUserInfo,
-            SalesforceAction::RequestingDataCloudAccessToken => LoginStep::RequestingDataCloudAccessToken,
-            SalesforceAction::ReceivedDataCloudAccessToken => LoginStep::ReceivedDataCloudAccessToken,
-            SalesforceAction::ChannelSetupStarted
-            | SalesforceAction::ChannelSetupCancelled(_)
-            | SalesforceAction::ChannelSetupFailed(_)
-            | SalesforceAction::ChannelReady(_) => return None,
-        })
-    }
-
-    /// The name of the step, the name of the action of the setup
-    pub fn name(self) -> &'static str {
-        match self {
-            LoginStep::Started => "SETUP_STARTED",
-            LoginStep::Cancelled => "SETUP_CANCELLED",
-            LoginStep::Failed => "SETUP_FAILED",
-            LoginStep::GeneratingPkceChallenge => "GENERATING_PKCE_CHALLENGE",
-            LoginStep::GeneratedPkceChallenge => "GENERATED_PKCE_CHALLENGE",
-            LoginStep::NativeLinkOpened => "OAUTH_NATIVE_LINK_OPENED",
-            LoginStep::WebWindowOpened => "OAUTH_WEB_WINDOW_OPENED",
-            LoginStep::WebWindowClosed => "OAUTH_WEB_WINDOW_CLOSED",
-            LoginStep::ReceivedCoreAuthCode => "RECEIVED_CORE_AUTH_CODE",
-            LoginStep::RequestingCoreAuthToken => "REQUESTING_CORE_AUTH_TOKEN",
-            LoginStep::ReceivedCoreAuthToken => "RECEIVED_CORE_AUTH_TOKEN",
-            LoginStep::ReceivedCoreUserInfo => "RECEIVED_CORE_USER_INFO",
-            LoginStep::RequestingDataCloudAccessToken => "REQUESTING_DATA_CLOUD_ACCESS_TOKEN",
-            LoginStep::ReceivedDataCloudAccessToken => "RECEIVED_DATA_CLOUD_ACCESS_TOKEN",
-        }
-    }
-}
-
-/// Set up a Salesforce or Database.com connection with its params, returns the tokens and the user info. The connection
-/// takes the channel with the ready step.
-pub async fn setup_salesforce<H: SetupHost>(
-    host: Rc<H>,
-    connector: ConnectorType,
-    params: JsonObject,
-    config: SalesforceOAuthConfig,
-    force_relogin: bool,
-    cancellation: CancellationToken,
-) -> Result<SalesforceAuthentication, SetupFailure> {
-    run(host, connector, params, config, force_relogin, cancellation).await
+/// The name of the step of a login of an action of the setup, the name of the action, none for the steps of the channel.
+/// The listener of a login hears these: the progress, never a code, a verifier or a token.
+pub fn login_step_name(action: &ConnectionAction) -> Option<&'static str> {
+    let ConnectionAction::Salesforce(action) = action else { return None };
+    Some(match action {
+        SalesforceAction::SetupStarted { .. } => "SETUP_STARTED",
+        SalesforceAction::SetupCancelled(_) => "SETUP_CANCELLED",
+        SalesforceAction::SetupFailed(_) => "SETUP_FAILED",
+        SalesforceAction::GeneratingPkceChallenge => "GENERATING_PKCE_CHALLENGE",
+        SalesforceAction::GeneratedPkceChallenge => "GENERATED_PKCE_CHALLENGE",
+        SalesforceAction::OAuthNativeLinkOpened => "OAUTH_NATIVE_LINK_OPENED",
+        SalesforceAction::OAuthWebWindowOpened => "OAUTH_WEB_WINDOW_OPENED",
+        SalesforceAction::OAuthWebWindowClosed => "OAUTH_WEB_WINDOW_CLOSED",
+        SalesforceAction::ReceivedCoreAuthCode { .. } => "RECEIVED_CORE_AUTH_CODE",
+        SalesforceAction::RequestingCoreAuthToken => "REQUESTING_CORE_AUTH_TOKEN",
+        SalesforceAction::ReceivedCoreAuthToken => "RECEIVED_CORE_AUTH_TOKEN",
+        SalesforceAction::ReceivedCoreUserInfo { .. } => "RECEIVED_CORE_USER_INFO",
+        SalesforceAction::RequestingDataCloudAccessToken => "REQUESTING_DATA_CLOUD_ACCESS_TOKEN",
+        SalesforceAction::ReceivedDataCloudAccessToken => "RECEIVED_DATA_CLOUD_ACCESS_TOKEN",
+        SalesforceAction::ChannelSetupStarted
+        | SalesforceAction::ChannelSetupCancelled(_)
+        | SalesforceAction::ChannelSetupFailed(_)
+        | SalesforceAction::ChannelReady(_) => return None,
+    })
 }
 
 /// Log in to Salesforce and get the tokens, without a connection. The steps go to the host as the actions of a setup,
-/// its listener hears them as `LoginStep`s.
+/// its listener hears their names (`login_step_name`).
 pub async fn authenticate_salesforce<H: SetupHost>(
     host: Rc<H>,
     params: JsonObject,
@@ -127,14 +74,17 @@ pub async fn authenticate_salesforce<H: SetupHost>(
     force_relogin: bool,
     cancellation: CancellationToken,
 ) -> Result<SalesforceAuthentication, SetupFailure> {
-    run(host, ConnectorType::SalesforceDataCloud, params, config, force_relogin, cancellation).await
+    setup_salesforce(host, ConnectorType::SalesforceDataCloud, params, config, force_relogin, cancellation).await
 }
 
+/// Set up a Salesforce or Database.com connection with its params, returns the tokens and the user info. The connection
+/// takes the channel with the ready step.
+///
 /// The setup: the PKCE challenge, the authorization in the OAuth flow of the platform, the core token, the user info,
 /// the Data Cloud token and the Hyper channel. We use the web server flow with PKCE and without a consumer secret: never
 /// embed the secret of an External Client App. The PKCE verifier and the code stay here, the connection learns only
 /// that they arrived. A failed step stops the setup with `SetupFailed`, a cancelled one with `SetupCancelled`.
-async fn run<H: SetupHost>(
+pub async fn setup_salesforce<H: SetupHost>(
     host: Rc<H>,
     connector: ConnectorType,
     params: JsonObject,
