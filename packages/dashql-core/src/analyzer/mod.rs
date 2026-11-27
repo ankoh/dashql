@@ -2,11 +2,13 @@
 //!
 //! The analysis runs three left-to-right passes over the post-order AST, interleaved per morsel of
 //! 1024 nodes: name resolution, function calls and constant propagation. The interleaving determines
-//! the expression ids. The visualizations of the `@vis` comment tags are built at the end.
+//! the expression ids. The visualizations of the `@vis` comment tags are built at the end. The extensions of SQL that
+//! the catalog doesn't offer are flagged and skipped (`capabilities`).
 //!
 //! The scanned script is not modified. The analyzed script owns a copy of the names with the
 //! analyzer tags and the objects they resolve to.
 
+mod capabilities;
 pub mod clfn_calls;
 mod constants;
 mod function_calls;
@@ -224,6 +226,7 @@ pub fn analyze_with(
     constants.finish(&mut state);
     // The AST is in post-order with sorted attributes, sort the parameters by their position in the text
     state.out.parameters.sort_by_key(|p| p.location.offset());
+    capabilities::analyze_parameters(&mut state);
     vis_tags::analyze(&mut state);
     param_tags::analyze(&mut state);
     manual_tag::analyze(&mut state);

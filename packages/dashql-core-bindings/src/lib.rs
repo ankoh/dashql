@@ -193,6 +193,16 @@ impl Catalog {
         self.writable()?.drop_descriptor(id).map_err(js_error)
     }
 
+    /// Offer only the named extensions of SQL to the scripts of the catalog (`capabilities.rs` of the core), all of them
+    /// by default. Set them before the scripts are analyzed, an unknown name fails.
+    #[wasm_bindgen(js_name = setCapabilities)]
+    pub fn set_capabilities(&self, names: Vec<String>) -> Result<(), JsError> {
+        let capabilities = dashql_core::capabilities::Capabilities::only(names.iter().map(String::as_str))
+            .map_err(|e| JsError::new(&e))?;
+        self.writable()?.set_capabilities(capabilities);
+        Ok(())
+    }
+
     /// Register client functions from their JSON spec and return their namespace. The namespace must be free.
     #[wasm_bindgen(js_name = registerClientFunctions)]
     pub fn register_client_functions(&self, spec: &str) -> Result<String, JsError> {

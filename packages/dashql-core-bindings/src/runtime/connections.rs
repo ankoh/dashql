@@ -225,6 +225,7 @@ impl Connections {
             active: connection.active,
             params: connection.params,
             params_draft: connection.params_draft,
+            capabilities: self.platform.settings().capabilities,
         };
         let now = self.now();
         let mut state = ConnectionState::new(&connection_id, details, options, now);

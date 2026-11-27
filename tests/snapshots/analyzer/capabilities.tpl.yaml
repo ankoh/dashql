@@ -1,0 +1,44 @@
+analyzer-snapshots:
+  # Plain SQL: every tag is a warning and ignored, every named parameter an error, positional parameters stay
+  - name: capabilities_none
+    capabilities: []
+    script:
+      input: |-
+        /**
+         * @param :min = 10
+         * @manual
+         * @flow x=1 y=2
+         * @board width=6 height=3
+         * @vis table
+         */
+        select * from :source where amount > :min and id = $1 and region = ?
+  # Visualizations and board placements only, the dataflow position and the older `@vis flow` are ignored
+  - name: capabilities_vis_board
+    capabilities: [vis, board]
+    script:
+      input: |-
+        /**
+         * @vis table
+         * @board width=6 height=3
+         * @flow x=1 y=2
+         */
+        select 1 as a;
+        /** @vis flow x=3 y=4 */
+        select 2 as b
+  # Parameters without table parameters: the scalar parameter and its value stay, the table parameter is an error
+  - name: capabilities_params
+    capabilities: [params]
+    script:
+      input: |-
+        /** @param :min = 10 */
+        select * from :source where amount > :min
+  # A Javadoc `@param` without a `:name` is a comment, also without params
+  - name: capabilities_javadoc_param
+    capabilities: []
+    script:
+      input: |-
+        /**
+         * Sums the amounts.
+         * @param amount the amount
+         */
+        select sum(amount) from t

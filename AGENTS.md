@@ -18,6 +18,7 @@ start with `packages/` or `extensions/`.
 - SQL: `agents/sql_scripts.md` (reentrant scripts), `agents/core_sql_formatting.md` (extending the formatter),
   `design/sql_formatter_coverage.md` (its test gates), `design/sql_grammar.md` (deviations from PostgreSQL)
 - Parser and analysis: `design/core_parser.md`, `design/core_quirks.md` (kept on purpose),
+  `design/capabilities.md` (the extensions of SQL that a host offers, `capabilities: [...]` of snapshots),
   `design/core_analysis_catalog.md` (catalog types, name resolution), `design/core_completion.md`,
   `design/core_completion_ranking.md`
 - Catalog: `design/catalog_updates.md` (following the connection), `design/catalog_batching.md` (SQL to descriptors)

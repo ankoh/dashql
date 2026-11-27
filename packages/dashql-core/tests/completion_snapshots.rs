@@ -3,7 +3,9 @@
 
 use dashql_snapshots::encode::analyzer::compare_script;
 use dashql_snapshots::encode::completion::{complete_case, CursorOffset};
-use dashql_snapshots::{client_functions_of, compare, load_category, run, trim_input, Arguments, Failed, Trial};
+use dashql_snapshots::{
+    capabilities_of, client_functions_of, compare, load_category, run, trim_input, Arguments, Failed, Trial,
+};
 
 fn main() {
     let args = Arguments::from_args();
@@ -21,6 +23,7 @@ fn main() {
             let limit = node["completions"]["limit"].as_i64().unwrap_or(100) as usize;
             let out = complete_case(
                 client_functions_of(node),
+                capabilities_of(node),
                 catalog_input.as_deref(),
                 &editor_input,
                 CursorOffset::Search { text, index },

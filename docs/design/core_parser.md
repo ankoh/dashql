@@ -393,7 +393,8 @@ The scanner wraps the raw lexer with a lookahead filter (`next_symbol` in `scann
 The scanner collects comments as trivia. After parsing, `comment_blocks.rs` groups them into blocks:
 a block comment, or a run of line comments on consecutive lines. Blocks are split at every line whose
 first text is a known tag, `@<tag>`. The known tags are `vis`, `board`, `flow`, `param`, `manual` and `end`
-(`COMMENT_TAGS`), any other `@word` (`@todo`, `@see`) is ordinary text. A tag runs to the next tag
+(`COMMENT_TAGS`), any other `@word` (`@todo`, `@see`) is ordinary text. The parser knows every tag whatever a host
+offers, the analyzer flags the tags of a missing capability ([capabilities.md](capabilities.md)). A tag runs to the next tag
 line or to the end of the comment, like the block tags of Javadoc: in a block comment the comment end
 closes the last tag, in a run of line comments the end of the run. Tags whose content is one line end at
 their line if it has content: `@board` and `@flow` with their args, `@vis table` (and the `@vis board`, `card`

@@ -373,6 +373,9 @@ enum AnalyzerErrorType: uint8 {
     NESTED_AGGREGATE_CALL,
     /// A call of a function that no catalog entry declares, while the connection reports all functions of its engine
     UNKNOWN_FUNCTION,
+    /// An extension of SQL that the catalog doesn't offer (`capabilities.rs` of the core): a comment tag, which is
+    /// ignored, or a named parameter, which fails its statement
+    DISABLED_CAPABILITY,
 }
 
 /// The severity of an analyzer error. WARNING-level diagnostics still carry a

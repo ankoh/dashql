@@ -2,7 +2,8 @@
 
 use dashql_snapshots::encode::analyzer::{analyze_case, compare_script};
 use dashql_snapshots::{
-    client_functions_of, functions_complete_of, load_category, run, trim_input, Arguments, Failed, Trial,
+    capabilities_of, client_functions_of, functions_complete_of, load_category, run, trim_input, Arguments, Failed,
+    Trial,
 };
 
 fn main() {
@@ -16,6 +17,7 @@ fn main() {
             let catalog_input = catalog["input"].as_str().map(trim_input);
             let (catalog_yaml, main_yaml) = analyze_case(
                 client_functions_of(&case.node),
+                capabilities_of(&case.node),
                 catalog_input.as_deref(),
                 functions_complete_of(&case.node),
                 &main_input,

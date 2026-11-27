@@ -814,9 +814,9 @@ impl Restorer {
 
 #[wasm_bindgen]
 impl Runtime {
-    /// A runtime on a platform
-    pub fn create(platform: JsRuntimePlatform) -> Runtime {
-        let platform = JsPlatform::new(platform);
+    /// A runtime on a platform, fails for settings that don't read
+    pub fn create(platform: JsRuntimePlatform) -> Result<Runtime, JsError> {
+        let platform = JsPlatform::new(platform).map_err(|e| JsError::new(&e))?;
         let tracker = ComputeTracker::new(platform.clone());
         let computations = ComputeService::new(tracker.clone());
         let connections = Connections::new(platform.clone(), computations.clone());
@@ -842,7 +842,7 @@ impl Runtime {
             runs.clone(),
         );
         // A runtime starts without connections, workbooks and writes, the host reads none until they change
-        Runtime {
+        Ok(Runtime {
             computations,
             connections,
             workbooks,
@@ -853,7 +853,7 @@ impl Runtime {
             platform,
             sessions: Default::default(),
             taken: RefCell::new(Taken::default()),
-        }
+        })
     }
 
     /// The slices that changed and the effects on handles since the last call: the slices that the services marked,

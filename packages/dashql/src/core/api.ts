@@ -394,7 +394,7 @@ export class DashQL {
 
     /// Create the runtime of DashQL on a platform (docs/design/dashql_runtime.md), through the instance like a
     /// workbook. The runtime is a class of the module, its methods take and return the generated views, actions and
-    /// change sets; `free()` frees it after `destroy()`.
+    /// change sets; `free()` frees it after `destroy()`. Throws for settings that don't read, e.g. an unknown capability.
     public createRuntime(platform: glue.RuntimePlatform): glue.Runtime {
         return this.bindings.Runtime.create(platform);
     }
@@ -1278,6 +1278,11 @@ export class DashQLCatalog {
         assertUint32(id, 'catalogEntryId');
         this.ptr.assertNotNull().dropDescriptor(id);
         this.deleteFlat();
+    }
+    /// Offer only the named extensions of SQL to the scripts of the catalog, all of them by default. Set them before the
+    /// scripts are analyzed, an unknown name throws. A runtime gives its connections the `capabilities` of its settings.
+    public setCapabilities(capabilities: glue.RuntimeCapability[]): void {
+        this.ptr.assertNotNull().setCapabilities(capabilities);
     }
     /// Register client functions from their JSON spec and return their namespace. The namespace must be free.
     public registerClientFunctions(spec: string): string {

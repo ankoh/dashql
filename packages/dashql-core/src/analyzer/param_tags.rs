@@ -92,6 +92,9 @@ pub(super) fn analyze(state: &mut AnalysisState) {
             if !tag.text.trim_start().starts_with(':') {
                 continue;
             }
+            if !super::capabilities::tag_enabled(state, PARAM_TAG, block.tag_span) {
+                continue;
+            }
             let parts = match split_param_tag(&tag.text) {
                 Ok(parts) => parts,
                 Err(message) => {

@@ -875,7 +875,7 @@ mod persistence {
 
     fn state(params: &Value, active: bool) -> ConnectionState {
         let params = ConnectionParams::from_json(&params.to_string()).unwrap();
-        let options = ConnectionStateOptions { active, params: Some(params.clone()), params_draft: None };
+        let options = ConnectionStateOptions { active, params: Some(params.clone()), ..Default::default() };
         ConnectionState::new(CONNECTION, ConnectionDetails::new(&params), options, 0.0)
     }
 

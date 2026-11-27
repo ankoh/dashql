@@ -15,6 +15,7 @@ pub use entry::*;
 pub use ids::*;
 pub use names::{IndexedName, NameSearchIndex};
 
+use crate::capabilities::Capabilities;
 use crate::error::{Error, Result};
 use crate::hash::HashMap;
 use dashql_buffers::catalog::{
@@ -233,6 +234,8 @@ pub struct CatalogSnapshot {
     /// The relations that the connection reported as gone, their declarations in scripts are hidden until the
     /// connection has them again. An empty part of a name matches any database or schema.
     absent_relations: Vec<QualifiedKey>,
+    /// The extensions of SQL that the scripts of the catalog may use, see `capabilities`
+    capabilities: Capabilities,
 }
 
 /// The catalog: the current snapshot and the ids that outlive snapshots.
@@ -290,6 +293,7 @@ impl Catalog {
                 schemas: BTreeMap::new(),
                 client_function_specs: BTreeMap::new(),
                 absent_relations: Vec::new(),
+                capabilities: Capabilities::ALL,
             }),
             ids: RefCell::new(IdReservations {
                 database_ids_by_name: HashMap::default(),
@@ -302,6 +306,14 @@ impl Catalog {
                 next_column_ids: HashMap::default(),
             }),
             entry_ids,
+        }
+    }
+
+    /// Choose the extensions of SQL that the scripts of the catalog may use. An analysis keeps the snapshot with the
+    /// capabilities it was made with, the owner sets them before the scripts are analyzed.
+    pub fn set_capabilities(&mut self, capabilities: Capabilities) {
+        if self.current.capabilities != capabilities {
+            Arc::make_mut(&mut self.current).capabilities = capabilities;
         }
     }
 
@@ -321,6 +333,11 @@ impl CatalogSnapshot {
     /// The process-unique id of the catalog
     pub fn id(&self) -> u64 {
         self.id
+    }
+
+    /// The extensions of SQL that the scripts of the catalog may use, all of them by default
+    pub fn capabilities(&self) -> Capabilities {
+        self.capabilities
     }
 
     pub fn version(&self) -> CatalogVersion {

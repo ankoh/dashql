@@ -56,6 +56,13 @@ pub fn client_functions_of(case: &Yaml) -> Option<&'static str> {
     }
 }
 
+/// The capabilities of a snapshot case, `capabilities: [vis, board]` offers only those, all without the key
+pub fn capabilities_of(case: &Yaml) -> Option<dashql_core::capabilities::Capabilities> {
+    let names = case["capabilities"].as_vec()?;
+    let names = names.iter().map(|n| n.as_str().expect("a capability is a name"));
+    Some(dashql_core::capabilities::Capabilities::only(names).unwrap_or_else(|e| panic!("{e}")))
+}
+
 /// Does the catalog of a snapshot case declare all functions of its engine, `catalog.functions_complete: true`?
 pub fn functions_complete_of(case: &Yaml) -> bool {
     case["catalog"]["functions_complete"].as_bool().unwrap_or(false)

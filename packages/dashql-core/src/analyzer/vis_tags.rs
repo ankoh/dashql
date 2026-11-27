@@ -578,6 +578,17 @@ pub(super) fn analyze(state: &mut AnalysisState) {
                 (name, block.tag_span, 0)
             };
             let body = tag.text.get(rest..).unwrap_or("").trim();
+            // `@vis board` and `@vis flow` of older scripts belong to the capabilities of `@board` and `@flow`
+            let capability = match kind {
+                "flow" => FLOW_TAG,
+                "board" | "card" => BOARD_TAG,
+                _ => VIS_TAG,
+            };
+            // The older forms flag their kind, `flow` of `@vis flow`
+            let span = if capability == VIS_TAG { block.tag_span } else { kind_span };
+            if !super::capabilities::tag_enabled(state, capability, span) {
+                continue;
+            }
             if kind == "flow" {
                 read_flow(state, &tag, rest, kind_span, statement_id as u32);
                 continue;

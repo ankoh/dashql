@@ -17,6 +17,7 @@ use std::cell::{Cell, RefCell};
 use std::future::Future;
 use std::rc::Rc;
 
+use dashql_core::capabilities::Capabilities;
 use dashql_core_runtime::compute::host::{ComputeContext, ComputeHost, KeptTable, RunId, TableShape};
 use dashql_core_runtime::compute::tasks::result_table::ResultTable;
 use dashql_core_runtime::compute::ComputationEffect;
@@ -85,7 +86,15 @@ export interface RuntimeSettings {
     catalogQueryTimeoutMs?: number;
     /** The finished internal queries that the history of a connection keeps, 100 by default */
     internalQueryHistoryLimit?: number;
+    /**
+     * The extensions of SQL that the scripts of the connections may use, all of them without the list (`capabilities.rs` of the core). The analyzer flags
+     * what is not listed: a tag is a warning and ignored, a named parameter an error that stops its statement. An unknown name fails the runtime.
+     */
+    capabilities?: RuntimeCapability[];
 }
+
+/** An extension of SQL: `:min` with its `@param` tags, `from :foo`, and the tags `@vis`, `@board`, `@flow` and `@manual` */
+export type RuntimeCapability = 'params' | 'table_parameters' | 'vis' | 'board' | 'flow' | 'manual';
 
 /** The storage of the platform: the workbook files, scripts and attachments of the workbooks, the app manifest and the files of the connections. Workbook files and connection entries cross as plain JSON values. */
 export interface RuntimeStorage {
@@ -629,14 +638,14 @@ pub(crate) fn response_keeping(value: &JsValue, keep_body: bool) -> Result<HttpR
 }
 
 /// The settings of the platform object, the defaults for what it leaves out. A value that is no number of at least zero
-/// is left out.
-fn settings_of(object: &JsValue) -> RuntimeSettings {
+/// is left out. Capabilities that are no list of their names fail, a typo must not change what scripts may use.
+fn settings_of(object: &JsValue) -> Result<RuntimeSettings, String> {
     let defaults = RuntimeSettings::default();
-    let Some(settings) = field(object, "settings") else { return defaults };
+    let Some(settings) = field(object, "settings") else { return Ok(defaults) };
     let number = |name: &str| {
         field(&settings, name).and_then(|value| value.as_f64()).filter(|value| value.is_finite() && *value >= 0.0)
     };
-    RuntimeSettings {
+    Ok(RuntimeSettings {
         background_analysis_delay_ms: number("backgroundAnalysisDelayMs")
             .unwrap_or(defaults.background_analysis_delay_ms),
         catalog_heartbeat_ms: number("catalogHeartbeatMs").unwrap_or(defaults.catalog_heartbeat_ms),
@@ -646,7 +655,19 @@ fn settings_of(object: &JsValue) -> RuntimeSettings {
         internal_query_history_limit: number("internalQueryHistoryLimit")
             .map(|limit| limit.min(f64::from(u32::MAX)) as usize)
             .unwrap_or(defaults.internal_query_history_limit),
-    }
+        capabilities: match field(&settings, "capabilities") {
+            None => defaults.capabilities,
+            Some(names) => {
+                let names = names
+                    .dyn_into::<Array>()
+                    .map_err(|_| "the capabilities are a list of their names".to_string())?
+                    .iter()
+                    .map(|name| name.as_string().ok_or_else(|| "a capability is a name".to_string()))
+                    .collect::<Result<Vec<_>, _>>()?;
+                Capabilities::only(names.iter().map(String::as_str))?
+            }
+        },
+    })
 }
 
 /// A count of a JS object
@@ -669,9 +690,10 @@ pub(crate) fn details_value(details: &[(&str, &str)]) -> Array {
 }
 
 impl JsPlatform {
-    pub fn new(object: JsRuntimePlatform) -> Self {
-        let settings = settings_of(&object);
-        Self {
+    /// The host over a platform object, fails for settings that don't read
+    pub fn new(object: JsRuntimePlatform) -> Result<Self, String> {
+        let settings = settings_of(&object)?;
+        Ok(Self {
             inner: Rc::new(Inner {
                 settings,
                 object,
@@ -679,7 +701,7 @@ impl JsPlatform {
                 last_request: Cell::new(0.0),
                 fenced: Cell::new(false),
             }),
-        }
+        })
     }
 
     /// The runtime shut down: from now on every call of the platform fails and a timer never fires. The effects on

@@ -13,6 +13,7 @@
 
 use dashql_buffers::formatting::{FormattingConfigT, FormattingMode};
 use dashql_core::analyzer::{analyze, AnalyzedScript};
+use dashql_core::capabilities::Capabilities;
 use dashql_core::catalog::Catalog;
 use dashql_core::completion::Completion;
 use dashql_core::cursor::{ScriptCursor, ScriptView};
@@ -193,6 +194,11 @@ fn analyze_script(catalog: &Catalog, input: &str) -> Option<AnalyzedScript> {
 /// Build the catalog of a case from its `catalog.script` and append the analysis to that node (`read_catalog_yml`)
 fn read_catalog(test: &mut Node) -> Catalog {
     let mut catalog = Catalog::new();
+    // `capabilities: [vis, board]` offers only those, all without the key
+    if let Some(names) = test.get("capabilities") {
+        let names = names.children().into_iter().map(|n| n.val().expect("a capability is a name"));
+        catalog.set_capabilities(Capabilities::only(names).unwrap_or_else(|e| panic!("{e}")));
+    }
     if let Some(spec) = test.get("catalog").and_then(|c| c.get("client_functions")).and_then(Node::val) {
         assert_eq!(spec, "tickets", "unknown client functions");
         catalog.register_client_functions(dashql_snapshots::clfn_fixture::TICKETS).expect("the fixture spec is valid");

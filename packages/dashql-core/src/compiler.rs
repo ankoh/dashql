@@ -195,8 +195,9 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
     };
     let terminal_statement_id = parsed.statements.len() - 1;
     result.terminal_statement_id = terminal_statement_id as u32;
-    // A query with `@vis` tags is a visualization
+    // A query with `@vis` tags is a visualization, if the catalog offers them
     let vis_tags = terminal_statement.statement_type == StatementType::SELECT
+        && catalog.capabilities().vis
         && crate::analyzer::has_vis_tags(&parsed, terminal_statement_id);
     let descriptions = parsed.associate_descriptions();
     // There is one description per statement

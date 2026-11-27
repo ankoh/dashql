@@ -1,0 +1,117 @@
+analyzer-snapshots:
+
+  - name: capabilities_none
+    capabilities: []
+    script:
+      input: |-
+        /**
+         * @param :min = 10
+         * @manual
+         * @flow x=1 y=2
+         * @board width=6 height=3
+         * @vis table
+         */
+        select * from :source where amount > :min and id = $1 and region = ?
+      catalog-id: 1
+      errors:
+        - {type: DISABLED_CAPABILITY, message: 'the table parameter :source is not available here', text: ":source"}
+        - {type: DISABLED_CAPABILITY, message: 'the parameter :min is not available here', text: ":min"}
+        - {type: DISABLED_CAPABILITY, severity: WARNING, message: '@flow is not available here, the tag is ignored', text: "flow"}
+        - {type: DISABLED_CAPABILITY, severity: WARNING, message: '@board is not available here, the tag is ignored', text: "board"}
+        - {type: DISABLED_CAPABILITY, severity: WARNING, message: '@vis is not available here, the tag is ignored', text: "vis"}
+        - {type: DISABLED_CAPABILITY, severity: WARNING, message: '@param is not available here, the tag is ignored', text: "param"}
+        - {type: DISABLED_CAPABILITY, severity: WARNING, message: '@manual is not available here, the tag is ignored', text: "manual"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "amount"}
+        - {id: 1, type: colref/unresolved, text: "id"}
+        - {id: 2, type: colref/unresolved, text: "region"}
+      parameters:
+        - {kind: table, name: source, text: ":source"}
+        - {kind: scalar, name: min, text: ":min"}
+        - {kind: scalar, name: 1, text: "$1"}
+        - {kind: scalar, text: "?"}
+
+  - name: capabilities_vis_board
+    capabilities: [vis,board]
+    script:
+      input: |-
+        /**
+         * @vis table
+         * @board width=6 height=3
+         * @flow x=1 y=2
+         */
+        select 1 as a;
+        /** @vis flow x=3 y=4 */
+        select 2 as b
+      catalog-id: 1
+      errors:
+        - {type: DISABLED_CAPABILITY, severity: WARNING, message: '@flow is not available here, the tag is ignored', text: "flow"}
+        - {type: DISABLED_CAPABILITY, severity: WARNING, message: '@flow is not available here, the tag is ignored', text: "flow"}
+      expressions:
+        - {id: 0, type: literal/integer, is-const: true, statement-id: 0, text: "1"}
+        - {id: 1, type: literal/integer, is-const: true, statement-id: 1, text: "2"}
+      constants:
+        - {expression: 0, text: "1"}
+        - {expression: 1, text: "2"}
+      name-scopes:
+        - scope-id: 0
+          columns:
+            - {name: a, expression: 0}
+          text: "select 1 as a"
+        - scope-id: 1
+          columns:
+            - {name: b, expression: 1}
+          text: "select 2 as b"
+      visualizations:
+        - statement-id: 0
+          source: "select 1 as a"
+          renderer: table
+          dashboard:
+            width: 6
+            height: 3
+
+  - name: capabilities_params
+    capabilities: [params]
+    script:
+      input: |-
+        /** @param :min = 10 */
+        select * from :source where amount > :min
+      catalog-id: 1
+      errors:
+        - {type: DISABLED_CAPABILITY, message: 'the table parameter :source is not available here', text: ":source"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "amount"}
+      parameters:
+        - {kind: table, name: source, text: ":source"}
+        - {kind: scalar, name: min, text: ":min"}
+      param-values:
+        - {name: min, value: "10", statement-id: 0}
+
+  - name: capabilities_javadoc_param
+    capabilities: []
+    script:
+      input: |-
+        /**
+         * Sums the amounts.
+         * @param amount the amount
+         */
+        select sum(amount) from t
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - {type: name/unresolved, text: "t"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "amount"}
+        - {id: 1, type: function, name: sum, text: "sum(amount)"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: unresolved, name: t, text: "t"}
+          columns:
+            - {name: '?', expression: 1}
+          text: "select sum..nt) from t"
+      inferred-tables:
+        - name: t
+          confidence: confident
+          columns:
+            - {name: amount, confidence: confident}

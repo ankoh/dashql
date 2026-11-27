@@ -122,7 +122,7 @@ of the module that the runtime builds from it):
 | `archives` | no | A factory over the handle table that reads and writes `.dashql` archives (`createRuntimeArchives` of `workbook_archives.ts`: zip.js, Parquet through the embedded Hyper) |
 | `catalogLoader` | no | Run the catalog loader, true by default. Most tests turn it off |
 | `queryCommands` | no | Stand in for `execute`, `cancel` and `watchProfile` of the facade, e.g. in the tests of components. The services of the runtime keep the executor of the module |
-| `settings` | no | The timings and limits that a host may choose (`RuntimeSettings`): the pause before the background analyses, the heartbeat and the query timeout of the catalog loader, the internal queries a history keeps. The defaults are those of DashQL, read once when the runtime is created |
+| `settings` | no | The timings, limits and extensions of SQL that a host may choose (`RuntimeSettings`): the pause before the background analyses, the heartbeat and the query timeout of the catalog loader, the internal queries a history keeps, the `capabilities` that the scripts of the connections may use ([capabilities.md](capabilities.md), an unknown name fails `createRuntime`). The defaults are those of DashQL, read once when the runtime is created |
 
 The parts that a platform sets up late are providers or read on call: the compute database is a provider, the
 `ChannelConnector` of the app reads its clients when a setup connects, and the archives ask for their database when an

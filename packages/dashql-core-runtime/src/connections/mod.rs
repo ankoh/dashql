@@ -27,6 +27,7 @@ use std::fmt;
 use std::rc::Rc;
 
 use dashql_buffers::analyzer::QualifiedTableNameT;
+use dashql_core::capabilities::Capabilities;
 use dashql_core::catalog::{Catalog, CatalogEntryId};
 use dashql_core::error::{Error, Result};
 use dashql_core::script::Script;
@@ -225,6 +226,8 @@ pub struct ConnectionStateOptions {
     pub params: Option<ConnectionParams>,
     /// The draft of the params
     pub params_draft: Option<ConnectionParams>,
+    /// The extensions of SQL that the scripts on the connection may use, `RuntimeSettings::capabilities`
+    pub capabilities: Capabilities,
 }
 
 /// The state of a connection
@@ -284,8 +287,9 @@ impl ConnectionState {
         details: ConnectionDetails,
         options: ConnectionStateOptions,
         now: Timestamp,
-        catalog: Catalog,
+        mut catalog: Catalog,
     ) -> Self {
+        catalog.set_capabilities(options.capabilities);
         let relation_entry_id = catalog.allocate_entry_id();
         let mut function_script = Script::new(&catalog);
         function_script.replace_text(&function_script_header("-", now));

@@ -386,7 +386,13 @@ fn comment_at(comments: &[TextSpan], offset: usize) -> Option<TextSpan> {
 }
 
 /// Complete the name of a tag when the cursor is in `@name` at the start of a comment line
-fn complete_tag_name(text: &[u8], comments: &[TextSpan], offset: usize, k: usize) -> Option<Vec<Candidate>> {
+fn complete_tag_name(
+    text: &[u8],
+    comments: &[TextSpan],
+    offset: usize,
+    k: usize,
+    enabled: impl Fn(&str) -> bool,
+) -> Option<Vec<Candidate>> {
     let comment = comment_at(comments, offset)?;
     let comment_begin = comment.offset as usize;
     let line_begin = text.get(..offset)?.iter().rposition(|&c| c == b'\n').map_or(0, |n| n + 1).max(comment_begin);
@@ -421,7 +427,7 @@ fn complete_tag_name(text: &[u8], comments: &[TextSpan], offset: usize, k: usize
     let mut candidates = Candidates::new(target, text.get(name_begin..offset)?);
     for &tag in COMMENT_TAGS {
         // The end tag is never needed, it is only accepted for older scripts
-        if tag != COMMENT_TAG_END {
+        if tag != COMMENT_TAG_END && enabled(tag) {
             candidates.add(tag, tag.to_string());
         }
     }
@@ -534,6 +540,10 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
             && offset <= b.text_span.end() as usize
     })?;
     let name = name_of(block);
+    // A disabled tag is ignored, its content too
+    if !completion.catalog().capabilities().tag_enabled(std::str::from_utf8(name).unwrap_or_default()) {
+        return None;
+    }
     let lines = blocks.lines.get(block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize)?;
     let columns = || {
         let statement = statement_of_block(parsed, block_id)?;
@@ -664,7 +674,8 @@ pub(crate) fn complete_in_comment(completion: &mut Completion, k: usize) {
     let Some(scanned) = cursor.script.scanned else { return };
     let text = scanned.text.as_bytes();
     let offset = cursor.text_offset.min(text.len());
-    let candidates = complete_tag_name(text, &scanned.comments, offset, k)
+    let capabilities = cursor.script.catalog().capabilities();
+    let candidates = complete_tag_name(text, &scanned.comments, offset, k, |tag| capabilities.tag_enabled(tag))
         .or_else(|| complete_vis_tag(completion, cursor.script.parsed?, offset, k));
     if let Some(candidates) = candidates {
         completion.top_candidates = candidates;

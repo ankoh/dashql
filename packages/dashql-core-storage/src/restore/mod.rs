@@ -176,7 +176,8 @@ pub fn connection_state<H: RestoreHost>(
         },
         None => None,
     };
-    let options = ConnectionStateOptions { active: true, params: None, params_draft };
+    let capabilities = host.settings().capabilities;
+    let options = ConnectionStateOptions { active: true, params: None, params_draft, capabilities };
     let mut state = ConnectionState::with_catalog(&connection.connection_id, details, options, now, catalog);
     if let Some(name) = &connection.name {
         state.apply(ConnectionAction::Rename(name.clone()), now)?;

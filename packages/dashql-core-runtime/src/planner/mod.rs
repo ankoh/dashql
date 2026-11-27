@@ -25,7 +25,7 @@ pub mod dataflow;
 pub mod script_references;
 pub mod session_inputs;
 
-use dashql_buffers::analyzer::AnalyzerErrorSeverity;
+use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
 use dashql_buffers::execution::{
     ExecutionGraphAccessMode as Mode, ExecutionGraphAccessT, ExecutionGraphAttachmentT, ExecutionGraphCatalogObjectIDT,
     ExecutionGraphConnectionKind, ExecutionGraphConnectionT, ExecutionGraphDiagnosticT,
@@ -848,8 +848,10 @@ fn plan_statements(request: &SessionPlanRequest) -> Plan {
                 if error_node < statement.nodes_begin || error_node >= statement.nodes_begin + statement.node_count {
                     continue;
                 }
-                // No backend gets to judge a client function call, so an error of its checks stops the plan
-                let stops = client_function_call && e.severity == AnalyzerErrorSeverity::ERROR;
+                // No backend gets to judge a client function call, so an error of its checks stops the plan. Neither
+                // does a backend know the parameters of a disabled capability.
+                let stops = e.severity == AnalyzerErrorSeverity::ERROR
+                    && (client_function_call || e.error_type == AnalyzerErrorType::DISABLED_CAPABILITY);
                 state.report(node_id, si as u32, None, format!("analyzer: {}", e.message), stops);
                 if e.severity == AnalyzerErrorSeverity::ERROR {
                     barrier = true;
@@ -1359,6 +1361,7 @@ fn finish(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use dashql_core::capabilities::Capabilities;
 
     fn analyzed(catalog: &Catalog, text: &str) -> Script {
         let mut script = Script::new(catalog);
@@ -1684,6 +1687,52 @@ mod tests {
             let graph = plan_session(&targets);
             assert!(graph.valid, "{text}: {:?}", messages(&graph));
             assert_eq!(graph.scripts.as_ref().unwrap()[0].cacheable, cacheable, "{text}");
+        }
+    }
+
+    #[test]
+    fn parameters_of_disabled_capabilities_stop_the_plan() {
+        for (text, capabilities, stops) in [
+            ("select :min", Capabilities::NONE, true),
+            ("select * from :foo", Capabilities::NONE, true),
+            ("select * from :foo", Capabilities { table_parameters: false, ..Capabilities::ALL }, true),
+            ("select $1, ?", Capabilities::NONE, false),
+            ("/** @vis table */ select 1", Capabilities::NONE, false),
+        ] {
+            let mut catalog = Catalog::new();
+            catalog.set_capabilities(capabilities);
+            let foo = analyzed(&catalog, "select 1 as a");
+            let script = analyzed(&catalog, text);
+            let connections = [PlannerConnection {
+                id: "c",
+                kind: ConnectionKind::Remote,
+                catalog: &catalog,
+                dialect: FormattingDialect::HYPER,
+                default_database: "",
+                default_schema: "",
+            }];
+            let scripts = [
+                PlannerScript {
+                    script: &foo,
+                    name: "foo",
+                    connection: 0,
+                    materialization_file: None,
+                    current_by_own_publish: false,
+                },
+                PlannerScript {
+                    script: &script,
+                    name: "bar",
+                    connection: 0,
+                    materialization_file: None,
+                    current_by_own_publish: false,
+                },
+            ];
+            let mut targets = request(&connections, &scripts);
+            targets.scope = PlanScope::Targets(&[1]);
+            let graph = plan_session(&targets);
+            let disabled = messages(&graph).iter().any(|m| m.contains("is not available here"));
+            assert_eq!(!graph.valid, stops, "{text}: {:?}", messages(&graph));
+            assert_eq!(disabled, stops, "{text}: {:?}", messages(&graph));
         }
     }
 

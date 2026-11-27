@@ -1,0 +1,29 @@
+completion-snapshots:
+  # Only the tags of the offered capabilities are completed, `@` lists board and flow but no vis, param or manual
+  - name: capabilities_tag_names
+    capabilities: [board, flow]
+    catalog: {}
+    editor:
+      input: |
+        /* @ */
+        select 1
+    cursor:
+      search:
+        text: '@'
+        index: 1
+    completions:
+      limit: 10
+  # The content of a disabled tag is not completed
+  - name: capabilities_disabled_vis_kind
+    capabilities: []
+    catalog: {}
+    editor:
+      input: |
+        /* @vis  */
+        select 1
+    cursor:
+      search:
+        text: '@vis '
+        index: 5
+    completions:
+      limit: 3

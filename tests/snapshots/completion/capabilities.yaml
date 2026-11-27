@@ -1,0 +1,56 @@
+completion-snapshots:
+
+  - name: capabilities_tag_names
+    capabilities: [board,flow]
+    catalog: {}
+    editor:
+      input: |
+        /* @ */
+        select 1
+      catalog-id: 1
+      errors: []
+      expressions:
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 0, text: "1"}
+    cursor:
+      search:
+        text: '@'
+        index: 1
+    completions:
+      limit: 10
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - value: board
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - value: flow
+          candidate-tags: [PREFIX_MATCH]
+          location: ""
+          location-qualified: ""
+          objects: []
+
+  - name: capabilities_disabled_vis_kind
+    capabilities: []
+    catalog: {}
+    editor:
+      input: |
+        /* @vis  */
+        select 1
+      catalog-id: 1
+      errors:
+        - {type: DISABLED_CAPABILITY, severity: WARNING, message: '@vis is not available here, the tag is ignored', text: "vis"}
+      expressions:
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 0, text: "1"}
+    cursor:
+      search:
+        text: '@vis '
+        index: 5
+    completions:
+      limit: 3
+      no-target: 1

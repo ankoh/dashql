@@ -744,6 +744,7 @@ pub const COMPARED_KEYS: [&str; 13] = [
 /// Returns the encoded catalog script (if any) and the encoded main script.
 pub fn analyze_case(
     client_functions: Option<&str>,
+    capabilities: Option<dashql_core::capabilities::Capabilities>,
     catalog_input: Option<&str>,
     functions_complete: bool,
     main_input: &str,
@@ -754,6 +755,9 @@ pub fn analyze_case(
     use std::sync::Arc;
 
     let mut catalog = Catalog::new();
+    if let Some(capabilities) = capabilities {
+        catalog.set_capabilities(capabilities);
+    }
     if let Some(spec) = client_functions {
         catalog.register_client_functions(spec).map_err(|e| e.message)?;
     }
