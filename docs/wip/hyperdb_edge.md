@@ -149,7 +149,7 @@ What the command works around, and `hyperdb-wasm` should fix (checked on 0.0.273
 - apache-arrow returns a decimal as its unscaled digits, a timestamp as fractional milliseconds and an interval as
   four 32-bit integers; `src/values.ts` formats them.
 - `engines: node >=24`, but V8 has exnref without a flag only from Node 24.15 on (see
-  [Node and the command line tool](../design/dashql_runtime.md#node-and-the-command-line-tool)). The runtime check sets the flag
+  [Node](../design/dashql_runtime.md#node)). The runtime check sets the flag
   itself, see below.
 
 ## The runtime check
@@ -301,11 +301,11 @@ Not built yet:
 
 The runtime and the command sit side by side on `hyperdb-wasm`. The runtime depends on the library of `hyperdb-edge`
 through its platform (`@akohn/dashql`, `platform/node/node_hyperdb.ts`), never the other way: the command would
-otherwise carry all of DashQL. Neither command calls the other, and they don't
-overlap: `dashql` works on workbooks, `hyperdb-edge` on a database file.
+otherwise carry all of DashQL. Neither calls the other, and they don't overlap: the runtime works on workbooks,
+`hyperdb-edge` on a database file.
 
 ```
-          dashql (Node CLI)          hyperdb-edge (command)
+       DashQL runtime in Node        hyperdb-edge (command)
                  │                           │
           @akohn/dashql          ──────► @akohn/hyperdb-edge (library)
                  │                           │
@@ -348,6 +348,6 @@ of Hyper takes it over.
 ## Open
 
 - Whether the measured startup holds on macOS, and the harness tests there.
-- Whether DashQL's Node CLI depends on the package from the start or once it settles.
+- Whether the runtime in Node links the package from the start or once it settles.
 - Writing outside the workspace isn't checked by the harness tests: their `HOME` is below the temporary folder, which
   the sandboxes may allow.

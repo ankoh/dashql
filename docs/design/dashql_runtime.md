@@ -159,14 +159,14 @@ platform object no more: a call fails, a timer never fires, and the effects on h
 
 | | Browser | Desktop app | Node |
 |---|---|---|---|
-| Created in | `RuntimeProvider` of the app | `RuntimeProvider` of the app | `createNodePlatform` (`runtime/node/node_platform.ts`), the CLI |
+| Created in | `RuntimeProvider` of the app | `RuntimeProvider` of the app | `createNodePlatform` (`runtime/node/node_platform.ts`), e.g. the tests of the runtime |
 | Scheduler | `FRAME_UPDATE_SCHEDULER` of the app (`utils/store_hooks.ts`: microtask, `requestAnimationFrame`) | the same | `TASK_UPDATE_SCHEDULER` (`store/update_scheduler.ts`: microtask, `setTimeout`) |
 | HTTP | fetch (`WebHttpClient`), limited by CORS | the native proxy (`NativeHttpClient` of the app) | fetch (`WebHttpClient`) |
 | Storage | OPFS (composite backend of the app) | OPFS and native workbook folders over the Electron bridge | `NativeStorageBackend` over `NODE_FILE_SYSTEM`, one workbook folder |
 | Embedded Hyper | `hyperdb-wasm` in a worker, cross-origin isolated (`platform/hyperdb/`) | the same | the `node` build of `hyperdb-wasm` (`platform/node/node_hyperdb.ts`) |
 | Core Wasm | URL from the bundler | the same | the file of `@akohn/dashql/wasm` (`platform/node/node_core.ts`) |
 | OAuth | popup and the redirect page `oauth.html` (`AppOAuthFlow`) | the browser of the system, a link back to the app or the loopback server of the desktop app | refused |
-| Channels | `createChannelConnector` of `connections/hyper/hyper_connection_setup.tsx` | the same, gRPC through the native proxy | the CLI connects its embedded Hyper |
+| Channels | `createChannelConnector` of `connections/hyper/hyper_connection_setup.tsx` | the same, gRPC through the native proxy | none, the options of the caller (`RuntimeOptions.channels`) |
 | Archives | `createRuntimeArchives` | the same | none |
 
 `createNodePlatform` is async: it loads the core from its file unless one is passed. The shell of Hyper creates a
@@ -548,7 +548,7 @@ Its dependencies are `flatbuffers`, `apache-arrow`, `@bufbuild/protobuf`, `immut
 `hyperdb-wasm` and `vega-lite` are optional peers. `:tarball_consumer_test` installs the archive like a consumer and
 checks its files, the exports of the bindings in Node and their declarations for `NodeNext`; `:node_smoke_test` runs the
 bindings and a runtime over the platform of Node from `dist/`; `//packages/dashql/test/browser` runs the bindings of the
-archive in Chromium and Firefox. The CLI's package on npm depends on it for the Wasm of the core.
+archive in Chromium and Firefox.
 
 ## Tests
 

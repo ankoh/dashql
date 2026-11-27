@@ -43,7 +43,7 @@ to DashQL and changes with it; its state crosses as views with generated types.
   the catalogs: the workbook owns the script sessions and the catalogs of its connections as plain Rust values, `Drop`
   frees them, and calls into the core are function calls.
 - **Everything in one build.** The language, the workbooks and their execution, the runtime and the shell are in the
-  one module that the app, the command line tool and the package on npm ship (`//packages/dashql-core-bindings:core_wasm`,
+  one module that the app and the package on npm ship (`//packages/dashql-core-bindings:core_wasm`,
   its glue `dashql_wasm_glue` of `packages/dashql/glue.bzl`). A part that keeps no state of the scripts, e.g. the layout
   of the dataflow, is a module of its own instead.
 - **Panics.** The module aborts on a panic: the call traps without dropping its guards, and the module must not be used
@@ -415,8 +415,8 @@ See [workbook_graph_execution.md](workbook_graph_execution.md).
 - **Commands over the format.** `exportWorkbook`, `exportConnection`, `readImport`, `commitImport`, `dropImport`
   (archives through `archives` of the platform, results by handle), the static `migrateStorage`,
   `checkWorkbookFolders` with `answerExternalChange` for folders that change outside the app,
-  and `withStoredResult`, which pins the file of the stored result of a script while the command line tool or the tab
-  of an agent session hands it on (`workbook_results.md`).
+  and `withStoredResult`, which pins the file of the stored result of a script while the page hands it on to an agent
+  (`dashql run`, `workbook_results.md`).
 
 ## The host
 

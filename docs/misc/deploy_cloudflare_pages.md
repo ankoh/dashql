@@ -153,8 +153,7 @@ Set this up before the first push to `dev`:
 
 Like `stable.dashql.app`, the site is a separate origin with its own browser storage, logins pass through
 `https://dashql.app/oauth.html` (`isAllowedOAuthCallbackUrl`), and workbook links open on `dashql.app`
-(`DASHQL_APP_URL`). The app and Electron accept `https://dev.dashql.app` links like the other two hosts, and the
-session server of the CLI accepts the origin. Secrets of integrations that only dev uses belong to the
+(`DASHQL_APP_URL`). The app and Electron accept `https://dev.dashql.app` links like the other two hosts. Secrets of integrations that only dev uses belong to the
 `dashql-dev` project, not to `dashql`.
 
 Verify the deployment after the first push:

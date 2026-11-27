@@ -4,7 +4,7 @@ DashQL stores its data in the Origin Private File System (OPFS) of the app origi
 directories that the user owns. hyperdb-wasm mounts the OPFS root at `/mnt/fs`, so every OPFS path below is also
 a Hyper path. Scripts don't name these paths: a Parquet attachment `workbooks/<id>/attachments/a.parquet` is the table
 parameter `:a`, which the embedded Hyper reads from the mount of the attachments of the workbook (see Attachments).
-The command line tool keeps the parts it needs in the same layout in the root of Node, and an older storage migrates at
+A runtime in Node keeps the parts it needs in the same layout (see The root of Node), and an older storage migrates at
 startup (see Versions and migrations).
 
 ## OPFS root

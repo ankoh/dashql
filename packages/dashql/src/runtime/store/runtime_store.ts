@@ -117,7 +117,7 @@ export class RuntimeStore {
         return new Promise(resolve => this.waiting.push(resolve));
     }
 
-    /// Take the changes of the runtime now, e.g. after a command or in the command line tool
+    /// Take the changes of the runtime now, e.g. after a command or in Node
     flush = (): void => {
         const waiting = this.waiting;
         this.waiting = [];

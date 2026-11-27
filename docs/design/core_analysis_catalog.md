@@ -182,7 +182,7 @@ resolution and in `flatten`, and within a layer against the entry with the older
 
 | Layer | Content | Published by |
 |---|---|---|
-| `CONNECTION` | What the connection reports | Catalog updates and restored files and functions through batches (the catalog loader and the restore of `dashql-core-runtime`), the CLI's schema files |
+| `CONNECTION` | What the connection reports | Catalog updates and restored files and functions through batches (the catalog loader and the restore of `dashql-core-runtime`) |
 | `SESSION` | The declarations of the scripts of a session | `ScriptSession::load_into_catalog`; in JS `loadIntoCatalog()` takes no layer |
 
 The connection is the source of truth: the connection layer only holds what the connection reported,

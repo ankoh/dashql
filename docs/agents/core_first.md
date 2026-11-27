@@ -2,8 +2,8 @@
 
 Logic that fits semantically into the DashQL core is Rust in the core module, which ships as Wasm. It is not
 TypeScript. TypeScript binds the module, supplies its I/O and renders what the module returns. The rule holds
-everywhere TypeScript meets DashQL: the app, `@akohn/dashql` (`core/`, `runtime/`, `platform/`), the command line tool,
-the shell, the embeds and the workers of Slack and MCP.
+everywhere TypeScript meets DashQL: the app, `@akohn/dashql` (`core/`, `runtime/`, `platform/`) in the browser and in
+Node, the shell, the embeds and the workers of Slack and MCP.
 
 Read this before you write or extend a function in TypeScript that does more than call an API, move bytes or draw.
 The map of the Rust side is [dashql_core.md](../design/dashql_core.md), the seam from the TypeScript side is
@@ -11,8 +11,8 @@ The map of the Rust side is [dashql_core.md](../design/dashql_core.md), the seam
 
 ## Why
 
-- **One semantics.** The app, `dashql run`, the shell and every embed get the same answer from the same code. A rule
-  in TypeScript is a second copy that drifts from the first, and the command line tool or an embed won't have it.
+- **One semantics.** The app, the package in Node, the shell and every embed get the same answer from the same code. A
+  rule in TypeScript is a second copy that drifts from the first, and the package in Node or an embed won't have it.
 - **Tests.** The core has snapshot tests and tests of every service on fake hosts. A rule in a React component or an
   adapter is tested late or not at all.
 - **The module is the product.** Integrations use the core on its own (`DashQL`, the FlatBuffers of `proto/fb`). What
@@ -32,7 +32,7 @@ The map of the Rust side is [dashql_core.md](../design/dashql_core.md), the seam
   validation, a comparison of ids, the NFC of names, a retry, a timeout, an error, which objects are held and when they
   go.
 - **Query profiles.** Hyper plans, Trino stages, the progress of a query.
-- **Anything that two callers need.** When the app and the command line tool, or the editor and the shell, would both
+- **Anything that two callers need.** When the app and the package in Node, or the editor and the shell, would both
   need it, it is the core.
 
 ## What stays in TypeScript
@@ -54,8 +54,7 @@ Ask before you write a function in TypeScript:
 
 1. Does it read or produce something the core already knows: a parsed or analyzed script, the catalog, a plan, a view
    of the runtime? Then it is the core.
-2. Would a second caller need the same answer: the command line tool, the shell, the package in Node, an embed? Then
-   it is the core.
+2. Would a second caller need the same answer: the shell, the package in Node, an embed? Then it is the core.
 3. Does it decide something: a rule, an order, a default, a validation, a name, a lifetime? Then it is the core.
 4. Does it only call an API of the browser or of Node, move bytes, or draw? Then it is TypeScript.
 5. Would a port to Rust cross the seam per value, per cell, row or frame? Then it stays in TypeScript, or the loop
@@ -71,8 +70,7 @@ TypeScript without saying so.
 - TypeScript derives again what the analyzer or the planner computed: names, dependencies, references, tables.
 - TypeScript walks a FlatBuffer of the core to compute a new fact instead of showing its fields.
 - The facade or an adapter decides an order, a default, a filter, a retry, a lifetime or how ids and names compare.
-- The app and the command line tool carry the same rule, or a test in TypeScript checks a rule that no test in Rust
-  checks.
+- The app and the shell carry the same rule, or a test in TypeScript checks a rule that no test in Rust checks.
 - A view is reshaped in TypeScript before every reader uses it: the view of the module should have that shape.
 
 ## How to put it into the core

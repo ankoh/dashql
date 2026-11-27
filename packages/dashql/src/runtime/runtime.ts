@@ -79,8 +79,7 @@ export interface RuntimeOptions {
     /// The `.dashql` archives over the handle table of the runtime, e.g. `createRuntimeArchives` of
     /// `workbook_archives.ts`. Without, the runtime imports and exports no archives.
     archives?: RuntimeArchivesFactory | null;
-    /// Run the catalog loader, true by default. A run of the command line tool and most tests don't describe their
-    /// connections.
+    /// Run the catalog loader, true by default. Most tests don't describe their connections.
     catalogLoader?: boolean;
     /// Stand in for the query commands of the runtime (`execute`, `cancel`, `watchProfile`), e.g. in a test of
     /// components. The services of the runtime keep the query executor of the module.
@@ -161,7 +160,7 @@ function runError(outcome: core.RunOutcome, value: unknown): unknown {
 }
 
 /// Create the runtime of a platform once its core is there. The app creates it in its RuntimeProvider, the shell of
-/// Hyper one without storage, the command line tool and the tests their own.
+/// Hyper one without storage, the package in Node and the tests their own.
 export function createRuntime(options: RuntimeOptions): Runtime {
     return new Runtime(options);
 }
@@ -172,7 +171,7 @@ function destroyedError(): Error {
 }
 
 /// The runtime of DashQL (docs/design/dashql_runtime.md): the `Runtime` class of the core module with its platform
-/// object, and the store that the app reads its views from. The one object that the app and the command line tool hold.
+/// object, and the store that the app reads its views from. The one object that the app and the package in Node hold.
 ///
 /// The module holds the state and the services: the computations, the connections with the histories of their queries,
 /// the query executor with the description of its queries and the stored results of the scripts, the setups of the
@@ -203,7 +202,7 @@ export class Runtime {
     /// The core of the runtime
     readonly core: core.DashQL;
     /// The runtime of the module. The app reads its views through the store and calls the commands of this class, the
-    /// command line tool and the tests reach the module for what the app doesn't need.
+    /// tests reach the module for what the app doesn't need.
     readonly module: core.Runtime;
     private readonly tables: PlatformTables;
     private readonly queries: QueryChannels;
