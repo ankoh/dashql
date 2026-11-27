@@ -143,4 +143,25 @@ describe('the dashql commands of the agent', () => {
         expect(vis.exit).toBe(EXIT_FAILED);
         expect(vis.out).toContain('plain has no chart');
     });
+
+    it('tells the problems of a @vis tag, e.g. a spec that is no JSON', async () => {
+        await call('edit', { script: 'broken_chart' }, `/**
+ * @vis vegalite
+ * {"mark": "bar",
+ */
+select 1 as one`);
+        const vis = await call('vis', { script: 'broken_chart' });
+        expect(vis.exit).toBe(EXIT_FAILED);
+        expect(vis.out).toContain('broken_chart has no chart');
+        expect(vis.out).toMatch(/ {2}- invalid Vega-Lite JSON: /);
+        // The chart of the analysis of the page
+        await call('edit', { script: 'broken_chart' }, `/**
+ * @vis vegalite
+ * {"mark": "bar", "encoding": {"x": {"field": "one", "type": "nominal"}}, "width": 300}
+ */
+select 1 as one`);
+        const fixed = await call('vis', { script: 'broken_chart' });
+        expect(fixed.out).toContain('broken_chart: @vis vegalite');
+        expect(fixed.out).toContain('leave the size to DashQL');
+    });
 });

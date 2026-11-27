@@ -184,7 +184,7 @@ function readScript(host: AgentCommandHost, call: AgentCall, reply: AgentReplySt
 }
 
 /// The diagnostics of the analysis of a script, once its analysis is current
-async function scriptDiagnostics(runtime: Runtime, workbookId: string, scriptKey: number): Promise<{ text: string; diagnostics: AgentDiagnostic[] }> {
+async function scriptDiagnostics(runtime: Runtime, workbookId: string, scriptKey: number): Promise<{ script: ScriptData; text: string; diagnostics: AgentDiagnostic[] }> {
     const current = runtime.store.get('script', scriptKey);
     if (current?.analysisOutdated === true) {
         await runtime.dispatch({ workbook: workbookId }, { kind: 'analyzeOutdatedScript', value: { scriptKey } }).settled;
@@ -198,7 +198,7 @@ async function scriptDiagnostics(runtime: Runtime, workbookId: string, scriptKey
         offset: diagnostic.textSpan == null ? null : Number(diagnostic.textSpan.offset),
         length: diagnostic.textSpan == null ? 0 : Number(diagnostic.textSpan.length),
     }));
-    return { text: script.scriptSession.getText(), diagnostics };
+    return { script, text: script.scriptSession.getText(), diagnostics };
 }
 
 /// `edit`: replace the text of a script, or create it, on a connection that the agent may name
@@ -416,65 +416,14 @@ async function runCommand(host: AgentCommandHost, call: AgentCall, reply: AgentR
     return EXIT_OK;
 }
 
-/// The chart of a script as the core compiles it: the renderer of the `@vis` tag of its last query and its spec
-interface ScriptChart {
-    renderer: 'vegalite' | 'markdown' | 'kpi' | 'table' | null;
-    spec: Record<string, unknown> | null;
-    /// The KPI card of `@vis kpi`
-    kpi: core.buffers.visualization.KpiSpecT | null;
-    /// The errors of compiling the script, e.g. a spec that is no JSON, and the warnings of the analyzer about the
-    /// `@vis` tags. Columns and fields are checked against the result instead.
-    errors: string[];
-}
-
-/// The warnings of the analyzer about the `@vis` tags of a script, but those about columns: the result has them all
-function tagWarnings(script: core.DashQLScript): string[] {
-    const analyzed = script.getAnalyzed().read();
-    const warnings: string[] = [];
-    for (let i = 0; i < analyzed.errorsLength(); ++i) {
-        const error = analyzed.errors(i);
-        if (error == null || error.errorType() !== core.buffers.analyzer.AnalyzerErrorType.INVALID_VIS_TAG) continue;
-        const message = error.message() ?? '';
-        if (!/^unknown (column|field) "/.test(message)) warnings.push(message);
-    }
-    return warnings;
-}
-
-/// Read the chart of a script with the core
-export function scriptChart(dql: core.DashQL, text: string): ScriptChart {
-    const catalog = dql.createCatalog();
-    const script = dql.createScript(catalog);
-    try {
-        script.replaceText(text);
-        script.analyze();
-        const config = new core.buffers.formatting.FormattingConfigT(
-            core.buffers.formatting.FormattingDialect.HYPER,
-            core.buffers.formatting.FormattingMode.INLINE,
-            120,
-            2,
-            false,
-        );
-        const compiled = script.compileQuery(config).unpack();
-        const errors = compiled.errors.map((error: core.buffers.execution.ScriptCompilationErrorT) => String(error.message ?? ''));
-        const visualization = compiled.visualization;
-        const renderer = visualization?.renderer;
-        if (renderer !== 'vegalite' && renderer !== 'markdown' && renderer !== 'kpi' && renderer !== 'table') return { renderer: null, spec: null, kpi: null, errors };
-        errors.push(...tagWarnings(script));
-        if (renderer === 'kpi') return { renderer, spec: null, kpi: visualization!.kpiSpec ?? null, errors };
-        if (renderer !== 'vegalite') return { renderer, spec: null, kpi: null, errors };
-        try {
-            const spec = JSON.parse(String(visualization!.vegaliteSpec ?? ''));
-            if (spec == null || typeof spec !== 'object' || Array.isArray(spec)) return { renderer, spec: null, kpi: null, errors: [...errors, 'the Vega-Lite spec is no JSON object'] };
-            // The core adds the schema and the query as data, the spec of the tag has neither
-            const { $schema: _schema, data: _data, ...authored } = spec as Record<string, unknown>;
-            return { renderer, spec: authored, kpi: null, errors };
-        } catch (error) {
-            return { renderer, spec: null, kpi: null, errors: [...errors, `the Vega-Lite spec is no valid JSON: ${error instanceof Error ? error.message : String(error)}`] };
-        }
-    } finally {
-        script.destroy();
-        catalog.destroy();
-    }
+/// The problems of the `@vis` tags of a script: the diagnostics of its analysis that point into the tags
+function visTagProblems(script: ScriptData, diagnostics: readonly AgentDiagnostic[]): string[] {
+    const tags = (script.editorUpdate?.commentTags ?? []).flatMap(tag => tag.name === 'vis' && tag.textSpan != null
+        ? [{ from: Number(tag.textSpan.offset), to: Number(tag.textSpan.offset + tag.textSpan.length) }]
+        : []);
+    return diagnostics
+        .filter(diagnostic => diagnostic.offset != null && tags.some(tag => diagnostic.offset! >= tag.from && diagnostic.offset! < tag.to))
+        .map(diagnostic => diagnostic.message);
 }
 
 /// Render the chart of a script as the image download of the feed renders it: the `@vis vegalite` tag of its last
@@ -498,12 +447,21 @@ async function visCommand(host: AgentCommandHost, call: AgentCall, reply: AgentR
         height: integerArg(call.args, 'height', CHART_IMAGE_HEIGHT, 1, 4096),
         scale: CHART_IMAGE_SCALE,
     };
-    const tag = scriptChart(runtime.core, script.scriptSession.getText());
-    const problems = [...tag.errors];
-    if (tag.renderer == null) {
+    // The chart as the page analyzed it, with the problems of its tags, e.g. a spec that is no JSON
+    const analyzed = await scriptDiagnostics(runtime, call.workbookId, script.scriptKey);
+    const vis = analyzed.script.annotations.visualizeQuery;
+    const problems = visTagProblems(analyzed.script, analyzed.diagnostics);
+    if (vis == null) {
         reply.out(`${name} has no chart: add a @vis tag to the comment above its last query, see dashql guide\n${problems.map(problem => `  - ${problem}\n`).join('')}`);
         return EXIT_FAILED;
     }
+    // The core adds the schema and the query as data, the spec of the tag has neither
+    const { $schema: _schema, data: _data, ...spec } = vis.renderer === 'vegalite' ? vis.vegaLiteSpec as unknown as Record<string, unknown> : {};
+    const tag = {
+        renderer: vis.renderer,
+        spec: vis.renderer === 'vegalite' ? spec : null,
+        kpi: vis.renderer === 'kpi' ? vis.kpiSpec : null,
+    };
     if (tag.spec != null) problems.push(...compileProblems(vegaLite.compile as unknown as VegaLiteCompile, tag.spec));
 
     // The result of the script is the data of the chart
