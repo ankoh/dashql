@@ -646,18 +646,20 @@ export function formatPageError(error) {
 /// Every test has a browser context of its own, from `newContext(options)`.
 /// Returns the failures in the order of the tests, the seconds of every test, and the V8 coverage of the pages if
 /// `collectCoverage` is set.
-export async function runPageTests(newContext, origin, { collectCoverage, concurrency = 1, outputs }) {
-    const results = new Array(PAGE_TESTS.length);
+export async function runPageTests(newContext, origin, { collectCoverage, concurrency = 1, outputs, partitionIndex = 0, partitionCount = 1 }) {
+    // A part of the suite runs every partitionCount-th page test
+    const tests = PAGE_TESTS.filter((_, index) => index % partitionCount === partitionIndex);
+    const results = new Array(tests.length);
     let next = 0;
     const lane = async () => {
-        while (next < PAGE_TESTS.length) {
+        while (next < tests.length) {
             const index = next++;
-            results[index] = await runPageTest(newContext, origin, PAGE_TESTS[index], { collectCoverage, outputs });
+            results[index] = await runPageTest(newContext, origin, tests[index], { collectCoverage, outputs });
         }
     };
     await Promise.all(Array.from({ length: Math.max(1, concurrency) }, lane));
     return {
-        durations: Object.fromEntries(results.map(({ duration }, index) => [PAGE_TESTS[index].name, duration])),
+        durations: Object.fromEntries(results.map(({ duration }, index) => [tests[index].name, duration])),
         failures: results.flatMap(({ failure }) => failure == null ? [] : [failure]),
         scriptCoverages: results.flatMap(({ scriptCoverages }) => scriptCoverages),
     };

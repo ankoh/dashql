@@ -202,6 +202,8 @@ The WebKit of Playwright is built per OS release (`_WEBKIT_PLATFORMS` in `bazel/
 ```bash
 # Choose the number of pages
 bazel test //packages/dashql-app:test_chromium --test_env=DASHQL_BROWSER_TEST_SHARDS=1
+# Run the second of two parts, like a browser job of CI
+bazel test //packages/dashql-app:test_chromium --test_env=DASHQL_BROWSER_TEST_PARTITION=1/2
 ```
 
 `tests.html` on the dev server runs all files on one page.

@@ -23,6 +23,14 @@ const executablePath = process.env.DASHQL_BROWSER_EXECUTABLE;
 const shardCount = requestedFile || collectCoverage
     ? 1
     : Number.parseInt(process.env.DASHQL_BROWSER_TEST_SHARDS ?? String(Math.min(4, Math.max(1, Math.floor(availableParallelism() / 4)))), 10);
+// A job of CI runs a part of the suite: DASHQL_BROWSER_TEST_PARTITION=index/count picks the test files and the page tests
+// of one of count parts, the other jobs run the rest. Its pages split the files of the part.
+const partition = process.env.DASHQL_BROWSER_TEST_PARTITION ?? '0/1';
+const [partitionIndex, partitionCount] = partition.split('/').map(Number);
+if (!(Number.isInteger(partitionIndex) && Number.isInteger(partitionCount) && partitionIndex >= 0 && partitionIndex < partitionCount)) {
+    throw new Error(`DASHQL_BROWSER_TEST_PARTITION is not index/count: ${partition}`);
+}
+if (partitionCount > 1 && (requestedFile || collectCoverage)) throw new Error('A single test file and coverage run the whole suite');
 // With several shards, the page tests run next to them, half as many at once: at most six pages, the cpu tag of the
 // suites in BUILD.bazel. A single shard (a runner of CI with four cores, coverage) runs them one by one after it, two
 // pages on four cores timed tests out.
@@ -67,7 +75,9 @@ async function runShard(shard) {
 
     const query = new URLSearchParams({ autorun: '1' });
     if (requestedFile) query.set('file', requestedFile);
-    if (shardCount > 1) query.set('shard', `${shard}/${shardCount}`);
+    // The shards of all parts, every part takes shardCount of them
+    const allShards = partitionCount * shardCount;
+    if (allShards > 1) query.set('shard', `${partitionIndex * shardCount + shard}/${allShards}`);
     await page.goto(`${server.url}/tests.html?${query}`, { waitUntil: 'domcontentloaded' });
     // Poll with a timer, animation frames can stop on a page in the background
     const polling = 100;
@@ -111,7 +121,7 @@ try {
     // A run of a single test file leaves out the pages
     const runPages = async () => requestedFile
         ? { durations: {}, failures: [], scriptCoverages: [] }
-        : await runPageTests(newContext, server.url, { collectCoverage, concurrency: pageTestConcurrency, outputs });
+        : await runPageTests(newContext, server.url, { collectCoverage, concurrency: pageTestConcurrency, outputs, partitionIndex, partitionCount });
     const [shards, pages] = pageTestsAlongside
         ? await Promise.all([runShards(), runPages()])
         : [await runShards(), await runPages()];
@@ -154,7 +164,7 @@ try {
         return [...fileFailure, ...testFailures];
     });
 
-    console.log(`${summary.files.length} files, ${summary.passed} passed, ${summary.failed} failed, ${summary.skipped} skipped in ${(summary.duration / 1000).toFixed(2)}s on ${shardCount} ${shardCount === 1 ? 'page' : 'pages'} and ${pageTestConcurrency} for the page tests`);
+    console.log(`${summary.files.length} files, ${summary.passed} passed, ${summary.failed} failed, ${summary.skipped} skipped in ${(summary.duration / 1000).toFixed(2)}s${partitionCount > 1 ? ` in part ${partition}` : ''} on ${shardCount} ${shardCount === 1 ? 'page' : 'pages'} and ${pageTestConcurrency} for the page tests`);
     if (failures.length > 0) console.error(`\n${failures.join('\n\n')}`);
     if (browserErrors.length > 0) console.error(`\nBrowser errors:\n${browserErrors.join('\n')}`);
     if (pages.failures.length > 0) console.error(`\nPage tests:\n${pages.failures.join('\n\n')}`);
