@@ -86,11 +86,7 @@ contextBridge.exposeInMainWorld("dashqlElectron", {
         download: async (channel) => await ipcRenderer.invoke("dashql:download-update", channel),
         getStatus: async () => await ipcRenderer.invoke("dashql:update-status"),
         install: async () => await ipcRenderer.invoke("dashql:install-update"),
-        onStatus: (listener) => {
-            const handler = (_event, status) => listener(status);
-            ipcRenderer.on("dashql:update-status", handler);
-            return () => ipcRenderer.removeListener("dashql:update-status", handler);
-        },
+        onStatus: (listener) => listen("dashql:update-status", listener),
     },
     onFlush: (handler) => {
         flushHandler = handler;
@@ -98,11 +94,7 @@ contextBridge.exposeInMainWorld("dashqlElectron", {
             if (flushHandler === handler) flushHandler = null;
         };
     },
-    onDeepLink: (listener) => {
-        const handler = (_event, data) => listener(data);
-        ipcRenderer.on("dashql:deep-link", handler);
-        return () => ipcRenderer.removeListener("dashql:deep-link", handler);
-    },
+    onDeepLink: (listener) => listen("dashql:deep-link", listener),
     openDirectory: async (title) => await ipcRenderer.invoke("dashql:open-directory", title),
     setColorScheme: async (scheme) => await ipcRenderer.invoke("dashql:set-color-scheme", scheme),
 });
