@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { getHyperDBWebSupportError, isOutOfMemoryError, startWaitingForMemory, type HyperDBWebCapabilities } from './hyperdb_web.js';
+import {
+    failOnStall,
+    getHyperDBWebSupportError,
+    HyperDBSetupStalledError,
+    isOutOfMemoryError,
+    startWaitingForMemory,
+    type HyperDBWebCapabilities,
+} from './hyperdb_web.js';
 
 function capabilities(overrides: Partial<HyperDBWebCapabilities> = {}): HyperDBWebCapabilities {
     return {
@@ -60,5 +67,30 @@ describe('HyperDB memory wait', () => {
         const { start, attempts } = failingStart([broken]);
         await expect(startWaitingForMemory(start, () => {}, [1, 2])).rejects.toBe(broken);
         expect(attempts()).toBe(1);
+    });
+});
+
+describe('HyperDB setup stall', () => {
+    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+    it('passes the result of a step that finishes', async () => {
+        expect(await failOnStall('start engine', async () => 'engine', () => null, 50)).toBe('engine');
+    });
+
+    it('fails a step without progress, with the step and the last output of the engine', async () => {
+        const stalled = failOnStall('start engine', () => new Promise<never>(() => {}), () => 'worker sent an error!', 20);
+        await expect(stalled).rejects.toBeInstanceOf(HyperDBSetupStalledError);
+        await expect(stalled).rejects.toThrow(`HyperDB WASM stopped while it was at the step 'start engine', no progress for 0 s, the last output of the engine: worker sent an error!`);
+    });
+
+    it('lets a step run on as long as it makes progress', async () => {
+        const step = failOnStall('start engine', async progress => {
+            for (let i = 0; i < 6; ++i) {
+                await sleep(20);
+                progress();
+            }
+            return 'engine';
+        }, () => null, 50);
+        expect(await step).toBe('engine');
     });
 });

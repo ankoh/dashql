@@ -1,7 +1,8 @@
 // The embedded Hyper of a page: hyperdb-wasm in a worker over the origin private file system. The page has to be
 // cross-origin isolated, the engine shares its memory with the worker. The files of the engine are assets of the host,
 // it passes their URLs (`HyperDBWebAssets`): a bundler emits them, a deployment may compress them.
-import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
+import { HyperDB as HyperDBEngine, HyperDBError } from 'hyperdb-wasm';
+import type { HyperDBEngineClient, WasmResult } from 'hyperdb-wasm/raw';
 
 import type { Logger } from '../logger/logger.js';
 import { stringifyError } from '../logger/logger.js';
@@ -91,6 +92,55 @@ export async function startWaitingForMemory<T>(
     }
 }
 
+/// How long a step of the setup may go without a sign of progress, 30 s
+export const HYPERDB_SETUP_STALL_MS = 30_000;
+
+/// A step of the setup that showed no progress for too long
+export class HyperDBSetupStalledError extends Error {
+    constructor(step: string, stallMs: number, lastOutput: string | null) {
+        const output = lastOutput == null ? '' : `, the last output of the engine: ${lastOutput}`;
+        super(`HyperDB WASM stopped while it was at the step '${step}', no progress for ${Math.round(stallMs / 1000)} s${output}`);
+        this.name = 'HyperDBSetupStalledError';
+    }
+}
+
+/// Run a step of the setup, and fail it once it showed no progress for the given time.
+///
+/// Some failures of the engine never answer: Safari of iOS sometimes starts no worker of the engine's threads, and the
+/// engine waits for all of them before it is ready. The step calls `progress` for every sign of life, e.g. a loaded
+/// chunk of the WebAssembly. A step that fails this way runs on, the caller stops what it started.
+export async function failOnStall<T>(
+    step: string,
+    run: (progress: () => void) => Promise<T>,
+    lastOutput: () => string | null = () => null,
+    stallMs: number = HYPERDB_SETUP_STALL_MS,
+): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let stall!: (error: Error) => void;
+    const stalled = new Promise<never>((_, reject) => { stall = reject; });
+    const progress = () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => stall(new HyperDBSetupStalledError(step, stallMs, lastOutput())), stallMs);
+    };
+    progress();
+    try {
+        return await Promise.race([run(progress), stalled]);
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+/// Fail a result of the engine that is not ok, the error of the engine keeps its detail
+function expectOk(result: WasmResult, operation: string): void {
+    if (result.state === 'ok') return;
+    if (result.state === 'error' || result.state === 'busy') {
+        if (typeof result.error === 'string') throw new Error(result.error);
+        const { message, sqlState, errorSource, detail, hint } = result.error;
+        throw new HyperDBError(message, sqlState, errorSource, detail, hint);
+    }
+    throw new Error(`${operation} returned unexpected state ${result.state}`);
+}
+
 /// The script that the worker loads first: it points the engine at its WebAssembly and loads the engine script. An
 /// object URL that must be revoked once the engine terminated.
 function createEngineScript(assets: HyperDBWebAssets): { url: string; revoke: () => void } {
@@ -112,36 +162,65 @@ export function createWebHyperDBClientOptions(assets: HyperDBWebAssets): { worke
     return { workerUrl, engineUrl: engineScript.url, wasmUrl: new URL(assets.wasm, globalThis.location?.href), revoke: engineScript.revoke };
 }
 
-/// Stop the worker of an engine at once.
-/// The terminate of the engine shuts it down first and waits for the answers of the worker, a page that unloads doesn't
-/// wait for them, and the worker would run on with its memory. hyperdb-wasm has no public call that stops the worker
-/// without the shutdown, its client has one.
-function stopEngineWorker(engine: HyperDBEngine): void {
-    const client = (engine as unknown as { client: { terminate(): Promise<void> } }).client;
-    void client.terminate().catch(() => { /* the worker is gone either way */ });
+/// An engine in a worker, `stop` stops the worker at once, without the shutdown of `engine.terminate()`
+interface StartedEngine {
+    readonly engine: HyperDBEngine;
+    readonly stop: () => void;
 }
 
 /// Start a HyperDB engine in a browser worker.
-/// A page that goes away stops the worker of its engine right away. The engine reserves a shared WebAssembly.Memory
-/// with a maximum of 4 GiB, and WebKit charges that maximum against the address space of its process. A reload asks
-/// for another 4 GiB, and Safari of iOS fails it with "Out of memory" while the worker of the last page still holds
-/// its memory. A page that goes to the back-forward cache keeps its engine.
+///
+/// A start that shows no progress fails, see failOnStall(), and stops its worker with the memory of the engine. The
+/// output of the engine goes to the debug log, the last line of its errors into the error of a stall.
+///
+/// A page that goes away stops the worker of its engine right away, without the shutdown of the engine: it doesn't
+/// wait for the answers of the worker, and the worker would run on with its memory. The engine reserves a shared
+/// WebAssembly.Memory with a maximum of 4 GiB, and WebKit charges that maximum against the address space of its
+/// process. A reload asks for another 4 GiB, and Safari of iOS fails it with "Out of memory" while the worker of the
+/// last page still holds its memory. A page that goes to the back-forward cache keeps its engine.
 async function createWebHyperDBEngine(
+    context: string,
+    logger: Logger,
     assets: HyperDBWebAssets,
     settings: HyperDBSettings,
     onSetupProgress?: (progress: SetupProgress) => void,
-): Promise<HyperDBEngine> {
+): Promise<StartedEngine> {
+    // The raw client of hyperdb-wasm, its build for Node has no browser client
+    const { createBrowserClient } = await import('hyperdb-wasm/raw');
     const { revoke, ...options } = createWebHyperDBClientOptions(assets);
-    let engine: HyperDBEngine;
+    // The client once the step created it, the step runs on after a stall
+    const started: { client?: HyperDBEngineClient } = {};
+    let lastError: string | null = null;
+    let client: HyperDBEngineClient;
     try {
-        engine = await HyperDBEngine.create({ ...options, onSetupProgress, settings });
+        client = await failOnStall('start engine', async progress => {
+            started.client = createBrowserClient({
+                ...options,
+                onSetupProgress: setup => {
+                    progress();
+                    onSetupProgress?.(setup);
+                },
+                onLog: (stream, text) => {
+                    progress();
+                    if (stream === 'stderr') lastError = text;
+                    logger.debug('HyperDB WASM output', { context, stream, text }, 'hyperdb');
+                },
+            });
+            await started.client.ready();
+            progress();
+            expectOk(await started.client.initialize(settings), 'initialize HyperDB settings');
+            return started.client;
+        }, () => lastError);
     } catch (error) {
+        await started.client?.terminate().catch(() => { /* the worker is gone either way */ });
         revoke();
         throw error;
     }
+    const engine = new HyperDBEngine(client);
+    const stopWorker = () => void client.terminate().catch(() => { /* the worker is gone either way */ });
     // A PageTransitionEvent, the module type checks without the DOM
     const stopOnPageHide = (event: Event) => {
-        if (!(event as Event & { persisted?: boolean }).persisted) stopEngineWorker(engine);
+        if (!(event as Event & { persisted?: boolean }).persisted) stopWorker();
     };
     globalThis.addEventListener('pagehide', stopOnPageHide);
     const terminate = engine.terminate.bind(engine);
@@ -153,7 +232,12 @@ async function createWebHyperDBEngine(
             revoke();
         }
     };
-    return engine;
+    const stop = () => {
+        globalThis.removeEventListener('pagehide', stopOnPageHide);
+        stopWorker();
+        revoke();
+    };
+    return { engine, stop };
 }
 
 /// Start a HyperDB engine in a browser worker, on the experimental wasm backend if requested.
@@ -165,21 +249,21 @@ async function createWebHyperDBEngineWithOptions(
     settings: HyperDBSettings,
     options: EmbeddedDatabaseOptions,
     onSetupProgress?: (progress: SetupProgress) => void,
-): Promise<HyperDBEngine> {
+): Promise<StartedEngine> {
     if (!options.experimentalWasmBackend) {
-        return await createWebHyperDBEngine(assets, settings, onSetupProgress);
+        return await createWebHyperDBEngine(context, logger, assets, settings, onSetupProgress);
     }
     try {
-        const engine = await createWebHyperDBEngine(assets, { ...settings, [EXPERIMENTAL_WASM_BACKEND_SETTING]: true }, onSetupProgress);
+        const started = await createWebHyperDBEngine(context, logger, assets, { ...settings, [EXPERIMENTAL_WASM_BACKEND_SETTING]: true }, onSetupProgress);
         logger.info('Started HyperDB on the experimental wasm backend', { context }, 'hyperdb');
-        return engine;
+        return started;
     } catch (error) {
         if (!isUnknownHyperDBSettingError(error, EXPERIMENTAL_WASM_BACKEND_SETTING)) throw error;
         logger.warn('HyperDB has no experimental wasm backend, starting the default backend', {
             context,
             error: stringifyError(error),
         }, 'hyperdb');
-        return await createWebHyperDBEngine(assets, settings, onSetupProgress);
+        return await createWebHyperDBEngine(context, logger, assets, settings, onSetupProgress);
     }
 }
 
@@ -202,13 +286,13 @@ export async function setupWebHyperDB(
             logger.debug('Set up a step of HyperDB WASM', { context, step: name, durationMs: (now - stepStart).toFixed(1) }, 'hyperdb');
             stepStart = now;
         };
-        await cleanupStaleHyperDBOPFSInstances();
+        await failOnStall('remove stale OPFS instances', () => cleanupStaleHyperDBOPFSInstances());
         step('remove stale OPFS instances');
-        const instance = await createHyperDBOPFSInstance();
+        const instance = await failOnStall('create OPFS instance', () => createHyperDBOPFSInstance());
         step('create OPFS instance');
-        let engine: HyperDBEngine | null = null;
+        let started: StartedEngine | null = null;
         try {
-            engine = await startWaitingForMemory(
+            started = await startWaitingForMemory(
                 () => createWebHyperDBEngineWithOptions(
                     context,
                     logger,
@@ -224,12 +308,13 @@ export async function setupWebHyperDB(
                 }, 'hyperdb'),
             );
             step('start engine');
-            const database = await HyperDB.create(engine, {
+            const { engine } = started;
+            const database = await failOnStall('create databases', () => HyperDB.create(engine, {
                 computeDatabasePath: instance.computeDatabasePath,
                 defaultDatabasePath: instance.userDatabasePath,
                 snippetsDatabasePath: instance.snippetsDatabasePath,
                 logger,
-            });
+            }));
             step('create databases');
             const terminate = database.terminate.bind(database);
             database.terminate = async () => {
@@ -244,7 +329,9 @@ export async function setupWebHyperDB(
             return database;
         } catch (error) {
             try {
-                await engine?.terminate();
+                // A stalled engine would not answer its shutdown
+                if (error instanceof HyperDBSetupStalledError) started?.stop();
+                else await started?.engine.terminate();
                 await instance.dispose();
             } catch (cleanupError) {
                 logger.warn('Cleaning up failed HyperDB setup failed', {

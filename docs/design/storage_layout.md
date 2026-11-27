@@ -174,6 +174,12 @@ is held. The folder of the unloaded instance goes with the startup of the next o
 the stopped worker only after the reloaded page asks for its own, so a setup whose memory is refused waits and starts
 the engine again with the same memory (`startWaitingForMemory`, about 6 s in all).
 
+Some failures never answer, e.g. a worker of the engine's threads that Safari of iOS doesn't start, the engine waits
+for all of them before it is ready. Every step of the setup fails once it shows no progress for 30 s (`failOnStall`):
+the loaded chunks of the WebAssembly and the output of the engine count as progress. The error names the step and the
+last line that the engine wrote to stderr, and a stalled engine's worker is stopped like the one of a page that
+unloads.
+
 Earlier app versions kept these folders in the OPFS root as `dashql-workbook-<uuid>/` and let Hyper write its logs
 to the default folder `logs/<process-id>/` in the OPFS root, the cleanup removes both. Hyper still creates an
 empty `logs/` folder at startup, before the instance settings apply.
