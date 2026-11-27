@@ -48,9 +48,7 @@ fn form(body: &str) -> BTreeMap<String, String> {
 
 #[test]
 fn requests_metadata_separately_for_each_entity_type() {
-    let (mut load, progress) =
-        SalesforceMetadataLoad::new(&core_token("https://example.my.salesforce.com/"), "Marketing Space");
-    assert!(progress.iter().all(|p| p.state == SalesforceMetadataState::Requesting));
+    let mut load = SalesforceMetadataLoad::new(&core_token("https://example.my.salesforce.com/"), "Marketing Space");
     let mut urls: Vec<&str> = load.requests().iter().map(|r| r.url.as_str()).collect();
     urls.sort();
     let mut expected: Vec<String> = SALESFORCE_METADATA_ENTITY_TYPES
@@ -73,68 +71,46 @@ fn requests_metadata_separately_for_each_entity_type() {
         json!({ "metadata": [{ "name": "Account__dll", "displayName": "Account DLO", "category": "Profile", "fields": [{ "name": "AccountId__c" }], "primaryKeys": [] }] }),
         json!({ "metadata": [{ "name": "Revenue__cio", "category": "CalculatedInsight", "fields": [{ "name": "Amount__c", "type": "Number" }] }] }),
     ];
-    let mut reported = Vec::new();
     for (i, body) in bodies.into_iter().enumerate() {
-        let (progress, failure) = load.on_response(i, &ok(body)).unwrap();
-        assert!(failure.is_none());
-        reported.push(progress);
+        assert!(load.on_response(i, &ok(body)).is_none());
     }
-    let metadata = load.finish().unwrap();
-    assert_eq!(
-        metadata.metadata.iter().map(|e| e.name.as_str()).collect::<Vec<_>>(),
-        ["Individual__dlm", "Account__dll", "Revenue__cio"]
-    );
-    assert_eq!(metadata.metadata[0].fields[0].name, "FirstName__c");
-    assert_eq!(metadata.metadata[0].primary_keys[0].name, "Id__c");
-    assert_eq!(metadata.metadata[2].fields.iter().map(|f| f.name.as_str()).collect::<Vec<_>>(), ["Amount__c"]);
-    assert_eq!(
-        reported[0],
-        SalesforceMetadataProgress {
-            collection: "DataModelObject".into(),
-            page: 1,
-            loaded: 1,
-            total: Some(1),
-            state: SalesforceMetadataState::Complete,
-            error: None,
-        }
-    );
+    let entities = load.finish().unwrap();
+    assert_eq!(names(&entities), ["Individual__dlm", "Account__dll", "Revenue__cio"]);
+    assert_eq!(entities[0]["fields"][0]["name"], "FirstName__c");
+    assert_eq!(entities[2]["fields"][0]["name"], "Amount__c");
+}
+
+/// The names of metadata entities
+fn names(entities: &[Value]) -> Vec<&str> {
+    entities.iter().map(|entity| entity["name"].as_str().unwrap()).collect()
 }
 
 #[test]
 fn returns_successful_metadata_and_logs_details_when_one_request_fails() {
-    let (mut load, _) = SalesforceMetadataLoad::new(&core_token("https://example.my.salesforce.com"), "default");
-    let mut states = Vec::new();
+    let mut load = SalesforceMetadataLoad::new(&core_token("https://example.my.salesforce.com"), "default");
+    let mut failures = Vec::new();
     for (i, entity_type) in SALESFORCE_METADATA_ENTITY_TYPES.iter().enumerate() {
         let answer = if *entity_type == "DataLakeObject" {
             response(json!({ "error": "unavailable" }), 503)
         } else {
             ok(json!({ "metadata": [{ "name": entity_type, "fields": [] }] }))
         };
-        let (progress, failure) = load.on_response(i, &answer).unwrap();
-        states.push(progress.state);
-        if let Some(failure) = failure {
-            assert_eq!((failure.data_space.as_str(), failure.entity_type.as_str()), ("default", "DataLakeObject"));
-            assert!(failure.error.contains("503"), "{}", failure.error);
-        }
+        failures.extend(load.on_response(i, &answer));
     }
-    let types = SALESFORCE_METADATA_ENTITY_TYPES.len();
-    assert_eq!(states.iter().filter(|s| **s == SalesforceMetadataState::Complete).count(), types - 1);
-    assert_eq!(states.iter().filter(|s| **s == SalesforceMetadataState::Failed).count(), 1);
-    let metadata = load.finish().unwrap();
-    assert_eq!(
-        metadata.metadata.iter().map(|e| e.name.as_str()).collect::<Vec<_>>(),
-        ["DataModelObject", "CalculatedInsight"]
-    );
+    assert_eq!(failures.len(), 1);
+    assert_eq!((failures[0].data_space.as_str(), failures[0].entity_type.as_str()), ("default", "DataLakeObject"));
+    assert!(failures[0].error.contains("503"), "{}", failures[0].error);
+    assert_eq!(names(&load.finish().unwrap()), ["DataModelObject", "CalculatedInsight"]);
 }
 
 #[test]
 fn rejects_with_only_the_summary_when_every_metadata_request_fails() {
-    let (mut load, _) = SalesforceMetadataLoad::new(&core_token("https://example.my.salesforce.com"), "default");
+    let mut load = SalesforceMetadataLoad::new(&core_token("https://example.my.salesforce.com"), "default");
     let types = SALESFORCE_METADATA_ENTITY_TYPES.len();
     let failures: Vec<_> =
-        (0..types).filter_map(|i| load.on_response(i, &response(json!({ "error": "unavailable" }), 503))?.1).collect();
+        (0..types).filter_map(|i| load.on_response(i, &response(json!({ "error": "unavailable" }), 503))).collect();
     assert_eq!(failures.len(), types);
-    // The message is the summary of the progress, without the errors of the requests
+    // The message is the summary, without the errors of the requests
     let message = load.finish().unwrap_err().message;
     assert!(message.contains(&format!("{types} failed")), "{message}");
     assert!(!message.contains("unavailable"), "{message}");
@@ -142,40 +118,15 @@ fn rejects_with_only_the_summary_when_every_metadata_request_fails() {
 
 #[test]
 fn starts_all_metadata_requests_before_waiting_for_responses() {
-    let (mut load, _) = SalesforceMetadataLoad::new(&core_token("https://example.my.salesforce.com"), "default");
+    let mut load = SalesforceMetadataLoad::new(&core_token("https://example.my.salesforce.com"), "default");
     assert_eq!(load.requests().len(), SALESFORCE_METADATA_ENTITY_TYPES.len());
     assert!(load.finish().is_err());
     // A request that fails without a response counts as failed
     load.on_failure(1, "network down").unwrap();
     for i in [0, 2] {
-        load.on_response(i, &ok(json!({ "metadata": [] }))).unwrap();
+        assert!(load.on_response(i, &ok(json!({ "metadata": [] }))).is_none());
     }
-    assert_eq!(load.finish().unwrap(), SalesforceDataCloudMetadata { metadata: vec![] });
-}
-
-#[test]
-fn formats_aggregate_progress_for_all_three_metadata_requests() {
-    let progress = |collection: &str, loaded, total, state| SalesforceMetadataProgress {
-        collection: collection.into(),
-        page: 1,
-        loaded,
-        total,
-        state,
-        error: None,
-    };
-    let map = BTreeMap::from([
-        ("DataModelObject".to_string(), progress("DataModelObject", 120, Some(120), SalesforceMetadataState::Complete)),
-        ("DataLakeObject".to_string(), progress("DataLakeObject", 0, None, SalesforceMetadataState::Requesting)),
-        ("CalculatedInsight".to_string(), progress("CalculatedInsight", 0, None, SalesforceMetadataState::Failed)),
-    ]);
-    assert_eq!(
-        format_salesforce_metadata_progress(&map),
-        "Metadata: 1 done, 1 active, 1 failed | DMO 120 | DLO - | CI failed"
-    );
-    assert_eq!(
-        format_salesforce_metadata_progress(&BTreeMap::new()),
-        "Metadata: 0 done, 0 active, 0 failed, 3 pending | DMO - | DLO - | CI -"
-    );
+    assert!(load.finish().unwrap().is_empty());
 }
 
 // The tokens

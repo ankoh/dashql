@@ -22,12 +22,11 @@ use crate::http::HttpResponse;
 use crate::salesforce::api::get_salesforce_data_space;
 use crate::salesforce::{SalesforceMetadataLoad, SharedSalesforceChannel};
 
-/// The relations of the Data Cloud metadata, `{"metadata": [{"name": ..., "fields": [{"name": ..., "type": ...}]}]}`, in
-/// `lakehouse.public`. A later entity of a name replaces an earlier one. Fails if the metadata names no column.
-pub fn catalog_tables_from_salesforce_metadata(metadata: &Value) -> Result<Vec<CatalogTable>, CatalogLoadError> {
+/// The relations of the entities of the Data Cloud metadata, `[{"name": ..., "fields": [{"name": ..., "type": ...}]}]`,
+/// in `lakehouse.public`. A later entity of a name replaces an earlier one. Fails if the metadata names no column.
+pub fn catalog_tables_from_salesforce_metadata(entities: &[Value]) -> Result<Vec<CatalogTable>, CatalogLoadError> {
     let mut tables: Groups<String, Vec<ColumnMetadata>> = Groups::new();
-    let entities = metadata.get("metadata").and_then(Value::as_array);
-    for entity in entities.into_iter().flatten() {
+    for entity in entities {
         let Some(name) = entity.get("name").and_then(Value::as_str) else {
             continue;
         };
@@ -111,9 +110,9 @@ impl SalesforceCatalogUpdate {
         }
     }
 
-    /// Read the metadata, `{"metadata": [...]}`, and parse the functions next
-    fn read_metadata(&mut self, metadata: &Value) -> Result<(), CatalogLoadError> {
-        self.tables = catalog_tables_from_salesforce_metadata(metadata)?;
+    /// Read the entities of the metadata, and parse the functions next
+    fn read_metadata(&mut self, entities: &[Value]) -> Result<(), CatalogLoadError> {
+        self.tables = catalog_tables_from_salesforce_metadata(entities)?;
         let entry_id = self.entries.function_entry()?;
         let batch = CatalogBatch::new(vec![CatalogBatchEntry {
             entry_id,
@@ -152,7 +151,7 @@ impl ConnectorCatalogUpdate for SalesforceCatalogUpdate {
         }
         let tokens = salesforce_channel(channel)?.tokens();
         let data_space = get_salesforce_data_space(&tokens.data_cloud);
-        let (load, _) = SalesforceMetadataLoad::new(&tokens.core, &data_space);
+        let load = SalesforceMetadataLoad::new(&tokens.core, &data_space);
         self.phase = Phase::Metadata(Box::new(load));
         Ok(())
     }
@@ -164,8 +163,8 @@ impl ConnectorCatalogUpdate for SalesforceCatalogUpdate {
         };
         for (index, response) in responses.iter().enumerate() {
             let failure = match response {
-                Ok(response) => load.on_response(index, response).and_then(|(_, failure)| failure),
-                Err(error) => load.on_failure(index, error).map(|(_, failure)| failure),
+                Ok(response) => load.on_response(index, response),
+                Err(error) => load.on_failure(index, error),
             };
             if let Some(failure) = failure {
                 self.warnings.push(format!(
@@ -174,9 +173,8 @@ impl ConnectorCatalogUpdate for SalesforceCatalogUpdate {
                 ));
             }
         }
-        let metadata = load.finish().map_err(|error| CatalogLoadError::Failed(error.message))?;
-        let metadata = serde_json::to_value(metadata).map_err(|error| CatalogLoadError::Failed(error.to_string()))?;
-        self.read_metadata(&metadata)
+        let entities = load.finish().map_err(|error| CatalogLoadError::Failed(error.message))?;
+        self.read_metadata(&entities)
     }
 
     fn publish(&mut self, catalog: &mut Catalog) -> Publication {

@@ -1456,10 +1456,10 @@ fn salesforce_needs_the_tokens_of_a_login() {
 
 #[test]
 fn salesforce_metadata_becomes_tables_of_lakehouse_public() {
-    let tables = catalog_tables_from_salesforce_metadata(&json!({ "metadata": [
-        { "name": "b", "fields": [{ "name": "x", "type": "Number" }, { "name": "y" }] },
-        { "name": "a", "fields": [{ "name": "z", "type": "Text" }] },
-    ] }))
+    let tables = catalog_tables_from_salesforce_metadata(&[
+        json!({ "name": "b", "fields": [{ "name": "x", "type": "Number" }, { "name": "y" }] }),
+        json!({ "name": "a", "fields": [{ "name": "z", "type": "Text" }] }),
+    ])
     .unwrap();
     assert_eq!(
         output(&tables),
