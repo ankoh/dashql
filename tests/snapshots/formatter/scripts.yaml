@@ -190,20 +190,24 @@ formatter-snapshots:
           - mode: compact
             expected: |-
               with base as (
+                select
                 -- only the positive amounts
-                select a from t where a > 0
-              )
-              select /* strictly */ * from base;
-          - mode: pretty
-            expected: |-
-              with base as (
-                -- only the positive amounts
-                select a
+                a
                 from t
                 where a > 0
               )
-              select /* strictly */ *
-              from base;
+              select * from /* strictly */ base;
+          - mode: pretty
+            expected: |-
+              with base as (
+                select
+                -- only the positive amounts
+                a
+                from t
+                where a > 0
+              )
+              select *
+              from /* strictly */ base;
         validation:
           setup: |-
             create table t(a int);
@@ -340,8 +344,10 @@ formatter-snapshots:
               select 3;
           - mode: compact
             expected: |-
-              select a -- b
-              from /* a */ t;
+              select a
+              from /* a */
+              -- b
+              t;
 
               select 1
               -- one
@@ -351,8 +357,10 @@ formatter-snapshots:
               select 3;
           - mode: pretty
             expected: |-
-              select a -- b
-              from /* a */ t;
+              select a
+              from /* a */
+              -- b
+              t;
 
               select 1
               -- one

@@ -3685,8 +3685,8 @@ impl<'a> Formatter<'a> {
         let max_width = self.config.max_width as usize;
         let descriptions = self.parsed.associate_descriptions();
         let mut comment_begin = 0;
-        // The node spans, only needed for the comments inside of statements
-        let mut node_spans: Option<comments::NodeSpans> = None;
+        // The leaves, only needed for the comments inside of statements
+        let mut leaves: Option<Vec<(TextSpan, usize)>> = None;
         for (i, part) in parts.iter().enumerate() {
             if i > 0 {
                 comments::start_line(&mut output);
@@ -3759,8 +3759,8 @@ impl<'a> Formatter<'a> {
             let within = comment_range(before_end, within_end);
             let root_id = statements.get(statement).map_or(usize::MAX, |s| s.root as usize);
             let mut rest = if within.iter().any(|c| c.offset < root_span.end()) {
-                let spans = node_spans.get_or_insert_with(|| self.node_spans());
-                self.attach_inner_comments(root_id, root_span, within, spans)
+                let leaves = leaves.get_or_insert_with(|| self.leaf_spans());
+                self.attach_inner_comments(root_id, root_span, within, leaves)
             } else {
                 within.to_vec()
             };
@@ -3969,11 +3969,11 @@ mod tests {
     }
 
     #[test]
-    fn keeps_line_comments_after_the_parenthesis_of_a_cte() {
-        // In pretty mode the closing parenthesis of a CTE is on a line of its own, the comment stays after it
+    fn puts_line_comments_after_a_closing_parenthesis_on_lines_of_their_own() {
+        // A line comment ends the line of a leaf only, after the parenthesis of a CTE it goes in front of the next leaf
         let [_, pretty] =
             format_stable("with a as (select 1 as x), -- c\nb as (select 2 as y) select * from a, b", 120);
-        assert_eq!(pretty, "with a as (\n  select 1 as x\n), -- c\nb as (\n  select 2 as y\n)\nselect *\nfrom a, b;");
+        assert_eq!(pretty, "with a as (\n  select 1 as x\n),\n-- c\nb as (\n  select 2 as y\n)\nselect *\nfrom a, b;");
     }
 
     #[test]

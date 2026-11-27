@@ -3,13 +3,12 @@
 //! Comments work on bytes: wrapping splits long words at byte offsets, which can split UTF-8
 //! sequences (see docs/design/core_quirks.md).
 
-use super::{is_leaf, program, FmtReg, Formatter};
+use super::{is_leaf, FmtReg, Formatter};
 use crate::annotation::{Annotation, AnnotationTag, ANNOTATION_GUTTER};
 use dashql_parser::comment_blocks::{
     group_comment_bytes, is_comment_tag, CommentBlockType, COMMENT_TAG_END, COMMENT_TAG_PREFIX,
 };
 use dashql_parser::parser::context::resolve_text_span;
-use dashql_parser::scanner::Symbol;
 use dashql_parser::span::TextSpan;
 
 /// `std::isspace` in the C locale
@@ -307,15 +306,6 @@ fn print_tagged_comment(input: &[u8], comments: &[TextSpan], max_width: usize) -
     annotation.print("").ok().map(|(comment, _)| comment.into_bytes())
 }
 
-/// Is a symbol an opening (or closing) parenthesis or bracket?
-fn is_parenthesis(symbol: &str, at_start: bool) -> bool {
-    if at_start {
-        matches!(symbol, "(" | "[")
-    } else {
-        matches!(symbol, ")" | "]")
-    }
-}
-
 /// Is a comment a block comment?
 fn is_block_comment(input: &[u8], comment: &TextSpan) -> bool {
     comment_text(input, comment).starts_with(b"/*")
@@ -584,23 +574,6 @@ pub(super) fn append_description(
     }
 }
 
-/// The text spans of the nodes with text and their ids, sorted by their offsets, and the nodes with the symbols of
-/// their first and last words (see `node_spans`), sorted by the first and by the last of them
-pub(super) struct NodeSpans {
-    by_offset: Vec<(TextSpan, usize)>,
-    by_first_word: Vec<NodeWords>,
-    by_last_word: Vec<NodeWords>,
-}
-
-/// A node with the symbols of its first and last words, after and before the parentheses at its edges
-#[derive(Clone, Copy)]
-struct NodeWords {
-    span: TextSpan,
-    id: usize,
-    first: TextSpan,
-    last: TextSpan,
-}
-
 /// The place of a comment inside of a statement
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum CommentPlace {
@@ -619,66 +592,80 @@ impl CommentPlace {
 }
 
 impl<'a> Formatter<'a> {
-    /// The text spans of the nodes with text and their ids
-    pub(super) fn node_spans(&self) -> NodeSpans {
-        let mut by_offset: Vec<(TextSpan, usize)> = self
+    /// The text spans of the leaves (`is_leaf`) and their ids, sorted by their offsets
+    pub(super) fn leaf_spans(&self) -> Vec<(TextSpan, usize)> {
+        let mut leaves: Vec<(TextSpan, usize)> = self
             .ast
             .iter()
             .enumerate()
+            .filter(|(_, node)| is_leaf(node.node_type()))
             .map(|(id, node)| (resolve_text_span(&self.scanned.text, &self.scanned.symbols, *node.symbol_span()), id))
             .filter(|(span, _)| span.length > 0)
             .collect();
-        by_offset.sort_by_key(|(span, _)| span.offset);
-        let words: Vec<NodeWords> = by_offset
-            .iter()
-            .filter_map(|&(span, id)| {
-                let (first, last) = (self.word_symbol(span, true)?, self.word_symbol(span, false)?);
-                Some(NodeWords { span, id, first, last })
-            })
-            .collect();
-        let mut by_first_word = words.clone();
-        by_first_word.sort_by_key(|w| w.first.offset);
-        let mut by_last_word = words;
-        by_last_word.sort_by_key(|w| w.last.end());
-        NodeSpans { by_offset, by_first_word, by_last_word }
+        leaves.sort_by_key(|(span, _)| span.offset);
+        leaves
     }
 
-    /// Place the comments inside of a statement, so that a second run places them the same way
-    /// (see docs/agents/core_sql_formatting.md). A line comment on the line of the end of a node stays at the end of
-    /// the line of that node. The other comments go in front of the node after them, a line comment on
-    /// a line of its own. A comment goes with the outermost document that starts (or ends) with that node, the
-    /// document that a second run finds. Returns the comments without such a node, in their order.
+    /// Place the comments inside of a statement by its leaves, the names, literals and operators that print their own
+    /// text, so that a second run finds the same leaves around the same comments (see
+    /// docs/agents/core_sql_formatting.md). A line comment on the line of the end of a leaf stays at the end of the
+    /// line of that leaf. The other comments go in front of the leaf after them, a line comment on a line of its own.
+    /// A comment goes with the outermost document that starts (or ends) with the leaf. Returns the comments without
+    /// such a leaf, in their order.
     pub(super) fn attach_inner_comments(
         &self,
         root_id: usize,
         root_span: TextSpan,
         comments: &[TextSpan],
-        spans: &NodeSpans,
+        leaves: &[(TextSpan, usize)],
     ) -> Vec<TextSpan> {
         let statement_reg = self.node_states.get(root_id).map_or(0, |state| state.reg);
         let counts = self.fmt.reference_counts(statement_reg);
+        // The leaves of the statement that it prints
+        let first = leaves.partition_point(|(span, _)| span.offset < root_span.offset);
+        let printed: Vec<(TextSpan, usize)> = leaves
+            .get(first..)
+            .unwrap_or_default()
+            .iter()
+            .take_while(|(span, _)| span.end() <= root_span.end())
+            .filter(|&&(_, id)| {
+                let reg = self.node_states.get(id).map_or(0, |state| state.reg);
+                reg != 0 && counts.get(reg as usize).is_some_and(|&count| count > 0)
+            })
+            .copied()
+            .collect();
         let input = self.scanned.text.as_bytes();
         let mut places: Vec<(CommentPlace, TextSpan)> = Vec::new();
         let mut rest = Vec::new();
         for &comment in comments {
-            // A leaf is printed as written, with the comments inside of it
-            if self.is_inside_printed_leaf(comment, spans, &counts) {
+            let next = printed.partition_point(|(span, _)| span.offset < comment.offset);
+            let previous = next.checked_sub(1).and_then(|i| printed.get(i));
+            // A leaf is printed as written, with the comments inside of it, like `-/* a */1`
+            if previous.is_some_and(|(span, _)| span.end() > comment.offset) {
                 continue;
             }
             let mut place = None;
             if comment.end() <= root_span.end() {
                 // A document ends with one line comment, a second one would go on a line of its own and a second
-                // run would read it as a comment in front of the node after it
+                // run would read it as a comment in front of the leaf after it
                 if !is_block_comment(input, &comment) {
-                    place = self
-                        .node_before(root_id, root_span, comment, spans, &counts)
+                    place = previous
+                        .filter(|&&(span, _)| self.ends_on_line_of(span, comment))
+                        .and_then(|&(_, id)| self.outermost_at_edge(root_id, id, &counts, false))
                         .filter(|&reg| !self.fmt.ends_with(statement_reg, reg))
                         .map(CommentPlace::After)
                         .filter(|place| !places.iter().any(|(other, _)| other == place));
                 }
                 if place.is_none() {
-                    place = self
-                        .node_after(root_id, root_span, comment, spans, &counts)
+                    // A comment after a dot goes in front of the qualified name, the scanner would read no qualified
+                    // name before a reserved keyword after it, and a line comment would break the name at the dot
+                    let mut next = next;
+                    while next > 0 && printed.get(next).is_some_and(|&(span, _)| self.follows_dot(span)) {
+                        next -= 1;
+                    }
+                    place = printed
+                        .get(next)
+                        .and_then(|&(_, id)| self.outermost_at_edge(root_id, id, &counts, true))
                         .filter(|&reg| !self.fmt.starts_with(statement_reg, reg))
                         .map(CommentPlace::Before);
                 }
@@ -714,76 +701,33 @@ impl<'a> Formatter<'a> {
         rest
     }
 
-    /// Is a comment inside of the text of a printed leaf, like `-/* a */1`?
-    fn is_inside_printed_leaf(&self, comment: TextSpan, spans: &NodeSpans, counts: &[u32]) -> bool {
-        let before = spans.by_offset.partition_point(|(span, _)| span.offset < comment.offset);
-        spans.by_offset.get(..before).unwrap_or_default().iter().any(|&(span, id)| {
-            span.end() > comment.offset
-                && self.ast.get(id).is_some_and(|node| is_leaf(node.node_type()))
-                && self.node_states.get(id).is_some_and(|state| counts.get(state.reg as usize).is_some_and(|&c| c > 0))
-        })
-    }
-
-    /// The document of a node if it is printed once and starts (or ends) with the word of the node's text: a node
-    /// whose text starts with a keyword that its parent prints, like the `from` of a from clause, takes no comment
-    /// there, a second run would find the comment after the keyword
-    fn printed_edge_reg(&self, id: usize, word: TextSpan, counts: &[u32], at_start: bool) -> Option<FmtReg> {
-        let reg = self.printed_reg(id, counts)?;
-        let source = self.scanned.text.get(word.offset as usize..word.end() as usize)?;
-        let source_word = program::edge_word(source, at_start);
-        let (printed_word, _) = self.fmt.edge_word(reg, at_start)?;
-        printed_word.eq_ignore_ascii_case(source_word).then_some(reg)
-    }
-
-    /// The text of a symbol
-    fn symbol_text(&self, symbol: &Symbol) -> Option<&'a str> {
-        let text: &'a str = &self.scanned.text;
-        text.get(symbol.location.offset as usize..symbol.location.end() as usize)
-    }
-
-    /// The symbol of the first (or last) word of a text, after (or before) the parentheses at its edge
-    fn word_symbol(&self, span: TextSpan, at_start: bool) -> Option<TextSpan> {
+    /// Does a comment follow a leaf on the line where the leaf ends? Between them there may be only the commas and
+    /// opening parentheses that the renderer writes before a line suffix, like `f( -- c`.
+    fn ends_on_line_of(&self, leaf: TextSpan, comment: TextSpan) -> bool {
+        let text: &str = &self.scanned.text;
         let symbols = &self.scanned.symbols;
-        let begin = symbols.partition_point(|s| s.location.offset < span.offset);
-        let end = symbols.partition_point(|s| s.location.end() <= span.end()).max(begin);
-        let inside = symbols.get(begin..end).unwrap_or_default();
-        let is_word =
-            |s: &&Symbol| s.location.length > 0 && self.symbol_text(s).is_some_and(|t| !is_parenthesis(t, at_start));
-        let symbol = if at_start { inside.iter().find(is_word) } else { inside.iter().rev().find(is_word) }?;
-        Some(symbol.location)
-    }
-
-    /// The symbols between two offsets
-    fn symbols_between(&self, from: u32, to: u32) -> impl Iterator<Item = &Symbol> {
-        let symbols = &self.scanned.symbols;
-        let begin = symbols.partition_point(|s| s.location.offset < from);
-        symbols.get(begin..).unwrap_or_default().iter().take_while(move |s| s.location.offset < to)
-    }
-
-    /// The number of opening (or closing) parentheses and brackets between two offsets
-    fn count_parentheses(&self, from: u32, to: u32, at_start: bool) -> usize {
-        self.symbols_between(from, to)
-            .filter(|s| self.symbol_text(s).is_some_and(|t| is_parenthesis(t, at_start)))
-            .count()
-    }
-
-    /// The document that a comment goes with when the text has `parentheses` between the comment and the edge word
-    /// of `reg`: the parentheses that the document prints itself count, the comment goes outside of as many of the
-    /// parentheses around it as remain. A second run finds the printed parentheses in the text.
-    fn outside_of_parentheses(&self, reg: FmtReg, parentheses: usize, counts: &[u32], at_start: bool) -> FmtReg {
-        let mut climbed = self.fmt.edge_word(reg, at_start).map_or(0, |(_, printed)| printed);
-        let mut reg = reg;
-        while climbed < parentheses {
-            let enclosing = self.fmt.enclosing_parenthesis(reg, at_start);
-            match enclosing.filter(|&(p, n)| counts.get(p as usize) == Some(&1) && climbed + n <= parentheses) {
-                Some((enclosing, n)) => {
-                    reg = enclosing;
-                    climbed += n;
-                }
-                None => break,
+        let begin = symbols.partition_point(|s| s.location.offset < leaf.end());
+        let mut line_end = leaf.end();
+        for symbol in symbols.get(begin..).unwrap_or_default().iter().take_while(|s| s.location.offset < comment.offset)
+        {
+            if !matches!(
+                text.get(symbol.location.offset as usize..symbol.location.end() as usize),
+                Some("," | "(" | "[")
+            ) {
+                return false;
             }
+            line_end = symbol.location.end();
         }
-        reg
+        let gap = substr(text.as_bytes(), line_end as usize, comment.offset.saturating_sub(line_end) as usize);
+        count_line_breaks(gap) == 0
+    }
+
+    /// Does a dot come right before a text?
+    fn follows_dot(&self, span: TextSpan) -> bool {
+        use dashql_parser::symbol_kind::{S_DOT, S_DOT_STAR_LA, S_DOT_TRAILING};
+        let symbols = &self.scanned.symbols;
+        let before = symbols.partition_point(|s| s.location.offset < span.offset).checked_sub(1);
+        before.and_then(|i| symbols.get(i)).is_some_and(|s| matches!(s.kind, S_DOT | S_DOT_TRAILING | S_DOT_STAR_LA))
     }
 
     /// The document of a node if it is printed once
@@ -792,7 +736,8 @@ impl<'a> Formatter<'a> {
         (reg != 0 && counts.get(reg as usize) == Some(&1)).then_some(reg)
     }
 
-    /// The outermost printed document of the ancestors of a node that starts or ends with its document
+    /// The outermost printed document of the ancestors of a node that starts or ends with its document, nothing is
+    /// printed between that document and the text of the node
     fn outermost_at_edge(&self, root_id: usize, mut node: usize, counts: &[u32], at_start: bool) -> Option<FmtReg> {
         let mut reg = self.printed_reg(node, counts)?;
         // The parents follow their children in the AST, ancestors without a printed document are skipped
@@ -807,116 +752,6 @@ impl<'a> Formatter<'a> {
             reg = parent_reg;
         }
         Some(reg)
-    }
-
-    /// The document that a comment goes in front of: the outermost document that starts with the innermost printed
-    /// node after the comment
-    fn node_after(
-        &self,
-        root_id: usize,
-        root_span: TextSpan,
-        comment: TextSpan,
-        spans: &NodeSpans,
-        counts: &[u32],
-    ) -> Option<FmtReg> {
-        let first = spans.by_first_word.partition_point(|w| w.first.offset < comment.end());
-        let candidates = spans
-            .by_first_word
-            .get(first..)
-            .unwrap_or_default()
-            .iter()
-            .take_while(|w| w.first.offset < root_span.end())
-            .filter(|w| {
-                w.id != root_id
-                    && w.span.offset >= root_span.offset
-                    && w.span.end() <= root_span.end()
-                    && self.printed_edge_reg(w.id, w.first, counts, true).is_some()
-            });
-        let word = candidates.clone().next()?.first;
-        // In front of the name after a dot, the comment would follow the dot, as in `t./* c */ from`, and the scanner
-        // reads no qualified name there before a reserved keyword or an operator. It goes in front of the qualified
-        // name instead, where a second run finds it.
-        if let Some(qualified) = self.qualified_name_at(word, root_id, root_span, spans) {
-            let start = TextSpan::new(qualified.offset, 0);
-            return self.node_after(root_id, root_span, start, spans, counts);
-        }
-        let innermost =
-            candidates.take_while(|w| w.first.offset == word.offset).min_by_key(|w| (w.span.length, w.id))?;
-        let reg = self.outermost_at_edge(root_id, innermost.id, counts, true)?;
-        let parentheses = self.count_parentheses(comment.end(), word.offset, true);
-        Some(self.outside_of_parentheses(reg, parentheses, counts, true))
-    }
-
-    /// The span of the innermost node of a statement around the dot in front of a word, if a dot is in front of it
-    fn qualified_name_at(
-        &self,
-        word: TextSpan,
-        root_id: usize,
-        root_span: TextSpan,
-        spans: &NodeSpans,
-    ) -> Option<TextSpan> {
-        use dashql_parser::symbol_kind::{S_DOT, S_DOT_STAR_LA, S_DOT_TRAILING};
-        let symbols = &self.scanned.symbols;
-        let before = symbols.partition_point(|s| s.location.offset < word.offset).checked_sub(1)?;
-        let dot = symbols.get(before).filter(|s| matches!(s.kind, S_DOT | S_DOT_TRAILING | S_DOT_STAR_LA))?.location;
-        spans
-            .by_offset
-            .iter()
-            .take_while(|(span, _)| span.offset < dot.offset)
-            .filter(|&&(span, id)| {
-                id != root_id
-                    && span.offset >= root_span.offset
-                    && span.end() <= root_span.end()
-                    && span.end() >= dot.end()
-            })
-            .map(|&(span, _)| span)
-            .min_by_key(|span| span.length)
-    }
-
-    /// The document that a comment goes at the end of the line of: the outermost document that ends with the
-    /// innermost printed node before the comment, if that node ends on the line of the comment
-    fn node_before(
-        &self,
-        root_id: usize,
-        root_span: TextSpan,
-        comment: TextSpan,
-        spans: &NodeSpans,
-        counts: &[u32],
-    ) -> Option<FmtReg> {
-        let end = spans.by_last_word.partition_point(|w| w.last.end() <= comment.offset);
-        let candidates = spans
-            .by_last_word
-            .get(..end)
-            .unwrap_or_default()
-            .iter()
-            .rev()
-            .take_while(|w| w.last.end() > root_span.offset)
-            .filter(|w| {
-                w.id != root_id
-                    && w.span.offset >= root_span.offset
-                    && w.span.end() <= root_span.end()
-                    && self.printed_edge_reg(w.id, w.last, counts, false).is_some()
-            });
-        let word = candidates.clone().next()?.last;
-        // Between the word and the comment only parentheses and commas, the last of them on the line of the comment.
-        // An opening parenthesis is printed before the comment, like `f( -- c`.
-        let mut line_end = word.end();
-        for symbol in self.symbols_between(word.end(), comment.offset) {
-            let text = self.symbol_text(symbol).unwrap_or_default();
-            if !is_parenthesis(text, false) && !is_parenthesis(text, true) && text != "," {
-                return None;
-            }
-            line_end = symbol.location.end();
-        }
-        let gap =
-            substr(self.scanned.text.as_bytes(), line_end as usize, comment.offset.saturating_sub(line_end) as usize);
-        if count_line_breaks(gap) > 0 {
-            return None;
-        }
-        let innermost = candidates.take_while(|w| w.last.end() == word.end()).min_by_key(|w| (w.span.length, w.id))?;
-        let reg = self.outermost_at_edge(root_id, innermost.id, counts, false)?;
-        let parentheses = self.count_parentheses(word.end(), comment.offset, false);
-        Some(self.outside_of_parentheses(reg, parentheses, counts, false))
     }
 }
 

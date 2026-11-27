@@ -387,73 +387,6 @@ impl<'a> FormattingProgram<'a> {
         }
     }
 
-    /// The first (or last) word that a document prints after (or before) the parentheses at its edge, see
-    /// `edge_word`, and the number of those parentheses
-    pub fn edge_word(&self, reg: FmtReg, at_start: bool) -> Option<(&'a str, usize)> {
-        let program = self.program.borrow();
-        let mut parentheses = 0;
-        let mut pending = vec![reg];
-        while let Some(reg) = pending.pop() {
-            // A register outside of the program is the empty document
-            let Some(doc) = program.get(reg as usize).filter(|_| reg != 0) else { continue };
-            match doc.code {
-                FormattingOpCode::Text => {
-                    let (text, stripped) = strip_parentheses(doc.text, at_start);
-                    parentheses += stripped;
-                    if !text.is_empty() {
-                        return Some((edge_word(text, at_start), parentheses));
-                    }
-                }
-                FormattingOpCode::Parenthesis
-                | FormattingOpCode::Brackets
-                | FormattingOpCode::Concat
-                | FormattingOpCode::Join
-                | FormattingOpCode::Indent => {
-                    if matches!(doc.code, FormattingOpCode::Parenthesis | FormattingOpCode::Brackets) {
-                        parentheses += 1;
-                    }
-                    if at_start {
-                        pending.extend(doc.children.iter().rev());
-                    } else {
-                        pending.extend(doc.children.iter());
-                    }
-                }
-                _ => {}
-            }
-        }
-        None
-    }
-
-    /// The parentheses around the document `inner`: a parenthesis (or brackets) whose content starts (or ends) with
-    /// it, or a text of opening (or closing) parentheses right before (or after) a document that starts (or ends)
-    /// with it. Returns that document and its number of parentheses.
-    pub fn enclosing_parenthesis(&self, inner: FmtReg, at_start: bool) -> Option<(FmtReg, usize)> {
-        let program = self.program.borrow();
-        let reaches =
-            |outer: FmtReg| if at_start { self.starts_with(outer, inner) } else { self.ends_with(outer, inner) };
-        program.iter().enumerate().find_map(|(reg, doc)| match doc.code {
-            FormattingOpCode::Parenthesis | FormattingOpCode::Brackets => {
-                let child = if at_start { doc.children.first() } else { doc.children.last() };
-                child.is_some_and(|&child| reaches(child)).then_some((reg as FmtReg, 1))
-            }
-            FormattingOpCode::Concat => {
-                let position = doc.children.iter().position(|&child| reaches(child))?;
-                // The parenthesis may be on a line of its own, as the `)` after the body of a CTE in pretty mode
-                let is_break =
-                    |&&child: &&FmtReg| program.get(child as usize).is_some_and(|d| d.code == FormattingOpCode::Break);
-                let &next = if at_start {
-                    doc.children.get(..position)?.iter().rev().find(|c| !is_break(c))?
-                } else {
-                    doc.children.get(position + 1..)?.iter().find(|c| !is_break(c))?
-                };
-                let text = program.get(next as usize).filter(|d| d.code == FormattingOpCode::Text)?.text;
-                let (rest, count) = strip_parentheses(text, at_start);
-                (rest.is_empty() && count > 0).then_some((next, count))
-            }
-            _ => None,
-        })
-    }
-
     /// Take the items of a join, which leaves it empty: a join around it continues them, like the operands of a chain
     pub fn take_join_items(&self, reg: FmtReg) -> Option<Vec<FmtReg>> {
         let mut program = self.program.borrow_mut();
@@ -586,38 +519,6 @@ fn push_rendered_join(
         if i > 0 && separator != 0 {
             stack.push(RenderCommand::format(separator, indentation));
         }
-    }
-}
-
-/// A text without the parentheses (or brackets) and spaces at its start (or end), and the number of those parentheses
-pub fn strip_parentheses(text: &str, at_start: bool) -> (&str, usize) {
-    let parentheses: &[char] = if at_start { &['(', '['] } else { &[')', ']'] };
-    let mut text = text;
-    let mut count = 0;
-    loop {
-        let trimmed = if at_start { text.trim_start() } else { text.trim_end() };
-        let stripped = if at_start { trimmed.strip_prefix(parentheses) } else { trimmed.strip_suffix(parentheses) };
-        match stripped {
-            Some(rest) => {
-                count += 1;
-                text = rest;
-            }
-            None => return (trimmed, count),
-        }
-    }
-}
-
-/// The first (or last) word of a text: a run of letters, digits and underscores, or else its first (or last) character
-pub fn edge_word(text: &str, at_start: bool) -> &str {
-    let is_word = |c: char| c.is_alphanumeric() || c == '_';
-    if at_start {
-        let word_end = text.char_indices().take_while(|&(_, c)| is_word(c)).last().map(|(i, c)| i + c.len_utf8());
-        let end = word_end.or_else(|| text.chars().next().map(char::len_utf8)).unwrap_or_default();
-        text.get(..end).unwrap_or_default()
-    } else {
-        let word_begin = text.char_indices().rev().take_while(|&(_, c)| is_word(c)).last().map(|(i, _)| i);
-        let begin = word_begin.or_else(|| text.char_indices().next_back().map(|(i, _)| i)).unwrap_or_default();
-        text.get(begin..).unwrap_or_default()
     }
 }
 

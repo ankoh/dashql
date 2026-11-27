@@ -48,17 +48,19 @@ formatter-snapshots:
           - mode: compact
             expected: |-
               select case
+                when
                 -- the kinds
-                when a = 1 then 'one'
-                /* first */ when a = 2 then 'two' -- second
+                a = 1 then 'one'
+                when /* first */ a = 2 then 'two' -- second
                 else /* fallback */ 'other' end as k
               from t;
           - mode: pretty
             expected: |-
               select case
+                when
                 -- the kinds
-                when a = 1 then 'one'
-                /* first */ when a = 2 then 'two' -- second
+                a = 1 then 'one'
+                when /* first */ a = 2 then 'two' -- second
                 else /* fallback */ 'other'
               end as k
               from t;
@@ -110,17 +112,19 @@ formatter-snapshots:
               select *
               from a -- first
                 join b on a.y = b.y
-                left join /* inner */ c
-                  using (x) -- last
-              where a.y > 1;
+                left join /* inner */ c using (x)
+              where
+              -- last
+              a.y > 1;
           - mode: pretty
             expected: |-
               select *
               from a -- first
                 join b on a.y = b.y
-                left join /* inner */ c
-                  using (x) -- last
-              where a.y > 1;
+                left join /* inner */ c using (x)
+              where
+              -- last
+              a.y > 1;
         validation:
           setup: |-
             create table a(x int, y int);
@@ -143,14 +147,16 @@ formatter-snapshots:
               select a, count(*)
               from t
               group by a -- grouped
-              order by /* by count */ count(*) desc, -- then
+              order by /* by count */ count(*) desc,
+                -- then
                 a;
           - mode: pretty
             expected: |-
               select a, count(*)
               from t
               group by a -- grouped
-              order by /* by count */ count(*) desc, -- then
+              order by /* by count */ count(*) desc,
+                -- then
                 a;
         validation:
           setup: |-
@@ -170,14 +176,14 @@ formatter-snapshots:
             expected: |-
               select sum(x) over (
                 partition by a -- per a
-                  order by b /* ordered */ rows between 1 preceding and current row
+                  order by b rows between /* ordered */ 1 preceding and current row
               )
               from t;
           - mode: pretty
             expected: |-
               select sum(x) over (
                 partition by a -- per a
-                  order by b /* ordered */ rows between 1 preceding and current row
+                  order by b rows between /* ordered */ 1 preceding and current row
               )
               from t;
         validation:
@@ -197,14 +203,20 @@ formatter-snapshots:
           - mode: compact
             expected: |-
               insert into t(a, b)
-              values (1, 'x'), -- first row
-                (2, /* two */ 'y');
+              values (1, 'x'), (
+                  -- first row
+                  2, /* two */ 'y'
+                );
           - mode: pretty
             expected: |-
               insert into t(a, b)
               values
-                (1, 'x'), -- first row
-                (2, /* two */ 'y');
+                (1, 'x'),
+                (
+                  -- first row
+                  2,
+                  /* two */ 'y'
+                );
         validation:
           setup: |-
             create table t(a int, b text);
@@ -225,17 +237,18 @@ formatter-snapshots:
           - mode: compact
             expected: |-
               create table if not exists t (
-                a integer, -- the key
-                /* the label */ b text not null,
-                c integer -- the last
-              );
+                a integer,
+                -- the key
+                /* the label */ b text not null, c integer
+              ); -- the last
           - mode: pretty
             expected: |-
               create table if not exists t (
-                a integer, -- the key
+                a integer,
+                -- the key
                 /* the label */ b text not null,
-                c integer -- the last
-              );
+                c integer
+              ); -- the last
         validation:
 
   - name: comment_after_respelled_type

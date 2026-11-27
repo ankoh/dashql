@@ -39,26 +39,23 @@ second run equals the first. Inline mode drops the comments.
   comment with a tag stays there too: on a line of its own it would be the annotation of the next statement.
 - **Text without symbols.** A block comment without its end after the semicolon of the last statement is copied as
   written with the text after it, like a statement with syntax errors.
-- **Inside a statement.** `comments.rs` attaches a comment to the document of a node (`attach_inner_comments`): a line
-  comment on the line where a node ends stays at the end of the line of that node, as a line suffix that the renderer
-  writes before the next line break (`select a, -- the a`). Any other comment goes in front of the node after it, a
-  block comment on the line (`where /* c */ x`), a line comment on a line of its own. A comment goes with the
-  outermost document that starts (or ends) with that node, the document that a second run finds for the same text,
-  and only with documents that the statement prints once. A line suffix forces the joins and parentheses around it to
-  break and moves the text after it to the next line, except a comma or an opening parenthesis (`f( -- c`).
-- **Words, not spans.** A node is found by the first and last words of its text, without the parentheses at the
-  edges, and takes a comment only if its document prints the same word there. A clause whose text starts with a
-  keyword that its parent prints, like the `from` of a from clause, so takes no comment in front of that keyword: the
-  comment goes in front of the next node, where a second run finds it.
-- **Qualified names.** A comment in front of the name after a dot, as in `t /* c */ .from`, goes in front of the
-  qualified name: after the dot the scanner reads no qualified name before a reserved keyword or an operator.
-- **Parentheses.** The opening (or closing) parentheses between a comment and the word of its node are counted. Those
-  that the document prints itself count, the comment goes outside of as many of the parentheses around the document
-  as remain, whether they are parenthesis documents or texts like `]`, also on a line of their own like the `)` of a
-  CTE in pretty mode. Parentheses that the formatter drops are skipped, a second run counts the printed ones.
+- **Inside a statement.** `comments.rs` places a comment by the leaves of the statement, the names, literals and
+  operators that print their own text (`attach_inner_comments`), so that a second run finds the same leaves around
+  it. A line comment on the line where a leaf ends, with nothing but commas and opening parentheses between them,
+  stays at the end of the line of that leaf, as a line suffix that the renderer writes before the next line break
+  (`select a, -- the a`). Any other comment goes in front of the leaf after it, a block comment on the line
+  (`where /* c */ x`), a line comment on a line of its own. Keywords and parentheses are no leaves: a comment in front
+  of them moves past them on the first run (`/* c */ (a + b)` becomes `(/* c */ a + b)`), a line comment after them
+  goes on a line of its own, and the second run keeps them there. A comment goes with the outermost document that
+  starts (or ends) with the leaf, and only with documents that the statement prints once. A line suffix forces the
+  joins and parentheses around it to break and moves the text after it to the next line, except a comma or an
+  opening parenthesis (`f( -- c`).
+- **Qualified names.** A comment in front of a name after a dot, as in `t /* c */ .from`, goes in front of the
+  qualified name: after the dot the scanner reads no qualified name before a reserved keyword, and a line comment
+  would break the name at the dot.
 - **One line comment per document end.** A second line comment at the end of the same document goes in front of the
-  node after it, on a line of its own.
-- **Without a node.** Comments inside a statement after its last printed node, as in `select (a /* a */)`, follow the
+  leaf after it, on a line of its own.
+- **Without a leaf.** Comments inside a statement after its last printed leaf, as in `select (a /* a */)`, follow the
   statement on its line like the comments after it. If they cannot (two line comments), they go on lines of their own
   before the semicolon, where a second run finds them again.
 - A comment inside a leaf that is printed as written, like `-/* a */1`, stays inside it.

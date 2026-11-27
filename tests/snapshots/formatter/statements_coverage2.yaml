@@ -681,19 +681,25 @@ formatter-snapshots:
               merge into t -- the target
               using u
               on t.id = u.id
-              /* delete */ when matched then delete
+              when matched then delete
               when not matched then
-                -- insert
-                insert values (u.id);
+                insert values (
+                  /* delete */
+                  -- insert
+                  u.id
+                );
           - mode: pretty
             expected: |-
               merge into t -- the target
               using u
               on t.id = u.id
-              /* delete */ when matched then delete
+              when matched then delete
               when not matched then
-                -- insert
-                insert values (u.id);
+                insert values (
+                  /* delete */
+                  -- insert
+                  u.id
+                );
 
   - name: coverage_prepare_merge_delete_insert
     input: |-
@@ -978,20 +984,22 @@ formatter-snapshots:
               revoke all on table t from bob;
           - mode: compact
             expected: |-
-              grant select, -- reading
+              grant select,
+                -- reading
                 insert
-                on /* writing */ table t
+                on table /* writing */ t
                 to bob;
 
-              revoke /* all of it */ all on table t from bob; -- bob leaves
+              revoke all on table /* all of it */ t from bob; -- bob leaves
           - mode: pretty
             expected: |-
-              grant select, -- reading
+              grant select,
+                -- reading
                 insert
-                on /* writing */ table t
+                on table /* writing */ t
                 to bob;
 
-              revoke /* all of it */ all on table t from bob; -- bob leaves
+              revoke all on table /* all of it */ t from bob; -- bob leaves
 
   - name: coverage_create_role_comments
     input: |-
@@ -1007,12 +1015,12 @@ formatter-snapshots:
             expected: |-
               create role r
                 with login -- may log in
-                  password 'pw' /* secret */ connection limit 5;
+                  password 'pw' connection limit /* secret */ 5;
           - mode: pretty
             expected: |-
               create role r
                 with login -- may log in
-                  password 'pw' /* secret */ connection limit 5;
+                  password 'pw' connection limit /* secret */ 5;
 
   - name: coverage_drop_comments
     input: |-
@@ -1052,15 +1060,17 @@ formatter-snapshots:
           - mode: compact
             expected: |-
               create schema s
+                create table
                 -- a table
-                create table t (a integer)
-                /* a view */ create view v as select a from t;
+                t (a integer)
+                create view /* a view */ v as select a from t;
           - mode: pretty
             expected: |-
               create schema s
+                create table
                 -- a table
-                create table t (a integer)
-                /* a view */ create view v as
+                t (a integer)
+                create view /* a view */ v as
                 select a
                 from t;
 
@@ -1078,12 +1088,12 @@ formatter-snapshots:
             expected: |-
               declare c -- the cursor
               scroll cursor with hold for
-              /* the query */ select a from t;
+              select /* the query */ a from t;
           - mode: pretty
             expected: |-
               declare c -- the cursor
               scroll cursor with hold for
-              /* the query */ select a
+              select /* the query */ a
               from t;
 
   - name: coverage_fetch_comments
@@ -1098,11 +1108,11 @@ formatter-snapshots:
               fetch forward 5 from c;
           - mode: compact
             expected: |-
-              fetch /* direction */ forward 5 -- count
+              fetch forward /* direction */ 5 -- count
               from c;
           - mode: pretty
             expected: |-
-              fetch /* direction */ forward 5 -- count
+              fetch forward /* direction */ 5 -- count
               from c;
 
   - name: coverage_copy_comments
@@ -1144,17 +1154,21 @@ formatter-snapshots:
               copy (select a from t) to 'out.csv' with (format => 'csv');
           - mode: compact
             expected: |-
-              copy (select a from t) -- the query
-                to 'out.csv'
-                with /* the file */ (format => 'csv');
+              copy (select a from t)
+                to
+                -- the query
+                'out.csv'
+                with (/* the file */ format => 'csv');
           - mode: pretty
             expected: |-
               copy (
                 select a
                 from t
-              ) -- the query
-                to 'out.csv'
-                with /* the file */ (format => 'csv');
+              )
+                to
+                -- the query
+                'out.csv'
+                with (/* the file */ format => 'csv');
 
   - name: coverage_copy_query_cte_narrow
     input: |-

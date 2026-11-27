@@ -11,7 +11,8 @@ formatter-snapshots:
         validation:
           setup: create table t(a int);
 
-  # A comment after CASE goes in front of the first WHEN, a block comment at the end of a WHEN in front of the next one
+  # A comment after CASE goes past the first WHEN in front of its condition, a block comment at the end of a WHEN past the
+  # next WHEN
   - name: comment_in_case
     input: |-
       select case -- the kinds

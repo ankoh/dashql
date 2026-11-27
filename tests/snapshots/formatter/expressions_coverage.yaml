@@ -397,14 +397,16 @@ formatter-snapshots:
               with a as (select 1 as x), b as (select 2 as y) select * from a, b;
           - mode: compact
             expected: |-
-              with a as (select 1 as x), -- c
+              with a as (select 1 as x),
+              -- c
               b as (select 2 as y)
               select * from a, b;
           - mode: pretty
             expected: |-
               with a as (
                 select 1 as x
-              ), -- c
+              ),
+              -- c
               b as (
                 select 2 as y
               )
