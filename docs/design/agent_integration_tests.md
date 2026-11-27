@@ -45,7 +45,6 @@ Claude Code 2.1.325 on Linux (bubblewrap 0.11.1):
 |---|---|---|---|---|
 | A command of `Bash`, sandbox on | blocked | blocked | yes, in its own network namespace | yes |
 | A command of `Bash`, sandbox off | yes | yes | yes | yes |
-| Hooks (`SessionStart`, `PostToolUse`, `Stop`), sandbox on or off | yes | yes | yes | yes |
 
 Codex 0.169.0 on Linux (its own bubblewrap), a command of `exec_command` in `codex exec`:
 
