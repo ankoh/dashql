@@ -713,7 +713,14 @@ fn the_relations_are_not_asked_about_once_the_attempts_are_used_up() {
             ..CatalogUpdateTask::new(task_id, CatalogUpdateVariant::RelationRefresh, NOW)
         };
         host.apply("database", ConnectionAction::UpdateCatalog(task));
-        host.apply("database", ConnectionAction::CatalogUpdateFailed { task_id, error: DetailedError::new("down") });
+        host.apply(
+            "database",
+            ConnectionAction::CatalogUpdateFinished {
+                task_id,
+                status: CatalogUpdateTaskStatus::Failed,
+                error: Some(DetailedError::new("down")),
+            },
+        );
     }
     host.observe();
     host.advance(60_000);

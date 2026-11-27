@@ -689,7 +689,6 @@ fn a_cancelled_update_publishes_nothing() {
     let (outcome, _) = trino.run(None, &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Cancelled);
     assert_eq!(outcome.error.as_deref(), Some("Superseded by forced catalog refresh"));
-    assert!(matches!(outcome.connection_action(trino.task_id), ConnectionAction::CatalogUpdateCancelled { .. }));
     assert!(trino.relations_text().is_empty());
 }
 
@@ -1128,10 +1127,6 @@ fn hyper_keeps_the_relations_of_a_failed_database_while_committing_the_others() 
     let (outcome, _) = hyper.run(None, &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::PartiallySucceeded);
     assert_eq!(outcome.error.as_deref(), Some("second: second unavailable"));
-    assert!(matches!(
-        outcome.connection_action(2),
-        ConnectionAction::CatalogUpdatePartiallySucceeded { task_id: 2, .. }
-    ));
     let text = hyper.relations_text();
     assert!(text.contains("\"first\".\"public\".\"first_v2\""));
     assert!(!text.contains("first_v1"));
@@ -1620,7 +1615,11 @@ impl Registry {
             CatalogUpdateVariant::FullCatalogRefresh,
             self.now,
         )));
-        self.apply(ConnectionAction::CatalogUpdateSucceeded { task_id: 999 });
+        self.apply(ConnectionAction::CatalogUpdateFinished {
+            task_id: 999,
+            status: CatalogUpdateTaskStatus::Succeeded,
+            error: None,
+        });
     }
 
     /// Hand the loader the connection and run the commands of a scheduling pass

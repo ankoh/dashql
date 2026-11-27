@@ -64,7 +64,14 @@ fn stopping_aborts_the_pending_publishers_and_clears_the_running_tasks() {
                 ConnectionAction::UpdateCatalog(task(task_id, CatalogUpdateVariant::FullCatalogRefresh, &[])),
             );
         }
-        apply(&mut database, ConnectionAction::CatalogUpdateSucceeded { task_id: 2 });
+        apply(
+            &mut database,
+            ConnectionAction::CatalogUpdateFinished {
+                task_id: 2,
+                status: CatalogUpdateTaskStatus::Succeeded,
+                error: None,
+            },
+        );
         let revision = database.revision();
         let effects = apply(&mut database, stop.clone());
         // The host stops the setup and the tasks right after the action, before anything else runs
@@ -174,7 +181,10 @@ fn touched_relations_are_taken_by_a_catalog_update_that_succeeds() {
     assert_eq!(database.catalog_updates().pending_relations(), vec![a()]);
     // An update of relations is no full refresh
     assert_eq!(database.catalog_updates().current_full_refresh, None);
-    apply(&mut database, ConnectionAction::CatalogUpdateSucceeded { task_id: 1 });
+    apply(
+        &mut database,
+        ConnectionAction::CatalogUpdateFinished { task_id: 1, status: CatalogUpdateTaskStatus::Succeeded, error: None },
+    );
     assert!(database.catalog_updates().touched_relations.is_empty());
     assert!(!database.catalog_updates().described);
 }
@@ -196,7 +206,14 @@ fn touched_relations_come_back_when_the_update_fails_until_the_catalog_is_out_of
     for attempt in 1..=MAX_TOUCHED_ATTEMPTS {
         assert!(!database.catalog_updates().is_out_of_date());
         start(&mut database, attempt, CatalogUpdateVariant::RelationRefresh);
-        apply(&mut database, ConnectionAction::CatalogUpdateFailed { task_id: attempt, error: error("down") });
+        apply(
+            &mut database,
+            ConnectionAction::CatalogUpdateFinished {
+                task_id: attempt,
+                status: CatalogUpdateTaskStatus::Failed,
+                error: Some(error("down")),
+            },
+        );
         assert_eq!(database.catalog_updates().touched_relations, vec![a()]);
         assert_eq!(database.catalog_updates().touched_failures, attempt);
     }
@@ -211,7 +228,14 @@ fn touched_relations_come_back_without_a_failure_when_the_update_is_cancelled() 
     let mut database = hyper();
     touch(&mut database, vec![name(None, "a")]);
     start(&mut database, 1, CatalogUpdateVariant::RelationRefresh);
-    apply(&mut database, ConnectionAction::CatalogUpdateCancelled { task_id: 1, error: error("cancelled") });
+    apply(
+        &mut database,
+        ConnectionAction::CatalogUpdateFinished {
+            task_id: 1,
+            status: CatalogUpdateTaskStatus::Cancelled,
+            error: Some(error("cancelled")),
+        },
+    );
     assert_eq!(database.catalog_updates().touched_relations, vec![a()]);
     assert_eq!(database.catalog_updates().touched_failures, 0);
 }
@@ -294,7 +318,10 @@ fn a_refresh_is_running_only_while_the_current_full_refresh_runs() {
     assert!(connection.catalog_updates().is_refresh_running());
     // Other running tasks don't count
     apply(&mut connection, ConnectionAction::UpdateCatalog(task(8, CatalogUpdateVariant::RelationRefresh, &[])));
-    apply(&mut connection, ConnectionAction::CatalogUpdateSucceeded { task_id: 7 });
+    apply(
+        &mut connection,
+        ConnectionAction::CatalogUpdateFinished { task_id: 7, status: CatalogUpdateTaskStatus::Succeeded, error: None },
+    );
     assert_eq!(connection.catalog_updates().current_full_refresh, Some(7));
     assert!(!connection.catalog_updates().is_refresh_running());
 }
@@ -313,17 +340,32 @@ fn a_catalog_can_be_refreshed_only_online_without_a_running_full_refresh() {
     assert!(connection.can_refresh_catalog());
     apply(&mut connection, ConnectionAction::UpdateCatalog(task(7, CatalogUpdateVariant::FullCatalogRefresh, &[])));
     assert!(!connection.can_refresh_catalog());
-    apply(&mut connection, ConnectionAction::CatalogUpdateSucceeded { task_id: 7 });
+    apply(
+        &mut connection,
+        ConnectionAction::CatalogUpdateFinished { task_id: 7, status: CatalogUpdateTaskStatus::Succeeded, error: None },
+    );
     assert!(connection.can_refresh_catalog());
 }
 
 #[test]
 fn a_finished_refresh_keeps_a_superseding_refresh() {
     let terminals = [
-        ConnectionAction::CatalogUpdateCancelled { task_id: 7, error: error("cancelled") },
-        ConnectionAction::CatalogUpdateFailed { task_id: 7, error: error("failed") },
-        ConnectionAction::CatalogUpdateSucceeded { task_id: 7 },
-        ConnectionAction::CatalogUpdatePartiallySucceeded { task_id: 7, error: error("partial") },
+        ConnectionAction::CatalogUpdateFinished {
+            task_id: 7,
+            status: CatalogUpdateTaskStatus::Cancelled,
+            error: Some(error("cancelled")),
+        },
+        ConnectionAction::CatalogUpdateFinished {
+            task_id: 7,
+            status: CatalogUpdateTaskStatus::Failed,
+            error: Some(error("failed")),
+        },
+        ConnectionAction::CatalogUpdateFinished { task_id: 7, status: CatalogUpdateTaskStatus::Succeeded, error: None },
+        ConnectionAction::CatalogUpdateFinished {
+            task_id: 7,
+            status: CatalogUpdateTaskStatus::PartiallySucceeded,
+            error: Some(error("partial")),
+        },
     ];
     for terminal in terminals {
         for newer_finished_first in [false, true] {
@@ -337,7 +379,14 @@ fn a_finished_refresh_keeps_a_superseding_refresh() {
                 ConnectionAction::UpdateCatalog(task(8, CatalogUpdateVariant::FullCatalogRefresh, &[])),
             );
             if newer_finished_first {
-                apply(&mut connection, ConnectionAction::CatalogUpdateSucceeded { task_id: 8 });
+                apply(
+                    &mut connection,
+                    ConnectionAction::CatalogUpdateFinished {
+                        task_id: 8,
+                        status: CatalogUpdateTaskStatus::Succeeded,
+                        error: None,
+                    },
+                );
             }
             apply(&mut connection, terminal.clone());
             let updates = connection.catalog_updates();
@@ -346,7 +395,14 @@ fn a_finished_refresh_keeps_a_superseding_refresh() {
             assert_eq!(updates.current_full_refresh, Some(8));
             assert_eq!(updates.is_refresh_running(), !newer_finished_first, "{terminal:?}");
             if !newer_finished_first {
-                apply(&mut connection, ConnectionAction::CatalogUpdateSucceeded { task_id: 8 });
+                apply(
+                    &mut connection,
+                    ConnectionAction::CatalogUpdateFinished {
+                        task_id: 8,
+                        status: CatalogUpdateTaskStatus::Succeeded,
+                        error: None,
+                    },
+                );
             }
             let updates = connection.catalog_updates();
             assert_eq!(updates.current_full_refresh, Some(8));
@@ -361,7 +417,14 @@ fn finishes_a_partially_successful_refresh() {
     let mut connection = hyper();
     apply(&mut connection, ConnectionAction::UpdateCatalog(task(7, CatalogUpdateVariant::FullCatalogRefresh, &[])));
     let failure = error("second: unavailable");
-    apply(&mut connection, ConnectionAction::CatalogUpdatePartiallySucceeded { task_id: 7, error: failure.clone() });
+    apply(
+        &mut connection,
+        ConnectionAction::CatalogUpdateFinished {
+            task_id: 7,
+            status: CatalogUpdateTaskStatus::PartiallySucceeded,
+            error: Some(failure.clone()),
+        },
+    );
     let updates = connection.catalog_updates();
     let finished = &updates.tasks_finished[&7];
     assert_eq!(finished.status, CatalogUpdateTaskStatus::PartiallySucceeded);
@@ -381,7 +444,19 @@ fn registers_the_queries_of_running_updates_only() {
     let outcome =
         connection.apply(ConnectionAction::CatalogUpdateRegisterQuery { task_id: 9, query_id: 4 }, NOW).unwrap();
     assert!(!outcome.changed);
-    assert!(!connection.apply(ConnectionAction::CatalogUpdateSucceeded { task_id: 9 }, NOW).unwrap().changed);
+    assert!(
+        !connection
+            .apply(
+                ConnectionAction::CatalogUpdateFinished {
+                    task_id: 9,
+                    status: CatalogUpdateTaskStatus::Succeeded,
+                    error: None
+                },
+                NOW
+            )
+            .unwrap()
+            .changed
+    );
 }
 
 // Drafts and the params of a setup

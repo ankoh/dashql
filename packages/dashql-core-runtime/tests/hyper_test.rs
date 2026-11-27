@@ -1231,7 +1231,16 @@ fn the_catalog_refreshes_only_online_without_a_running_refresh() {
     let refresh = CatalogUpdateTask::new(7, CatalogUpdateVariant::FullCatalogRefresh, 0.0);
     connection.apply(ConnectionAction::UpdateCatalog(refresh), 0.0).unwrap();
     assert!(!connection.can_refresh_catalog());
-    connection.apply(ConnectionAction::CatalogUpdateSucceeded { task_id: 7 }, 0.0).unwrap();
+    connection
+        .apply(
+            ConnectionAction::CatalogUpdateFinished {
+                task_id: 7,
+                status: CatalogUpdateTaskStatus::Succeeded,
+                error: None,
+            },
+            0.0,
+        )
+        .unwrap();
     assert!(connection.can_refresh_catalog());
     connection.apply(ConnectionAction::HealthCheckFailed(DetailedError::new("down")), 0.0).unwrap();
     assert!(!connection.can_refresh_catalog());

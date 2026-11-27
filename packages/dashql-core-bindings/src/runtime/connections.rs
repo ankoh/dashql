@@ -22,8 +22,8 @@ use dashql_core_runtime::compute::types::TableId;
 use dashql_core_runtime::compute::ComputationOutcome;
 use dashql_core_runtime::connections::registry::{ConnectionRegistry, RegistryOutcome};
 use dashql_core_runtime::connections::{
-    CatalogUpdateTaskStatus, CatalogUpdateVariant, ConnectionAction, ConnectionDetails, ConnectionParams,
-    ConnectionState, ConnectionStateOptions, ConnectorType, JsonObject,
+    CatalogUpdateVariant, ConnectionAction, ConnectionDetails, ConnectionParams, ConnectionState,
+    ConnectionStateOptions, ConnectorType, JsonObject,
 };
 use dashql_core_runtime::executor::QueryExecutor;
 use dashql_core_runtime::host::{Host, LogLevel};
@@ -312,16 +312,7 @@ impl Connections {
         let connection = self.registry.borrow().get(connection_id).cloned();
         let prev = connection.as_ref().map(|connection| PersistedConnection::of_state(&connection.state.borrow()));
         let finished_task = match &action {
-            ConnectionAction::CatalogUpdateSucceeded { task_id } => {
-                Some((*task_id, CatalogUpdateTaskStatus::Succeeded))
-            }
-            ConnectionAction::CatalogUpdatePartiallySucceeded { task_id, .. } => {
-                Some((*task_id, CatalogUpdateTaskStatus::PartiallySucceeded))
-            }
-            ConnectionAction::CatalogUpdateFailed { task_id, .. } => Some((*task_id, CatalogUpdateTaskStatus::Failed)),
-            ConnectionAction::CatalogUpdateCancelled { task_id, .. } => {
-                Some((*task_id, CatalogUpdateTaskStatus::Cancelled))
-            }
+            ConnectionAction::CatalogUpdateFinished { task_id, status, .. } => Some((*task_id, *status)),
             _ => None,
         };
         let change = match &action {

@@ -134,17 +134,8 @@ pub struct CatalogUpdateOutcome {
 impl CatalogUpdateOutcome {
     /// The action that finishes the update on its connection
     pub fn connection_action(&self, task_id: u32) -> ConnectionAction {
-        let error = || DetailedError::new(self.error.clone().unwrap_or_default());
-        match self.status {
-            CatalogUpdateTaskStatus::Succeeded | CatalogUpdateTaskStatus::Started => {
-                ConnectionAction::CatalogUpdateSucceeded { task_id }
-            }
-            CatalogUpdateTaskStatus::PartiallySucceeded => {
-                ConnectionAction::CatalogUpdatePartiallySucceeded { task_id, error: error() }
-            }
-            CatalogUpdateTaskStatus::Failed => ConnectionAction::CatalogUpdateFailed { task_id, error: error() },
-            CatalogUpdateTaskStatus::Cancelled => ConnectionAction::CatalogUpdateCancelled { task_id, error: error() },
-        }
+        let error = self.error.as_deref().map(DetailedError::new);
+        ConnectionAction::CatalogUpdateFinished { task_id, status: self.status, error }
     }
 
     /// Is the new catalog announced, so that scripts that read it are analyzed again?

@@ -170,14 +170,9 @@ pub enum ConnectionAction {
     UpdateCatalog(CatalogUpdateTask),
     /// A catalog update started a query
     CatalogUpdateRegisterQuery { task_id: u32, query_id: u32 },
-    /// A catalog update was cancelled
-    CatalogUpdateCancelled { task_id: u32, error: DetailedError },
-    /// A catalog update failed
-    CatalogUpdateFailed { task_id: u32, error: DetailedError },
-    /// A catalog update succeeded
-    CatalogUpdateSucceeded { task_id: u32 },
-    /// A catalog update succeeded for some databases and failed for others
-    CatalogUpdatePartiallySucceeded { task_id: u32, error: DetailedError },
+    /// A catalog update finished: it succeeded, partially succeeded (some databases failed), failed or was cancelled.
+    /// The error is that of an update that didn't succeed.
+    CatalogUpdateFinished { task_id: u32, status: CatalogUpdateTaskStatus, error: Option<DetailedError> },
 
     /// A step of the setup of a Hyper connection
     Hyper(HyperAction),
@@ -516,20 +511,8 @@ impl ConnectionState {
             ConnectionAction::CatalogUpdateRegisterQuery { task_id, query_id } => {
                 outcome.changed = self.catalog_updates.register_query(task_id, query_id);
             }
-            ConnectionAction::CatalogUpdateCancelled { task_id, error } => {
-                outcome.changed =
-                    self.catalog_updates.finish(task_id, CatalogUpdateTaskStatus::Cancelled, Some(error), now);
-            }
-            ConnectionAction::CatalogUpdateFailed { task_id, error } => {
-                outcome.changed =
-                    self.catalog_updates.finish(task_id, CatalogUpdateTaskStatus::Failed, Some(error), now);
-            }
-            ConnectionAction::CatalogUpdateSucceeded { task_id } => {
-                outcome.changed = self.catalog_updates.finish(task_id, CatalogUpdateTaskStatus::Succeeded, None, now);
-            }
-            ConnectionAction::CatalogUpdatePartiallySucceeded { task_id, error } => {
-                outcome.changed =
-                    self.catalog_updates.finish(task_id, CatalogUpdateTaskStatus::PartiallySucceeded, Some(error), now);
+            ConnectionAction::CatalogUpdateFinished { task_id, status, error } => {
+                outcome.changed = self.catalog_updates.finish(task_id, status, error, now);
             }
             ConnectionAction::SetupStep { epoch, step } => {
                 if epoch == self.setup_epoch && !matches!(*step, ConnectionAction::SetupStep { .. }) {
