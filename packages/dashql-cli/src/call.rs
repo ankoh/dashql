@@ -5,7 +5,7 @@ use crate::session::Session;
 use crate::{EXIT_FAILED, EXIT_USAGE};
 use serde_json::Value;
 use std::io::{BufRead, BufReader, Cursor, Read, Write};
-use std::net::{TcpStream, ToSocketAddrs};
+use std::net::{Ipv4Addr, SocketAddr, TcpStream};
 use std::time::Duration;
 
 /// The largest request that the server takes
@@ -35,9 +35,8 @@ impl Output<'_> {
 /// The HTTP request of a call
 fn request(session: &Session, body: &[u8]) -> Vec<u8> {
     let mut out = format!(
-        "POST /v1/call HTTP/1.0\r\nHost: {}:{}\r\nAuthorization: Bearer {}\r\nContent-Type: application/json\r\n\
+        "POST /v1/call HTTP/1.0\r\nHost: 127.0.0.1:{}\r\nAuthorization: Bearer {}\r\nContent-Type: application/json\r\n\
          Content-Length: {}\r\n\r\n",
-        session.host,
         session.port,
         session.token,
         body.len()
@@ -120,20 +119,14 @@ pub fn send(session: &Session, body: &[u8], output: &mut Output) -> u8 {
     if body.len() > MAX_REQUEST_BYTES {
         return output.error(EXIT_USAGE, "the call is larger than 16 MiB");
     }
-    let address = format!("{}:{}", session.host, session.port);
-    let not_running = |e: &dyn std::fmt::Display| {
-        format!("DashQL is not running or runs no question on this workbook: no answer on {address}: {e}")
-    };
-    let resolved = match address.to_socket_addrs() {
-        Ok(mut addresses) => addresses.next(),
-        Err(e) => return output.error(EXIT_USAGE, &not_running(&e)),
-    };
-    let Some(resolved) = resolved else {
-        return output.error(EXIT_USAGE, &not_running(&"no address"));
-    };
-    let mut stream = match TcpStream::connect_timeout(&resolved, CONNECT_TIMEOUT) {
+    let address = SocketAddr::from((Ipv4Addr::LOCALHOST, session.port));
+    let mut stream = match TcpStream::connect_timeout(&address, CONNECT_TIMEOUT) {
         Ok(stream) => stream,
-        Err(e) => return output.error(EXIT_USAGE, &not_running(&e)),
+        Err(e) => {
+            let message =
+                format!("DashQL is not running or runs no question on this workbook: no answer on {address}: {e}");
+            return output.error(EXIT_USAGE, &message);
+        }
     };
     if let Err(e) = stream.write_all(&request(session, body)).and_then(|_| stream.flush()) {
         return output.error(EXIT_USAGE, &format!("sending the call to DashQL: {e}"));
@@ -181,7 +174,7 @@ mod tests {
 
     #[test]
     fn writes_the_request_with_the_token() {
-        let session = Session { host: "127.0.0.1".into(), port: 9, token: "secret".into(), workbook_id: "w".into() };
+        let session = Session { port: 9, token: "secret".into(), workbook_id: "w".into() };
         let request = String::from_utf8(request(&session, b"{}")).unwrap();
         assert!(request.starts_with("POST /v1/call HTTP/1.0\r\nHost: 127.0.0.1:9\r\n"), "{request}");
         assert!(request.contains("\r\nAuthorization: Bearer secret\r\n"));

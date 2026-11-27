@@ -5,22 +5,16 @@ use serde_json::Value;
 /// The address of the app and the workbook of the agent
 #[derive(Debug, PartialEq, Eq)]
 pub struct Session {
-    /// The host of the server of the app, a loopback address
-    pub host: String,
+    /// The port of the server of the app on 127.0.0.1
     pub port: u16,
     pub token: String,
     pub workbook_id: String,
 }
 
-/// The host and port of a loopback URL `http://127.0.0.1:<port>`
-fn loopback(url: &str) -> Option<(String, u16)> {
-    let rest = url.strip_prefix("http://")?.trim_end_matches('/');
-    let (host, port) = rest.rsplit_once(':')?;
-    if host != "127.0.0.1" && host != "localhost" {
-        return None;
-    }
-    let port = port.parse::<u16>().ok().filter(|port| *port != 0)?;
-    Some((host.to_string(), port))
+/// The port of a loopback URL `http://127.0.0.1:<port>`, the only one that the app writes
+fn loopback_port(url: &str) -> Option<u16> {
+    let port = url.strip_prefix("http://127.0.0.1:")?.trim_end_matches('/');
+    port.parse::<u16>().ok().filter(|port| *port != 0)
 }
 
 /// Parse the text of a session file
@@ -29,8 +23,8 @@ pub fn parse_session(text: &str) -> Result<Session, String> {
     let field =
         |name: &str| value.get(name).and_then(Value::as_str).filter(|s| !s.is_empty()).ok_or(format!("no {name}"));
     let url = field("url")?;
-    let (host, port) = loopback(url).ok_or(format!("the url {url} is no loopback address"))?;
-    Ok(Session { host, port, token: field("token")?.to_string(), workbook_id: field("workbookId")?.to_string() })
+    let port = loopback_port(url).ok_or(format!("the url {url} is no loopback address"))?;
+    Ok(Session { port, token: field("token")?.to_string(), workbook_id: field("workbookId")?.to_string() })
 }
 
 /// Read a session file
@@ -46,12 +40,9 @@ mod tests {
     #[test]
     fn reads_the_address_the_token_and_the_workbook() {
         let session = parse_session(r#"{"url": "http://127.0.0.1:4321", "token": "t", "workbookId": "w"}"#).unwrap();
+        assert_eq!(session, Session { port: 4321, token: "t".into(), workbook_id: "w".into() });
         assert_eq!(
-            session,
-            Session { host: "127.0.0.1".into(), port: 4321, token: "t".into(), workbook_id: "w".into() }
-        );
-        assert_eq!(
-            parse_session(r#"{"url": "http://localhost:1/", "token": "t", "workbookId": "w"}"#).unwrap().port,
+            parse_session(r#"{"url": "http://127.0.0.1:1/", "token": "t", "workbookId": "w"}"#).unwrap().port,
             1
         );
     }
@@ -66,6 +57,7 @@ mod tests {
             (r#"{"url": "http://127.0.0.1:1", "token": "t"}"#, "no workbookId"),
             (r#"{"url": "https://127.0.0.1:1", "token": "t", "workbookId": "w"}"#, "no loopback"),
             (r#"{"url": "http://example.com:1", "token": "t", "workbookId": "w"}"#, "no loopback"),
+            (r#"{"url": "http://localhost:1", "token": "t", "workbookId": "w"}"#, "no loopback"),
             (r#"{"url": "http://127.0.0.1:x", "token": "t", "workbookId": "w"}"#, "no loopback"),
             (r#"{"url": "http://127.0.0.1:0", "token": "t", "workbookId": "w"}"#, "no loopback"),
         ] {
