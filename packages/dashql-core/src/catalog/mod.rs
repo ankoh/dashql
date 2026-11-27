@@ -1046,17 +1046,13 @@ impl CatalogSnapshot {
         name: &QualifiedFunctionName,
         ignore_entry: CatalogEntryId,
         out: &mut Vec<ObjectLoc>,
-        limit: usize,
     ) {
         for (_, entry_id) in &self.entries_ranked {
             if *entry_id == ignore_entry {
                 continue;
             }
             let Some(entry) = self.entries.get(entry_id) else { continue };
-            entry.data().resolve_function(name, out, limit);
-            if out.len() >= limit {
-                break;
-            }
+            entry.data().resolve_function(name, out);
         }
         if let Some(first) = out.first().and_then(|loc| self.layer(loc.entry)) {
             out.retain(|loc| self.layer(loc.entry) == Some(first));

@@ -5,6 +5,7 @@
 use super::state::AnalysisState;
 use super::types::*;
 use crate::catalog::{Name, QualifiedFunctionName};
+use crate::hash::HashSet;
 use dashql_buffers::algebra::FunctionCallModifier;
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
 use dashql_buffers::parser::NodeType;
@@ -113,9 +114,6 @@ const UNKNOWN_FUNCTION_HINTS: &[(&str, &str, &str)] = &[
     ("from_unixtime", "to_timestamp", "to_timestamp(…)"),
 ];
 
-/// How many declarations of a name the checks look at
-const RESOLVE_LIMIT: usize = 16;
-
 fn has_modifier(call: &FunctionCall, modifier: FunctionCallModifier) -> bool {
     call.function_call_modifiers & modifier.0 != 0
 }
@@ -137,7 +135,7 @@ fn is_aggregate(state: &AnalysisState, call: &FunctionCall) -> bool {
         return true;
     }
     state
-        .resolve_function(name, RESOLVE_LIMIT)
+        .resolve_function(name)
         .into_iter()
         .any(|loc| state.function(loc).is_some_and(|function| function.is_aggregate))
 }
@@ -158,10 +156,10 @@ fn call_name(call: &FunctionCall) -> &str {
     }
 }
 
-/// The aggregate call that an aggregate call is nested in: the closest enclosing aggregate of the same query. A
-/// subquery has an aggregation of its own and a window function aggregates after the grouping, both end the walk.
-/// Scalar calls and every other expression are passed through.
-fn enclosing_aggregate(state: &AnalysisState, ast_node_id: u32) -> Option<u32> {
+/// The aggregate call that an aggregate call is nested in: the closest enclosing one of the AST nodes of the aggregate
+/// calls of the same query. A subquery has an aggregation of its own and a window function aggregates after the
+/// grouping, both end the walk. Scalar calls and every other expression are passed through.
+fn enclosing_aggregate(state: &AnalysisState, aggregates: &HashSet<u32>, ast_node_id: u32) -> Option<u32> {
     let mut at = ast_node_id;
     // A parent has a larger id in the post-order AST, the walk ends at a statement root, which is its own parent
     for _ in 0..state.ast.len() {
@@ -172,13 +170,11 @@ fn enclosing_aggregate(state: &AnalysisState, ast_node_id: u32) -> Option<u32> {
         at = parent;
         match state.node(at)?.node_type() {
             NodeType::OBJECT_SQL_SELECT => return None,
+            NodeType::OBJECT_SQL_FUNCTION_EXPRESSION if aggregates.contains(&at) => return Some(at),
             NodeType::OBJECT_SQL_FUNCTION_EXPRESSION => {
-                let Some(outer) = call_of(state, state.expression_of(at)) else { continue };
-                if has_modifier(outer, FunctionCallModifier::OVER) {
+                if call_of(state, state.expression_of(at)).is_some_and(|c| has_modifier(c, FunctionCallModifier::OVER))
+                {
                     return None;
-                }
-                if is_aggregate(state, outer) {
-                    return Some(at);
                 }
             }
             _ => {}
@@ -189,17 +185,19 @@ fn enclosing_aggregate(state: &AnalysisState, ast_node_id: u32) -> Option<u32> {
 
 /// Report aggregate calls that are nested in aggregate calls of the same query, `string_agg(array_agg(x), ',')`
 fn check_nested_aggregates(state: &mut AnalysisState) {
+    let calls = state.out.expressions.iter().filter_map(|expr| match &expr.inner {
+        ExpressionInner::FunctionCall(call) if is_aggregate(state, call) => Some((expr.ast_node_id, call)),
+        _ => None,
+    });
+    let aggregates: Vec<(u32, &FunctionCall)> = calls.collect();
+    let nodes: HashSet<u32> = aggregates.iter().map(|&(node, _)| node).collect();
     let mut nested = Vec::new();
-    for expr in &state.out.expressions {
-        let ExpressionInner::FunctionCall(call) = &expr.inner else { continue };
-        if !is_aggregate(state, call) {
-            continue;
-        }
-        if let Some(outer) = enclosing_aggregate(state, expr.ast_node_id) {
+    for &(node, call) in &aggregates {
+        if let Some(outer) = enclosing_aggregate(state, &nodes, node) {
             let outer_name = call_of(state, state.expression_of(outer)).map(call_name).unwrap_or_default();
             let message =
                 format!("aggregate function calls cannot be nested: {} is inside of {}", call_name(call), outer_name);
-            nested.push((expr.ast_node_id, message));
+            nested.push((node, message));
         }
     }
     for (node, message) in nested {
@@ -219,7 +217,7 @@ fn unknown_function_message(state: &AnalysisState, name: &QualifiedFunctionName)
             schema_name: state.empty_name(),
             function_name: Name { text: (*alternative).into(), ..state.empty_name() },
         };
-        if !state.resolve_function(&alternative, 1).is_empty() {
+        if !state.resolve_function(&alternative).is_empty() {
             message.push_str(", use ");
             message.push_str(text);
         }
@@ -247,7 +245,7 @@ fn check_unknown_functions(state: &mut AnalysisState) {
         {
             continue;
         }
-        if !state.resolve_function(name, 1).is_empty() {
+        if !state.resolve_function(name).is_empty() {
             continue;
         }
         unknown.push((name.ast_node_id.unwrap_or(expr.ast_node_id), unknown_function_message(state, name)));

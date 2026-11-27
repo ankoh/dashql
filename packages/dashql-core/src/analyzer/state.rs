@@ -375,11 +375,11 @@ impl<'a> AnalysisState<'a> {
     }
 
     /// Resolve a function: the declarations of the script first, then the catalog in resolution order
-    pub fn resolve_function(&self, name: &QualifiedFunctionName, limit: usize) -> Vec<ObjectLoc> {
+    pub fn resolve_function(&self, name: &QualifiedFunctionName) -> Vec<ObjectLoc> {
         let mut out = Vec::new();
-        self.out.entry.resolve_function(name, &mut out, limit);
+        self.out.entry.resolve_function(name, &mut out);
         if out.is_empty() {
-            self.catalog.resolve_function(name, self.entry_id, &mut out, limit);
+            self.catalog.resolve_function(name, self.entry_id, &mut out);
         }
         out
     }

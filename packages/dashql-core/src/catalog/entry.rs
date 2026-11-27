@@ -512,7 +512,7 @@ impl CatalogEntryData {
 
     /// Resolve a function by name: a name with a database exactly, one with a schema in that schema of any database,
     /// a bare name in every schema. A function has no search path in DashQL, so a bare name matches any schema.
-    pub fn resolve_function(&self, name: &QualifiedFunctionName, out: &mut Vec<ObjectLoc>, limit: usize) {
+    pub fn resolve_function(&self, name: &QualifiedFunctionName, out: &mut Vec<ObjectLoc>) {
         if !name.database_name.text.is_empty() {
             if let Some(&i) = self.functions_by_qualified_name.get(&name.key()) {
                 out.push(ObjectLoc { entry: self.catalog_entry_id, index: i as u32 });
@@ -526,9 +526,6 @@ impl CatalogEntryData {
                 continue;
             }
             out.push(ObjectLoc { entry: self.catalog_entry_id, index: i as u32 });
-            if out.len() >= limit {
-                return;
-            }
         }
     }
 
