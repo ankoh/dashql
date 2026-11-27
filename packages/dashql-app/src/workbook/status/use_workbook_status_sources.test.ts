@@ -4,8 +4,6 @@ import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_
 import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 import type { WorkbookRunState } from '@akohn/dashql';
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
-import type { ScriptData, ScriptDataMap } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import { createScriptRef } from '@akohn/dashql/platform/workbook/script_types';
 import { diffConnections, diffExecution, diffPublish, diffScriptQueries, liveWorkbookStatuses, scriptQueries, scriptsWithQueries, type ScriptQuery, type WorkbookConnectionStatus } from './use_workbook_status_sources.js';
 import { pickWorkbookStatus, WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from './workbook_status.js';
 
@@ -123,10 +121,8 @@ describe('Workbook status', () => {
     });
 
     it('reads the latest query of each script in feed order, without the queries the runtime no longer holds', () => {
-        const fakeScript = (scriptKey: number, fileName: string, latestQueryId: number | null) => ({ scriptKey, fileName, latestQueryId }) as ScriptData;
-        const scripts: ScriptDataMap = { 1: fakeScript(1, '1_a.sql', 10), 2: fakeScript(2, '2_b.sql', null), 3: fakeScript(3, '3_c.sql', 30), 4: fakeScript(4, '4_d.sql', 40) };
-        const scriptRefs = Object.fromEntries(Object.values(scripts).map(script => [script.fileName, createScriptRef(script.scriptKey, script.fileName)]));
-        const latest = scriptsWithQueries({ scriptOrder: ['3_c.sql', '1_a.sql', '2_b.sql', '4_d.sql'], scriptRefs }, scripts);
+        const script = (scriptKey: number, fileName: string, latestQueryId: number | null) => ({ scriptKey, fileName, latestQueryId });
+        const latest = scriptsWithQueries([script(3, '3_c.sql', 30), script(1, '1_a.sql', 10), script(2, '2_b.sql', null), null, script(4, '4_d.sql', 40)]);
         expect(latest).toEqual([
             { scriptKey: 3, name: '3_c', queryId: 30 },
             { scriptKey: 1, name: '1_a', queryId: 10 },
@@ -134,7 +130,7 @@ describe('Workbook status', () => {
         ]);
         const held = (status: QueryExecutionStatus) => ({ status, metrics: { queryDurationMs: 5, streamMetrics: { totalRowsReceived: 2 } }, error: null }) as unknown as QueryExecutionState;
         const queries = new Map([[10, held(QueryExecutionStatus.SUCCEEDED)], [30, held(QueryExecutionStatus.RUNNING)]]);
-        expect(scriptQueries(latest, queryId => queries.get(queryId) ?? null).map(q => [q.scriptKey, q.status])).toEqual([
+        expect(scriptQueries(latest, latest.map(({ queryId }) => queries.get(queryId) ?? null)).map(q => [q.scriptKey, q.status])).toEqual([
             [3, QueryExecutionStatus.RUNNING],
             [1, QueryExecutionStatus.SUCCEEDED],
         ]);

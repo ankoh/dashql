@@ -4,7 +4,7 @@ import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/c
 import type { ConnectionLabelParts } from '../../connections/connection_label.js';
 import { QueryExecutionStatus, queryIsDone } from '@akohn/dashql/platform/query/query_execution_state';
 import type { WorkbookRunState } from '@akohn/dashql';
-import type { ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import type { ScriptData, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import { formatMilliseconds } from '@akohn/dashql-react/format/format';
 import { getQueryStatusText } from '../entry_status_model.js';
@@ -12,7 +12,7 @@ import { runStepText } from '../feed/workbook_run_step.js';
 import { useCloudPublishStatus, type CloudPublishStatus } from '../../cloud/cloud_publish_status.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from './workbook_status.js';
 import { useLiveWorkbookStatuses, useWorkbookOutcomeTransitions } from './workbook_status_store.js';
-import { useOptionalRuntime, useWorkbookExecution, useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
+import { useOptionalRuntime, useWorkbookExecution } from '@akohn/dashql-react/hooks';
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 
 /// The latest query of a script
@@ -35,23 +35,21 @@ export interface ScriptLatestQuery {
     queryId: number;
 }
 
-/// The scripts of a workbook that have a query, in the order of the scripts
-export function scriptsWithQueries(workbookScripts: Pick<WorkbookScripts, 'scriptOrder' | 'scriptRefs'>, scripts: ScriptDataMap): ScriptLatestQuery[] {
+/// The scripts of a workbook that have a query, the views of the scripts in their order
+export function scriptsWithQueries(scripts: readonly (Pick<ScriptData, 'scriptKey' | 'fileName' | 'latestQueryId'> | null)[]): ScriptLatestQuery[] {
     const latest: ScriptLatestQuery[] = [];
-    for (const fileName of workbookScripts.scriptOrder) {
-        const scriptKey = workbookScripts.scriptRefs[fileName]?.scriptId;
-        const script = scriptKey != null ? scripts[scriptKey] : undefined;
-        if (scriptKey == null || script?.latestQueryId == null) continue;
-        latest.push({ scriptKey, name: scriptDisplayName(script.fileName), queryId: script.latestQueryId });
+    for (const script of scripts) {
+        if (script?.latestQueryId == null) continue;
+        latest.push({ scriptKey: script.scriptKey, name: scriptDisplayName(script.fileName), queryId: script.latestQueryId });
     }
     return latest;
 }
 
-/// The latest queries of the scripts, a query that the runtime no longer holds is left out
-export function scriptQueries(latest: readonly ScriptLatestQuery[], readQuery: (queryId: number) => QueryExecutionState | null): ScriptQuery[] {
+/// The latest queries of the scripts with their views, a query that the runtime no longer holds is left out
+export function scriptQueries(latest: readonly ScriptLatestQuery[], views: readonly (QueryExecutionState | null)[]): ScriptQuery[] {
     const queries: ScriptQuery[] = [];
-    for (const { scriptKey, name, queryId } of latest) {
-        const query = readQuery(queryId);
+    for (const [i, { scriptKey, name, queryId }] of latest.entries()) {
+        const query = views[i];
         if (query == null) continue;
         queries.push({
             scriptKey,
@@ -84,30 +82,32 @@ export function workbookConnectionStatuses(connections: ReadonlyMap<string, Conn
     }));
 }
 
-/// The latest queries of the scripts of a workbook, see `scriptQueries`. The component renders again when one of these
-/// queries changes, e.g. with a step of a running query, which the views of the connections leave out.
-function useScriptQueries(workbookScripts: Pick<WorkbookScripts, 'scriptOrder' | 'scriptRefs'>, scripts: ScriptDataMap): ScriptQuery[] {
+/// The latest queries of the scripts of a workbook, see `scriptQueries`. The component renders again when a script gets
+/// a new query or another name and when one of these queries changes, e.g. with a step of a running query, which the
+/// views of the connections leave out. A keystroke changes the view of its script, the queries stay the same.
+function useScriptQueries(scriptKeys: readonly number[]): ScriptQuery[] {
     const store = useOptionalRuntime()?.store ?? null;
-    // The scripts with a query keep their identity while no script gets a new query or another name, e.g. while the
-    // user types
-    const latest = useStable(scriptsWithQueries(workbookScripts, scripts));
     const subscribe = React.useCallback((listener: () => void) => {
-        const unsubscribes = store == null ? [] : latest.map(({ queryId }) => store.subscribe('query', queryId, listener));
-        return () => unsubscribes.forEach(unsubscribe => unsubscribe());
-    }, [store, latest]);
-    // The JSON of the queries keeps the snapshot while they are unchanged
-    const snapshot = React.useCallback(
-        () => JSON.stringify(scriptQueries(latest, queryId => (store?.get('query', queryId) ?? null) as QueryExecutionState | null)),
-        [store, latest],
-    );
-    const json = React.useSyncExternalStore(subscribe, snapshot, snapshot);
-    return React.useMemo(() => JSON.parse(json) as ScriptQuery[], [json]);
-}
-
-/// Keeps the identity of a value of plain JSON while its JSON is unchanged
-function useStable<T>(value: T): T {
-    const json = JSON.stringify(value);
-    return React.useMemo(() => JSON.parse(json) as T, [json]);
+        if (store == null) return () => {};
+        const unsubscribeScripts = store.subscribeKind('script', listener);
+        const unsubscribeQueries = store.subscribeKind('query', listener);
+        return () => {
+            unsubscribeScripts();
+            unsubscribeQueries();
+        };
+    }, [store]);
+    // The parts of the views that the queries are made of, the queries keep their identity while the parts do
+    const held = React.useRef<{ parts: unknown[]; queries: ScriptQuery[] } | null>(null);
+    const snapshot = React.useCallback(() => {
+        const latest = scriptsWithQueries(scriptKeys.map(key => store?.get('script', key) ?? null));
+        const views = latest.map(({ queryId }) => (store?.get('query', queryId) ?? null) as QueryExecutionState | null);
+        const parts = [...latest.flatMap(({ scriptKey, name, queryId }) => [scriptKey, name, queryId]), ...views];
+        const last = held.current;
+        if (last != null && last.parts.length === parts.length && last.parts.every((part, i) => part === parts[i])) return last.queries;
+        held.current = { parts, queries: scriptQueries(latest, views) };
+        return held.current.queries;
+    }, [store, scriptKeys]);
+    return React.useSyncExternalStore(subscribe, snapshot, snapshot);
 }
 
 /// What runs: the queries of single scripts, all scripts, connections that connect and refresh their catalog, a
@@ -273,15 +273,14 @@ interface WorkbookStatusSourcesProps {
 }
 
 /// Tell the runs, the queries, the connections and the publishes of a workbook to its bars of Wobble. A component of its
-/// own that shows nothing: it reads the latest query of every script, so it renders again with every keystroke and
-/// every step of a run, the prompt around it doesn't.
+/// own that shows nothing: it reads the latest query of every script, so it renders again with every step of a query
+/// and of a run, the prompt around it doesn't.
 export const WorkbookStatusSources = React.memo(function WorkbookStatusSources({ workbookScripts, connections: connectionStates, label }: WorkbookStatusSourcesProps): null {
     const workbookId = workbookScripts.workbookId;
-    const scripts = useWorkbookScriptMap(workbookId);
     const execution = useWorkbookExecution(workbookId).state;
     const publish = useCloudPublishStatus(workbookId);
-    const queries = useScriptQueries(workbookScripts, scripts);
-    const connections = useStable(workbookConnectionStatuses(connectionStates, label));
+    const queries = useScriptQueries(workbookScripts.scriptKeys);
+    const connections = React.useMemo(() => workbookConnectionStatuses(connectionStates, label), [connectionStates, label]);
     const executing = execution?.busy === true;
     const live = React.useMemo(
         () => liveWorkbookStatuses({ queries, execution, connections, publish, now: Date.now() }),
