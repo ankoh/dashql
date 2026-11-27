@@ -33,7 +33,7 @@ jobs:
                     libayatana-appindicator3-dev \
                     librsvg2-dev
 
-            # Every browser suite runs here, also those in WebKit (allowed to fail)
+            # Every browser suite runs here, also those in WebKit
             - uses: ./.github/actions/install-webkit-libraries
 
             - name: Setup GitHub credentials
@@ -63,25 +63,13 @@ jobs:
             - name: Test Everything
               shell: bash
               run: |
-                # Every test but the agent tests, which run in a job of their own, and the suites in WebKit, which run
-                # in the next step
+                # Every test but the agent tests, which run in a job of their own
                 bazel test --config=fastbuild \
                     --build_tests_only \
                     --test_output=errors \
                     --test_summary=detailed \
                     -- \
-                    //... -//tests/agents/... \
-                    -//packages/dashql-app:test_webkit -//packages/dashql/test/browser:test_webkit
-
-            - name: Test in WebKit
-              shell: bash
-              # Failures in WebKit are reported but do not fail the job
-              continue-on-error: true
-              run: |
-                bazel test --config=fastbuild \
-                    --test_output=errors \
-                    --test_summary=detailed \
-                    //packages/dashql-app:test_webkit //packages/dashql/test/browser:test_webkit
+                    //... -//tests/agents/...
 
     agent_integration:
         name: Agent Integration

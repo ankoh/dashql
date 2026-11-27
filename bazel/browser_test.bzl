@@ -40,7 +40,7 @@ def browser_test(name, browser, bundle, entry_point, env = {}, data = [], tags =
         entry_point: The driver
         env: More variables of the test
         data: More files of the driver
-        tags: The tags of the test
+        tags: The tags of the test, the browser is one too (`--test_tag_filters=-webkit`)
     """
     spec = _BROWSERS[browser]
     test_env = {"DASHQL_BROWSER": browser}
@@ -57,6 +57,6 @@ def browser_test(name, browser, bundle, entry_point, env = {}, data = [], tags =
             for condition, executable in spec.executable.items()
         }),
         no_copy_to_bin = spec.files,
-        tags = tags,
+        tags = tags + [browser],
         visibility = ["//visibility:public"],
     )

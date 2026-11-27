@@ -191,7 +191,9 @@ page tests (below) run next to them, half as many at once. A suite claims twelve
 `BROWSER_TEST_TAGS` in its `BUILD.bazel`), so two suites don't share a host with sixteen; Bazel runs it alone on a smaller
 host. A CI runner with four cores runs one page at a time, then the page tests one by one: two pages on four cores timed
 tests out. The Linux jobs of `build_trusted.yml` split the browsers, the fastbuild job runs the suites in Firefox, the
-release job in Chromium and a job of their own in WebKit; the job of pull requests runs all three.
+release job in Chromium and a job of their own in WebKit; the job of pull requests runs all three. A browser test has its
+browser as a tag (`browser_test` of `bazel/browser_test.bzl`), the jobs pick the suites with `--test_tag_filters`, e.g.
+`--test_tag_filters=-chromium,-webkit`.
 
 The WebKit of Playwright is built per OS release (`_WEBKIT_PLATFORMS` in `bazel/playwright.bzl`): the build for Ubuntu
 26.04, and those for macOS 15 and 26. On Linux it bundles WebKit but links libraries of the system, which
