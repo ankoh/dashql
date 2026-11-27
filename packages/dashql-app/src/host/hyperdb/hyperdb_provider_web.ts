@@ -10,6 +10,7 @@ import {
     isUnknownHyperDBSettingError,
 } from '@akohn/dashql/platform/hyperdb/hyperdb_settings';
 import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance } from '@akohn/dashql/platform/hyperdb/hyperdb_opfs_instance';
+import { startWaitingForMemory } from './hyperdb_memory_wait.js';
 import { getHyperDBWebSupportError } from './hyperdb_web_support.js';
 
 declare global {
@@ -145,12 +146,19 @@ export async function setupWebHyperDB(
         step('create OPFS instance');
         let engine: HyperDBEngine | null = null;
         try {
-            engine = await createWebHyperDBEngineWithOptions(
-                context,
-                logger,
-                { ...HYPERDB_WASM_ENGINE_SETTINGS, ...options.engineSettings, log_file_path: instance.logDirectoryPath },
-                options,
-                onSetupProgress,
+            engine = await startWaitingForMemory(
+                () => createWebHyperDBEngineWithOptions(
+                    context,
+                    logger,
+                    { ...HYPERDB_WASM_ENGINE_SETTINGS, ...options.engineSettings, log_file_path: instance.logDirectoryPath },
+                    options,
+                    onSetupProgress,
+                ),
+                (error, waitMs) => logger.warn('HyperDB WASM got no memory, waiting for the memory of the last page', {
+                    context,
+                    error: stringifyError(error),
+                    waitMs: waitMs.toString(),
+                }, 'hyperdb'),
             );
             step('start engine');
             const database = await HyperDB.create(engine, {

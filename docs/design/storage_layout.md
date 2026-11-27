@@ -170,7 +170,9 @@ A window that unloads (`pagehide`, not into the back-forward cache) gets no time
 shutdown waits for answers of the engine worker. It stops the worker right away instead, so the worker doesn't hold
 its shared WebAssembly.Memory into the reload: WebKit charges the 4 GiB maximum of that memory against the address
 space of its process, and Safari of iOS fails the memory of the reloaded page with "Out of memory" while the last one
-is held. The folder of the unloaded instance goes with the startup of the next one.
+is held. The folder of the unloaded instance goes with the startup of the next one. WebKit may release the memory of
+the stopped worker only after the reloaded page asks for its own, so a setup whose memory is refused waits and starts
+the engine again with the same memory (`startWaitingForMemory`, about 6 s in all).
 
 Earlier app versions kept these folders in the OPFS root as `dashql-workbook-<uuid>/` and let Hyper write its logs
 to the default folder `logs/<process-id>/` in the OPFS root, the cleanup removes both. Hyper still creates an
