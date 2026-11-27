@@ -385,7 +385,7 @@ impl From<&CatalogUpdateTask> for ConnectionCatalogUpdateTask {
 pub struct ConnectionCatalogUpdates {
     /// The running updates in the order of their ids
     pub tasks_running: Vec<ConnectionCatalogUpdateTask>,
-    /// The finished updates in the order of their ids
+    /// The update that finished last, older ones aren't kept
     pub tasks_finished: Vec<ConnectionCatalogUpdateTask>,
     /// Does the catalog describe the connection?
     pub described: bool,
@@ -556,7 +556,7 @@ impl ConnectionView {
             setup_attempt_draft: state.setup_attempt_draft().map(params_object),
             catalog_updates: ConnectionCatalogUpdates {
                 tasks_running: updates.tasks_running.values().map(Into::into).collect(),
-                tasks_finished: updates.tasks_finished.values().map(Into::into).collect(),
+                tasks_finished: updates.last_finished.iter().map(Into::into).collect(),
                 described: updates.described,
                 current_full_refresh: updates.current_full_refresh,
                 touched_relations: relations(&updates.touched_relations),

@@ -507,7 +507,7 @@ fn a_forced_refresh_aborts_the_running_update_once_and_runs_after_it() {
     assert_eq!(host.query_count(), 2);
     assert!(!host.query_cancelled(1));
     assert_eq!(
-        host.updates("database").tasks_finished.get(&1).unwrap().error.as_ref().unwrap().message,
+        host.updates("database").last_finished.as_ref().unwrap().error.as_ref().unwrap().message,
         SUPERSEDED_MESSAGE
     );
 

@@ -360,7 +360,7 @@ impl Connections {
             let state = connection.state.borrow();
             let change = match finished_task {
                 Some((task_id, status)) => {
-                    let task = state.catalog_updates().tasks_finished.get(&task_id);
+                    let task = state.catalog_updates().last_finished.as_ref().filter(|task| task.task_id == task_id);
                     let refreshed = task.is_none_or(|task| task.variant != CatalogUpdateVariant::RelationRefresh);
                     ConnectionChange::CatalogUpdateFinished { status, refreshed, changed: catalog_changed }
                 }

@@ -119,8 +119,9 @@ impl CatalogUpdateTask {
 pub struct CatalogUpdates {
     /// The running updates by task id
     pub tasks_running: BTreeMap<u32, CatalogUpdateTask>,
-    /// The finished updates by task id
-    pub tasks_finished: BTreeMap<u32, CatalogUpdateTask>,
+    /// The update that finished last. Older ones aren't kept, a connection runs an update after every statement that
+    /// touches relations.
+    pub last_finished: Option<CatalogUpdateTask>,
     /// Does the catalog describe the connection, from a restored file or a full refresh that succeeded? Until then a
     /// connection is described when it comes online, and nothing is saved: a few relations aren't a catalog.
     pub described: bool,
@@ -208,7 +209,7 @@ impl CatalogUpdates {
         task.status = status;
         task.error = if succeeded { None } else { error };
         task.finished_at = Some(now);
-        self.tasks_finished.insert(task_id, task);
+        self.last_finished = Some(task);
         true
     }
 }

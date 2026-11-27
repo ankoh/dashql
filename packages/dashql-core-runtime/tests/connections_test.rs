@@ -391,7 +391,7 @@ fn a_finished_refresh_keeps_a_superseding_refresh() {
             apply(&mut connection, terminal.clone());
             let updates = connection.catalog_updates();
             assert!(!updates.tasks_running.contains_key(&7));
-            assert!(updates.tasks_finished.contains_key(&7));
+            assert_eq!(updates.last_finished.as_ref().map(|task| task.task_id), Some(7));
             assert_eq!(updates.current_full_refresh, Some(8));
             assert_eq!(updates.is_refresh_running(), !newer_finished_first, "{terminal:?}");
             if !newer_finished_first {
@@ -426,7 +426,8 @@ fn finishes_a_partially_successful_refresh() {
         },
     );
     let updates = connection.catalog_updates();
-    let finished = &updates.tasks_finished[&7];
+    let finished = updates.last_finished.as_ref().unwrap();
+    assert_eq!(finished.task_id, 7);
     assert_eq!(finished.status, CatalogUpdateTaskStatus::PartiallySucceeded);
     assert_eq!(finished.error, Some(failure));
     assert_eq!(finished.finished_at, Some(NOW));
