@@ -15,7 +15,7 @@ import {writeFileAtomically} from "./atomic_write.js";
 import {FolderGrants} from "./folder_grants.js";
 import {adoptLegacyUserData, USER_DATA_FOLDER} from "./legacy_user_data.js";
 import {GrpcTestServer, GRPC_TEST_REQUEST, GRPC_TEST_STREAM_BODY, GRPC_TEST_UNARY_RESPONSE} from "./grpc_test_server.js";
-import {NativeProxyService, type NativeProxyRequest, validateNativeProxyRequest} from "./native_proxy.js";
+import {NativeProxyService, type NativeProxyRequest} from "./native_proxy.js";
 import {OAuthLoopbackServer} from "./oauth_loopback.js";
 import {createElectronUpdater, type ElectronUpdater} from "./updater.js";
 
@@ -248,7 +248,6 @@ async function runNativeAddonTest(): Promise<void> {
 
     const proxy = startNativeProxy();
     try {
-        const health = await proxy.request({body: new Uint8Array(), headers: [], method: "GET", url: "dashql-native://localhost/health"});
         const requestBody = new Uint8Array([0, 1, 2, 127, 128, 255]);
         const started = await proxy.request({
             body: requestBody,
@@ -346,7 +345,6 @@ async function runNativeAddonTest(): Promise<void> {
             grpcStreamTrailer: grpcStreamHeaders.get("x-test-trailer"),
             grpcUnaryBody: [...grpcUnary.body],
             grpcUnaryInitial: grpcUnaryHeaders.get("x-test-initial"),
-            health: new TextDecoder().decode(health.body),
             receivedBody: [...received.body],
             receivedMethod: received.method,
             receivedUrl: received.url,
@@ -357,7 +355,7 @@ async function runNativeAddonTest(): Promise<void> {
             streamStatus: streamed.status,
         };
         console.log(JSON.stringify(output));
-        const passed = output.health === '{"status":"ok"}' && output.receivedMethod === "POST" &&
+        const passed = output.receivedMethod === "POST" &&
             output.receivedUrl === "/stream-test?token=loopback" &&
             Buffer.compare(received.body, requestBody) === 0 && streamed.status === 206 &&
             Buffer.compare(Buffer.from(streamed.body), Buffer.from([1, 2, 3, 4, 5, 6, 7, 8])) === 0 &&
@@ -735,10 +733,6 @@ if (!hasSingleInstanceLock) {
     ipcMain.handle("dashql:native-proxy-request", async (event, request: NativeProxyRequest) => {
         if (!isTrustedRenderer(event.senderFrame?.url)) {
             throw new Error("Rejected native proxy request from an untrusted frame");
-        }
-        validateNativeProxyRequest(request);
-        if (new URL(request.url).pathname === "/health") {
-            throw new Error("Rejected internal native proxy route");
         }
         if (nativeProxy === null) throw new Error("Native proxy is unavailable");
         return await nativeProxy.request(request);

@@ -60,16 +60,8 @@ async fn read_stream(id: &str, read_ms: &str, batch_ms: &str, bytes: &str) -> Re
 }
 
 #[tokio::test]
-async fn answers_the_health_check() {
-    let response = route_proxy_request(request("GET", "/health", &[], &[])).await;
-    assert_eq!(response.status(), 200);
-    assert_eq!(response.body(), br#"{"status":"ok"}"#);
-}
-
-#[tokio::test]
 async fn rejects_unknown_routes_and_methods() {
     assert_eq!(route_proxy_request(request("GET", "/unknown", &[], &[])).await.status(), 400);
-    assert_eq!(route_proxy_request(request("POST", "/health", &[], &[])).await.status(), 400);
     assert_eq!(route_proxy_request(request("GET", "/http/streams", &[], &[])).await.status(), 404);
     assert_eq!(route_proxy_request(request("POST", "/http/stream/1", &[], &[])).await.status(), 404);
 }

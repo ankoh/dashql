@@ -91,8 +91,8 @@ build on it; there are no operation-specific typed APIs.
   (`src/native_proxy.ts`): a ready handshake, increasing request IDs, and rejection of pending calls when the
   process exits. It sets no timeout of its own, the page sends its read timeouts with the requests. Requests are
   bounded to 64 MiB bodies, 128 headers and 8192-character header values; methods are DELETE, GET, PATCH and POST;
-  routes are `health`, `grpc/` and `http/`. The renderer cannot call `health`.
-- The addon (`packages/dashql-native/proxy/src/napi.rs`) exports `health()` and an async `route()`. The router
+  routes are `grpc/` and `http/`.
+- The addon (`packages/dashql-native/proxy/src/napi.rs`) exports an async `route()`. The router
   (`src/proxy_router.rs`) serves `/http/streams`, `/http/stream/{id}`, `/grpc/channels` and
   `/grpc/channel/{id}/{unary,streams,stream/{id}}`. Streams are polled in batches.
 - `//packages/dashql-native:native_addon_utility_test` runs HTTP streaming and unary and streaming gRPC

@@ -27,7 +27,7 @@ interface PendingRequest {
 
 const MAX_REQUEST_BYTES = 64 * 1024 * 1024;
 const ALLOWED_METHODS = new Set(["DELETE", "GET", "PATCH", "POST"]);
-const ALLOWED_ROUTES = /^(?:\/health|\/(grpc|http)\/)/;
+const ALLOWED_ROUTES = /^\/(grpc|http)\//;
 
 export function validateNativeProxyRequest(request: NativeProxyRequest): void {
     if (!ALLOWED_METHODS.has(request.method)) {

@@ -18,14 +18,6 @@ fn not_found(message: String) -> Response<Vec<u8>> {
 }
 
 pub async fn route_proxy_request(mut request: Request<Vec<u8>>) -> Response<Vec<u8>> {
-    if request.method() == Method::GET && request.uri().path() == "/health" {
-        return Response::builder()
-            .status(200)
-            .header(CONTENT_TYPE, mime::APPLICATION_JSON.essence_str())
-            .body(br#"{"status":"ok"}"#.to_vec())
-            .unwrap();
-    }
-
     if let Some(route) = parse_http_proxy_path(request.uri().path()) {
         return match (request.method().clone(), route) {
             (Method::POST, HttpProxyRoute::Streams {}) => start_http_server_stream(std::mem::take(&mut request)).await,

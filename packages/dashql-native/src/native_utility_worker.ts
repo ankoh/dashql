@@ -1,7 +1,6 @@
 import {createRequire} from "node:module";
 
 interface NativeAddon {
-    health(): string;
     route(request: {
         body: Buffer;
         headers: string[][];
@@ -54,7 +53,6 @@ parentPort.on("message", (event) => {
         const body = new Uint8Array(response.body);
         parentPort.postMessage({
             body,
-            health: addon.health(),
             headers: response.headers,
             id: request.id!,
             status: response.status,

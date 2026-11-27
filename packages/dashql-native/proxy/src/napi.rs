@@ -30,11 +30,6 @@ pub struct ProxyResponse {
 }
 
 #[napi]
-pub fn health() -> &'static str {
-    "dashql-native-napi:ok"
-}
-
-#[napi]
 pub async fn route(request: ProxyRequest) -> napi::Result<ProxyResponse> {
     let mut builder = Request::builder().method(request.method.as_str()).uri(request.url.as_str());
     for header in request.headers {
