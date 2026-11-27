@@ -175,7 +175,14 @@ completion-snapshots:
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
-              prefer-qualified: 0
+              prefer-qualified: 1
+              detail: "text · t"
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: excluded.name
+              qualified-idx: 1
+              prefer-qualified: 1
               detail: "text · t"
         - value: na
           candidate-tags: [IDENTITY]
