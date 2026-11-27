@@ -58,7 +58,7 @@ bazel build //...
 | `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff, and the scripts on it: editor sessions, compilation, batch, the relations that statements touch, visualizations |
 | `//packages/dashql-core-runtime:dashql_core_runtime` | The state of DashQL in Rust on the core and its scripts: the workbook, the planner across its scripts, connections, queries, computations and the services on a host, see `docs/design/dashql_core.md` |
 | `//packages/dashql-core-storage:dashql_core_storage` | The storage of DashQL on the runtime: the storage writer, the restore, the workbook format and the saves of the connections, wired in by the bindings, see `docs/design/dashql_core.md` |
-| `//packages/dashql-core-shell:dashql_core_shell` | The shell: prompt, VT100 renderer, tables of the first rows of results, effect protocol |
+| `//packages/dashql-core-shell:dashql_core_shell` | The shell: what a prompt does, its history, dot commands, the effect protocol and the records of the output with the tables of the first rows of results |
 | `//packages/dashql-core-profile:dashql_core_profile` | The query profile: Hyper plans, Trino stages, layout and progress rollups |
 | `//packages/dashql-dataflow:dashql_dataflow` | The layout of the dataflow canvas: ELK (elk-rs) places the boxes and routes the edges |
 | `//packages/dashql-parser:dashql_parser` | Parser crate: scanner, parser tables and actions, keywords |

@@ -7,7 +7,7 @@ import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import {
     DashQLShell,
 } from '../../shell/terminal/api.js';
-import type { BrowserShellController } from '../../shell/terminal/browser_shell.js';
+import { ShellView, type ShellViewController } from '../../shell/view/shell_view.js';
 import {
     createWorkbookShellEnvironment,
     resolveClientFunctionCall,
@@ -59,19 +59,14 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     const runtime = useOptionalRuntime();
     const catalog = useCatalog(connection?.connectionId);
     const keywordCase = getKeywordCase(useAppConfig()?.settings);
-    const keywordCaseRef = React.useRef(keywordCase);
-    keywordCaseRef.current = keywordCase;
     const logger = useLogger();
     // The shell calls the executor of the runtime when it runs a query, a test may replace it meanwhile
     const runtimeRef = React.useRef(runtime);
     runtimeRef.current = runtime;
     const { setMode } = useWorkbookViewMode();
-    const containerRef = React.useRef<HTMLDivElement>(null);
-    const controllerRef = React.useRef<BrowserShellController | null>(null);
+    const controllerRef = React.useRef<ShellViewController | null>(null);
+    const [shell, setShell] = React.useState<DashQLShell | null>(null);
     const shellRef = React.useRef<DashQLShell | null>(null);
-    React.useEffect(() => {
-        shellRef.current?.setKeywordCase(keywordCase);
-    }, [keywordCase]);
     const generationRef = React.useRef(0);
     const [status, setStatus] = React.useState('Instantiating Shell');
     const releaseResult = React.useCallback((queryId: number) => {
@@ -80,7 +75,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     const { resultQuery, showResultQuery, closeResultQuery, reopenResultQuery, dropResultQuery } = useShellQueryResult(releaseResult);
     const showResultError = (error: unknown, info: React.ErrorInfo) => {
         dropResultQuery();
-        // The terminal says what happened, an error would also raise a toast
+        // The shell says what happened, an error would also raise a toast
         logger.warn('Failed to show a query result', { error: stringifyError(error), stack: info.componentStack ?? '' }, LOG_CTX);
         controllerRef.current?.writeStatus(`Failed to show the result: ${stringifyError(error)}`);
     };
@@ -88,10 +83,10 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     // The shell names its connection like the workbench does, e.g. "Hyper #2 Http Shell" with the prompt "hyper#2> "
     const shellName = connection == null ? 'Shell' : `${(label ?? connection.label).text} Shell`;
     const prompt = `${connectorName.toLowerCase()}${ordinal == null ? '' : `#${ordinal}`}> `;
-    // The names go into the greeter of the terminal and the prompt of the next shell. A new name doesn't replace the
-    // shell, that would abort its running query and drop its queued prompts.
-    const namesRef = React.useRef({ workbookName, shellName, prompt });
-    namesRef.current = { workbookName, shellName, prompt };
+    // The greeter names the shell and its workbook
+    const greeter = React.useMemo(() => workbookName
+        ? [shellName, `Workbook: ${workbookName}`, 'Enter .help for usage hints.']
+        : [shellName, 'Enter .help for usage hints.'], [shellName, workbookName]);
     const { controller: snippetsDialog, dialog: snippetsBrowserDialog } = useSnippetsDialog(
         connection?.connectorType ?? ConnectorType.HYPER,
     );
@@ -112,10 +107,10 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
         };
     }, [connection?.connectionId, database, logger, mountsFiles]);
 
-    // The terminal follows its connection by id, an event of the connection keeps it
+    // The shell follows its connection by id, an event of the connection keeps it
     const shellConnectionId = connection?.connectionId ?? null;
     React.useEffect(() => {
-        if (shellConnectionId == null || catalog == null || containerRef.current == null) return;
+        if (shellConnectionId == null || catalog == null) return;
         const generation = ++generationRef.current;
         let cancelled = false;
         const environment = createWorkbookShellEnvironment(
@@ -153,49 +148,17 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
             catalog,
             environment,
             commands: mountsFiles ? [examplesCommand, lastCommand, filesCommand] : [examplesCommand, lastCommand],
-        }).then(async nextShell => {
-            nextShell.setKeywordCase(keywordCaseRef.current);
+        }).then(nextShell => {
             if (cancelled || generation !== generationRef.current) {
                 nextShell.destroy();
                 return;
             }
-            if (controllerRef.current == null) {
-                const { embedDashQLShell } = await import('../../shell/terminal/browser_shell.js');
-                if (cancelled || generation !== generationRef.current || containerRef.current == null) {
-                    nextShell.destroy();
-                    return;
-                }
-                const { workbookName, shellName, prompt } = namesRef.current;
-                let controller: BrowserShellController;
-                try {
-                    controller = await embedDashQLShell({
-                        container: containerRef.current,
-                        shell: nextShell,
-                        greeter: workbookName ? [shellName, `Workbook: ${workbookName}`, 'Enter .help for usage hints.'] : [shellName, 'Enter .help for usage hints.'],
-                        prompt,
-                        onExit: () => setMode(WorkbookViewMode.Workbook),
-                        onQueryResult: showResultQuery,
-                        mayFocus: () => activeRef.current,
-                    });
-                } catch (error) {
-                    nextShell.destroy();
-                    throw error;
-                }
-                // The inputs changed or the page closed while the terminal opened, the terminal of a newer run takes over
-                if (cancelled || generation !== generationRef.current) {
-                    controller.dispose();
-                    nextShell.destroy();
-                    return;
-                }
-                controllerRef.current = controller;
-            } else {
-                controllerRef.current.replaceShell(nextShell, namesRef.current.prompt);
-            }
+            // The next shell continues the history of the previous one
             const previous = shellRef.current;
+            if (previous != null) nextShell.importHistory(previous.exportHistory());
             shellRef.current = nextShell;
-            previous?.destroy();
+            setShell(nextShell);
             setStatus('');
-            if (activeRef.current) controllerRef.current.focus();
         }).catch(error => {
             if (cancelled || generation !== generationRef.current) return;
             const message = `Failed to load shell: ${stringifyError(error)}`;
@@ -206,7 +169,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
         return () => {
             cancelled = true;
         };
-    }, [shellConnectionId, workbookId, catalog, setMode, snippetsDialog, mountsFiles, filesCommand, releaseResult, showResultQuery, reopenResultQuery, logger]);
+    }, [shellConnectionId, workbookId, catalog, snippetsDialog, mountsFiles, filesCommand, releaseResult, reopenResultQuery, logger]);
 
     React.useEffect(() => {
         if (active) controllerRef.current?.focus();
@@ -216,18 +179,29 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
         dropResultQuery();
     }, [connection?.connectionId, dropResultQuery]);
 
+    // A shell goes once the view shows the next one, or with the page
+    React.useEffect(() => () => shell?.destroy(), [shell]);
     React.useEffect(() => () => {
         ++generationRef.current;
-        controllerRef.current?.dispose();
-        controllerRef.current = null;
-        shellRef.current?.destroy();
         shellRef.current = null;
     }, []);
+    const exitShell = React.useCallback(() => setMode(WorkbookViewMode.Workbook), [setMode]);
+    const mayFocus = React.useCallback(() => activeRef.current, []);
 
     return (
         <main className={styles.page} aria-label={shellName}>
             <div className={styles.terminal}>
-                <div ref={containerRef} className={styles.terminalHost} />
+                <ShellView
+                    shell={shell}
+                    greeter={greeter}
+                    prompt={prompt}
+                    inputAriaLabel={`${shellName} input`}
+                    keywordCase={keywordCase}
+                    onQueryResult={showResultQuery}
+                    onExit={exitShell}
+                    mayFocus={mayFocus}
+                    controller={controllerRef}
+                />
             </div>
             {status && (
                 <div className={styles.status} role="status" aria-live="polite">

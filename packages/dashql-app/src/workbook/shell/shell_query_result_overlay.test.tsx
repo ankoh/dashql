@@ -91,7 +91,7 @@ describe('ShellQueryResultOverlay', () => {
         expect(onError.mock.calls[0][0]).toBe(error);
         expect(onClose).toHaveBeenCalledTimes(1);
         expect(dialog()).toBeNull();
-        // Whatever renders next to the overlay stays, like the terminal of the shell
+        // Whatever renders next to the overlay stays, like the feed of the shell
         expect(container.querySelector('[data-testid="sibling"]')).not.toBeNull();
     });
 

@@ -1,58 +1,15 @@
 //! The shell session.
 
 use super::arrow_renderer::ArrowRenderer;
-use super::prompt_buffer::{find_from, PromptBuffer};
-use super::unicode::{display_width, is_valid, next_grapheme};
-use super::vt100::{self, append_sequence, Command};
+use super::unicode::is_valid;
 use super::*;
-use dashql_buffers::completion::{CandidateTag, CompletionCandidateT, CompletionT};
-use dashql_buffers::parser::ScannerTokenType;
-use dashql_core::catalog::ids::CatalogObjectType;
 use dashql_core::catalog::Catalog;
-use dashql_core::error::Error;
-use dashql_core::pack::{pack_completion, pack_tokens};
 use dashql_core::script::Script;
-use dashql_core::utils::{ci_cmp, ci_find, ci_starts_with, quote_identifier};
 use dashql_parser::symbol_kind::S_SEMICOLON;
-use std::cmp::Ordering;
 use std::collections::VecDeque;
 
-const DEFAULT_DATABASE_NAME: &str = "hyper";
-pub const DEFAULT_TERMINAL_PROMPT: &[u8] = b"dashql> ";
 const HISTORY_LIMIT: usize = 1000;
-const TERMINAL_PROMPT_CAPACITY: usize = 256;
-const TERMINAL_QUERY_SPINNER_FRAMES: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-
-/// The message of a core error, the default message of its status code if it has one
-fn error_message(error: Error) -> String {
-    error.what().to_string()
-}
-
-fn token_style(token_type: ScannerTokenType) -> &'static str {
-    match token_type {
-        ScannerTokenType::KEYWORD => vt100::BOLD_FOREGROUND_PINK,
-        ScannerTokenType::LITERAL_INTEGER
-        | ScannerTokenType::LITERAL_FLOAT
-        | ScannerTokenType::LITERAL_BINARY
-        | ScannerTokenType::LITERAL_HEX
-        | ScannerTokenType::LITERAL_BOOLEAN => vt100::FOREGROUND_PURPLE,
-        ScannerTokenType::LITERAL_STRING => vt100::FOREGROUND_CORAL,
-        ScannerTokenType::OPERATOR => vt100::FOREGROUND_PINK,
-        ScannerTokenType::IDENTIFIER => vt100::FOREGROUND_SILVER,
-        ScannerTokenType::COMMENT => vt100::FOREGROUND_GRAY,
-        _ => "",
-    }
-}
-
-fn append_cursor_move(output: &mut Vec<u8>, count: usize, command: Command) {
-    if count != 0 {
-        append_sequence(output, count, command);
-    }
-}
-
-fn push(output: &mut Vec<u8>, text: &str) {
-    output.extend_from_slice(text.as_bytes());
-}
+const WHITESPACE: &[u8] = b" \t\r\n";
 
 /// The bytes between two offsets, empty if the range is out of bounds
 fn byte_range(text: &[u8], begin: usize, end: usize) -> &[u8] {
@@ -67,299 +24,6 @@ fn bytes_before(text: &[u8], end: usize) -> &[u8] {
 /// The bytes from an offset on, none if the offset is past the end
 fn bytes_from(text: &[u8], begin: usize) -> &[u8] {
     text.get(begin..).unwrap_or(&[])
-}
-
-/// The byte offset after the grapheme cluster at `offset`, one byte further if the text is not valid UTF-8
-fn next_cluster(utf8: Option<&str>, offset: usize) -> usize {
-    match utf8 {
-        Some(text) => next_grapheme(text, offset),
-        None => offset + 1,
-    }
-}
-
-/// Cut a text to a display width and append "..."
-fn truncate_display_text(text: &[u8], width: usize) -> Vec<u8> {
-    if display_width(text) <= width {
-        return text.to_vec();
-    }
-    const MARKER: &[u8] = b"...";
-    let marker_width = width.min(MARKER.len());
-    let content_width = width - marker_width;
-    let mut rendered = 0;
-    let mut end = 0;
-    let utf8 = std::str::from_utf8(text).ok();
-    let mut offset = 0;
-    while offset < text.len() {
-        let next = next_cluster(utf8, offset);
-        let grapheme_width = display_width(byte_range(text, offset, next));
-        if rendered + grapheme_width > content_width {
-            break;
-        }
-        rendered += grapheme_width;
-        end = next;
-        offset = next;
-    }
-    let mut output = bytes_before(text, end).to_vec();
-    output.extend_from_slice(bytes_before(MARKER, marker_width));
-    output
-}
-
-/// Keep the catalog objects that the variants of a candidate stand for, the first one if it has no variants.
-/// An object index of the list is then also a variant index.
-fn keep_variant_objects<T>(objects: &mut Vec<T>, variants: &[usize]) {
-    if variants.is_empty() {
-        objects.truncate(1);
-        return;
-    }
-    let mut index = 0;
-    objects.retain(|_| {
-        let keep = variants.contains(&index);
-        index += 1;
-        keep
-    });
-}
-
-/// The extent of a laid out prompt in the terminal
-#[derive(Clone, Copy, Debug)]
-struct PromptLayout {
-    /// The number of terminal rows
-    rows: usize,
-    /// The column after the last grapheme
-    column: usize,
-}
-
-impl Default for PromptLayout {
-    fn default() -> Self {
-        Self { rows: 1, column: 0 }
-    }
-}
-
-fn append_prompt_prefix(
-    output: &mut Vec<u8>,
-    prefix: &[u8],
-    prefix_style: &[u8],
-    columns: usize,
-    layout: &mut PromptLayout,
-) {
-    if !prefix.is_empty() {
-        output.extend_from_slice(prefix_style);
-    }
-    let utf8 = std::str::from_utf8(prefix).ok();
-    let mut offset = 0;
-    while offset < prefix.len() {
-        let next = next_cluster(utf8, offset);
-        let grapheme = byte_range(prefix, offset, next);
-        let width = display_width(grapheme);
-        if layout.column != 0 && layout.column + width > columns {
-            push(output, vt100::CARRIAGE_RETURN);
-            append_cursor_move(output, 1, Command::CursorDown);
-            layout.rows += 1;
-            layout.column = 0;
-        }
-        output.extend_from_slice(grapheme);
-        layout.column += width;
-        offset = next;
-    }
-    if !prefix.is_empty() {
-        push(output, vt100::RESET_ATTRIBUTES);
-    }
-}
-
-fn advance_prompt_prefix(prefix: &[u8], columns: usize, layout: &mut PromptLayout) {
-    let utf8 = std::str::from_utf8(prefix).ok();
-    let mut offset = 0;
-    while offset < prefix.len() {
-        let next = next_cluster(utf8, offset);
-        let width = display_width(byte_range(prefix, offset, next));
-        if layout.column != 0 && layout.column + width > columns {
-            layout.rows += 1;
-            layout.column = 0;
-        }
-        layout.column += width;
-        offset = next;
-    }
-}
-
-fn break_prompt_line(
-    output: Option<&mut Vec<u8>>,
-    continuation: &[u8],
-    prefix_style: &[u8],
-    active_style: &[u8],
-    columns: usize,
-    layout: &mut PromptLayout,
-) {
-    match output {
-        Some(output) => {
-            if !active_style.is_empty() {
-                push(output, vt100::RESET_ATTRIBUTES);
-            }
-            push(output, vt100::CARRIAGE_RETURN);
-            append_cursor_move(output, 1, Command::CursorDown);
-            layout.rows += 1;
-            layout.column = 0;
-            append_prompt_prefix(output, continuation, prefix_style, columns, layout);
-            if !active_style.is_empty() {
-                output.extend_from_slice(active_style);
-            }
-        }
-        None => {
-            layout.rows += 1;
-            layout.column = 0;
-            advance_prompt_prefix(continuation, columns, layout);
-        }
-    }
-}
-
-fn layout_prompt(text: &[u8], initial: &[u8], continuation: &[u8], columns: usize) -> PromptLayout {
-    let columns = columns.max(1);
-    let mut layout = PromptLayout::default();
-    advance_prompt_prefix(initial, columns, &mut layout);
-    let utf8 = std::str::from_utf8(text).ok();
-    let mut offset = 0;
-    while offset < text.len() {
-        if text.get(offset) == Some(&b'\n') {
-            break_prompt_line(None, continuation, &[], &[], columns, &mut layout);
-            offset += 1;
-            continue;
-        }
-        let next = next_cluster(utf8, offset);
-        let width = display_width(byte_range(text, offset, next));
-        if layout.column != 0 && layout.column + width > columns {
-            break_prompt_line(None, continuation, &[], &[], columns, &mut layout);
-        }
-        layout.column += width;
-        offset = next;
-    }
-    layout
-}
-
-fn render_highlighted_prompt(
-    output: &mut Vec<u8>,
-    highlighted: &[u8],
-    initial: &[u8],
-    continuation: &[u8],
-    prefix_style: &[u8],
-    columns: usize,
-) -> PromptLayout {
-    let columns = columns.max(1);
-    let mut layout = PromptLayout::default();
-    append_prompt_prefix(output, initial, prefix_style, columns, &mut layout);
-    let mut active_style: Vec<u8> = Vec::new();
-    let utf8 = std::str::from_utf8(highlighted).ok();
-    let mut offset = 0;
-    while offset < highlighted.len() {
-        if bytes_from(highlighted, offset).starts_with(b"\x1b[") {
-            if let Some(end) = find_from(highlighted, b'm', offset + 2) {
-                let sequence = byte_range(highlighted, offset, end + 1);
-                output.extend_from_slice(sequence);
-                active_style =
-                    if sequence == vt100::RESET_ATTRIBUTES.as_bytes() { Vec::new() } else { sequence.to_vec() };
-                offset = end + 1;
-                continue;
-            }
-        }
-        if highlighted.get(offset) == Some(&b'\n') {
-            break_prompt_line(Some(output), continuation, prefix_style, &active_style, columns, &mut layout);
-            offset += 1;
-            continue;
-        }
-        let next = next_cluster(utf8, offset);
-        let grapheme = byte_range(highlighted, offset, next);
-        let width = display_width(grapheme);
-        if layout.column != 0 && layout.column + width > columns {
-            break_prompt_line(Some(output), continuation, prefix_style, &active_style, columns, &mut layout);
-        }
-        output.extend_from_slice(grapheme);
-        layout.column += width;
-        offset = next;
-    }
-    layout
-}
-
-fn escape_terminal_text(text: &[u8]) -> Vec<u8> {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut output = Vec::with_capacity(text.len());
-    for &value in text {
-        if value == b'\t' {
-            output.extend_from_slice(b"    ");
-        } else if value < 0x20 || value == 0x7f {
-            output.extend_from_slice(b"\\x");
-            // Both nibbles are below 16, the fallback is never taken
-            output.push(HEX.get(usize::from(value >> 4)).copied().unwrap_or(b'0'));
-            output.push(HEX.get(usize::from(value & 0x0f)).copied().unwrap_or(b'0'));
-        } else {
-            output.push(value);
-        }
-    }
-    output
-}
-
-fn normalize_terminal_progress_message(message: &[u8]) -> Vec<u8> {
-    let mut output = Vec::with_capacity(message.len());
-    let mut pending_space = false;
-    for &value in message {
-        if value == 0x1b {
-            break;
-        }
-        if matches!(value, b' ' | b'\t' | b'\r' | b'\n') {
-            pending_space = !output.is_empty();
-            continue;
-        }
-        if value < 0x20 || value == 0x7f {
-            continue;
-        }
-        if pending_space {
-            output.push(b' ');
-            pending_space = false;
-        }
-        output.push(value);
-    }
-    output
-}
-
-fn normalize_error(data: &[u8]) -> Vec<u8> {
-    if data.is_empty() {
-        b"query failed".to_vec()
-    } else {
-        data.to_vec()
-    }
-}
-
-fn ci_eq(a: &[u8], b: &[u8]) -> bool {
-    ci_cmp(a, b) == Ordering::Equal
-}
-
-fn is_non_default_three_part_name(name: &[u8]) -> bool {
-    let mut separator_count = 0;
-    let mut first_separator = None;
-    let mut quoted = false;
-    let mut i = 0;
-    while let Some(&c) = name.get(i) {
-        if c == b'"' {
-            if quoted && name.get(i + 1) == Some(&b'"') {
-                i += 1;
-            } else {
-                quoted = !quoted;
-            }
-        } else if !quoted && c == b'.' {
-            if first_separator.is_none() {
-                first_separator = Some(i);
-            }
-            separator_count += 1;
-        }
-        i += 1;
-    }
-    let Some(first_separator) = first_separator else {
-        return false;
-    };
-    if separator_count != 2 {
-        return false;
-    }
-    let mut database = bytes_before(name, first_separator);
-    if let Some(unquoted) = database.strip_prefix(b"\"").and_then(|d| d.strip_suffix(b"\"")) {
-        database = unquoted;
-    }
-    !ci_eq(database, DEFAULT_DATABASE_NAME.as_bytes())
 }
 
 /// The first byte that is not in a set
@@ -377,66 +41,25 @@ fn find_first_of(text: &[u8], set: &[u8], from: usize) -> Option<usize> {
     text.get(from..)?.iter().position(|c| set.contains(c)).map(|i| i + from)
 }
 
-/// The completion of the terminal: the inline hint in the terminal, and the list that the host shows over it
-#[derive(Clone, Debug, Default)]
-struct TerminalCompletionOverlay {
-    /// The completion candidates
-    candidates: Vec<CompletionCandidate>,
-    /// The packed candidates of the list in the same order, None if only the inline hint is shown
-    completion: Option<CompletionT>,
-    /// The index of the selected candidate
-    selection: usize,
-    /// The index of the selected qualification variant of the selected candidate
-    variant_selection: usize,
-    /// The prompt row of the cursor
-    cursor_row: usize,
-    /// The terminal column of the start of the replaced text
-    anchor_column: usize,
-    /// The width of the inline hint before the typed text
-    hint_prefix_width: usize,
-    /// The width of the inline hint after the cursor
-    hint_suffix_width: usize,
-    /// The width of the typed text of the target
-    hint_current_width: usize,
-    /// Was the hint suffix inserted before following text instead of written at the line end?
-    hint_suffix_inserted: bool,
-    /// Show only the inline hint without the candidate list?
-    hint_only: bool,
+/// The text of a record: line breaks as `\n`, without trailing line breaks
+fn record_text(data: &[u8]) -> String {
+    let text = String::from_utf8_lossy(data);
+    text.replace("\r\n", "\n").replace('\r', "\n").trim_end_matches('\n').to_string()
 }
 
-/// The spinner line of a running query
-#[derive(Clone, Debug, Default)]
-struct TerminalQueryProgress {
-    /// The current spinner frame
-    frame: usize,
-    /// The text after the spinner
-    message: Vec<u8>,
+/// The begin of the dot command of a prompt, None if the prompt is no dot command
+fn command_begin(text: &[u8]) -> Option<usize> {
+    let begin = find_first_not_of(text, WHITESPACE)?;
+    (text.get(begin) == Some(&b'.')).then_some(begin)
 }
 
-/// Prefer a real extension over an identity candidate for the passive hint
-fn select_terminal_completion_hint(overlay: &mut TerminalCompletionOverlay, prompt_text: &[u8]) {
-    if overlay.candidates.is_empty() {
-        return;
-    }
-    let Some(selected) = overlay.candidates.get(overlay.selection) else {
-        return;
-    };
-    let selected_end = selected.target_offset as usize + selected.target_length as usize;
-    if selected_end >= prompt_text.len() || !selected.is_identity {
-        return;
-    }
-    let begin = selected.target_offset as usize;
-    let current = byte_range(prompt_text, begin, (begin + selected.target_length as usize).min(prompt_text.len()));
-    for (i, candidate) in overlay.candidates.iter().enumerate() {
-        let target_end = candidate.target_offset as usize + candidate.target_length as usize;
-        if target_end == selected_end
-            && candidate.completion_text.as_bytes().starts_with(current)
-            && candidate.completion_text.as_bytes() != current
-        {
-            overlay.selection = i;
-            return;
-        }
-    }
+/// The completion of the name of a dot command
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct CommandCompletion {
+    /// The prompt with the completed name, the prompt itself if nothing was completed
+    pub text: String,
+    /// The commands whose names start with the typed name, with their dots, if more than one does
+    pub candidates: Vec<String>,
 }
 
 /// A suspended operation that waits for the host
@@ -448,111 +71,51 @@ struct PendingEffect {
     effect_type: EffectType,
 }
 
-/// An interactive shell session
+/// A shell session
 ///
 /// Queries and dot commands suspend once on their effect and finish when it completes. They are
-/// pending effects: starting one returns its effect, completing it renders the result. One effect is pending at a time.
+/// pending effects: starting one returns its effect, completing it yields the records of its output. One effect is
+/// pending at a time.
 pub struct ShellSession {
-    /// The prompt
-    prompt: PromptBuffer,
-    /// The width of the terminal
-    terminal_columns: u32,
-    /// The submitted queries, oldest first
+    /// The script that parses prompts for the check whether they are complete
+    script: Script,
+    /// The width of the tables of results in characters
+    columns: u32,
+    /// The submitted prompts, oldest first
     history: VecDeque<String>,
     /// The history entry shown in the prompt, the history length when not browsing
     history_cursor: usize,
     /// The prompt text before browsing the history
     history_draft: String,
-    /// The text deleted by the last kill command, inserted by yank
-    kill_buffer: String,
     /// The id of the next effect
     next_effect_id: u64,
     /// The effect that waits for the host
     pending_effect: Option<PendingEffect>,
-    /// Clear the screen when the terminal query finishes, requested by the last command
-    clear_terminal_after_command: bool,
-    /// Complete tables of non-default databases with their qualified name?
-    auto_qualify_non_default_database_tables: bool,
-    /// The keyword case of completions, 1 is upper case
-    keyword_case: u32,
     /// The names of the dot commands
     commands: Vec<String>,
-    /// The terminal prompt, the default prompt if empty
-    terminal_prompt: Vec<u8>,
-    /// The prefix of continuation lines, with `->` below the `>` of the prompt
-    terminal_continuation: Vec<u8>,
-    /// The SGR sequence of the prompt and continuation prefixes
-    terminal_prompt_style: Vec<u8>,
-    /// The number of terminal rows of the rendered prompt
-    terminal_prompt_rows: usize,
-    /// The prompt row of the cursor
-    terminal_prompt_cursor_row: usize,
-    /// What the host should do after the last terminal input
-    terminal_action: PromptInputAction,
-    /// The completion overlay, if open
-    overlay: Option<TerminalCompletionOverlay>,
-    /// Bumped when a completion list gets new candidates
-    terminal_completion_revision: u64,
-    /// The progress line of a running query, if shown
-    progress: Option<TerminalQueryProgress>,
 }
 
 impl ShellSession {
-    pub fn new(catalog: &Catalog, terminal_columns: u32, auto_qualify_non_default_database_tables: bool) -> Self {
+    pub fn new(catalog: &Catalog, columns: u32) -> Self {
         Self {
-            prompt: PromptBuffer::new(catalog),
-            terminal_columns: terminal_columns.max(1),
+            script: Script::new(catalog),
+            columns: columns.max(1),
             history: VecDeque::new(),
             history_cursor: 0,
             history_draft: String::new(),
-            kill_buffer: String::new(),
             next_effect_id: 1,
             pending_effect: None,
-            clear_terminal_after_command: false,
-            auto_qualify_non_default_database_tables,
-            keyword_case: 0,
             commands: Vec::new(),
-            terminal_prompt: Vec::new(),
-            terminal_continuation: b"     -> ".to_vec(),
-            terminal_prompt_style: vt100::BOLD.as_bytes().to_vec(),
-            terminal_prompt_rows: 1,
-            terminal_prompt_cursor_row: 0,
-            terminal_action: PromptInputAction::None,
-            overlay: None,
-            terminal_completion_revision: 0,
-            progress: None,
         }
     }
 
-    /// The prompt
-    pub fn prompt(&self) -> &PromptBuffer {
-        &self.prompt
+    /// The width of the tables of results in characters
+    pub fn columns(&self) -> u32 {
+        self.columns
     }
 
-    pub fn prompt_mut(&mut self) -> &mut PromptBuffer {
-        &mut self.prompt
-    }
-
-    pub fn resize(&mut self, terminal_columns: u32) {
-        self.terminal_columns = terminal_columns.max(1);
-    }
-
-    /// Set the keyword case of completions as a `KeywordCase` value (1 is upper case)
-    pub fn set_keyword_case(&mut self, keyword_case: u32) {
-        self.keyword_case = keyword_case;
-    }
-
-    /// Set the color of the terminal prompt, bold in the default foreground color if none
-    pub fn set_terminal_prompt_color(&mut self, rgb: Option<[u8; 3]>) {
-        self.terminal_prompt_style = match rgb {
-            Some([r, g, b]) => format!("\x1b[1;38;2;{r};{g};{b}m").into_bytes(),
-            None => vt100::BOLD.as_bytes().to_vec(),
-        };
-    }
-
-    fn upper_keywords(&self) -> bool {
-        // static_cast to the uint8 enum
-        self.keyword_case as u8 == 1
+    pub fn resize(&mut self, columns: u32) {
+        self.columns = columns.max(1);
     }
 
     /// Register the dot commands, one name per line
@@ -563,7 +126,7 @@ impl ShellSession {
         let mut parsed = Vec::new();
         let mut begin = 0;
         while begin < commands.len() {
-            let end = find_from(commands, b'\n', begin);
+            let end = find_first_of(commands, b"\n", begin);
             let name = byte_range(commands, begin, end.unwrap_or(commands.len()));
             if name.is_empty()
                 || name.first() == Some(&b'.')
@@ -585,707 +148,34 @@ impl ShellSession {
         ShellStatus::Ok
     }
 
-    pub fn terminal_action(&self) -> PromptInputAction {
-        self.terminal_action
+    /// The names of the dot commands
+    pub fn commands(&self) -> &[String] {
+        &self.commands
     }
 
-    fn snapshot_prompt(&self, status: ShellStatus, message: &str) -> PromptSnapshot {
-        PromptSnapshot {
-            status,
-            revision: self.prompt.revision(),
-            cursor_byte_offset: self.prompt.cursor_byte_offset() as u32,
-            text: self.prompt.text(),
-            message: message.to_string(),
-            action: PromptInputAction::None,
-        }
-    }
-
-    pub fn set_prompt(&mut self, text: &[u8]) -> PromptSnapshot {
-        if !self.prompt.set_text(text) {
-            return self.snapshot_prompt(ShellStatus::InvalidArgument, "prompt must contain valid UTF-8");
-        }
-        self.reset_history_cursor();
-        self.snapshot_prompt(ShellStatus::Ok, "")
-    }
-
-    pub fn insert_prompt(&mut self, text: &[u8]) -> PromptSnapshot {
-        if !self.prompt.insert(text) {
-            return self
-                .snapshot_prompt(ShellStatus::InvalidArgument, "prompt insertion must contain valid non-empty UTF-8");
-        }
-        self.reset_history_cursor();
-        self.snapshot_prompt(ShellStatus::Ok, "")
-    }
-
-    pub fn move_prompt_left(&mut self) -> PromptSnapshot {
-        self.prompt.move_left();
-        self.snapshot_prompt(ShellStatus::Ok, "")
-    }
-
-    pub fn move_prompt_right(&mut self) -> PromptSnapshot {
-        self.prompt.move_right();
-        self.snapshot_prompt(ShellStatus::Ok, "")
-    }
-
-    pub fn delete_prompt_backward(&mut self) -> PromptSnapshot {
-        self.prompt.delete_backward();
-        self.snapshot_prompt(ShellStatus::Ok, "")
-    }
-
-    pub fn delete_prompt_forward(&mut self) -> PromptSnapshot {
-        self.prompt.delete_forward();
-        self.snapshot_prompt(ShellStatus::Ok, "")
-    }
-
-    /// Complete the prompt at the cursor. Errors are the messages of the core errors (`error_message`).
-    pub fn complete_prompt(&mut self, limit: usize, catalog: &Catalog) -> Result<Vec<CompletionCandidate>, String> {
-        self.complete_prompt_packed(limit, catalog).map(|(candidates, _)| candidates)
-    }
-
-    /// Complete the prompt at the cursor, with the same candidates packed for the list of the host
-    fn complete_prompt_packed(
-        &mut self,
-        limit: usize,
-        catalog: &Catalog,
-    ) -> Result<(Vec<CompletionCandidate>, CompletionT), String> {
-        let prompt_text = self.prompt.text();
-        let text = prompt_text.as_bytes();
-        let cursor = self.prompt.cursor_byte_offset();
-        if let Some(command_begin) = find_first_not_of(text, b" \t") {
-            if text.get(command_begin) == Some(&b'.')
-                && cursor > command_begin
-                && find_first_of(text, b"\r\n", command_begin).is_none()
-            {
-                let target_end = find_first_of(text, b" \t", command_begin).unwrap_or(text.len());
-                if cursor <= target_end {
-                    let prefix = byte_range(text, command_begin + 1, cursor);
-                    let mut candidates = Vec::with_capacity(limit.min(self.commands.len()));
-                    for command in &self.commands {
-                        if !command.as_bytes().starts_with(prefix) {
-                            continue;
-                        }
-                        let completion = format!(".{}", command);
-                        candidates.push(CompletionCandidate {
-                            display_text: completion.clone(),
-                            completion_cursor_offset: completion.len() as u32,
-                            completion_text: completion,
-                            target_offset: command_begin as u32,
-                            target_length: (target_end - command_begin) as u32,
-                            qualification_target_offset: command_begin as u32,
-                            qualification_target_length: (target_end - command_begin) as u32,
-                            ..Default::default()
-                        });
-                        if candidates.len() == limit {
-                            break;
-                        }
-                    }
-                    let mut packed = CompletionT::default();
-                    packed.candidates = Some(
-                        candidates
-                            .iter()
-                            .map(|candidate| {
-                                let mut packed_candidate = CompletionCandidateT::default();
-                                packed_candidate.display_text = Some(candidate.display_text.clone());
-                                packed_candidate.completion_text = Some(candidate.completion_text.clone());
-                                packed_candidate
-                            })
-                            .collect(),
-                    );
-                    return Ok((candidates, packed));
-                }
-            }
-        }
-
-        let upper_keywords = self.upper_keywords();
-        let auto_qualify = self.auto_qualify_non_default_database_tables;
-        let script = self.prompt.script_mut();
-        script.analyze(catalog, true).map_err(error_message)?;
-        let cursor = script.move_cursor(catalog, cursor);
-        let completion = Script::complete_at_cursor(&cursor, limit).map_err(error_message)?;
-        let mut packed = pack_completion(&completion, upper_keywords);
-        let mut candidates = Vec::with_capacity(completion.top_candidates.len());
-        for (candidate_index, candidate) in completion.top_candidates.iter().enumerate() {
-            let upper_keyword = upper_keywords && candidate.keyword_symbol.is_some();
-            let keyword_text =
-                if upper_keyword { candidate.completion_text.to_ascii_uppercase() } else { String::new() };
-            let mut completion_text = if upper_keyword {
-                keyword_text.clone()
-            } else if candidate.completion_text_is_verbatim {
-                candidate.completion_text.to_string()
-            } else {
-                quote_identifier(&candidate.completion_text)
-            };
-            // The objects of a candidate index the objects of its completion
-            let objects: Vec<_> =
-                candidate.catalog_objects.iter().filter_map(|&co| completion.candidate_objects.get(co)).collect();
-            let is_function = objects.iter().any(|o| o.object.object_type() == CatalogObjectType::FunctionDeclaration);
-            if is_function {
-                completion_text.push_str("()");
-            }
-            let mut qualification_texts = Vec::new();
-            let mut qualified_objects = Vec::new();
-            for (object_index, object) in objects.iter().enumerate() {
-                let auto_qualify_table = auto_qualify
-                    && object.object.object_type() == CatalogObjectType::TableDeclaration
-                    && object.qualified_name.len() == 3
-                    && object
-                        .qualified_name
-                        .first()
-                        .is_some_and(|database| !ci_eq(database.as_bytes(), DEFAULT_DATABASE_NAME.as_bytes()));
-                if (object.prefer_qualified || auto_qualify_table) && !object.qualified_name.is_empty() {
-                    let mut qualification_text = String::new();
-                    for (i, name) in object.qualified_name.iter().enumerate() {
-                        if i > 0 {
-                            qualification_text.push('.');
-                        }
-                        qualification_text.push_str(&quote_identifier(name));
-                    }
-                    if is_function {
-                        qualification_text.push_str("()");
-                    }
-                    let qualification_offset = candidate.target_location_qualified.offset() as usize;
-                    let target_offset = candidate.target_location.offset() as usize;
-                    let qualifier_already_present =
-                        qualification_offset <= target_offset && target_offset <= text.len() && {
-                            let mut present = byte_range(text, qualification_offset, target_offset).to_vec();
-                            present.extend_from_slice(completion_text.as_bytes());
-                            qualification_text.as_bytes() == present
-                        };
-                    if !qualifier_already_present {
-                        qualification_texts.push(qualification_text);
-                        qualified_objects.push(object_index);
-                    }
-                }
-            }
-            if let Some(packed_objects) =
-                packed.candidates.as_mut().and_then(|packed| packed.get_mut(candidate_index)?.catalog_objects.as_mut())
-            {
-                keep_variant_objects(packed_objects, &qualified_objects);
-            }
-            let mut continuation = candidate.keyword_continuation.unwrap_or("").to_string();
-            if upper_keywords {
-                continuation = continuation.to_ascii_uppercase();
-            }
-            let cursor_offset = completion_text.len() - if completion_text.ends_with("()") { 1 } else { 0 };
-            candidates.push(CompletionCandidate {
-                display_text: if upper_keyword { keyword_text } else { candidate.completion_text.to_string() },
-                completion_text,
-                continuation_text: continuation,
-                is_identity: candidate.candidate_tags & CandidateTag::IDENTITY.0 != 0,
-                qualification_texts,
-                completion_cursor_offset: cursor_offset as u32,
-                target_offset: candidate.target_location.offset(),
-                target_length: candidate.target_location.length(),
-                qualification_target_offset: candidate.target_location_qualified.offset(),
-                qualification_target_length: candidate.target_location_qualified.length(),
-            });
-        }
-        Ok((candidates, packed))
-    }
-
-    /// The completion list that the host shows over the terminal, None if there is none
-    pub fn terminal_completion_list(&self) -> Option<TerminalCompletionList> {
-        let overlay = self.overlay.as_ref()?;
-        overlay.completion.as_ref()?;
-        Some(TerminalCompletionList {
-            revision: self.terminal_completion_revision,
-            selection: overlay.selection as u32,
-            variant: overlay.variant_selection as u32,
-            anchor_column: overlay.anchor_column as u32,
-        })
-    }
-
-    /// The candidates of the completion list, in the order of the prompt candidates
-    pub fn terminal_completion_buffer(&self) -> Option<&CompletionT> {
-        self.overlay.as_ref()?.completion.as_ref()
-    }
-
-    /// Replace the target of a candidate
-    pub fn apply_completion(&mut self, candidate: &CompletionCandidate) -> PromptSnapshot {
-        if !self.prompt.replace_byte_range(
-            candidate.target_offset as usize,
-            candidate.target_length as usize,
-            &candidate.completion_text,
-        ) {
-            return self.snapshot_prompt(ShellStatus::InvalidArgument, "completion target is not on prompt boundaries");
-        }
-        self.prompt.move_to_byte_offset(candidate.target_offset as usize + candidate.completion_cursor_offset as usize);
-        self.snapshot_prompt(ShellStatus::Ok, "")
-    }
-
-    /// Apply a completion whose texts may be invalid UTF-8
-    pub fn apply_completion_bytes(
-        &mut self,
-        display_text: &[u8],
-        completion_text: &[u8],
-        target_offset: u32,
-        target_length: u32,
-    ) -> PromptSnapshot {
-        match std::str::from_utf8(completion_text) {
-            Ok(completion) => self.apply_completion(&CompletionCandidate {
-                display_text: String::from_utf8_lossy(display_text).into_owned(),
-                completion_text: completion.to_string(),
-                completion_cursor_offset: completion_text.len() as u32,
-                target_offset,
-                target_length,
-                qualification_target_offset: target_offset,
-                qualification_target_length: target_length,
-                ..Default::default()
-            }),
-            Err(_) => {
-                self.snapshot_prompt(ShellStatus::InvalidArgument, "completion target is not on prompt boundaries")
-            }
-        }
-    }
-
-    /// Apply a semantic input to the prompt
-    pub fn consume_prompt_input(&mut self, key: PromptInputKey, text: &[u8]) -> PromptSnapshot {
-        let mut action = PromptInputAction::None;
-        match key {
-            PromptInputKey::Text => {
-                if !self.prompt.insert(text) {
-                    return self.snapshot_prompt(
-                        ShellStatus::InvalidArgument,
-                        "prompt input must contain valid non-empty UTF-8",
-                    );
-                }
-                self.reset_history_cursor();
-            }
-            PromptInputKey::Enter => {
-                if self.prompt_is_complete() {
-                    action = PromptInputAction::Submit;
-                } else {
-                    self.prompt.insert(b"\n");
-                    self.reset_history_cursor();
-                }
-            }
-            PromptInputKey::ForceSubmit => {
-                if !self.prompt.text().is_empty() {
-                    action = PromptInputAction::Submit;
-                }
-            }
-            PromptInputKey::Tab => action = PromptInputAction::Complete,
-            PromptInputKey::Backspace => {
-                self.prompt.delete_backward();
-                self.reset_history_cursor();
-            }
-            PromptInputKey::Delete => {
-                self.prompt.delete_forward();
-                self.reset_history_cursor();
-            }
-            PromptInputKey::Left => {
-                self.prompt.move_left();
-            }
-            PromptInputKey::Right => {
-                self.prompt.move_right();
-            }
-            PromptInputKey::Start => {
-                self.prompt.move_to_start();
-            }
-            PromptInputKey::End => {
-                self.prompt.move_to_end();
-            }
-            PromptInputKey::LineStart => {
-                self.prompt.move_to_line_start();
-            }
-            PromptInputKey::LineEnd => {
-                self.prompt.move_to_line_end();
-            }
-            PromptInputKey::WordLeft => {
-                self.prompt.move_word_left();
-            }
-            PromptInputKey::WordRight => {
-                self.prompt.move_word_right();
-            }
-            PromptInputKey::KillLine => {
-                if self.prompt.delete_to_line_end(Some(&mut self.kill_buffer)) {
-                    self.reset_history_cursor();
-                }
-            }
-            PromptInputKey::BackwardKillLine => {
-                if self.prompt.delete_to_line_start(Some(&mut self.kill_buffer)) {
-                    self.reset_history_cursor();
-                }
-            }
-            PromptInputKey::KillWord => {
-                if self.prompt.delete_word_forward(Some(&mut self.kill_buffer)) {
-                    self.reset_history_cursor();
-                }
-            }
-            PromptInputKey::BackwardKillWord => {
-                if self.prompt.delete_word_backward(Some(&mut self.kill_buffer)) {
-                    self.reset_history_cursor();
-                }
-            }
-            PromptInputKey::Yank => {
-                if !self.kill_buffer.is_empty() {
-                    let kill_buffer = self.kill_buffer.clone();
-                    self.prompt.insert(kill_buffer.as_bytes());
-                    self.reset_history_cursor();
-                }
-            }
-            PromptInputKey::Transpose => {
-                if self.prompt.transpose_characters() {
-                    self.reset_history_cursor();
-                }
-            }
-            PromptInputKey::ClearScreen | PromptInputKey::Abort | PromptInputKey::Escape => {}
-            PromptInputKey::Eof => {
-                if self.prompt.text().is_empty() {
-                    action = PromptInputAction::Exit;
-                } else {
-                    self.prompt.delete_forward();
-                    self.reset_history_cursor();
-                }
-            }
-            PromptInputKey::Up | PromptInputKey::HistoryPrevious => {
-                let moved =
-                    key == PromptInputKey::Up && self.history_cursor == self.history.len() && self.prompt.move_up();
-                if !moved && !self.history.is_empty() && self.history_cursor > 0 {
-                    if self.history_cursor == self.history.len() {
-                        self.history_draft = self.prompt.text();
-                    }
-                    self.history_cursor -= 1;
-                    let entry = self.history.get(self.history_cursor).cloned().unwrap_or_default();
-                    self.prompt.set_text(entry.as_bytes());
-                }
-            }
-            PromptInputKey::Down | PromptInputKey::HistoryNext => {
-                let moved =
-                    key == PromptInputKey::Down && self.history_cursor == self.history.len() && self.prompt.move_down();
-                if !moved && self.history_cursor < self.history.len() {
-                    self.history_cursor += 1;
-                    let entry =
-                        self.history.get(self.history_cursor).cloned().unwrap_or_else(|| self.history_draft.clone());
-                    self.prompt.set_text(entry.as_bytes());
-                }
-            }
-            PromptInputKey::Cancel => {
-                self.prompt.set_text(b"");
-                self.reset_history_cursor();
-            }
-        }
-        let mut snapshot = self.snapshot_prompt(ShellStatus::Ok, "");
-        snapshot.action = action;
-        snapshot
-    }
-
-    fn terminal_prompt_text(&self) -> &[u8] {
-        if self.terminal_prompt.is_empty() {
-            DEFAULT_TERMINAL_PROMPT
-        } else {
-            &self.terminal_prompt
-        }
-    }
-
-    fn terminal_output(&self, result: Result<ShellOperation, String>) -> TerminalOutput {
-        match result {
-            Ok(operation) => {
-                TerminalOutput { status: operation.status, action: self.terminal_action, data: operation.data }
-            }
-            Err(message) => TerminalOutput {
-                status: ShellStatus::InternalError,
-                action: PromptInputAction::None,
-                data: message.into_bytes(),
-            },
-        }
-    }
-
-    /// Open the terminal with a prompt, "dashql> " if empty
-    pub fn open_terminal(&mut self, prompt: &[u8]) -> TerminalOutput {
-        self.terminal_action = PromptInputAction::None;
-        self.overlay = None;
-        let result = if !is_valid(prompt) {
-            ShellOperation::new(ShellStatus::InvalidArgument, "terminal prompt must contain valid UTF-8")
-        } else if prompt.len() > TERMINAL_PROMPT_CAPACITY {
-            ShellOperation::new(ShellStatus::InvalidArgument, "terminal prompt is too long")
-        } else {
-            self.terminal_prompt = prompt.to_vec();
-            let rendered_prompt = self.terminal_prompt_text().to_vec();
-            let marker_column = match rendered_prompt.iter().rposition(|&c| c == b'>') {
-                Some(marker) => display_width(bytes_before(&rendered_prompt, marker)),
-                None => display_width(&rendered_prompt),
-            };
-            self.terminal_continuation = vec![b' '; marker_column.saturating_sub(1)];
-            self.terminal_continuation.extend_from_slice(b"-> ");
-            self.terminal_prompt_rows = 1;
-            self.terminal_prompt_cursor_row = 0;
-            let mut output = Vec::new();
-            push(&mut output, vt100::DISABLE_AUTO_WRAP);
-            output.extend(self.render_terminal_prompt());
-            ShellOperation::ok(output)
+    /// What a prompt is: a dot command, and whether Enter submits it
+    pub fn prompt_info(&mut self, text: &[u8]) -> PromptInfo {
+        let Some(begin) = find_first_not_of(text, WHITESPACE) else {
+            return PromptInfo::default();
         };
-        self.terminal_output(Ok(result))
+        if text.get(begin) == Some(&b'.') {
+            return PromptInfo { is_command: true, is_complete: find_first_of(text, b"\r\n", begin).is_none() };
+        }
+        PromptInfo { is_command: false, is_complete: self.is_complete_statement(text) }
     }
 
-    /// Apply a semantic input to the terminal and render it
-    pub fn consume_terminal_input(&mut self, key: PromptInputKey, text: &[u8], catalog: &Catalog) -> TerminalOutput {
-        let result = self.consume_terminal_input_impl(key, text, catalog);
-        self.terminal_output(result)
-    }
-
-    fn consume_terminal_input_impl(
-        &mut self,
-        key: PromptInputKey,
-        text: &[u8],
-        catalog: &Catalog,
-    ) -> Result<ShellOperation, String> {
-        self.terminal_action = PromptInputAction::None;
-        if let Some(overlay) = &self.overlay {
-            if !overlay.hint_only {
-                let variant_count = overlay
-                    .candidates
-                    .get(overlay.selection)
-                    .map_or(0, |candidate| candidate.qualification_texts.len());
-                if key == PromptInputKey::HistoryPrevious || key == PromptInputKey::Up {
-                    return Ok(self.move_terminal_completion(-1));
-                }
-                if key == PromptInputKey::HistoryNext || key == PromptInputKey::Down {
-                    return Ok(self.move_terminal_completion(1));
-                }
-                if variant_count > 1 && key == PromptInputKey::Left {
-                    return Ok(self.move_terminal_completion_variant(-1));
-                }
-                if variant_count > 1 && key == PromptInputKey::Right {
-                    return Ok(self.move_terminal_completion_variant(1));
-                }
-            }
-            let hint_only = overlay.hint_only;
-            if key == PromptInputKey::Tab || (key == PromptInputKey::Enter && !hint_only) {
-                return Ok(self.accept_terminal_completion());
-            }
-            if key == PromptInputKey::Escape || key == PromptInputKey::Abort {
-                let mut output = self.clear_terminal_completion_overlay();
-                self.overlay = None;
-                output.extend(self.render_terminal_prompt());
-                return Ok(ShellOperation::ok(output));
-            }
-        }
-        if key == PromptInputKey::Abort {
-            return Ok(ShellOperation::ok(Vec::new()));
-        }
-        if key == PromptInputKey::Escape {
-            self.terminal_action = PromptInputAction::Exit;
-            return Ok(ShellOperation::ok(vt100::ENABLE_AUTO_WRAP));
-        }
-        let mut output_prefix = Vec::new();
-        if self.overlay.is_some() {
-            output_prefix = self.clear_terminal_completion_overlay();
-            self.overlay = None;
-        }
-        if key == PromptInputKey::ClearScreen {
-            output_prefix.clear();
-            self.terminal_prompt_rows = 1;
-            self.terminal_prompt_cursor_row = 0;
-            push(&mut output_prefix, vt100::CLEAR_SCREEN);
-            output_prefix.extend(self.render_terminal_prompt());
-            return Ok(ShellOperation::ok(output_prefix));
-        }
-        let snapshot = self.consume_prompt_input(key, text);
-        if snapshot.status != ShellStatus::Ok {
-            return Ok(ShellOperation::new(snapshot.status, snapshot.message));
-        }
-        let action = snapshot.action;
-        if action == PromptInputAction::Exit {
-            self.terminal_action = action;
-            push(&mut output_prefix, vt100::ENABLE_AUTO_WRAP);
-            return Ok(ShellOperation::ok(output_prefix));
-        }
-        if action == PromptInputAction::Submit {
-            if !output_prefix.is_empty() {
-                output_prefix.extend(self.render_terminal_prompt());
-            }
-            self.terminal_action = action;
-            // The cursor row can be stale after prompt edits outside of the terminal, the row count then wraps around
-            let rows_below = self.terminal_prompt_rows.wrapping_sub(self.terminal_prompt_cursor_row).wrapping_sub(1);
-            append_cursor_move(&mut output_prefix, rows_below, Command::CursorDown);
-            self.terminal_prompt_rows = 1;
-            self.terminal_prompt_cursor_row = 0;
-            push(&mut output_prefix, vt100::ENABLE_AUTO_WRAP);
-            push(&mut output_prefix, vt100::NEW_LINE);
-            return Ok(ShellOperation::ok(output_prefix));
-        }
-        if action == PromptInputAction::Complete {
-            let (mut candidates, completion) = self.complete_prompt_packed(50, catalog)?;
-            if candidates.len() == 1 {
-                if let Some(candidate) = candidates.pop() {
-                    return Ok(self.apply_terminal_candidate(candidate, 0, output_prefix));
-                }
-            }
-            if candidates.len() > 1 {
-                output_prefix.extend(self.open_terminal_completion_overlay(candidates, completion));
-                return Ok(ShellOperation::ok(output_prefix));
-            }
-        }
-        if key == PromptInputKey::Cancel {
-            self.terminal_prompt_rows = 1;
-            self.terminal_prompt_cursor_row = 0;
-            let mut output = output_prefix;
-            output.extend_from_slice(b"^C");
-            push(&mut output, vt100::NEW_LINE);
-            output.extend(self.render_terminal_prompt());
-            return Ok(ShellOperation::ok(output));
-        }
-        output_prefix.extend(self.render_terminal_prompt());
-        let navigation_key = matches!(
-            key,
-            PromptInputKey::Left
-                | PromptInputKey::Right
-                | PromptInputKey::Up
-                | PromptInputKey::Down
-                | PromptInputKey::Start
-                | PromptInputKey::End
-                | PromptInputKey::LineStart
-                | PromptInputKey::LineEnd
-                | PromptInputKey::WordLeft
-                | PromptInputKey::WordRight
-        );
-        if key != PromptInputKey::ForceSubmit && key != PromptInputKey::Tab && !navigation_key {
-            output_prefix.extend(self.refresh_terminal_completion_overlay(catalog)?);
-        }
-        Ok(ShellOperation::ok(output_prefix))
-    }
-
-    /// Print the output of a query and a fresh prompt
-    pub fn finish_terminal_query(&mut self, output: &[u8], error: bool) -> TerminalOutput {
-        self.terminal_action = PromptInputAction::None;
-        let mut rendered = self.clear_terminal_completion_overlay();
-        self.overlay = None;
-        rendered.extend(self.clear_terminal_query_progress_output());
-        push(&mut rendered, vt100::ENABLE_AUTO_WRAP);
-        if self.clear_terminal_after_command {
-            push(&mut rendered, vt100::CLEAR_SCREEN);
-            self.clear_terminal_after_command = false;
-        } else {
-            if error {
-                push(&mut rendered, vt100::FOREGROUND_RED);
-            }
-            rendered.extend_from_slice(output);
-            if error {
-                push(&mut rendered, vt100::RESET_ATTRIBUTES);
-            }
-            push(&mut rendered, vt100::NEW_LINE);
-        }
-        self.prompt.set_text(b"");
-        self.terminal_prompt_rows = 1;
-        self.terminal_prompt_cursor_row = 0;
-        push(&mut rendered, vt100::DISABLE_AUTO_WRAP);
-        rendered.extend(self.render_terminal_prompt());
-        self.terminal_output(Ok(ShellOperation::ok(rendered)))
-    }
-
-    /// Render the spinner line of a running query
-    pub fn render_terminal_query_progress(&mut self, message: &[u8], advance_frame: bool) -> TerminalOutput {
-        self.terminal_action = PromptInputAction::None;
-        if !is_valid(message) {
-            return self.terminal_output(Ok(ShellOperation::new(
-                ShellStatus::InvalidArgument,
-                "terminal query progress must contain valid UTF-8",
-            )));
-        }
-        let normalized = normalize_terminal_progress_message(message);
-        let active = self.progress.is_some();
-        let progress = self.progress.get_or_insert_with(Default::default);
-        if !normalized.is_empty() {
-            progress.message = normalized;
-        }
-        if !active {
-            progress.frame = 0;
-            if progress.message.is_empty() {
-                progress.message = b"Executing query".to_vec();
-            }
-        } else if advance_frame {
-            progress.frame = (progress.frame + 1) % TERMINAL_QUERY_SPINNER_FRAMES.len();
-        }
-        // The frame is an index of the frames modulo their count
-        let mut line =
-            TERMINAL_QUERY_SPINNER_FRAMES.get(progress.frame).copied().unwrap_or_default().as_bytes().to_vec();
-        line.push(b' ');
-        line.extend_from_slice(&progress.message);
-        let line = truncate_display_text(&line, (self.terminal_columns as usize).max(1));
-        let mut output = Vec::new();
-        push(&mut output, vt100::DISABLE_AUTO_WRAP);
-        push(&mut output, vt100::CARRIAGE_RETURN);
-        push(&mut output, vt100::ERASE_ENTIRE_LINE);
-        output.extend(line);
-        self.terminal_output(Ok(ShellOperation::ok(output)))
-    }
-
-    pub fn clear_terminal_query_progress(&mut self) -> TerminalOutput {
-        self.terminal_action = PromptInputAction::None;
-        let output = self.clear_terminal_query_progress_output();
-        self.terminal_output(Ok(ShellOperation::ok(output)))
-    }
-
-    fn clear_terminal_query_progress_output(&mut self) -> Vec<u8> {
-        if self.progress.take().is_none() {
-            return Vec::new();
-        }
-        let mut output = Vec::new();
-        push(&mut output, vt100::CARRIAGE_RETURN);
-        push(&mut output, vt100::ERASE_ENTIRE_LINE);
-        push(&mut output, vt100::ENABLE_AUTO_WRAP);
-        output
-    }
-
-    /// Print a status line and a fresh prompt
-    pub fn render_terminal_status(&mut self, message: &[u8]) -> TerminalOutput {
-        self.terminal_action = PromptInputAction::None;
-        let mut output = self.clear_terminal_completion_overlay();
-        self.overlay = None;
-        output.extend(self.clear_terminal_query_progress_output());
-        push(&mut output, vt100::ENABLE_AUTO_WRAP);
-        push(&mut output, vt100::NEW_LINE);
-        push(&mut output, vt100::FOREGROUND_BRIGHT_BLACK);
-        output.extend_from_slice(message);
-        push(&mut output, vt100::RESET_ATTRIBUTES);
-        push(&mut output, vt100::NEW_LINE);
-        self.terminal_prompt_rows = 1;
-        self.terminal_prompt_cursor_row = 0;
-        push(&mut output, vt100::DISABLE_AUTO_WRAP);
-        output.extend(self.render_terminal_prompt());
-        self.terminal_output(Ok(ShellOperation::ok(output)))
-    }
-
-    /// Execute the prompt as a dot command or a query
-    pub fn submit_prompt(&mut self, catalog: &Catalog) -> ShellOperation {
-        let query = self.prompt.text();
-        if query.is_empty() {
-            return ShellOperation::new(ShellStatus::InvalidArgument, "query must not be empty");
-        }
-        self.remember_prompt(&query);
-        let bytes = query.as_bytes();
-        if let Some(query_begin) = find_first_not_of(bytes, b" \t\r\n") {
-            if bytes.get(query_begin) == Some(&b'.') {
-                return self.suspend_effect(EffectType::ExecuteCommand, bytes_from(bytes, query_begin).to_vec());
-            }
-        }
-        if let Some(query_end) = find_last_not_of(bytes, b" \t\r\n") {
-            if bytes.get(query_end) == Some(&b';') {
-                return self.start_query(bytes_before(bytes, query_end), catalog);
-            }
-        }
-        self.start_query(bytes, catalog)
-    }
-
-    /// Is the prompt a complete statement or dot command?
-    fn prompt_is_complete(&mut self) -> bool {
-        let text = self.prompt.text();
-        let bytes = text.as_bytes();
-        let ws = b" \t\r\n";
-        let Some(begin) = find_first_not_of(bytes, ws) else {
+    /// Is the text a single statement that ends with a semicolon? Text that the local parser does not recognize but
+    /// ends with a semicolon is complete as well, the remote grammar may accept it.
+    fn is_complete_statement(&mut self, text: &[u8]) -> bool {
+        let Ok(utf8) = std::str::from_utf8(text) else {
             return false;
         };
-        let end = find_last_not_of(bytes, ws);
-        if bytes.get(begin) == Some(&b'.') {
-            return find_first_of(bytes, b"\r\n", begin).is_none();
-        }
-        if end.is_none_or(|end| bytes.get(end) != Some(&b';')) {
+        if find_last_not_of(text, WHITESPACE).is_none_or(|end| text.get(end) != Some(&b';')) {
             return false;
         }
-        let script = self.prompt.script_mut();
-        script.parse();
-        let Some(parsed) = script.parsed.as_ref() else {
+        self.script.replace_text(utf8);
+        self.script.parse();
+        let Some(parsed) = self.script.parsed.as_ref() else {
             return false;
         };
         let symbols = &parsed.scanned.symbols;
@@ -1293,11 +183,75 @@ impl ShellSession {
         if symbols.iter().rev().nth(1).is_none_or(|symbol| symbol.kind != S_SEMICOLON) {
             return false;
         }
-        // The remote grammar may accept syntax that the local parser does not recognize
         if !parsed.errors.is_empty() || !parsed.scanned.errors.is_empty() {
             return true;
         }
         parsed.statements.len() == 1
+    }
+
+    /// Complete the name of the dot command of a prompt that holds only the name. A single match is completed with a
+    /// space after it, several are completed to their common prefix and listed.
+    pub fn complete_command(&self, text: &[u8]) -> CommandCompletion {
+        let unchanged = CommandCompletion { text: String::from_utf8_lossy(text).into_owned(), candidates: Vec::new() };
+        let Some(begin) = command_begin(text) else {
+            return unchanged;
+        };
+        if find_first_of(text, WHITESPACE, begin).is_some() {
+            return unchanged;
+        }
+        let typed = bytes_from(text, begin + 1);
+        let matches: Vec<&String> = self.commands.iter().filter(|c| c.as_bytes().starts_with(typed)).collect();
+        let Some((first, rest)) = matches.split_first() else {
+            return unchanged;
+        };
+        let mut completed = String::from_utf8_lossy(bytes_before(text, begin)).into_owned();
+        completed.push('.');
+        if rest.is_empty() {
+            completed.push_str(first);
+            completed.push(' ');
+            return CommandCompletion { text: completed, candidates: Vec::new() };
+        }
+        // The names are ASCII, every byte offset is a character boundary
+        let mut common = first.len();
+        for name in rest {
+            common = common.min(first.bytes().zip(name.bytes()).take_while(|(a, b)| a == b).count());
+        }
+        completed.push_str(first.get(..common).unwrap_or(""));
+        CommandCompletion { text: completed, candidates: matches.iter().map(|name| format!(".{name}")).collect() }
+    }
+
+    /// The previous entry of the history for the prompt `current`, None at the oldest entry. A prompt that differs
+    /// from the entry it showed was edited: browsing starts again from the newest entry with it as the draft.
+    pub fn history_previous(&mut self, current: &[u8]) -> Option<String> {
+        self.restart_history_if_edited(current);
+        if self.history_cursor == 0 {
+            return None;
+        }
+        if self.history_cursor == self.history.len() {
+            self.history_draft = String::from_utf8_lossy(current).into_owned();
+        }
+        self.history_cursor -= 1;
+        self.history.get(self.history_cursor).cloned()
+    }
+
+    /// The next entry of the history for the prompt `current`, the draft after the newest entry, None if the prompt
+    /// shows no entry
+    pub fn history_next(&mut self, current: &[u8]) -> Option<String> {
+        self.restart_history_if_edited(current);
+        if self.history_cursor >= self.history.len() {
+            return None;
+        }
+        self.history_cursor += 1;
+        match self.history.get(self.history_cursor) {
+            Some(entry) => Some(entry.clone()),
+            None => Some(std::mem::take(&mut self.history_draft)),
+        }
+    }
+
+    fn restart_history_if_edited(&mut self, current: &[u8]) {
+        if self.history.get(self.history_cursor).is_some_and(|entry| entry.as_bytes() != current) {
+            self.reset_history_cursor();
+        }
     }
 
     fn reset_history_cursor(&mut self) {
@@ -1305,9 +259,9 @@ impl ShellSession {
         self.history_draft.clear();
     }
 
-    fn remember_prompt(&mut self, query: &str) {
-        if self.history.back().is_none_or(|last| last != query) {
-            self.history.push_back(query.to_string());
+    fn remember_prompt(&mut self, prompt: &str) {
+        if self.history.back().is_none_or(|last| last != prompt) {
+            self.history.push_back(prompt.to_string());
         }
         while self.history.len() > HISTORY_LIMIT {
             self.history.pop_front();
@@ -1352,14 +306,34 @@ impl ShellSession {
         ShellStatus::Ok
     }
 
-    /// Start a query: returns the effect of the query
-    pub fn start_query(&mut self, query: &[u8], _catalog: &Catalog) -> ShellOperation {
-        if query.is_empty() {
-            return ShellOperation::new(ShellStatus::InvalidArgument, "query must not be empty");
+    /// Execute a prompt as a dot command or a query, the history remembers it
+    pub fn submit(&mut self, prompt: &[u8]) -> ShellOperation {
+        let Ok(text) = std::str::from_utf8(prompt) else {
+            return ShellOperation::error(ShellStatus::InvalidArgument, "prompt must contain valid UTF-8");
+        };
+        if find_first_not_of(prompt, WHITESPACE).is_none() {
+            return ShellOperation::error(ShellStatus::InvalidArgument, "prompt must not be empty");
         }
-        if std::str::from_utf8(query).is_err() {
-            // Invalid UTF-8 is an internal error with the message of the rope
-            return ShellOperation::new(ShellStatus::InternalError, "rope input must contain valid UTF-8");
+        self.remember_prompt(text);
+        if let Some(begin) = command_begin(prompt) {
+            let end = find_last_not_of(prompt, WHITESPACE).map_or(prompt.len(), |end| end + 1);
+            return self.suspend_effect(EffectType::ExecuteCommand, byte_range(prompt, begin, end).to_vec());
+        }
+        if let Some(query_end) = find_last_not_of(prompt, WHITESPACE) {
+            if prompt.get(query_end) == Some(&b';') {
+                return self.start_query(bytes_before(prompt, query_end));
+            }
+        }
+        self.start_query(prompt)
+    }
+
+    /// Start a query: returns the effect of the query
+    pub fn start_query(&mut self, query: &[u8]) -> ShellOperation {
+        if query.is_empty() {
+            return ShellOperation::error(ShellStatus::InvalidArgument, "query must not be empty");
+        }
+        if !is_valid(query) {
+            return ShellOperation::error(ShellStatus::InvalidArgument, "query must contain valid UTF-8");
         }
         self.suspend_effect(EffectType::ExecuteQuery, query.to_vec())
     }
@@ -1367,7 +341,7 @@ impl ShellSession {
     /// Suspend an operation on an effect, unless another effect is pending
     fn suspend_effect(&mut self, effect_type: EffectType, payload: Vec<u8>) -> ShellOperation {
         if self.pending_effect.is_some() {
-            return ShellOperation::new(ShellStatus::Busy, "the shell already has an active operation");
+            return ShellOperation::error(ShellStatus::Busy, "the shell already has an active operation");
         }
         let id = self.next_effect_id;
         self.next_effect_id += 1;
@@ -1375,52 +349,69 @@ impl ShellSession {
         ShellOperation::pending(ShellEffect { effect_type, id, payload })
     }
 
-    /// Resume the operation of an effect with its result
+    /// Resume the operation of an effect with its result. The data of a query is a `QueryResultTag` with its
+    /// payload, of a command a flag byte (1 clears the records before) and the output, of an error the message.
     pub fn complete_effect(&mut self, effect_id: u64, status: EffectCompletionStatus, data: &[u8]) -> ShellOperation {
         let Some(effect) = self.pending_effect.take_if(|e| e.id == effect_id) else {
-            return ShellOperation::new(ShellStatus::StaleEffect, "effect is no longer pending");
+            return ShellOperation::error(ShellStatus::StaleEffect, "effect is no longer pending");
         };
         match (effect.effect_type, status) {
-            (EffectType::ExecuteQuery, EffectCompletionStatus::Success) => self.render_query_result(data),
+            (EffectType::ExecuteQuery, EffectCompletionStatus::Success) => self.query_records(data),
             (EffectType::ExecuteCommand, EffectCompletionStatus::Success) => {
                 let Some((&flags, output)) = data.split_first() else {
-                    return ShellOperation::new(ShellStatus::InternalError, "invalid shell command result");
+                    return ShellOperation::error(ShellStatus::InternalError, "invalid shell command result");
                 };
-                self.clear_terminal_after_command = (flags & 1) != 0;
-                ShellOperation::ok(output.to_vec())
+                let mut records = Vec::new();
+                if (flags & 1) != 0 {
+                    records.push(ShellRecord::new(ShellRecordKind::Clear, ""));
+                }
+                let text = record_text(output);
+                if !text.is_empty() {
+                    records.push(ShellRecord::new(ShellRecordKind::Text, text));
+                }
+                ShellOperation::ok(records)
             }
-            (_, EffectCompletionStatus::Error) => ShellOperation::ok(normalize_error(data)),
-            (_, EffectCompletionStatus::Cancelled) => ShellOperation::ok("Cancelled"),
+            (_, EffectCompletionStatus::Error) => {
+                let message = record_text(data);
+                let message = if message.is_empty() { "query failed".to_string() } else { message };
+                ShellOperation::ok(vec![ShellRecord::new(ShellRecordKind::Error, message)])
+            }
+            (_, EffectCompletionStatus::Cancelled) => {
+                ShellOperation::ok(vec![ShellRecord::new(ShellRecordKind::Status, "Cancelled")])
+            }
         }
     }
 
-    /// The output of a query: its status line, or a preview of its result with a status line below the table. See
-    /// `QueryResultTag` for the layout of the data.
-    fn render_query_result(&self, data: &[u8]) -> ShellOperation {
+    /// The records of a query: its status line, or a table of the first rows of its result and the status line below
+    /// it. See `QueryResultTag` for the layout of the data.
+    fn query_records(&self, data: &[u8]) -> ShellOperation {
         let Some((&tag, rest)) = data.split_first() else {
-            return ShellOperation::new(ShellStatus::InternalError, "invalid query result");
+            return ShellOperation::error(ShellStatus::InternalError, "invalid query result");
         };
         match tag {
-            t if t == QueryResultTag::Status as u8 => ShellOperation::ok(rest.to_vec()),
+            t if t == QueryResultTag::Status as u8 => {
+                ShellOperation::ok(vec![ShellRecord::new(ShellRecordKind::Status, record_text(rest))])
+            }
             t if t == QueryResultTag::Preview as u8 => {
                 let Some((length, rest)) = rest.split_first_chunk::<4>() else {
-                    return ShellOperation::new(ShellStatus::InternalError, "invalid query result preview");
+                    return ShellOperation::error(ShellStatus::InternalError, "invalid query result preview");
                 };
                 let Some((status, rows)) = rest.split_at_checked(u32::from_le_bytes(*length) as usize) else {
-                    return ShellOperation::new(ShellStatus::InternalError, "invalid query result preview");
+                    return ShellOperation::error(ShellStatus::InternalError, "invalid query result preview");
                 };
-                match ArrowRenderer::new(self.terminal_columns).render_ipc(rows) {
-                    Ok(mut output) => {
+                match ArrowRenderer::new(self.columns).render_ipc(rows) {
+                    Ok(table) => {
+                        let mut records = vec![ShellRecord::new(ShellRecordKind::Table, record_text(&table))];
+                        let status = record_text(status);
                         if !status.is_empty() {
-                            push(&mut output, vt100::NEW_LINE);
-                            output.extend_from_slice(status);
+                            records.push(ShellRecord::new(ShellRecordKind::Status, status));
                         }
-                        ShellOperation::ok(output)
+                        ShellOperation::ok(records)
                     }
-                    Err(message) => ShellOperation::new(ShellStatus::InternalError, message),
+                    Err(message) => ShellOperation::error(ShellStatus::InternalError, message),
                 }
             }
-            _ => ShellOperation::new(ShellStatus::InternalError, "invalid query result"),
+            _ => ShellOperation::error(ShellStatus::InternalError, "invalid query result"),
         }
     }
 
@@ -1428,416 +419,4 @@ impl ShellSession {
     pub fn cancel_effect(&mut self, effect_id: u64) -> ShellOperation {
         self.complete_effect(effect_id, EffectCompletionStatus::Cancelled, &[])
     }
-
-    /// Redraw the prompt with highlighting
-    fn render_terminal_prompt(&mut self) -> Vec<u8> {
-        let prompt_text = self.prompt.text();
-        let text = prompt_text.as_bytes();
-        let terminal_prompt = self.terminal_prompt_text().to_vec();
-        let mut highlighted = Vec::new();
-        let command_begin = find_first_not_of(text, b" \t");
-        let command_end = command_begin.and_then(|begin| find_first_of(text, b" \t\r\n", begin));
-        let command_name_end = command_end.unwrap_or(text.len());
-        let command_name: &[u8] = match command_begin {
-            Some(begin) if text.get(begin) == Some(&b'.') => byte_range(text, begin + 1, command_name_end),
-            _ => &[],
-        };
-        let is_registered_command = self.commands.iter().any(|c| c.as_bytes() == command_name);
-        if is_registered_command {
-            let command_begin = command_begin.unwrap_or(text.len());
-            highlighted.extend_from_slice(bytes_before(text, command_begin));
-            push(&mut highlighted, vt100::BOLD);
-            highlighted.extend_from_slice(byte_range(text, command_begin, command_name_end));
-            push(&mut highlighted, vt100::RESET_ATTRIBUTES);
-            highlighted.extend_from_slice(bytes_from(text, command_name_end));
-        } else {
-            let script = self.prompt.script_mut();
-            if script.parsed.as_ref().is_none_or(|p| p.scanned.text_version != script.text_version()) {
-                script.parse();
-            }
-            // A script holds its parsed program after `parse`, the text shows unstyled without one
-            if let Some(parsed) = script.parsed.as_ref() {
-                let packed = pack_tokens(parsed);
-                let offsets = packed.token_offsets.unwrap_or_default();
-                let lengths = packed.token_lengths.unwrap_or_default();
-                let types = packed.token_types.unwrap_or_default();
-                let comments = &parsed.scanned.comments;
-                highlighted.reserve(text.len() + (offsets.len() + comments.len()) * 16);
-                let clamp = |i: usize| i.min(text.len());
-                let mut offset = 0;
-                let mut token_idx = 0;
-                let mut comment_idx = 0;
-                while token_idx < offsets.len() || comment_idx < comments.len() {
-                    let token_begin = offsets.get(token_idx).map_or(usize::MAX, |&o| o as usize);
-                    let comment_begin = comments.get(comment_idx).map_or(usize::MAX, |c| c.offset as usize);
-                    let is_comment = comment_begin < token_begin;
-                    let begin = if is_comment { comment_begin } else { token_begin };
-                    // The packed arrays of the tokens have the same length
-                    let (length, token_type) = if is_comment {
-                        (comments.get(comment_idx).map_or(0, |c| c.length as usize), ScannerTokenType::COMMENT)
-                    } else {
-                        (
-                            lengths.get(token_idx).map_or(0, |&l| l as usize),
-                            types.get(token_idx).copied().unwrap_or_default(),
-                        )
-                    };
-                    let end = begin + length;
-                    if begin > offset {
-                        highlighted.extend_from_slice(byte_range(text, clamp(offset), clamp(begin)));
-                    }
-                    let style = token_style(token_type);
-                    push(&mut highlighted, style);
-                    highlighted.extend_from_slice(byte_range(text, clamp(begin), clamp(end)));
-                    if !style.is_empty() {
-                        push(&mut highlighted, vt100::RESET_ATTRIBUTES);
-                    }
-                    offset = end;
-                    if is_comment {
-                        comment_idx += 1;
-                    } else {
-                        token_idx += 1;
-                    }
-                }
-                highlighted.extend_from_slice(bytes_from(text, clamp(offset)));
-            } else {
-                highlighted.extend_from_slice(text);
-            }
-        }
-
-        let terminal_columns = self.terminal_columns as usize;
-        let continuation = self.terminal_continuation.clone();
-        let desired_layout = layout_prompt(text, &terminal_prompt, &continuation, terminal_columns);
-        let previous_rows = self.terminal_prompt_rows;
-        let rows_to_clear = previous_rows.max(desired_layout.rows);
-
-        let mut output = Vec::new();
-        append_cursor_move(&mut output, self.terminal_prompt_cursor_row, Command::CursorUp);
-        for i in 0..previous_rows {
-            push(&mut output, vt100::CARRIAGE_RETURN);
-            push(&mut output, vt100::ERASE_ENTIRE_LINE);
-            if i + 1 < previous_rows {
-                append_cursor_move(&mut output, 1, Command::CursorDown);
-            }
-        }
-        for _ in previous_rows..desired_layout.rows {
-            push(&mut output, vt100::NEW_LINE);
-        }
-        append_cursor_move(&mut output, rows_to_clear - 1, Command::CursorUp);
-        if previous_rows > 1 || desired_layout.rows > 1 {
-            push(&mut output, vt100::CARRIAGE_RETURN);
-        }
-
-        let rendered_layout = render_highlighted_prompt(
-            &mut output,
-            &highlighted,
-            &terminal_prompt,
-            &continuation,
-            &self.terminal_prompt_style,
-            terminal_columns,
-        );
-        self.terminal_prompt_rows = rendered_layout.rows;
-
-        let cursor = self.prompt.cursor_byte_offset();
-        let cursor_layout =
-            layout_prompt(bytes_before(text, cursor), &terminal_prompt, &continuation, terminal_columns);
-        self.terminal_prompt_cursor_row = cursor_layout.rows - 1;
-        if let Some(overlay) = self.overlay.as_mut() {
-            overlay.cursor_row = self.terminal_prompt_cursor_row;
-        }
-        push(&mut output, vt100::CARRIAGE_RETURN);
-        append_cursor_move(&mut output, self.terminal_prompt_rows - 1, Command::CursorUp);
-        append_cursor_move(&mut output, self.terminal_prompt_cursor_row, Command::CursorDown);
-        append_cursor_move(&mut output, cursor_layout.column, Command::CursorForward);
-        output
-    }
-
-    fn open_terminal_completion_overlay(
-        &mut self,
-        candidates: Vec<CompletionCandidate>,
-        completion: CompletionT,
-    ) -> Vec<u8> {
-        let mut overlay = TerminalCompletionOverlay { candidates, ..Default::default() };
-        let prompt_text = self.prompt.text();
-        let text = prompt_text.as_bytes();
-        // The callers open the overlay with candidates only
-        let Some(first) = overlay.candidates.first() else {
-            self.overlay = None;
-            return Vec::new();
-        };
-        let target = (first.target_offset as usize).min(text.len());
-        let follows_dot = target > 0 && text.get(target - 1) == Some(&b'.');
-        overlay.hint_only = !follows_dot && (overlay.candidates.len() == 1 || first.target_length == 0);
-        let terminal_prompt = self.terminal_prompt_text().to_vec();
-        let terminal_columns = self.terminal_columns as usize;
-        let target_layout =
-            layout_prompt(bytes_before(text, target), &terminal_prompt, &self.terminal_continuation, terminal_columns);
-        let cursor_layout = layout_prompt(
-            bytes_before(text, self.prompt.cursor_byte_offset()),
-            &terminal_prompt,
-            &self.terminal_continuation,
-            terminal_columns,
-        );
-        overlay.cursor_row = cursor_layout.rows - 1;
-        overlay.anchor_column = target_layout.column;
-        select_terminal_completion_hint(&mut overlay, text);
-        if !overlay.hint_only {
-            overlay.completion = Some(completion);
-            self.terminal_completion_revision += 1;
-        }
-        self.overlay = Some(overlay);
-        self.render_terminal_completion_overlay()
-    }
-
-    fn refresh_terminal_completion_overlay(&mut self, catalog: &Catalog) -> Result<Vec<u8>, String> {
-        let (candidates, completion) = self.complete_prompt_packed(50, catalog)?;
-        if candidates.is_empty() {
-            self.overlay = None;
-            return Ok(Vec::new());
-        }
-        Ok(self.open_terminal_completion_overlay(candidates, completion))
-    }
-
-    /// Render the inline hint of the selected candidate, the host shows the list
-    fn render_terminal_completion_overlay(&mut self) -> Vec<u8> {
-        let mut output = self.clear_terminal_completion_overlay();
-        if self.overlay.is_none() {
-            return output;
-        }
-        if !output.is_empty() {
-            output.extend(self.render_terminal_prompt());
-        }
-        output.extend(self.render_terminal_completion_hint());
-        output
-    }
-
-    fn clear_terminal_completion_overlay(&mut self) -> Vec<u8> {
-        let Some(overlay) = self.overlay.as_mut() else {
-            return Vec::new();
-        };
-        let mut output = Vec::new();
-        if overlay.hint_suffix_width > 0 {
-            if overlay.hint_suffix_inserted {
-                append_cursor_move(&mut output, overlay.hint_suffix_width, Command::DeleteCharacter);
-            } else {
-                push(&mut output, vt100::ERASE_LINE_FROM_CURSOR);
-            }
-            overlay.hint_suffix_width = 0;
-            overlay.hint_suffix_inserted = false;
-        }
-        if overlay.hint_prefix_width > 0 {
-            append_cursor_move(
-                &mut output,
-                overlay.hint_current_width + overlay.hint_prefix_width,
-                Command::CursorBackward,
-            );
-            append_cursor_move(&mut output, overlay.hint_prefix_width, Command::DeleteCharacter);
-            append_cursor_move(&mut output, overlay.hint_current_width, Command::CursorForward);
-            overlay.hint_prefix_width = 0;
-            overlay.hint_current_width = 0;
-        }
-        output
-    }
-
-    fn render_terminal_completion_hint(&mut self) -> Vec<u8> {
-        let cursor = self.prompt.cursor_byte_offset();
-        let prompt_text = self.prompt.text();
-        let text = prompt_text.as_bytes();
-        let Some(overlay) = self.overlay.as_mut() else {
-            return Vec::new();
-        };
-        let Some(candidate) = overlay.candidates.get(overlay.selection) else {
-            return Vec::new();
-        };
-        let target_end = candidate.target_offset as usize + candidate.target_length as usize;
-        if target_end != cursor {
-            return Vec::new();
-        }
-        let current = byte_range(text, candidate.target_offset as usize, target_end);
-        let completion_text = candidate.completion_text.as_bytes();
-        let mut prefix: Vec<u8> = Vec::new();
-        let mut suffix: Vec<u8> = Vec::new();
-        if overlay.hint_only {
-            match find_bytes(completion_text, current) {
-                Some(completion) => {
-                    prefix = bytes_before(completion_text, completion).to_vec();
-                    suffix = bytes_from(completion_text, completion + current.len()).to_vec();
-                }
-                None => suffix = completion_text.to_vec(),
-            }
-        } else if !candidate.qualification_texts.is_empty() {
-            let variant = overlay.variant_selection.min(candidate.qualification_texts.len() - 1);
-            let qualified = candidate.qualification_texts.get(variant).map_or(&b""[..], |q| q.as_bytes());
-            let completion = find_bytes(qualified, completion_text);
-            let typed = ci_find(completion_text, current);
-            if let (Some(completion), Some(typed)) = (completion, typed) {
-                prefix = bytes_before(qualified, completion + typed).to_vec();
-                suffix = bytes_from(completion_text, typed + current.len()).to_vec();
-                suffix.extend_from_slice(bytes_from(qualified, completion + completion_text.len()));
-            }
-        } else if ci_eq(completion_text, current) && !candidate.continuation_text.is_empty() {
-            suffix = format!(" {}", candidate.continuation_text).into_bytes();
-        } else if ci_starts_with(completion_text, current) {
-            suffix = bytes_from(completion_text, current.len()).to_vec();
-        }
-        if prefix.is_empty() && suffix.is_empty() && !candidate.continuation_text.is_empty() {
-            suffix = format!(" {}", candidate.continuation_text).into_bytes();
-        }
-        if prefix.is_empty() && suffix.is_empty() {
-            return Vec::new();
-        }
-        // Names can hold control characters, the hint shows them escaped
-        let prefix = escape_terminal_text(&prefix);
-        let suffix = escape_terminal_text(&suffix);
-        overlay.hint_prefix_width = display_width(&prefix);
-        overlay.hint_suffix_width = display_width(&suffix);
-        overlay.hint_current_width = display_width(current);
-        let mut output = Vec::new();
-        if !prefix.is_empty() {
-            append_cursor_move(&mut output, overlay.hint_current_width, Command::CursorBackward);
-            append_cursor_move(&mut output, overlay.hint_prefix_width, Command::InsertCharacter);
-            push(&mut output, vt100::FOREGROUND_BRIGHT_BLACK);
-            output.extend_from_slice(&prefix);
-            push(&mut output, vt100::RESET_ATTRIBUTES);
-            append_cursor_move(&mut output, overlay.hint_current_width, Command::CursorForward);
-        }
-        if !suffix.is_empty() {
-            push(&mut output, vt100::SAVE_CURSOR);
-            if target_end < text.len() {
-                append_cursor_move(&mut output, overlay.hint_suffix_width, Command::InsertCharacter);
-                overlay.hint_suffix_inserted = true;
-            }
-            push(&mut output, vt100::FOREGROUND_BRIGHT_BLACK);
-            output.extend_from_slice(&suffix);
-            push(&mut output, vt100::RESET_ATTRIBUTES);
-            push(&mut output, vt100::RESTORE_CURSOR);
-        }
-        output
-    }
-
-    fn accept_terminal_completion(&mut self) -> ShellOperation {
-        let output = self.clear_terminal_completion_overlay();
-        // Called only with an open overlay whose selection is one of its candidates
-        let Some(overlay) = self.overlay.take() else {
-            return ShellOperation::ok(output);
-        };
-        let variant_selection = overlay.variant_selection;
-        let Some(candidate) = overlay.candidates.into_iter().nth(overlay.selection) else {
-            return ShellOperation::ok(output);
-        };
-        self.apply_terminal_candidate(candidate, variant_selection, output)
-    }
-
-    /// Apply a candidate after the output so far. The list stays closed, like in the editor: only the hint of the next
-    /// step remains, a qualification or a keyword continuation.
-    fn apply_terminal_candidate(
-        &mut self,
-        mut candidate: CompletionCandidate,
-        variant_selection: usize,
-        mut output: Vec<u8>,
-    ) -> ShellOperation {
-        let continuation = candidate.continuation_text.clone();
-        let last_variant = candidate.qualification_texts.len().saturating_sub(1);
-        let qualification =
-            candidate.qualification_texts.get(variant_selection.min(last_variant)).cloned().unwrap_or_default();
-        let apply_qualification = self.auto_qualify_non_default_database_tables
-            && !candidate.completion_text.ends_with("()")
-            && is_non_default_three_part_name(qualification.as_bytes());
-        if apply_qualification && !qualification.is_empty() {
-            candidate.completion_text = qualification.clone();
-            candidate.completion_cursor_offset = qualification.len() as u32;
-            candidate.target_offset = candidate.qualification_target_offset;
-            candidate.target_length = candidate.qualification_target_length;
-        }
-        let snapshot = self.apply_completion(&candidate);
-        if snapshot.status != ShellStatus::Ok {
-            return ShellOperation::new(snapshot.status, snapshot.message);
-        }
-        self.prompt.script_mut().parse();
-        output.extend(self.render_terminal_prompt());
-        if !apply_qualification && !qualification.is_empty() && qualification != candidate.completion_text {
-            let cursor = self.prompt.cursor_byte_offset();
-            let prompt_text = self.prompt.text();
-            let completion_length = candidate.completion_text.len() as u32;
-            self.overlay = Some(TerminalCompletionOverlay {
-                hint_only: true,
-                cursor_row: bytes_before(prompt_text.as_bytes(), cursor).iter().filter(|&&c| c == b'\n').count(),
-                candidates: vec![CompletionCandidate {
-                    display_text: candidate.completion_text,
-                    completion_text: qualification.clone(),
-                    continuation_text: continuation,
-                    completion_cursor_offset: qualification.len() as u32,
-                    target_offset: candidate.qualification_target_offset,
-                    target_length: completion_length,
-                    qualification_target_offset: candidate.qualification_target_offset,
-                    qualification_target_length: completion_length,
-                    ..Default::default()
-                }],
-                ..Default::default()
-            });
-            output.extend(self.render_terminal_completion_hint());
-        } else if !continuation.is_empty() {
-            let cursor = self.prompt.cursor_byte_offset();
-            let prompt_text = self.prompt.text();
-            self.overlay = Some(TerminalCompletionOverlay {
-                hint_only: true,
-                cursor_row: bytes_before(prompt_text.as_bytes(), cursor).iter().filter(|&&c| c == b'\n').count(),
-                candidates: vec![CompletionCandidate {
-                    display_text: continuation.clone(),
-                    completion_text: format!(" {}", continuation),
-                    completion_cursor_offset: (continuation.len() + 1) as u32,
-                    target_offset: cursor as u32,
-                    target_length: 0,
-                    qualification_target_offset: cursor as u32,
-                    qualification_target_length: 0,
-                    ..Default::default()
-                }],
-                ..Default::default()
-            });
-            output.extend(self.render_terminal_completion_hint());
-        }
-        ShellOperation::ok(output)
-    }
-
-    fn move_terminal_completion(&mut self, direction: i32) -> ShellOperation {
-        let Some(overlay) = self.overlay.as_mut() else {
-            return ShellOperation::ok(Vec::new());
-        };
-        let count = overlay.candidates.len();
-        if count == 0 {
-            return ShellOperation::ok(Vec::new());
-        }
-        if direction < 0 {
-            overlay.selection = if overlay.selection == 0 { count - 1 } else { overlay.selection - 1 };
-        } else {
-            overlay.selection = (overlay.selection + 1) % count;
-        }
-        overlay.variant_selection = 0;
-        ShellOperation::ok(self.render_terminal_completion_overlay())
-    }
-
-    fn move_terminal_completion_variant(&mut self, direction: i32) -> ShellOperation {
-        let Some(overlay) = self.overlay.as_mut() else {
-            return ShellOperation::ok(Vec::new());
-        };
-        let count =
-            overlay.candidates.get(overlay.selection).map_or(0, |candidate| candidate.qualification_texts.len());
-        if count < 2 {
-            return ShellOperation::ok(Vec::new());
-        }
-        if direction < 0 {
-            overlay.variant_selection =
-                if overlay.variant_selection == 0 { count - 1 } else { overlay.variant_selection - 1 };
-        } else {
-            overlay.variant_selection = (overlay.variant_selection + 1) % count;
-        }
-        ShellOperation::ok(self.render_terminal_completion_overlay())
-    }
-}
-
-/// The first occurrence of a needle, 0 for an empty needle
-fn find_bytes(haystack: &[u8], needle: &[u8]) -> Option<usize> {
-    if needle.is_empty() {
-        return Some(0);
-    }
-    haystack.windows(needle.len()).position(|w| w == needle)
 }

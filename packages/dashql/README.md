@@ -34,7 +34,7 @@ handles.
 
 `DashQL.create` accepts a `wasmBinary` or a precompiled WebAssembly `module` and
 loads the bundled binary otherwise. The module needs nothing but its own JS glue,
-no database or other Wasm module. It also holds the terminal shell, `bindings.Shell`,
+no database or other Wasm module. It also holds the shell, `bindings.Shell`,
 which runs on a catalog of the module and leaves running queries to its host.
 
 The root export does not export browser workers. In browsers, use:

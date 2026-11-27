@@ -430,18 +430,13 @@ A completion with a [syntax error](#the-syntax-error-of-a-completion) shows it a
 message, and the hint below it. It stays in view while the list scrolls and wraps at 360px instead of widening the list.
 A completion without candidates shows no list, so it shows no error either; the diagnostics of the editor show it.
 
-The view lives in `workbook/editor/completion/completion_list_view.ts` and knows nothing about its host. The editor and the shell both show it.
+The view lives in `workbook/editor/completion/completion_list_view.ts` and knows nothing about its host.
 
 ### The list in the shell
 
-The shell shows the same list over the terminal (`shell/terminal/completion_overlay.ts`). The Rust shell keeps the candidates, the selection and the keys, and the host reads what to show after every input, see `packages/dashql-core-shell/SHELL.md`. The differences to the editor come from the terminal:
-
-- **Position:** the anchor is a terminal cell, the column of the replaced text in the row of the cursor. The list follows it when the terminal scrolls or resizes, and hides while that row is scrolled out of view.
-- **Mount:** the list sits in the terminal container and not on `body`, so it hides with a page that goes to the background. It's dark in both schemes, like the terminal.
-- **Variants:** Left and Right cycle the qualified names that the shell offers, which can be fewer than the catalog objects of a candidate. The shell packs only the objects with a qualified name, or the first one if there are none, so that the arrows of a row appear exactly when Left and Right cycle.
-- **Dot commands:** a command is a candidate without an info, with the keyword badge and no pane.
-- **Tab without a list:** it asks for candidates, since a terminal has no tab to insert. One candidate is applied right away, several open the list.
-- **Enter with a list:** it accepts the selected candidate like Tab, and submits only after that.
+The prompt of the shell is a CodeMirror editor with a script session on the catalog of the shell, it completes like the
+editors of the workbook. Only a dot command gets no SQL assistance, Tab completes its name, see
+`packages/dashql-core-shell/SHELL.md`.
 
 ### Patch computation
 

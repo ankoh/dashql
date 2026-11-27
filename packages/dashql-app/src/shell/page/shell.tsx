@@ -35,9 +35,32 @@ const ShellRuntime = (props: { children?: React.ReactNode }) => {
     return <StandaloneRuntime channels={channels}>{props.children}</StandaloneRuntime>;
 };
 
+/// Keep an element in the visible part of the window. The keyboard of iOS covers the window instead of shrinking it,
+/// the prompt of the shell would sit behind it. A zoomed page keeps its height.
+function useVisualViewportHeight(element: HTMLElement | null) {
+    React.useEffect(() => {
+        const viewport = window.visualViewport;
+        if (viewport == null || element == null) return;
+        const fit = () => {
+            element.style.height = viewport.scale > 1.01 ? '' : `${viewport.height}px`;
+            // iOS scrolls the window to the focused prompt, the element starts at the top of the visible part
+            if (viewport.scale <= 1.01) window.scrollTo(0, 0);
+        };
+        fit();
+        viewport.addEventListener('resize', fit);
+        return () => {
+            viewport.removeEventListener('resize', fit);
+            element.style.height = '';
+        };
+    }, [element]);
+}
+
 export const Shell: React.FC = () => {
     const [engineVersion, setEngineVersion] = React.useState<string | null>(null);
     const [shellGeneration, setShellGeneration] = React.useState(0);
+    // The providers mount the root once they are ready
+    const [root, setRoot] = React.useState<HTMLDivElement | null>(null);
+    useVisualViewportHeight(root);
 
     // A file dropped on the page doesn't open in place of the shell
     React.useEffect(() => {
@@ -67,7 +90,7 @@ export const Shell: React.FC = () => {
                                         <DashQLCoreProvider>
                                             <ShellRuntime>
                                                 <ShellQueryHistoryProvider key={shellGeneration}>
-                                                    <div className={styles.root}>
+                                                    <div ref={setRoot} className={styles.root}>
                                                         <ShellNavBar
                                                             engineVersion={engineVersion}
                                                             onReset={resetShell}

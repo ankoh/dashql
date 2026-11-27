@@ -1,24 +1,20 @@
-//! The DashQL shell: a readline-like prompt with SQL highlighting and completion, a VT100
-//! terminal renderer, and the execution protocol of queries and dot commands.
+//! The DashQL shell: the history of its prompts, the check whether a prompt is a complete statement, dot commands,
+//! the execution protocol of queries and commands, and the records of their output.
 //!
-//! Queries and commands are pending effects: starting an operation returns
-//! [`ShellStatus::Pending`] with an effect (type, id, payload), and the host
-//! completes or cancels the effect by id, which yields the rendered output.
+//! The host edits the prompt, the shell decides what a submitted prompt does. Queries and commands are pending
+//! effects: starting an operation returns [`ShellStatus::Pending`] with an effect (type, id, payload), and the host
+//! completes or cancels the effect by id, which yields the records of the output.
 //!
-//! The session does not own its catalog, operations that read it take `&Catalog` (see [`ShellSession`]).
+//! The session does not own its catalog, it parses its prompts with a script on the catalog (see [`ShellSession`]).
 //!
-//! Inputs that must be valid UTF-8 are byte slices so that invalid input is reported as an error,
-//! and outputs are terminal bytes.
+//! Inputs that must be valid UTF-8 are byte slices so that invalid input is reported as an error.
 
 pub mod arrow_renderer;
-pub mod prompt_buffer;
 mod session;
 pub mod unicode;
-pub mod vt100;
 
 pub use arrow_renderer::ArrowRenderer;
-pub use prompt_buffer::PromptBuffer;
-pub use session::{ShellSession, DEFAULT_TERMINAL_PROMPT};
+pub use session::{CommandCompletion, ShellSession};
 
 /// The status of a shell operation
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -44,10 +40,10 @@ pub enum EffectType {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum QueryResultTag {
-    /// A status line, e.g. `Query completed (3 rows)`, the result itself shows outside the terminal
+    /// A status line, e.g. `Query completed (3 rows)`, the result itself shows outside the shell
     Status = 0,
     /// A preview of the result: the length of a status line as u32 LE, the status line, then the first rows as an
-    /// Arrow IPC stream or file. The terminal shows the rows as a table and the status line below it.
+    /// Arrow IPC stream or file. The shell shows the rows as a table and the status line below it.
     Preview = 1,
 }
 
@@ -71,89 +67,44 @@ impl EffectCompletionStatus {
     }
 }
 
-/// A semantic input key
+/// The kind of a record of the output of an operation
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(u32)]
-pub enum PromptInputKey {
+pub enum ShellRecordKind {
+    /// The output of a command
     Text = 0,
-    Enter = 1,
-    ForceSubmit = 2,
-    Tab = 3,
-    Backspace = 4,
-    Delete = 5,
-    Left = 6,
-    Right = 7,
-    HistoryPrevious = 8,
-    HistoryNext = 9,
-    Cancel = 10,
-    Escape = 11,
-    Up = 12,
-    Down = 13,
-    Start = 14,
-    End = 15,
-    LineStart = 16,
-    LineEnd = 17,
-    WordLeft = 18,
-    WordRight = 19,
-    KillLine = 20,
-    BackwardKillLine = 21,
-    KillWord = 22,
-    BackwardKillWord = 23,
-    Yank = 24,
-    Transpose = 25,
-    ClearScreen = 26,
-    Eof = 27,
-    Abort = 28,
+    /// A status line, e.g. `Query completed (3 rows)`
+    Status = 1,
+    /// A table of the first rows of a result, drawn with box characters
+    Table = 2,
+    /// The error of a query or a command
+    Error = 3,
+    /// The records before it go, e.g. after `.clear`
+    Clear = 4,
 }
 
-impl PromptInputKey {
-    pub const ALL: [PromptInputKey; 29] = [
-        Self::Text,
-        Self::Enter,
-        Self::ForceSubmit,
-        Self::Tab,
-        Self::Backspace,
-        Self::Delete,
-        Self::Left,
-        Self::Right,
-        Self::HistoryPrevious,
-        Self::HistoryNext,
-        Self::Cancel,
-        Self::Escape,
-        Self::Up,
-        Self::Down,
-        Self::Start,
-        Self::End,
-        Self::LineStart,
-        Self::LineEnd,
-        Self::WordLeft,
-        Self::WordRight,
-        Self::KillLine,
-        Self::BackwardKillLine,
-        Self::KillWord,
-        Self::BackwardKillWord,
-        Self::Yank,
-        Self::Transpose,
-        Self::ClearScreen,
-        Self::Eof,
-        Self::Abort,
-    ];
+/// A record of the output of an operation, one entry of the feed of the shell
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ShellRecord {
+    /// What the record is
+    pub kind: ShellRecordKind,
+    /// The text of the record without a trailing line break, lines end with `\n`
+    pub text: String,
+}
 
-    /// The key of a numeric value, None for values past `ABORT`
-    pub fn from_u32(value: u32) -> Option<Self> {
-        Self::ALL.get(value as usize).copied()
+impl ShellRecord {
+    pub fn new(kind: ShellRecordKind, text: impl Into<String>) -> Self {
+        Self { kind, text: text.into() }
     }
 }
 
-/// What the host should do after an input
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
-#[repr(u32)]
-pub enum PromptInputAction {
-    #[default]
-    None = 0,
-    Submit = 1,
-    Complete = 2,
-    Exit = 3,
+/// What a prompt is
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct PromptInfo {
+    /// Is the prompt a dot command? The host offers no SQL assistance for it.
+    pub is_command: bool,
+    /// Does Enter submit the prompt? A dot command on one line or a single statement that ends with a semicolon.
+    pub is_complete: bool,
 }
 
 /// An effect that the host performs for a pending operation
@@ -167,93 +118,31 @@ pub struct ShellEffect {
     pub payload: Vec<u8>,
 }
 
-/// The result of an operation: rendered output, an effect or an error message
+/// The result of an operation: the records of its output, an effect or an error message
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ShellOperation {
     /// The status of the operation
     pub status: ShellStatus,
-    /// The rendered output or the error message, empty if the operation is pending
-    pub data: Vec<u8>,
+    /// The records of the output of a finished operation
+    pub records: Vec<ShellRecord>,
+    /// The error message if the status is neither OK nor pending
+    pub message: String,
     /// The effect of a pending operation
     pub effect: Option<ShellEffect>,
 }
 
 impl ShellOperation {
-    pub fn new(status: ShellStatus, data: impl Into<Vec<u8>>) -> Self {
-        Self { status, data: data.into(), effect: None }
+    /// An operation that failed with a message
+    pub fn error(status: ShellStatus, message: impl Into<String>) -> Self {
+        Self { status, records: Vec::new(), message: message.into(), effect: None }
     }
 
-    pub fn ok(data: impl Into<Vec<u8>>) -> Self {
-        Self::new(ShellStatus::Ok, data)
+    /// An operation that finished with records
+    pub fn ok(records: Vec<ShellRecord>) -> Self {
+        Self { status: ShellStatus::Ok, records, message: String::new(), effect: None }
     }
 
     pub fn pending(effect: ShellEffect) -> Self {
-        Self { status: ShellStatus::Pending, data: Vec::new(), effect: Some(effect) }
+        Self { status: ShellStatus::Pending, records: Vec::new(), message: String::new(), effect: Some(effect) }
     }
-}
-
-/// Terminal output with the action of the input
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TerminalOutput {
-    /// The status of the input
-    pub status: ShellStatus,
-    /// What the host should do after the input
-    pub action: PromptInputAction,
-    /// The terminal output with VT100 escape sequences, or the error message
-    pub data: Vec<u8>,
-}
-
-/// A completion candidate of the prompt
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct CompletionCandidate {
-    /// The text shown in the completion list
-    pub display_text: String,
-    /// The text that replaces the target, quoted if needed and with `()` for functions
-    pub completion_text: String,
-    /// The keywords that usually follow the completion, shown as hint, empty if none
-    pub continuation_text: String,
-    /// Whether this candidate only preserves the token already under the cursor
-    pub is_identity: bool,
-    /// The qualified names of the candidate objects that are shown as variants
-    pub qualification_texts: Vec<String>,
-    /// The cursor offset within the completion text after applying it
-    pub completion_cursor_offset: u32,
-    /// The byte offset of the replaced text in the prompt
-    pub target_offset: u32,
-    /// The byte length of the replaced text in the prompt
-    pub target_length: u32,
-    /// The byte offset of the text that a qualified name replaces
-    pub qualification_target_offset: u32,
-    /// The byte length of the text that a qualified name replaces
-    pub qualification_target_length: u32,
-}
-
-/// The completion list that the host shows over the terminal
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct TerminalCompletionList {
-    /// Changes when the candidates change, the host only reads the buffer of the list then
-    pub revision: u64,
-    /// The index of the selected candidate
-    pub selection: u32,
-    /// The index of the selected catalog object of the selected candidate
-    pub variant: u32,
-    /// The terminal column of the start of the replaced text
-    pub anchor_column: u32,
-}
-
-/// The state of the prompt after an edit
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct PromptSnapshot {
-    /// The status of the edit
-    pub status: ShellStatus,
-    /// The revision of the prompt text
-    pub revision: u64,
-    /// The byte offset of the cursor in the text
-    pub cursor_byte_offset: u32,
-    /// The prompt text
-    pub text: String,
-    /// The error message, empty on success
-    pub message: String,
-    /// What the host should do after the edit
-    pub action: PromptInputAction,
 }

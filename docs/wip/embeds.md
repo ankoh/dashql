@@ -35,7 +35,7 @@ the core in about 0.16 s, Hyper with its startup in about 0.8 s.
 | Links use | `https://dashql.app/embed?…` | `https://hyperdb.sh/embed#…` |
 | For | anyone who wants to look at data: a schema, rows, a chart | people who write SQL: a script, its results, the plan |
 | Modes | data file, workbook | script |
-| Built from | `packages/dashql`, `results` (with Vega-Lite) | the shell (`src/shell`): terminal, file mounts, `#script=` sharing, plan and format dialogs |
+| Built from | `packages/dashql`, `results` (with Vega-Lite) | the shell (`src/shell`): feed and prompt, file mounts, `#script=` sharing, plan and format dialogs |
 
 Both domains serve the same Pages deployment, so `/embed` exists on both. The domain only tells people which product
 a link belongs to, the parameters pick the mode: `#script=` is the Hyper mode, anything else the DashQL mode.
@@ -86,7 +86,7 @@ loads the embed in the viewer's client.
 |---|---|---|
 | Data file | schema, row count, size, a few rows, a chart rendered to an image | schema, paged rows, a chart, a SQL box |
 | Workbook | name, scripts, connections, the first stored result | the stored results, one script at a time, running self-contained workbooks |
-| Hyper script | the script, whether it parses, the first result | the terminal with the script, run, plan, format |
+| Hyper script | the script, whether it parses, the first result | the shell with the script, run, plan, format |
 
 The server can't run on Cloudflare Workers: Hyper needs threads and about 0.85 GB. It needs Node 24.15+ (or Node 24
 with the flag that `hyperdb-edge` sets), so AWS Lambda, Vercel Functions or a container.
@@ -166,7 +166,7 @@ The side panel is narrow, its width isn't documented. The views are one column:
 
 - data file: schema → rows → one chart → SQL box,
 - workbook: one script at a time with its result or chart, a stack of cards, not the workbench,
-- Hyper script: the terminal at the width of the panel.
+- Hyper script: the shell at the width of the panel.
 
 ## Order
 

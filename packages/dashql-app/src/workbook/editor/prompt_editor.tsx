@@ -3,7 +3,7 @@ import * as dashql from '@akohn/dashql';
 import * as themes from './themes/index.js';
 
 import { Compartment, EditorState, Extension, Prec } from '@codemirror/state';
-import { EditorView, drawSelection, keymap, placeholder } from '@codemirror/view';
+import { EditorView, drawSelection, keymap, placeholder, type KeyBinding } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, insertNewlineAndIndent } from '@codemirror/commands';
 
 import { CodeMirrorSearchExtensions } from './codemirror.js';
@@ -36,8 +36,8 @@ const EDITABILITY = new Compartment();
 /// Create CodeMirror extensions for a prompt editor.
 /// This is a minimal setup without line numbers and gutters that grows with its content.
 /// Long lines wrap, the prompt scrolls beyond its maximum height without showing scrollbars.
-/// Enter submits, Shift+Enter inserts a newline.
-function createPromptExtensions(configurable: Extension[], callbacks: React.RefObject<PromptEditorCallbacks>): Extension[] {
+/// Enter submits, Shift+Enter inserts a newline. The keys of the caller come before them.
+function createPromptExtensions(configurable: Extension[], callbacks: React.RefObject<PromptEditorCallbacks>, keys: readonly KeyBinding[]): Extension[] {
     const submit = (view: EditorView) => {
         const text = view.state.doc.toString();
         if (text.trim().length > 0) {
@@ -53,6 +53,7 @@ function createPromptExtensions(configurable: Extension[], callbacks: React.RefO
         DashQLProcessorPlugin,
         ...CodeMirrorSearchExtensions,
         // Below the completion keymap (Prec.highest), above the default Enter binding
+        Prec.high(keymap.of([...keys])),
         Prec.high(keymap.of([
             { key: 'Enter', run: submit },
             { key: 'Mod-Enter', run: submit },
@@ -100,6 +101,8 @@ export interface PromptEditorProps {
     setView?: (view: EditorView | null) => void;
     /// Does the prompt refuse edits? It keeps its text and doesn't take the focus then.
     readOnly?: boolean;
+    /// Keys that come before Enter and the default keys, below the keys of a completion. Read when the editor mounts.
+    keys?: readonly KeyBinding[];
 }
 
 /// The extensions of a prompt that refuses edits or takes them
@@ -126,7 +129,7 @@ export const PromptEditor: React.FC<PromptEditorProps> = (props) => {
             EDITABILITY.of(editability(props.readOnly ?? false)),
         ];
         return new EditorView({
-            state: EditorState.create({ extensions: createPromptExtensions(configurable, callbacks) }),
+            state: EditorState.create({ extensions: createPromptExtensions(configurable, callbacks, props.keys ?? []) }),
             parent: editorNode,
         });
     });

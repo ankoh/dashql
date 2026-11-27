@@ -75,6 +75,8 @@ export interface ReadonlySqlViewProps {
     lineWrapping?: boolean;
     /// Grow with the text instead of filling the container
     autoHeight?: boolean;
+    /// Text only, without a cursor: a tap selects and doesn't open the keyboard of a touch screen
+    textOnly?: boolean;
     /// Called with the view once it is created and whenever its size or font metrics change, e.g. to fit a text to its width
     onResize?: (view: EditorView) => void;
 }
@@ -90,8 +92,9 @@ export function ReadonlySqlView(props: ReadonlySqlViewProps) {
         const geometry = EditorView.updateListener.of(update => {
             if (update.geometryChanged) onResize.current?.(update.view);
         });
-        return props.lineWrapping ? [...base, EditorView.lineWrapping, geometry] : [...base, geometry];
-    }, [props.lineWrapping]);
+        const textOnly = props.textOnly ? [EditorView.editable.of(false)] : [];
+        return props.lineWrapping ? [...base, ...textOnly, EditorView.lineWrapping, geometry] : [...base, ...textOnly, geometry];
+    }, [props.lineWrapping, props.textOnly]);
 
     React.useEffect(() => {
         if (view != null) onResize.current?.(view);

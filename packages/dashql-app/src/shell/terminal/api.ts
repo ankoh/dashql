@@ -1,5 +1,4 @@
-import { DashQL, DashQLCatalog, type Shell, type ShellCompletionCandidate, type ShellOperation, type ShellPromptResult, type ShellTerminalResult } from '@akohn/dashql';
-import * as dashql from '@akohn/dashql';
+import { DashQL, DashQLCatalog, type Shell, type ShellOperation } from '@akohn/dashql';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
 export enum DashQLShellStatus {
@@ -39,11 +38,11 @@ export interface DashQLShellEnvironment {
     releaseResult?(queryId: number): void;
 }
 
-/// Where a shell shows the results of its queries: in the result overlay of the page, or as a table in the terminal
+/// Where a shell shows the results of its queries: in the result overlay of the page, or as a table in its output
 export type DashQLShellOutput = 'overlay' | 'table';
 
-/// Reports a result with columns, `inTerminal` if the terminal shows it as a table and the overlay stays closed
-export type DashQLShellResultCallback = (queryId: number, rowCount: number, inTerminal: boolean) => void;
+/// Reports a result with columns, `inFeed` if the shell shows it as a table and the overlay stays closed
+export type DashQLShellResultCallback = (queryId: number, rowCount: number, inFeed: boolean) => void;
 
 export interface DashQLShellCommandContext {
     readonly signal?: AbortSignal;
@@ -63,8 +62,10 @@ export type DashQLShellCommand = readonly [
 
 interface DashQLShellOperation {
     status: DashQLShellStatus;
-    /// The output, the error message or the effect description
-    text: string;
+    /// The error message of an operation that failed
+    message: string;
+    /// The records of the output of a finished operation
+    records: DashQLShellRecord[];
     effect: DashQLShellEffect | null;
 }
 
@@ -90,86 +91,51 @@ export interface DashQLShellOptions {
     /// The catalog of the shell, it stays with the caller. Without one the shell has a catalog of its own.
     catalog?: DashQLCatalog;
     environment: DashQLShellEnvironment;
-    autoQualifyNonDefaultDatabaseTables?: boolean;
     commands?: readonly DashQLShellCommand[];
-    terminalColumns?: number;
+    /// The width of the tables of results in characters
+    columns?: number;
 }
 
-export interface DashQLShellPrompt {
-    revision: bigint;
-    cursorByteOffset: number;
-    text: string;
-    message: string;
-    action: DashQLShellPromptAction;
-}
-
-export interface DashQLShellTerminalOutput {
-    action: DashQLShellPromptAction;
-    data: string;
-}
-
-export enum DashQLShellPromptInput {
+/// The kind of a record of the output of the shell
+export enum DashQLShellRecordKind {
+    /// The output of a command
     TEXT = 0,
-    ENTER = 1,
-    FORCE_SUBMIT = 2,
-    TAB = 3,
-    BACKSPACE = 4,
-    DELETE = 5,
-    LEFT = 6,
-    RIGHT = 7,
-    HISTORY_PREVIOUS = 8,
-    HISTORY_NEXT = 9,
-    CANCEL = 10,
-    ESCAPE = 11,
-    UP = 12,
-    DOWN = 13,
-    START = 14,
-    END = 15,
-    LINE_START = 16,
-    LINE_END = 17,
-    WORD_LEFT = 18,
-    WORD_RIGHT = 19,
-    KILL_LINE = 20,
-    BACKWARD_KILL_LINE = 21,
-    KILL_WORD = 22,
-    BACKWARD_KILL_WORD = 23,
-    YANK = 24,
-    TRANSPOSE = 25,
-    CLEAR_SCREEN = 26,
-    EOF = 27,
-    ABORT = 28,
+    /// A status line, e.g. `Query completed (3 rows)`
+    STATUS = 1,
+    /// A table of the first rows of a result, drawn with box characters
+    TABLE = 2,
+    /// The error of a query or a command
+    ERROR = 3,
+    /// The records before it go, e.g. after `.clear`
+    CLEAR = 4,
 }
 
-export enum DashQLShellPromptAction {
-    NONE = 0,
-    SUBMIT = 1,
-    COMPLETE = 2,
-    EXIT = 3,
+/// A record of the output of the shell
+export interface DashQLShellRecord {
+    kind: DashQLShellRecordKind;
+    /// The text without a trailing line break, lines end with `\n`
+    text: string;
 }
 
-export interface DashQLShellCompletionCandidate {
-    displayText: string;
-    completionText: string;
-    targetOffset: number;
-    targetLength: number;
+/// What a prompt is
+export interface DashQLShellPromptInfo {
+    /// Is the prompt a dot command? It gets no SQL assistance.
+    isCommand: boolean;
+    /// Does Enter submit the prompt?
+    isComplete: boolean;
 }
 
-/// The completion list that the host shows over the terminal
-export interface DashQLShellCompletionList {
-    /// Changes when the candidates change, the buffer only has to be read then
-    revision: bigint;
-    /// The index of the selected candidate
-    selection: number;
-    /// The index of the selected catalog object of the selected candidate
-    variant: number;
-    /// The terminal column of the start of the replaced text
-    anchorColumn: number;
+/// The completion of the name of a dot command
+export interface DashQLShellCommandCompletion {
+    /// The prompt with the completed name
+    text: string;
+    /// The matching commands with their dots, if more than one matches
+    candidates: string[];
 }
 
-const SHELL_COMPLETION_TYPE = Symbol('SHELL_COMPLETION_TYPE');
 /// The status line of a statement without columns
 const NO_RESULTS_MESSAGE = 'No results';
-/// The rows of a result that the terminal shows as a table at most
+/// The rows of a result that the shell shows as a table at most
 export const SHELL_PREVIEW_ROW_LIMIT = 100;
 
 /// What the data of a query effect holds, its first byte
@@ -214,18 +180,13 @@ export class DashQLShell {
         public readonly catalog: DashQLCatalog,
         private readonly ownsCatalog: boolean,
         private readonly environment: DashQLShellEnvironment,
-        terminalColumns: number,
-        autoQualifyNonDefaultDatabaseTables: boolean,
+        columns: number,
         commands: Map<string, DashQLShellCommand>,
         settings: DashQLShellSettings,
     ) {
         this.commands = commands;
         this.settings = settings;
-        this.shell = new core.bindings.Shell(
-            catalog.ptr.assertNotNull(),
-            terminalColumns,
-            autoQualifyNonDefaultDatabaseTables,
-        );
+        this.shell = new core.bindings.Shell(catalog.ptr.assertNotNull(), columns);
         const status = this.shell.setCommands(Array.from(commands.keys()).join('\n')) as DashQLShellStatus;
         if (status !== DashQLShellStatus.OK) {
             this.shell.free();
@@ -239,115 +200,50 @@ export class DashQLShell {
         const commands = createShellCommands(options.commands ?? [], settings, options.environment.previewResult != null);
         const core = options.core;
         const catalog = options.catalog ?? core.createCatalog();
-        const shell = new DashQLShell(
+        return new DashQLShell(
             core,
             catalog,
             options.catalog == null,
             options.environment,
-            options.terminalColumns ?? 100,
-            options.autoQualifyNonDefaultDatabaseTables ?? false,
+            options.columns ?? 100,
             commands,
             settings,
         );
-        return shell;
     }
 
-    resize(terminalColumns: number): void {
-        this.alive().resize(terminalColumns);
+    /// The width of the tables of results in characters
+    resize(columns: number): void {
+        this.alive().resize(columns);
     }
 
-    /// Set the color of the terminal prompt as 0xRRGGBB, bold in the default foreground color if null
-    setTerminalPromptColor(rgb: number | null): void {
-        this.alive().setTerminalPromptColor(rgb ?? undefined);
-    }
-
-    setKeywordCase(keywordCase: dashql.buffers.formatting.KeywordCase): void {
-        this.alive().setKeywordCase(keywordCase);
-    }
-
-    setPrompt(text: string): DashQLShellPrompt {
-        return this.readPrompt(this.alive().setPrompt(text));
-    }
-
-    movePromptLeft(): DashQLShellPrompt {
-        return this.readPrompt(this.alive().movePromptLeft());
-    }
-
-    movePromptRight(): DashQLShellPrompt {
-        return this.readPrompt(this.alive().movePromptRight());
-    }
-
-    completePrompt(limit = 20): DashQLShellCompletionCandidate[] {
-        const shell = this.alive();
-        let candidates: ShellCompletionCandidate[];
+    /// What a prompt is: a dot command, and whether Enter submits it
+    promptInfo(text: string): DashQLShellPromptInfo {
+        const info = this.alive().promptInfo(text);
         try {
-            candidates = shell.completePrompt(limit);
-        } catch {
-            throw new DashQLShellError(DashQLShellStatus.INTERNAL_ERROR, 'failed to complete shell prompt');
-        }
-        return candidates.map(candidate => {
-            try {
-                return {
-                    displayText: candidate.displayText,
-                    completionText: candidate.completionText,
-                    targetOffset: candidate.targetOffset,
-                    targetLength: candidate.targetLength,
-                };
-            } finally {
-                candidate.free();
-            }
-        });
-    }
-
-    consumePromptInput(key: DashQLShellPromptInput, text = ''): DashQLShellPrompt {
-        return this.readPrompt(this.alive().consumePromptInput(key, text));
-    }
-
-    openTerminal(prompt = 'dashql> '): DashQLShellTerminalOutput {
-        return this.readTerminal(this.alive().openTerminal(prompt));
-    }
-
-    consumeTerminalInput(key: DashQLShellPromptInput, text = ''): DashQLShellTerminalOutput {
-        return this.readTerminal(this.alive().consumeTerminalInput(key, text));
-    }
-
-    /// The completion list to show over the terminal, null if there is none
-    terminalCompletionList(): DashQLShellCompletionList | null {
-        const list = this.alive().terminalCompletionList();
-        if (list == null) return null;
-        try {
-            return {
-                revision: list.revision,
-                selection: list.selection,
-                variant: list.variant,
-                anchorColumn: list.anchorColumn,
-            };
+            return { isCommand: info.isCommand, isComplete: info.isComplete };
         } finally {
-            list.free();
+            info.free();
         }
     }
 
-    /// The candidates of the completion list, null if there is none
-    terminalCompletionBuffer(): dashql.FlatBufferPtr<dashql.buffers.completion.Completion> | null {
-        const bytes = this.alive().terminalCompletionBuffer();
-        if (bytes == null) return null;
-        return new dashql.FlatBufferPtr(SHELL_COMPLETION_TYPE, this.core, bytes, () => new dashql.buffers.completion.Completion());
+    /// Complete the name of the dot command of a prompt
+    completeCommand(text: string): DashQLShellCommandCompletion {
+        const completion = this.alive().completeCommand(text);
+        try {
+            return { text: completion.text, candidates: completion.candidates };
+        } finally {
+            completion.free();
+        }
     }
 
-    finishTerminalQuery(output: string, error = false): DashQLShellTerminalOutput {
-        return this.readTerminal(this.alive().finishTerminalQuery(output, error));
+    /// The previous entry of the history for the prompt, null at the oldest entry
+    historyPrevious(text: string): string | null {
+        return this.alive().historyPrevious(text) ?? null;
     }
 
-    renderTerminalQueryProgress(message = '', advanceFrame = false): DashQLShellTerminalOutput {
-        return this.readTerminal(this.alive().renderTerminalQueryProgress(message, advanceFrame));
-    }
-
-    clearTerminalQueryProgress(): DashQLShellTerminalOutput {
-        return this.readTerminal(this.alive().clearTerminalQueryProgress());
-    }
-
-    renderTerminalStatus(message: string): DashQLShellTerminalOutput {
-        return this.readTerminal(this.alive().renderTerminalStatus(message));
+    /// The next entry of the history for the prompt, the draft after the newest one, null if the prompt shows no entry
+    historyNext(text: string): string | null {
+        return this.alive().historyNext(text) ?? null;
     }
 
     exportHistory(): Uint8Array {
@@ -361,12 +257,14 @@ export class DashQLShell {
         }
     }
 
-    async submitPrompt(
+    /// Run a prompt as a dot command or a query, the history remembers it. Resolves with the records of its output.
+    async submit(
+        prompt: string,
         signal?: AbortSignal,
         onProgress?: (message: string) => void,
         onResult?: DashQLShellResultCallback,
-    ): Promise<string> {
-        return await this.executeOperation(() => this.readOperation(this.alive().submitPrompt()), signal, onProgress, onResult);
+    ): Promise<DashQLShellRecord[]> {
+        return await this.executeOperation(() => this.readOperation(this.alive().submit(prompt)), signal, onProgress, onResult);
     }
 
     private async executeOperation(
@@ -374,7 +272,7 @@ export class DashQLShell {
         signal?: AbortSignal,
         onProgress?: (message: string) => void,
         onResult?: DashQLShellResultCallback,
-    ): Promise<string> {
+    ): Promise<DashQLShellRecord[]> {
         // A destroyed shell runs nothing
         this.alive();
         if (this.activeExecution != null) {
@@ -412,11 +310,10 @@ export class DashQLShell {
                     ? this.cancelEffect(effect.id)
                     : this.completeEffect(effect.id, completion.status, completion.data);
             }
-            const output = this.requireComplete(operation);
-            if (resultTimings.length === 0) return output;
-            const separator = output.length === 0 || /(?:\r\n|\n|\r)$/.test(output) ? '' : '\r\n';
+            const records = this.requireComplete(operation);
+            if (resultTimings.length === 0) return records;
             const resultsMs = resultTimings.reduce((sum, elapsedMs) => sum + elapsedMs, 0);
-            return `${output}${separator}Results: ${formatElapsed(resultsMs)}\r\n`;
+            return [...records, { kind: DashQLShellRecordKind.STATUS, text: `Results: ${formatElapsed(resultsMs)}` }];
         } finally {
             this.lifecycleAbort.signal.removeEventListener('abort', abortExecution);
             signal?.removeEventListener('abort', abortExecution);
@@ -426,47 +323,17 @@ export class DashQLShell {
         }
     }
 
-    private readPrompt(result: ShellPromptResult): DashQLShellPrompt {
-        try {
-            const status = result.status as DashQLShellStatus;
-            const message = result.message;
-            if (status !== DashQLShellStatus.OK) {
-                throw new DashQLShellError(status, message);
-            }
-            return {
-                revision: result.revision,
-                cursorByteOffset: result.cursorByteOffset,
-                text: result.text,
-                message,
-                action: result.action as DashQLShellPromptAction,
-            };
-        } finally {
-            result.free();
-        }
-    }
-
-    private readTerminal(result: ShellTerminalResult): DashQLShellTerminalOutput {
-        try {
-            const status = result.status as DashQLShellStatus;
-            const output = result.data;
-            if (status !== DashQLShellStatus.OK) throw new DashQLShellError(status, output);
-            return {
-                action: result.action as DashQLShellPromptAction,
-                data: output,
-            };
-        } finally {
-            result.free();
-        }
-    }
-
     private readOperation(operation: ShellOperation): DashQLShellOperation {
         try {
             const status = operation.status as DashQLShellStatus;
             const effectId = operation.effectId;
             const effectType = operation.effectType;
+            const kinds = operation.recordKinds;
+            const texts = operation.recordTexts;
             return {
                 status,
-                text: operation.text,
+                message: operation.message,
+                records: Array.from(kinds, (kind, i) => ({ kind: kind as DashQLShellRecordKind, text: texts[i] ?? '' })),
                 effect: status === DashQLShellStatus.PENDING && effectId != null && effectType != null
                     ? { id: effectId, type: effectType as DashQLShellEffectType, payload: operation.effectPayload ?? '' }
                     : null,
@@ -525,9 +392,9 @@ export class DashQLShell {
                                 (queryId, rowCount) => { result = { queryId, rowCount }; },
                                 onTiming,
                             );
-                            return await this.encodeQueryResult(result, signal, (queryId, rowCount, inTerminal) => {
+                            return await this.encodeQueryResult(result, signal, (queryId, rowCount, inFeed) => {
                                 passedOn = onResult != null;
-                                onResult?.(queryId, rowCount, inTerminal);
+                                onResult?.(queryId, rowCount, inFeed);
                             });
                         } finally {
                             // A cancelled statement passes on no result, its result would stay with the environment
@@ -535,9 +402,9 @@ export class DashQLShell {
                         }
                     }
                     const command = await this.executeCommand(effectInput, signal, onProgress);
-                    const output = this.textEncoder.encode(withTrailingNewline(command.output));
+                    const output = this.textEncoder.encode(command.output);
                     const encoded = new Uint8Array(output.byteLength + 1);
-                    encoded[0] = command.clearTerminal ? 1 : 0;
+                    encoded[0] = command.clear ? 1 : 0;
                     encoded.set(output, 1);
                     return encoded;
                 })
@@ -549,7 +416,7 @@ export class DashQLShell {
                     error => {
                         finish({
                             status: DashQLShellEffectCompletionStatus.ERROR,
-                            data: this.textEncoder.encode(withTrailingNewline(stringifyError(error))),
+                            data: this.textEncoder.encode(stringifyError(error)),
                         });
                     },
                 );
@@ -576,7 +443,7 @@ export class DashQLShell {
                 return this.encodeQueryPreview(formatPreviewCompletion(rowCount, SHELL_PREVIEW_ROW_LIMIT, hint), rows);
             } catch (error) {
                 signal?.throwIfAborted();
-                status = `${status}, no table in the terminal: ${stringifyError(error)}`;
+                status = `${status}, no table in the shell: ${stringifyError(error)}`;
             }
         }
         onResult?.(queryId, rowCount, false);
@@ -584,7 +451,7 @@ export class DashQLShell {
     }
 
     private encodeQueryStatus(status: string): Uint8Array {
-        const text = this.textEncoder.encode(withTrailingNewline(status));
+        const text = this.textEncoder.encode(status);
         const encoded = new Uint8Array(text.byteLength + 1);
         encoded[0] = DashQLShellQueryResultTag.STATUS;
         encoded.set(text, 1);
@@ -605,13 +472,13 @@ export class DashQLShell {
         input: string,
         signal?: AbortSignal,
         onProgress?: (message: string) => void,
-    ): Promise<{ output: string; clearTerminal: boolean }> {
+    ): Promise<{ output: string; clear: boolean }> {
         const [name, ...args] = input.trim().substring(1).split(/\s+/);
         const command = this.commands.get(name.toLowerCase());
         if (command == null) throw new Error(`unknown command: .${name}`);
         return {
             output: await command[2](args, { signal, onProgress }) ?? '',
-            clearTerminal: name.toLowerCase() === 'clear',
+            clear: name.toLowerCase() === 'clear',
         };
     }
 
@@ -627,16 +494,16 @@ export class DashQLShell {
         return this.readOperation(this.alive().cancelEffect(effectId));
     }
 
-    private requireComplete(operation: DashQLShellOperation): string {
+    private requireComplete(operation: DashQLShellOperation): DashQLShellRecord[] {
         if (operation.status !== DashQLShellStatus.OK) {
-            throw new DashQLShellError(operation.status, operation.text);
+            throw new DashQLShellError(operation.status, operation.message);
         }
-        return operation.text;
+        return operation.records;
     }
 
     private requireEffect(operation: DashQLShellOperation): DashQLShellEffect {
         if (operation.status !== DashQLShellStatus.PENDING) {
-            throw new DashQLShellError(operation.status, operation.text);
+            throw new DashQLShellError(operation.status, operation.message);
         }
         if (operation.effect == null) {
             throw new DashQLShellError(DashQLShellStatus.INTERNAL_ERROR, 'invalid shell effect envelope');
@@ -673,7 +540,7 @@ function createShellCommands(
         if (commands.has(name)) throw new Error(`duplicate shell command: .${name}`);
         commands.set(name, [name, command[1], command[2]]);
     };
-    register(['clear', 'Clear the terminal screen', () => undefined]);
+    register(['clear', 'Clear the output of the shell', () => undefined]);
     register([
         'timer',
         'Set query timer: on or off',
@@ -688,14 +555,14 @@ function createShellCommands(
     if (previewsResults) {
         register([
             'output',
-            'Show query results in the overlay or as a table in the terminal',
+            'Show query results in the overlay or as a table in the shell',
             args => {
                 if (args.length > 1 || (args.length === 1 && !['overlay', 'table'].includes(args[0]))) {
                     throw new Error('usage: .output [overlay|table]');
                 }
                 if (args.length === 1) settings.output = args[0] as DashQLShellOutput;
                 return settings.output === 'table'
-                    ? `Query output: table (the first ${SHELL_PREVIEW_ROW_LIMIT} rows in the terminal)`
+                    ? `Query output: table (the first ${SHELL_PREVIEW_ROW_LIMIT} rows in the shell)`
                     : 'Query output: overlay';
             },
         ]);
@@ -705,16 +572,11 @@ function createShellCommands(
         'List available dot commands',
         () => {
             const width = Math.max(...Array.from(commands.keys(), name => name.length)) + 3;
-            return Array.from(commands.values(), command => `.${command[0]}`.padEnd(width) + command[1]).join('\r\n') + '\r\n';
+            return Array.from(commands.values(), command => `.${command[0]}`.padEnd(width) + command[1]).join('\n');
         },
     ]);
     for (const command of extensions) register(command);
     return commands;
-}
-
-function withTrailingNewline(output: string): string {
-    if (output.length === 0) return output;
-    return output.replace(/(?:\r\n|\n|\r)+$/, '') + '\r\n';
 }
 
 function formatElapsed(elapsedMs: number): string {

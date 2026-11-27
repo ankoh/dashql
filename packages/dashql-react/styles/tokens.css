@@ -186,5 +186,5 @@
 
     --logo_color_salesforce: rgb(0, 161, 224);
 
-    /* --shell_prompt_color: the color of the shell prompt, bold in the terminal foreground color if unset */
+    /* --shell_prompt_color: the color of the shell prompt, in the foreground color of the shell if unset */
 }

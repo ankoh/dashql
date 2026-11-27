@@ -1,6 +1,6 @@
-# The DashQL shell: a readline-like prompt with SQL highlighting and completion, a VT100 terminal renderer, the
-# rendering of the previews of query results, and the execution protocol of queries and dot commands. Its bindings are
-# part of //packages/dashql-core-bindings.
+# The DashQL shell: the history of its prompts, the check whether a prompt is complete, dot commands, the execution
+# protocol of queries and dot commands, and the records of their output with the tables of the previews of query
+# results. Its bindings are part of //packages/dashql-core-bindings.
 #
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
 
@@ -19,7 +19,6 @@ rust_library(
     deps = [
         "//packages/dashql-core:dashql_core",
         "//packages/dashql-parser:dashql_parser",
-        "//proto/fb:dashql_buffers_rs",
         "@core_crates//:arrow-array",
         "@core_crates//:arrow-cast",
         "@core_crates//:arrow-ipc",
@@ -43,30 +42,22 @@ rust_safety_test(
 
 # Tests of the shell, one libtest binary per test file
 DASHQL_CORE_SHELL_TESTS = [
-    "shell_terminal_test",
     "shell_arrow_renderer_test",
-    "shell_prompt_buffer_test",
     "shell_session_test",
 ]
 
 [rust_test(
     name = name,
     size = "small",
-    srcs = [
-        "tests/" + name + ".rs",
-        "tests/support/test_shell.rs",
-    ],
+    srcs = ["tests/" + name + ".rs"],
     crate_root = "tests/" + name + ".rs",
     edition = "2021",
     deps = [
         ":dashql_core_shell",
         "//packages/dashql-core:dashql_core",
-        "//packages/dashql-parser:dashql_parser",
-        "//proto/fb:dashql_buffers_rs",
         "@core_crates//:arrow-array",
         "@core_crates//:arrow-ipc",
         "@core_crates//:arrow-schema",
-        "@core_crates//:flatbuffers",
     ],
 ) for name in DASHQL_CORE_SHELL_TESTS]
 

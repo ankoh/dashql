@@ -474,14 +474,15 @@ async function testShell(page, navigate) {
     await ignoreFileInputCancel(page);
     await navigate('/shell.html');
     const input = page.getByRole('textbox', { name: 'HyperDB shell input' });
+    const feed = page.getByRole('log', { name: 'Shell output' });
     await input.waitFor({ state: 'attached' });
     await input.focus();
     await page.keyboard.type('select 42 as answer;');
     await page.keyboard.press('Enter');
-    // The result opens in the overlay, the screen reader rows of the terminal have the status line
+    // The result opens in the overlay, the feed has the status line
     const result = page.getByRole('dialog', { name: 'Shell query results' });
     await result.getByRole('gridcell', { name: '42' }).waitFor();
-    await page.getByRole('listitem').filter({ hasText: 'Query completed (1 row)' }).waitFor({ state: 'attached' });
+    await feed.getByText('Query completed (1 row)').waitFor({ state: 'attached' });
     // Escape returns to the prompt, and the result opens again
     await page.keyboard.press('Escape');
     await result.waitFor({ state: 'detached' });
@@ -500,7 +501,7 @@ async function testShell(page, navigate) {
 
     await input.focus();
     // The catalog follows statements: the shell completes a table that a statement created, with its columns
-    const noResults = page.getByRole('listitem').filter({ hasText: /^\W*No results\W*$/ });
+    const noResults = feed.getByText('No results', { exact: true });
     await page.keyboard.type('create table page_catalog_orders (order_id int);');
     await page.keyboard.press('Enter');
     await noResults.nth(0).waitFor({ state: 'attached' });
@@ -511,7 +512,7 @@ async function testShell(page, navigate) {
     await page.keyboard.press('Tab');
     await page.keyboard.type(';');
     await page.keyboard.press('Enter');
-    await page.getByRole('listitem').filter({ hasText: 'select order_total from page_catalog_orders;' }).first().waitFor({ state: 'attached', timeout: 30_000 });
+    await feed.getByTestId('shell-statement').filter({ hasText: 'select order_total from page_catalog_orders;' }).first().waitFor({ state: 'attached', timeout: 30_000 });
     await result.waitFor();
     await page.keyboard.press('Escape');
     await result.waitFor({ state: 'detached' });

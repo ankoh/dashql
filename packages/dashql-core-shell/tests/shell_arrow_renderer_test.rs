@@ -11,7 +11,8 @@ use arrow_schema::{DataType, Field, Schema};
 use dashql_core::catalog::Catalog;
 use dashql_core_shell::unicode::display_width;
 use dashql_core_shell::{
-    ArrowRenderer, EffectCompletionStatus, QueryResultTag, ShellOperation, ShellSession, ShellStatus,
+    ArrowRenderer, EffectCompletionStatus, QueryResultTag, ShellOperation, ShellRecord, ShellRecordKind, ShellSession,
+    ShellStatus,
 };
 use std::sync::Arc;
 
@@ -52,10 +53,6 @@ fn expect_lines_fit(output: &str, width: usize) {
     for line in output.split('\n') {
         assert!(display_width(line.as_bytes()) <= width, "{line}");
     }
-}
-
-fn text(data: &[u8]) -> String {
-    String::from_utf8_lossy(data).into_owned()
 }
 
 #[test]
@@ -210,8 +207,7 @@ fn preview(status: &str, ipc: &[u8]) -> Vec<u8> {
 }
 
 fn complete_query(session: &mut ShellSession, data: &[u8]) -> ShellOperation {
-    let catalog = Catalog::new();
-    let pending = session.start_query(b"SELECT 42", &catalog);
+    let pending = session.start_query(b"SELECT 42");
     let id = pending.effect.expect("a pending query has an effect").id;
     session.complete_effect(id, EffectCompletionStatus::Success, data)
 }
@@ -219,42 +215,44 @@ fn complete_query(session: &mut ShellSession, data: &[u8]) -> ShellOperation {
 #[test]
 fn renders_query_previews_with_their_status_line() {
     let catalog = Catalog::new();
-    let mut session = ShellSession::new(&catalog, 80, false);
+    let mut session = ShellSession::new(&catalog, 80);
     let complete = complete_query(&mut session, &preview("3 of 1000 rows", &write_ipc_stream(&make_batch())));
     assert_eq!(complete.status, ShellStatus::Ok);
-    let output = text(&complete.data);
-    assert!(output.starts_with("╭───────┬───────╮\n"), "{output}");
-    assert!(output.ends_with("╰───────┴───────╯\r\n3 of 1000 rows"), "{output}");
+    let [table, status] = complete.records.as_slice() else { panic!("{:?}", complete.records) };
+    assert_eq!(table.kind, ShellRecordKind::Table);
+    assert!(table.text.starts_with("╭───────┬───────╮\n"), "{}", table.text);
+    assert!(table.text.ends_with("╰───────┴───────╯"), "{}", table.text);
+    assert_eq!(*status, ShellRecord::new(ShellRecordKind::Status, "3 of 1000 rows"));
 }
 
 #[test]
 fn renders_query_previews_at_the_terminal_width() {
     let catalog = Catalog::new();
-    let mut session = ShellSession::new(&catalog, 80, false);
+    let mut session = ShellSession::new(&catalog, 80);
     session.resize(12);
     let complete = complete_query(&mut session, &preview("", &write_ipc(&make_batch())));
     assert_eq!(complete.status, ShellStatus::Ok);
-    let output = text(&complete.data);
-    expect_lines_fit(&output, 12);
-    // No status line, no line after the table
-    assert!(output.ends_with('╯'), "{output}");
+    // No status line, no record after the table
+    let [table] = complete.records.as_slice() else { panic!("{:?}", complete.records) };
+    expect_lines_fit(&table.text, 12);
+    assert!(table.text.ends_with('╯'), "{}", table.text);
 }
 
 #[test]
 fn query_status_lines_pass_through() {
     let catalog = Catalog::new();
-    let mut session = ShellSession::new(&catalog, 80, false);
+    let mut session = ShellSession::new(&catalog, 80);
     let mut data = vec![QueryResultTag::Status as u8];
     data.extend_from_slice(b"Query completed (1 row)\r\n");
     let complete = complete_query(&mut session, &data);
     assert_eq!(complete.status, ShellStatus::Ok);
-    assert_eq!(complete.data, b"Query completed (1 row)\r\n");
+    assert_eq!(complete.records, vec![ShellRecord::new(ShellRecordKind::Status, "Query completed (1 row)")]);
 }
 
 #[test]
 fn rejects_malformed_query_results() {
     let catalog = Catalog::new();
-    let mut session = ShellSession::new(&catalog, 80, false);
+    let mut session = ShellSession::new(&catalog, 80);
     let cases: [(&[u8], &str); 5] = [
         (b"", "invalid query result"),
         (&[7], "invalid query result"),
@@ -265,7 +263,7 @@ fn rejects_malformed_query_results() {
     for (data, message) in cases {
         let complete = complete_query(&mut session, data);
         assert_eq!(complete.status, ShellStatus::InternalError);
-        assert_eq!(text(&complete.data), message);
+        assert_eq!(complete.message, message);
     }
 }
 

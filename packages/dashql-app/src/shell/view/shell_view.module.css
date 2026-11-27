@@ -1,0 +1,202 @@
+/* The shell is dark in both color schemes, the colors of the editors follow */
+.root {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    color-scheme: dark;
+    color: var(--shell_fg);
+    font-family: var(--font_family_mono);
+    /* The shell page keeps iOS from zooming into the prompt with maximum-scale, not with a larger font */
+    font-size: var(--shell_font_size);
+    line-height: 1.45;
+    --shell_font_size: 13px;
+    --code_bg: transparent;
+    /* The app turns off selection and the long-press menu of iOS, the output and the prompt of the shell are text */
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+}
+
+/* The feed starts at the top, the prompt follows its last entry like in a terminal */
+.feed {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--shell_hover) transparent;
+}
+
+.feed_content {
+    min-width: 0;
+}
+
+.feed_entries {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.measure {
+    position: absolute;
+    visibility: hidden;
+    white-space: pre;
+    pointer-events: none;
+}
+
+.greeter {
+    margin-bottom: 12px;
+    color: var(--shell_fg_muted);
+}
+
+.greeter strong {
+    display: block;
+    color: var(--shell_fg);
+    font-weight: 600;
+}
+
+.statement {
+    display: flex;
+    align-items: baseline;
+    gap: 1ch;
+    min-width: 0;
+    margin-top: 10px;
+}
+
+.statement:first-child {
+    margin-top: 0;
+}
+
+.statement_text {
+    flex: 1;
+    min-width: 0;
+}
+
+.statement_text pre {
+    margin: 0;
+    font: inherit;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+/* A read-only view of a statement shows the text like the prompt did */
+.statement_text :global(.cm-editor),
+.prompt_editor :global(.cm-editor) {
+    background: transparent;
+    font-family: var(--font_family_mono);
+    font-size: var(--shell_font_size);
+}
+
+.statement_text :global(.cm-scroller),
+.prompt_editor :global(.cm-scroller) {
+    font-family: inherit;
+    line-height: 1.45;
+}
+
+.statement_text :global(.cm-content),
+.statement_text :global(.cm-line) {
+    padding: 0;
+}
+
+.statement_text :global(.cm-gutters) {
+    display: none;
+}
+
+.record {
+    margin: 0;
+    font: inherit;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+/* A table keeps its lines, a narrow shell scrolls it sideways */
+.record_table {
+    overflow-x: auto;
+    white-space: pre;
+    overflow-wrap: normal;
+    scrollbar-width: thin;
+    scrollbar-color: var(--shell_hover) transparent;
+}
+
+.record_status,
+.record_progress {
+    color: var(--shell_fg_subtle);
+}
+
+.record_error {
+    color: var(--color_danger_fg);
+}
+
+.prompt_bar {
+    display: flex;
+    align-items: baseline;
+    gap: 1ch;
+    flex: none;
+    min-width: 0;
+    padding-top: 10px;
+}
+
+.prompt_label {
+    flex: none;
+    color: var(--shell_prompt_color, var(--shell_fg));
+    font-weight: 600;
+    white-space: pre;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.prompt_bar[data-running] .prompt_label {
+    opacity: 0.5;
+}
+
+.prompt_input {
+    flex: 1;
+    min-width: 0;
+}
+
+.prompt_editor {
+    --prompt_editor_max_height: 40vh;
+}
+
+/* The keys that the keyboard of a touch screen lacks */
+.key_bar {
+    display: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+@media (pointer: coarse) {
+    .key_bar {
+        display: flex;
+        flex: none;
+        gap: 6px;
+        padding-top: 10px;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .key_bar button {
+        flex: none;
+        min-width: 44px;
+        height: 36px;
+        padding: 0 12px;
+        border: 1px solid var(--shell_edge);
+        border-radius: 8px;
+        background: var(--shell_hover);
+        color: var(--shell_fg);
+        font: inherit;
+        touch-action: manipulation;
+    }
+
+    .key_bar .key_run {
+        margin-left: auto;
+        font-weight: 600;
+    }
+}

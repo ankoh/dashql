@@ -7,7 +7,7 @@ import { LoggableException, stringifyError } from '@akohn/dashql/platform/logger
 import { useLogger } from '../../host/logger_provider.js';
 import { useDashQLCoreSetup, useDashQLCoreSetupProgress } from '../../host/core_provider.js';
 import { DashQLShell, type DashQLShellCommand } from '../terminal/api.js';
-import type { BrowserShellController } from '../terminal/browser_shell.js';
+import { ShellView, type ShellViewController } from '../view/shell_view.js';
 import { useRuntime } from '@akohn/dashql-react/hooks';
 import { ShellQueryResultOverlay } from '../../workbook/shell/shell_query_result_overlay.js';
 import { connectEmbeddedSession, type EmbeddedSession } from '@akohn/dashql/runtime/embedded_session';
@@ -51,6 +51,11 @@ function formatInstantiationProgress(bytesLoaded: number, bytesTotal: number): s
 }
 
 const INSTANTIATING_SHELL = 'Instantiating shell';
+const SHELL_GREETER = [
+    'HyperDB Web Shell',
+    'This is an embedded version of the Hyper Database Engine.',
+    'Enter .help for usage hints.',
+];
 
 export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const logger = useLogger();
@@ -65,8 +70,6 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const appConfig = useAppConfig();
     const keywordCase = getKeywordCase(appConfig?.settings);
     const hyperDBSupportError = platformType === PlatformType.WEB ? getHyperDBWebSupportError() : null;
-    const keywordCaseRef = React.useRef(keywordCase);
-    keywordCaseRef.current = keywordCase;
     // The login reads the config when it runs, a config that arrives later must not tear down the shell
     const appConfigRef = React.useRef(appConfig);
     appConfigRef.current = appConfig;
@@ -83,13 +86,10 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     const { controller: snippetsDialog, dialog: snippetsBrowserDialog } = useSnippetsDialog(ConnectorType.HYPER);
     const fileRegistryRef = React.useRef<ShellFileRegistry | null>(null);
     const { command: filesCommand, dialogs: fileDialogs } = useShellFiles(fileRegistryRef);
-    const containerRef = React.useRef<HTMLDivElement>(null);
     const [status, setStatus] = React.useState('Instantiating hyperdb-wasm');
-    const shellRef = React.useRef<DashQLShell | null>(null);
-    const controllerRef = React.useRef<BrowserShellController | null>(null);
-    React.useEffect(() => {
-        shellRef.current?.setKeywordCase(keywordCase);
-    }, [keywordCase]);
+    const [shell, setShell] = React.useState<DashQLShell | null>(null);
+    React.useEffect(() => () => shell?.destroy(), [shell]);
+    const controllerRef = React.useRef<ShellViewController | null>(null);
     const releaseResult = React.useCallback((queryId: number) => {
         runtime.dispatch({ computation: queryId }, { kind: 'deleteComputation' });
     }, [runtime]);
@@ -103,7 +103,6 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
 
     React.useEffect(() => {
         if (hyperDBSupportError != null) return;
-        if (containerRef.current == null) return;
 
         let cancelled = false;
         // The logins of the shell are setups of the runtime by an id each
@@ -112,7 +111,6 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
         // with the query executor of the runtime on it and its catalog follows them
         let session: EmbeddedSession | null = null;
         let shell: DashQLShell | null = null;
-        let controller: BrowserShellController | null = null;
         let fileRegistry: ShellFileRegistry | null = null;
 
         const setup = async () => {
@@ -231,7 +229,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                         return splitShellScript(shell.core, shell.catalog, text);
                     },
                     // The prompts are filled in once the command finished
-                    queuePrompts: prompts => controller?.queuePrompts(prompts),
+                    queuePrompts: prompts => controllerRef.current?.queuePrompts(prompts),
                 }),
                 createDialogCommand('format', 'Open the SQL formatter', signal => {
                     if (shell == null) throw new Error('Shell is not ready');
@@ -266,36 +264,14 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                     previewResult: (queryId, limit) => runtime.previewResult(queryId, 0, limit, false),
                     releaseResult,
                 }),
-                autoQualifyNonDefaultDatabaseTables: true,
                 commands,
             });
-            if (cancelled || containerRef.current == null) {
+            if (cancelled) {
                 nextShell.destroy();
                 return;
             }
             shell = nextShell;
-            shellRef.current = nextShell;
-            nextShell.setKeywordCase(keywordCaseRef.current);
-            const { embedDashQLShell } = await import('../terminal/browser_shell.js');
-            if (cancelled || containerRef.current == null) return;
-            const nextController = await embedDashQLShell({
-                container: containerRef.current,
-                shell,
-                greeter: [
-                    'HyperDB Web Shell',
-                    'This is an embedded version of the Hyper Database Engine.',
-                    'Enter .help for usage hints.'
-                ],
-                prompt: 'hyperdb> ',
-                inputAriaLabel: 'HyperDB shell input',
-                onQueryResult: showResultQuery,
-            });
-            if (cancelled) {
-                nextController.dispose();
-                return;
-            }
-            controller = nextController;
-            controllerRef.current = nextController;
+            setShell(nextShell);
             setStatus('');
 
             // Offer the statements of a shared script one after another
@@ -306,12 +282,12 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 if (cancelled) return;
                 const prompts = splitShellScript(nextShell.core, nextShell.catalog, text);
                 if (prompts.length === 0) return;
-                nextController.writeStatus(`Shared script with ${prompts.length} ${prompts.length === 1 ? 'statement' : 'statements'}. Press Enter to run each, Ctrl+C to skip the rest.`);
-                nextController.queuePrompts(prompts);
+                controllerRef.current?.writeStatus(`Shared script with ${prompts.length} ${prompts.length === 1 ? 'statement' : 'statements'}. Press Enter to run each, Ctrl+C to skip the rest.`);
+                controllerRef.current?.queuePrompts(prompts);
             } catch (error) {
                 if (cancelled) return;
                 logger.warn('Failed to load shared script', { error: stringifyError(error) }, LOG_CTX);
-                nextController.writeStatus(`Failed to load shared script: ${stringifyError(error)}`);
+                controllerRef.current?.writeStatus(`Failed to load shared script: ${stringifyError(error)}`);
             }
         };
 
@@ -324,15 +300,13 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
 
         return () => {
             cancelled = true;
-            controller?.dispose();
-            controllerRef.current = null;
-            shell?.destroy();
-            shellRef.current = null;
+            // The shell goes once the view let go of it
+            setShell(null);
             fileRegistryRef.current = null;
             // The connection stops after the shell, its channel closes the session
             void (fileRegistry?.dispose() ?? Promise.resolve()).finally(() => session?.close());
         };
-    }, [appEvents, runtime, filesCommand, setupCore, formatDialog, httpClient, hyperDBSupportError, logger, loginDialog, planDialog, platformType, onEngineVersion, shellHistory, releaseResult, reopenResultQuery, setupEmbeddedDatabase, shareDialog, showResultQuery, snippetsDialog]);
+    }, [appEvents, runtime, filesCommand, setupCore, formatDialog, httpClient, hyperDBSupportError, logger, loginDialog, planDialog, platformType, onEngineVersion, shellHistory, releaseResult, reopenResultQuery, setupEmbeddedDatabase, shareDialog, snippetsDialog]);
 
     if (hyperDBSupportError != null) {
         return (
@@ -348,7 +322,15 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
     return (
         <main className={styles.page} aria-label="HyperDB Shell">
             <div className={styles.terminal}>
-                <div ref={containerRef} className={styles.terminalHost} />
+                <ShellView
+                    shell={shell}
+                    greeter={SHELL_GREETER}
+                    prompt="hyperdb> "
+                    inputAriaLabel="HyperDB shell input"
+                    keywordCase={keywordCase}
+                    onQueryResult={showResultQuery}
+                    controller={controllerRef}
+                />
             </div>
             {status && (
                 <div className={styles.status} role="status" aria-live="polite">

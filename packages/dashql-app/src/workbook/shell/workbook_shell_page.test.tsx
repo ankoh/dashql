@@ -4,6 +4,7 @@ import * as React from 'react';
 import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
+import { EditorView } from '@codemirror/view';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useRuntime } from '@akohn/dashql-react/hooks';
@@ -171,7 +172,6 @@ describe('WorkbookShellPage', () => {
     let cancel: ReturnType<typeof vi.fn>;
     let executor: TestQueryExecutorFunctions;
     let database: EmbeddedComputeDatabase | null;
-    let transcript: string[];
     let backend: WorkbookTestBackend;
     let createShell: (options: DashQLShellOptions) => Promise<DashQLShell>;
 
@@ -190,14 +190,7 @@ describe('WorkbookShellPage', () => {
             destroyed.add(this);
             destroy.call(this);
         });
-        transcript = [];
         backend = new WorkbookTestBackend();
-        const { Terminal } = await import('@xterm/xterm');
-        const write = Terminal.prototype.write;
-        vi.spyOn(Terminal.prototype, 'write').mockImplementation(function (this: InstanceType<typeof Terminal>, data: string | Uint8Array, callback?: () => void) {
-            transcript.push(String(data));
-            write.call(this, data, callback);
-        });
         nextQueryId = 100;
         execute = vi.fn((_connectionId: string, _args: unknown) => [
             nextQueryId++,
@@ -278,17 +271,25 @@ describe('WorkbookShellPage', () => {
 
     const status = () => container.querySelector('[role="status"]')?.textContent ?? null;
     const page = () => container.querySelector('main');
-    const input = () => container.querySelector<HTMLTextAreaElement>('.xterm-helper-textarea');
-    /// What the page wrote to the terminal without its escape sequences. The renderer of xterm pauses in a test frame,
-    /// so the rows of the terminal go stale.
-    const screen = () => transcript.join('').replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '').replace(/\r/g, '');
-    /// The names in the completion list over the terminal
+    /// The editable element of the prompt
+    const input = () => container.querySelector<HTMLElement>('[data-testid="shell-prompt"] .cm-content');
+    const editor = () => EditorView.findFromDOM(input()!)!;
+    /// The text of the prompt
+    const promptText = () => editor().state.doc.toString();
+    /// The feed of the shell and its prompt, one line per entry
+    const screen = () => {
+        const feed = container.querySelector('[role="log"]');
+        const entries = Array.from(feed?.children ?? [], entry => entry.textContent ?? '');
+        const label = container.querySelector('[data-testid="shell-prompt"]')?.previousElementSibling?.textContent ?? '';
+        return [...entries, `${label} ${input() == null ? '' : promptText()}`].join('\n');
+    };
+    /// The names in the completion list of the prompt, the list mounts outside of the page
     const completionNames = () => Array.from(
-        container.querySelectorAll(`[data-dashql-completion-list] .${completionListStyles.candidate_name}`),
+        document.querySelectorAll(`[data-dashql-completion-list] .${completionListStyles.candidate_name}`),
         name => name.textContent,
     );
 
-    /// Mount the page and wait until its terminal shows the prompt
+    /// Mount the page and wait until its shell is ready
     async function open(connections: TestShellConnection[] = [createConnection(MAIN)], props: PageProps = {}, prompt = 'hyper#2> ') {
         render(props);
         await act(async () => api.setConnections(connections));
@@ -296,15 +297,16 @@ describe('WorkbookShellPage', () => {
         await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
     }
 
-    /// Paste into the terminal, Firefox does not take clipboard data when constructing a ClipboardEvent
+    /// Type into the prompt, one character after another
     function type(text: string) {
-        const event = new Event('paste', { bubbles: true, cancelable: true });
-        Object.defineProperty(event, 'clipboardData', { value: { getData: () => text } });
-        input()!.dispatchEvent(event);
+        const view = editor();
+        for (const character of text) {
+            act(() => view.dispatch({ ...view.state.replaceSelection(character), userEvent: 'input.type' }));
+        }
     }
 
     function press(key: string, init: KeyboardEventInit = {}) {
-        input()!.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init }));
+        act(() => { input()!.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init })); });
     }
 
     function run(text: string) {
@@ -348,6 +350,7 @@ describe('WorkbookShellPage', () => {
             render();
             await act(async () => api.setConnections([createConnection(MAIN)]));
             await vi.waitFor(() => expect(status()).toContain('Failed to load shell: shell is broken'), WAIT);
+            // There is no prompt without a shell
             expect(input()).toBeNull();
         });
 
@@ -427,7 +430,7 @@ describe('WorkbookShellPage', () => {
             expect(overlay()).toBeNull();
         });
 
-        it('keeps the terminal when a result fails to render', async () => {
+        it('keeps the shell when a result fails to render', async () => {
             vi.spyOn(console, 'error').mockImplementation(() => { });
             const connection = createConnection(MAIN);
             const table = tableFromArrays({ answer: [42] });
@@ -488,14 +491,15 @@ describe('WorkbookShellPage', () => {
         });
 
         it('fills the prompts of a snippet and runs them one by one', async () => {
-            const finished = vi.spyOn(DashQLShell.prototype, 'finishTerminalQuery');
+            const submit = vi.spyOn(DashQLShell.prototype, 'submit');
             await open();
             run('.examples');
             await vi.waitFor(() => expect(document.querySelector('[data-testid="snippets-overlay"]')).not.toBeNull(), WAIT);
             await click('[data-testid="snippet"]');
             await click('[data-testid="snippet-apply"]');
             await vi.waitFor(() => expect(document.querySelector('[data-testid="snippets-overlay"]')).toBeNull(), WAIT);
-            await vi.waitFor(() => expect(finished).toHaveBeenCalled(), WAIT);
+            await act(async () => { await submit.mock.results[0]?.value; });
+            await vi.waitFor(() => expect(promptText()).not.toBe(''), WAIT);
             // Inserting never runs a statement
             expect(execute).not.toHaveBeenCalled();
             press('Enter');
@@ -503,11 +507,12 @@ describe('WorkbookShellPage', () => {
         });
 
         it('leaves the prompt empty when the snippets are closed', async () => {
-            const finished = vi.spyOn(DashQLShell.prototype, 'finishTerminalQuery');
+            const submit = vi.spyOn(DashQLShell.prototype, 'submit');
             await open();
             run('.examples');
             await click('[data-testid="snippets-close"]');
-            await vi.waitFor(() => expect(finished).toHaveBeenCalled(), WAIT);
+            await act(async () => { await submit.mock.results[0]?.value; });
+            expect(promptText()).toBe('');
             press('Enter');
             await new Promise(resolve => setTimeout(resolve, 50));
             expect(execute).not.toHaveBeenCalled();
@@ -654,9 +659,10 @@ describe('WorkbookShellPage', () => {
             expect(destroyed.has(created[1])).toBe(false);
             await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
 
-            transcript.length = 0;
             press('ArrowUp');
-            await vi.waitFor(() => expect(screen()).toContain('select 42 as answer'), WAIT);
+            await vi.waitFor(() => expect(promptText()).toBe('select 42 as answer;'), WAIT);
+            // The feed stays
+            expect(screen()).toContain('1 row');
         });
 
         it('keeps the shell and its running query when the names change', async () => {
@@ -694,55 +700,12 @@ describe('WorkbookShellPage', () => {
             await vi.waitFor(() => expect(screen()).toContain('hyper#3> '), WAIT);
         });
 
-        /// Run a function when the page opens its first terminal, which takes a while
-        async function whileTerminalOpens(run: () => void) {
-            const { Terminal } = await import('@xterm/xterm');
-            const realOpen = Terminal.prototype.open;
-            const open = vi.spyOn(Terminal.prototype, 'open');
-            open.mockImplementationOnce(function (this: InstanceType<typeof Terminal>, parent: HTMLElement) {
-                realOpen.call(this, parent);
-                run();
-            });
-            return { Terminal };
-        }
-
-        it('shows one terminal when the inputs change while the terminal opens', async () => {
-            await whileTerminalOpens(() => render({ connectionId: OTHER, ordinal: 1 }));
-            render();
-            await act(async () => api.setConnections([createConnection(MAIN), createConnection(OTHER)]));
-            await vi.waitFor(() => expect(created.length).toBeGreaterThanOrEqual(2), WAIT);
-            await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
-            await new Promise(resolve => setTimeout(resolve, 200));
-            expect(container.querySelectorAll('.xterm')).toHaveLength(1);
-            expect(destroyed.has(created[0])).toBe(true);
-            await vi.waitFor(() => expect(screen()).toContain('hyper#1> '), WAIT);
-        });
-
-        it('closes the terminal and its shell when the page closes while the terminal opens', async () => {
-            const { Terminal } = await whileTerminalOpens(() => act(() => root.render(<div />)));
-            const dispose = vi.spyOn(Terminal.prototype, 'dispose');
-            render();
-            await act(async () => api.setConnections([createConnection(MAIN)]));
-            await vi.waitFor(() => expect(created).toHaveLength(1), WAIT);
-            await vi.waitFor(() => expect(destroyed.has(created[0])).toBe(true), WAIT);
-            await vi.waitFor(() => expect(dispose).toHaveBeenCalled(), WAIT);
-        });
-
-        it('destroys the shell when the terminal cannot open', async () => {
-            const { Terminal } = await import('@xterm/xterm');
-            vi.spyOn(Terminal.prototype, 'open').mockImplementationOnce(() => { throw new Error('no terminal'); });
-            render();
-            await act(async () => api.setConnections([createConnection(MAIN)]));
-            await vi.waitFor(() => expect(status()).toContain('Failed to load shell: no terminal'), WAIT);
-            expect(destroyed.has(created[0])).toBe(true);
-        });
-
-        it('prints a shell that failed to load into the terminal it keeps', async () => {
+        it('prints a shell that failed to load into the feed it keeps', async () => {
             await open([createConnection(MAIN), createConnection(OTHER)]);
             vi.mocked(DashQLShell.create).mockRejectedValueOnce(new Error('shell is broken'));
             render({ connectionId: OTHER });
             await vi.waitFor(() => expect(screen()).toContain('Failed to load shell: shell is broken'), WAIT);
-            // The terminal gets the message right away, the status line with the next render
+            // The feed gets the message right away, the status line with the next render
             await vi.waitFor(() => expect(status()).toContain('shell is broken'), WAIT);
             // The shell that is there still runs queries
             run('select 42 as answer;');
@@ -778,28 +741,15 @@ describe('WorkbookShellPage', () => {
             await vi.waitFor(() => expect(screen()).toContain('SELECT'), WAIT);
         });
 
-        it('focuses the terminal when it becomes active', async () => {
+        it('focuses the prompt when it becomes active', async () => {
             await open();
             await vi.waitFor(() => expect(document.activeElement).toBe(input()), WAIT);
-            // The terminal also takes the focus in the first frame after it opened
-            await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
             input()!.blur();
             render({ active: false });
             await new Promise(resolve => setTimeout(resolve, 50));
             expect(document.activeElement).not.toBe(input());
             render({ active: true });
             await vi.waitFor(() => expect(document.activeElement).toBe(input()), WAIT);
-        });
-
-        it('leaves the focus alone when the page goes to the background while the terminal opens', async () => {
-            const outside = document.createElement('button');
-            document.body.appendChild(outside);
-            outside.focus();
-            await whileTerminalOpens(() => act(() => root.render(tree({ active: false }))));
-            await open([createConnection(MAIN)]);
-            await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 50)));
-            expect(document.activeElement).toBe(outside);
-            outside.remove();
         });
 
         it('leaves the focus alone when a shell of a hidden page starts', async () => {

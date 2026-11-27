@@ -1,34 +1,18 @@
-//! Tests of the shell session: input validation, readline editing, history, dot commands and the
-//! effect protocol of queries and commands.
+//! Tests of the shell session: what a prompt is, the history, dot commands, the effect protocol of queries and
+//! commands, and the records of their output.
 
 use dashql_core::catalog::Catalog;
-use dashql_core_shell::vt100;
 use dashql_core_shell::{
-    EffectCompletionStatus, PromptInputAction, PromptInputKey as Key, ShellStatus, TerminalOutput,
+    CommandCompletion, EffectCompletionStatus, EffectType, PromptInfo, ShellEffect, ShellOperation, ShellRecord,
+    ShellRecordKind as Kind, ShellSession, ShellStatus,
 };
-use dashql_core_shell::{EffectType, ShellEffect, ShellOperation, ShellSession};
-
-#[path = "support/test_shell.rs"]
-mod support;
-use std::cell::RefCell;
-use std::rc::Rc;
-use support::{SharedCatalog, TestShell as Shell};
 
 const EFFECT_SUCCESS: EffectCompletionStatus = EffectCompletionStatus::Success;
 const EFFECT_ERROR: EffectCompletionStatus = EffectCompletionStatus::Error;
 const EFFECT_CANCELLED: EffectCompletionStatus = EffectCompletionStatus::Cancelled;
 
-fn new_shell(columns: u32) -> Shell {
-    let catalog: SharedCatalog = Rc::new(RefCell::new(Catalog::new()));
-    Shell::new(&catalog, columns, false)
-}
-
-fn text(output: &TerminalOutput) -> String {
-    String::from_utf8_lossy(&output.data).into_owned()
-}
-
-fn consume(shell: &mut Shell, key: Key, input: &str) -> TerminalOutput {
-    shell.consume_terminal_input(key, input.as_bytes())
+fn new_shell() -> ShellSession {
+    ShellSession::new(&Catalog::new(), 80)
 }
 
 fn effect(operation: &ShellOperation) -> &ShellEffect {
@@ -47,6 +31,10 @@ fn payload(operation: &ShellOperation) -> &[u8] {
     &effect(operation).payload
 }
 
+fn record(kind: Kind, text: &str) -> ShellRecord {
+    ShellRecord::new(kind, text)
+}
+
 fn history(entries: &[&str]) -> Vec<u8> {
     let mut out = Vec::new();
     for entry in entries {
@@ -56,193 +44,152 @@ fn history(entries: &[&str]) -> Vec<u8> {
     out
 }
 
+fn info(is_command: bool, is_complete: bool) -> PromptInfo {
+    PromptInfo { is_command, is_complete }
+}
+
 #[test]
-fn accessors_expose_the_session() {
-    let mut shell = new_shell(80);
-    assert_eq!(shell.set_prompt(b"select 1").status, ShellStatus::Ok);
-    assert_eq!(shell.prompt().text(), "select 1");
-    shell.prompt_mut().set_text(b"select 2");
-    assert_eq!(shell.prompt().text(), "select 2");
-    assert_eq!(shell.terminal_action(), PromptInputAction::None);
-    assert_eq!(shell.catalog().borrow().entries_ranked().count(), 0);
+fn columns_are_at_least_one() {
+    let mut shell = new_shell();
+    assert_eq!(shell.columns(), 80);
+    shell.resize(0);
+    assert_eq!(shell.columns(), 1);
+    assert_eq!(ShellSession::new(&Catalog::new(), 0).columns(), 1);
 }
 
 #[test]
 fn commands_are_validated() {
-    let mut shell = new_shell(80);
+    let mut shell = new_shell();
     assert_eq!(shell.set_commands(b""), ShellStatus::Ok);
     assert_eq!(shell.set_commands(b"help\nclear-screen\nout_2"), ShellStatus::Ok);
+    assert_eq!(shell.commands(), ["help", "clear-screen", "out_2"]);
     assert_eq!(shell.set_commands(b"help\n"), ShellStatus::Ok);
     assert_eq!(shell.set_commands(b"help\n\nclear"), ShellStatus::InvalidArgument);
     assert_eq!(shell.set_commands(b".help"), ShellStatus::InvalidArgument);
     assert_eq!(shell.set_commands(b"Help"), ShellStatus::InvalidArgument);
     assert_eq!(shell.set_commands(b"he lp"), ShellStatus::InvalidArgument);
     assert_eq!(shell.set_commands(b"\xff"), ShellStatus::InvalidArgument);
+    // A rejected list keeps the commands
+    assert_eq!(shell.commands(), ["help"]);
 }
 
 #[test]
-fn registered_commands_are_highlighted_in_bold() {
-    let mut shell = new_shell(80);
-    assert_eq!(shell.set_commands(b"help"), ShellStatus::Ok);
-    shell.open_terminal(b"");
-    let output = text(&consume(&mut shell, Key::Text, ".help me"));
-    assert!(output.contains(&format!("{}.help{}", vt100::BOLD, vt100::RESET_ATTRIBUTES)), "{output:?}");
-
-    // An unregistered command is not bold
-    let mut shell = new_shell(80);
-    shell.open_terminal(b"");
-    let output = text(&consume(&mut shell, Key::Text, ".help"));
-    assert!(!output.contains(&format!("{}.help", vt100::BOLD)), "{output:?}");
-}
-
-#[test]
-fn prompt_rejects_invalid_utf8() {
-    let mut shell = new_shell(80);
-    let prompt = shell.set_prompt(b"\xff");
-    assert_eq!(prompt.status, ShellStatus::InvalidArgument);
-    assert_eq!(prompt.message, "prompt must contain valid UTF-8");
-    let prompt = shell.insert_prompt(b"");
-    assert_eq!(prompt.status, ShellStatus::InvalidArgument);
-    assert_eq!(prompt.message, "prompt insertion must contain valid non-empty UTF-8");
-    assert_eq!(shell.insert_prompt(b"\xc3").status, ShellStatus::InvalidArgument);
-    let prompt = shell.consume_prompt_input(Key::Text, b"");
-    assert_eq!(prompt.status, ShellStatus::InvalidArgument);
-    assert_eq!(prompt.message, "prompt input must contain valid non-empty UTF-8");
-    // The prompt is unchanged
-    assert_eq!(shell.consume_prompt_input(Key::Text, b"ok").text, "ok");
-}
-
-#[test]
-fn unknown_keys_are_rejected() {
-    // The wasm module rejects keys that are not a `PromptInputKey` before they reach the session
-    assert_eq!(Key::from_u32(999), None);
-    assert_eq!(Key::from_u32(Key::Text as u32), Some(Key::Text));
-}
-
-#[test]
-fn deletes_around_the_cursor() {
-    let mut shell = new_shell(80);
-    shell.set_prompt(b"abcd");
-    shell.move_prompt_left();
-    assert_eq!(shell.delete_prompt_backward().text, "abd");
-    assert_eq!(shell.delete_prompt_forward().text, "ab");
-    shell.move_prompt_left();
-    assert_eq!(shell.move_prompt_right().cursor_byte_offset, 2);
-    assert_eq!(shell.consume_prompt_input(Key::Left, b"").cursor_byte_offset, 1);
-    assert_eq!(shell.consume_prompt_input(Key::Delete, b"").text, "a");
-    assert_eq!(shell.consume_prompt_input(Key::Backspace, b"").text, "");
-}
-
-#[test]
-fn moves_by_words_and_kills_lines() {
-    let mut shell = new_shell(80);
-    shell.set_prompt(b"alpha beta gamma");
-    assert_eq!(shell.consume_prompt_input(Key::WordLeft, b"").cursor_byte_offset, 11);
-    assert_eq!(shell.consume_prompt_input(Key::WordLeft, b"").cursor_byte_offset, 6);
-    assert_eq!(shell.consume_prompt_input(Key::WordRight, b"").cursor_byte_offset, 10);
-
-    shell.consume_prompt_input(Key::LineStart, b"");
-    shell.consume_prompt_input(Key::WordRight, b"");
-    // Kill to the end of the line and yank it back
-    assert_eq!(shell.consume_prompt_input(Key::KillLine, b"").text, "alpha");
-    assert_eq!(shell.consume_prompt_input(Key::Yank, b"").text, "alpha beta gamma");
-    // Kill to the start of the line
-    shell.consume_prompt_input(Key::WordLeft, b"");
-    assert_eq!(shell.consume_prompt_input(Key::BackwardKillLine, b"").text, "gamma");
-    assert_eq!(shell.consume_prompt_input(Key::Yank, b"").text, "alpha beta gamma");
-}
-
-#[test]
-fn transposes_characters() {
-    let mut shell = new_shell(80);
-    shell.set_prompt(b"abc");
-    assert_eq!(shell.consume_prompt_input(Key::Transpose, b"").text, "acb");
-    // Nothing to transpose at the start
-    shell.consume_prompt_input(Key::Start, b"");
-    assert_eq!(shell.consume_prompt_input(Key::Transpose, b"").text, "acb");
-}
-
-#[test]
-fn cancel_clears_the_prompt() {
-    let mut shell = new_shell(80);
-    shell.set_prompt(b"select 1");
-    let prompt = shell.consume_prompt_input(Key::Cancel, b"");
-    assert_eq!(prompt.text, "");
-    assert_eq!(prompt.action, PromptInputAction::None);
-}
-
-#[test]
-fn force_submit_needs_text() {
-    let mut shell = new_shell(80);
-    assert_eq!(shell.consume_prompt_input(Key::ForceSubmit, b"").action, PromptInputAction::None);
-    shell.set_prompt(b"select 1");
-    assert_eq!(shell.consume_prompt_input(Key::ForceSubmit, b"").action, PromptInputAction::Submit);
-}
-
-#[test]
-fn enter_submits_only_complete_prompts() {
-    let mut shell = new_shell(80);
-    shell.set_prompt(b"select 1");
+fn only_single_statements_with_a_semicolon_are_complete() {
+    let mut shell = new_shell();
+    assert_eq!(shell.prompt_info(b""), info(false, false));
+    assert_eq!(shell.prompt_info(b" \n "), info(false, false));
     // Without a semicolon Enter adds a line
-    let prompt = shell.consume_prompt_input(Key::Enter, b"");
-    assert_eq!(prompt.action, PromptInputAction::None);
-    assert_eq!(prompt.text, "select 1\n");
-
-    let mut shell = new_shell(80);
-    shell.set_prompt(b"select 1;");
-    assert_eq!(shell.consume_prompt_input(Key::Enter, b"").action, PromptInputAction::Submit);
-
-    // A dot command is complete on a single line
-    let mut shell = new_shell(80);
-    shell.set_prompt(b" .help");
-    assert_eq!(shell.consume_prompt_input(Key::Enter, b"").action, PromptInputAction::Submit);
-    let mut shell = new_shell(80);
-    shell.set_prompt(b".help\nmore");
-    assert_eq!(shell.consume_prompt_input(Key::Enter, b"").action, PromptInputAction::None);
-
+    assert_eq!(shell.prompt_info(b"select 1"), info(false, false));
+    assert_eq!(shell.prompt_info(b"select 1;"), info(false, true));
+    assert_eq!(shell.prompt_info(b"select 1;\n  "), info(false, true));
     // Several statements are not complete
-    let mut shell = new_shell(80);
-    shell.set_prompt(b"select 1; select 2;");
-    assert_eq!(shell.consume_prompt_input(Key::Enter, b"").action, PromptInputAction::None);
+    assert_eq!(shell.prompt_info(b"select 1; select 2;"), info(false, false));
+    // A semicolon in a string or a comment ends no statement
+    assert_eq!(shell.prompt_info(b"select ';"), info(false, false));
+    assert_eq!(shell.prompt_info(b"select 1 -- ;"), info(false, false));
+    // Syntax that the local parser rejects is complete, the remote grammar may accept it
+    assert_eq!(shell.prompt_info(b"frobnicate the tables;"), info(false, true));
+    assert_eq!(shell.prompt_info(b"select \xff;"), info(false, false));
 }
 
 #[test]
-fn applies_completions_from_the_c_abi() {
-    let mut shell = new_shell(80);
-    shell.set_prompt(b"select * from fo");
-    let prompt = shell.apply_completion_bytes(b"foo", b"foo", 14, 2);
-    assert_eq!(prompt.status, ShellStatus::Ok);
-    assert_eq!(prompt.text, "select * from foo");
+fn dot_commands_are_complete_on_one_line() {
+    let mut shell = new_shell();
+    assert_eq!(shell.prompt_info(b".help"), info(true, true));
+    assert_eq!(shell.prompt_info(b"  .output table "), info(true, true));
+    assert_eq!(shell.prompt_info(b".help\nmore"), info(true, false));
+    assert_eq!(shell.prompt_info(b"\n.help"), info(true, true));
+}
 
-    let prompt = shell.apply_completion_bytes(b"foo", b"\xff", 14, 2);
-    assert_eq!(prompt.status, ShellStatus::InvalidArgument);
-    assert_eq!(prompt.message, "completion target is not on prompt boundaries");
+#[test]
+fn command_names_complete() {
+    let mut shell = new_shell();
+    assert_eq!(shell.set_commands(b"help\nhistory\noutput\nopen"), ShellStatus::Ok);
+    let completion = |shell: &ShellSession, text: &str| shell.complete_command(text.as_bytes());
+    let unchanged = |text: &str| CommandCompletion { text: text.to_string(), candidates: Vec::new() };
 
-    // Outside of the prompt
-    let prompt = shell.apply_completion_bytes(b"x", b"x", 100, 2);
-    assert_eq!(prompt.status, ShellStatus::InvalidArgument);
-    assert_eq!(prompt.text, "select * from foo");
+    // A single match is completed with a space after it
+    assert_eq!(completion(&shell, ".he"), unchanged(".help "));
+    assert_eq!(completion(&shell, "  .ou"), unchanged("  .output "));
+    // Several matches are completed to their common prefix and listed
+    assert_eq!(
+        completion(&shell, ".h"),
+        CommandCompletion { text: ".h".to_string(), candidates: vec![".help".to_string(), ".history".to_string()] }
+    );
+    assert_eq!(
+        completion(&shell, "."),
+        CommandCompletion {
+            text: ".".to_string(),
+            candidates: vec![".help".into(), ".history".into(), ".output".into(), ".open".into()],
+        }
+    );
+    assert_eq!(completion(&shell, ".o").candidates, [".output", ".open"]);
+    // Nothing to complete
+    assert_eq!(completion(&shell, ".x"), unchanged(".x"));
+    assert_eq!(completion(&shell, ".help "), unchanged(".help "));
+    assert_eq!(completion(&shell, ".output ta"), unchanged(".output ta"));
+    assert_eq!(completion(&shell, "select"), unchanged("select"));
+    assert_eq!(completion(&shell, ""), unchanged(""));
 }
 
 #[test]
 fn history_round_trips() {
-    let mut shell = new_shell(80);
+    let mut shell = new_shell();
     assert!(shell.export_history().is_empty());
     assert_eq!(shell.import_history(&history(&["select 1", "select 2"])), ShellStatus::Ok);
     assert_eq!(shell.export_history(), history(&["select 1", "select 2"]));
-    let prompt = shell.consume_prompt_input(Key::HistoryPrevious, b"");
-    assert_eq!(prompt.text, "select 2");
-    let prompt = shell.consume_prompt_input(Key::HistoryPrevious, b"");
-    assert_eq!(prompt.text, "select 1");
-    assert_eq!(shell.consume_prompt_input(Key::HistoryNext, b"").text, "select 2");
     // Importing nothing clears the history
     assert_eq!(shell.import_history(b""), ShellStatus::Ok);
     assert!(shell.export_history().is_empty());
 }
 
 #[test]
+fn history_steps_back_and_returns_to_the_draft() {
+    let mut shell = new_shell();
+    shell.import_history(&history(&["select 1", "select 2"]));
+    assert_eq!(shell.history_next(b"draft"), None);
+    assert_eq!(shell.history_previous(b"draft").as_deref(), Some("select 2"));
+    assert_eq!(shell.history_previous(b"select 2").as_deref(), Some("select 1"));
+    // The oldest entry stays
+    assert_eq!(shell.history_previous(b"select 1"), None);
+    assert_eq!(shell.history_next(b"select 1").as_deref(), Some("select 2"));
+    assert_eq!(shell.history_next(b"select 2").as_deref(), Some("draft"));
+    assert_eq!(shell.history_next(b"draft"), None);
+    // An empty history has nothing
+    let mut shell = new_shell();
+    assert_eq!(shell.history_previous(b""), None);
+    assert_eq!(shell.history_next(b""), None);
+}
+
+#[test]
+fn an_edited_entry_starts_browsing_again() {
+    let mut shell = new_shell();
+    shell.import_history(&history(&["select 1", "select 2", "select 3"]));
+    assert_eq!(shell.history_previous(b"").as_deref(), Some("select 3"));
+    assert_eq!(shell.history_previous(b"select 3").as_deref(), Some("select 2"));
+    // The user edited the entry: it is the draft now, browsing starts from the newest entry
+    assert_eq!(shell.history_previous(b"select 2 + 1").as_deref(), Some("select 3"));
+    assert_eq!(shell.history_next(b"select 3").as_deref(), Some("select 2 + 1"));
+    // Edited after stepping back, the next step forward has nothing
+    assert_eq!(shell.history_previous(b"select 2 + 1").as_deref(), Some("select 3"));
+    assert_eq!(shell.history_next(b"select 3 + 1"), None);
+}
+
+#[test]
+fn submitting_ends_browsing() {
+    let mut shell = new_shell();
+    shell.import_history(&history(&["select 1", "select 2"]));
+    assert_eq!(shell.history_previous(b"").as_deref(), Some("select 2"));
+    assert_eq!(shell.history_previous(b"select 2").as_deref(), Some("select 1"));
+    let operation = shell.submit(b"select 1");
+    shell.cancel_effect(effect_id(&operation));
+    assert_eq!(shell.history_previous(b"").as_deref(), Some("select 1"));
+    assert_eq!(shell.history_previous(b"select 1").as_deref(), Some("select 2"));
+}
+
+#[test]
 fn invalid_history_is_rejected_and_keeps_the_old_one() {
-    let mut shell = new_shell(80);
+    let mut shell = new_shell();
     shell.import_history(&history(&["keep"]));
     // A truncated length header
     assert_eq!(shell.import_history(&[1, 0]), ShellStatus::InvalidArgument);
@@ -259,91 +206,96 @@ fn invalid_history_is_rejected_and_keeps_the_old_one() {
 
 #[test]
 fn history_keeps_the_latest_thousand_entries() {
-    let mut shell = new_shell(80);
+    let mut shell = new_shell();
     let entries: Vec<String> = (0..1005).map(|i| format!("select {i}")).collect();
     let refs: Vec<&str> = entries.iter().map(String::as_str).collect();
     assert_eq!(shell.import_history(&history(&refs)), ShellStatus::Ok);
     assert_eq!(shell.export_history(), history(&refs[5..]));
 
     // Submitting trims the oldest entry
-    shell.set_prompt(b"select new");
-    assert_eq!(shell.submit_prompt().status, ShellStatus::Pending);
-    let exported = shell.export_history();
-    assert_eq!(exported, history(&[&refs[6..], &["select new"]].concat()));
+    assert_eq!(shell.submit(b"select new").status, ShellStatus::Pending);
+    assert_eq!(shell.export_history(), history(&[&refs[6..], &["select new"]].concat()));
 }
 
 #[test]
 fn submitting_remembers_distinct_prompts_once() {
-    let mut shell = new_shell(80);
-    shell.set_prompt(b"select 1");
-    let first = shell.submit_prompt();
+    let mut shell = new_shell();
+    let first = shell.submit(b"select 1");
     assert_eq!(first.status, ShellStatus::Pending);
     assert_eq!(shell.complete_effect(effect_id(&first), EFFECT_CANCELLED, &[]).status, ShellStatus::Ok);
-    shell.set_prompt(b"select 1");
-    let second = shell.submit_prompt();
+    let second = shell.submit(b"select 1");
     assert_eq!(shell.complete_effect(effect_id(&second), EFFECT_CANCELLED, &[]).status, ShellStatus::Ok);
     assert_eq!(shell.export_history(), history(&["select 1"]));
 }
 
 #[test]
-fn empty_prompts_cannot_be_submitted() {
-    let mut shell = new_shell(80);
-    let operation = shell.submit_prompt();
+fn empty_and_invalid_prompts_cannot_be_submitted() {
+    let mut shell = new_shell();
+    let operation = shell.submit(b"");
     assert_eq!(operation.status, ShellStatus::InvalidArgument);
-    assert_eq!(String::from_utf8_lossy(&operation.data), "query must not be empty");
-    let operation = shell.start_query(b"");
+    assert_eq!(operation.message, "prompt must not be empty");
+    assert_eq!(shell.submit(b" \n").status, ShellStatus::InvalidArgument);
+    let operation = shell.submit(b"select \xff");
     assert_eq!(operation.status, ShellStatus::InvalidArgument);
+    assert_eq!(operation.message, "prompt must contain valid UTF-8");
+    assert_eq!(shell.start_query(b"").status, ShellStatus::InvalidArgument);
+    // Nothing was remembered
+    assert!(shell.export_history().is_empty());
+}
+
+#[test]
+fn queries_lose_their_semicolon() {
+    let mut shell = new_shell();
+    let operation = shell.submit(b"select 1;\n");
+    assert_eq!(effect_type(&operation), EffectType::ExecuteQuery);
+    assert_eq!(payload(&operation), b"select 1");
+    shell.cancel_effect(effect_id(&operation));
+    let operation = shell.submit(b"select 2");
+    assert_eq!(payload(&operation), b"select 2");
 }
 
 #[test]
 fn dot_commands_suspend_on_a_command_effect() {
-    let mut shell = new_shell(80);
-    shell.set_prompt(b"  .tables now ");
-    let operation = shell.submit_prompt();
+    let mut shell = new_shell();
+    let operation = shell.submit(b"  .tables now \n");
     assert_eq!(operation.status, ShellStatus::Pending);
     assert_eq!(effect_type(&operation), EffectType::ExecuteCommand);
-    assert_eq!(payload(&operation), b".tables now ");
+    assert_eq!(payload(&operation), b".tables now");
 
-    // The first byte of the result tells the terminal to clear
-    let id = effect_id(&operation);
-    let result = shell.complete_effect(id, EFFECT_SUCCESS, b"\x00output");
+    // The first byte of the result is the flags, the output is a text record without its trailing line break
+    let result = shell.complete_effect(effect_id(&operation), EFFECT_SUCCESS, b"\x00line 1\r\nline 2\r\n");
     assert_eq!(result.status, ShellStatus::Ok);
-    assert_eq!(result.data, b"output");
+    assert_eq!(result.records, [record(Kind::Text, "line 1\nline 2")]);
+
+    // A command without output has no record
+    let operation = shell.submit(b".timer on");
+    let result = shell.complete_effect(effect_id(&operation), EFFECT_SUCCESS, b"\x00");
+    assert_eq!(result.records, []);
 }
 
 #[test]
-fn command_results_can_clear_the_terminal() {
-    let mut shell = new_shell(80);
-    shell.open_terminal(b"");
-    consume(&mut shell, Key::Text, ".clear");
-    let output = consume(&mut shell, Key::Enter, "");
-    assert_eq!(output.action, PromptInputAction::Submit);
-    let operation = shell.submit_prompt();
-    let result = shell.complete_effect(effect_id(&operation), EFFECT_SUCCESS, b"\x01ignored");
-    assert_eq!(result.status, ShellStatus::Ok);
-    let finished = shell.finish_terminal_query(&result.data, false);
-    let finished = text(&finished);
-    assert!(finished.contains(vt100::CLEAR_SCREEN), "{finished:?}");
-    assert!(!finished.contains("ignored\r\n"), "{finished:?}");
-    // Only the next result is cleared
-    let finished = text(&shell.finish_terminal_query(b"after", false));
-    assert!(!finished.contains(vt100::CLEAR_SCREEN));
-    assert!(finished.contains("after"));
+fn command_results_can_clear_the_records() {
+    let mut shell = new_shell();
+    let operation = shell.submit(b".clear");
+    let result = shell.complete_effect(effect_id(&operation), EFFECT_SUCCESS, b"\x01");
+    assert_eq!(result.records, [record(Kind::Clear, "")]);
+    let operation = shell.submit(b".clear");
+    let result = shell.complete_effect(effect_id(&operation), EFFECT_SUCCESS, b"\x01cleared\n");
+    assert_eq!(result.records, [record(Kind::Clear, ""), record(Kind::Text, "cleared")]);
 }
 
 #[test]
 fn empty_command_results_are_internal_errors() {
-    let mut shell = new_shell(80);
-    shell.set_prompt(b".x");
-    let operation = shell.submit_prompt();
+    let mut shell = new_shell();
+    let operation = shell.submit(b".x");
     let result = shell.complete_effect(effect_id(&operation), EFFECT_SUCCESS, b"");
     assert_eq!(result.status, ShellStatus::InternalError);
-    assert_eq!(String::from_utf8_lossy(&result.data), "invalid shell command result");
+    assert_eq!(result.message, "invalid shell command result");
 }
 
 #[test]
 fn queries_suspend_on_a_query_effect() {
-    let mut shell = new_shell(80);
+    let mut shell = new_shell();
     let operation = shell.start_query(b"select 1");
     assert_eq!(operation.status, ShellStatus::Pending);
     assert_eq!(effect_type(&operation), EffectType::ExecuteQuery);
@@ -352,15 +304,14 @@ fn queries_suspend_on_a_query_effect() {
     // Only one operation at a time
     let busy = shell.start_query(b"select 2");
     assert_eq!(busy.status, ShellStatus::Busy);
-    assert_eq!(String::from_utf8_lossy(&busy.data), "the shell already has an active operation");
+    assert_eq!(busy.message, "the shell already has an active operation");
     // Also for dot commands
-    shell.set_prompt(b".tables");
-    assert_eq!(shell.submit_prompt().status, ShellStatus::Busy);
+    assert_eq!(shell.submit(b".tables").status, ShellStatus::Busy);
 }
 
 #[test]
 fn effect_ids_are_unique() {
-    let mut shell = new_shell(80);
+    let mut shell = new_shell();
     let first = shell.start_query(b"select 1");
     shell.complete_effect(effect_id(&first), EFFECT_CANCELLED, &[]);
     let second = shell.start_query(b"select 2");
@@ -369,17 +320,17 @@ fn effect_ids_are_unique() {
 
 #[test]
 fn queries_reject_invalid_input() {
-    let mut shell = new_shell(80);
+    let mut shell = new_shell();
     let operation = shell.start_query(b"select \xff");
-    assert_eq!(operation.status, ShellStatus::InternalError);
-    assert_eq!(String::from_utf8_lossy(&operation.data), "rope input must contain valid UTF-8");
+    assert_eq!(operation.status, ShellStatus::InvalidArgument);
+    assert_eq!(operation.message, "query must contain valid UTF-8");
     // A rejected query leaves the shell free
     assert_eq!(shell.start_query(b"select 1").status, ShellStatus::Pending);
 }
 
 #[test]
 fn completing_unknown_effects_is_stale() {
-    let mut shell = new_shell(80);
+    let mut shell = new_shell();
     let result = shell.complete_effect(42, EFFECT_SUCCESS, &[]);
     assert_eq!(result.status, ShellStatus::StaleEffect);
     let operation = shell.start_query(b"select 1");
@@ -398,249 +349,22 @@ fn invalid_completion_statuses_are_rejected() {
 }
 
 #[test]
-fn failed_and_cancelled_effects_render_messages() {
-    let mut shell = new_shell(80);
+fn failed_and_cancelled_effects_are_records() {
+    let mut shell = new_shell();
     let operation = shell.start_query(b"select 1");
-    let result = shell.complete_effect(effect_id(&operation), EFFECT_ERROR, b"relation does not exist");
+    let result = shell.complete_effect(effect_id(&operation), EFFECT_ERROR, b"relation does not exist\r\n");
     assert_eq!(result.status, ShellStatus::Ok);
-    assert_eq!(String::from_utf8_lossy(&result.data), "relation does not exist");
+    assert_eq!(result.records, [record(Kind::Error, "relation does not exist")]);
 
     let operation = shell.start_query(b"select 1");
     let result = shell.complete_effect(effect_id(&operation), EFFECT_ERROR, b"");
-    assert_eq!(String::from_utf8_lossy(&result.data), "query failed");
+    assert_eq!(result.records, [record(Kind::Error, "query failed")]);
+
+    let operation = shell.submit(b".fail");
+    let result = shell.complete_effect(effect_id(&operation), EFFECT_ERROR, b"unknown command: .fail");
+    assert_eq!(result.records, [record(Kind::Error, "unknown command: .fail")]);
 
     let operation = shell.start_query(b"select 1");
     let result = shell.cancel_effect(effect_id(&operation));
-    assert_eq!(String::from_utf8_lossy(&result.data), "Cancelled");
-}
-
-#[test]
-fn terminal_prompt_is_validated() {
-    let mut shell = new_shell(80);
-    let output = shell.open_terminal(b"\xff");
-    assert_eq!(output.status, ShellStatus::InvalidArgument);
-    assert_eq!(text(&output), "terminal prompt must contain valid UTF-8");
-    let output = shell.open_terminal(&vec![b'a'; 257]);
-    assert_eq!(output.status, ShellStatus::InvalidArgument);
-    assert_eq!(text(&output), "terminal prompt is too long");
-    let output = shell.open_terminal(&vec![b'a'; 256]);
-    assert_eq!(output.status, ShellStatus::Ok);
-    // A prompt without a marker is as wide as its text
-    assert!(text(&shell.open_terminal(b"abc")).contains("abc"));
-}
-
-#[test]
-fn terminal_exit_and_cancel() {
-    let mut shell = new_shell(80);
-    shell.open_terminal(b"> ");
-    let output = consume(&mut shell, Key::Eof, "");
-    assert_eq!(output.action, PromptInputAction::Exit);
-    assert!(text(&output).contains(vt100::ENABLE_AUTO_WRAP));
-
-    let mut shell = new_shell(80);
-    shell.open_terminal(b"> ");
-    consume(&mut shell, Key::Text, "select");
-    let output = consume(&mut shell, Key::Cancel, "");
-    assert_eq!(output.status, ShellStatus::Ok);
-    assert_eq!(output.action, PromptInputAction::None);
-    let rendered = text(&output);
-    assert!(rendered.contains("^C"), "{rendered:?}");
-    assert_eq!(shell.prompt().text(), "");
-}
-
-#[test]
-fn terminal_force_submit_and_invalid_text() {
-    let mut shell = new_shell(80);
-    shell.open_terminal(b"> ");
-    let output = shell.consume_terminal_input(Key::Text, b"\xff");
-    assert_eq!(output.status, ShellStatus::InvalidArgument);
-    consume(&mut shell, Key::Text, "select 1");
-    let output = consume(&mut shell, Key::ForceSubmit, "");
-    assert_eq!(output.status, ShellStatus::Ok);
-    assert_eq!(output.action, PromptInputAction::Submit);
-}
-
-#[test]
-fn terminal_applies_a_single_completion_on_tab() {
-    let mut shell = new_shell(80);
-    shell.open_terminal(b"> ");
-    consume(&mut shell, Key::Text, "selec");
-    let output = consume(&mut shell, Key::Tab, "");
-    assert_eq!(output.status, ShellStatus::Ok);
-    assert_eq!(shell.prompt().text(), "select");
-}
-
-#[test]
-fn terminal_edits_by_word_and_line() {
-    let mut shell = new_shell(80);
-    shell.open_terminal(b"> ");
-    consume(&mut shell, Key::Text, "select a from t");
-    assert_eq!(consume(&mut shell, Key::WordLeft, "").status, ShellStatus::Ok);
-    assert_eq!(consume(&mut shell, Key::WordRight, "").status, ShellStatus::Ok);
-    consume(&mut shell, Key::KillLine, "");
-    assert_eq!(consume(&mut shell, Key::Transpose, "").status, ShellStatus::Ok);
-    consume(&mut shell, Key::Delete, "");
-    assert_eq!(consume(&mut shell, Key::BackwardKillLine, "").status, ShellStatus::Ok);
-    assert_eq!(shell.prompt().text(), "");
-}
-
-#[test]
-fn long_prompts_wrap_at_the_terminal_width() {
-    let mut shell = new_shell(10);
-    shell.open_terminal(b"> ");
-    let output = consume(&mut shell, Key::Text, "select 1 + 2 + 3 + 4 + 5");
-    let rendered = text(&output);
-    assert!(rendered.contains(vt100::CARRIAGE_RETURN), "{rendered:?}");
-    assert_eq!(output.status, ShellStatus::Ok);
-    shell.resize(40);
-    assert_eq!(consume(&mut shell, Key::End, "").status, ShellStatus::Ok);
-}
-
-#[test]
-fn query_progress_shows_a_spinner() {
-    let mut shell = new_shell(80);
-    let first = text(&shell.render_terminal_query_progress(b"", false));
-    assert!(first.contains("Executing query"), "{first:?}");
-    assert!(first.starts_with(vt100::DISABLE_AUTO_WRAP));
-    // Advancing changes the spinner frame and keeps the message
-    let second = text(&shell.render_terminal_query_progress(b"", true));
-    assert!(second.contains("Executing query"));
-    assert_ne!(first, second);
-    // A new message replaces the old one, control characters are dropped
-    let third = text(&shell.render_terminal_query_progress(b"Fetching\x01 rows", false));
-    assert!(third.contains("Fetching rows"), "{third:?}");
-    // Escape sequences cut the message
-    let fourth = text(&shell.render_terminal_query_progress(b"Done\x1b[31m red", false));
-    assert!(fourth.contains("Done") && !fourth.contains("red"), "{fourth:?}");
-
-    let cleared = shell.clear_terminal_query_progress();
-    assert_eq!(cleared.status, ShellStatus::Ok);
-    assert!(text(&cleared).contains(vt100::ERASE_ENTIRE_LINE));
-    // Nothing to clear anymore
-    assert!(shell.clear_terminal_query_progress().data.is_empty());
-    let restarted = text(&shell.render_terminal_query_progress(b"", false));
-    assert!(restarted.contains("Executing query"));
-}
-
-#[test]
-fn query_progress_rejects_invalid_utf8() {
-    let mut shell = new_shell(80);
-    let output = shell.render_terminal_query_progress(b"\xff", false);
-    assert_eq!(output.status, ShellStatus::InvalidArgument);
-    assert_eq!(text(&output), "terminal query progress must contain valid UTF-8");
-}
-
-#[test]
-fn query_progress_is_truncated_to_the_terminal_width() {
-    let mut shell = new_shell(12);
-    let output = text(&shell.render_terminal_query_progress(b"a very long progress message", false));
-    assert!(!output.contains("progress message"), "{output:?}");
-}
-
-#[test]
-fn finished_queries_print_output_and_a_fresh_prompt() {
-    let mut shell = new_shell(80);
-    shell.open_terminal(b"> ");
-    consume(&mut shell, Key::Text, "select 1;");
-    shell.render_terminal_query_progress(b"", false);
-    let output = shell.finish_terminal_query(b"result", false);
-    assert_eq!(output.status, ShellStatus::Ok);
-    let rendered = text(&output);
-    assert!(rendered.contains("result\r\n"), "{rendered:?}");
-    assert!(!rendered.contains(vt100::FOREGROUND_RED));
-    assert_eq!(shell.prompt().text(), "");
-
-    let output = shell.finish_terminal_query(b"boom", true);
-    let rendered = text(&output);
-    assert!(rendered.contains(&format!("{}boom{}", vt100::FOREGROUND_RED, vt100::RESET_ATTRIBUTES)), "{rendered:?}");
-}
-
-#[test]
-fn terminal_status_renders_a_message() {
-    let mut shell = new_shell(80);
-    shell.open_terminal(b"> ");
-    let output = shell.render_terminal_status(b"connected");
-    assert_eq!(output.status, ShellStatus::Ok);
-    assert!(text(&output).contains("connected"));
-}
-
-fn bytes_text(data: &[u8]) -> String {
-    String::from_utf8_lossy(data).into_owned()
-}
-
-#[test]
-fn completes_dot_command_prefixes() {
-    let catalog = Catalog::new();
-    let mut session = ShellSession::new(&catalog, 100, false);
-    assert_eq!(session.set_commands(b"clear\nhelp\nlogin"), ShellStatus::Ok);
-    session.set_prompt(b".hel");
-
-    let candidates = session.complete_prompt(10, &catalog).unwrap();
-    assert_eq!(candidates.len(), 1);
-    assert_eq!(candidates[0].display_text, ".help");
-    assert_eq!(candidates[0].completion_text, ".help");
-    assert_eq!(candidates[0].target_offset, 0);
-    assert_eq!(candidates[0].target_length, 4);
-}
-
-#[test]
-fn renders_inline_dot_command_hint() {
-    let catalog = Catalog::new();
-    let mut session = ShellSession::new(&catalog, 100, false);
-    assert_eq!(session.set_commands(b"clear\nhelp"), ShellStatus::Ok);
-    session.open_terminal(b"db> ");
-
-    let output = bytes_text(&session.consume_terminal_input(Key::Text, b".hel", &catalog).data);
-    assert!(output.contains(&format!("{}p", vt100::FOREGROUND_BRIGHT_BLACK)), "{output}");
-    assert!(!output.contains('╭'), "{output}");
-}
-
-#[test]
-fn renders_terminal_prompt_in_its_color() {
-    let catalog = Catalog::new();
-    let mut session = ShellSession::new(&catalog, 10, false);
-    session.set_terminal_prompt_color(Some([110, 255, 70]));
-    let output = bytes_text(&session.open_terminal(b"db> ").data);
-    assert!(output.contains("\x1b[1;38;2;110;255;70mdb> \x1b[0m"), "{output}");
-
-    // Continuation lines carry the prompt color as well
-    let output = bytes_text(&session.consume_terminal_input(Key::Text, b"SELECT 1 FROM t", &catalog).data);
-    assert!(output.contains("\x1b[1;38;2;110;255;70m -> \x1b[0m"), "{output}");
-
-    session.set_terminal_prompt_color(None);
-    let output = bytes_text(&session.open_terminal(b"db> ").data);
-    assert!(output.contains(&format!("{}db> {}", vt100::BOLD, vt100::RESET_ATTRIBUTES)), "{output}");
-}
-
-#[test]
-fn compiles_plain_sql_before_execution() {
-    let catalog = Catalog::new();
-    let mut session = ShellSession::new(&catalog, 80, false);
-    let query = b"  SELECT 42; -- context\n";
-    let pending = session.start_query(query, &catalog);
-    assert_eq!(pending.status, ShellStatus::Pending);
-    assert_eq!(payload(&pending), query);
-}
-
-#[test]
-fn runs_vis_tags_as_plain_queries() {
-    let catalog = Catalog::new();
-    let mut session = ShellSession::new(&catalog, 80, false);
-    let query = b"/* @vis vegalite {\"mark\": \"bar\"} */\nSELECT 1 AS value";
-    let pending = session.start_query(query, &catalog);
-    assert_eq!(pending.status, ShellStatus::Pending);
-    assert_eq!(payload(&pending), query);
-}
-
-#[test]
-fn aligns_continuation_marker_with_prompt_marker() {
-    let catalog = Catalog::new();
-    // The marker of a continuation line ends where the prompt ends
-    for prompt in ["hyper> ", "long-connection> "] {
-        let mut session = ShellSession::new(&catalog, 80, false);
-        assert_eq!(session.open_terminal(prompt.as_bytes()).status, ShellStatus::Ok);
-        let output = bytes_text(&session.consume_terminal_input(Key::Enter, b"", &catalog).data);
-        let marker = format!("{:>width$}", "-> ", width = prompt.len());
-        assert!(output.contains(&marker), "{prompt}: {output:?}");
-    }
+    assert_eq!(result.records, [record(Kind::Status, "Cancelled")]);
 }

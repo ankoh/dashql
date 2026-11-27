@@ -35,7 +35,7 @@ export type DashQLBindings = Pick<
 >;
 
 /// The shell of the module, the host runs its effects
-export type { Shell, ShellCompletionCandidate, ShellOperation, ShellPromptResult, ShellTerminalResult } from '@akohn/dashql-wasm/dashql_core.js';
+export type { Shell, ShellCommandCompletion, ShellOperation, ShellPromptInfo } from '@akohn/dashql-wasm/dashql_core.js';
 
 /// The placement of a script on the dataflow canvas, its `@flow` tag
 export interface DataflowPlacement {
