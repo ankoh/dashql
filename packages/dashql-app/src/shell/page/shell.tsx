@@ -37,19 +37,28 @@ const ShellRuntime = (props: { children?: React.ReactNode }) => {
 
 /// Keep an element in the visible part of the window. The keyboard of iOS covers the window instead of shrinking it,
 /// the prompt of the shell would sit behind it. A zoomed page keeps its height.
+/// iOS scrolls the page to the focused prompt after the last resize of the keyboard, and that scroll fires no event of
+/// the visual viewport, only one of the window. A height measured before it leaves a band between the keys of the
+/// shell and the keyboard, so every resize and scroll measures again.
 function useVisualViewportHeight(element: HTMLElement | null) {
     React.useEffect(() => {
         const viewport = window.visualViewport;
         if (viewport == null || element == null) return;
         const fit = () => {
-            element.style.height = viewport.scale > 1.01 ? '' : `${viewport.height}px`;
-            // iOS scrolls the window to the focused prompt, the element starts at the top of the visible part
-            if (viewport.scale <= 1.01) window.scrollTo(0, 0);
+            const zoomed = viewport.scale > 1.01;
+            const height = zoomed ? '' : `${viewport.height}px`;
+            if (element.style.height !== height) element.style.height = height;
+            // The element starts at the top of the visible part
+            if (!zoomed && (window.scrollY !== 0 || window.scrollX !== 0)) window.scrollTo(0, 0);
         };
         fit();
         viewport.addEventListener('resize', fit);
+        viewport.addEventListener('scroll', fit);
+        window.addEventListener('scroll', fit, { passive: true });
         return () => {
             viewport.removeEventListener('resize', fit);
+            viewport.removeEventListener('scroll', fit);
+            window.removeEventListener('scroll', fit);
             element.style.height = '';
         };
     }, [element]);
