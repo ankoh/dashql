@@ -37,6 +37,8 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 const state = { sortableTransform: null as { x: number; y: number; scaleX: number; scaleY: number } | null, scripts: {} as { [key: number]: ScriptData } };
 const scriptModels = new WeakMap<ScriptData, ScriptModel>();
+/// The connections of the scripts that run on one connection
+const connectionsOf = (conn: ConnectionState | null) => new Map(conn == null ? [] : [[conn.connectionId, conn]]);
 // The row connects a card, the tests of the card are in script_card.test.tsx
 const dependencies: ScriptFeedRowDependencies = {
     // A fake model of each script of the row, one per script, the scripts come from the props of the row
@@ -303,7 +305,7 @@ describe('Workbook feed', () => {
         act(() => root.render(<LoggerProvider>
             <WorkbookConnectionAttentionContext.Provider value={attention}>
                 <WorkbookFeed workbookScripts={workbookScripts} modifyWorkbookScripts={modifyWorkbookScripts}
-                    conn={conn} scriptConnections={scriptConnections} active={true} handleRef={feedState.handle} dependencies={feedDependencies} />
+                    conn={conn} scriptConnections={scriptConnections ?? connectionsOf(conn)} active={true} handleRef={feedState.handle} dependencies={feedDependencies} />
             </WorkbookConnectionAttentionContext.Provider>
         </LoggerProvider>));
     }
@@ -340,7 +342,7 @@ describe('Workbook feed', () => {
         const onInsets = vi.fn();
         feedState.scripts = {};
         act(() => root.render(<LoggerProvider>
-            <WorkbookFeed workbookScripts={workbook()} modifyWorkbookScripts={vi.fn()} conn={onlineConn} active={true}
+            <WorkbookFeed workbookScripts={workbook()} modifyWorkbookScripts={vi.fn()} conn={onlineConn} scriptConnections={connectionsOf(onlineConn)} active={true}
                 onInsets={onInsets} dependencies={feedDependencies} />
         </LoggerProvider>));
         expect(container.querySelector<HTMLElement>('[data-testid="feed-list"]')?.hidden).toBe(true);
@@ -490,7 +492,7 @@ describe('Workbook feed', () => {
             const renderFeed = (workbookScripts: WorkbookScripts & { scripts: ScriptDataMap }) => act(() => root.render(<LoggerProvider>
                 <WorkbookConnectionAttentionContext.Provider value={attention}>
                     <WorkbookFeed workbookScripts={workbookScripts} modifyWorkbookScripts={vi.fn()} conn={onlineConn}
-                        active={true} dependencies={{ ...feedDependencies, ScriptFeedRow }} />
+                        scriptConnections={connectionsOf(onlineConn)} active={true} dependencies={{ ...feedDependencies, ScriptFeedRow }} />
                 </WorkbookConnectionAttentionContext.Provider>
             </LoggerProvider>));
             const rows = () => Array.from(container.querySelectorAll<HTMLElement>('[data-testid="row"]'))
@@ -631,7 +633,8 @@ describe('Workbook feed on a runtime', () => {
         act(() => root.render(<RuntimeContextProvider value={rt}>
             <LoggerProvider>
                 <WorkbookFeed workbookScripts={rt.store.get('workbook', workbook.workbookId)!} modifyWorkbookScripts={modify}
-                    conn={rt.connection('database') ?? null} active={true} dependencies={dependencies} />
+                    conn={rt.connection('database') ?? null} scriptConnections={connectionsOf(rt.connection('database') ?? null)}
+                    active={true} dependencies={dependencies} />
             </LoggerProvider>
         </RuntimeContextProvider>));
         // The mount may render a card more than once

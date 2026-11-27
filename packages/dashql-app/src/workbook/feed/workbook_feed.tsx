@@ -69,8 +69,8 @@ export interface WorkbookFeedProps {
     draftRenameRef?: React.RefObject<RenameDraftReferences | null>;
     /// The connection that the next script runs on
     conn: ConnectionState | null;
-    /// The connections that the scripts run on, by default the connection of the next script
-    scriptConnections?: ReadonlyMap<string, ConnectionState>;
+    /// The connections that the scripts run on
+    scriptConnections: ReadonlyMap<string, ConnectionState>;
     /// Whether the feed is the visible, interactive layer. The feed stays mounted (just hidden) while
     /// another view, e.g. a connection overview, is open so it keeps its scroll position and measured row heights;
     /// while inactive its global key handlers must stand down so Escape/Enter belong to the overlay.
@@ -204,11 +204,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     React.useLayoutEffect(() => {
         setDisplayEntries({ source: canonicalEntries, entries: canonicalEntries });
     }, [canonicalEntries]);
-    const defaultConnections = React.useMemo(
-        () => new Map(props.conn == null ? [] : [[props.conn.connectionId, props.conn]]),
-        [props.conn],
-    );
-    const scriptConnections = useScriptConnectionViews(props.scriptConnections ?? defaultConnections);
+    const scriptConnections = useScriptConnectionViews(props.scriptConnections);
     const storageReader = dependencies.useStorageReader();
     const attachmentCommands = dependencies.useAttachmentCommands();
     const workbookId = props.workbookScripts.workbookId;

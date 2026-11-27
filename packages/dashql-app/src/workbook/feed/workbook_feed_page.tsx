@@ -114,7 +114,7 @@ interface Props {
     /// The connection that the next script of the workbook runs on
     connection: ConnectionState | null;
     /// The connections that the scripts of the workbook run on
-    scriptConnections?: ReadonlyMap<string, ConnectionState>;
+    scriptConnections: ReadonlyMap<string, ConnectionState>;
     active: boolean;
     // The heavy parts of the page are slots with the real views as defaults. A test shows stand-ins: they need
     // editors, charts, the layout of the dataflow or the storage of the app.
@@ -190,7 +190,7 @@ export const WorkbookFeedPage = React.memo(function WorkbookFeedPage(props: Prop
     const exportButton = archiveExport && flavor.id === 'dashql';
     // A workbook run takes every connection that a script runs on. Connections that aren't connected serve the cached
     // results of their scripts, the others are skipped.
-    const scriptConnections = props.scriptConnections ?? new Map(props.connection == null ? [] : [[props.connection.connectionId, props.connection]]);
+    const scriptConnections = props.scriptConnections;
     const runConnections = scriptConnectionIds(props.workbookScripts).flatMap(connectionId => scriptConnections.get(connectionId) ?? []);
     // The bar also shows the connection that the composer drafts the next script on, e.g. the one picked in an empty workbook
     const barConnections = props.workbookScripts.connectionIds.flatMap(connectionId => scriptConnections.get(connectionId) ?? []);
@@ -408,7 +408,7 @@ export const WorkbookFeedPage = React.memo(function WorkbookFeedPage(props: Prop
                                 handleRef: feedRef,
                                 onInsets: setFeedInsets,
                                 conn: props.connection,
-                                scriptConnections: props.scriptConnections,
+                                scriptConnections,
                             })}
                         </div>
                         {overviewConnectionId != null && !cloudLoading && (
@@ -468,7 +468,7 @@ export const WorkbookFeedPage = React.memo(function WorkbookFeedPage(props: Prop
                             workbookScripts: props.workbookScripts,
                             modifyWorkbookScripts: props.modifyWorkbookScripts,
                             conn: props.connection,
-                            scriptConnections: props.scriptConnections,
+                            scriptConnections,
                             placement: promptPlacement,
                             expanded: promptExpanded,
                             onExpandedChange: togglePrompt,

@@ -117,7 +117,9 @@ async function seed(runtime: Runtime) {
 /// The page as the workbook page shows it: active in the feed
 function Page(props: Partial<PageProps> & Pick<PageProps, 'workbookScripts' | 'connection'>) {
     const { mode } = useWorkbookViewMode();
-    return <WorkbookFeedPage modifyWorkbookScripts={vi.fn()} active={mode === WorkbookViewMode.Workbook} {...STAND_INS} {...props} />;
+    const scriptConnections = new Map(props.connection == null ? [] : [[props.connection.connectionId, props.connection]]);
+    return <WorkbookFeedPage modifyWorkbookScripts={vi.fn()} active={mode === WorkbookViewMode.Workbook} scriptConnections={scriptConnections}
+        {...STAND_INS} {...props} />;
 }
 
 describe('WorkbookFeedPage', () => {

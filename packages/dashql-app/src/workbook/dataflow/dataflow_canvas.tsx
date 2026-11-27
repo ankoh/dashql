@@ -79,13 +79,11 @@ const DEFAULT_DEPENDENCIES: DataflowCanvasDependencies = {
 const NO_REFERENCES: ReadonlyMap<number, ScriptReferenceReport> = new Map();
 const NO_INPUTS: WorkbookInput[] = [];
 
-const NO_CONNECTIONS: ReadonlyMap<string, ConnectionState> = new Map();
-
 interface Props {
     workbookScripts: WorkbookScripts;
     modifyWorkbookScripts: ModifyWorkbookScripts;
     /// The connections that the scripts run on, the headers of the boxes show and pick them
-    scriptConnections?: ReadonlyMap<string, ConnectionState>;
+    scriptConnections: ReadonlyMap<string, ConnectionState>;
     /// The function that renames the references in the draft of the composer
     draftRenameRef?: React.RefObject<RenameDraftReferences | null>;
     /// Open the script in the editor dialog
@@ -671,7 +669,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                                 box={box}
                                 workbookScripts={workbookScripts}
                                 modifyWorkbookScripts={modifyWorkbookScripts}
-                                scriptConnections={props.scriptConnections ?? NO_CONNECTIONS}
+                                scriptConnections={props.scriptConnections}
                                 scriptReferences={scriptReferences.get(box.script.scriptKey) ?? null}
                                 draftRenameRef={props.draftRenameRef}
                                 script={scripts[box.script.scriptKey]}

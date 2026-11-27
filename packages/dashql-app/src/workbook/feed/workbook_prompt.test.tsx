@@ -136,7 +136,7 @@ describe('Workbook prompt', () => {
         act(() => root.render(<LoggerProvider>
             <WorkbookConnectionAttentionContext.Provider value={attention}>
                 <WorkbookPrompt workbookScripts={workbookScripts} modifyWorkbookScripts={modifyWorkbookScripts} conn={conn}
-                    placement={placement} expanded={expanded} onExpandedChange={onExpandedChange} feed={feed} handleRef={handle}
+                    scriptConnections={new Map(conn == null ? [] : [[conn.connectionId, conn]])} placement={placement} expanded={expanded} onExpandedChange={onExpandedChange} feed={feed} handleRef={handle}
                     dependencies={promptDependencies} />
             </WorkbookConnectionAttentionContext.Provider>
         </LoggerProvider>));

@@ -70,8 +70,8 @@ export interface WorkbookPromptProps {
     modifyWorkbookScripts: ModifyWorkbookScripts;
     /// The connection that the next script runs on
     conn: ConnectionState | null;
-    /// The connections that the scripts run on, by default the connection of the next script
-    scriptConnections?: ReadonlyMap<string, ConnectionState>;
+    /// The connections that the scripts run on
+    scriptConnections: ReadonlyMap<string, ConnectionState>;
     /// Where the prompt shows
     placement: WorkbookPromptPlacement;
     /// Is the composer shown below the bar of Wobble? Else it shrinks into the bar, with its draft. The greeting of an
@@ -162,11 +162,7 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
     const workbookId = props.workbookScripts.workbookId;
     const readOnly = useWorkbookReadOnly();
     const overFeed = props.placement === WorkbookPromptPlacement.Feed;
-    const defaultConnections = React.useMemo(
-        () => new Map(props.conn == null ? [] : [[props.conn.connectionId, props.conn]]),
-        [props.conn],
-    );
-    const connections = props.scriptConnections ?? defaultConnections;
+    const connections = props.scriptConnections;
     const labeler = useConnectionLabeler();
 
     // The composer drafts the next script, on the connection that the script will run on

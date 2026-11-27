@@ -4,6 +4,7 @@ import { act, flushContinuousUpdates } from '@akohn/dashql-react/testing/react_a
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { DataflowCanvas, type DataflowCanvasDependencies, RESIZE_KEY_STEP } from './dataflow_canvas.js';
 import { analyzedTestWorkbook, withTestScript, type TestWorkbook } from './dataflow_test_workbook.js';
 import { loadDataflowModule } from './dataflow_module.js';
@@ -26,6 +27,9 @@ function show(next: TestWorkbook): void {
     workbook = next.workbook;
     scripts = { ...next.scripts };
 }
+
+/// The scripts of the tests run on no connection
+const NO_CONNECTIONS: ReadonlyMap<string, ConnectionState> = new Map();
 
 const dependencies: DataflowCanvasDependencies = {
     useQueryModel: () => null,
@@ -71,7 +75,7 @@ describe('DataflowCanvas', () => {
     });
 
     const render = (onInspect?: (scriptKey: number) => void) => act(() => root.render(
-        <DataflowCanvas workbookScripts={workbook} modifyWorkbookScripts={modify} onInspect={onInspect} dependencies={dependencies} />,
+        <DataflowCanvas workbookScripts={workbook} modifyWorkbookScripts={modify} scriptConnections={NO_CONNECTIONS} onInspect={onInspect} dependencies={dependencies} />,
     ));
     const key = (fileName: string) => workbook.scriptRefs[fileName].scriptId;
     const box = (fileName: string) => container.querySelector<SVGGElement>(`[data-dataflow-box="${key(fileName)}"]`)!;
@@ -79,11 +83,11 @@ describe('DataflowCanvas', () => {
 
     it('waits for the layout module and tells when it failed to load', () => {
         const loading = { ...dependencies, useDataflowModule: () => ({ layout: null, error: null }) };
-        act(() => root.render(<DataflowCanvas workbookScripts={workbook} modifyWorkbookScripts={modify} dependencies={loading} />));
+        act(() => root.render(<DataflowCanvas workbookScripts={workbook} modifyWorkbookScripts={modify} scriptConnections={NO_CONNECTIONS} dependencies={loading} />));
         expect(container.querySelector('[data-testid="dataflow-loading"]')).not.toBeNull();
         expect(container.querySelector('[data-dataflow-box]')).toBeNull();
         const failed = { ...dependencies, useDataflowModule: () => ({ layout: null, error: new Error('offline') }) };
-        act(() => root.render(<DataflowCanvas workbookScripts={workbook} modifyWorkbookScripts={modify} dependencies={failed} />));
+        act(() => root.render(<DataflowCanvas workbookScripts={workbook} modifyWorkbookScripts={modify} scriptConnections={NO_CONNECTIONS} dependencies={failed} />));
         expect(container.querySelector('[data-testid="dataflow-loading"]')?.textContent).toContain('offline');
     });
 
@@ -258,7 +262,7 @@ describe('DataflowCanvas', () => {
         const request = { scriptKey: key('far.sql') };
         const bottomInset = () => 150;
         act(() => root.render(
-            <DataflowCanvas workbookScripts={workbook} modifyWorkbookScripts={modify} revealRequest={request} bottomInset={bottomInset} dependencies={dependencies} />,
+            <DataflowCanvas workbookScripts={workbook} modifyWorkbookScripts={modify} scriptConnections={NO_CONNECTIONS} revealRequest={request} bottomInset={bottomInset} dependencies={dependencies} />,
         ));
         const frame = () => container.querySelector<SVGRectElement>(`rect[data-dataflow-card="${key('far.sql')}"]`)!;
         expect(frame().getAttribute('data-selected')).toBe('false');
