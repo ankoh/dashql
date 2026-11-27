@@ -584,8 +584,6 @@ export class CandidateListRenderer {
         this.rootElement.remove();
     }
 
-    /// Is hidden?
-    public get isHidden() { return !this.rootVisible; }
     /// Hide the list (if shown)
     public hide() {
         if (this.rootVisible) {

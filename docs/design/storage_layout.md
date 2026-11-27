@@ -118,6 +118,11 @@ italic name "New Workbook" and no menu, and the create button of the workbooks j
 Every launch ends with exactly one: it creates a missing one and deletes all but the first in restore order. A marked
 workbook that holds scripts stopped before its promotion was written, the restore finishes the promotion.
 
+The storage writer debounces the writes of the scripts (100 ms) and the page writes the pending ones on `pagehide`, but
+a browser doesn't wait for writes when a page unloads: a reload right after an edit, or while the write of a script is
+still going, keeps the script as it was before. Chromium writes a file into a swap file `<name>.crswap` and moves it
+over the script when the write closes.
+
 ### The results of the scripts
 
 `workbooks/<id>/results/` holds the [stored results](workbook_results.md) of the scripts of the workbook: one Parquet

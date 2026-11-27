@@ -98,17 +98,17 @@ class CompletionList {
         this.renderedCompletion = processor.scriptCompletion;
 
         // Hide completion?
+        // Also while the list is still hidden: the keyed measure supersedes a pending one that would show it, e.g. of a
+        // completion that an Escape ended in the frame it started
         if (processor.scriptCompletion?.status !== DashQLCompletionStatus.AVAILABLE
             || processor.scriptCompletion?.passiveHint) {
-            if (!this.list.isHidden) {
-                view.requestMeasure<(Position | null)>({
-                    key: this,
-                    read: (_view) => null,
-                    write: (_null, _view) => {
-                        this.list.hide();
-                    }
-                });
-            }
+            view.requestMeasure<(Position | null)>({
+                key: this,
+                read: (_view) => null,
+                write: (_null, _view) => {
+                    this.list.hide();
+                }
+            });
             return;
         }
         const selectedCandidate = processor.scriptCompletion.candidateId;

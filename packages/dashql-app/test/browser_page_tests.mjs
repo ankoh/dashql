@@ -33,22 +33,6 @@ async function waitForComposerSend(page) {
     await page.locator('[data-testid="composer-send"]:not([data-connect])').waitFor();
 }
 
-/// Click a target that the completion list of the focused editor may cover. The list can open after an Escape that
-/// came too early, so the click dismisses it as long as it shows.
-async function clickPastCompletion(page, target) {
-    const completion = page.locator('[data-dashql-completion-list]');
-    const deadline = Date.now() + PAGE_TIMEOUT;
-    for (;;) {
-        if (await completion.isVisible()) await page.keyboard.press('Escape');
-        try {
-            await target.click({ timeout: 1000 });
-            return;
-        } catch (error) {
-            if (Date.now() > deadline) throw error;
-        }
-    }
-}
-
 /// Run a query from the composer of the greeter, its first script creates the workbook
 async function sendFromComposer(page, text) {
     await waitForComposerSend(page);
@@ -71,7 +55,7 @@ async function openWorkbookWithQuery(page, navigate) {
 const pathnameOf = page => new URL(page.url()).pathname;
 
 /// Wait until the storage wrote a script with the text to OPFS. The writer debounces the edits, and a reload doesn't
-/// wait for the write that the page starts when it goes away; a slow machine loses it.
+/// wait for the write that the page starts when it goes away; a slow machine loses it (docs/design/storage_layout.md).
 /// Only the `.sql` files count: Chromium writes into a swap file `<name>.crswap` and moves it over the script when the
 /// write closes, a reload before that keeps the old script.
 async function waitForScriptWrite(page, text) {
@@ -190,7 +174,9 @@ async function testAppAgentWeb(page, navigate) {
     const editor = page.locator('[data-testid="composer-prompt"] .cm-content');
     await editor.click();
     await page.keyboard.insertText('select 7 as answer');
-    await clickPastCompletion(page, page.locator('[data-testid="composer-mode"][data-mode="ai"]'));
+    // The completion of the draft would cover the switch
+    await page.keyboard.press('Escape');
+    await page.locator('[data-testid="composer-mode"][data-mode="ai"]').click();
     const notice = page.getByTestId('composer-agent-desktop');
     await notice.waitFor();
     if (!(await notice.textContent()).includes('desktop app')) throw new Error(`The notice tells ${await notice.textContent()}`);
@@ -700,9 +686,12 @@ async function runPageTest(newContext, origin, { name, options, test }, { collec
         errors.push(`Unexpected request: ${route.request().url()}`);
         return route.abort();
     });
-    // The document that a navigation leaves reports the work it is cut off from, e.g. WebKit cancels the reads of OPFS
-    // files in flight and logs them as errors
+    // The document that a navigation leaves reports the work it is cut off from, e.g. Firefox aborts the requests of its
+    // workers and WebKit the reads of OPFS files in flight. The errors count again once the next document committed.
     let leaving = false;
+    page.on('framenavigated', frame => {
+        if (frame === page.mainFrame()) leaving = false;
+    });
     page.on('console', message => {
         if (!leaving && message.type() === 'error' && !isBenignConsoleError(message.text())) errors.push(message.text());
     });
@@ -720,11 +709,7 @@ async function runPageTest(newContext, origin, { name, options, test }, { collec
     const navigate = async path => {
         await takeCoverage();
         leaving = true;
-        try {
-            await (path == null ? page.reload() : page.goto(`${origin}${path}`));
-        } finally {
-            leaving = false;
-        }
+        await (path == null ? page.reload() : page.goto(`${origin}${path}`));
     };
     try {
         await test(page, navigate);

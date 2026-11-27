@@ -132,6 +132,13 @@ describe('DashQLCompletionListPlugin', () => {
         await vi.waitFor(() => expect(list().classList.contains(styles.hidden)).toBe(true));
     });
 
+    it('stays hidden when the completion ends before the list showed', async () => {
+        const editor = completingEditor();
+        editor.dispatch({ effects: DashQLCompletionAbortEffect.of(null) });
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        expect(list().classList.contains(styles.hidden)).toBe(true);
+    });
+
     it('shows the detail of the selected catalog object in the pane', async () => {
         const catalog = dql.createCatalog();
         const schema = dql.createScript(catalog);
