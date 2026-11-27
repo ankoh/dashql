@@ -35,8 +35,6 @@ export interface SetupProgress {
 export interface EmbeddedDatabaseOptions {
     /// Run the queries on the experimental wasm backend of HyperDB, the default backend if the engine has none
     experimentalWasmBackend?: boolean;
-    /// Settings of the engine besides those of DashQL, e.g. the resource usage in the log for the Hyper log demo
-    engineSettings?: Readonly<Record<string, string | number | boolean>>;
 }
 
 /// What a page needs for the engine
@@ -297,7 +295,7 @@ export async function setupWebHyperDB(
                     context,
                     logger,
                     assets,
-                    { ...HYPERDB_WASM_ENGINE_SETTINGS, ...options.engineSettings, log_file_path: instance.logDirectoryPath },
+                    { ...HYPERDB_WASM_ENGINE_SETTINGS, log_file_path: instance.logDirectoryPath },
                     options,
                     onSetupProgress,
                 ),

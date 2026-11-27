@@ -16,15 +16,13 @@ export const HYPERDB_WASM_ENGINE_SETTINGS = Object.freeze({
     log_json_export: false,
     log_file_size_limit: '1M',
     log_file_max_count: 10,
-    // No samples of the process memory and the load: the app reads no Hyper log, a sample every second would only fill
-    // the log files. The Hyper log demo turns them on for its page.
     // Log every commit next to the database file, so that the local cloud keeps its changes across a reload
     experimental_redo_log: true,
 });
 
 /// The setting that keeps a redo log next to every database file, `<file>.dblog`. Hyper otherwise writes a database
 /// consistently only when no session attaches it anymore, and a reload ends the worker without that. With the log, the
-/// next attach replays what committed since. The app sets it, see platform/hyperdb/integration/redo_log.test.ts.
+/// next attach replays what committed since. The app sets it, see dashql-app/src/host/hyperdb/integration/redo_log.test.ts.
 export const EXPERIMENTAL_REDO_LOG_SETTING = 'experimental_redo_log';
 
 /// The setting that runs the queries on the experimental execution backend of the wasm module.
