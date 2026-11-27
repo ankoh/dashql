@@ -1,6 +1,5 @@
 // Where the sandbox of Claude Code ends, with a fake model and no model calls (docs/design/agent_integration_tests.md).
-// The model calls Bash once, e.g. with a probe that connects to a server on loopback, and hooks run the same probe or
-// carry the events of the session to a server that a SessionStart hook started.
+// The model calls Bash once, e.g. with a probe that connects to a server on loopback.
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -9,21 +8,10 @@ import { after, before, test } from 'node:test';
 
 import { startFakeAnthropic, text, toolResults, toolUse } from './fake_anthropic.mjs';
 import { startDashQLApp, stepsOf } from './dashql_app.mjs';
-import {
-    readHookLog,
-    requireLinuxSandboxTools,
-    runHarness,
-    startLoopbackTarget,
-    stopSessionServer,
-    writeHook,
-    writeProbe,
-    writeSessionHook,
-    writeSessionProbe,
-} from './probes.mjs';
+import { requireLinuxSandboxTools, runHarness, startLoopbackTarget, writeProbe } from './probes.mjs';
 
 const CLAUDE = resolve(process.env.CLAUDE_BINARY);
 const ROOT = mkdtempSync(join(process.env.TEST_TMPDIR ?? tmpdir(), 'claude-code-'));
-const HOOK_EVENTS = ['SessionStart', 'PostToolUse', 'Stop'];
 
 let target;
 
@@ -35,7 +23,7 @@ before(async () => {
 after(() => target?.close());
 
 /// Run Claude Code headless with a fake model that calls Bash once, return the tool result
-async function runClaude(dir, { command, toolInput = {}, sandbox = {}, allowedTools = 'Bash', hook = null, hookEvents = HOOK_EVENTS, env = {} }) {
+async function runClaude(dir, { command, toolInput = {}, sandbox = {}, allowedTools = 'Bash', env = {} }) {
     const home = join(dir, 'home');
     const work = join(dir, 'work');
     mkdirSync(home, { recursive: true });
@@ -45,15 +33,7 @@ async function runClaude(dir, { command, toolInput = {}, sandbox = {}, allowedTo
             ? [toolUse('Bash', { command, description: 'probe', ...toolInput })]
             : [text('done')],
     });
-    const settings = {
-        sandbox: { enabled: true, ...sandbox },
-        ...(hook == null ? {} : {
-            hooks: Object.fromEntries(hookEvents.map(event => [event, [{
-                ...(event === 'PreToolUse' || event === 'PostToolUse' ? { matcher: '*' } : {}),
-                hooks: [{ type: 'command', command: hook.includes('{event}') ? hook.replaceAll('{event}', event) : `${hook} ${event}` }],
-            }]])),
-        }),
-    };
+    const settings = { sandbox: { enabled: true, ...sandbox } };
     try {
         const output = await runHarness(CLAUDE, [
             '-p', 'run the probe',
@@ -89,13 +69,11 @@ function caseDir(name) {
     return dir;
 }
 
-test('a command in the sandbox cannot reach loopback, the hooks can', async () => {
+test('a command in the sandbox cannot reach loopback', async () => {
     const dir = caseDir('sandbox');
     const probe = writeProbe(dir, target.port);
-    const { output } = await runClaude(dir, { command: probe, hook: writeHook(dir, probe) });
+    const { output } = await runClaude(dir, { command: probe });
     assert.equal(output, 'loopback:blocked');
-    const hooks = readHookLog(dir);
-    for (const event of HOOK_EVENTS) assert.ok(hooks.includes(`${event} loopback:ok`), `${event} in ${JSON.stringify(hooks)}`);
 });
 
 test('a command without the sandbox reaches loopback', async () => {
@@ -128,14 +106,6 @@ test('a request to run outside the sandbox needs a rule for the command', async 
         command: probe, toolInput, allowedTools: `Bash(${probe}:*)`, sandbox: { allowUnsandboxedCommands: false },
     });
     assert.equal(ignored.output, 'loopback:blocked');
-});
-
-test('a server that SessionStart starts gets the events of the hooks, not the command', async () => {
-    const dir = caseDir('session_server');
-    const { output } = await runClaude(dir, { command: writeSessionProbe(dir), hook: writeSessionHook(dir) });
-    const { events, log } = stopSessionServer(dir);
-    assert.equal(output, 'loopback:blocked');
-    for (const event of ['started', ...HOOK_EVENTS]) assert.ok(events.includes(event), `${event} in ${JSON.stringify(events)}, server: ${log}`);
 });
 
 test('the app runs Claude Code for a question: the agent calls the workbook with dashql, the next question resumes', async () => {

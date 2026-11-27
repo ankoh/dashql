@@ -1,17 +1,17 @@
 # Agent Integration Tests
 
 The integrations with agent harnesses rest on assumptions about their sandboxes: what a command of the agent can
-reach, where hooks run, what an approval by prefix allows. The tests in `//tests/agents` run the real harnesses, Claude
-Code and Codex, with a fake model, so they check those assumptions on every machine that runs them, without model calls
-and in CI: the sandbox, the hooks, the ways out of the sandbox, and a question as the desktop app runs it
+reach and what an approval by prefix allows. The tests in `//tests/agents` run the real harnesses, Claude Code and
+Codex, with a fake model, so they check those assumptions on every machine that runs them, without model calls and in
+CI: the sandbox, the ways out of the sandbox, and a question as the desktop app runs it
 ([agent_integration.md](agent_integration.md)). opencode is planned.
 
 | Part | State |
 |---|---|
 | Harness binaries from npm, pinned and verified (`//bazel:external_agent_harnesses.bzl`) | Claude Code 2.1.325, Codex 0.169.0 |
 | Fake Messages API of Anthropic (`tests/agents/fake_anthropic.mjs`), fake Responses API of OpenAI (`tests/agents/fake_openai.mjs`) | Done |
-| `//tests/agents:claude_code_sandbox_test`: loopback from a command with and without the sandbox and from hooks, `excludedCommands`, a request to leave the sandbox with and without a rule, a session server; a question that the app runs: the calls of `dashql scripts` and `dashql edit --file input/…` reach the page, the guide in the system prompt, other commands refused, the next question resumes | Done |
-| `//tests/agents:codex_sandbox_test`: `workspace-write`, hooks in `workspace-write` and `read-only`, an `allow` rule, a request to escalate, a session server; a question that the app runs: the calls reach the page with the network of `workspace-write`, `AGENTS.md`, the next question resumes | Done |
+| `//tests/agents:claude_code_sandbox_test`: loopback from a command with and without the sandbox, `excludedCommands`, a request to leave the sandbox with and without a rule; a question that the app runs: the calls of `dashql scripts` and `dashql edit --file input/…` reach the page, the guide in the system prompt, other commands refused, the next question resumes | Done |
+| `//tests/agents:codex_sandbox_test`: loopback in `workspace-write`, an `allow` rule, a request to escalate; a question that the app runs: the calls reach the page with the network of `workspace-write`, `AGENTS.md`, the next question resumes | Done |
 | `//tests/agents:hyperdb_edge_claude_code_test` and `hyperdb_edge_codex_test`: hyperdb-edge in both sandboxes, see [hyperdb_edge.md](../wip/hyperdb_edge.md#harness-tests) | Done |
 | `//tests/agents:hyperdb_edge_tool_runner_test` and `hyperdb_edge_agent_sdk_test`: the tools of hyperdb-edge in the Tool Runner and the Claude Agent SDK, see [hyperdb_edge.md](../wip/hyperdb_edge.md#in-process-tools). The fake Messages API follows the message threads of the Tool Runner | Done |
 | A question through `AgentHost` of `packages/dashql-native` (compiled, without Electron) with a fake page (`tests/agents/dashql_app.mjs`) that answers the calls of the Rust `dashql` | Done |
@@ -57,12 +57,9 @@ Codex 0.169.0 on Linux (its own bubblewrap), a command of `exec_command` in `cod
 | `danger-full-access` | yes | yes | yes |
 | a command that a `prefix_rule(..., decision = "allow")` of `$CODEX_HOME/rules/` matches, in `workspace-write` | yes | yes | yes |
 
-The test asserts loopback in `workspace-write`, the hooks, the rule and the request to escalate; DNS, writing and the
-other modes were checked by hand.
+The test asserts loopback in `workspace-write`, the rule and the request to escalate; DNS, writing and the other modes
+were checked by hand.
 
-- **Hooks of Codex** run outside the sandbox as well, in `read-only` too. Codex skips a hook of a user until the user
-  trusted it in `/hooks` (the trust is recorded against its hash), without a message. A test passes
-  `--dangerously-bypass-hook-trust`; a plugin needs that one trust per user, unless the hooks are managed.
 - **An `allow` rule** lets the matching command run outside the sandbox, without approval and without a request to
   escalate. That is the rule that "always" writes when a user approves a command in the terminal.
 - **A request to escalate** (`sandbox_permissions = "require_escalated"`) fails in `codex exec`, whose approval policy
@@ -84,10 +81,6 @@ sandbox can't allow only loopback. Claude Code in `-p` runs a command in its san
 turn the sandbox on; then `dashql` needs `sandbox.excludedCommands` or a rule for it, see Open of
 [agent_integration.md](agent_integration.md#open).
 
-**A session server.** A `SessionStart` hook that starts a server on loopback (in the background, its output
-redirected) keeps it for the session in both harnesses: the `PostToolUse` and `Stop` hooks reach it, a command of the
-agent in the sandbox doesn't.
-
 **AppArmor on Ubuntu.** Ubuntu confines `/usr/bin/bwrap` with the profiles `bwrap` and `unpriv_bwrap`
 (`/etc/apparmor.d/bwrap-userns-restrict`): a child of bwrap may create a user namespace but gets no capabilities in
 it. The seccomp helper of Claude Code creates one inside the sandbox, so every command in the sandbox fails with
@@ -97,8 +90,8 @@ CAP_SYS_ADMIN): Permission denied`, while commands outside the sandbox and hooks
 its own bubblewrap and isn't affected. The CI job removes the two profiles; a user of Ubuntu needs the same, or a rule in
 `/etc/apparmor.d/local/unpriv_bwrap`.
 
-Hooks run outside the sandbox in both harnesses. The app reads the events of a turn from the output of the harness
-instead, it needs no hooks. The test checks loopback; DNS and listening were checked by hand. Writing outside the workspace isn't checked yet, the `HOME` of the test is
+The app reads the events of a turn from the output of the harness, it needs no hooks. The test checks loopback; DNS
+and listening were checked by hand. Writing outside the workspace isn't checked yet, the `HOME` of the test is
 below the temporary folder, which the sandbox may allow.
 
 ## Next
