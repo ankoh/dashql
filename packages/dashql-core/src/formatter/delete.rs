@@ -25,8 +25,7 @@ impl<'a> Formatter<'a> {
             if self.reg(with_ctes) == 0 {
                 return self.format_unimplemented(with_ctes);
             }
-            let keyword = if with_recursive.is_some() { "with recursive " } else { "with " };
-            clauses.push(f.concat(&[f.text(keyword), self.reg(with_ctes)]));
+            clauses.push(self.format_with_clause(self.reg(with_ctes), with_recursive));
         }
         clauses.push(f.concat(&[f.text("delete from "), self.reg(target)]));
         for (child, keyword) in [(using_clause, "using "), (where_clause, "where "), (returning, "returning ")] {

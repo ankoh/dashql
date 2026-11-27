@@ -153,14 +153,9 @@ impl<'a> Formatter<'a> {
 
     /// `s3_location('s3://bucket/key', region => 'us-east-1')`, a location function of COPY
     pub(super) fn format_function_call(&self, node: &'a Node) -> FmtReg {
-        let f = &self.fmt;
         let [name, args] = attrs!(self.children(node), [K::SQL_FUNCTION_CALL_NAME, K::SQL_FUNCTION_CALL_ARGS]);
         let Some(name) = name else { return self.format_unimplemented(node) };
-        let args = match args {
-            Some(args) => f.parenthesized_list(self.reg_or_placeholder(args)),
-            None => f.text("()"),
-        };
-        f.concat(&[self.reg_or_placeholder(name), args])
+        self.name_with_args(name, args)
     }
 
     pub(super) fn format_function_name(&self, node: &'a Node) -> FmtReg {

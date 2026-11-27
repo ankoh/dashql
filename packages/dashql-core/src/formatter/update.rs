@@ -7,14 +7,6 @@ use dashql_buffers::parser::{MergeAction, MergeMatch, Node, NodeType};
 use dashql_parser::attrs;
 
 impl<'a> Formatter<'a> {
-    /// The WITH clause of a statement with common table expressions, `None` without them
-    fn format_with_clause(&self, ctes: Option<&'a Node>, recursive: Option<&'a Node>) -> Option<FmtReg> {
-        let f = &self.fmt;
-        let ctes = ctes?;
-        let keyword = if recursive.is_some() { "with recursive " } else { "with " };
-        Some(f.concat(&[f.text(keyword), self.reg_or_placeholder(ctes)]))
-    }
-
     pub(super) fn format_update(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
         let [target, assignments, from, where_clause, returning, with_ctes, with_recursive] = attrs!(
@@ -30,7 +22,10 @@ impl<'a> Formatter<'a> {
             ]
         );
         let (Some(target), Some(assignments)) = (target, assignments) else { return self.format_unimplemented(node) };
-        let mut clauses: Vec<FmtReg> = self.format_with_clause(with_ctes, with_recursive).into_iter().collect();
+        let mut clauses: Vec<FmtReg> = with_ctes
+            .map(|c| self.format_with_clause(self.reg_or_placeholder(c), with_recursive))
+            .into_iter()
+            .collect();
         clauses.push(f.concat(&[f.text("update "), self.reg_or_placeholder(target)]));
         clauses.push(f.concat(&[f.text("set "), self.reg_or_placeholder(assignments)]));
         for (child, keyword) in [(from, "from "), (where_clause, "where "), (returning, "returning ")] {
@@ -59,7 +54,10 @@ impl<'a> Formatter<'a> {
         else {
             return self.format_unimplemented(node);
         };
-        let mut clauses: Vec<FmtReg> = self.format_with_clause(with_ctes, with_recursive).into_iter().collect();
+        let mut clauses: Vec<FmtReg> = with_ctes
+            .map(|c| self.format_with_clause(self.reg_or_placeholder(c), with_recursive))
+            .into_iter()
+            .collect();
         clauses.push(f.concat(&[f.text("merge into "), self.reg_or_placeholder(target)]));
         clauses.push(f.concat(&[f.text("using "), self.reg_or_placeholder(source)]));
         clauses.push(f.concat(&[f.text("on "), self.reg_or_placeholder(condition)]));

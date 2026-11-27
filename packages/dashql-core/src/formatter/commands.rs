@@ -81,12 +81,8 @@ impl<'a> Formatter<'a> {
         );
         let Some(name) = name else { return self.format_unimplemented(node) };
         let header = if if_exists.is_some() { f.text("drop function if exists") } else { f.text("drop function") };
-        let arguments = match arguments {
-            Some(arguments) => f.parenthesized_list(self.reg_or_placeholder(arguments)),
-            None => f.text("()"),
-        };
         // The function and the behavior are clauses of their own, like the names of the other DROP commands
-        let mut clauses = vec![header, f.concat(&[self.reg_or_placeholder(name), arguments])];
+        let mut clauses = vec![header, self.name_with_args(name, arguments)];
         if let Some(behavior) = behavior {
             clauses.push(self.reg_or_placeholder(behavior));
         }

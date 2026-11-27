@@ -566,6 +566,14 @@ impl<'a> Formatter<'a> {
         self.comma_join(&self.array_regs(node), None, indent_after_breaks)
     }
 
+    /// Items separated by `, ` without breaks between them
+    fn comma_concat(&self, items: &[FmtReg]) -> FmtReg {
+        let f = &self.fmt;
+        let parts: Vec<FmtReg> =
+            items.iter().enumerate().flat_map(|(i, &item)| [if i == 0 { 0 } else { f.text(", ") }, item]).collect();
+        f.concat(&parts)
+    }
+
     /// A comma-separated list that breaks on overflow
     fn comma_join_on_overflow(&self, items: &[FmtReg], indent_after_breaks: bool) -> FmtReg {
         self.comma_join(items, Some(FormattingJoinPolicy::BreakOnOverflow), indent_after_breaks)
@@ -575,6 +583,23 @@ impl<'a> Formatter<'a> {
     fn space_join(&self, items: &[FmtReg], policy: FormattingJoinPolicy, indent_after_breaks: bool) -> FmtReg {
         let f = &self.fmt;
         f.join(items, f.text(" "), f.break_(), Some(policy), indent_after_breaks)
+    }
+
+    /// `name(args)`, a function with its arguments or `name()` without them
+    fn name_with_args(&self, name: &Node, args: Option<&Node>) -> FmtReg {
+        let f = &self.fmt;
+        let args = match args {
+            Some(args) => f.parenthesized_list(self.reg_or_placeholder(args)),
+            None => f.text("()"),
+        };
+        f.concat(&[self.reg_or_placeholder(name), args])
+    }
+
+    /// `with [recursive] ctes`, the WITH clause of a statement with common table expressions
+    fn format_with_clause(&self, ctes: FmtReg, recursive: Option<&Node>) -> FmtReg {
+        let f = &self.fmt;
+        let keyword = if recursive.is_some() { "with recursive " } else { "with " };
+        f.concat(&[f.text(keyword), ctes])
     }
 
     /// The clauses of a command: on one line if the command fits, otherwise every clause after the first on an
@@ -707,17 +732,7 @@ impl<'a> Formatter<'a> {
             | K::SQL_CONST_CAST_FUNC_ARGS_ORDER
             | K::SQL_SEMANTIC_CLAUSE_TARGETS => self.format_comma_list(node, true),
             // The parameters of a lambda stay on one line, its body breaks
-            K::SQL_LAMBDA_PARAM => {
-                let parts = self.array_regs(node);
-                let mut items = Vec::with_capacity(parts.len() * 2);
-                for (i, part) in parts.into_iter().enumerate() {
-                    if i > 0 {
-                        items.push(f.text(", "));
-                    }
-                    items.push(part);
-                }
-                f.concat(&items)
-            }
+            K::SQL_LAMBDA_PARAM => self.comma_concat(&self.array_regs(node)),
             K::SQL_SEMANTIC_VIEW_CLAUSES => {
                 let parts = self.array_regs(node);
                 self.space_join(&parts, FormattingJoinPolicy::BreakAllOrNone, false)

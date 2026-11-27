@@ -72,17 +72,12 @@ impl<'a> Formatter<'a> {
 
     /// `f(integer, text)`, a function with the types of its arguments
     pub(super) fn format_function_with_arguments(&self, node: &'a Node) -> FmtReg {
-        let f = &self.fmt;
         let [name, arguments] = attrs!(
             self.children(node),
             [K::SQL_FUNCTION_WITH_ARGUMENTS_NAME, K::SQL_FUNCTION_WITH_ARGUMENTS_ARGUMENTS]
         );
         let Some(name) = name else { return self.format_unimplemented(node) };
-        let arguments = match arguments {
-            Some(arguments) => f.parenthesized_list(self.reg_or_placeholder(arguments)),
-            None => f.text("()"),
-        };
-        f.concat(&[self.reg_or_placeholder(name), arguments])
+        self.name_with_args(name, arguments)
     }
 
     pub(super) fn format_grant(&self, node: &'a Node) -> FmtReg {

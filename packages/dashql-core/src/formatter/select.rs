@@ -284,17 +284,9 @@ impl<'a> Formatter<'a> {
         }
 
         if let Some(select_with_ctes) = select_with_ctes {
-            let cte_children = self.array_regs(select_with_ctes);
-            let mut cte_regs = Vec::with_capacity(cte_children.len() * 2);
-            for (i, &cte) in cte_children.iter().enumerate() {
-                if i > 0 {
-                    cte_regs.push(f.text(", "));
-                }
-                cte_regs.push(cte);
-            }
-            let ctes = f.concat(&cte_regs);
-            let keyword = if select_with_recursive.is_some() { "with recursive " } else { "with " };
-            let with_clause = f.concat(&[f.text(keyword), ctes]);
+            // The common table expressions follow each other without breaks between them
+            let ctes = self.comma_concat(&self.array_regs(select_with_ctes));
+            let with_clause = self.format_with_clause(ctes, select_with_recursive);
             let with_policy = self.pretty_policy(FormattingJoinPolicy::BreakAllOrNone);
             query = self.space_join(&[with_clause, query], with_policy, false);
         }

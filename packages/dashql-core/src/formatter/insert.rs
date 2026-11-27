@@ -70,9 +70,7 @@ impl<'a> Formatter<'a> {
             if ctes_reg == 0 {
                 return self.format_unimplemented(with_ctes);
             }
-            let keyword = if with_recursive.is_some() { "with recursive " } else { "with " };
-            let with_clause = f.concat(&[f.text(keyword), ctes_reg]);
-            query = self.space_join(&[with_clause, query], policy, false);
+            query = self.space_join(&[self.format_with_clause(ctes_reg, with_recursive), query], policy, false);
         }
         query
     }
