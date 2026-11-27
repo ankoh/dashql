@@ -5,3 +5,10 @@
     height: 100%;
     background: var(--background);
 }
+
+/* The window around the shell is as dark as the shell. Safari of iOS shows the page behind its bars: the status bar
+   above the shell, and the band of the address bar between the shell and the keyboard. */
+:global(html),
+:global(body) {
+    background-color: var(--chrome_bg_100);
+}
