@@ -16,11 +16,10 @@ use super::api::{
     data_cloud_access_token_request, form_post, read_core_access_token_response, read_data_cloud_access_token_response,
 };
 use super::types::{SalesforceConnectionParams, SalesforceCoreAccessToken, SalesforceTokens};
-use crate::connections::{ConnectorType, SALESFORCE_CATALOG_DATABASE};
+use crate::connections::ConnectorType;
 use crate::host::signal::{oneshot, Receiver, Sender};
 use crate::host::timeout;
 use crate::http::{CancellationToken, Headers, HttpHost, HttpRequest};
-use crate::hyper::client::AttachedDatabase;
 use crate::hyper::{HyperChannelContext, HyperHttpChannel};
 use crate::time::parse_iso_timestamp;
 
@@ -72,10 +71,7 @@ impl SharedSalesforceChannel {
         tokens: SalesforceTokens,
     ) -> Result<Self, String> {
         let context = if connector == ConnectorType::Dbcom {
-            let attached_databases = vec![AttachedDatabase {
-                path: format!("hyper.cloud:{}", params.hyper_cloud_database()),
-                alias: Some(SALESFORCE_CATALOG_DATABASE.to_string()),
-            }];
+            let attached_databases = vec![params.hyper_cloud_database()];
             let mut query_parameters = serde_json::Map::new();
             query_parameters.insert(READ_AFTER_WRITE_DATA_CONSISTENCY.to_string(), Value::String("on".to_string()));
             HyperChannelContext { attached_databases, query_parameters, ..Default::default() }

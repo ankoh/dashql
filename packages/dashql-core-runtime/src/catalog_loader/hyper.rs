@@ -25,47 +25,10 @@ use super::tables::{
 use super::{
     CatalogEntries, CatalogLoadError, CatalogQuery, ConnectorCatalogUpdate, ConnectorStep, Publication, QueryAnswer,
 };
-use crate::connections::{
-    JsonObject, RelationName, Timestamp, DEFAULT_DATABASE_NAME, HYPER_CLOUD_DEFAULT_DATABASE_NAME,
-    SALESFORCE_CATALOG_DATABASE,
-};
+use crate::connections::{JsonObject, RelationName, Timestamp, DEFAULT_DATABASE_NAME};
+use crate::hyper::{attached_databases, AttachedDatabase};
 use crate::query::QueryType;
-
-/// A database that a Hyper connection attaches
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AttachedDatabase {
-    /// The path, `hyper.cloud:<database>` for a Hyper Cloud database
-    pub path: String,
-    /// The alias that names the database in queries
-    pub alias: Option<String>,
-}
-
-/// The attached databases of the setup params of a Hyper connection
-pub fn attached_databases(setup_params: &JsonObject) -> Vec<AttachedDatabase> {
-    let Some(databases) = setup_params.get("attachedDatabases").and_then(Value::as_array) else {
-        return Vec::new();
-    };
-    databases
-        .iter()
-        .map(|database| AttachedDatabase {
-            path: database.get("path").and_then(Value::as_str).unwrap_or("").to_string(),
-            alias: database.get("alias").and_then(Value::as_str).map(str::to_string),
-        })
-        .collect()
-}
-
-/// The Hyper Cloud database that a Database.com connection attaches as its catalog database
-pub fn hyper_cloud_attached_database(setup_params: &JsonObject) -> AttachedDatabase {
-    let database_name = setup_params
-        .get("databaseName")
-        .and_then(Value::as_str)
-        .filter(|name| !name.is_empty())
-        .unwrap_or(HYPER_CLOUD_DEFAULT_DATABASE_NAME);
-    AttachedDatabase {
-        path: format!("hyper.cloud:{database_name}"),
-        alias: Some(SALESFORCE_CATALOG_DATABASE.to_string()),
-    }
-}
+use crate::salesforce::SalesforceConnectionParams;
 
 /// The query of the relations of a Hyper Cloud database, from its `_hyper_catalog`
 pub fn hyper_cloud_catalog_query_sql(database_alias: &str, relations: Option<&[RelationName]>) -> String {
@@ -273,7 +236,8 @@ impl HyperCatalogUpdate {
         relations: Option<Vec<RelationName>>,
         now: Timestamp,
     ) -> Self {
-        Self::new(&[hyper_cloud_attached_database(setup_params)], true, entries, relations, now)
+        let database = SalesforceConnectionParams::from_object(setup_params).hyper_cloud_database();
+        Self::new(&[database], true, entries, relations, now)
     }
 
     /// An update of the attached databases, the default database without any

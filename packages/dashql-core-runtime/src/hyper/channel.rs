@@ -66,6 +66,27 @@ impl HyperProtocol {
     }
 }
 
+/// The databases that the params of a Hyper connection attach (`attachedDatabases`), an entry without a path attaches
+/// nothing
+pub fn attached_databases(params: &JsonObject) -> Vec<AttachedDatabase> {
+    params
+        .get("attachedDatabases")
+        .and_then(Value::as_array)
+        .map(|databases| {
+            databases
+                .iter()
+                .filter_map(Value::as_object)
+                .filter_map(|database| {
+                    Some(AttachedDatabase {
+                        path: database.get("path")?.as_str()?.to_string(),
+                        alias: database.get("alias").and_then(Value::as_str).map(str::to_string),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 /// The context of the channels of a Hyper connection
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct HyperChannelContext {
@@ -82,22 +103,7 @@ pub struct HyperChannelContext {
 impl HyperChannelContext {
     /// The context of a remote Hyper connection with params
     pub fn from_params(params: &JsonObject, client_context: Option<Value>) -> Self {
-        let attached_databases = params
-            .get("attachedDatabases")
-            .and_then(Value::as_array)
-            .map(|databases| {
-                databases
-                    .iter()
-                    .filter_map(Value::as_object)
-                    .filter_map(|database| {
-                        Some(AttachedDatabase {
-                            path: database.get("path")?.as_str()?.to_string(),
-                            alias: database.get("alias").and_then(Value::as_str).map(str::to_string),
-                        })
-                    })
-                    .collect()
-            })
-            .unwrap_or_default();
+        let attached_databases = attached_databases(params);
         let query_parameters = params.get("queryParameters").and_then(Value::as_object).cloned().unwrap_or_default();
         let metadata = params
             .get("metadata")

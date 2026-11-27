@@ -4,6 +4,7 @@
 
 use serde_json::Value;
 
+use super::channel::attached_databases;
 use crate::connections::{ConnectionParams, ConnectorType, JsonObject};
 
 /// The OPFS folder of the databases that the embedded Hyper attaches, next to the instance folders and never cleaned
@@ -46,21 +47,14 @@ pub fn embedded_cloud_databases(hyper: Option<&JsonObject>) -> Vec<CloudDatabase
         return Vec::new();
     }
     let prefix = format!("{HYPER_CLOUDS_DIRECTORY}/");
-    hyper
-        .get("attachedDatabases")
-        .and_then(Value::as_array)
-        .map(|databases| {
-            databases
-                .iter()
-                .filter_map(Value::as_object)
-                .filter_map(|database| {
-                    let path = database.get("path").and_then(Value::as_str).filter(|path| path.starts_with(&prefix))?;
-                    let alias = database.get("alias").and_then(Value::as_str).filter(|alias| !alias.is_empty())?;
-                    Some(CloudDatabase { path: path.to_string(), alias: alias.to_string() })
-                })
-                .collect()
+    attached_databases(hyper)
+        .into_iter()
+        .filter(|database| database.path.starts_with(&prefix))
+        .filter_map(|database| {
+            let alias = database.alias.filter(|alias| !alias.is_empty())?;
+            Some(CloudDatabase { path: database.path, alias })
         })
-        .unwrap_or_default()
+        .collect()
 }
 
 /// May the embedded Hyper attach a database file? Only the files `clouds/<name>.hyper` with a name of letters, digits,

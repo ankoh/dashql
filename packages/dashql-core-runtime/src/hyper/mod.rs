@@ -21,7 +21,7 @@ pub mod result_reader;
 pub mod status;
 
 pub use crate::http::{Headers, HttpMethod, HttpRequest, HttpResponse};
-pub use channel::{HyperChannelContext, HyperHttpChannel, HyperProtocol};
+pub use channel::{attached_databases, HyperChannelContext, HyperHttpChannel, HyperProtocol};
 pub use client::{
     read_cancel_response, read_query_response, read_status_header, read_status_response, AttachedDatabase,
     ExecuteQueryRequest, GetQueryChunkParams, GetQueryStatusParams, HyperHttpClient, HyperRequestHeaders,

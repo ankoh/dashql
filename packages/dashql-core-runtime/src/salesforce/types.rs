@@ -4,7 +4,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::connections::{JsonObject, HYPER_CLOUD_DEFAULT_DATABASE_NAME};
+use crate::connections::{JsonObject, HYPER_CLOUD_DEFAULT_DATABASE_NAME, SALESFORCE_CATALOG_DATABASE};
+use crate::hyper::client::AttachedDatabase;
 
 /// The params of a Salesforce or Database.com connection
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -29,9 +30,14 @@ impl SalesforceConnectionParams {
         serde_json::from_value(Value::Object(params.clone())).unwrap_or_default()
     }
 
-    /// The database of a Database.com connection
-    pub fn hyper_cloud_database(&self) -> &str {
-        self.database_name.as_deref().filter(|d| !d.is_empty()).unwrap_or(HYPER_CLOUD_DEFAULT_DATABASE_NAME)
+    /// The Hyper Cloud database that a Database.com connection attaches, `hyper.cloud:<database>` as `lakehouse`
+    pub fn hyper_cloud_database(&self) -> AttachedDatabase {
+        let database =
+            self.database_name.as_deref().filter(|d| !d.is_empty()).unwrap_or(HYPER_CLOUD_DEFAULT_DATABASE_NAME);
+        AttachedDatabase {
+            path: format!("hyper.cloud:{database}"),
+            alias: Some(SALESFORCE_CATALOG_DATABASE.to_string()),
+        }
     }
 }
 
