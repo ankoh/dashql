@@ -165,6 +165,28 @@
     --prompt_editor_max_height: 40vh;
 }
 
+/* A white block cursor like the one of a terminal. The layer of the cursor blends with the text below, so the
+   character under the block shows inverted. CodeMirror blinks it while the prompt has the focus. The rules name the
+   editor to outrank the themes of CodeMirror, which come later in the cascade. */
+.prompt_editor :global(.cm-editor .cm-cursorLayer) {
+    mix-blend-mode: difference;
+}
+
+.prompt_editor :global(.cm-editor .cm-cursor) {
+    width: 1ch;
+    margin-left: 0;
+    border-left: none;
+    background: #ffffff;
+}
+
+/* Without the focus the block stays as an outline, as in a terminal */
+.prompt_editor :global(.cm-editor:not(.cm-focused) .cm-cursor) {
+    display: block;
+    box-sizing: border-box;
+    border: 1px solid #ffffff;
+    background: none;
+}
+
 /* The keys that the keyboard of a touch screen lacks */
 .key_bar {
     display: none;
