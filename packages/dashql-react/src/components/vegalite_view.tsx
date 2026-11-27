@@ -9,11 +9,10 @@ import { type ChartColors, createEmbedOptions, createVegaLiteConfig, resolveChar
 import { withViewEncodings } from '@akohn/dashql/platform/workbook/chart_config';
 import { useColorScheme } from '../theme/color_scheme.js';
 import { useBrand } from '../brand/brand.js';
-import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 import type { QueryModel } from '../models/query_model.js';
 import { useComputationTables, type ComputationTables } from './data_table/computation_tables.js';
-import { CardPlaceholder, QueryStatusPlaceholder } from './card_placeholder.js';
-import { useResultRows } from './visualization/result_rows.js';
+import { CardPlaceholder } from './card_placeholder.js';
+import { ResultRowsPlaceholder, useResultRows } from './visualization/result_rows.js';
 import { CappedRows } from './visualization/capped_rows.js';
 import {
     filterTableToVegaCrossFilterRows,
@@ -163,7 +162,6 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
     const colorScheme = useColorScheme();
     const flavorId = useBrand().id;
 
-    const succeeded = props.model?.query.status === QueryExecutionStatus.SUCCEEDED;
     // Analysis emits a fresh spec object for editor transactions, including cursor-only updates.
     // Keep one spec object while the authored spec is structurally unchanged so Vega's
     // effect does not finalize and rebuild the canvas while the user types or moves the cursor.
@@ -183,12 +181,12 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
 
     const filterTable = tableComputation?.tables.filterTable ?? null;
     // The chart container is rendered only for a spec with a result, see below
-    const nearViewport = dependencies.useNearViewport(containerRef, spec != null && succeeded && dataTable != null);
+    const nearViewport = dependencies.useNearViewport(containerRef, spec != null && dataTable != null);
     // The rows are converted for the embedded chart only
     const rows = React.useMemo<Record<string, unknown>[] | null>(() => {
-        if (!succeeded || !dataTable || !nearViewport) return null;
+        if (!dataTable || !nearViewport) return null;
         return perfMarks.measure('render:visRows', () => arrowTableToRows(dataTable), () => `${dataTable.numRows} rows`);
-    }, [succeeded, dataTable, nearViewport]);
+    }, [dataTable, nearViewport]);
     const crossFilterBinding = React.useMemo(() => {
         if (spec == null || dataTable == null) {
             return null;
@@ -301,15 +299,9 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
     if (!spec) {
         return <CardPlaceholder message="No visualization available" />;
     }
-    if (!succeeded) {
-        return <QueryStatusPlaceholder query={props.model?.query ?? null} />;
-    }
-    if (!dataTable && !chartRows.reading) {
-        return <CardPlaceholder message="Result is empty" />;
-    }
     // A remounted chart reads its rows again, its placeholder keeps the size of the chart. In the virtualized feed a
     // collapsed placeholder would publish a smaller height of its row until the rows arrive.
-    if (!dataTable) {
+    if (chartRows.status === 'reading') {
         return (
             <div className={props.className ?? styles.root}>
                 <div className={styles.chart} style={{ width: props.width, height: props.height }}>
@@ -317,6 +309,9 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
                 </div>
             </div>
         );
+    }
+    if (dataTable == null) {
+        return <ResultRowsPlaceholder query={props.model?.query ?? null} rows={chartRows} />;
     }
 
     // When scaling, the chart container is laid out at the enlarged logical size and shrunk with a

@@ -99,6 +99,18 @@ describe('KpiView', () => {
         expect(container.querySelector('[data-testid="card-placeholder"]')).not.toBeNull();
     });
 
+    it('says why the read of the rows failed', async () => {
+        const model = fakeResultModel(tableFromArrays({ total: new Int32Array([1]) }), SUCCEEDED);
+        vi.mocked(model.computation!.previewRows).mockRejectedValueOnce(new Error('the result is not analyzed'));
+        act(() => root.render(
+            <LoggerContext.Provider value={new TestLogger()}>
+                <KpiView model={model} spec={spec()} />
+            </LoggerContext.Provider>,
+        ));
+        await waitForRender(() => expect(text('card-placeholder')).toBe('Failed to read the rows: the result is not analyzed'));
+        expect(container.querySelector('[data-testid="kpi-view"]')).toBeNull();
+    });
+
     it('reads the last rows of the result', async () => {
         const values = Int32Array.from({ length: 1200 }, (_, i) => i);
         const model = await render(tableFromArrays({ day: values, revenue: values }));

@@ -2,11 +2,10 @@ import * as React from 'react';
 
 import { buffers } from '@akohn/dashql';
 import { ArrowTableFormatter } from '@akohn/dashql/platform/compute/arrow_formatter';
-import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 import type { QueryModel } from '../../models/query_model.js';
 import * as styles from './markdown_view.module.css';
-import { CardPlaceholder, QueryStatusPlaceholder } from '../card_placeholder.js';
-import { useResultRows } from './result_rows.js';
+import { CardPlaceholder } from '../card_placeholder.js';
+import { ResultRowsPlaceholder, useResultRows } from './result_rows.js';
 import { CappedRows } from './capped_rows.js';
 import { useLogger } from '../../logger.js';
 
@@ -134,9 +133,8 @@ export function MarkdownText(props: { document: MarkdownNode; className?: string
 /// fields. The view reads the first rows of the result, at most `MARKDOWN_CARD_ROWS`.
 export function MarkdownView(props: MarkdownViewProps): React.ReactElement {
     const logger = useLogger();
-    const query = props.model?.query ?? null;
-    const succeeded = query?.status === QueryExecutionStatus.SUCCEEDED;
-    const { table, rows, reading } = useResultRows(props.model, 'first', MARKDOWN_CARD_ROWS, false);
+    const resultRows = useResultRows(props.model, 'first', MARKDOWN_CARD_ROWS, false);
+    const { table, rows } = resultRows;
 
     const renderedRows = React.useMemo(() => {
         if (props.spec == null || table == null) return null;
@@ -157,24 +155,15 @@ export function MarkdownView(props: MarkdownViewProps): React.ReactElement {
         return rows;
     }, [props.spec, table, logger]);
 
-    if (props.spec == null) {
+    const document = props.spec?.document ?? null;
+    if (document == null) {
         return <CardPlaceholder message="No visualization available" />;
-    }
-    if (!succeeded) {
-        return <QueryStatusPlaceholder query={query} />;
-    }
-    if (reading) {
-        return <CardPlaceholder />;
     }
     if (renderedRows == null) {
-        return <CardPlaceholder message="No visualization available" />;
+        return <ResultRowsPlaceholder query={props.model?.query ?? null} rows={resultRows} />;
     }
     if (renderedRows.length === 0) {
         return <CardPlaceholder message="Result is empty" />;
-    }
-    const document = props.spec.document;
-    if (document == null) {
-        return <CardPlaceholder message="No visualization available" />;
     }
 
     return (

@@ -1,13 +1,12 @@
 import * as React from 'react';
 
 import { buffers } from '@akohn/dashql';
-import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 import { formatKpiChange, kpiBase, KPI_CARD_ROWS, readKpi, type KpiReading } from '@akohn/dashql/platform/workbook/kpi_reading';
 import type { QueryModel } from '../../models/query_model.js';
 import * as styles from './kpi_view.module.css';
-import { CardPlaceholder, QueryStatusPlaceholder } from '../card_placeholder.js';
+import { CardPlaceholder } from '../card_placeholder.js';
 import { useObservedSize } from '../size_observer.js';
-import { useResultRows } from './result_rows.js';
+import { ResultRowsPlaceholder, useResultRows } from './result_rows.js';
 import { CappedRows } from './capped_rows.js';
 import { useLogger } from '../../logger.js';
 
@@ -124,9 +123,8 @@ export function KpiView(props: KpiViewProps): React.ReactElement {
     const logger = useLogger();
     const rootRef = React.useRef<HTMLDivElement>(null);
     const size = useObservedSize(rootRef);
-    const query = props.model?.query ?? null;
-    const succeeded = query?.status === QueryExecutionStatus.SUCCEEDED;
-    const { table, rows, reading: readingRows } = useResultRows(props.model, 'last', KPI_CARD_ROWS, false);
+    const resultRows = useResultRows(props.model, 'last', KPI_CARD_ROWS, false);
+    const { table, rows } = resultRows;
 
     const reading = React.useMemo(() => {
         if (props.spec == null || table == null) return null;
@@ -141,11 +139,8 @@ export function KpiView(props: KpiViewProps): React.ReactElement {
     if (props.spec == null) {
         return <CardPlaceholder message="No visualization available" />;
     }
-    if (!succeeded) {
-        return <QueryStatusPlaceholder query={query} />;
-    }
-    if (readingRows) {
-        return <CardPlaceholder />;
+    if (table == null) {
+        return <ResultRowsPlaceholder query={props.model?.query ?? null} rows={resultRows} />;
     }
     if (reading == null) {
         return <CardPlaceholder message="No visualization available" />;
@@ -159,7 +154,7 @@ export function KpiView(props: KpiViewProps): React.ReactElement {
     return (
         <div className={styles.root} ref={rootRef} data-testid="kpi-view">
             {size != null && <KpiChart reading={reading} width={size.width} height={size.height} />}
-            {table != null && rows > table.numRows && <CappedRows className={styles.capped} part="last" shown={table.numRows} rows={rows} />}
+            {rows > table.numRows && <CappedRows className={styles.capped} part="last" shown={table.numRows} rows={rows} />}
             <div className={styles.content}>
                 <div className={styles.label}>{reading.label}</div>
                 <div className={styles.value} data-testid="kpi-value">{reading.value ?? '–'}</div>

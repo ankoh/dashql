@@ -9,6 +9,8 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 import { useNearViewport, VegaLiteView, type VegaLiteViewDependencies } from './vegalite_view.js';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { fakeResultModel } from '../testing/fake_models.js';
+import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
+import { LoggerContext } from '../logger.js';
 
 const vegaEmbed = vi.fn<typeof import('vega-embed').default>(() => new Promise<never>(() => { }));
 const expressionInterpreter: typeof import('vega-interpreter').expressionInterpreter = {
@@ -176,5 +178,23 @@ describe('VegaLiteView', () => {
         await rowsRead(container);
         expect(model.computation!.previewRows).toHaveBeenCalledWith(0, 10_000, true);
         expect(container.querySelector('[data-testid="capped-rows"]')?.textContent).toBe('Showing the first 10,000 of 10,050 rows');
+    });
+
+    it('says why the read of the rows failed', async () => {
+        const model = succeededQuery();
+        vi.mocked(model.computation!.previewRows).mockRejectedValueOnce(new Error('the result is not analyzed'));
+        act(() => root.render(
+            <LoggerContext.Provider value={new TestLogger()}>
+                <VegaLiteView
+                    model={model}
+                    vegaLiteSpec={{ data: { values: [] }, mark: 'point', encoding: { x: { field: 'value' } } }}
+                    dependencies={dependencies}
+                />
+            </LoggerContext.Provider>,
+        ));
+        await waitForRender(() => {
+            expect(container.querySelector('[data-testid="card-placeholder"]')?.textContent).toBe('Failed to read the rows: the result is not analyzed');
+        });
+        expect(vegaEmbed).not.toHaveBeenCalled();
     });
 });

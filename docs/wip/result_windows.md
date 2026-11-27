@@ -131,9 +131,10 @@ Lands before step 3. The readers that take the Arrow table of a result by its ha
 Landed: the rows of `run --rows N` and of the KPI check of `vis`, the KPI card, the Markdown card and the charts. The
 cards and the charts read rows of the result from an offset in its order (`previewResult` of the facade, `previewRows`
 of the computation model, `useResultRows` of `components/visualization/result_rows.tsx`), the filters, searches and
-ordering of the grid don't apply. A card shows the faint logo while it reads. The plan tab of the shell reads the first
-row of a result of one row. The status line of the shell (`executeQuery` of its environments) reads only the counts of
-the rows and the columns of the table, it changes with step 6, when a query resolves without a table. A reported run
+ordering of the grid don't apply. A card shows the faint logo while it reads and the error of a read that failed
+(`ResultRowsPlaceholder`). The plan tab of the shell reads the first row of a result of one row, no row of a longer
+one. The status line of the shell (`executeQuery` of its environments) reads only the counts of the rows and the
+columns of the table, it changes with step 6, when a query resolves without a table. A reported run
 (`runWorkbookReported`) carries the schema and the first `rows` rows of a result, read with `previewResult` from the
 data frame of its computation.
 
