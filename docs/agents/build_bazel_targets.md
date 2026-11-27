@@ -190,10 +190,13 @@ refresh them from `browser_test_summary.json` in the test outputs when a file ge
 page tests (below) run next to them, half as many at once. A suite claims twelve cores (the `cpu:12` tag of
 `BROWSER_TEST_TAGS` in its `BUILD.bazel`), so two suites don't share a host with sixteen; Bazel runs it alone on a smaller
 host. A CI runner with four cores runs one page at a time, then the page tests one by one: two pages on four cores timed
-tests out. The Linux jobs of `build_trusted.yml` split the browsers, the fastbuild job runs the suites in Firefox, the
-release job in Chromium and a job of their own in WebKit; the job of pull requests runs all three. A browser test has its
-browser as a tag (`browser_test` of `bazel/browser_test.bzl`), the jobs pick the suites with `--test_tag_filters`, e.g.
-`--test_tag_filters=-chromium,-webkit`.
+tests out. `build_trusted.yml` calls `build_linux.yml` with fastbuild and with release: a job builds everything into the
+remote cache, then a job runs the tests without a browser and a job per browser and part runs the browser suites, every
+config in Chromium, Firefox and WebKit. A part is `DASHQL_BROWSER_TEST_PARTITION=index/count`: the app suite runs the
+test files and the page tests of one of count parts, its pages split the files of the part. The checks `Linux
+Fastbuild` and `Linux Release` pass when every job of their config passed. The job of pull requests runs all three
+browsers whole. A browser test has its browser as a tag (`browser_test` of `bazel/browser_test.bzl`), the jobs pick the
+suites with `--test_tag_filters`, e.g. `--test_tag_filters=-chromium,-firefox,-webkit`.
 
 The WebKit of Playwright is built per OS release (`_WEBKIT_PLATFORMS` in `bazel/playwright.bzl`): the build for Ubuntu
 26.04, and those for macOS 15 and 26. On Linux it bundles WebKit but links libraries of the system, which

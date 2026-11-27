@@ -1,0 +1,160 @@
+name: Linux
+
+# The Linux jobs of a build config, called by build_trusted.yml once with fastbuild and once with release. One job builds
+# everything into the remote cache, then the tests run next to each other on its outputs: one job runs the tests without
+# a browser, a job per browser and part runs the browser suites. Every config runs every browser.
+
+on:
+    workflow_call:
+        inputs:
+            commit:
+                required: true
+                type: string
+            config:
+                description: The Bazel config, fastbuild or release
+                required: true
+                type: string
+            describe:
+                description: The output of `git describe` of the commit, DASHQL_GIT_DESCRIBE (bazel/versioning.bzl)
+                required: true
+                type: string
+            npm_tag:
+                description: The dist-tag of the npm packages, DASHQL_NPM_TAG (bazel/versioning.bzl)
+                required: false
+                type: string
+                default: ''
+
+env:
+    DASHQL_GIT_DESCRIBE: ${{ inputs.describe }}
+    DASHQL_NPM_TAG: ${{ inputs.npm_tag }}
+
+jobs:
+    build:
+        name: Build
+        runs-on: ubuntu-26.04
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  submodules: 'recursive'
+                  fetch-depth: 0
+                  ref: ${{ inputs.commit }}
+
+            - uses: ./.github/actions/setup-ubuntu-mirror
+
+            - uses: ./.github/actions/install-build-dependencies
+
+            - name: Setup Bazel
+              uses: ./.github/actions/setup-bazel
+              with:
+                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
+                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
+                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
+
+            - name: Assert WASM is in remote cache
+              shell: bash
+              run: |
+                bazel build --config=${{ inputs.config }} \
+                    --experimental_remote_require_cached \
+                    //packages/dashql-core-bindings:core_wasm //packages/dashql-dataflow:dataflow_wasm
+
+            # Builds the tests too, the test jobs find their outputs in the remote cache
+            - name: Build Everything
+              shell: bash
+              run: |
+                bazel build --config=${{ inputs.config }} \
+                    //packages/... //tests/snapshots/... //tests/hyper/... //tests/trino/... //tools/... //extensions/...
+
+            # Kept as long as the npm and Electron packages: a failed deploy of publish.yml can be re-run days later and
+            # takes everything from this run
+            - uses: actions/upload-artifact@v7
+              if: inputs.config == 'release'
+              with:
+                name: dashql_app_pages
+                path: ./bazel-bin/packages/dashql-app/pages_deploy/
+                retention-days: 7
+
+            - uses: actions/upload-artifact@v7
+              if: inputs.config == 'release'
+              with:
+                name: dashql_org_pages
+                path: ./bazel-bin/packages/dashql-org/pages_deploy/
+                retention-days: 7
+
+    test:
+        name: Test
+        runs-on: ubuntu-26.04
+        needs: [build]
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  submodules: 'recursive'
+                  fetch-depth: 0
+                  ref: ${{ inputs.commit }}
+
+            - uses: ./.github/actions/setup-ubuntu-mirror
+
+            - uses: ./.github/actions/install-build-dependencies
+
+            - name: Setup Bazel
+              uses: ./.github/actions/setup-bazel
+              with:
+                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
+                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
+                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
+
+            - name: Test Everything
+              shell: bash
+              run: |
+                # Every test but the browser suites, which run in the browser jobs, and the agent tests, which run in a
+                # job of their own. A browser suite has its browser as a tag (bazel/browser_test.bzl).
+                bazel test --config=${{ inputs.config }} \
+                    --build_tests_only \
+                    --test_output=errors \
+                    --test_summary=detailed \
+                    --test_tag_filters=-chromium,-firefox,-webkit \
+                    -- \
+                    //... -//tests/agents/...
+
+    browser:
+        name: Test in ${{ matrix.browser }} ${{ matrix.partition }}
+        runs-on: ubuntu-26.04
+        needs: [build]
+        strategy:
+            fail-fast: false
+            matrix:
+                browser: [chromium, firefox, webkit]
+                # index/count, the parts of DASHQL_BROWSER_TEST_PARTITION (packages/dashql-app/test/browser_test_driver.mjs)
+                partition: ['0/2', '1/2']
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  submodules: 'recursive'
+                  fetch-depth: 0
+                  ref: ${{ inputs.commit }}
+
+            - uses: ./.github/actions/setup-ubuntu-mirror
+
+            - uses: ./.github/actions/install-build-dependencies
+
+            - uses: ./.github/actions/install-webkit-libraries
+              if: matrix.browser == 'webkit'
+
+            - name: Setup Bazel
+              uses: ./.github/actions/setup-bazel
+              with:
+                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
+                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
+                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
+
+            - name: Test in ${{ matrix.browser }}
+              shell: bash
+              run: |
+                # The suites of the browser, the app suite runs its part. The suite of the bindings
+                # (packages/dashql/test/browser) takes seconds and runs whole in every part.
+                bazel test --config=${{ inputs.config }} \
+                    --build_tests_only \
+                    --test_output=errors \
+                    --test_summary=detailed \
+                    --test_tag_filters=${{ matrix.browser }} \
+                    --test_env=DASHQL_BROWSER_TEST_PARTITION=${{ matrix.partition }} \
+                    //packages/...

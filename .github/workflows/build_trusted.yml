@@ -121,101 +121,48 @@ jobs:
                 bazel build --config=release \
                     //packages/dashql-core-bindings:core_wasm //packages/dashql-dataflow:dataflow_wasm
 
+    # The Linux jobs of a config: a build, then the tests without a browser and the browser suites in Chromium, Firefox
+    # and WebKit on its outputs, see build_linux.yml
+    fastbuild:
+        name: Fastbuild
+        needs: [version, core_wasm_fastbuild]
+        uses: ./.github/workflows/build_linux.yml
+        with:
+            commit: ${{ inputs.commit || github.sha }}
+            config: fastbuild
+            describe: ${{ needs.version.outputs.describe }}
+            npm_tag: ${{ inputs.npm_tag }}
+        secrets: inherit
+
+    release:
+        name: Release
+        needs: [version, core_wasm_release]
+        uses: ./.github/workflows/build_linux.yml
+        with:
+            commit: ${{ inputs.commit || github.sha }}
+            config: release
+            describe: ${{ needs.version.outputs.describe }}
+            npm_tag: ${{ inputs.npm_tag }}
+        secrets: inherit
+
+    # The required checks of main: one per config, it passes when every job of the config passed
     linux_fastbuild:
         name: Linux Fastbuild
+        if: always()
+        needs: [fastbuild]
         runs-on: ubuntu-26.04
-        needs: [version, core_wasm_fastbuild]
-        env:
-            DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
         steps:
-            - uses: actions/checkout@v7
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ inputs.commit || github.sha }}
+            - name: Check the jobs of fastbuild
+              run: test "${{ needs.fastbuild.result }}" = success
 
-            - uses: ./.github/actions/setup-ubuntu-mirror
-
-            - name: Install apt dependencies
-              shell: bash
-              run: |
-                  sudo apt-get install -y \
-                    clang \
-                    lld \
-                    pkg-config \
-                    libglib2.0-dev \
-                    libgtk-3-dev \
-                    libwebkit2gtk-4.1-dev \
-                    libayatana-appindicator3-dev \
-                    librsvg2-dev
-
-            - name: Setup Bazel
-              uses: ./.github/actions/setup-bazel
-              with:
-                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
-                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
-                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
-
-            - name: Assert WASM is in remote cache
-              shell: bash
-              run: |
-                bazel build --config=fastbuild \
-                    --experimental_remote_require_cached \
-                    //packages/dashql-core-bindings:core_wasm //packages/dashql-dataflow:dataflow_wasm
-
-            - name: Build Everything
-              shell: bash
-              run: |
-                bazel build --config=fastbuild \
-                    //packages/... //tests/snapshots/... //tests/hyper/... //tests/trino/... //tools/... //extensions/...
-
-            - name: Test Everything
-              shell: bash
-              run: |
-                # The browser suites run in Firefox here, in Chromium in the release job and in WebKit in a job of their
-                # own, each run takes minutes. A browser suite has its browser as a tag (bazel/browser_test.bzl).
-                bazel test --config=fastbuild \
-                    --build_tests_only \
-                    --test_output=errors \
-                    --test_summary=detailed \
-                    --test_tag_filters=-chromium,-webkit \
-                    -- \
-                    //... -//tests/agents/...
-
-    linux_webkit:
-        name: Linux WebKit
+    linux_release:
+        name: Linux Release
+        if: always()
+        needs: [release]
         runs-on: ubuntu-26.04
-        needs: [version, core_wasm_fastbuild]
-        env:
-            DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
         steps:
-            - uses: actions/checkout@v7
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ inputs.commit || github.sha }}
-
-            - uses: ./.github/actions/setup-ubuntu-mirror
-
-            - uses: ./.github/actions/install-webkit-libraries
-
-            - name: Setup Bazel
-              uses: ./.github/actions/setup-bazel
-              with:
-                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
-                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
-                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
-
-            - name: Test in WebKit
-              shell: bash
-              run: |
-                # The browser suites in the WebKit of Playwright, the engine of Safari
-                bazel test --config=fastbuild \
-                    --build_tests_only \
-                    --test_output=errors \
-                    --test_summary=detailed \
-                    --test_tag_filters=webkit \
-                    //packages/...
+            - name: Check the jobs of release
+              run: test "${{ needs.release.result }}" = success
 
     agent_integration:
         name: Agent Integration
@@ -265,81 +212,6 @@ jobs:
                     //tests/agents/... \
                     --test_output=errors \
                     --test_summary=detailed
-
-    linux_release:
-        name: Linux Release
-        runs-on: ubuntu-26.04
-        needs: [version, core_wasm_release]
-        env:
-            DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
-        steps:
-            - uses: actions/checkout@v7
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ inputs.commit || github.sha }}
-
-            - uses: ./.github/actions/setup-ubuntu-mirror
-
-            - name: Install apt dependencies
-              shell: bash
-              run: |
-                  sudo apt-get install -y \
-                    clang \
-                    lld \
-                    pkg-config \
-                    libglib2.0-dev \
-                    libgtk-3-dev \
-                    libwebkit2gtk-4.1-dev \
-                    libayatana-appindicator3-dev \
-                    librsvg2-dev
-
-            - name: Setup Bazel
-              uses: ./.github/actions/setup-bazel
-              with:
-                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
-                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
-                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
-
-            - name: Assert WASM is in remote cache
-              shell: bash
-              run: |
-                bazel build --config=release \
-                    --experimental_remote_require_cached \
-                    //packages/dashql-core-bindings:core_wasm //packages/dashql-dataflow:dataflow_wasm
-
-            - name: Build Web App
-              shell: bash
-              run: |
-                bazel build --config=release \
-                    //packages/... //tests/snapshots/... //tests/hyper/... //tests/trino/... //tools/... //extensions/...
-
-            - name: Test Web App
-              shell: bash
-              run: |
-                # The browser suites run in Chromium here, in Firefox in the fastbuild job and in WebKit in a job of their
-                # own, each run takes minutes. A browser suite has its browser as a tag (bazel/browser_test.bzl).
-                bazel test --config=release \
-                    --build_tests_only \
-                    --test_output=errors \
-                    --test_summary=detailed \
-                    --test_tag_filters=-firefox,-webkit \
-                    -- \
-                    //... -//tests/agents/...
-
-            # Kept as long as the npm and Electron packages: a failed deploy of publish.yml can be re-run days later and
-            # takes everything from this run
-            - uses: actions/upload-artifact@v7
-              with:
-                name: dashql_app_pages
-                path: ./bazel-bin/packages/dashql-app/pages_deploy/
-                retention-days: 7
-
-            - uses: actions/upload-artifact@v7
-              with:
-                name: dashql_org_pages
-                path: ./bazel-bin/packages/dashql-org/pages_deploy/
-                retention-days: 7
 
     core_npm_release:
         name: Core NPM Bundle
