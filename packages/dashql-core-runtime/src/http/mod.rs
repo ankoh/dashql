@@ -313,11 +313,6 @@ impl HttpResponse {
         (200..300).contains(&self.status)
     }
 
-    /// Is the status 2xx, like `Response.ok`?
-    pub fn ok(&self) -> bool {
-        self.is_success()
-    }
-
     /// The body as text, invalid UTF-8 replaced
     pub fn text(&self) -> String {
         String::from_utf8_lossy(&self.body).into_owned()

@@ -137,17 +137,7 @@ pub const BUSY_RETRY_MS: f64 = 10.0;
 
 /// The views of the scheduler on connections that are borrowed
 fn views<'a>(borrowed: &'a [(String, Ref<'a, ConnectionState>, usize)]) -> Vec<CatalogLoaderConnection<'a>> {
-    borrowed
-        .iter()
-        .map(|(id, state, active_queries)| CatalogLoaderConnection {
-            connection_id: id,
-            health: state.health(),
-            params: state.params(),
-            details: state.details(),
-            catalog_updates: state.catalog_updates(),
-            active_queries: *active_queries,
-        })
-        .collect()
+    borrowed.iter().map(|(_, state, active_queries)| CatalogLoaderConnection::of(state, *active_queries)).collect()
 }
 
 /// The states of connections that the loader borrows, and the ids of the busy ones that an action borrows mutably
@@ -184,10 +174,6 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
             wake_generation: 0,
         };
         Self { host, state: Rc::new(RefCell::new(state)) }
-    }
-
-    pub fn host(&self) -> &Rc<H> {
-        &self.host
     }
 
     fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
@@ -407,7 +393,7 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
                 CatalogLoaderCommand::Start { connection_id, task_id, relations } => {
                     let service = self.clone();
                     self.host.spawn(Box::pin(async move {
-                        let _ = service.run_update(&connection_id, task_id, relations).await;
+                        service.run_update(&connection_id, task_id, relations).await;
                         let now = service.host.now();
                         service.state.borrow_mut().scheduler.finished(&connection_id, now);
                         // Pending requests are considered again, also if the registry doesn't change
@@ -469,24 +455,18 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
     }
 
     /// Run an update of a connection to its end
-    async fn run_update(
-        &self,
-        connection_id: &str,
-        task_id: u32,
-        relations: Option<Vec<RelationName>>,
-    ) -> Result<(), CatalogLoadError> {
+    async fn run_update(&self, connection_id: &str, task_id: u32, relations: Option<Vec<RelationName>>) {
         let Some(connection) = self.connection(connection_id) else {
             self.log(LogLevel::Warn, "Failed to resolve connection", &[("connectionId", connection_id)]);
-            return Err(CatalogLoadError::failed(format!("couldn't find a connection with id {connection_id}")));
+            return;
         };
         let what = relations.as_ref().map_or_else(|| "all".to_string(), |relations| relations.len().to_string());
         self.log(LogLevel::Info, "Starting catalog update", &[("connectionId", connection_id), ("relations", &what)]);
         // The clock of the host is read before anything is borrowed
         let now = self.host.now();
-        let update = {
-            let connection_state =
-                connection.state.try_borrow().map_err(|_| CatalogLoadError::failed("the connection is in use"))?;
-            CatalogUpdate::start(&connection_state, task_id, relations, now)
+        let update = match connection.state.try_borrow() {
+            Ok(connection_state) => CatalogUpdate::start(&connection_state, task_id, relations, now),
+            Err(_) => Err(CatalogLoadError::failed("the connection is in use")),
         };
         let update = match update {
             Ok(update) => update,
@@ -496,7 +476,7 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
                     "Catalog update failed",
                     &[("connectionId", connection_id), ("error", error.message())],
                 );
-                return Err(error);
+                return;
             }
         };
         let token = CancellationToken::new();
@@ -509,7 +489,6 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
         done.cancel();
         self.state.borrow_mut().tasks.remove(&task_id);
         self.finish(connection_id, task_id, &connection, &outcome, started_at);
-        Ok(())
     }
 
     /// Log that an update still runs every few seconds, until the returned token is cancelled

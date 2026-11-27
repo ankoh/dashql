@@ -8,7 +8,7 @@
 //! connectors behind their own host traits, see docs/design/dashql_core.md.
 
 use super::details::{CatalogNameDefaults, ConnectionDetails, Timestamp};
-use super::params::{ConnectorFeatures, ConnectorType, JsonObject};
+use super::params::{ConnectorType, JsonObject};
 use super::RelationName;
 use crate::catalog_loader::{CatalogEntries, ConnectorCatalogUpdate};
 use crate::clfn::ClientFunctionBinding;
@@ -23,9 +23,6 @@ pub trait Connector: Sync {
 
     /// The long display name, e.g. `Salesforce Data Cloud`
     fn display_name(&self) -> &'static str;
-
-    /// What the connector supports
-    fn features(&self) -> ConnectorFeatures;
 
     /// The params of a new connection
     fn default_params(&self) -> JsonObject;

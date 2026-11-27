@@ -9,8 +9,8 @@ use crate::catalog_loader::{CatalogEntries, ConnectorCatalogUpdate};
 use crate::clfn::ClientFunctionBinding;
 use crate::connections::connector::Connector;
 use crate::connections::{
-    object, CatalogNameDefaults, ConnectionDetails, ConnectorFeatures, ConnectorType, JsonObject, RelationName,
-    Timestamp, HYPER_CLOUD_DEFAULT_DATABASE_NAME, SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA,
+    object, CatalogNameDefaults, ConnectionDetails, ConnectorType, JsonObject, RelationName, Timestamp,
+    HYPER_CLOUD_DEFAULT_DATABASE_NAME, SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA,
 };
 
 /// A Salesforce connector
@@ -53,10 +53,6 @@ impl Connector for SalesforceConnector {
     }
 
     /// Data Cloud only reads, a Hyper Cloud database of Database.com is written as well
-    fn features(&self) -> ConnectorFeatures {
-        ConnectorFeatures { read_only: !self.is_dbcom() }
-    }
-
     fn default_params(&self) -> JsonObject {
         let mut params =
             object(json!({ "instanceUrl": "", "appConsumerKey": "", "appConsumerSecret": "", "login": "" }));

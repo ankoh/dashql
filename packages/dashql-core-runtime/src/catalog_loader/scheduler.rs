@@ -111,8 +111,8 @@ impl CatalogLoader {
         }
     }
 
-    /// Allocate the id of an update, e.g. of one that the host starts itself
-    pub fn allocate_task_id(&mut self) -> u32 {
+    /// Allocate the id of an update
+    fn allocate_task_id(&mut self) -> u32 {
         let task_id = self.next_task_id;
         self.next_task_id = self.next_task_id.wrapping_add(1).max(1);
         task_id

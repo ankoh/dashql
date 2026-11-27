@@ -178,9 +178,7 @@ pub fn catalog_tables_from_hyper_cloud(
 /// A database that an update reads
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Target {
-    /// The key of the database, its alias
-    key: String,
-    /// The database that its relations are named with
+    /// The database that its relations are named with, the alias of an attached database
     database_name: String,
     /// The database to read the catalog of, the default database if none
     query_database_name: Option<String>,
@@ -205,10 +203,10 @@ enum TargetState {
 impl Target {
     /// The name of the database in the errors
     fn label(&self) -> &str {
-        if self.key.is_empty() {
+        if self.database_name.is_empty() {
             &self.path
         } else {
-            &self.key
+            &self.database_name
         }
     }
 
@@ -236,8 +234,6 @@ enum Phase {
 pub struct HyperCatalogUpdate {
     /// The databases that the update reads
     targets: Vec<Target>,
-    /// Is a database attached? Attached databases need an alias.
-    attached: bool,
     /// The relations to ask about, the whole catalog if none
     relations: Option<Vec<RelationName>>,
     /// Are the functions read from `pg_proc` instead of the bundled catalog? A Hyper server and Database.com read theirs,
@@ -288,25 +284,25 @@ impl HyperCatalogUpdate {
         relations: Option<Vec<RelationName>>,
         now: Timestamp,
     ) -> Self {
-        let mut keys: Vec<(String, String, Option<String>, String)> = if attached.is_empty() {
-            vec![(DEFAULT_DATABASE_NAME.to_string(), DEFAULT_DATABASE_NAME.to_string(), None, String::new())]
+        let mut keys: Vec<(String, Option<String>, String)> = if attached.is_empty() {
+            vec![(DEFAULT_DATABASE_NAME.to_string(), None, String::new())]
         } else {
             attached
                 .iter()
                 .map(|database| {
                     let alias = database.alias.clone().unwrap_or_default();
                     let query_database = Some(alias.clone()).filter(|alias| !alias.is_empty());
-                    (alias.clone(), alias, query_database, database.path.clone())
+                    (alias, query_database, database.path.clone())
                 })
                 .collect()
         };
         let mut alias_counts: HashMap<String, usize> = HashMap::new();
-        for (key, ..) in &keys {
-            *alias_counts.entry(key.clone()).or_default() += 1;
+        for (database_name, ..) in &keys {
+            *alias_counts.entry(database_name.clone()).or_default() += 1;
         }
         let targets = keys
             .drain(..)
-            .filter_map(|(key, database_name, query_database_name, path)| {
+            .filter_map(|(database_name, query_database_name, path)| {
                 let target_relations = relations.as_ref().map(|relations| {
                     relations
                         .iter()
@@ -319,17 +315,16 @@ impl HyperCatalogUpdate {
                     return None;
                 }
                 let mut target = Target {
-                    key,
                     database_name,
                     query_database_name,
                     path,
                     relations: target_relations,
                     state: TargetState::Failed(String::new()),
                 };
-                target.state = if !attached.is_empty() && target.key.trim().is_empty() {
+                target.state = if !attached.is_empty() && target.database_name.trim().is_empty() {
                     TargetState::Failed("Attached databases require a non-empty alias for catalog refresh".to_string())
-                } else if alias_counts.get(&target.key).copied().unwrap_or(0) > 1 {
-                    let quoted = serde_json::to_string(&target.key).unwrap_or_default();
+                } else if alias_counts.get(&target.database_name).copied().unwrap_or(0) > 1 {
+                    let quoted = serde_json::to_string(&target.database_name).unwrap_or_default();
                     TargetState::Failed(format!("Attached database alias {quoted} is not unique"))
                 } else if target.is_cloud() {
                     TargetState::Query(hyper_cloud_catalog_query(&target.database_name, target.relations.as_deref()))
@@ -344,7 +339,6 @@ impl HyperCatalogUpdate {
             .collect();
         Self {
             targets,
-            attached: !attached.is_empty(),
             relations,
             live_functions,
             functions_database: if attached.len() > 1 {
@@ -358,11 +352,6 @@ impl HyperCatalogUpdate {
             phase: Phase::Relations,
             warnings: Vec::new(),
         }
-    }
-
-    /// Is a database attached?
-    pub fn attached(&self) -> bool {
-        self.attached
     }
 
     /// The queries of the databases that are still to run

@@ -8,8 +8,8 @@ use crate::catalog_loader::{CatalogEntries, ConnectorCatalogUpdate};
 use crate::connections::connector::Connector;
 use crate::connections::sharing::without;
 use crate::connections::{
-    object, CatalogNameDefaults, ConnectionDetails, ConnectorFeatures, ConnectorType, JsonObject, RelationName,
-    Timestamp, DEFAULT_DATABASE_NAME, HYPER_DEFAULT_SCHEMA,
+    object, CatalogNameDefaults, ConnectionDetails, ConnectorType, JsonObject, RelationName, Timestamp,
+    DEFAULT_DATABASE_NAME, HYPER_DEFAULT_SCHEMA,
 };
 
 /// The protocol of the embedded Hyper
@@ -40,10 +40,6 @@ impl Connector for HyperConnector {
 
     fn display_name(&self) -> &'static str {
         "Hyper"
-    }
-
-    fn features(&self) -> ConnectorFeatures {
-        ConnectorFeatures { read_only: false }
     }
 
     fn default_params(&self) -> JsonObject {

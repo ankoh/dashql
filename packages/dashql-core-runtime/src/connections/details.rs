@@ -81,15 +81,6 @@ pub struct OAuthPkceChallenge {
     pub verifier: String,
 }
 
-/// A short-lived token, e.g. the code of an OAuth flow
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct TemporaryToken {
-    /// The token
-    pub token: String,
-    /// When the token was created, as the host wrote it
-    pub created_at: String,
-}
-
 /// The OAuth flow of a Trino connection. The PKCE verifier and the code stay with the setup that exchanges them, the
 /// access token with the channel.
 #[derive(Debug, Clone, Default, PartialEq)]

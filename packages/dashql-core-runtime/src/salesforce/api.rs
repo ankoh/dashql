@@ -308,7 +308,7 @@ fn response_json(response: &HttpResponse) -> Result<Value, SalesforceError> {
 
 /// The message of a failed OAuth response, none if it succeeded
 fn oauth_failure(response: &HttpResponse, body: &Value, fallback: &str) -> Option<String> {
-    if response.ok() && !js_truthy(body.get("error")) {
+    if response.is_success() && !js_truthy(body.get("error")) {
         return None;
     }
     let field = |key: &str| body.get(key).filter(|v| !v.is_null()).map(js_string);
@@ -630,7 +630,7 @@ impl SalesforceMetadataLoad {
         response: &HttpResponse,
     ) -> Option<(SalesforceMetadataProgress, Option<SalesforceMetadataFailure>)> {
         let entity_type = *SALESFORCE_METADATA_ENTITY_TYPES.get(index)?;
-        let entities = if response.ok() {
+        let entities = if response.is_success() {
             response_json(response)
                 .map(|body| body.get("metadata").and_then(Value::as_array).cloned().unwrap_or_default())
                 .map_err(|e| e.message)

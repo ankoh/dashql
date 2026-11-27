@@ -28,13 +28,6 @@ pub enum ConnectorType {
 pub const CONNECTOR_TYPES: [ConnectorType; 4] =
     [ConnectorType::Hyper, ConnectorType::SalesforceDataCloud, ConnectorType::Trino, ConnectorType::Dbcom];
 
-/// What a connector supports
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ConnectorFeatures {
-    /// Do connections only run queries, no DDL or DML?
-    pub read_only: bool,
-}
-
 /// The database of the relations of a Hyper connection without attached databases
 pub const DEFAULT_DATABASE_NAME: &str = "hyper";
 /// The default schema of Hyper

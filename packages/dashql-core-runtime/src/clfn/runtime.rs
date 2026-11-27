@@ -490,7 +490,7 @@ impl ClientFunctionCallRun {
             });
         }
         let fallback = format!("{} failed with the status {}", self.label(), response.status);
-        if !response.ok() {
+        if !response.is_success() {
             return Err(ClientFunctionError::with_status(self.error_message(&body, fallback), response.status));
         }
         let error_if = self.function.errors.as_ref().and_then(|e| e.error_if.as_ref());

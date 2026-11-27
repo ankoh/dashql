@@ -8,8 +8,8 @@ use crate::connections::connector::Connector;
 use crate::connections::is_truthy;
 use crate::connections::sharing::without;
 use crate::connections::{
-    object, trino_session_defaults, CatalogNameDefaults, ConnectionDetails, ConnectorFeatures, ConnectorType,
-    JsonObject, RelationName, Timestamp,
+    object, trino_session_defaults, CatalogNameDefaults, ConnectionDetails, ConnectorType, JsonObject, RelationName,
+    Timestamp,
 };
 
 /// The Trino connector
@@ -29,10 +29,6 @@ impl Connector for TrinoConnector {
 
     fn display_name(&self) -> &'static str {
         "Trino"
-    }
-
-    fn features(&self) -> ConnectorFeatures {
-        ConnectorFeatures { read_only: true }
     }
 
     fn default_params(&self) -> JsonObject {

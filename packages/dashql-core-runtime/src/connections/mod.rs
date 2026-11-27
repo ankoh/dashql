@@ -38,15 +38,15 @@ pub use catalog_updates::{
 };
 pub use details::{
     CatalogNameDefaults, ChannelId, ConnectionChannel, ConnectionDetails, ConnectorDetails, DetailedError,
-    OAuthPkceChallenge, SalesforceDetails, SalesforceOAuthParams, SalesforceOAuthState, SetupTimings, TemporaryToken,
-    Timestamp, TrinoDetails, TrinoOAuthState,
+    OAuthPkceChallenge, SalesforceDetails, SalesforceOAuthParams, SalesforceOAuthState, SetupTimings, Timestamp,
+    TrinoDetails, TrinoOAuthState,
 };
 pub use hyper::HyperAction;
 pub(crate) use params::object;
 pub use params::{
-    is_truthy, string_field, trino_session_defaults, ConnectionParams, ConnectorFeatures, ConnectorType, JsonObject,
-    TrinoSessionDefaults, CONNECTOR_TYPES, DEFAULT_DATABASE_NAME, HYPER_CLOUD_DEFAULT_DATABASE_NAME,
-    HYPER_DEFAULT_SCHEMA, SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA,
+    is_truthy, string_field, trino_session_defaults, ConnectionParams, ConnectorType, JsonObject, TrinoSessionDefaults,
+    CONNECTOR_TYPES, DEFAULT_DATABASE_NAME, HYPER_CLOUD_DEFAULT_DATABASE_NAME, HYPER_DEFAULT_SCHEMA,
+    SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA,
 };
 pub use salesforce::SalesforceAction;
 pub use trino::TrinoAction;
