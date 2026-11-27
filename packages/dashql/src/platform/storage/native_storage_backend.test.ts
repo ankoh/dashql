@@ -42,7 +42,7 @@ describe('NativeStorageBackend V2 flat storage', () => {
     it('persists rename and delete', async () => {
         await backend.saveScript(TEST_WORKBOOK_ID, '01_old.sql', 'SELECT 1');
         await backend.renameScript(TEST_WORKBOOK_ID, '01_old.sql', '01_new.sql');
-        expect(await backend.loadScript(TEST_WORKBOOK_ID, '01_new.sql')).toEqual({ name: '01_new.sql', sql: 'SELECT 1' });
+        expect(await backend.loadScripts(TEST_WORKBOOK_ID)).toEqual([{ name: '01_new.sql', sql: 'SELECT 1' }]);
         await backend.deleteScript(TEST_WORKBOOK_ID, '01_new.sql');
         expect(await backend.loadScripts(TEST_WORKBOOK_ID)).toEqual([]);
     });

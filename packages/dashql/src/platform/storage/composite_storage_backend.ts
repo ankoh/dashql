@@ -200,9 +200,6 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
     saveConnectionFile(connectionId: string, fileName: string, text: string): Promise<void> {
         return this.opfs.saveConnectionFile(connectionId, fileName, text);
     }
-    createConnectionFolder(connectionId: string): Promise<void> {
-        return this.opfs.createConnectionFolder(connectionId);
-    }
     deleteConnectionFiles(connectionId: string): Promise<void> {
         return this.opfs.deleteConnectionFiles(connectionId);
     }
@@ -370,9 +367,6 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
 
     async loadScripts(workbookId: string): Promise<ScriptData[]> {
         return (await this.backendFor(workbookId)).loadScripts(workbookId);
-    }
-    async loadScript(workbookId: string, scriptName: string): Promise<ScriptData> {
-        return (await this.backendFor(workbookId)).loadScript(workbookId, scriptName);
     }
     async saveScript(workbookId: string, scriptName: string, sql: string, expected?: ExpectedStamp): Promise<FileStamp | null> {
         return await (await this.backendFor(workbookId)).saveScript(workbookId, scriptName, sql, expected) ?? null;

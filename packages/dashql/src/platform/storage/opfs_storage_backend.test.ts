@@ -212,7 +212,7 @@ describe('OPFSStorageBackend V2 flat storage', () => {
     it('clears the app folders, the clouds and the workbook tree but no other storage', async () => {
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
         await backend.saveScript(TEST_WORKBOOK_ID, '01.sql', 'SELECT 1');
-        await backend.createConnectionFolder('connection');
+        await backend.saveConnectionFile('connection', 'dashql-catalog-relations.sql', 'CREATE TABLE t (x int);');
         files.set('other/file.txt', 'kept');
         // The database of a local cloud
         dirs.add('clouds');

@@ -47,8 +47,9 @@ describe('workbook transfer', () => {
         const cloned = await target.loadWorkbook(cloneId);
         expect(cloned).toMatchObject({ workbookId: cloneId, name: `${testWorkbook().name} (copy)` });
         expect(cloned.connections.map(connection => connection.connectionId)).toEqual([TEST_CONNECTION_ID]);
-        expect(await target.loadScripts(cloneId)).toHaveLength(3);
-        expect((await target.loadScript(cloneId, '03_attachment.sql')).sql).toBe('SELECT * FROM :payload');
+        const scripts = await target.loadScripts(cloneId);
+        expect(scripts).toHaveLength(3);
+        expect(scripts.find(script => script.name === '03_attachment.sql')?.sql).toBe('SELECT * FROM :payload');
 
         const failing = new WorkbookTestBackend();
         failing.saveScript = async () => { throw new Error('write failed'); };

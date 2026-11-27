@@ -177,15 +177,6 @@ export class NativeStorageBackend implements StorageBackend {
         return scripts;
     }
 
-    async loadScript(workbookId: string, scriptName: string): Promise<ScriptData> {
-        const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${scriptName}`);
-        if (!(await this.fs.exists(scriptFile))) {
-            throw new Error(`Script not found: workbook ${workbookId}, script ${scriptName}`);
-        }
-        const sql = await this.fs.readTextFile(scriptFile);
-        return { name: scriptName, sql };
-    }
-
     async saveScript(workbookId: string, scriptName: string, sql: string, expected?: ExpectedStamp): Promise<FileStamp> {
         await this.ensureScriptsDir();
         const scriptFile = await this.abs(`${STORAGE_SCRIPTS_FOLDER}/${scriptName}`);

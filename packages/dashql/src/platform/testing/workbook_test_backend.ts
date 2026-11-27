@@ -61,9 +61,6 @@ export class WorkbookTestBackend implements StorageBackend {
         this.calls.push(`connection-file:${connectionId}/${fileName}`);
         this.connectionFiles.set(`${connectionId}/${fileName}`, text);
     }
-    async createConnectionFolder(connectionId: string): Promise<void> {
-        this.calls.push(`connection-folder:${connectionId}`);
-    }
     async deleteConnectionFiles(connectionId: string): Promise<void> {
         for (const key of [...this.connectionFiles.keys()]) {
             if (key.startsWith(`${connectionId}/`)) this.connectionFiles.delete(key);
@@ -88,11 +85,6 @@ export class WorkbookTestBackend implements StorageBackend {
         return [...(this.scripts.get(workbookId) ?? new Map())]
             .map(([name, sql]) => ({ name, sql }))
             .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
-    }
-    async loadScript(workbookId: string, scriptName: string): Promise<ScriptData> {
-        const sql = this.scripts.get(workbookId)?.get(scriptName);
-        if (sql == null) throw new Error(`Script not found: ${scriptName}`);
-        return { name: scriptName, sql };
     }
     async saveScript(workbookId: string, scriptName: string, sql: string): Promise<void> {
         this.calls.push(`write:${workbookId}/${scriptName}=${sql}`);

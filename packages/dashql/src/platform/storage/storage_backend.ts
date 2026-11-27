@@ -110,8 +110,6 @@ export interface StorageBackend {
     /// Load the workbook's flat, naturally ordered script files. The order of the feed is the order
     /// of the scripts in the workbook file.
     loadScripts(workbookId: string): Promise<ScriptData[]>;
-    /// Load a workbook script
-    loadScript(workbookId: string, scriptName: string): Promise<ScriptData>;
     /// Save a workbook script
     saveScript(workbookId: string, scriptName: string, sql: string, expected?: ExpectedStamp): Promise<FileStamp | null | void>;
     /// Delete a workbook script, a missing script is deleted already
@@ -171,8 +169,6 @@ export interface WorkbookRegistryBackend extends StorageBackend {
     loadConnectionFile(connectionId: string, fileName: string): Promise<string | null>;
     /// Save a file of a connection
     saveConnectionFile(connectionId: string, fileName: string, text: string): Promise<void>;
-    /// Create the folder of a connection when missing, e.g. for Hyper to create a database in it
-    createConnectionFolder(connectionId: string): Promise<void>;
     /// Delete all files of a connection
     deleteConnectionFiles(connectionId: string): Promise<void>;
 }

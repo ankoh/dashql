@@ -281,20 +281,6 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
     }
 
 
-    async loadScript(workbookId: string, scriptName: string): Promise<ScriptData> {
-        const workbookDir = await this.getWorkbookDir(this.workbookRelPath(workbookId), false);
-        const scriptsDir = await workbookDir.getDirectoryHandle(STORAGE_SCRIPTS_FOLDER, { create: false });
-
-        try {
-            const fileHandle = await scriptsDir.getFileHandle(scriptName);
-            const file = await fileHandle.getFile();
-            const sql = await file.text();
-            return { name: scriptName, sql };
-        } catch {
-            throw new Error(`Script not found: workbook ${workbookId}, script ${scriptName}`);
-        }
-    }
-
     async saveScript(
         workbookId: string,
         scriptName: string,
@@ -417,14 +403,6 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
         await this.moveFile(dir, oldName, dir, newName);
     }
 
-    /// Write an empty file (creating or truncating it), which advances its mtime.
-    private async writeEmptyFile(dir: FileSystemDirectoryHandle, name: string): Promise<void> {
-        const handle = await dir.getFileHandle(name, { create: true });
-        const writable = await handle.createWritable();
-        await writable.write(new ArrayBuffer(0));
-        await writable.close();
-    }
-
     async clearAllStorage(): Promise<void> {
         const root = this.ensureInitialized();
 
@@ -518,10 +496,6 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
         const writable = await handle.createWritable();
         await writable.write(text);
         await writable.close();
-    }
-
-    async createConnectionFolder(connectionId: string): Promise<void> {
-        await this.getWorkbookDir(this.connectionRelPath(connectionId), true);
     }
 
     async deleteConnectionFiles(connectionId: string): Promise<void> {
