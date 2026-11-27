@@ -157,56 +157,42 @@ parser-snapshots:
 
   - name: string_prefixes
     input: |-
-      select E'a\tb', N'national', U&"d\0061t"
+      select E'a\tb', N'national', U&'d\0061t', U&"d\0061t", e 'x'
     expected:
       statements:
         - type: SELECT
           ast-begin: 0
-          ast-size: 16
+          ast-size: 17
           description:
-            text: "select E'a..&\"d\\0061t\""
+            text: "select E'a..1t\", e 'x'"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
-            text: "select E'a..&\"d\\0061t\""
+            text: "select E'a..1t\", e 'x'"
             children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY
-                text: "E'a\\tb', N..&\"d\\0061t\""
+                text: "E'a\\tb', N..1t\", e 'x'"
                 children:
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "E'a\\tb'"
                     children:
                       - key: SQL_RESULT_TARGET_VALUE
-                        type: OBJECT_SQL_CONST_FUNCTION_CAST
+                        type: LITERAL_STRING
                         text: "E'a\\tb'"
-                        children:
-                          - key: SQL_CONST_CAST_FUNC_NAME
-                            type: ARRAY
-                            text: "E"
-                            children:
-                              - type: NAME
-                                text: "E"
-                          - key: SQL_CONST_CAST_VALUE
-                            type: LITERAL_STRING
-                            text: "'a\\tb'"
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "N'national'"
                     children:
                       - key: SQL_RESULT_TARGET_VALUE
-                        type: OBJECT_SQL_CONST_FUNCTION_CAST
+                        type: LITERAL_STRING
                         text: "N'national'"
-                        children:
-                          - key: SQL_CONST_CAST_FUNC_NAME
-                            type: ARRAY
-                            text: "N"
-                            children:
-                              - type: NAME
-                                text: "N"
-                          - key: SQL_CONST_CAST_VALUE
-                            type: LITERAL_STRING
-                            text: "'national'"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "U&'d\\0061t'"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_STRING
+                        text: "U&'d\\0061t'"
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "U&\"d\\0061t\""
                     children:
@@ -220,6 +206,22 @@ parser-snapshots:
                             children:
                               - type: NAME
                                 text: "U&\"d\\0061t\""
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "e 'x'"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_CONST_FUNCTION_CAST
+                        text: "e 'x'"
+                        children:
+                          - key: SQL_CONST_CAST_FUNC_NAME
+                            type: ARRAY
+                            text: "e"
+                            children:
+                              - type: NAME
+                                text: "e"
+                          - key: SQL_CONST_CAST_VALUE
+                            type: LITERAL_STRING
+                            text: "'x'"
       scanner-errors: []
       parser-errors: []
       line-breaks: []

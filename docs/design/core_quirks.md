@@ -14,11 +14,9 @@ entry when you find another one. The headings name where the behavior lives.
   Postgres with a multi-byte encoding.
 - **Literal values are not decoded by the scanner.** Dollar-quoted strings, Unicode quoted
   identifiers, and newline-continued strings are recognized. Backslash has no special meaning in
-  ordinary `'...'` strings. `E''`, `U&''`, and `N''` can still take generic expression paths: `E'a'` is a cast
-  of `'a'` to the type `E`, `U&'a'` the operator `&`. The formatter writes such a prefix without a space in front
-  of its string if the script does, a space would make it a cast or an operator in PostgreSQL and Hyper.
-  Consumers read literal values by stripping the outer quotes, so they neither unescape `''` nor join
-  continued strings.
+  ordinary `'...'` strings, and neither in `E'...'`, which the scanner reads like them, with `N'...'` and
+  `U&'...'`, as one string literal with its prefix. Consumers read literal values by stripping the outer quotes, so
+  they neither unescape `''` nor join continued strings, and they take a string with a prefix for no plain string.
 - **Zero-length quoted identifiers still return an IDENT**, with an empty name, next to the error.
 
 ## Parser (`grammar/rules/`, `packages/dashql-parser/src/parser/`)

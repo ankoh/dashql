@@ -1357,54 +1357,8 @@ impl<'a> Formatter<'a> {
                 return self.format_unimplemented(node);
             }
             call_reg = f.concat(&[name_reg, f.parenthesized(call_body)]);
-        } else if self.is_string_prefix(name, &["e", "n"], value) && self.is_adjacent(name, value) {
-            // `E'a\tb'` and `N'text'` are one string, with a space they would be casts to the types `e` and `n`
-            return f.concat(&[call_reg, value_reg]);
         }
         f.concat(&[call_reg, f.text(" "), value_reg])
-    }
-
-    /// The text span of a node
-    fn text_span(&self, node: &Node) -> TextSpan {
-        resolve_text_span(&self.scanned.text, &self.scanned.symbols, *node.symbol_span())
-    }
-
-    /// Does a node end where the next one starts, without anything between them?
-    fn is_adjacent(&self, left: &Node, right: &Node) -> bool {
-        self.text_span(left).end() == self.text_span(right).offset
-    }
-
-    /// Are the operator and the arguments of an expression the `U&'...'` of a Unicode string, written without spaces?
-    fn is_unicode_string(&self, op_node: &Node, args_node: &Node) -> bool {
-        let [prefix, string] = self.children(args_node) else { return false };
-        op_node.node_type() == NodeType::OPERATOR
-            && self.text_at(op_node.symbol_span()) == "&"
-            && self.is_string_prefix(prefix, &["u"], string)
-            && self.is_adjacent(prefix, op_node)
-            && self.is_adjacent(op_node, string)
-    }
-
-    /// Is a name one of the prefixes of a string literal and the other node a quoted string, like the `E` of `E'a\tb'`
-    /// or the `U` of `U&'d\0061t'`? The scanner reads the prefix as a name, the formatter keeps it in front of the
-    /// string if the script does.
-    fn is_string_prefix(&self, name: &Node, prefixes: &[&str], string: &Node) -> bool {
-        let name_node = match name.node_type() {
-            NodeType::NAME => Some(name),
-            NodeType::ARRAY | NodeType::OBJECT_SQL_COLUMN_REF => match self.children(name) {
-                [only] if only.node_type() == NodeType::NAME => Some(only),
-                [only] if only.node_type() == NodeType::ARRAY => match self.children(only) {
-                    [only] if only.node_type() == NodeType::NAME => Some(only),
-                    _ => None,
-                },
-                _ => None,
-            },
-            _ => None,
-        };
-        let Some(name_node) = name_node else { return false };
-        let prefix = self.text_at(name_node.symbol_span());
-        string.node_type() == NodeType::LITERAL_STRING
-            && prefixes.iter().any(|p| prefix.eq_ignore_ascii_case(p))
-            && self.text_at(string.symbol_span()).starts_with('\'')
     }
 
     fn format_numeric_type_base(&self, node: &'a Node) -> FmtReg {
@@ -3202,10 +3156,6 @@ impl<'a> Formatter<'a> {
             }
             [lhs, rhs] if known_operator && matches!(op, O::IS_DISTINCT_FROM | O::IS_NOT_DISTINCT_FROM) => {
                 f.concat(&[lhs, f.text(" "), op_reg, f.text(" "), rhs])
-            }
-            // `U&'d\0061t'` is one string, with spaces it would be a column `u` and the operator `&`
-            [lhs, rhs] if !known_operator && self.is_unicode_string(op_node, args_node) => {
-                f.concat(&[lhs, op_reg, rhs])
             }
             _ => {
                 let is_boolean_chain = known_operator && matches!(op, O::AND | O::OR);

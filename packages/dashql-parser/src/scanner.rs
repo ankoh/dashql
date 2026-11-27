@@ -270,10 +270,14 @@ enum Initial {
     /// `{xcstart}`: matches as much as `{operator}` would, the action puts the operator back
     #[regex(br"/\*(?&op_chars)*")]
     CommentStart,
-    /// `{xbstart}`, `{xhstart}`, `{xqstart}`, `{xdstart}`, `{xbtstart}`
+    /// `{xbstart}`, `{xhstart}`, `{xqstart}`, `{xestart}`, `{xnstart}`, `{xusstart}`, `{xdstart}`, `{xbtstart}`. The
+    /// strings with escapes, `E'...'`, national strings, `N'...'`, and Unicode strings, `U&'...'`, are read like a
+    /// quoted string, a backslash has no special meaning in them either.
     #[regex(b"[bB]'", |_| State::Xb)]
     #[regex(b"[xX]'", |_| State::Xh)]
     #[token("'", |_| State::Xq)]
+    #[regex(b"[eEnN]'", |_| State::Xq)]
+    #[regex(b"[uU]&'", |_| State::Xq)]
     #[token("\"", |_| State::Xd)]
     #[regex(b"[uU]&\"", |_| State::Xd)]
     #[token("`", |_| State::Xbt)]
@@ -1123,6 +1127,16 @@ mod tests {
             assert_eq!(&*out.names.get(id).text, name, "{text}");
             assert_eq!(out.errors[0].message, message, "{text}");
         }
+    }
+
+    #[test]
+    fn scans_strings_with_a_prefix_as_one_literal() {
+        assert_eq!(kinds("E'a\\tb' n'x' U&'d\\0061t'"), vec![S_SCONST, S_SCONST, S_SCONST, S_YYEOF]);
+        assert_eq!(spans("E'a' U&'b'"), vec![(0, 4), (5, 5), (10, 0)]);
+        // With a space the prefix is a name, and the `&` of `u &'x'` an operator
+        assert_eq!(kinds("e 'x'"), vec![S_IDENT, S_SCONST, S_YYEOF]);
+        assert_eq!(kinds("u &'x'"), vec![S_IDENT, S_AMPERSAND, S_SCONST, S_YYEOF]);
+        assert_eq!(kinds("ne'x'"), vec![S_IDENT, S_SCONST, S_YYEOF]);
     }
 
     #[test]

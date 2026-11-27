@@ -14,10 +14,10 @@ parser-snapshots:
       select 'foo'
         'bar';
       select 'a' 'b';
-  # E'' and N'' prefixes take generic paths, U&"" is a quoted identifier
+  # E'', N'' and U&'' are string literals with their prefix, U&"" is a quoted identifier, `e 'x'` is a cast
   - name: string_prefixes
     input: |
-      select E'a\tb', N'national', U&"d\0061t"
+      select E'a\tb', N'national', U&'d\0061t', U&"d\0061t", e 'x'
   # Dollar-quoted strings with tags, nested delimiters and empty bodies
   - name: dollar_quoted_strings
     input: |
