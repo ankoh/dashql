@@ -10,6 +10,7 @@ import {
     isUnknownHyperDBSettingError,
 } from '@akohn/dashql/platform/hyperdb/hyperdb_settings';
 import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance } from '@akohn/dashql/platform/hyperdb/hyperdb_opfs_instance';
+import { HYPERDB_MEMORY_FALLBACK_SOURCE } from './hyperdb_memory_fallback.js';
 import { getHyperDBWebSupportError } from './hyperdb_web_support.js';
 
 declare global {
@@ -36,7 +37,7 @@ const HYPERDB_WORKER_URL = new URL(workerUrl as string, import.meta.url);
 const HYPERDB_WASM_URL = new URL(wasmUrl as string, import.meta.url);
 
 function createEngineScript(): { url: string; revoke: () => void } {
-    const source = `self.HYPERDB_WASM_MODULE=self.Module??{};self.HYPERDB_WASM_MODULE.locateFile=(path,prefix)=>path==='hyperdb-wasm.wasm'?${JSON.stringify(HYPERDB_WASM_URL.href)}:prefix+path;importScripts(${JSON.stringify(HYPERDB_ENGINE_URL.href)});`;
+    const source = `${HYPERDB_MEMORY_FALLBACK_SOURCE}\nself.HYPERDB_WASM_MODULE=self.Module??{};self.HYPERDB_WASM_MODULE.locateFile=(path,prefix)=>path==='hyperdb-wasm.wasm'?${JSON.stringify(HYPERDB_WASM_URL.href)}:prefix+path;importScripts(${JSON.stringify(HYPERDB_ENGINE_URL.href)});`;
     const url = URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
     return { url, revoke: () => URL.revokeObjectURL(url) };
 }
