@@ -11,8 +11,7 @@ removes them. It reviews the code as it is, not only what changed: old code that
 a new commit. It runs overnight without the owner: decide what is clear, defer what is the owner's call, never push.
 
 Argument, the scope:
-- none (the default): the areas that `reviewed.md` in this folder lists as reviewed longest ago or never, about 6 of
-  them, see "Choosing the areas";
+- none (the default): the areas reviewed longest ago or never, about 6 of them, see "Choosing the areas";
 - paths or area names (`packages/dashql-core-runtime`, "the formatter"): just those;
 - "since <date or commit>": the code that the commits since then touched, read as whole files and modules, not as
   diffs.
@@ -63,9 +62,11 @@ code without tests and snapshots (`git ls-files <paths> | xargs wc -l`). The are
 
 Adjust the list when the code has moved (new packages, merged ones) and write the adjusted list back here.
 
-Without an argument, take about 6 areas: first the ones `reviewed.md` never lists, then those reviewed longest ago.
-Bring one forward if a lot changed in it since its last review (`git diff --shortstat <its commit> START -- <paths>`).
-At the end of the run, append one line per reviewed area to `reviewed.md`: `<date> <START short hash> <area>`.
+Which areas were reviewed when is kept outside the repo, in `~/.local/state/dashql/kiss-review.md`, one line per
+area and run: `<date> <START short hash> <area>`. Without an argument, take about 6 areas: first the ones the file
+never lists (or all, if the file is missing), then those reviewed longest ago. Bring one forward if a lot changed in
+it since its last review (`git diff --shortstat <its commit> START -- <paths>`). At the end of the run, append a line
+per reviewed area (create the file if needed).
 
 ### Reviewers
 
