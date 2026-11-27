@@ -2,9 +2,10 @@
 // workbook, the `dashql` commands of its agent call the page through the agent server, see
 // docs/design/agent_integration.md. main.ts binds it to the windows, nothing here needs Electron.
 import {execFile} from "node:child_process";
-import {chmod, mkdir, readFile, rename, rm, writeFile} from "node:fs/promises";
+import {chmod, mkdir, readFile, rm, writeFile} from "node:fs/promises";
 import path from "node:path";
 
+import {writeFileAtomically} from "../atomic_write.js";
 import {AgentServer, type AgentCallPart, type AgentCallRequest} from "./agent_server.js";
 import {harnessArgs, harnessInfo, HARNESSES, INPUT_FOLDER, isHarness, resolveLoginShellPath, resolveProgram, spawnHarness, type HarnessRun} from "./harness.js";
 import {isPlumbingStep, type AgentEvent, type AgentHarness} from "./readers.js";
@@ -159,11 +160,6 @@ export class AgentHost {
     async info(): Promise<{harnesses: Array<{id: AgentHarness; available: boolean}>}> {
         const searchPath = await this.#path();
         return {harnesses: HARNESSES.map(({id, program}) => ({id, available: resolveProgram(program, searchPath) !== null}))};
-    }
-
-    /// Is a question running on the workbook?
-    isRunning(workbookId: string): boolean {
-        return this.#turns.has(workbookId);
     }
 
     /// Start a turn: resolves once the harness started, the page gets the events of the turn
@@ -329,10 +325,7 @@ export class AgentHost {
         const before = this.#conversationWrites.get(workbookId) ?? Promise.resolve();
         const write = before.then(async () => {
             await mkdir(folder, {recursive: true, mode: 0o700});
-            const file = path.join(folder, CONVERSATION_FILE);
-            const temporary = `${file}.tmp`;
-            await writeFile(temporary, `${text}\n`, {mode: 0o600});
-            await rename(temporary, file);
+            await writeFileAtomically(path.join(folder, CONVERSATION_FILE), `${text}\n`, 0o600);
         });
         const settled = write.catch(() => {});
         this.#conversationWrites.set(workbookId, settled);

@@ -7,8 +7,8 @@ import {brotliDecompress} from "node:zlib";
 
 import {app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, protocol, shell, utilityProcess, type IpcMainEvent, type WebContents} from "electron";
 
-import {AgentHost, type AgentPage} from "./agent/agent_host.js";
-import {HARNESSES, isHarness} from "./agent/harness.js";
+import {AgentHost, type AgentPage, type AgentQuestion} from "./agent/agent_host.js";
+import {HARNESSES} from "./agent/harness.js";
 import {APP_ORIGIN, APP_RESPONSE_HEADERS, contentHeadersFor, isBrotliWasm, isTrustedRendererUrl, parseRendererDevOrigin, resolveAppRequest} from "./app_protocol.js";
 import {DeepLinkQueue, parseDeepLink, parseDeepLinksFromCommandLine} from "./deep_link.js";
 import {writeFileAtomically} from "./atomic_write.js";
@@ -704,9 +704,8 @@ if (!hasSingleInstanceLock) {
     });
     ipcMain.handle("dashql:agent-ask", async (event, request: unknown) => {
         if (!isTrustedRenderer(event.senderFrame?.url) || request === null || typeof request !== "object") throw new Error("Rejected agent request");
-        const {workbookId, harness, prompt} = request as Record<string, unknown>;
-        if (typeof workbookId !== "string" || !isHarness(harness) || typeof prompt !== "string") throw new Error("Rejected agent request");
-        await requireAgentHost().ask({workbookId, harness, prompt}, agentPageOf(event.sender));
+        // The agent host checks the fields of the question
+        await requireAgentHost().ask(request as AgentQuestion, agentPageOf(event.sender));
     });
     ipcMain.handle("dashql:agent-stop", async (event, workbookId: unknown) => {
         if (!isTrustedRenderer(event.senderFrame?.url) || typeof workbookId !== "string") throw new Error("Rejected agent request");

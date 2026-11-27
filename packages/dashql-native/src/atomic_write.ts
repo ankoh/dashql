@@ -12,11 +12,11 @@ export interface FileStamp {
 /// sees the old file or the new one, never a part, and a failed write leaves the old file as it was. The temporary file
 /// starts with a dot and ends with `.tmp`, the listings of scripts and attachments never take it for one of theirs.
 /// Returns the stamp of the temporary file, which the file keeps when it is renamed: a stamp taken after the rename
-/// could be the one of a write of another program in between.
-export async function writeFileAtomically(target: string, data: string | Uint8Array): Promise<FileStamp> {
+/// could be the one of a write of another program in between. `mode` is the mode of a new file, e.g. 0o600.
+export async function writeFileAtomically(target: string, data: string | Uint8Array, mode?: number): Promise<FileStamp> {
     const temporary = path.join(path.dirname(target), `.${path.basename(target)}.${randomBytes(6).toString("hex")}.tmp`);
     try {
-        const file = await open(temporary, "w");
+        const file = await open(temporary, "w", mode);
         let stamp: FileStamp;
         try {
             await file.writeFile(data);

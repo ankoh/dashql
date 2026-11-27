@@ -123,9 +123,7 @@ describe("the agent host", () => {
         const {root, host, page} = setup();
         let stopped = page.stopped();
         await host.ask({workbookId: "w1", harness: "claude", prompt: "the prompt"}, page);
-        expect(host.isRunning("w1")).toBe(true);
         await stopped;
-        expect(host.isRunning("w1")).toBe(false);
         expect(page.events).toEqual([
             // The page tells the dashql commands from their calls
             {event: "Say", text: "I list the scripts."},
@@ -176,7 +174,7 @@ describe("the agent host", () => {
         await host.ask({workbookId: "w1", harness: "claude", prompt: "sleep"}, page);
         await host.detach(page);
         await stopped;
-        expect(host.isRunning("w1")).toBe(false);
+        expect(page.events.at(-1)).toEqual({event: "Stop", message: null, error: null, interrupted: true});
     });
 
     test("refuses unknown workbooks, harnesses and harnesses that the machine lacks", async () => {
@@ -185,7 +183,8 @@ describe("the agent host", () => {
         await expect(host.ask({workbookId: "w1", harness: "sh" as "claude", prompt: "x"}, page)).rejects.toThrow(/Unknown harness/);
         await expect(host.ask({workbookId: "w1", harness: "codex", prompt: "x"}, page)).rejects.toThrow(/codex is not installed/);
         expect(page.events).toEqual([]);
-        expect(host.isRunning("w1")).toBe(false);
+        // A refused question holds no workbook
+        await expect(host.writeFile(page, {workbookId: "w1", kind: "chart", name: "x.png", data: new Uint8Array()})).rejects.toThrow(/No question runs/);
     });
 
     test("writes the files of a question into its folder and forgets a workbook", async () => {
