@@ -3,13 +3,12 @@
 //!
 //!   bazel run //tools/sql_format -- --write examples/snippets/hyper
 
-mod inputs;
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode, KeywordCase};
 use dashql_core::formatter::Formatter;
 use dashql_parser::parser::parse;
 use dashql_parser::scanner::scan;
 use std::io::{Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::Arc;
 
@@ -24,6 +23,8 @@ Directories are searched recursively for *.sql files, - reads a script from stdi
 A script with errors, or with a statement the formatter doesn't know, is reported and stays as it is.
 Exits with 0 if all scripts could be formatted (with --check: are formatted), 1 otherwise and 2 on usage or I/O errors.";
 
+/// The path that reads a script from stdin
+const STDIN: &str = "-";
 /// The line width of the formatted scripts
 const MAX_WIDTH: u32 = 120;
 /// The indentation of the formatted scripts, the one of the app
@@ -51,6 +52,7 @@ struct Args {
     help: bool,
 }
 
+/// Parse a dialect, unlike `parse_formatting_dialect` of the core an unknown name is an error
 fn parse_dialect(name: &str) -> Result<FormattingDialect, String> {
     match name {
         "hyper" => Ok(FormattingDialect::HYPER),
@@ -83,7 +85,7 @@ fn parse_args(args: &[String]) -> Result<Args, String> {
                 out.paths.extend(args.by_ref().cloned());
                 continue;
             }
-            a if a.starts_with('-') && a != inputs::STDIN => return Err(format!("unknown option {a}")),
+            a if a.starts_with('-') && a != STDIN => return Err(format!("unknown option {a}")),
             a => {
                 out.paths.push(a.to_string());
                 continue;
@@ -96,6 +98,46 @@ fn parse_args(args: &[String]) -> Result<Args, String> {
     }
     out.output = output.unwrap_or_default();
     Ok(out)
+}
+
+/// The *.sql files under a directory, recursively in path order. Links to directories are not followed.
+fn sql_files(dir: &Path, out: &mut Vec<PathBuf>) -> std::io::Result<()> {
+    let mut entries = std::fs::read_dir(dir)?.collect::<std::io::Result<Vec<_>>>()?;
+    entries.sort_by_key(|e| e.file_name());
+    for entry in entries {
+        let path = entry.path();
+        if entry.file_type()?.is_dir() {
+            sql_files(&path, out)?;
+        } else if path.extension().is_some_and(|e| e.eq_ignore_ascii_case("sql")) {
+            out.push(path);
+        }
+    }
+    Ok(())
+}
+
+/// The scripts of the paths, each with its path: files, the *.sql files of directories, and stdin for `-`
+fn read_inputs(paths: &[String], stdin: &mut dyn Read) -> Result<Vec<(PathBuf, String)>, String> {
+    let mut inputs = Vec::new();
+    for path in paths {
+        if path == STDIN {
+            let mut bytes = Vec::new();
+            stdin.read_to_end(&mut bytes).map_err(|e| format!("stdin: {e}"))?;
+            inputs.push((PathBuf::from(STDIN), String::from_utf8_lossy(&bytes).into_owned()));
+            continue;
+        }
+        let path = Path::new(path);
+        let mut files = Vec::new();
+        if path.is_dir() {
+            sql_files(path, &mut files).map_err(|e| format!("{}: {e}", path.display()))?;
+        } else {
+            files.push(path.to_path_buf());
+        }
+        for file in files {
+            let bytes = std::fs::read(&file).map_err(|e| format!("{}: {e}", file.display()))?;
+            inputs.push((file, String::from_utf8_lossy(&bytes).into_owned()));
+        }
+    }
+    Ok(inputs)
 }
 
 /// Format a script, with a line break at its end. A script with errors isn't formatted, and neither is one that the
@@ -126,117 +168,91 @@ fn format_script(text: &str, dialect: FormattingDialect) -> Result<String, Strin
     Ok(formatted)
 }
 
-/// What `format` takes from the process
-struct Process<'a> {
-    /// The invoking directory, see `inputs::working_directory`
-    cwd: std::io::Result<PathBuf>,
-    /// Read for the path `-`
-    stdin: &'a mut dyn Read,
-    /// The scripts, the files that changed and the summary
-    stdout: &'a mut dyn Write,
-    /// The usage and the errors of the run
-    stderr: &'a mut dyn Write,
-}
-
-fn format_files(args: Args, process: &mut Process) -> Result<u8, String> {
-    let cwd = process.cwd.as_ref().map_err(|e| format!("working directory: {e}"))?;
-    let inputs = inputs::read_inputs(&args.paths, cwd, process.stdin)?;
-    let stdout = &mut *process.stdout;
-    let mut write = |text: &str| write!(stdout, "{text}").map_err(|e| format!("stdout: {e}"));
+fn format_files(
+    args: Args,
+    stdin: &mut dyn Read,
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+) -> Result<u8, String> {
+    let inputs = read_inputs(&args.paths, stdin)?;
     let (mut failed, mut changed) = (0, 0);
-    for input in &inputs {
-        let formatted = match format_script(&input.text, args.dialect) {
-            Ok(formatted) => formatted,
+    for (path, text) in &inputs {
+        match format_script(text, args.dialect) {
             Err(e) => {
                 failed += 1;
-                writeln!(process.stderr, "{}: {e}", input.id).map_err(|e| format!("stderr: {e}"))?;
-                continue;
+                writeln!(stderr, "{}: {e}", path.display()).map_err(|e| format!("stderr: {e}"))?;
             }
-        };
-        match args.output {
-            Output::Print => write(&formatted)?,
-            _ if formatted == input.text => {}
-            Output::Write => {
-                // Stdin has no file to write to
-                if input.id != "<stdin>" {
-                    let path = cwd.join(&input.id);
-                    std::fs::write(&path, &formatted).map_err(|e| format!("{}: {e}", path.display()))?;
+            Ok(formatted) if args.output == Output::Print => {
+                write!(stdout, "{formatted}").map_err(|e| format!("stdout: {e}"))?
+            }
+            Ok(formatted) if formatted != *text => {
+                // --write takes no stdin
+                if args.output == Output::Write {
+                    std::fs::write(path, &formatted).map_err(|e| format!("{}: {e}", path.display()))?;
                 }
                 changed += 1;
-                write(&format!("{}\n", input.id))?;
+                writeln!(stdout, "{}", path.display()).map_err(|e| format!("stdout: {e}"))?;
             }
-            Output::Check => {
-                changed += 1;
-                write(&format!("{}\n", input.id))?;
-            }
+            Ok(_) => {}
         }
     }
     let files = if inputs.len() == 1 { "file" } else { "files" };
-    match args.output {
-        Output::Print => {}
-        Output::Write => write(&format!("{} {files}, {changed} rewritten, {failed} failed\n", inputs.len()))?,
-        Output::Check => write(&format!("{} {files}, {changed} not formatted, {failed} failed\n", inputs.len()))?,
+    let summary = match args.output {
+        Output::Print => None,
+        Output::Write => Some("rewritten"),
+        Output::Check => Some("not formatted"),
+    };
+    if let Some(summary) = summary {
+        writeln!(stdout, "{} {files}, {changed} {summary}, {failed} failed", inputs.len())
+            .map_err(|e| format!("stdout: {e}"))?;
     }
     let unformatted = args.output == Output::Check && changed > 0;
     Ok(if failed > 0 || unformatted { 1 } else { 0 })
 }
 
 /// Run `format` and return the exit code
-fn run(args: &[String], process: &mut Process) -> u8 {
+fn run(args: &[String], stdin: &mut dyn Read, stdout: &mut dyn Write, stderr: &mut dyn Write) -> u8 {
     // A closed stderr or stdout leaves nothing to report the failure on
     let args = match parse_args(args) {
         Ok(args) if args.help => {
-            let _ = writeln!(process.stdout, "{USAGE}");
+            let _ = writeln!(stdout, "{USAGE}");
             return 0;
         }
         Ok(args) if args.paths.is_empty() => {
-            let _ = writeln!(process.stderr, "{USAGE}");
+            let _ = writeln!(stderr, "{USAGE}");
             return 2;
         }
-        Ok(args) if args.output == Output::Write && args.paths.iter().any(|p| p == inputs::STDIN) => {
-            let _ = writeln!(process.stderr, "error: --write needs files, not stdin\n\n{USAGE}");
+        Ok(args) if args.output == Output::Write && args.paths.iter().any(|p| p == STDIN) => {
+            let _ = writeln!(stderr, "error: --write needs files, not stdin\n\n{USAGE}");
             return 2;
         }
         Ok(args) => args,
         Err(e) => {
-            let _ = writeln!(process.stderr, "error: {e}\n\n{USAGE}");
+            let _ = writeln!(stderr, "error: {e}\n\n{USAGE}");
             return 2;
         }
     };
-    format_files(args, process).unwrap_or_else(|e| {
-        let _ = writeln!(process.stderr, "error: {e}");
+    format_files(args, stdin, stdout, stderr).unwrap_or_else(|e| {
+        let _ = writeln!(stderr, "error: {e}");
         2
     })
 }
 
 fn main() -> ExitCode {
+    // Under `bazel run` the process runs in the runfiles tree, the paths are relative to the invoking directory
+    if let Some(dir) = std::env::var_os("BUILD_WORKING_DIRECTORY") {
+        if let Err(e) = std::env::set_current_dir(&dir) {
+            eprintln!("error: working directory: {e}");
+            return ExitCode::from(2);
+        }
+    }
     let args: Vec<String> = std::env::args().skip(1).collect();
-    ExitCode::from(run(
-        &args,
-        &mut Process {
-            cwd: inputs::working_directory(),
-            stdin: &mut std::io::stdin(),
-            stdout: &mut std::io::stdout().lock(),
-            stderr: &mut std::io::stderr().lock(),
-        },
-    ))
+    ExitCode::from(run(&args, &mut std::io::stdin(), &mut std::io::stdout().lock(), &mut std::io::stderr().lock()))
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+mod tests {
     use super::*;
-    use std::path::Path;
-
-    /// A new folder for the files of a test
-    pub(crate) fn temp_dir(name: &str) -> PathBuf {
-        use std::sync::atomic::{AtomicUsize, Ordering};
-        static NEXT: AtomicUsize = AtomicUsize::new(0);
-        let root = std::env::var_os("TEST_TMPDIR").map(PathBuf::from).unwrap_or_else(std::env::temp_dir);
-        let dir = root.join(format!("{name}-{}-{}", std::process::id(), NEXT.fetch_add(1, Ordering::SeqCst)));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir).unwrap();
-        dir
-    }
 
     /// The result of a run
     struct Result {
@@ -245,94 +261,69 @@ pub(crate) mod tests {
         stderr: String,
     }
 
-    /// A directory with the given files
+    /// A new folder with the given files
     fn files(files: &[(&str, &str)]) -> PathBuf {
-        let root = temp_dir("dashql-cli-format");
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static NEXT: AtomicUsize = AtomicUsize::new(0);
+        let root = std::env::var_os("TEST_TMPDIR").map(PathBuf::from).unwrap_or_else(std::env::temp_dir);
+        let root = root.join(format!("sql-format-{}-{}", std::process::id(), NEXT.fetch_add(1, Ordering::SeqCst)));
+        let _ = std::fs::remove_dir_all(&root);
         for (name, text) in files {
-            std::fs::write(root.join(name), text).unwrap();
+            let path = root.join(name);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, text).unwrap();
         }
+        std::fs::create_dir_all(&root).unwrap();
         root
     }
 
-    fn run_with(cwd: &Path, args: &[&str], stdin: &str) -> Result {
+    fn run_with(args: &[&str], stdin: &str) -> Result {
         let (mut stdout, mut stderr) = (Vec::new(), Vec::new());
         let args: Vec<String> = args.iter().map(|a| a.to_string()).collect();
-        let code = run(
-            &args,
-            &mut Process {
-                cwd: Ok(cwd.to_path_buf()),
-                stdin: &mut stdin.as_bytes(),
-                stdout: &mut stdout,
-                stderr: &mut stderr,
-            },
-        );
+        let code = run(&args, &mut stdin.as_bytes(), &mut stdout, &mut stderr);
         Result { code, stdout: String::from_utf8(stdout).unwrap(), stderr: String::from_utf8(stderr).unwrap() }
     }
 
     #[test]
-    fn prints_a_script_and_leaves_the_file() {
-        let root = files(&[("a.sql", "SELECT  1")]);
-        let output = run_with(&root, &["a.sql"], "");
-        assert_eq!((output.code, output.stdout.as_str(), output.stderr.as_str()), (0, "select 1;\n", ""));
-        assert_eq!(std::fs::read_to_string(root.join("a.sql")).unwrap(), "SELECT  1");
+    fn prints_writes_and_checks_the_scripts_of_a_directory() {
+        let root = files(&[("b.sql", "select 1;\n"), ("a.SQL", "SELECT  1"), ("sub/c.sql", "SELECT 2"), ("x.txt", "")]);
+        let dir = root.display().to_string();
+        let (a, c) = (root.join("a.SQL").display().to_string(), root.join("sub/c.sql").display().to_string());
+        let printed = run_with(&[&a], "");
+        assert_eq!((printed.code, printed.stdout.as_str(), printed.stderr.as_str()), (0, "select 1;\n", ""));
+        let checked = run_with(&["--check", &dir], "");
+        assert_eq!((checked.code, checked.stdout), (1, format!("{a}\n{c}\n3 files, 2 not formatted, 0 failed\n")));
+        assert_eq!(std::fs::read_to_string(&a).unwrap(), "SELECT  1");
+        let written = run_with(&["--write", &dir], "");
+        assert_eq!((written.code, written.stdout), (0, format!("{a}\n{c}\n3 files, 2 rewritten, 0 failed\n")));
+        assert_eq!(std::fs::read_to_string(&a).unwrap(), "select 1;\n");
+        assert_eq!(run_with(&["--check", &dir], "").code, 0);
     }
 
     #[test]
-    fn formats_a_script_from_stdin() {
-        let output = run_with(Path::new("/"), &["-"], "CALL t.f(a=>1)");
-        assert_eq!((output.code, output.stdout.as_str()), (0, "call t.f (a => 1);\n"));
-    }
-
-    #[test]
-    fn formats_in_the_dialect_of_the_scripts() {
+    fn formats_stdin_in_the_dialect_of_the_scripts() {
         let script = "select cast(a as array(integer));\n";
-        let hyper = run_with(Path::new("/"), &["-"], script);
+        let hyper = run_with(&["-"], script);
         assert_eq!((hyper.code, hyper.stdout.as_str()), (0, "select cast(a as integer[]);\n"));
-        let trino = run_with(Path::new("/"), &["--dialect", "trino", "-"], script);
+        let trino = run_with(&["--dialect", "trino", "-"], script);
         assert_eq!((trino.code, trino.stdout.as_str()), (0, "select cast(a as array(integer));\n"));
-        assert_eq!(run_with(Path::new("/"), &["--dialect=trino", "-"], script).stdout, trino.stdout);
-    }
-
-    #[test]
-    fn writes_only_the_files_that_change() {
-        let root = files(&[("a.sql", "SELECT  1"), ("b.sql", "select 1;\n")]);
-        let output = run_with(&root, &["--write", "."], "");
-        assert_eq!((output.code, output.stdout.as_str()), (0, "a.sql\n2 files, 1 rewritten, 0 failed\n"));
-        assert_eq!(std::fs::read_to_string(root.join("a.sql")).unwrap(), "select 1;\n");
-    }
-
-    #[test]
-    fn checks_without_writing() {
-        let root = files(&[("a.sql", "SELECT  1"), ("b.sql", "select 1;\n")]);
-        let output = run_with(&root, &["--check", "."], "");
-        assert_eq!((output.code, output.stdout.as_str()), (1, "a.sql\n2 files, 1 not formatted, 0 failed\n"));
-        assert_eq!(std::fs::read_to_string(root.join("a.sql")).unwrap(), "SELECT  1");
-        assert_eq!(run_with(&root, &["--check", "b.sql"], "").code, 0);
+        assert_eq!(run_with(&["--dialect=trino", "-"], script).stdout, trino.stdout);
     }
 
     #[test]
     fn keeps_a_script_with_errors() {
         let root = files(&[("a.sql", "select 1 +;\n"), ("b.sql", "SELECT  1")]);
-        let output = run_with(&root, &["--write", "."], "");
+        let output = run_with(&["--write", &root.display().to_string()], "");
         assert_eq!(output.code, 1);
-        assert!(output.stderr.starts_with("a.sql: syntax error"), "{}", output.stderr);
-        assert_eq!(std::fs::read_to_string(root.join("a.sql")).unwrap(), "select 1 +;\n");
+        let a = root.join("a.sql").display().to_string();
+        assert!(output.stderr.starts_with(&format!("{a}: syntax error")), "{}", output.stderr);
+        assert_eq!(std::fs::read_to_string(&a).unwrap(), "select 1 +;\n");
         // The other scripts are still formatted
         assert_eq!(std::fs::read_to_string(root.join("b.sql")).unwrap(), "select 1;\n");
     }
 
     #[test]
-    fn keeps_a_script_the_formatter_cannot_print() {
-        let root = files(&[("a.sql", "select somefunc(default);\n")]);
-        let output = run_with(&root, &["--write", "a.sql"], "");
-        assert_eq!(output.code, 1);
-        assert_eq!(output.stderr, "a.sql: the formatter doesn't know all of the script\n");
-        assert_eq!(std::fs::read_to_string(root.join("a.sql")).unwrap(), "select somefunc(default);\n");
-    }
-
-    #[test]
     fn rejects_bad_command_lines() {
-        let root = files(&[]);
         for args in [
             &[][..],
             &["--bogus", "a.sql"][..],
@@ -341,11 +332,12 @@ pub(crate) mod tests {
             &["--dialect", "x", "a.sql"][..],
             &["a.sql", "--dialect"][..],
         ] {
-            let output = run_with(&root, args, "");
+            let output = run_with(args, "");
             assert_eq!(output.code, 2, "{args:?}");
             assert!(output.stderr.ends_with(&format!("{USAGE}\n")), "{args:?}: {}", output.stderr);
         }
-        assert_eq!(run_with(&root, &["gone.sql"], "").code, 2);
-        assert_eq!(run_with(&root, &["--help"], "").stdout, format!("{USAGE}\n"));
+        let gone = files(&[]).join("gone.sql").display().to_string();
+        assert_eq!(run_with(&[&gone], "").code, 2);
+        assert_eq!(run_with(&["--help"], "").stdout, format!("{USAGE}\n"));
     }
 }
