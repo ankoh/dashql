@@ -2,7 +2,6 @@ import { type WorkbookRegistryBackend, type ConnectionEntry, STORAGE_CONNECTIONS
 import { type DataFile, type DataFileContent, type DeleteWorkbookFilesOptions, STORAGE_ATTACHMENTS_FOLDER } from './storage_backend.js';
 import type * as core from '../../core/index.js';
 import { RESULTS_FOLDER } from '../workbook/workbook_result_files.js';
-import { sleep } from '../utils/sleep.js';
 import { getOPFSRoot } from '../opfs_root.js';
 import { HYPER_CLOUDS_DIRECTORY } from '../hyperdb/hyperdb_opfs_instance.js';
 import {
@@ -24,10 +23,6 @@ import {
 export const OPFS_MANIFEST_LOCK = 'dashql-manifest';
 /// The name of the web lock that guards the workbook tree
 export const OPFS_WORKBOOK_TREE_LOCK = 'dashql-workbook-tree';
-
-/// The attempts to delete the files of a connection while one of them is in use, and the delay between them
-const DELETE_IN_USE_ATTEMPTS = 20;
-const DELETE_IN_USE_RETRY_MS = 100;
 
 /// The name of an error of the file system API, a DOMException
 function domErrorName(error: unknown): string | null {
@@ -531,20 +526,11 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
 
     async deleteConnectionFiles(connectionId: string): Promise<void> {
         const root = this.ensureInitialized();
-        // The embedded Hyper closes the monitoring database of a deleted connection right after the deletion,
-        // until then its file is in use
-        for (let attempt = 1; ; ++attempt) {
-            try {
-                const connections = await root.getDirectoryHandle(STORAGE_CONNECTIONS_FOLDER, { create: false });
-                await connections.removeEntry(connectionId, { recursive: true });
-                return;
-            } catch (error) {
-                const name = domErrorName(error);
-                if (name === 'NotFoundError') return;
-                const inUse = name === 'NoModificationAllowedError' || name === 'InvalidModificationError';
-                if (!inUse || attempt >= DELETE_IN_USE_ATTEMPTS) throw error;
-                await sleep(DELETE_IN_USE_RETRY_MS);
-            }
+        try {
+            const connections = await root.getDirectoryHandle(STORAGE_CONNECTIONS_FOLDER, { create: false });
+            await connections.removeEntry(connectionId, { recursive: true });
+        } catch (error) {
+            if (domErrorName(error) !== 'NotFoundError') throw error;
         }
     }
 
