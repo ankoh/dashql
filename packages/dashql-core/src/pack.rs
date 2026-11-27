@@ -104,9 +104,7 @@ pub fn pack_scanned_script(scanned: &ScannedScript) -> ScannedScriptT {
 /// The token type of a scanner symbol
 fn token_type(symbol: &Symbol, text: &str) -> ScannerTokenType {
     match symbol.kind {
-        kind if Keyword::name_of(Keyword::of_lookahead_token(kind).unwrap_or(kind)).is_some() => {
-            ScannerTokenType::KEYWORD
-        }
+        kind if Keyword::name_of(Keyword::base(kind)).is_some() => ScannerTokenType::KEYWORD,
         S_SCONST | S_DCONST => ScannerTokenType::LITERAL_STRING,
         S_ICONST => ScannerTokenType::LITERAL_INTEGER,
         S_FCONST => ScannerTokenType::LITERAL_FLOAT,

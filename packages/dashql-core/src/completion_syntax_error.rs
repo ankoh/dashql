@@ -44,7 +44,7 @@ pub fn find_syntax_error(cursor: &ScriptCursor, target: Option<SymbolLocation>) 
     // The scanner picks the lookahead token of a keyword by the token after it, the word at the cursor: `nulls fi|` is
     // an error at NULLS until the word is `first`. Such a keyword belongs to the word.
     if let Some(keyword) = before.checked_sub(1).and_then(|i| scanned.symbols.get(i)) {
-        let base = Keyword::of_lookahead_token(keyword.kind).unwrap_or(keyword.kind);
+        let base = Keyword::base(keyword.kind);
         if !Keyword::lookahead_tokens(base).is_empty() {
             typed_begin = keyword.location.offset;
             before -= 1;

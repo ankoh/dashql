@@ -54,24 +54,56 @@ impl Keyword {
         None
     }
 
-    /// The text of a keyword or operator symbol
+    /// The text of a keyword symbol or of a punctuation or operator symbol with a fixed text
     pub fn symbol_text(symbol: SymbolKind) -> Option<&'static str> {
+        use symbol_kind::*;
         if let Some(name) = Self::name_of(symbol) {
             return Some(name);
         }
-        match symbol {
-            symbol_kind::S_EQUALS_GREATER => Some("=>"),
-            symbol_kind::S_LESS_EQUALS => Some("<="),
-            symbol_kind::S_GREATER_EQUALS => Some(">="),
-            symbol_kind::S_NOT_EQUALS => Some("!="),
-            symbol_kind::S_COLON_EQUALS => Some(":="),
-            _ => None,
-        }
+        Some(match symbol {
+            S_LRB => "(",
+            S_RRB => ")",
+            S_LSB => "[",
+            S_RSB => "]",
+            S_LCB => "{",
+            S_RCB => "}",
+            S_STAR => "*",
+            S_COMMA => ",",
+            S_COLON => ":",
+            S_QUESTION_MARK => "?",
+            S_DOLLAR => "$",
+            S_SEMICOLON => ";",
+            S_MINUS => "-",
+            S_PLUS => "+",
+            S_DIVIDE => "/",
+            S_MODULO => "%",
+            S_LESS_THAN => "<",
+            S_GREATER_THAN => ">",
+            S_EQUALS => "=",
+            S_CIRCUMFLEX => "^",
+            S_AMPERSAND => "&",
+            S_PIPE => "|",
+            S_EXCLAMATION_MARK => "!",
+            S_DOT | S_DOT_TRAILING | S_DOT_STAR_LA => ".",
+            S_DOT_DOT => "..",
+            S_TYPECAST => "::",
+            S_COLON_EQUALS => ":=",
+            S_EQUALS_GREATER => "=>",
+            S_LESS_EQUALS => "<=",
+            S_GREATER_EQUALS => ">=",
+            S_NOT_EQUALS => "<>",
+            _ => return None,
+        })
     }
 
     /// The keyword text of a terminal symbol, if the symbol is a keyword
     pub fn name_of(symbol: SymbolKind) -> Option<&'static str> {
         keyword_names().get(symbol as usize).copied().flatten()
+    }
+
+    /// The keyword of a symbol, a lookahead token is its keyword
+    pub fn base(symbol: SymbolKind) -> SymbolKind {
+        Self::of_lookahead_token(symbol).unwrap_or(symbol)
     }
 
     /// The keyword of a lookahead token. The scanner replaces a keyword with its lookahead token if the next token

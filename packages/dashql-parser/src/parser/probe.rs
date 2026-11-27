@@ -53,7 +53,7 @@ impl PrefixSnapshot {
 
 /// A keyword with its lookahead tokens, or the symbol alone
 fn token_variants(kind: SymbolKind) -> Vec<SymbolKind> {
-    let base = Keyword::of_lookahead_token(kind).unwrap_or(kind);
+    let base = Keyword::base(kind);
     let tokens = Keyword::lookahead_tokens(base);
     if tokens.is_empty() {
         return vec![kind];

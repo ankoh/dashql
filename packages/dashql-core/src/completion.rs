@@ -146,7 +146,7 @@ fn name_tag_scores(strategy: CompletionStrategy) -> [(NameTag, Score); 7] {
 
 /// The prevalence of a keyword
 fn keyword_prevalence(keyword: SymbolKind) -> CandidateTag {
-    match Keyword::of_lookahead_token(keyword).unwrap_or(keyword) {
+    match Keyword::base(keyword) {
         S_SELECT | S_FROM | S_WHERE => CandidateTag::KEYWORD_A,
         S_AND | S_GROUP_P | S_ORDER => CandidateTag::KEYWORD_B,
         // Not END, it also begins a statement and would come before SET and WITH there
@@ -159,6 +159,12 @@ fn keyword_prevalence(keyword: SymbolKind) -> CandidateTag {
 /// Tokens after which no passive keyword hints are shown
 fn suppress_passive_hint(kind: SymbolKind) -> bool {
     matches!(kind, S_SELECT | S_FROM | S_JOIN | S_WHERE | S_ON | S_AND | S_OR | S_BY)
+}
+
+/// Can a symbol continue a candidate: a keyword or an operator of more than one character, punctuation doesn't
+fn is_continuation(kind: SymbolKind) -> bool {
+    Keyword::name_of(kind).is_some()
+        || matches!(kind, S_EQUALS_GREATER | S_LESS_EQUALS | S_GREATER_EQUALS | S_NOT_EQUALS | S_COLON_EQUALS)
 }
 
 /// The continuation score of a keyword
@@ -2285,7 +2291,7 @@ impl<'c, 'a> Completion<'c, 'a> {
             let mut keyword_count = 0;
             let mut unique = None;
             for &sym in expected {
-                if Keyword::symbol_text(sym).is_none_or(|t| t.is_empty()) {
+                if !is_continuation(sym) {
                     continue;
                 }
                 keyword_count += 1;

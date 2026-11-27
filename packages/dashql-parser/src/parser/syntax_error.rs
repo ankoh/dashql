@@ -62,45 +62,7 @@ impl<'a> Unexpected<'a> {
 
 /// The keyword of a token, a lookahead token is its keyword
 fn keyword_name(kind: SymbolKind) -> Option<&'static str> {
-    Keyword::name_of(Keyword::of_lookahead_token(kind).unwrap_or(kind))
-}
-
-/// The text of a punctuation or operator token that has a fixed one
-fn fixed_text(kind: SymbolKind) -> Option<&'static str> {
-    Some(match kind {
-        S_LRB => "(",
-        S_RRB => ")",
-        S_LSB => "[",
-        S_RSB => "]",
-        S_LCB => "{",
-        S_RCB => "}",
-        S_STAR => "*",
-        S_COMMA => ",",
-        S_COLON => ":",
-        S_QUESTION_MARK => "?",
-        S_DOLLAR => "$",
-        S_SEMICOLON => ";",
-        S_MINUS => "-",
-        S_PLUS => "+",
-        S_DIVIDE => "/",
-        S_MODULO => "%",
-        S_LESS_THAN => "<",
-        S_GREATER_THAN => ">",
-        S_EQUALS => "=",
-        S_CIRCUMFLEX => "^",
-        S_AMPERSAND => "&",
-        S_PIPE => "|",
-        S_EXCLAMATION_MARK => "!",
-        S_DOT | S_DOT_TRAILING | S_DOT_STAR_LA => ".",
-        S_DOT_DOT => "..",
-        S_TYPECAST => "::",
-        S_COLON_EQUALS => ":=",
-        S_EQUALS_GREATER => "=>",
-        S_LESS_EQUALS => "<=",
-        S_GREATER_EQUALS => ">=",
-        S_NOT_EQUALS => "<>",
-        _ => return None,
-    })
+    Keyword::name_of(Keyword::base(kind))
 }
 
 /// The text of a token in a message, shortened, in double quotes unless it is quoted already
@@ -153,7 +115,7 @@ fn describe_expected(kind: SymbolKind) -> Cow<'static, str> {
         Cow::Borrowed(class)
     } else if let Some(keyword) = keyword_name(kind) {
         Cow::Owned(keyword.to_ascii_uppercase())
-    } else if let Some(text) = fixed_text(kind) {
+    } else if let Some(text) = Keyword::symbol_text(kind) {
         Cow::Owned(format!("\"{text}\""))
     } else {
         symbol_name(kind)
