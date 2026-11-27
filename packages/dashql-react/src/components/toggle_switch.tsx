@@ -22,7 +22,6 @@ export const ToggleSwitch = React.forwardRef<HTMLButtonElement, ToggleSwitchProp
                 [styles.checked]: checked,
                 [styles.disabled]: disabled,
                 [styles.small]: size === 'small',
-                [styles.medium]: size === 'medium',
             }, className)}
         >
             <span className={styles.handle} />
