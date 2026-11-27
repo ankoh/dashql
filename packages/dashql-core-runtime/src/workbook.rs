@@ -844,8 +844,8 @@ pub struct RunPlanRequest<'a> {
     pub mount_prefix: &'a str,
     /// The files of the materialized results of scripts below the mount prefix, by script index
     pub materialization_files: &'a [(u32, String)],
-    /// Plan every script and leave out what can't be planned instead of failing (`PlanScope::Tolerant`), for a run
-    /// that executes nothing: the read of the stored results of a workbook that opened
+    /// Plan every script and leave out what can't be planned instead of failing (`PlanScope::Tolerant`), for a run of
+    /// the whole workbook
     pub tolerant: bool,
 }
 

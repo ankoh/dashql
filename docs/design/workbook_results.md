@@ -166,9 +166,11 @@ result, a result of another version of the keys or of an earlier text of the scr
 card marks such a result as outdated, the log names the key of the script and the key of the file. The scripts
 downstream of it cover its file like any reused file and scan it. A refresh uses no stored result. A script of such a
 connection without a stored result, or one that isn't cacheable, is skipped with every statement that follows it. A
-script runs completely or not at all. The run counts the skipped scripts
-(`WorkbookRunState.skippedScripts`, `skippedFiles`), the status shows `3/5 completed · 2 need a connection`, its
-tooltip names the scripts, and the connections of the workbook pulse in the bar once a run of the open page settles. A
+script runs completely or not at all. A script that runs only on request (`@manual` or a call that writes,
+`script_references.md`) is held back with the scripts that follow it in the plan, they count as completed. The run
+counts the skipped scripts that need a connection (`WorkbookRunState.skippedScripts`, `skippedFiles`), the status
+shows `3/5 completed · 2 need a connection`, its tooltip names the scripts, and the connections of the workbook pulse
+in the bar once a run of the open page settles. A
 skipped script keeps showing its stored result. The log of a run that skipped scripts names each one with the reason,
 the key it looked for and the key of the stored file.
 

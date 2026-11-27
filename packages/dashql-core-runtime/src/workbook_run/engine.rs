@@ -26,6 +26,7 @@ use crate::executor::{QueryId, StoredFile};
 use crate::host::signal::{oneshot, Sender};
 use crate::host::LogLevel;
 use crate::perf_marks;
+use crate::planner::runs_on_request;
 use crate::workbook::{RunPlanRequest, ScriptKey, ScriptVisualization, SessionHandle, Workbook, WorkbookAction};
 
 /// The statements that settle between two yields to the host
@@ -970,21 +971,24 @@ impl<H: RunHost> Run<H> {
             *self.shown.borrow_mut() = Some(graph.clone());
         }
         let mut decoded = self.visualizations(&graph)?;
-        // The scripts that the run leaves out. A run of a shown workbook calls no client function and holds back the
-        // scripts that run only on request and those whose visualizations don't decode: its tolerant plan has them all.
-        // A run of the workbook that isn't a shown one refuses the scripts that it can't plan, those whose analysis or
-        // references fail and those whose visualizations don't decode, and runs the others.
+        // The scripts that the run leaves out. A run of the workbook holds back the scripts that run only on request
+        // (`@manual`, a call that writes), its tolerant plan has them. A run of a shown workbook also calls no client
+        // function and holds back the scripts whose visualizations don't decode. A run of the workbook that isn't a
+        // shown one refuses the scripts that it can't plan, those whose analysis or references fail and those whose
+        // visualizations don't decode, and runs the others.
         let mut excluded: BTreeMap<u32, Exclusion> = BTreeMap::new();
         if self.options.local {
             let undecodable = "its visualization doesn't decode";
             excluded.extend(decoded.1.iter().map(|script| (*script, Exclusion::Held(undecodable))));
-            let dataflow =
-                self.workbook.try_borrow().map_err(|_| RunFailure::error("The workbook is busy"))?.dataflow();
-            for (script, flow) in dataflow.scripts.iter().enumerate() {
-                if flow.manual {
+        }
+        if self.options.local || (self.tolerant() && targets.is_none()) {
+            for (script, session) in self.sessions.iter().enumerate() {
+                if runs_on_request(session.borrow().script()) {
                     excluded.insert(script as u32, Exclusion::Held("runs only on request"));
                 }
             }
+        }
+        if self.options.local {
             for node in nodes(&graph).iter().filter(|node| node.client_function_call.is_some()) {
                 excluded.insert(node.script, Exclusion::Held("calls a client function"));
             }
@@ -1178,18 +1182,20 @@ impl<H: RunHost> Run<H> {
             }
         }
         if !skipped.is_empty() {
-            let skipped_files: Vec<String> = skipped.iter().map(|index| self.file(*index)).collect();
-            let skipped_count = skipped.len();
-            let emitted_files = skipped_files.clone();
             let local = self.options.local;
-            // The scripts that a run of a shown workbook leaves out are done, they need no connection
+            // The scripts that a run of a shown workbook leaves out are done, they need no connection. So are the
+            // scripts that a run holds back and those that follow them.
+            let held_back: BTreeSet<u32> = skipped_nodes(&graph, &connection_ids, &held, |_| true)
+                .iter()
+                .filter_map(|node| nodes(&graph).get(*node as usize).map(|node| node.script))
+                .collect();
+            let (done, need_connection): (Vec<u32>, Vec<u32>) =
+                skipped.iter().partition(|script| local || held_back.contains(script));
+            let skipped_files: Vec<String> = need_connection.iter().map(|index| self.file(*index)).collect();
             self.emit(|state| {
-                if local {
-                    state.completed_scripts += skipped_count;
-                } else {
-                    state.skipped_scripts = skipped_count;
-                    state.skipped_files = emitted_files;
-                }
+                state.completed_scripts += done.len();
+                state.skipped_scripts = skipped_files.len();
+                state.skipped_files = skipped_files;
             });
             // Why a script didn't use a stored result, with the key it looked for
             let reason = |index: u32| {
@@ -1214,7 +1220,7 @@ impl<H: RunHost> Run<H> {
             let message = if local {
                 "Showing the stored results of the scripts that don't run"
             } else {
-                "Skipping the scripts that need a connection"
+                "Skipping the scripts that don't run"
             };
             self.log(
                 LogLevel::Info,

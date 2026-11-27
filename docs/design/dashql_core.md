@@ -341,7 +341,8 @@ loader. See [catalog_updates.md](catalog_updates.md) and [catalog_batching.md](c
   set up are skipped with what follows them. A script of a connection that can't run uses its stored result whatever
   its key, it is skipped only without one.
 - A run of the whole workbook plans tolerantly (`PlanScope::Tolerant`): a script that doesn't analyze, can't be planned
-  or whose visualization doesn't decode fails on its own and blocks what follows it. A run of targets, of a script or
+  or whose visualization doesn't decode fails on its own and blocks what follows it. It holds back the scripts that run
+  only on request (`@manual`, a call that writes) and what follows them. A run of targets, of a script or
   of a change of inputs, still needs all of its plan.
 - One run holds a workbook. A run of the whole workbook takes the connections of its scripts and starts only while they
   are idle; otherwise it resolves `refused` with the reason. A change of inputs while the workbook is busy stops the run

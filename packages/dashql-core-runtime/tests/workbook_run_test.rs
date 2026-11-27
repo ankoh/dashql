@@ -883,7 +883,10 @@ fn connection_with_client_functions(id: &str, local: bool) -> Rc<ScriptConnectio
         "namespace": "t",
         "hosts": { "api": { "base_path": "/v1" } },
         "errors": { "message": ["/message"] },
-        "functions": [{ "name": "list", "method": "GET", "host": "api", "path": "/items" }]
+        "functions": [
+            { "name": "list", "method": "GET", "host": "api", "path": "/items" },
+            { "name": "create", "method": "POST", "effect": "write", "host": "api", "path": "/items" }
+        ]
     }"#;
     catalog.register_client_functions(spec).unwrap();
     let profile = ScriptConnectionProfile {
@@ -960,6 +963,36 @@ fn execute_all_calls_the_client_functions_that_a_shown_workbook_leaves_out() {
     let statements = &s.state.borrow().statements;
     assert_eq!(statements.len(), 1);
     assert!(statements[0].request.client_function_call.is_some());
+}
+
+#[test]
+fn execute_all_holds_back_the_scripts_that_run_only_on_request() {
+    let local = connection_with_client_functions("local", true);
+    // A call is a barrier, the scripts after the write would follow it
+    let workbook = workbook(&[
+        ("read.sql", "call t.list()", &local),
+        ("manual.sql", "/* @manual */\nselect 1 as a", &local),
+        ("west.sql", "select count(*) from :manual", &local),
+        ("write.sql", "call t.create()", &local),
+    ]);
+    let s = setup(true, Some("/mnt/cache"), 1);
+    let result = s.run(&workbook, workbook_run());
+    assert!(result.failure.is_none(), "{:?}", result.failure);
+    // The manual script and the write don't run, the read runs and the reference inlines the manual script
+    assert_eq!(s.events("manual.sql"), vec!["skipped"]);
+    assert_eq!(s.events("write.sql"), vec!["skipped"]);
+    let statements = &s.state.borrow().statements;
+    let calls: Vec<&str> = statements
+        .iter()
+        .filter(|s| s.request.client_function_call.is_some())
+        .map(|s| s.request.text.as_str())
+        .collect();
+    assert_eq!(calls, vec!["call t.list()"], "{:?}", s.texts());
+    assert!(statements.iter().any(|s| s.request.text.contains("select 1")), "{:?}", s.texts());
+    // The scripts that the run holds back are done, they need no connection
+    let last = s.last_state();
+    assert_eq!((last.phase, last.completed_scripts, last.total_scripts), (RunPhase::Succeeded, 4, 4));
+    assert_eq!(last.skipped_scripts, 0);
 }
 
 /// The scripts whose stored results the last runs read
