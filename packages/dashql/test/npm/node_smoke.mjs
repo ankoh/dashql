@@ -29,9 +29,11 @@ for (const instance of [first, second]) {
     const result = instance.processBatch({ scripts: [{ id: 'query', text: 'select 1', outputs: ['analyzed'] }] });
     assert.equal(result.scripts.length, 1);
     assert.ok(result.scripts[0].analyzed.byteLength > 0);
-    const shell = new instance.bindings.Shell(catalog.ptr.assertNotNull(), 80, false);
-    shell.setPrompt('sel');
-    assert.ok(shell.completePrompt(5).some(candidate => candidate.completionText === 'select'));
+    const shell = new instance.bindings.Shell(catalog.ptr.assertNotNull(), 80);
+    assert.equal(shell.promptInfo('select 1;').isComplete, true);
+    assert.equal(shell.promptInfo('select 1').isComplete, false);
+    assert.equal(shell.setCommands('help\noutput'), 0);
+    assert.equal(shell.completeCommand('.he').text, '.help ');
     shell.free();
     instance.resetUnsafe();
 }
