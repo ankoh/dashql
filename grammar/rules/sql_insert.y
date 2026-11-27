@@ -54,8 +54,11 @@ sql_insert_rest:
   | DEFAULT VALUES { ctx.list(&[attr(Key::SQL_INSERT_DEFAULT_VALUES, bool_node(@$, true))]) }
   // The end of the input or an error after the target still reduces the INSERT, so that the target of an unfinished
   // statement stays a table ref, `insert into sch.` or `insert into sch. values (1)` (`sch.values`)
-  | EOF { ctx.list(&[]) }
-  | error { ctx.list(&[]) }
+  | sql_eof_or_error { ctx.list(&[]) }
+    ;
+
+// The end of the input or an error, after the target of an unfinished INSERT or UPDATE
+sql_eof_or_error: EOF | error
     ;
 
 // ON CONFLICT [ (columns) [WHERE predicate] | ON CONSTRAINT name ] DO NOTHING | DO UPDATE SET ... [WHERE condition]

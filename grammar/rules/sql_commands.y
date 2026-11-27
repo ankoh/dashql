@@ -2067,10 +2067,7 @@ sql_cmd_unload_release_stmt:
 sql_cmd_update_stmt:
     // The end of the input or an error after the target still reduces the UPDATE, so that the target of an unfinished
     // statement stays a table ref, `update sch.`, `update t se` or `update sch. set a = 1` (`sch.set`)
-    sql_optional_with_clause UPDATE sql_cmd_relation_expr_opt_alias EOF {
-        ctx.object(@$, NodeType::OBJECT_SQL_UPDATE, ctx.concat2($1, &[attr(Key::SQL_UPDATE_TARGET, $3)]))
-    }
-    | sql_optional_with_clause UPDATE sql_cmd_relation_expr_opt_alias error {
+    sql_optional_with_clause UPDATE sql_cmd_relation_expr_opt_alias sql_eof_or_error {
         ctx.object(@$, NodeType::OBJECT_SQL_UPDATE, ctx.concat2($1, &[attr(Key::SQL_UPDATE_TARGET, $3)]))
     }
     | sql_optional_with_clause UPDATE sql_cmd_relation_expr_opt_alias SET sql_cmd_set_clause_list sql_cmd_where_or_current_clause sql_insert_returning_clause {
