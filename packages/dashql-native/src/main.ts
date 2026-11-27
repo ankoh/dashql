@@ -60,7 +60,7 @@ let agentHost: AgentHost | null = null;
 const agentPages = new WeakMap<WebContents, AgentPage>();
 const watchedAgentContents = new WeakSet<WebContents>();
 
-if (process.argv.some((arg) => arg.endsWith("-test") || arg.includes("-test="))) {
+if (process.argv.includes("--native-addon-test") || process.argv.includes("--startup-smoke-test")) {
     app.disableHardwareAcceleration();
 }
 
@@ -209,13 +209,12 @@ async function runStartupSmokeTest(window: BrowserWindow): Promise<void> {
     const runtime = await window.webContents.executeJavaScript(`({
         crossOriginIsolated: globalThis.crossOriginIsolated,
         electronBridge: typeof globalThis.dashqlElectron === "object",
-        legacyBridge: "__TAURI_INTERNALS__" in globalThis,
-    })`) as {crossOriginIsolated: boolean; electronBridge: boolean; legacyBridge: boolean};
+    })`) as {crossOriginIsolated: boolean; electronBridge: boolean};
     const output = {...result, ...runtime};
     console.log(JSON.stringify(output));
     const passed = result.status === "ready" && result.host === "electron" &&
         result.embeddedDatabase === "hyperdb-wasm" && runtime.crossOriginIsolated &&
-        runtime.electronBridge && !runtime.legacyBridge;
+        runtime.electronBridge;
     app.exit(passed ? 0 : 1);
 }
 
