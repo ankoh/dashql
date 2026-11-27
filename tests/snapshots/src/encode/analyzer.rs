@@ -4,6 +4,7 @@ use super::{encode_location_text, object_id_text, Map};
 use crate::ryml::Node;
 use dashql_buffers::algebra::LiteralType;
 use dashql_buffers::parser::{Node as AstNode, SymbolSpan};
+use dashql_buffers::visualization::KpiChart;
 use dashql_core::analyzer::*;
 use dashql_core::catalog::{Catalog, ColumnLoc, QualifiedCatalogObjectId, TableDeclaration};
 use dashql_core::touched_relations::touched_relations_of_statement;
@@ -712,20 +713,10 @@ fn encode_visualization(e: &Encoder, spec: &VisualizationSpec) -> Node {
         if let Some(x) = &kpi.x {
             out.plain("x", x);
         }
-        let delta = match kpi.delta {
-            KpiDelta::Previous => "previous",
-            KpiDelta::First => "first",
-            KpiDelta::None => "none",
-        };
-        out.plain("delta", delta);
+        out.plain("delta", &kpi.delta.variant_name().unwrap_or("?").to_ascii_lowercase());
         // The chart is a line unless the tag names another one
-        let chart = match kpi.chart {
-            KpiChart::Line => None,
-            KpiChart::Bar => Some("bar"),
-            KpiChart::None => Some("none"),
-        };
-        if let Some(chart) = chart {
-            out.plain("chart", chart);
+        if kpi.chart != KpiChart::LINE {
+            out.plain("chart", &kpi.chart.variant_name().unwrap_or("?").to_ascii_lowercase());
         }
         m.insert("kpi", out.into_node());
     }

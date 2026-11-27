@@ -13,13 +13,14 @@
 //!
 //! Candidates replace the token at the cursor, JSON keys and values are inserted as JSON strings.
 
-use crate::analyzer::{statement_output_columns, KpiChart, KpiDelta};
+use crate::analyzer::{kpi_names, statement_output_columns};
 use crate::completion::{Candidate, CandidateTags, Completion, Score};
 use crate::utils::quote_identifier;
 use crate::vis_args::{arg_at, scan_args, ArgCursor};
 use crate::vis_text::{JsonScanner, JsonSlot, JsonTokenKind, PathItem, TagText};
 use dashql_buffers::completion::CandidateTag;
 use dashql_buffers::parser::{CommentBlockType, SymbolSpan};
+use dashql_buffers::visualization::{KpiChart, KpiDelta};
 use dashql_parser::comment_blocks::{CommentBlock, COMMENT_TAGS, COMMENT_TAG_END};
 use dashql_parser::parser::ParsedScript;
 use dashql_parser::span::TextSpan;
@@ -356,8 +357,8 @@ impl Candidates {
         self.out.push(candidate);
     }
 
-    fn add_all(&mut self, names: &[&str], quote: bool) {
-        for name in names {
+    fn add_all(&mut self, names: &[impl AsRef<str>], quote: bool) {
+        for name in names.iter().map(AsRef::as_ref) {
             self.add(name, if quote { json_string(name) } else { name.to_string() });
         }
     }
@@ -588,8 +589,8 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
                                 candidates.add(&column, quote_identifier(&column));
                             }
                         }
-                        "delta" => candidates.add_all(KpiDelta::NAMES, false),
-                        "chart" => candidates.add_all(KpiChart::NAMES, false),
+                        "delta" => candidates.add_all(&kpi_names(KpiDelta::ENUM_VALUES, KpiDelta::variant_name), false),
+                        "chart" => candidates.add_all(&kpi_names(KpiChart::ENUM_VALUES, KpiChart::variant_name), false),
                         _ => return None,
                     }
                     Some(candidates.finish(k))

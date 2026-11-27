@@ -25,7 +25,7 @@ pub use clfn_calls::ClientFunctionCall;
 pub use sql_types::{SqlType, SqlTypeKind};
 pub use transactions::TransactionBlock;
 pub use types::*;
-pub use vis_tags::{has_vis_tags, statement_output_columns};
+pub use vis_tags::{has_vis_tags, kpi_names, statement_output_columns};
 
 use crate::catalog::*;
 use crate::error::Result;

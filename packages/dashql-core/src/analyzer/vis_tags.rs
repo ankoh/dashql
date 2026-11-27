@@ -27,6 +27,7 @@ use crate::vis_args::{scan_args, ArgValue};
 use crate::vis_text::{JsonScanner, JsonSlot, TagText};
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
 use dashql_buffers::parser::{CommentBlockType, StatementType};
+use dashql_buffers::visualization::{KpiChart, KpiDelta};
 use dashql_parser::comment_blocks::CommentBlock;
 use dashql_parser::span::TextSpan;
 use serde_json::{Map, Value};
@@ -253,38 +254,38 @@ impl StatementTags {
         };
         let value = column(state, value, "value");
         let x = column(state, x, "x");
-        let delta = match delta {
-            None | Some((ArgValue::Invalid, _)) => KpiDelta::default(),
-            Some((ArgValue::Name(name), _)) if KpiDelta::from_name(&name).is_some() => {
-                KpiDelta::from_name(&name).unwrap_or_default()
-            }
-            Some((value, span)) => {
-                let written = match value {
-                    ArgValue::Name(text) | ArgValue::String(text) | ArgValue::Number(text) => text,
-                    _ => String::new(),
-                };
-                warn(
-                    state,
-                    span,
-                    format!("unknown @vis kpi delta \"{written}\", expected {}", KpiDelta::NAMES.join(", ")),
-                );
-                KpiDelta::default()
-            }
-        };
-        let chart = match chart {
-            None | Some((ArgValue::Invalid, _)) => KpiChart::default(),
-            Some((ArgValue::Name(name), span)) => KpiChart::from_name(&name).unwrap_or_else(|| {
-                let message = format!("unknown @vis kpi chart \"{name}\", expected {}", KpiChart::NAMES.join(", "));
-                warn(state, span, message);
-                KpiChart::default()
-            }),
-            Some((_, span)) => {
-                warn(state, span, format!("@vis kpi chart takes {}", KpiChart::NAMES.join(", ")));
-                KpiChart::default()
-            }
-        };
+        let delta = read_kpi_choice(state, delta, "delta", KpiDelta::ENUM_VALUES, KpiDelta::variant_name);
+        let chart = read_kpi_choice(state, chart, "chart", KpiChart::ENUM_VALUES, KpiChart::variant_name);
         self.kpi = Some(KpiSpec { value, x, delta, chart });
     }
+}
+
+/// The names of the values of a packed enum in lowercase, the values of the `delta` and the `chart` of `@vis kpi`
+pub fn kpi_names<T: Copy>(values: &[T], name: fn(T) -> Option<&'static str>) -> Vec<String> {
+    values.iter().map(|&value| name(value).unwrap_or_default().to_ascii_lowercase()).collect()
+}
+
+/// Read the `delta` or the `chart` of `@vis kpi`, a name of a value of its packed enum, the default when the arg is
+/// missing or names no value
+fn read_kpi_choice<T: Copy + Default>(
+    state: &mut AnalysisState,
+    arg: Option<(ArgValue, TextSpan)>,
+    key: &str,
+    values: &[T],
+    name: fn(T) -> Option<&'static str>,
+) -> T {
+    // The scanner reported an invalid value
+    let Some((value, span)) = arg.filter(|(value, _)| *value != ArgValue::Invalid) else { return T::default() };
+    let names = kpi_names(values, name);
+    let message = match value {
+        ArgValue::Name(written) => match names.iter().position(|n| *n == written).and_then(|i| values.get(i)) {
+            Some(&value) => return value,
+            None => format!("unknown @vis kpi {key} \"{written}\", expected {}", names.join(", ")),
+        },
+        _ => format!("@vis kpi {key} takes {}", names.join(", ")),
+    };
+    warn(state, span, message);
+    T::default()
 }
 
 /// The message of a name that is no output column of the statement, a `field` of Vega-Lite or a `column`

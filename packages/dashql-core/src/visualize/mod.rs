@@ -16,8 +16,8 @@ pub use markdown::{
 };
 pub use vegalite_generator::generate_vegalite_spec;
 
-use crate::analyzer::{AnalyzedScript, KpiChart, KpiDelta, KpiSpec, VisualizationSpec};
-use dashql_buffers::visualization::{KpiChart as PackedKpiChart, KpiDelta as PackedKpiDelta, KpiSpecT};
+use crate::analyzer::{AnalyzedScript, KpiSpec, VisualizationSpec};
+use dashql_buffers::visualization::KpiSpecT;
 use dashql_parser::parser::context::resolve_text_span;
 
 /// The text of a node (`input.substr(span.offset(), span.length())`)
@@ -36,16 +36,8 @@ pub fn pack_kpi_spec(spec: &KpiSpec) -> KpiSpecT {
     let mut out = KpiSpecT::default();
     out.value_column = spec.value.clone();
     out.x_column = spec.x.clone();
-    out.delta = match spec.delta {
-        KpiDelta::Previous => PackedKpiDelta::PREVIOUS,
-        KpiDelta::First => PackedKpiDelta::FIRST,
-        KpiDelta::None => PackedKpiDelta::NONE,
-    };
-    out.chart = match spec.chart {
-        KpiChart::Line => PackedKpiChart::LINE,
-        KpiChart::Bar => PackedKpiChart::BAR,
-        KpiChart::None => PackedKpiChart::NONE,
-    };
+    out.delta = spec.delta;
+    out.chart = spec.chart;
     out
 }
 

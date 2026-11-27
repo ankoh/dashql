@@ -1411,7 +1411,7 @@ analyzer-snapshots:
       catalog-id: 2
       errors:
         - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis kpi needs a column name after =', text: "value="}
-        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'unknown @vis kpi delta "3", expected previous, first, none', text: "delta=3"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis kpi delta takes previous, first, none', text: "delta=3"}
         - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis kpi chart takes line, bar, none', text: "chart='bar'"}
       table-refs:
         - {type: name/catalog, catalog-id: "256.65536.1:0", text: "sales"}

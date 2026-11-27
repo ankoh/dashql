@@ -9,6 +9,7 @@ use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
 use dashql_buffers::parser::{
     AttributeKey, GroupByItemType, IntervalType as IntervalTypeEnum, KnownFunction, Node, NodeType, SymbolSpan,
 };
+use dashql_buffers::visualization::{KpiChart, KpiDelta};
 use dashql_parser::span::TextSpan;
 use std::borrow::Borrow;
 use std::sync::Arc;
@@ -958,60 +959,6 @@ pub struct MarkdownSpec {
     pub row_template: String,
 }
 
-/// The change that a KPI card shows next to its value, the `delta` of `@vis kpi`
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub enum KpiDelta {
-    /// The value of the last row against the row before it
-    #[default]
-    Previous,
-    /// The value of the last row against the first row
-    First,
-    /// Only the value
-    None,
-}
-
-impl KpiDelta {
-    /// The values of the `delta` arg
-    pub const NAMES: &'static [&'static str] = &["previous", "first", "none"];
-
-    /// The delta of a value of the `delta` arg
-    pub fn from_name(name: &str) -> Option<Self> {
-        match name {
-            "previous" => Some(Self::Previous),
-            "first" => Some(Self::First),
-            "none" => Some(Self::None),
-            _ => None,
-        }
-    }
-}
-
-/// The chart of a KPI card behind its value, the `chart` of `@vis kpi`
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub enum KpiChart {
-    /// A line with its area
-    #[default]
-    Line,
-    /// A bar per row, from zero
-    Bar,
-    /// Only the value
-    None,
-}
-
-impl KpiChart {
-    /// The values of the `chart` arg
-    pub const NAMES: &'static [&'static str] = &["line", "bar", "none"];
-
-    /// The chart of a value of the `chart` arg
-    pub fn from_name(name: &str) -> Option<Self> {
-        match name {
-            "line" => Some(Self::Line),
-            "bar" => Some(Self::Bar),
-            "none" => Some(Self::None),
-            _ => None,
-        }
-    }
-}
-
 /// A KPI card, the args of the `@vis kpi` tag. The value of the last row is the figure, the rows are the chart
 /// behind it.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -1020,9 +967,9 @@ pub struct KpiSpec {
     pub value: Option<String>,
     /// The column of the x axis of the chart, None for the first column of a result with more than one
     pub x: Option<String>,
-    /// The change next to the value
+    /// The change next to the value, the `delta`
     pub delta: KpiDelta,
-    /// The chart behind the value
+    /// The chart behind the value, the `chart`
     pub chart: KpiChart,
 }
 
