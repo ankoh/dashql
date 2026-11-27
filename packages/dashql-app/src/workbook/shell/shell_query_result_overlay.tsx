@@ -82,9 +82,9 @@ const ResultOverlay: React.FC<Props> = ({
     const [lockedHeight, setLockedHeight] = React.useState<{ queryId: number; height: number } | null>(null);
     const currentLockedHeight = lockedHeight?.queryId === query.queryId ? lockedHeight.height : null;
     const model = dependencies.useResultModel(query);
-    // A plan is a result of one row with one column, the overlay reads that row
-    const firstRow = useResultRows(model, 'first', 1, false);
-    const planRow = firstRow.rows === 1 ? firstRow.table : null;
+    // A plan is a result of one row with one column, the overlay reads that row of such a result only
+    const resultRows = model?.query.resultTable?.rows ?? model?.computation?.computation.dataTableRows ?? 0;
+    const planRow = useResultRows(resultRows === 1 ? model : null, 'first', 1, false).table;
     const planText = React.useMemo(() => getPlanResultText(planRow), [planRow]);
     const planEngine = detectPlanEngine(planText) ?? dashql.buffers.profile.ProfileEngine.HYPER;
     const { plan, execution, rotate } = dependencies.useQueryProfile(planEngine, planText);

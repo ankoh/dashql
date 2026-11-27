@@ -198,6 +198,25 @@ describe('ShellQueryResultOverlay', () => {
         expect(dialog().style.height).toBe('');
     });
 
+    it('reads no row of a result with more than one row', async () => {
+        const query = {
+            queryId: 42,
+            status: QueryExecutionStatus.SUCCEEDED,
+            resultTable: resultTableOf(tableFromArrays({ value: ['a', 'b'] })),
+        } as unknown as OverlayQuery;
+        act(() => root.render(
+            <WithResultTables><ShellQueryResultOverlay
+                query={query}
+                onClose={vi.fn()}
+                dependencies={dependencies}
+            /></WithResultTables>,
+        ));
+        await waitForRender(() => expect(queryResults()).not.toBeNull());
+
+        expect(analyzedQueryModelOf(query)!.computation!.previewRows).not.toHaveBeenCalled();
+        expect(tabButton(PLAN_TAB)).toBeNull();
+    });
+
     it('expands the Plan tab to fill the window', async () => {
         const plan = '{"operator":"executiontarget","operatorId":1}';
         vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ height: 272 } as DOMRect);
