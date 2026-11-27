@@ -21,7 +21,6 @@ import {
     DEFAULT_FEED_ENTRY_HEADER_DEPENDENCIES, FeedEntryHeader, type FeedEntryHeaderDependencies, type FeedEntryHeaderDisplay,
 } from './feed_entry_header.js';
 import { FeedEntryTab, FeedEntryTabStrip, useFeedEntryTabs } from './feed_entry_footer.js';
-import { useEagerDismiss, useEagerDismissTarget, type EagerDismissTarget } from './eager_dismiss.js';
 import type { ScriptConnectionView } from '../scripts/script_connection_picker.js';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 
@@ -85,7 +84,7 @@ export interface ScriptResultSlot {
     onShowTable: () => void;
     /// The table shows more rows in the card, with a scroller and the column plots
     moreRows: boolean;
-    /// Show more rows of the table in the card, until the user turns to something else
+    /// Show more rows of the table in the card, until the user shows fewer, picks a tab, folds the result or runs again
     onShowMoreRows: () => void;
     /// Show only the first rows of the table again
     onShowFewerRows: () => void;
@@ -155,8 +154,6 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
 
     // Labels use the display name (the file name without ".sql"), the file name stays the identity of the commands
     const displayName = scriptDisplayName(fileName);
-    // The presses inside the card, the result dismisses its more rows on the others
-    const dismissTarget = useEagerDismissTarget();
     // A read-only workbook shows its cards greyed out
     const readOnly = useWorkbookReadOnly();
     return (
@@ -165,7 +162,6 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
             data-read-only={readOnly ? '' : undefined}
             data-electron-drag-region="false"
             onPointerEnter={() => feed.focus(fileName)}
-            onPointerDownCapture={dismissTarget.onPointerDownCapture}
             aria-label={`${displayName} script cell`}
             data-testid="script-cell"
         >
@@ -235,7 +231,6 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                     run={model.run}
                     cancel={model.cancel}
                     result={result}
-                    dismissTarget={dismissTarget}
                     resultPanel={props.resultPanel}
                     resultTable={props.resultTable}
                 />
@@ -261,8 +256,6 @@ interface ScriptCardResultProps {
     run: ScriptModel['run'];
     cancel: ScriptModel['cancel'];
     result: ScriptResultFold;
-    /// The presses inside the card
-    dismissTarget: EagerDismissTarget;
     resultPanel: (slot: ScriptResultSlot) => React.ReactNode;
     resultTable: (slot: ScriptResultTableSlot) => React.ReactNode;
 }
@@ -297,16 +290,14 @@ const ScriptCardResult = React.memo(function ScriptCardResult(props: ScriptCardR
     const showTable = React.useCallback(() => setTableOpen(true), []);
     const closeTable = React.useCallback(() => setTableOpen(false), []);
 
-    // More rows of the table grow the card in place for a moment: the card shows them for the query that the user
-    // expanded and only on its table tab, and shows the first rows again as soon as the user presses Escape or
-    // something outside of the card, picks a tab or folds the result
+    // More rows of the table grow the card in place: the card shows them for the query that the user expanded and only
+    // on its table tab, and shows the first rows again with the row under the rows, a tab or the fold of the result
     const queryId = query?.queryId ?? null;
     const [moreRowsQueryId, setMoreRowsQueryId] = React.useState<number | null>(null);
     const moreRows = queryId != null && moreRowsQueryId === queryId && result.expanded
         && resultTabs.selectedTab === FeedEntryTab.Table;
     const showMoreRows = React.useCallback(() => setMoreRowsQueryId(queryId), [queryId]);
     const showFewerRows = React.useCallback(() => setMoreRowsQueryId(null), []);
-    useEagerDismiss(props.dismissTarget, moreRows, showFewerRows);
 
     const resultContentId = `feed-result-${scriptKey}`;
     const readOnly = useWorkbookReadOnly();
