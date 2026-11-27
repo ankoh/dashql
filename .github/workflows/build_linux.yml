@@ -134,8 +134,8 @@ jobs:
 
             - uses: ./.github/actions/setup-ubuntu-mirror
 
-            - uses: ./.github/actions/install-build-dependencies
-
+            # The suites run on the outputs of the build job and build nothing that needs the build dependencies.
+            # Chromium and Firefox find their libraries on the runner image, WebKit links some more.
             - uses: ./.github/actions/install-webkit-libraries
               if: matrix.browser == 'webkit'
 
