@@ -60,14 +60,15 @@ fn count_line_breaks(text: &[u8]) -> usize {
     text.iter().filter(|&&ch| ch == b'\n').count()
 }
 
-fn ends_with_line_break(output: &[u8]) -> bool {
-    output.last() == Some(&b'\n')
+/// End the line of the output unless the output is empty or ends with a line break
+pub(super) fn start_line(output: &mut Vec<u8>) {
+    if output.last().is_some_and(|&c| c != b'\n') {
+        output.push(b'\n');
+    }
 }
 
 fn append_comment_line(output: &mut Vec<u8>, text: &[u8], max_width: usize) {
-    if !output.is_empty() && !ends_with_line_break(output) {
-        output.push(b'\n');
-    }
+    start_line(output);
     output.extend_from_slice(b"--");
     if text.is_empty() {
         return;
@@ -306,7 +307,6 @@ fn print_tagged_comment(input: &[u8], comments: &[TextSpan], max_width: usize) -
     annotation.print("").ok().map(|(comment, _)| comment.into_bytes())
 }
 
-/// Is a comment a block comment?
 /// Is a symbol an opening (or closing) parenthesis or bracket?
 fn is_parenthesis(symbol: &str, at_start: bool) -> bool {
     if at_start {
@@ -316,6 +316,7 @@ fn is_parenthesis(symbol: &str, at_start: bool) -> bool {
     }
 }
 
+/// Is a comment a block comment?
 fn is_block_comment(input: &[u8], comment: &TextSpan) -> bool {
     comment_text(input, comment).starts_with(b"/*")
 }
@@ -395,9 +396,7 @@ fn comment_units(input: &[u8], comments: &[TextSpan]) -> Vec<Unit> {
 /// Append comments as written, without trailing whitespace
 fn append_verbatim(output: &mut Vec<u8>, input: &[u8], comments: &[TextSpan]) {
     for comment in comments {
-        if !output.is_empty() && !ends_with_line_break(output) {
-            output.push(b'\n');
-        }
+        start_line(output);
         let mut text = comment_text(input, comment);
         while let [rest @ .., last] = text {
             if !is_space(*last) {
@@ -462,9 +461,7 @@ pub(super) fn append_comments(
             last_unit = next;
         }
         let range = unit.comments.start..last_unit.comments.end;
-        if !output.is_empty() && !ends_with_line_break(output) {
-            output.push(b'\n');
-        }
+        start_line(output);
         let merged = comments.get(range.clone()).unwrap_or_default();
         match print_tagged_comment(input, merged, max_width) {
             Some(block) => output.extend_from_slice(&block),
@@ -472,9 +469,7 @@ pub(super) fn append_comments(
             None => {
                 for unit in units.get(u..=last).unwrap_or_default() {
                     let slice = unit_comments(unit);
-                    if !output.is_empty() && !ends_with_line_break(output) {
-                        output.push(b'\n');
-                    }
+                    start_line(output);
                     match print_tagged_comment(input, slice, max_width) {
                         Some(block) => output.extend_from_slice(&block),
                         None => append_verbatim(output, input, slice),
@@ -581,9 +576,7 @@ pub(super) fn append_description(
         append_comments(output, input, comments, max_width, following);
         return;
     };
-    if !output.is_empty() && !ends_with_line_break(output) {
-        output.push(b'\n');
-    }
+    start_line(output);
     output.extend_from_slice(&block);
     // A printed annotation has comments
     if let Some(last) = comments.last() {

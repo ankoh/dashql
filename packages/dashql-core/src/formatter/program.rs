@@ -9,7 +9,6 @@ use dashql_parser::keywords::Keyword;
 use std::cell::RefCell;
 
 pub const FORMATTING_DEFAULT_INDENTATION_WIDTH: usize = 2;
-pub const FORMATTING_DEFAULT_HANGING_INDENTATION_WIDTH: usize = 2;
 pub const FORMATTING_DEFAULT_MAX_WIDTH: usize = 120;
 
 /// Parse a formatting mode, compact is the default

@@ -984,7 +984,7 @@ impl<'a> Formatter<'a> {
             // keeps its parentheses too, `a cross join b join c on x` is `(a cross join b) join c on x`.
             if table.node_type() == NodeType::OBJECT_SQL_SELECT
                 || (table.node_type() == NodeType::OBJECT_SQL_JOINED_TABLE
-                    && (alias.is_some() || self.is_right_join_input(node)))
+                    && (alias.is_some() || self.join_input_index(node) == Some(1)))
             {
                 base_reg = f.parenthesized(base_reg);
             }
@@ -1031,13 +1031,13 @@ impl<'a> Formatter<'a> {
         base_reg
     }
 
-    /// Is a table reference the right input of a join?
-    fn is_right_join_input(&self, table_ref: &Node) -> bool {
-        self.ast.get(table_ref.parent() as usize).is_some_and(|inputs| {
-            inputs.node_type() == NodeType::ARRAY
-                && inputs.attribute_key() == K::SQL_JOIN_INPUT
-                && self.children(inputs).last().is_some_and(|right| self.node_id(right) == self.node_id(table_ref))
-        })
+    /// The position of a table reference in the two inputs of its join, 0 on the left and 1 on the right
+    fn join_input_index(&self, table_ref: &Node) -> Option<usize> {
+        let inputs = self.ast.get(table_ref.parent() as usize)?;
+        if inputs.node_type() != NodeType::ARRAY || inputs.attribute_key() != K::SQL_JOIN_INPUT {
+            return None;
+        }
+        self.node_id(table_ref).checked_sub(inputs.children_begin_or_value() as usize)
     }
 
     fn format_into(&self, node: &'a Node) -> FmtReg {
@@ -1213,15 +1213,8 @@ impl<'a> Formatter<'a> {
         let join_clause = self.space_join(&join_clause_parts, FormattingJoinPolicy::BreakOnOverflow, true);
 
         let clause_policy = self.pretty_policy(FormattingJoinPolicy::BreakAllOrNone);
-        let table_ref_id = node.parent() as usize;
         let is_left_nested_join =
-            self.ast.get(table_ref_id).and_then(|table_ref| self.ast.get(table_ref.parent() as usize)).is_some_and(
-                |parent| {
-                    parent.node_type() == NodeType::ARRAY
-                        && parent.attribute_key() == K::SQL_JOIN_INPUT
-                        && table_ref_id == parent.children_begin_or_value() as usize
-                },
-            );
+            self.ast.get(node.parent() as usize).is_some_and(|table_ref| self.join_input_index(table_ref) == Some(0));
         self.space_join(&[left_reg, join_clause], clause_policy, !is_left_nested_join)
     }
 
@@ -3805,17 +3798,12 @@ impl<'a> Formatter<'a> {
         };
         let max_width = self.config.max_width as usize;
         let descriptions = self.parsed.associate_descriptions();
-        let ensure_line_break = |output: &mut Vec<u8>| {
-            if !output.is_empty() && output.last() != Some(&b'\n') {
-                output.push(b'\n');
-            }
-        };
         let mut comment_begin = 0;
         // The node spans, only needed for the comments inside of statements
         let mut node_spans: Option<comments::NodeSpans> = None;
         for (i, part) in parts.iter().enumerate() {
             if i > 0 {
-                ensure_line_break(&mut output);
+                comments::start_line(&mut output);
                 output.push(b'\n');
             }
             let statement = match part {
@@ -3830,7 +3818,7 @@ impl<'a> Formatter<'a> {
                         max_width,
                         Some(span.offset as usize),
                     );
-                    ensure_line_break(&mut output);
+                    comments::start_line(&mut output);
                     output.extend_from_slice(damaged_text(span));
                     comment_begin = comments_before(before_end, span.end() as usize);
                     // Comments after the copied text on its line stay there, like those of a parsed statement
@@ -3891,7 +3879,7 @@ impl<'a> Formatter<'a> {
                 within.to_vec()
             };
 
-            ensure_line_break(&mut output);
+            comments::start_line(&mut output);
             let (text, suffix) = self.fmt.render_with_suffix(self.statement_reg(statement), &options);
             output.extend_from_slice(text.as_bytes());
             // A comment at the end of the last line of the statement follows it like the comments after its last node
