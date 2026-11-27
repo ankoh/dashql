@@ -39,6 +39,8 @@ const VIS_TAG: &str = "vis";
 const BOARD_TAG: &str = "board";
 /// The tag of the position of a script on the dataflow canvas
 const FLOW_TAG: &str = "flow";
+/// The renderers of a visualization, the kinds of `@vis` that visualize a query
+pub const RENDERERS: &[&str] = &["vegalite", "markdown", "kpi", "table"];
 /// The dashboard grid has 12 columns
 const GRID_COLUMNS: i64 = 12;
 /// The output columns listed in the message of an unknown field
@@ -146,11 +148,13 @@ struct StatementTags {
     markdown: Option<String>,
     /// The KPI card
     kpi: Option<KpiSpec>,
-    /// The dashboard placement and the tag that set it
-    board: Option<(DashboardSpec, TextSpan)>,
-    /// The placement of a card without a `@board` or without a size in it
-    default_board: DashboardSpec,
+    /// The args of the dashboard placement, `row`, `column`, `width` and `height`, and the tag that set them. They are
+    /// normalized once the renderer is known, which gives the default size.
+    board: Option<(BoardArgs, TextSpan)>,
 }
+
+/// The `row`, `column`, `width` and `height` of `@board`
+type BoardArgs = [Option<(i64, TextSpan)>; 4];
 
 impl StatementTags {
     fn set_renderer(&mut self, state: &mut AnalysisState, renderer: &'static str, span: TextSpan) -> bool {
@@ -219,8 +223,7 @@ impl StatementTags {
             warn(state, kind, "the statement already has a @board, this tag is ignored".into());
             return;
         }
-        let [row, column, width, height] = read_args(state, tag, args, "board", ["row", "column", "width", "height"]);
-        self.board = Some((normalize_board(state, self.default_board.clone(), row, column, width, height), kind));
+        self.board = Some((read_args(state, tag, args, "board", ["row", "column", "width", "height"]), kind));
     }
 
     /// Read the args of `@vis kpi`: the columns `value` and `x`, each a name of an output column, the `delta` and the
@@ -422,14 +425,8 @@ fn find_key(json: &str, key: &str) -> Option<(usize, usize)> {
 
 /// Normalize the dashboard placement over the default of the card: coordinates are non-negative, the width is 1 to
 /// 12, the height at least 1, and a board placement is moved left to fit the grid
-fn normalize_board(
-    state: &mut AnalysisState,
-    mut spec: DashboardSpec,
-    row: Option<(i64, TextSpan)>,
-    column: Option<(i64, TextSpan)>,
-    width: Option<(i64, TextSpan)>,
-    height: Option<(i64, TextSpan)>,
-) -> DashboardSpec {
+fn normalize_board(state: &mut AnalysisState, mut spec: DashboardSpec, args: BoardArgs) -> DashboardSpec {
+    let [row, column, width, height] = args;
     let mut column_was_clamped = false;
     if let Some((value, span)) = row {
         if value < 0 {
@@ -470,6 +467,14 @@ fn normalize_board(
         }
     }
     spec
+}
+
+/// The renderers for a message, `vegalite, markdown, kpi or table`
+fn renderer_names() -> String {
+    match RENDERERS.split_last() {
+        Some((last, rest)) => format!("{} or {last}", rest.join(", ")),
+        None => String::new(),
+    }
 }
 
 /// Does a statement produce rows to visualize?
@@ -557,16 +562,6 @@ pub(super) fn analyze(state: &mut AnalysisState) {
         let query = is_query(statement.statement_type);
         let columns = if query { statement_columns(state, statement.root) } else { None };
         let mut out = StatementTags::default();
-        // A KPI card is small unless its placement sizes it, the first renderer is the one of the statement
-        let renderer = tags
-            .iter()
-            .filter(|(_, name)| *name == VIS_TAG)
-            .map(|(block, _)| tag_kind(parsed, block))
-            .find(|kind| matches!(*kind, "vegalite" | "markdown" | "kpi" | "table"));
-        if query && renderer == Some("kpi") {
-            out.default_board.width = DashboardSpec::KPI_WIDTH;
-            out.default_board.height = DashboardSpec::KPI_HEIGHT;
-        }
         for (block, name) in tags {
             let Some(lines) =
                 blocks.lines.get(block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize)
@@ -625,17 +620,20 @@ pub(super) fn analyze(state: &mut AnalysisState) {
                         );
                     }
                 }
-                "" => warn(state, block.tag_span, "@vis needs a kind: vegalite, markdown, kpi or table".into()),
-                _ => warn(
-                    state,
-                    kind_span,
-                    format!("unknown @vis kind \"{kind}\", expected vegalite, markdown, kpi or table"),
-                ),
+                "" => warn(state, block.tag_span, format!("@vis needs a kind: {}", renderer_names())),
+                _ => warn(state, kind_span, format!("unknown @vis kind \"{kind}\", expected {}", renderer_names())),
             }
         }
+        // A KPI card is small unless its placement sizes it
+        let mut dashboard = DashboardSpec::default();
+        if matches!(out.renderer, Some(("kpi", _))) {
+            dashboard.width = DashboardSpec::KPI_WIDTH;
+            dashboard.height = DashboardSpec::KPI_HEIGHT;
+        }
+        let board = out.board.map(|(args, _)| normalize_board(state, dashboard.clone(), args));
         // The board places the script by its last statement, a statement without a renderer is a collapsed card
         if statement_id + 1 == parsed.statements.len() {
-            if let Some((dashboard, _)) = &out.board {
+            if let Some(dashboard) = &board {
                 state.out.board = Some(BoardSpec { statement_id: statement_id as u32, dashboard: dashboard.clone() });
             }
         }
@@ -654,7 +652,7 @@ pub(super) fn analyze(state: &mut AnalysisState) {
             ast_node_id: statement.root,
             ast_statement_id: Some(statement_id as u32),
             renderer: Some(renderer.to_string()),
-            dashboard: out.board.map(|(board, _)| board).unwrap_or(out.default_board),
+            dashboard: board.unwrap_or(dashboard),
             markdown: out.markdown.map(|row_template| MarkdownSpec { row_template }),
             vegalite: out.vegalite,
             kpi: out.kpi,

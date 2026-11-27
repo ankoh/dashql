@@ -13,7 +13,7 @@
 //!
 //! Candidates replace the token at the cursor, JSON keys and values are inserted as JSON strings.
 
-use crate::analyzer::{kpi_names, statement_output_columns};
+use crate::analyzer::{kpi_names, statement_output_columns, RENDERERS};
 use crate::completion::{Candidate, CandidateTags, Completion, Score};
 use crate::utils::quote_identifier;
 use crate::vis_args::{arg_at, scan_args, ArgCursor};
@@ -32,8 +32,6 @@ const VIS_TAG: &[u8] = b"vis";
 const BOARD_TAG: &[u8] = b"board";
 /// The tag of the position on the dataflow canvas
 const FLOW_TAG: &[u8] = b"flow";
-/// The kinds of `@vis` tags
-const VIS_KINDS: &[&str] = &["vegalite", "markdown", "kpi", "table"];
 /// The args of `@board`
 const BOARD_ARGS: &[&str] = &["row", "column", "width", "height"];
 /// The args of `@flow`
@@ -555,7 +553,7 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
         let kind_end = text.iter().position(|c| c.is_ascii_whitespace()).unwrap_or(text.len());
         if at <= kind_end {
             let mut candidates = Candidates::new(span(0, kind_end), text.get(..at)?);
-            candidates.add_all(VIS_KINDS, false);
+            candidates.add_all(RENDERERS, false);
             return Some(candidates.finish(k));
         }
         (text.get(..kind_end)?, kind_end)

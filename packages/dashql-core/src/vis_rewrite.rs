@@ -9,6 +9,7 @@
 //! or loses its renderer loses its board placement, the card moves to another section of the board. `/*` and `*/` in
 //! the strings of a Vega-Lite spec are escaped, they would nest or end the comment.
 
+use crate::analyzer::RENDERERS;
 use crate::annotation::{Annotation, AnnotationTag};
 use crate::error::{Error, Result};
 use dashql_buffers::parser::StatementType;
@@ -160,7 +161,7 @@ pub(crate) fn is_vis_family(tag: &AnnotationTag) -> bool {
 
 /// Is a tag the renderer of a visualization?
 fn is_renderer(tag: &AnnotationTag) -> bool {
-    is_vis(tag) && matches!(tag.kind(), "vegalite" | "markdown" | "kpi" | "table")
+    is_vis(tag) && RENDERERS.contains(&tag.kind())
 }
 
 /// Is a tag the dashboard placement of a visualization, `@board` or the `@vis board` of older scripts?

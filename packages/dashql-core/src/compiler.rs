@@ -135,10 +135,7 @@ pub fn compile_visualization(
             out.markdown_spec = Some(Box::new(doc.to_object()));
         }
         "table" => out.table_spec = Some(Box::new(TableSpecT::default())),
-        "kpi" => {
-            let kpi = spec.kpi.as_ref().ok_or("could not compile KPI visualization spec")?;
-            out.kpi_spec = Some(Box::new(visualize::pack_kpi_spec(kpi)));
-        }
+        "kpi" => out.kpi_spec = spec.kpi.as_ref().map(|kpi| Box::new(visualize::pack_kpi_spec(kpi))),
         _ => return Err(format!("unsupported visualization renderer: {renderer}")),
     }
     out.renderer = Some(renderer);
