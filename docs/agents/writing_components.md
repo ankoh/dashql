@@ -67,13 +67,13 @@ A model is an interface with a hook that implements it over the runtime:
 
 Each has a fake in `@akohn/dashql-react/testing/fake_models`, `mockTableComputation` of `testing/computation_mocks`
 gives a fake computation its view. What a component derives from a model is a function of the component, e.g. the rows
-of a result (`resultRowCount` and `useResultRowCounts` of `components/query_result/query_result_toolbar`) or the tables
-of a chart (`useResultComputation` of `components/vegalite_view`). An operation that changes state resolves once the
-store shows the change (`settled` of the dispatch), and the component renders with a new model right after. A model is
-the state of one render: the object a handler holds doesn't change after an `await`, the next render brings the new one.
-The operations of a script model keep their identity while the script keeps its key, so a memoized part of a component
-that takes them and the parts of the model it shows doesn't render with every keystroke, e.g. the result of the feed
-card (`ScriptCardResult` of `workbook/feed/script_card.tsx`).
+of a result (`resultRowCount` and `useResultRowCounts` of `components/query_result/query_result_toolbar`) or the rows
+that a card reads (`useResultRows` of `components/visualization/result_rows`). An operation that changes state resolves
+once the store shows the change (`settled` of the dispatch), and the component renders with a new model right after. A
+model is the state of one render: the object a handler holds doesn't change after an `await`, the next render brings the
+new one. The operations of a script model keep their identity while the script keeps its key, so a memoized part of a
+component that takes them and the parts of the model it shows doesn't render with every keystroke, e.g. the result of
+the feed card (`ScriptCardResult` of `workbook/feed/script_card.tsx`).
 
 A model binds and decides nothing. A decision that a model or a component would have to make about the runtime, e.g.
 whether a cancel stops the run of the workbook or the query of a script, is a command or an action of the core instead

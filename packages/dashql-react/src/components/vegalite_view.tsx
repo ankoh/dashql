@@ -10,7 +10,7 @@ import { withViewEncodings } from '@akohn/dashql/platform/workbook/chart_config'
 import { useColorScheme } from '../theme/color_scheme.js';
 import { useBrand } from '../brand/brand.js';
 import type { QueryModel } from '../models/query_model.js';
-import { useComputationTables, type ComputationTables } from './data_table/computation_tables.js';
+import { useComputationTables } from './data_table/computation_tables.js';
 import { CardPlaceholder } from './card_placeholder.js';
 import { ResultRowsPlaceholder, useResultRows } from './visualization/result_rows.js';
 import { CappedRows } from './visualization/capped_rows.js';
@@ -55,24 +55,6 @@ export function useNearViewport(ref: React.RefObject<HTMLElement | null>, mounte
         return () => observer.disconnect();
     }, [ref, near, mounted]);
     return near;
-}
-
-/// The computation of the result of a query: the column of the row numbers and its tables
-export interface ResultComputation {
-    rowNumberColumnName: string | null;
-    tables: ComputationTables;
-}
-
-/// The computation of the result of a query with its tables, null without one
-export function useResultComputation(model: QueryModel | null): ResultComputation | null {
-    const computation = model?.computation?.computation ?? null;
-    const tables = useComputationTables(computation, model?.computation?.tables ?? null);
-    const rowNumberColumnName = computation?.rowNumberColumnName ?? null;
-    const hasComputation = computation != null;
-    return React.useMemo(
-        () => hasComputation ? { rowNumberColumnName, tables } : null,
-        [rowNumberColumnName, hasComputation, tables],
-    );
 }
 
 const DEFAULT_DEPENDENCIES: VegaLiteViewDependencies = {
@@ -173,13 +155,12 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
 
     // The chart reads the first rows of the result with their row numbers from the compute database, the cross filters
     // select rows by them. A result with more rows is capped, the chart says so.
-    const tableComputation = useResultComputation(props.model);
+    const computation = props.model?.computation ?? null;
     const chartRows = useResultRows(props.model, 'first', CHART_ROWS, true);
     const dataTable = chartRows.table;
     const cappedRows = dataTable != null && chartRows.rows > dataTable.numRows ? chartRows.rows : null;
-    const rowNumberColumnName = tableComputation?.rowNumberColumnName ?? null;
-
-    const filterTable = tableComputation?.tables.filterTable ?? null;
+    const rowNumberColumnName = computation?.computation.rowNumberColumnName ?? null;
+    const filterTable = useComputationTables(computation?.computation ?? null, computation?.tables ?? null).filterTable;
     // The chart container is rendered only for a spec with a result, see below
     const nearViewport = dependencies.useNearViewport(containerRef, spec != null && dataTable != null);
     // The rows are converted for the embedded chart only
