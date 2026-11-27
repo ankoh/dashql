@@ -13,20 +13,17 @@ A result is an Arrow table of the handle table (`store/runtime_tables.ts`), the 
 file therefore holds 500 MB of JavaScript heap, and more on its way:
 
 1. The embedded Hyper scans the file by byte ranges, then streams every row to JavaScript, where the batches become
-   one table.
+   one table (step 3 changes it).
 2. The analysis imports the table into the compute database (`importTable` of `runtime/compute_platform.ts`):
    `insertArrowTable` writes the whole table as one Arrow IPC buffer, mounts it as a file and creates `__df_<id>` from
    it.
 3. The stored result of the script (`writeTable` of `workbook_result_files.ts`) inserts the table into a temporary
    table of the compute database the same way and copies it to Parquet.
 4. A workbook that opens reads its stored results back into JavaScript (`readTable`, ordered by `__dashql_row`).
-5. The grid reads its cells from the table (`DataCell`, `ArrowTableFormatter`); an ordering, a filter or a search is
-   a table of all row numbers in display order that becomes an `Int32Array` of every visible row
-   (`resolveVisibleRowIndices`), and a search a map of every matching row.
-6. A chart turns every row into an object (`arrowTableToRows` of `vegalite_view.tsx`).
 
-Remote connections (Trino, Hyper over HTTP, Data Cloud, client functions) end in the same table, so their results
-pass through 2 to 6 as well.
+The views read the data frame instead of the table: the grid a window of rows (step 2), the charts, the cards and the
+agent a capped number of rows (step 5). Remote connections (Trino, Hyper over HTTP, Data Cloud, client functions) end in
+the same table, so their results pass through 2 to 4 as well.
 
 ## The model
 
@@ -118,7 +115,7 @@ Lands before step 3. The readers that take the Arrow table of a result by its ha
 
 | Reader | Where | Rows | Reads instead |
 | --- | --- | --- | --- |
-| Vega-Lite chart, the crossfilter | `vegalite_view.tsx` (`arrowTableToRows`) | all | the first 10 000 rows with their row numbers (`previewRows`), a warning triangle when capped |
+| Vega-Lite chart, the crossfilter | `vegalite_view.tsx` (`arrowTableToRows` of `vegalite/vegalite_rows.ts`) | all | the first 10 000 rows with their row numbers (`previewRows`), a warning triangle when capped |
 | Chart PNG download | `chart_download_button.tsx` | all | as the chart |
 | Chart of the agent | `agent_commands.ts` (`renderChart`) | all | as the chart, a ⚠ problem when capped |
 | KPI card | `kpi_view.tsx` (`readKpi`) | all of two columns | the last 1000 rows (`previewRows`) |

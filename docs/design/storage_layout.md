@@ -25,7 +25,7 @@ startup (see Versions and migrations).
 │   ├── dashql-catalog-relations.sql           relations of the catalog, written and read as SQL
 │   ├── dashql-catalog-functions.sql
 │   ├── dashql-catalog-state.json              open questions and relations that are gone, see catalog_updates.md
-│   └── monitoring.hyper                       extract of the Hyper log of the connection
+│   └── monitoring.hyper                       a file of earlier versions, deleted with the connection
 ├── clouds/local.hyper                          the database of the local cloud, see cloud.md
 ├── shell/                                     files of the standalone shell
 │   └── salesforce-login-history.json
@@ -143,10 +143,8 @@ Connections are global and referenced by workbooks through `connectionId`. Their
 - The catalog files. They are a cache of the last catalog refresh and seed the completion before the
   connection comes online. Workbook bundles carry the catalogs of their connections as
   `connections/<id>/dashql-catalog-*.sql`, a `.dashql` file as the rows of its catalog tables (`workbook_tables.md`).
-- `monitoring.hyper` (`STORAGE_CONNECTION_MONITORING_FILE`), the monitoring database with the extract of the Hyper
-  log that earlier versions kept for the connection overview. The app writes it no more, the metrics of the Hyper log
-  are a demo (`examples.md`). A file of an earlier version stays until the connection is deleted with its folder; it
-  is never exported.
+- `monitoring.hyper` (`STORAGE_CONNECTION_MONITORING_FILE`), a file of earlier versions that nothing writes, deleted
+  with the connection and never exported.
 
 ### Instances
 
@@ -162,7 +160,7 @@ Every app window runs one embedded hyperdb-wasm instance, `setupWebHyperDB` give
   description. `SnippetSearch` fills it on the first search and finds the snippets with `ILIKE`.
 - `logs/` holds the log files of the Hyper process of the instance, the instance sets it as `log_file_path`. They
   are rotated by `log_file_size_limit` and `log_file_max_count` (`HYPERDB_WASM_ENGINE_SETTINGS`), and
-  `hyper_log()` reads them. The monitors of the connections copy them into `connections/<id>/monitoring.hyper`.
+  `hyper_log()` reads them.
 
 The databases are scratch space: data frames are computed again when queries run in a new window. `HyperDB.terminate()`
 drops the three databases and removes the folder. A Web Lock `dashql-instance-<uuid>` is held while the window lives,
