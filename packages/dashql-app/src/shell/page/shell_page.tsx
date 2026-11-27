@@ -325,6 +325,9 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 <ShellView
                     shell={shell}
                     greeter={SHELL_GREETER}
+                    status={status === INSTANTIATING_SHELL && coreProgress != null
+                        ? `${status}: ${formatInstantiationProgress(Number(coreProgress.bytesLoaded), Number(coreProgress.bytesTotal))}`
+                        : status}
                     prompt="hyperdb> "
                     inputAriaLabel="HyperDB shell input"
                     keywordCase={keywordCase}
@@ -332,13 +335,6 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                     controller={controllerRef}
                 />
             </div>
-            {status && (
-                <div className={styles.status} role="status" aria-live="polite">
-                    <strong>[ RUN ]</strong> {status === INSTANTIATING_SHELL && coreProgress != null
-                        ? `${status}: ${formatInstantiationProgress(Number(coreProgress.bytesLoaded), Number(coreProgress.bytesTotal))}`
-                        : status}
-                </div>
-            )}
             {resultQuery != null && (
                 <ShellQueryResultOverlay
                     query={resultQuery}

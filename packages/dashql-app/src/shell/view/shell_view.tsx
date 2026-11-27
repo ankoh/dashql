@@ -41,6 +41,8 @@ export interface ShellViewProps {
     shell: DashQLShell | null;
     /// The lines atop the feed until it is cleared, the first one is the title
     greeter?: readonly string[];
+    /// What the page is doing, a `[ RUN ]` line after the feed, e.g. while the shell is set up or when it failed
+    status?: string;
     /// The prompt, e.g. `hyperdb> `
     prompt: string;
     /// The accessible name of the prompt
@@ -373,6 +375,11 @@ export function ShellView(props: ShellViewProps): React.ReactElement {
                         )}
                         {entries.map(entry => <ShellFeedRow key={entry.id} entry={entry} />)}
                     </div>
+                    {props.status && (
+                        <div className={styles.status} role="status" aria-live="polite">
+                            <strong>[ RUN ]</strong> {props.status}
+                        </div>
+                    )}
                     {shell != null && <div className={styles.prompt_bar} data-running={running || undefined}>
                         <span className={styles.prompt_label} aria-hidden="true">{props.prompt.trimEnd()}</span>
                         <div className={styles.prompt_input} data-testid="shell-prompt">

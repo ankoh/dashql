@@ -194,6 +194,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
                 <ShellView
                     shell={shell}
                     greeter={greeter}
+                    status={status}
                     prompt={prompt}
                     inputAriaLabel={`${shellName} input`}
                     keywordCase={keywordCase}
@@ -203,11 +204,6 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
                     controller={controllerRef}
                 />
             </div>
-            {status && (
-                <div className={styles.status} role="status" aria-live="polite">
-                    <strong>[ RUN ]</strong> {status}
-                </div>
-            )}
             {resultQuery != null && (
                 <ResultOverlay query={resultQuery} onClose={closeResultQuery} onError={showResultError} />
             )}

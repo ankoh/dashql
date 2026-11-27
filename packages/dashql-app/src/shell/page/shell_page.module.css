@@ -17,19 +17,6 @@
     background: var(--shell_bg);
 }
 
-.status {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    max-width: calc(100% - 24px);
-    color: var(--shell_fg);
-    font-family: var(--font_family_mono);
-    font-size: 13px;
-    line-height: 1.2;
-    white-space: pre-wrap;
-    pointer-events: none;
-}
-
 .unsupported {
     display: grid;
     gap: 8px;

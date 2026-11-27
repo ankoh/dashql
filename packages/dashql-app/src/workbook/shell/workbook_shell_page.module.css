@@ -20,19 +20,6 @@
     background: transparent;
 }
 
-.status {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    max-width: calc(100% - 24px);
-    color: var(--shell_fg);
-    font-family: var(--font_family_mono);
-    font-size: 13px;
-    line-height: 1.2;
-    white-space: pre;
-    pointer-events: none;
-}
-
 /* A phone gives the shell its whole width */
 @media (max-width: 600px) {
     .terminal {
