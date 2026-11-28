@@ -386,12 +386,12 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     // A modal dialog keeps Enter and Escape, e.g. Escape closes the chart builder instead of rejecting the diff that
     // the builder stages behind it
     const modalDialogOpen = () => document.querySelector('[aria-modal="true"]') != null;
-    const keyHandlers = React.useMemo<KeyEventHandler[]>(() => [
-        {
-            // Plain Enter, while browsing the feed with nothing focused, accepts a staged
-            // rewrite (matching the status bar's "Accept ⏎" hint). It intentionally does nothing for
-            // ordinary scripts.
-            key: 'Enter',
+    // Plain Enter accepts and Escape rejects the staged rewrite of the selected script while the feed is browsed with
+    // nothing focused (the "Accept ⏎" and "Reject ⎋" hints of the status bar). An inline editor, a rename input or an
+    // open completion keeps the key when focused. Ordinary scripts ignore the keys.
+    const keyHandlers = React.useMemo<KeyEventHandler[]>(() => {
+        const diffKey = (key: string, apply: (scriptKey: number) => void): KeyEventHandler => ({
+            key,
             ctrlKey: false,
             capture: true,
             callback: (event: KeyboardEvent) => {
@@ -402,41 +402,16 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                 if (active && active !== document.body && active !== document.documentElement) {
                     return;
                 }
-                const workbookScripts = latest.current.workbookScripts;
-                const focused = selection.selectedRef(workbookScripts);
+                const focused = selection.selectedRef(latest.current.workbookScripts);
                 const focusedScript = focused != null ? readView('script', focused.scriptId) : null;
                 if (focusedScript?.pendingDiff != null) {
                     event.preventDefault();
-                    handleAcceptDiff(focusedScript.scriptKey);
-                    return;
+                    apply(focusedScript.scriptKey);
                 }
             },
-        },
-        {
-            // Escape, while browsing the feed with nothing focused, rejects a staged rewrite on the
-            // focused entry (matching the status bar's "Reject ⎋" hint). Same focus guard as Enter so the
-            // An inline editor, rename input, or open completion dropdown keeps Escape when focused.
-            key: 'Escape',
-            ctrlKey: false,
-            capture: true,
-            callback: (event: KeyboardEvent) => {
-                if (!feedActive || modalDialogOpen()) {
-                    return;
-                }
-                const active = document.activeElement as HTMLElement | null;
-                if (active && active !== document.body && active !== document.documentElement) {
-                    return;
-                }
-                const workbookScripts = latest.current.workbookScripts;
-                const focused = selection.selectedRef(workbookScripts);
-                const focusedScript = focused != null ? readView('script', focused.scriptId) : null;
-                if (focusedScript?.pendingDiff != null) {
-                    event.preventDefault();
-                    handleRejectDiff(focusedScript.scriptKey);
-                }
-            },
-        },
-    ], [feedActive, handleAcceptDiff, handleRejectDiff, selection, readView]);
+        });
+        return [diffKey('Enter', handleAcceptDiff), diffKey('Escape', handleRejectDiff)];
+    }, [feedActive, handleAcceptDiff, handleRejectDiff, selection, readView]);
     dependencies.useKeyEvents(keyHandlers);
 
     // The docked prompt floats over the bottom of the feed, the last script scrolls clear of it. An empty feed shows
