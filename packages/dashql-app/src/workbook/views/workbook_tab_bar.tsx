@@ -41,7 +41,7 @@ export function WorkbookTabBar(props: Props): React.ReactElement {
         </button>
     );
     return (
-        <nav className={styles.tab_bar} aria-label="Workbook views" data-testid="workbook-tab-bar">
+        <nav className={styles.tab_bar} aria-label="Workbook views" data-testid="workbook-tab-bar" data-workbook-tab-bar>
             <div className={styles.tabs} role="tablist" aria-label="Views">{WORKBOOK_VIEWS.slice(0, 2).map(tab)}</div>
             <button
                 type="button"

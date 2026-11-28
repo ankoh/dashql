@@ -375,6 +375,10 @@
         grid-column: 1;
         z-index: 25;
     }
+    /* The overlays over the page stop above the tab bar, the views stay at hand (overlay.module.css, sheet.module.css) */
+    :root:has([data-workbook-tab-bar]) {
+        --nav_bar_bottom_height: calc(52px + env(safe-area-inset-bottom, 0px));
+    }
     /* The shrunk composer doesn't float over the views, an open one sets its height (workbook_views_page.tsx) */
     .page .content_container {
         --status_bar_dock_space: 12px;

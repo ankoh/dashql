@@ -238,6 +238,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                 </div>
                 <ScriptCardResult
                     scriptKey={scriptKey}
+                    active={display.active}
                     scriptName={displayName}
                     query={model.query}
                     visualizeQuery={script.annotations.visualizeQuery ?? null}
@@ -259,6 +260,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
 /// The result of a card: the status bar of the latest query with its tabs, and the panel of the selected tab
 interface ScriptCardResultProps {
     scriptKey: number;
+    /// Is the feed shown? Another view closes the table or the chart over the page.
+    active: boolean;
     /// The display name of the script
     scriptName: string;
     /// The latest query of the script, null before its first run
@@ -296,6 +299,7 @@ const ScriptCardResult = React.memo(function ScriptCardResult(props: ScriptCardR
     }, [autoCollapse, resetAutoCollapsed, latestQueryId, query, scriptKey]);
     // The full result table or the chart opens in a card over the feed
     const [overlay, setOverlay] = React.useState<'table' | 'chart' | null>(null);
+    if (!props.active && overlay != null) setOverlay(null);
     const showTable = React.useCallback(() => setOverlay('table'), []);
     const showChart = React.useCallback(() => setOverlay('chart'), []);
     const closeOverlay = React.useCallback(() => setOverlay(null), []);

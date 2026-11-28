@@ -1,7 +1,8 @@
 /* A sheet over the page, see sheet.tsx. Above the drawer of the workbench and below the completion list. */
 .backdrop {
     position: fixed;
-    inset: 0;
+    /* Clear of a bar at the bottom of the window that the host keeps usable (`--nav_bar_bottom_height`) */
+    inset: 0 0 var(--nav_bar_bottom_height, 0px) 0;
     z-index: 1200;
     background: var(--color_backdrop);
 }
@@ -60,7 +61,7 @@
     .sheet {
         top: auto;
         right: 0;
-        bottom: 0;
+        bottom: var(--nav_bar_bottom_height, 0px);
         left: 0;
         width: auto;
         max-height: 85dvh;

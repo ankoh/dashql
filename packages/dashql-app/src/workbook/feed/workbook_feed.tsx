@@ -591,6 +591,8 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     // The script that a compact window edits over the feed, a tap on the SQL of its card opens it
     const [sqlEditorKey, setSqlEditorKey] = React.useState<number | null>(null);
     const closeSqlEditor = React.useCallback(() => setSqlEditorKey(null), []);
+    // Another view closes it, the hidden feed stays mounted and would keep it over that view
+    if (!props.active && sqlEditorKey != null) setSqlEditorKey(null);
     const feedCommands = React.useMemo<ScriptFeedCommands>(() => ({
         create: handleCreate,
         focus: handleFocus,

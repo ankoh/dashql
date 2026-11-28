@@ -24,9 +24,11 @@
 
 /* The shade behind an overlay, the first child of its portal. It lets clicks through so an outside click still
    reaches the page and closes the overlay. Without a z-index it paints below the overlay that follows it. */
+/* Both stay clear of a bar at the bottom of the window that the host keeps usable, e.g. the views of a phone
+   (`--nav_bar_bottom_height`, 0 without one) */
 .backdrop {
     position: fixed;
-    inset: 0;
+    inset: 0 0 var(--nav_bar_bottom_height, 0px) 0;
     pointer-events: none;
     background-color: var(--color_backdrop);
     animation: backdrop-fade-in 200ms ease-out;
@@ -42,7 +44,7 @@
     top: 0;
     left: 0;
     width: 100vw;
-    height: 100vh;
+    height: calc(100dvh - var(--nav_bar_bottom_height, 0px));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -123,9 +125,9 @@
 @media only screen and (max-width: 839px) {
     .overlay.expanded {
         width: 100vw;
-        height: calc(100dvh - var(--nav_bar_top_height, 0px));
+        height: calc(100dvh - var(--nav_bar_top_height, 0px) - var(--nav_bar_bottom_height, 0px));
         max-width: 100vw;
-        max-height: calc(100dvh - var(--nav_bar_top_height, 0px));
+        max-height: calc(100dvh - var(--nav_bar_top_height, 0px) - var(--nav_bar_bottom_height, 0px));
         border-width: 0;
         border-radius: var(--border_radius) var(--border_radius) 0 0;
         padding-bottom: env(safe-area-inset-bottom, 0px);

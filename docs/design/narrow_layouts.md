@@ -128,6 +128,10 @@ the top bar (`ResultTableOverlay`). On a compact window it fills the window belo
 chart of a feed entry opens the same way, an expand button in the header of its visualization (`ChartFocusOverlay`):
 the same spec in the size of the card, a KPI and Markdown alike.
 
+On a compact window the overlays and the sheets stop above the tab bar of the views (`--nav_bar_bottom_height`, set
+while the tab bar shows, 0 otherwise): their backdrop leaves it free, a tap on a view switches to it. An overlay of
+the feed closes then, the hidden feed stays mounted and would keep it over the other view.
+
 ## Charts
 
 Charts stay the authored Vega-Lite spec, `VegaLiteView` fits them to their card. Only the config of DashQL may follow

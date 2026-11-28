@@ -4,7 +4,9 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    min-height: 52px;
+    /* The height that overlays leave free, see --nav_bar_bottom_height of workbook_views_page.module.css */
+    box-sizing: border-box;
+    height: calc(52px + env(safe-area-inset-bottom, 0px));
     padding: 0 4px env(safe-area-inset-bottom, 0px);
     border-top: 1px solid var(--color_border);
     background: var(--color_bg_card);
