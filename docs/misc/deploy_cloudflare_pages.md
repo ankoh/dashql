@@ -22,9 +22,6 @@ artifact. Cloudflare does not clone or build the repository.
 5. In the Pages project's **Custom domains** settings, add both `dashql.app` and `hyperdb.sh`.
    Cloudflare manages each apex DNS record after the domain is attached to the project. Both zones
    must be active in the Cloudflare account that owns the Pages project.
-6. After both domains serve the Pages deployment, disable GitHub Pages for the repository and
-   remove obsolete zone-level cache and response-header rules that were needed in front of GitHub
-   Pages.
 
 ## Routing and headers
 
