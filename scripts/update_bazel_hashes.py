@@ -2,15 +2,14 @@
 # Recomputes sha256 hashes for Bazel external deps after a version bump.
 # Run after any version bump so the sha256 fields stay in sync.
 #
-# Usage:
-#   python3 scripts/update_bazel_hashes.py                          # core_dependencies.bzl
+# Usage, from the root of the repository:
 #   python3 scripts/update_bazel_hashes.py bazel/core_dependencies.bzl
 #   python3 scripts/update_bazel_hashes.py bazel/external_tableauhyperapi.bzl
 #   python3 scripts/update_bazel_hashes.py bazel/external_bison.bzl           # also m4, wabt, binaryen
 #   python3 scripts/update_bazel_hashes.py bazel/playwright.bzl               # follows playwright-core
+#   python3 scripts/update_bazel_hashes.py tools/datasets/datasets.bzl
 import hashlib
 import json
-import os
 import re
 import subprocess
 import sys
@@ -65,45 +64,7 @@ def update_sha256(content: str, dep_name: str, new_sha: str) -> str:
     return new_content
 
 
-def versions_changed(filepath: Path, workspace: Path) -> bool:
-    """Return True if any _*_VERSION variable in filepath differs from the base branch.
-
-    With Renovate executionMode=branch, version bumps are already committed to
-    the PR branch before postUpgradeTasks runs, so 'git diff HEAD' is always
-    empty. Compare the branch tip against origin/main (the merge base) instead.
-    Falls back to 'git diff HEAD' for local invocations where origin/main is
-    not available.
-    """
-    import subprocess
-    for base in ("origin/main", "origin/master"):
-        probe = subprocess.run(
-            ["git", "rev-parse", "--verify", base],
-            capture_output=True, cwd=str(workspace),
-        )
-        if probe.returncode != 0:
-            continue
-        result = subprocess.run(
-            ["git", "diff", f"{base}...HEAD", "--", str(filepath)],
-            capture_output=True, text=True, cwd=str(workspace),
-        )
-        if result.returncode == 0:
-            return "_VERSION" in result.stdout
-    # Fallback: compare working tree against HEAD (local use, detached HEAD, etc.)
-    result = subprocess.run(
-        ["git", "diff", "HEAD", "--", str(filepath)],
-        capture_output=True, text=True, cwd=str(workspace),
-    )
-    if result.returncode != 0:
-        print(f"git diff failed: {result.stderr.strip()}", file=sys.stderr)
-        return True
-    return "_VERSION" in result.stdout
-
-
-def update_core_dependencies(filepath: Path, workspace: Path, force: bool = False) -> None:
-    if not force and not versions_changed(filepath, workspace):
-        print(f"No _VERSION changes detected in {filepath}, skipping hash update.")
-        return
-
+def update_core_dependencies(filepath: Path) -> None:
     print(f"Updating sha256 hashes in {filepath} ...")
     content = filepath.read_text()
 
@@ -135,11 +96,7 @@ _HYPER_CXX_PLATFORMS = {
 }
 
 
-def update_tableauhyperapi_hashes(filepath: Path, workspace: Path, force: bool = False) -> None:
-    if not force and not versions_changed(filepath, workspace):
-        print(f"No _VERSION changes detected in {filepath}, skipping hash update.")
-        return
-
+def update_tableauhyperapi_hashes(filepath: Path) -> None:
     print(f"Updating sha256 hashes in {filepath} ...")
     content = filepath.read_text()
     version = get_version(content, "TABLEAUHYPERAPI_VERSION")
@@ -209,11 +166,7 @@ _PREBUILT_ARCHIVES = {
 }
 
 
-def update_prebuilt_archives(filepath: Path, workspace: Path, force: bool = False) -> None:
-    if not force and not versions_changed(filepath, workspace):
-        print(f"No _VERSION changes detected in {filepath}, skipping hash update.")
-        return
-
+def update_prebuilt_archives(filepath: Path) -> None:
     print(f"Updating sha256 hashes in {filepath} ...")
     content = filepath.read_text()
     version_var, url_template = _PREBUILT_ARCHIVES[filepath.name]
@@ -247,11 +200,7 @@ def update_prebuilt_archives(filepath: Path, workspace: Path, force: bool = Fals
 # hashes recomputed here. Keys match DuckDB's `PRAGMA platform` names.
 
 
-def update_dashql_datasets(filepath: Path, workspace: Path, force: bool = False) -> None:
-    if not force and not versions_changed(filepath, workspace):
-        print(f"No _VERSION changes detected in {filepath}, skipping hash update.")
-        return
-
+def update_dashql_datasets(filepath: Path) -> None:
     print(f"Updating sha256 hashes in {filepath} ...")
     content = filepath.read_text()
     version = get_version(content, "TPCH_DUCKDB_VERSION")
@@ -286,8 +235,8 @@ def update_dashql_datasets(filepath: Path, workspace: Path, force: bool = False)
 # (Firefox, WebKit) and recompute the hash of every platform archive.
 
 
-def _playwright_browsers(workspace: Path) -> dict:
-    package = json.loads((workspace / "package.json").read_text())
+def _playwright_browsers() -> dict:
+    package = json.loads(Path("package.json").read_text())
     version = package["devDependencies"]["playwright-core"]
     url = f"https://unpkg.com/playwright-core@{version}/browsers.json"
     req = urllib.request.Request(url, headers={"User-Agent": "update_bazel_hashes/1.0"})
@@ -311,8 +260,8 @@ def _update_playwright_hashes(content: str, table: str, url_of) -> str:
     return content[:block.start()] + updated + content[block.end():]
 
 
-def update_playwright(filepath: Path, workspace: Path, force: bool = False) -> None:
-    browsers = _playwright_browsers(workspace)
+def update_playwright(filepath: Path) -> None:
+    browsers = _playwright_browsers()
     version = browsers["chromium-headless-shell"]["browserVersion"]
     revision = browsers["firefox"]["revision"]
     webkit_revision = browsers["webkit"]["revision"]
@@ -335,6 +284,7 @@ def update_playwright(filepath: Path, workspace: Path, force: bool = False) -> N
 # ---------------------------------------------------------------------------
 
 _HANDLERS = {
+    "core_dependencies.bzl": update_core_dependencies,
     "external_tableauhyperapi.bzl": update_tableauhyperapi_hashes,
     "datasets.bzl": update_dashql_datasets,
     "playwright.bzl": update_playwright,
@@ -343,19 +293,12 @@ _HANDLERS = {
 
 
 def main() -> None:
-    workspace = Path(os.environ.get("BUILD_WORKSPACE_DIRECTORY", "."))
-    args = sys.argv[1:]
-    force = "--force" in args
-    args = [a for a in args if a != "--force"]
-
-    if not args:
-        print("Usage: update_bazel_hashes.py [--force] <path/to/file.bzl>", file=sys.stderr)
-        print("Known files:", ", ".join(_HANDLERS) or "core_dependencies.bzl (default handler)", file=sys.stderr)
+    if len(sys.argv) != 2 or Path(sys.argv[1]).name not in _HANDLERS:
+        print("Usage: update_bazel_hashes.py <path/to/file.bzl>", file=sys.stderr)
+        print("Known files:", ", ".join(_HANDLERS), file=sys.stderr)
         sys.exit(1)
-    filepath = Path(args[0])
-
-    handler = _HANDLERS.get(filepath.name, update_core_dependencies)
-    handler(filepath, workspace, force=force)
+    filepath = Path(sys.argv[1])
+    _HANDLERS[filepath.name](filepath)
 
 
 if __name__ == "__main__":

@@ -2,12 +2,6 @@ load("@aspect_rules_js//js:defs.bzl", "js_binary")
 load("@rules_python//python:defs.bzl", "py_binary")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
-py_binary(
-    name = "update_bazel_hashes",
-    srcs = ["update_bazel_hashes.py"],
-    main = "update_bazel_hashes.py",
-)
-
 # Re-resolve the crate universes of bazel/crates/*.MODULE.bazel and rewrite their Cargo.lock files.
 # Usage: bazel run //scripts:repin_crates [-- [--only <universe>] [full | <crate>@<version>]]
 sh_binary(
