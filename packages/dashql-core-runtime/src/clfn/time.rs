@@ -1,6 +1,6 @@
-//! Instants as milliseconds since the epoch: the timestamps of responses and the ISO text of tokens.
+//! Instants as milliseconds since the epoch and dates as days, as the values of responses have them.
 
-use crate::time::{days_from_civil, utc_ms, DAY_MS};
+use crate::time::{days_from_civil, utc_ms};
 
 /// The days of a month
 fn days_in_month(year: i64, month: i64) -> i64 {
@@ -90,11 +90,6 @@ pub fn parse_date_days(text: &str) -> Option<i32> {
     i32::try_from(days_from_civil(year, month, day)).ok()
 }
 
-/// Parse an instant as `Date.parse` reads the ISO text of tokens, none if it isn't one
-pub fn parse_iso_ms(text: &str) -> Option<i64> {
-    parse_timestamp_ms(text).or_else(|| parse_date_days(text).map(|days| i64::from(days) * DAY_MS))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -110,7 +105,6 @@ mod tests {
         assert_eq!(parse_timestamp_ms("2024-03-11T09:01:22 Europe/Berlin"), None);
         assert_eq!(parse_date_days("1970-01-02"), Some(1));
         assert_eq!(parse_date_days("2024-02-30"), None);
-        assert_eq!(parse_iso_ms("2000-01-01T00:00:00Z"), Some(946_684_800_000));
         assert_eq!(iso_timestamp(1_800_000_000_000), "2027-01-15T08:00:00.000Z");
     }
 }

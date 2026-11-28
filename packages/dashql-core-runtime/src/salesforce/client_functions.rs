@@ -5,11 +5,11 @@
 //! until a check on an org settles it.
 
 use crate::clfn::request::{ClientFunctionHostTarget, ClientFunctionVariables};
-use crate::clfn::time::parse_iso_ms;
 use crate::clfn::ClientFunctionBinding;
 use crate::clfn::ClientFunctionError;
 use crate::connections::ConnectionChannel;
 use crate::http::Url;
+use crate::time::parse_iso_timestamp;
 
 use super::types::SalesforceTokens;
 
@@ -57,7 +57,7 @@ pub fn resolve_salesforce_client_function_host(
         "core" | "connect" => target(core.instance_url.as_deref(), Some(&core.access_token), host),
         "tenant" => {
             // The service would only answer with a 401
-            if parse_iso_ms(&data_cloud.expires_at).is_some_and(|expires_at| expires_at as f64 <= now) {
+            if parse_iso_timestamp(&data_cloud.expires_at).is_some_and(|expires_at| expires_at as f64 <= now) {
                 return Err(ClientFunctionError::new(
                     "the Data 360 token of the Salesforce connection has expired, connect again",
                 ));
