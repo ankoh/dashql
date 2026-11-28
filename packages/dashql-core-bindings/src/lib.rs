@@ -795,8 +795,12 @@ impl ScriptSession {
     /// The annotation of a statement as JSON, like `Script.readAnnotation`
     #[wasm_bindgen(js_name = readAnnotation)]
     pub fn read_annotation(&self, statement_id: u32, parse_if_outdated: bool) -> Result<String, JsError> {
-        let annotation =
-            self.inner.borrow_mut().read_annotation(statement_id as usize, parse_if_outdated).map_err(js_error)?;
+        let annotation = self
+            .inner
+            .borrow_mut()
+            .script_mut()
+            .read_annotation(statement_id as usize, parse_if_outdated)
+            .map_err(js_error)?;
         serde_json::to_string(&annotation).map_err(|e| JsError::new(&e.to_string()))
     }
 
@@ -811,6 +815,7 @@ impl ScriptSession {
         let annotation = parse_annotation(annotation)?;
         self.inner
             .borrow_mut()
+            .script_mut()
             .rewrite_annotation(statement_id as usize, &annotation, parse_if_outdated)
             .map_err(js_error)
     }
@@ -829,6 +834,7 @@ impl ScriptSession {
         let board = VisBoard { row: (row >= 0).then_some(row), column: (column >= 0).then_some(column), width, height };
         self.inner
             .borrow_mut()
+            .script_mut()
             .rewrite_vis_board(statement_id as usize, Some(&board), parse_if_outdated)
             .map_err(js_error)
     }
@@ -845,25 +851,25 @@ impl ScriptSession {
         parse_if_outdated: bool,
     ) -> Result<String, JsError> {
         let flow = VisFlow { position: x.zip(y), width, height };
-        self.inner.borrow_mut().rewrite_vis_flow(Some(&flow), parse_if_outdated).map_err(js_error)
+        self.inner.borrow_mut().script_mut().rewrite_vis_flow(Some(&flow), parse_if_outdated).map_err(js_error)
     }
 
     /// Remove the `@flow` tag of the script. Returns the new text.
     #[wasm_bindgen(js_name = removeVisFlow)]
     pub fn remove_vis_flow(&self, parse_if_outdated: bool) -> Result<String, JsError> {
-        self.inner.borrow_mut().rewrite_vis_flow(None, parse_if_outdated).map_err(js_error)
+        self.inner.borrow_mut().script_mut().rewrite_vis_flow(None, parse_if_outdated).map_err(js_error)
     }
 
     /// Set the `@param` tag of an input of the script, its value. Returns the new text.
     #[wasm_bindgen(js_name = rewriteParamTag)]
     pub fn rewrite_param_tag(&self, name: &str, value: &str, parse_if_outdated: bool) -> Result<String, JsError> {
-        self.inner.borrow_mut().rewrite_param_tag(name, Some(value), parse_if_outdated).map_err(js_error)
+        self.inner.borrow_mut().script_mut().rewrite_param_tag(name, Some(value), parse_if_outdated).map_err(js_error)
     }
 
     /// Remove the `@param` tags of an input of the script. Returns the new text.
     #[wasm_bindgen(js_name = removeParamTag)]
     pub fn remove_param_tag(&self, name: &str, parse_if_outdated: bool) -> Result<String, JsError> {
-        self.inner.borrow_mut().rewrite_param_tag(name, None, parse_if_outdated).map_err(js_error)
+        self.inner.borrow_mut().script_mut().rewrite_param_tag(name, None, parse_if_outdated).map_err(js_error)
     }
 
     /// Select the columns of the result of the terminal query below it, the new statement formatted with the
@@ -881,7 +887,11 @@ impl ScriptSession {
         parse_if_outdated: bool,
     ) -> Result<String, JsError> {
         let config = formatting_config(dialect, mode, max_width, indentation_width, false, keyword_case);
-        self.inner.borrow_mut().rewrite_result_projection(&columns, &config, parse_if_outdated).map_err(js_error)
+        self.inner
+            .borrow_mut()
+            .script_mut()
+            .rewrite_result_projection(&columns, &config, parse_if_outdated)
+            .map_err(js_error)
     }
 
     /// Set the renderer tag of a query (`vegalite` with a JSON object, `markdown` with a template, `kpi` with its
@@ -897,6 +907,7 @@ impl ScriptSession {
         let renderer = (!kind.is_empty()).then(|| VisRenderer::from_parts(kind, body)).transpose().map_err(js_error)?;
         self.inner
             .borrow_mut()
+            .script_mut()
             .rewrite_vis_renderer(statement_id as usize, renderer.as_ref(), parse_if_outdated)
             .map_err(js_error)
     }
@@ -914,7 +925,7 @@ impl ScriptSession {
         parse_if_outdated: bool,
     ) -> Result<bool, JsError> {
         let config = formatting_config(dialect, mode, max_width, indentation_width, debug_mode, 0);
-        self.inner.borrow_mut().is_fully_formattable(&config, parse_if_outdated).map_err(js_error)
+        self.inner.borrow_mut().script_mut().is_fully_formattable(&config, parse_if_outdated).map_err(js_error)
     }
 
     /// The packed `ScriptDiff` from the session script to a target script
@@ -1092,7 +1103,8 @@ impl WorkbookScriptSession {
     /// The annotation of a statement as JSON, like `Script.readAnnotation`
     #[wasm_bindgen(js_name = readAnnotation)]
     pub fn read_annotation(&self, statement_id: u32, parse_if_outdated: bool) -> Result<String, JsError> {
-        let annotation = self.parsed()?.read_annotation(statement_id as usize, parse_if_outdated).map_err(js_error)?;
+        let annotation =
+            self.parsed()?.script_mut().read_annotation(statement_id as usize, parse_if_outdated).map_err(js_error)?;
         serde_json::to_string(&annotation).map_err(|e| JsError::new(&e.to_string()))
     }
 
@@ -1105,7 +1117,10 @@ impl WorkbookScriptSession {
         parse_if_outdated: bool,
     ) -> Result<String, JsError> {
         let annotation = parse_annotation(annotation)?;
-        self.parsed()?.rewrite_annotation(statement_id as usize, &annotation, parse_if_outdated).map_err(js_error)
+        self.parsed()?
+            .script_mut()
+            .rewrite_annotation(statement_id as usize, &annotation, parse_if_outdated)
+            .map_err(js_error)
     }
 
     /// Set the `@board` tag of a query, negative rows and columns are absent. Returns the new text, the session stays.
@@ -1120,7 +1135,10 @@ impl WorkbookScriptSession {
         parse_if_outdated: bool,
     ) -> Result<String, JsError> {
         let board = VisBoard { row: (row >= 0).then_some(row), column: (column >= 0).then_some(column), width, height };
-        self.parsed()?.rewrite_vis_board(statement_id as usize, Some(&board), parse_if_outdated).map_err(js_error)
+        self.parsed()?
+            .script_mut()
+            .rewrite_vis_board(statement_id as usize, Some(&board), parse_if_outdated)
+            .map_err(js_error)
     }
 
     /// Set the `@flow` tag of the script. Returns the new text, the session stays.
@@ -1134,25 +1152,25 @@ impl WorkbookScriptSession {
         parse_if_outdated: bool,
     ) -> Result<String, JsError> {
         let flow = VisFlow { position: x.zip(y), width, height };
-        self.parsed()?.rewrite_vis_flow(Some(&flow), parse_if_outdated).map_err(js_error)
+        self.parsed()?.script_mut().rewrite_vis_flow(Some(&flow), parse_if_outdated).map_err(js_error)
     }
 
     /// Remove the `@flow` tag of the script. Returns the new text, the session stays.
     #[wasm_bindgen(js_name = removeVisFlow)]
     pub fn remove_vis_flow(&self, parse_if_outdated: bool) -> Result<String, JsError> {
-        self.parsed()?.rewrite_vis_flow(None, parse_if_outdated).map_err(js_error)
+        self.parsed()?.script_mut().rewrite_vis_flow(None, parse_if_outdated).map_err(js_error)
     }
 
     /// Set the `@param` tag of an input of the script. Returns the new text, the session stays.
     #[wasm_bindgen(js_name = rewriteParamTag)]
     pub fn rewrite_param_tag(&self, name: &str, value: &str, parse_if_outdated: bool) -> Result<String, JsError> {
-        self.parsed()?.rewrite_param_tag(name, Some(value), parse_if_outdated).map_err(js_error)
+        self.parsed()?.script_mut().rewrite_param_tag(name, Some(value), parse_if_outdated).map_err(js_error)
     }
 
     /// Remove the `@param` tags of an input of the script. Returns the new text, the session stays.
     #[wasm_bindgen(js_name = removeParamTag)]
     pub fn remove_param_tag(&self, name: &str, parse_if_outdated: bool) -> Result<String, JsError> {
-        self.parsed()?.rewrite_param_tag(name, None, parse_if_outdated).map_err(js_error)
+        self.parsed()?.script_mut().rewrite_param_tag(name, None, parse_if_outdated).map_err(js_error)
     }
 
     /// Select the columns of the result of the terminal query below it. Returns the new text, the session stays.
@@ -1169,7 +1187,7 @@ impl WorkbookScriptSession {
         parse_if_outdated: bool,
     ) -> Result<String, JsError> {
         let config = formatting_config(dialect, mode, max_width, indentation_width, false, keyword_case);
-        self.parsed()?.rewrite_result_projection(&columns, &config, parse_if_outdated).map_err(js_error)
+        self.parsed()?.script_mut().rewrite_result_projection(&columns, &config, parse_if_outdated).map_err(js_error)
     }
 
     /// Set the renderer tag of a query, an empty kind removes it. Returns the new text, the session stays.
@@ -1183,6 +1201,7 @@ impl WorkbookScriptSession {
     ) -> Result<String, JsError> {
         let renderer = (!kind.is_empty()).then(|| VisRenderer::from_parts(kind, body)).transpose().map_err(js_error)?;
         self.parsed()?
+            .script_mut()
             .rewrite_vis_renderer(statement_id as usize, renderer.as_ref(), parse_if_outdated)
             .map_err(js_error)
     }
@@ -1200,7 +1219,7 @@ impl WorkbookScriptSession {
         parse_if_outdated: bool,
     ) -> Result<bool, JsError> {
         let config = formatting_config(dialect, mode, max_width, indentation_width, debug_mode, 0);
-        self.parsed()?.is_fully_formattable(&config, parse_if_outdated).map_err(js_error)
+        self.parsed()?.script_mut().is_fully_formattable(&config, parse_if_outdated).map_err(js_error)
     }
 
     /// The packed `ScriptDiff` from the session script to a target script

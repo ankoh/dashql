@@ -854,29 +854,32 @@ fn sessions_rewrite_the_tags_of_their_script() {
     let mut session = session(&catalog, UTF8);
     analyze(&mut session, "select :min;\n-- @param Sales.\nselect 2");
 
-    let mut annotation = session.read_annotation(1, false).unwrap();
+    let mut annotation = session.script_mut().read_annotation(1, false).unwrap();
     assert_eq!(annotation.tags.len(), 1);
     annotation.tags.push(AnnotationTag::new("vis", vec!["table".to_string()]));
     assert_eq!(
-        session.rewrite_annotation(1, &annotation, false).unwrap(),
+        session.script_mut().rewrite_annotation(1, &annotation, false).unwrap(),
         "select :min;\n/**\n * @param Sales.\n * @vis table\n */\nselect 2"
     );
     assert_eq!(
-        session.rewrite_vis_renderer(1, Some(&VisRenderer::Table), false).unwrap(),
+        session.script_mut().rewrite_vis_renderer(1, Some(&VisRenderer::Table), false).unwrap(),
         "select :min;\n/**\n * @param Sales.\n * @vis table\n */\nselect 2"
     );
     assert_eq!(
-        session.rewrite_vis_flow(Some(&VisFlow { position: Some((1, 2)), ..Default::default() }), false).unwrap(),
+        session
+            .script_mut()
+            .rewrite_vis_flow(Some(&VisFlow { position: Some((1, 2)), ..Default::default() }), false)
+            .unwrap(),
         "select :min;\n/**\n * @param Sales.\n * @flow x=1 y=2\n */\nselect 2"
     );
     // The analysis puts the value at the first use of the input
     assert_eq!(
-        session.rewrite_param_tag("min", Some("3"), false).unwrap(),
+        session.script_mut().rewrite_param_tag("min", Some("3"), false).unwrap(),
         "/** @param :min = 3 */\nselect :min;\n-- @param Sales.\nselect 2"
     );
     // The rewrites return the text, the session keeps its own
     assert_eq!(session.text(), "select :min;\n-- @param Sales.\nselect 2");
-    assert!(session.read_annotation(2, false).is_err());
+    assert!(session.script_mut().read_annotation(2, false).is_err());
 }
 
 #[test]
@@ -1023,7 +1026,7 @@ fn compatibility_query_formatting_and_diff_apis() {
     assert_eq!(compiled.sql.as_deref(), Some(source_text));
     assert!(compiled.errors.as_ref().is_none_or(|e| e.is_empty()));
 
-    assert!(session.is_fully_formattable(&config(), true).unwrap());
+    assert!(session.script_mut().is_fully_formattable(&config(), true).unwrap());
     let formatted = session.format(&config(), true).unwrap();
     assert_eq!(formatted.to_text(), "select 1 as value;");
 
@@ -1045,11 +1048,11 @@ fn rewrites_the_board_placement_through_the_parsed_comments() {
     assert_eq!(session.replace_text(0, source).status, EditorUpdateStatus::OK);
 
     assert_eq!(
-        session.rewrite_vis_board(0, Some(&VisBoard { row: Some(2), column: Some(5), width: 6, height: 4 }), true).unwrap(),
+        session.script_mut().rewrite_vis_board(0, Some(&VisBoard { row: Some(2), column: Some(5), width: 6, height: 4 }), true).unwrap(),
         "/**\n * \u{1F4CA} @vis board is text here\n *\n * @vis table\n * @board row=2 column=5 width=6 height=4\n */\nselect '\u{1F4CA}' as label"
     );
     assert_eq!(
-        session.rewrite_vis_board(0, Some(&VisBoard { row: None, column: None, width: 6, height: 3 }), true).unwrap(),
+        session.script_mut().rewrite_vis_board(0, Some(&VisBoard { row: None, column: None, width: 6, height: 3 }), true).unwrap(),
         "/**\n * \u{1F4CA} @vis board is text here\n *\n * @vis table\n * @board width=6 height=3\n */\nselect '\u{1F4CA}' as label"
     );
 }
@@ -1061,6 +1064,7 @@ fn inserts_a_board_placement_into_a_visualization() {
     assert_eq!(session.replace_text(0, "/* @vis table */\nselect 1").status, EditorUpdateStatus::OK);
     assert_eq!(
         session
+            .script_mut()
             .rewrite_vis_board(0, Some(&VisBoard { row: Some(0), column: Some(0), width: 6, height: 3 }), true)
             .unwrap(),
         "/**\n * @vis table\n * @board row=0 column=0 width=6 height=3\n */\nselect 1"

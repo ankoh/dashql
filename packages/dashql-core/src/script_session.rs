@@ -19,7 +19,6 @@
 //! Projections convert the mostly ascending offsets of a script in one pass (`Utf16Projector`).
 
 use crate::analyzer::{AnalyzedScript, ExpressionInner, ParameterKind, TableReference};
-use crate::annotation::Annotation;
 use crate::brackets;
 use crate::catalog::{Catalog, CatalogEntryId, CatalogLayer, CatalogTableId, QualifiedTableName, PROTO_NULL_U32};
 use crate::compiler::compile;
@@ -32,7 +31,6 @@ use crate::script_diff::ScriptDiff;
 use crate::table_parameters::TableParameters;
 use crate::utils::non_empty;
 use crate::utils::rope::{resolve_byte_boundary, resolve_utf16_boundary, TextPosition, Utf16Projector};
-use crate::vis_rewrite::{VisBoard, VisFlow, VisRenderer};
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
 use dashql_buffers::completion::CompletionT;
 use dashql_buffers::cursor::RelativeSymbolPosition;
@@ -1215,67 +1213,6 @@ impl ScriptSession {
             .map_err(|_| Error::invalid_argument("invalid UTF-8 while computing rope text statistics"))?;
         result.replace_text(&text);
         Ok(result)
-    }
-
-    /// The annotation of a statement: the comment tags in front of it
-    pub fn read_annotation(&mut self, statement_id: usize, parse_if_outdated: bool) -> Result<Annotation> {
-        self.script.read_annotation(statement_id, parse_if_outdated)
-    }
-
-    /// Replace the annotation of a statement, returns the new text
-    pub fn rewrite_annotation(
-        &mut self,
-        statement_id: usize,
-        annotation: &Annotation,
-        parse_if_outdated: bool,
-    ) -> Result<String> {
-        self.script.rewrite_annotation(statement_id, annotation, parse_if_outdated)
-    }
-
-    /// Set or remove the renderer of a query, its `@vis` renderer tag, returns the new text
-    pub fn rewrite_vis_renderer(
-        &mut self,
-        statement_id: usize,
-        renderer: Option<&VisRenderer>,
-        parse_if_outdated: bool,
-    ) -> Result<String> {
-        self.script.rewrite_vis_renderer(statement_id, renderer, parse_if_outdated)
-    }
-
-    /// Set or remove the dashboard placement of a query, its `@board` tag, returns the new text
-    pub fn rewrite_vis_board(
-        &mut self,
-        statement_id: usize,
-        board: Option<&VisBoard>,
-        parse_if_outdated: bool,
-    ) -> Result<String> {
-        self.script.rewrite_vis_board(statement_id, board, parse_if_outdated)
-    }
-
-    /// Set or remove the position of the script on the dataflow canvas, its `@flow` tag, returns the new
-    /// text
-    pub fn rewrite_vis_flow(&mut self, flow: Option<&VisFlow>, parse_if_outdated: bool) -> Result<String> {
-        self.script.rewrite_vis_flow(flow, parse_if_outdated)
-    }
-
-    /// Set or remove the value of an input of the script, its `@param` tag, returns the new text
-    pub fn rewrite_param_tag(&mut self, name: &str, value: Option<&str>, parse_if_outdated: bool) -> Result<String> {
-        self.script.rewrite_param_tag(name, value, parse_if_outdated)
-    }
-
-    /// Select the columns of the result of the terminal query below it, returns the new text
-    pub fn rewrite_result_projection(
-        &mut self,
-        columns: &[String],
-        config: &FormattingConfigT,
-        parse_if_outdated: bool,
-    ) -> Result<String> {
-        self.script.rewrite_result_projection(columns, config, parse_if_outdated)
-    }
-
-    /// Can formatting represent every node?
-    pub fn is_fully_formattable(&mut self, config: &FormattingConfigT, parse_if_outdated: bool) -> Result<bool> {
-        self.script.is_fully_formattable(config, parse_if_outdated)
     }
 
     /// The statement diff from the session script to a target script. The source spans are projected

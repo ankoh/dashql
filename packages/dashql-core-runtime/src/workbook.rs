@@ -1985,7 +1985,7 @@ impl Workbook {
             .chart_statement_id()
             .and_then(|statement| {
                 let renderer = VisRenderer::from_parts("vegalite", spec).ok()?;
-                scratch.session.rewrite_vis_renderer(statement, Some(&renderer), true).ok()
+                scratch.session.script_mut().rewrite_vis_renderer(statement, Some(&renderer), true).ok()
             })
             .filter(|text| *text != current);
         match rewritten {
@@ -2015,7 +2015,7 @@ impl Workbook {
             }
             let from_text = script.text();
             // A script that doesn't parse keeps its tags
-            let Ok(text) = script.session.borrow_mut().rewrite_param_tag(name, Some(literal), true) else {
+            let Ok(text) = script.session.borrow_mut().script_mut().rewrite_param_tag(name, Some(literal), true) else {
                 continue;
             };
             if text != from_text {
