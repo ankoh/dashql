@@ -525,6 +525,7 @@ fn pack_expression(script: &AnalyzedScript, expr: &Expression) -> ExpressionT {
         ast_node_id: expr.ast_node_id,
         ast_statement_id: expr.ast_statement_id.unwrap_or(PROTO_NULL_U32),
         symbol_span: expr.location.map(symbol_span),
+        is_constexpr: expr.is_constant_expression,
         inner,
     })
 }

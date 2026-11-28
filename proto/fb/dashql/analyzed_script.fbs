@@ -205,17 +205,6 @@ table FunctionDeclaration {
     location: dashql.buffers.parser.TextSpan;
 }
 
-table FunctionReference {
-    // The id of the AST node that created this table declaration.
-    ast_node_id: uint32 ;
-    // The id of the statement that created the table declaration
-    ast_statement_id: uint32;
-    // The root of the scope where this table reference is live
-    ast_scope_root: uint32;
-    // The name of the function that is declared by the node
-    function_name: QualifiedFunctionName;
-}
-
 /// What a parameter stands for
 enum ParameterKind: uint8 {
     /// A scalar value, e.g. `where x > :min`
@@ -518,9 +507,6 @@ table AnalyzedScript {
     name_scopes: [NameScope];
     /// The statement root scopes
     statement_root_scopes: [uint32];
-
-    // The function references
-    function_references: [FunctionReference];
 
     // The function declarations
     function_declarations: [FunctionDeclaration];

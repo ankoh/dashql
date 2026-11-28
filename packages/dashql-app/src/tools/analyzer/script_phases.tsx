@@ -363,7 +363,6 @@ const CONSTANT_KINDS: Partial<Record<dashql.buffers.algebra.ExpressionSubType, s
 /// expressions of the analysis, so the rows name what is recorded instead of listing "expressions".
 function analysisFacts(analyzed: dashql.buffers.analyzer.AnalyzedScriptT, parsed: dashql.buffers.parser.ParsedScriptT | null, bytes: ScriptBytes) {
     const text = (span: dashql.buffers.parser.SymbolSpanT | null) => parsed == null ? '' : symbolText(parsed, bytes, span);
-    const nodeText = (node: number) => text(parsed?.nodes[node]?.symbolSpan ?? null);
     // The table references with the kind of their resolution, the resolved name only if the reference reads differently
     const tableRefsByNode = new Map<number, { kind: string | null; name: string }>();
     const tableReferences = analyzed.tableReferences.map((ref, i): AnalysisFact => {
@@ -423,11 +422,6 @@ function analysisFacts(analyzed: dashql.buffers.analyzer.AnalyzedScriptT, parsed
         tableReferences,
         columns,
         calls,
-        functions: analyzed.functionReferences.map((ref, i): AnalysisFact => ({
-            key: `f${i}`,
-            node: ref.astNodeId,
-            text: bufferString(ref.functionName?.functionName) || nodeText(ref.astNodeId),
-        })),
         // The roots of the constant subtrees with the kind of their root
         constants: analyzed.constantExpressions.map((constant, i): AnalysisFact => {
             const type = analyzed.expressions[constant.expressionId]?.innerType ?? dashql.buffers.algebra.ExpressionSubType.NONE;
@@ -512,7 +506,6 @@ function AnalyzerSection(props: {
                 <FactRow title="Column refs" facts={facts.columns} focus={focus} linked={linked} />
                 <FactRow title="Calls" facts={facts.calls} focus={focus} />
                 <FactRow title="Constants" facts={facts.constants} focus={focus} />
-                <FactRow title="Function refs" facts={facts.functions} focus={focus} />
                 <FactRow title="Parameters" facts={facts.parameters} focus={focus} />
                 <FactRow title="Inferred" facts={facts.inferred} focus={focus} />
                 <FactRow title="Scopes" facts={facts.scopes} focus={focus} />
