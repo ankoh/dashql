@@ -118,13 +118,15 @@ other boxes too, in the accent color, with the rest faded. On a compact canvas t
 status, the boxes it reads and that read it (a tap moves there), and Edit, Run and Result. The editor dialog of a
 script fills a compact window, as does any expanded overlay. `dataflow.md` describes the layout and the canvas.
 
-## The views
+## Full screen
 
-The other views follow, one at a time. Each keeps its components and changes its arrangement:
+The full result table of a feed entry or a dashboard card opens in a card over the page, enlarged to the window below
+the top bar (`ResultTableOverlay`). On a compact window it fills the window below the dark chrome
+(`--nav_bar_top_height` is the height of the chrome there) with the rounded top corners of the card of the page. The
+chart of a feed entry opens the same way, an expand button in the header of its visualization (`ChartFocusOverlay`):
+the same spec in the size of the card, a KPI and Markdown alike.
 
-- **Result viewer**: a pinned column, a menu of the column.
-- **Feed**: a card in full screen.
-- **Dashboard**: the inputs as chips with a sheet.
+## Charts
 
 Charts stay the authored Vega-Lite spec, `VegaLiteView` fits them to their card. Only the config of DashQL may follow
 the width of a card, never the spec.

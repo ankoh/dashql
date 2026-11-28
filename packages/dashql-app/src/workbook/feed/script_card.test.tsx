@@ -64,9 +64,14 @@ function cardProps(model: ScriptModel = fakeScriptModel({ script: fakeScript(1, 
         feed: feed as unknown as ScriptFeedCommands,
         storageReader: { backend: {}, getWorkbookLocation: () => ({ type: 'opfs' }) } as unknown as ScriptCardProps['storageReader'],
         editor: slot => <EditorSlot setView={slot.setView} />,
-        resultPanel: slot => <button data-testid="result-panel" onClick={slot.onShowTable}>result</button>,
+        resultPanel: slot => (
+            <>
+                <button data-testid="result-panel" onClick={slot.onShowTable}>result</button>
+                <button data-testid="result-chart" onClick={slot.onShowChart}>chart</button>
+            </>
+        ),
         resultTable: slot => (
-            <div data-testid="result-table-overlay" data-script={slot.scriptName}>
+            <div data-testid="result-table-overlay" data-script={slot.scriptName} data-kind={slot.kind}>
                 <button data-testid="result-table-overlay-close" onClick={slot.onClose} />
             </div>
         ),
@@ -186,6 +191,12 @@ describe('the card of a script', () => {
         expect(container.querySelector('[data-testid="result-table-overlay"]')).toBeNull();
         click('result-panel');
         expect(container.querySelector('[data-testid="result-table-overlay"]')?.getAttribute('data-script')).toBe('01_alpha');
+        expect(container.querySelector('[data-testid="result-table-overlay"]')?.getAttribute('data-kind')).toBe('table');
+        click('result-table-overlay-close');
+        expect(container.querySelector('[data-testid="result-table-overlay"]')).toBeNull();
+        // The chart opens over the feed the same way
+        click('result-chart');
+        expect(container.querySelector('[data-testid="result-table-overlay"]')?.getAttribute('data-kind')).toBe('chart');
         click('result-table-overlay-close');
         expect(container.querySelector('[data-testid="result-table-overlay"]')).toBeNull();
 

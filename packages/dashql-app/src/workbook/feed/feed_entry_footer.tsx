@@ -16,6 +16,8 @@ import { TabHeader, formatRowCountDetail } from '@akohn/dashql-react/components/
 import { resultRowCount } from '@akohn/dashql-react/components/query_result/query_result_toolbar';
 import { QueryResultHeader } from '../../results/query_result_header.js';
 import { ChartDownloadButton } from '@akohn/dashql-react/components/visualization/chart_download_button';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { ScreenFullIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { Deferred } from '@akohn/dashql-react/components/deferred';
 import { Skeleton } from '@akohn/dashql-react/components/skeleton';
 
@@ -190,6 +192,8 @@ interface FeedEntryFooterProps {
     selectedTab: FeedEntryTab;
     /// Open the full result table, makes the header and the column names of the preview clickable
     onShowTable?: () => void;
+    /// Open the chart over the page, a button in the header of the visualization
+    onShowChart?: () => void;
     /// The table shows all rows in place with a scroller and the column plots, not only the first ones
     moreRows?: boolean;
     /// Show more rows in place, makes the row that counts the rows of the preview clickable. Without it, that row opens
@@ -263,8 +267,18 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = React.memo(functi
                 <TabHeader
                     title="Visualization"
                     detail={pointCountDetail}
-                    actions={model != null && props.visualizeQuery?.renderer === 'vegalite' ? (
-                        <ChartDownloadButton model={model} spec={props.visualizeQuery.vegaLiteSpec} />
+                    actions={model != null ? (
+                        <>
+                            {props.visualizeQuery?.renderer === 'vegalite' && (
+                                <ChartDownloadButton model={model} spec={props.visualizeQuery.vegaLiteSpec} />
+                            )}
+                            {props.onShowChart != null && (
+                                <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small} aria-label="Expand chart"
+                                    data-testid="feed-entry-expand-chart" onClick={props.onShowChart}>
+                                    <ScreenFullIcon size={16} />
+                                </IconButton>
+                            )}
+                        </>
                     ) : undefined}
                 />
                 {model != null && (

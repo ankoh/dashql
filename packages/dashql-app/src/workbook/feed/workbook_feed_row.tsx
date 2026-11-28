@@ -19,6 +19,7 @@ import type { EditorView } from '@codemirror/view';
 import type { DashQLParameterClick } from '../editor/dashql_processor.js';
 import type { ScriptConnectionView } from '../scripts/script_connection_picker.js';
 import { ResultTableOverlay } from '../../results/result_table_overlay.js';
+import { ChartFocusOverlay } from '../../results/chart_focus_overlay.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
 import {
     ScriptCard, type ScriptCardDisplay, type ScriptCardPosition, type ScriptEditorSlot, type ScriptFeedCommands,
@@ -145,14 +146,17 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
             visualizeQuery={visualizeQuery}
             selectedTab={slot.selectedTab}
             onShowTable={slot.onShowTable}
+            onShowChart={slot.onShowChart}
             moreRows={slot.moreRows}
             onShowMoreRows={slot.onShowMoreRows}
             onShowFewerRows={slot.onShowFewerRows}
         />
     ), [props.workbookId, query, visualizeQuery]);
-    const resultTable = React.useCallback((slot: ScriptResultTableSlot) => query == null ? null : (
-        <ResultTableOverlay scriptName={slot.scriptName} model={query} onClose={slot.onClose} />
-    ), [query]);
+    const resultTable = React.useCallback((slot: ScriptResultTableSlot) => query == null ? null
+        : slot.kind === 'chart' && visualizeQuery != null
+            ? <ChartFocusOverlay scriptName={slot.scriptName} model={query} visualizeQuery={visualizeQuery} onClose={slot.onClose} />
+            : <ResultTableOverlay scriptName={slot.scriptName} model={query} onClose={slot.onClose} />,
+    [query, visualizeQuery]);
 
     // The row holds the card and the space below it, the first row also the space above the feed.
     // The add buttons sit in these spaces, a button between two scripts shows while either one is hovered.

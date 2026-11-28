@@ -82,6 +82,8 @@ export interface ScriptResultSlot {
     selectedTab: FeedEntryTab;
     /// Open the full result table over the feed
     onShowTable: () => void;
+    /// Open the chart over the feed
+    onShowChart: () => void;
     /// The table shows more rows in the card, with a scroller and the column plots
     moreRows: boolean;
     /// Show more rows of the table in the card, until the user shows fewer, picks a tab, folds the result or runs again
@@ -90,9 +92,10 @@ export interface ScriptResultSlot {
     onShowFewerRows: () => void;
 }
 
-/// The slot of the full result table over the feed
+/// The slot of the full result over the feed: the table, or the chart in the size of the window
 export interface ScriptResultTableSlot {
     scriptName: string;
+    kind: 'table' | 'chart';
     onClose: () => void;
 }
 
@@ -287,10 +290,11 @@ const ScriptCardResult = React.memo(function ScriptCardResult(props: ScriptCardR
         }
         autoCollapse(scriptKey, query.queryId);
     }, [autoCollapse, resetAutoCollapsed, latestQueryId, query, scriptKey]);
-    // The full result table opens in a card over the feed
-    const [tableOpen, setTableOpen] = React.useState(false);
-    const showTable = React.useCallback(() => setTableOpen(true), []);
-    const closeTable = React.useCallback(() => setTableOpen(false), []);
+    // The full result table or the chart opens in a card over the feed
+    const [overlay, setOverlay] = React.useState<'table' | 'chart' | null>(null);
+    const showTable = React.useCallback(() => setOverlay('table'), []);
+    const showChart = React.useCallback(() => setOverlay('chart'), []);
+    const closeOverlay = React.useCallback(() => setOverlay(null), []);
 
     // More rows of the table grow the card in place: the card shows them for the query that the user expanded and only
     // on its table tab, and shows the first rows again with the row under the rows, a tab or the fold of the result
@@ -371,13 +375,14 @@ const ScriptCardResult = React.memo(function ScriptCardResult(props: ScriptCardR
                     {props.resultPanel({
                         selectedTab: resultTabs.selectedTab,
                         onShowTable: showTable,
+                        onShowChart: showChart,
                         moreRows,
                         onShowMoreRows: showMoreRows,
                         onShowFewerRows: showFewerRows,
                     })}
                 </div>
             ) : null}
-            {tableOpen && query != null && props.resultTable({ scriptName: props.scriptName, onClose: closeTable })}
+            {overlay != null && query != null && props.resultTable({ scriptName: props.scriptName, kind: overlay, onClose: closeOverlay })}
         </div>
     );
 });
