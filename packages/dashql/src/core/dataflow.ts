@@ -1,5 +1,6 @@
 import * as glue from '@akohn/dashql-wasm/dashql_dataflow.js';
 import * as perfMarks from './perf_marks.js';
+import { loadWasmNextToGlue } from './wasm_file.js';
 
 /// The wasm-bindgen module of the layout of the dataflow canvas (`packages/dashql-dataflow/bindings`)
 export type DashQLDataflowBindings = Pick<typeof glue, 'DataflowLayout' | 'routeDataflowEdges' | 'dataflowConfig' | 'installPanicHook'>;
@@ -93,18 +94,6 @@ export interface DataflowBoxGeometry {
     rows: number[];
 }
 
-/// Load the wasm binary of the layout next to its glue
-async function loadDefaultDataflowWasm(): Promise<Uint8Array | URL> {
-    const url = glue.wasmUrl;
-    if (url.protocol === 'file:') {
-        // Node: fetch does not support file URLs. The specifier is not static to keep bundlers away.
-        const fs = 'node:fs/promises';
-        const { readFile } = await import(/* @vite-ignore */ fs);
-        return new Uint8Array(await readFile(url));
-    }
-    return url;
-}
-
 /// The options of the layout module
 export interface DashQLDataflowOptions {
     /// The wasm binary
@@ -154,7 +143,7 @@ export class DashQLDataflow {
     /// Create a layout instance, the module is instantiated by the first one
     public static async create(options?: DashQLDataflowOptions): Promise<DashQLDataflow> {
         instantiated ??= (async () => {
-            const moduleOrPath = options?.module ?? options?.wasmBinary ?? await loadDefaultDataflowWasm();
+            const moduleOrPath = options?.module ?? options?.wasmBinary ?? await loadWasmNextToGlue(glue.wasmUrl);
             await glue.default({ module_or_path: moduleOrPath });
         })();
         try {

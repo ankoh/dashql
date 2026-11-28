@@ -7,6 +7,7 @@ import { decodeBatchResult, encodeBatchRequest } from './batch.js';
 import type { BatchRequest, BatchResult } from './batch.js';
 import type { ScriptAnnotation } from './comment_tags.js';
 import { DashQLQueryProgressFollower } from './query_history.js';
+import { loadWasmNextToGlue } from './wasm_file.js';
 
 /// The wasm-bindgen module of the Rust core (`packages/dashql-core-bindings`)
 export type DashQLBindings = Pick<
@@ -189,18 +190,6 @@ const QUERY_PROFILE_TYPE = Symbol('QUERY_PROFILE_TYPE');
 const SCRIPT_STATISTICS_TYPE = Symbol('SCRIPT_STATISTICS_TYPE');
 const SCRIPT_TYPE = Symbol('SCRIPT_TYPE');
 
-/// Load the wasm binary next to its glue
-async function loadDefaultWasm(): Promise<Uint8Array | URL> {
-    const url = glue.wasmUrl;
-    if (url.protocol === 'file:') {
-        // Node: fetch does not support file URLs. The specifier is not static to keep bundlers away.
-        const fs = 'node:fs/promises';
-        const { readFile } = await import(/* @vite-ignore */ fs);
-        return new Uint8Array(await readFile(url));
-    }
-    return url;
-}
-
 /// The instantiation of the module by this copy of the package
 let moduleInstantiation: Promise<void> | null = null;
 /// Did this copy of the package instantiate the module?
@@ -239,7 +228,7 @@ export class DashQL {
         if (moduleInstantiation == null) {
             // Instantiations at the same time would replace the memory of the module under each other
             const instantiation = (async () => {
-                const moduleOrPath = options?.module ?? options?.wasmBinary ?? await loadDefaultWasm();
+                const moduleOrPath = options?.module ?? options?.wasmBinary ?? await loadWasmNextToGlue(glue.wasmUrl);
                 moduleMemory = (await glue.default({ module_or_path: moduleOrPath })).memory;
                 // The planner and the analysis record their spans while the perf marks are on
                 perfMarks.attachModule(glue.setPerfRecorder);
