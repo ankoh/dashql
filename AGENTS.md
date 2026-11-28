@@ -42,10 +42,12 @@ start with `packages/`.
   page with `dashql`), `design/agent_integration_tests.md`, `packages/dashql-cli/README.md` (the `dashql` commands)
 - hyperdb-edge: `wip/hyperdb_edge.md`, `wip/hyperdb_edge_stores.md`
 - Website: `agents/architecture_diagrams.md` (the style of the architecture diagrams of dashql.org, for new ones)
-- Hosts and embeds: `design/electron.md` (desktop app), `design/app_csp.md`, `design/document_isolation_policy.md`,
+- Hosts and embeds: `design/electron.md` (desktop app), `design/tauri_origin.md` (the Tauri app on loopback HTTPS
+  with a pinned certificate per launch), `design/app_csp.md`, `design/document_isolation_policy.md`,
   `wip/embeds.md`, `design/slack_app.md` (deploy: `packages/dashql-slack/README.md`), `packages/dashql-mcp/README.md`,
-  `design/tools.md` (pages of their own at `tools.html#/<id>`, e.g. unpacker), `reports/tauri.md` (experiments: Tauri
-  and WKWebView with loopback HTTPS, a pinned certificate, the custom scheme, iOS memory)
+  `design/tools.md` (pages of their own at `tools.html#/<id>`, e.g. unpacker), `reports/tauri_results.md`
+  (experiments: Tauri and WKWebView with loopback HTTPS, a pinned certificate, the custom scheme, iOS memory; their
+  definition in `reports/tauri_experiments.md`)
 
 ## Third-party notices
 

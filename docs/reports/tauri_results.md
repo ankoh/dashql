@@ -1,10 +1,10 @@
 # Tauri and WebKit: can DashQL run from loopback HTTPS?
 
-Report of the experiments E1–E8 of the handoff `tauri_webkit_experiments.md`, run on 2026-11-28. They test whether a
-Tauri host on macOS and iOS can serve DashQL from loopback HTTPS with a pinned self-signed certificate, with the
-threaded wasm32 hyperdb-wasm in a `crossOriginIsolated` WKWebView. The harnesses and the raw output live outside the
-repo, in `~/dashql-experiments/` on the machine that ran them (`logs/` has one `.log` per run, named after the
-experiment); section 5 lists them.
+Report of the experiments E1–E8, run on 2026-11-28. The handoff that defines them, with the probe page and what each
+experiment checks, is [tauri_experiments.md](tauri_experiments.md). They test whether a Tauri host on macOS and iOS
+can serve DashQL from loopback HTTPS with a pinned self-signed certificate, with the threaded wasm32 hyperdb-wasm in
+a `crossOriginIsolated` WKWebView. The harnesses and the raw output live outside the repo, in `~/dashql-experiments/`
+on the machine that ran them (`logs/` has one `.log` per run, named after the experiment); section 5 lists them.
 
 ## 1. Environment
 
