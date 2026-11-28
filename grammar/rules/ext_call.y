@@ -47,15 +47,15 @@ call_arg:
 call_value:
     call_scalar               { $1 }
   | LSB RSB                   {
-        let values = ctx.array_ex(@$, NO_NODES, false, false);
+        let values = ctx.array_keep_empty(@$, NO_NODES);
         ctx.object(@$, NodeType::OBJECT_EXT_VARARG_ARRAY, &[attr(Key::EXT_VARARG_ARRAY_VALUES, values)])
     }
   | LSB call_values RSB       {
-        let values = ctx.array_ex(@$, $2, false, false);
+        let values = ctx.array_keep_empty(@$, $2);
         ctx.object(@$, NodeType::OBJECT_EXT_VARARG_ARRAY, &[attr(Key::EXT_VARARG_ARRAY_VALUES, values)])
     }
-  | LRB RRB                   { ctx.array_ex(@$, NO_NODES, false, false) }
-  | LRB call_members RRB      { ctx.array_ex(@$, $2, false, false) }
+  | LRB RRB                   { ctx.array_keep_empty(@$, NO_NODES) }
+  | LRB call_members RRB      { ctx.array_keep_empty(@$, $2) }
     ;
 
 call_values:

@@ -357,35 +357,19 @@ impl<'a> ParseContext<'a> {
         (begin, n)
     }
 
-    /// The span from the first to the last of `n` nodes starting at `begin`, `None` for nodes that were not emitted
-    fn shrunk_location(&self, begin: u32, n: u32) -> Option<SymbolSpan> {
-        let state = self.state.borrow();
-        let first = state.nodes.get(begin as usize)?.symbol_span().offset();
-        let last = state.nodes.get((begin + n).checked_sub(1)? as usize)?.symbol_span();
-        Some(SymbolSpan::new(first, last.offset().wrapping_add(last.length()).wrapping_sub(first)))
-    }
-
-    /// An array of nodes
+    /// An array of nodes, null if empty
     pub fn array(&self, loc: SymbolSpan, values: impl IntoNodeList) -> Node {
-        self.array_ex(loc, values, true, false)
-    }
-
-    /// An array of nodes with explicit options
-    pub fn array_ex(
-        &self,
-        mut loc: SymbolSpan,
-        values: impl IntoNodeList,
-        null_if_empty: bool,
-        shrink_location: bool,
-    ) -> Node {
-        let list = values.into_node_list(self);
-        let (begin, n) = self.emit_children(list);
-        if n == 0 && null_if_empty {
+        let array = self.array_keep_empty(loc, values);
+        if array.children_count() == 0 {
             return null();
         }
-        if n > 0 && shrink_location {
-            loc = self.shrunk_location(begin, n).unwrap_or(loc);
-        }
+        array
+    }
+
+    /// An array of nodes, also if empty
+    pub fn array_keep_empty(&self, loc: SymbolSpan, values: impl IntoNodeList) -> Node {
+        let list = values.into_node_list(self);
+        let (begin, n) = self.emit_children(list);
         Node::new(&loc, NodeType::ARRAY, AttributeKey::NONE, NO_PARENT, begin, n)
     }
 
@@ -410,31 +394,22 @@ impl<'a> ParseContext<'a> {
             .get(list.0 as usize)
             .is_some_and(|nodes| nodes.iter().any(|n| n.attribute_key() == AttributeKey::EXT_SET_VARARGS));
         let node_type = if varargs { NodeType::OBJECT_EXT_SET } else { NodeType::OBJECT_SQL_SET };
-        self.object_ex(loc, node_type, list, false, false)
+        self.object_keep_empty(loc, node_type, list)
     }
 
-    /// An object
+    /// An object, null without attributes
     pub fn object(&self, loc: SymbolSpan, node_type: NodeType, attrs: impl IntoNodeList) -> Node {
-        self.object_ex(loc, node_type, attrs, true, false)
-    }
-
-    /// An object with explicit options
-    pub fn object_ex(
-        &self,
-        mut loc: SymbolSpan,
-        node_type: NodeType,
-        attrs: impl IntoNodeList,
-        null_if_empty: bool,
-        shrink_location: bool,
-    ) -> Node {
-        let list = attrs.into_node_list(self);
-        let (begin, n) = self.emit_children(list);
-        if n == 0 && null_if_empty {
+        let object = self.object_keep_empty(loc, node_type, attrs);
+        if object.children_count() == 0 {
             return null();
         }
-        if n > 0 && shrink_location {
-            loc = self.shrunk_location(begin, n).unwrap_or(loc);
-        }
+        object
+    }
+
+    /// An object, also without attributes
+    pub fn object_keep_empty(&self, loc: SymbolSpan, node_type: NodeType, attrs: impl IntoNodeList) -> Node {
+        let list = attrs.into_node_list(self);
+        let (begin, n) = self.emit_children(list);
         Node::new(&loc, node_type, AttributeKey::NONE, NO_PARENT, begin, n)
     }
 

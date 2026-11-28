@@ -299,7 +299,7 @@ sql_all_or_distinct:
 // should be placed in the DISTINCT list during parsetree analysis.
 
 sql_distinct_clause:
-    DISTINCT                            { ctx.array_ex(@$, NO_NODES, false, false) }
+    DISTINCT                            { ctx.array_keep_empty(@$, NO_NODES) }
   | DISTINCT ON LRB sql_expr_list RRB   { ctx.array(@$, $4) }
     ;
 
@@ -1223,7 +1223,7 @@ sql_typename:
           NodeType::OBJECT_SQL_TYPENAME,
           &[
               attr(Key::SQL_TYPENAME_TYPE, $1),
-              attr(Key::SQL_TYPENAME_ARRAY, ctx.array_ex(@2, NO_NODES, false, false)),
+              attr(Key::SQL_TYPENAME_ARRAY, ctx.array_keep_empty(@2, NO_NODES)),
           ],
       )
   }
@@ -1233,7 +1233,7 @@ sql_typename:
           NodeType::OBJECT_SQL_TYPENAME,
           &[
               attr(Key::SQL_TYPENAME_TYPE, $2),
-              attr(Key::SQL_TYPENAME_ARRAY, ctx.array_ex(@3, NO_NODES, false, false)),
+              attr(Key::SQL_TYPENAME_ARRAY, ctx.array_keep_empty(@3, NO_NODES)),
               attr(Key::SQL_TYPENAME_SETOF, bool_node(@1, true)),
           ],
       )
@@ -1274,7 +1274,7 @@ sql_simple_typename:
       let mut yy_2 = $2;
       if yy_2 == null() {
           // Keep the empty object, a bare INTERVAL type has no attributes
-          yy_2 = ctx.object_ex(@$, NodeType::OBJECT_SQL_INTERVAL_TYPE, NO_NODES, false, false);
+          yy_2 = ctx.object_keep_empty(@$, NodeType::OBJECT_SQL_INTERVAL_TYPE, NO_NODES);
       }
       yy_2
   }
@@ -1296,7 +1296,7 @@ sql_simple_typename:
             ],
         )
     }
-  | ROW LRB RRB { ctx.object(@$,NodeType::OBJECT_SQL_ROW_TYPE,&[attr(Key::SQL_ROW_TYPE_FIELDS,ctx.array_ex(@$,NO_NODES,false,false))]) }
+  | ROW LRB RRB { ctx.object(@$,NodeType::OBJECT_SQL_ROW_TYPE,&[attr(Key::SQL_ROW_TYPE_FIELDS,ctx.array_keep_empty(@$,NO_NODES))]) }
   | JSON { ctx.object(@$,NodeType::OBJECT_SQL_GENERIC_TYPE,&[attr(Key::SQL_GENERIC_TYPE_NAME,ctx.name_from_keyword(@1,$1))]) }
     ;
 // We have a separate ConstTypename to allow defaulting fixed-length
@@ -1514,34 +1514,30 @@ sql_opt_varying:
 
 sql_const_datetime:
     TIMESTAMP LRB ICONST RRB sql_opt_timezone {
-        ctx.object_ex(
+        ctx.object_keep_empty(
             @$,
             NodeType::OBJECT_SQL_TIMESTAMP_TYPE,
             &[
                 attr(Key::SQL_TIME_TYPE_PRECISION, const_node(@3, AConstType::INTEGER)),
                 attr(Key::SQL_TIME_TYPE_WITH_TIMEZONE, $5),
             ],
-            false,
-            false,
         )
     }
   | TIMESTAMP sql_opt_timezone {
-      ctx.object_ex(@$, NodeType::OBJECT_SQL_TIMESTAMP_TYPE, &[attr(Key::SQL_TIME_TYPE_WITH_TIMEZONE, $2)], false, false)
+      ctx.object_keep_empty(@$, NodeType::OBJECT_SQL_TIMESTAMP_TYPE, &[attr(Key::SQL_TIME_TYPE_WITH_TIMEZONE, $2)])
   }
   | TIME LRB ICONST RRB sql_opt_timezone {
-      ctx.object_ex(
+      ctx.object_keep_empty(
           @$,
           NodeType::OBJECT_SQL_TIME_TYPE,
           &[
               attr(Key::SQL_TIME_TYPE_PRECISION, const_node(@3, AConstType::INTEGER)),
               attr(Key::SQL_TIME_TYPE_WITH_TIMEZONE, $5),
           ],
-          false,
-          false,
       )
   }
   | TIME sql_opt_timezone {
-      ctx.object_ex(@$, NodeType::OBJECT_SQL_TIME_TYPE, &[attr(Key::SQL_TIME_TYPE_WITH_TIMEZONE, $2)], false, false)
+      ctx.object_keep_empty(@$, NodeType::OBJECT_SQL_TIME_TYPE, &[attr(Key::SQL_TIME_TYPE_WITH_TIMEZONE, $2)])
   }
     ;
 
@@ -2433,12 +2429,10 @@ sql_over_clause:
 
 sql_window_specification:
     LRB sql_opt_existing_window_name sql_opt_partition_clause sql_opt_sort_clause sql_opt_frame_clause RRB {
-        ctx.object_ex(
+        ctx.object_keep_empty(
             @$,
             NodeType::OBJECT_SQL_WINDOW_FRAME,
             ctx.concat4($2, $3, $5, &[attr(Key::SQL_WINDOW_FRAME_ORDER, $4)]),
-            false,
-            false,
         )
     }
     ;
@@ -2603,7 +2597,7 @@ sql_explicit_row:
           NodeType::OBJECT_SQL_ROW_EXPRESSION,
           &[
               attr(Key::SQL_ROW_EXPRESSION_EXPLICIT, bool_node(@1, true)),
-              attr(Key::SQL_ROW_EXPRESSION_VALUES, ctx.array_ex(loc(&[@2, @3]), ctx.list(NO_NODES), false, false)),
+              attr(Key::SQL_ROW_EXPRESSION_VALUES, ctx.array_keep_empty(loc(&[@2, @3]), ctx.list(NO_NODES))),
           ],
       )
   }
@@ -2800,12 +2794,12 @@ TABLE LRB sql_qualified_name RRB sql_table_arg_correlation sql_table_arg_partiti
     }
     ;
 sql_descriptor_arg:
-DESCRIPTOR LRB sql_descriptor_list RRB { ctx.object(@$,NodeType::OBJECT_SQL_DESCRIPTOR,&[attr(Key::SQL_DESCRIPTOR_COLUMNS,ctx.array_ex(@3,$3,false,false))]) }
+DESCRIPTOR LRB sql_descriptor_list RRB { ctx.object(@$,NodeType::OBJECT_SQL_DESCRIPTOR,&[attr(Key::SQL_DESCRIPTOR_COLUMNS,ctx.array_keep_empty(@3,$3))]) }
   | DESCRIPTOR LRB RRB {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_DESCRIPTOR,
-            &[attr(Key::SQL_DESCRIPTOR_COLUMNS, ctx.array_ex(@$, NO_NODES, false, false))],
+            &[attr(Key::SQL_DESCRIPTOR_COLUMNS, ctx.array_keep_empty(@$, NO_NODES))],
         )
     }
     ;

@@ -244,7 +244,7 @@ sql_cmd_close_external_stream_stmt:
 
 sql_cmd_close_portal_stmt:
     CLOSE sql_cmd_cursor_name { ctx.object(@$,NodeType::OBJECT_SQL_CLOSE_CURSOR,&[attr(Key::SQL_CLOSE_CURSOR_NAME,$2)]) }
-    | CLOSE ALL { ctx.object_ex(@$,NodeType::OBJECT_SQL_CLOSE_CURSOR,NO_NODES,false,false) }
+    | CLOSE ALL { ctx.object_keep_empty(@$,NodeType::OBJECT_SQL_CLOSE_CURSOR,NO_NODES) }
     ;
 
 sql_cmd_comment_stmt:
@@ -759,8 +759,8 @@ sql_cmd_create_user_stmt:
 sql_cmd_deallocate_stmt:
     DEALLOCATE sql_name { ctx.object(@$,NodeType::OBJECT_SQL_DEALLOCATE,&[attr(Key::SQL_DEALLOCATE_NAME,$2)]) }
     | DEALLOCATE PREPARE sql_name { ctx.object(@$,NodeType::OBJECT_SQL_DEALLOCATE,&[attr(Key::SQL_DEALLOCATE_NAME,$3)]) }
-    | DEALLOCATE ALL { ctx.object_ex(@$,NodeType::OBJECT_SQL_DEALLOCATE,NO_NODES,false,false) }
-    | DEALLOCATE PREPARE ALL { ctx.object_ex(@$,NodeType::OBJECT_SQL_DEALLOCATE,NO_NODES,false,false) }
+    | DEALLOCATE ALL { ctx.object_keep_empty(@$,NodeType::OBJECT_SQL_DEALLOCATE,NO_NODES) }
+    | DEALLOCATE PREPARE ALL { ctx.object_keep_empty(@$,NodeType::OBJECT_SQL_DEALLOCATE,NO_NODES) }
     ;
 
 sql_cmd_declare_cursor_stmt:
@@ -971,7 +971,7 @@ sql_cmd_define_stmt:
 
 sql_cmd_detach_db_stmt:
     DETACH DATABASE sql_cmd_database_name_list { ctx.object(@$,NodeType::OBJECT_SQL_DETACH_DATABASE,&[attr(Key::SQL_DETACH_DATABASE_ALIAS,ctx.array(@3,$3))]) }
-    | DETACH DATABASE STAR { ctx.object_ex(@$,NodeType::OBJECT_SQL_DETACH_DATABASE,NO_NODES,false,false) }
+    | DETACH DATABASE STAR { ctx.object_keep_empty(@$,NodeType::OBJECT_SQL_DETACH_DATABASE,NO_NODES) }
     ;
 
 sql_cmd_drop_db_stmt:
@@ -1154,7 +1154,7 @@ sql_cmd_external_table_schema:
     LIKE sql_qualified_name { $2 }
     | LRB sql_column_def_list RRB { ctx.array(@$, $2) }
     | LRB RRB { null() }
-    | %empty { ctx.object_ex(@$,NodeType::OBJECT_SQL_CREATE_EXTERNAL_TABLE_INFER_SCHEMA,NO_NODES,false,false) }
+    | %empty { ctx.object_keep_empty(@$,NodeType::OBJECT_SQL_CREATE_EXTERNAL_TABLE_INFER_SCHEMA,NO_NODES) }
     ;
 
 sql_cmd_fetch_stmt:
@@ -2061,7 +2061,7 @@ sql_cmd_unload_db_stmt:
     ;
 
 sql_cmd_unload_release_stmt:
-    UNLOAD RELEASE { ctx.object_ex(@$,NodeType::OBJECT_SQL_UNLOAD_RELEASE,NO_NODES,false,false) }
+    UNLOAD RELEASE { ctx.object_keep_empty(@$,NodeType::OBJECT_SQL_UNLOAD_RELEASE,NO_NODES) }
     ;
 
 sql_cmd_update_stmt:
@@ -2506,8 +2506,8 @@ sql_cmd_copy_source_descriptor:
 
 sql_cmd_copy_target_descriptor:
     sql_cmd_nestable_external_location_descriptor { $1 }
-    | STDOUT { ctx.object_ex(@$,NodeType::OBJECT_SQL_STDOUT_TARGET_DESCRIPTOR,NO_NODES,false,false) }
-    | NULL_P { ctx.object_ex(@$,NodeType::OBJECT_SQL_NULL_TARGET_DESCRIPTOR,NO_NODES,false,false) }
+    | STDOUT { ctx.object_keep_empty(@$,NodeType::OBJECT_SQL_STDOUT_TARGET_DESCRIPTOR,NO_NODES) }
+    | NULL_P { ctx.object_keep_empty(@$,NodeType::OBJECT_SQL_NULL_TARGET_DESCRIPTOR,NO_NODES) }
     ;
 
 sql_cmd_createdb_opt_item:
@@ -4048,7 +4048,7 @@ sql_cmd_single_set_clause:
 
 sql_cmd_source_descriptor:
     sql_cmd_nestable_external_location_descriptor { $1 }
-    | ARRAY LSB RSB { ctx.object_ex(@$,NodeType::OBJECT_SQL_ARRAY_EXPRESSION,NO_NODES,false,false) }
+    | ARRAY LSB RSB { ctx.object_keep_empty(@$,NodeType::OBJECT_SQL_ARRAY_EXPRESSION,NO_NODES) }
     | ARRAY LSB sql_cmd_array_external_location_descriptor_list RSB { ctx.object(@$,NodeType::OBJECT_SQL_ARRAY_EXPRESSION,&[attr(Key::SQL_ARRAY_EXPRESSION_ARGS,ctx.array(@3,$3))]) }
     ;
 

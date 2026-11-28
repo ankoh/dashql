@@ -184,7 +184,7 @@ sql_array_constructor:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_ARRAY_EXPRESSION,
-            &[attr(Key::SQL_ARRAY_EXPRESSION_VALUES, ctx.array_ex(@$, NO_NODES, false, false))],
+            &[attr(Key::SQL_ARRAY_EXPRESSION_VALUES, ctx.array_keep_empty(@$, NO_NODES))],
         )
     }
     ;

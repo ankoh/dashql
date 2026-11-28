@@ -13,7 +13,7 @@ sql_json_expr:
             ],
         )
     }
-  | JSON_OBJECT LRB RRB { ctx.object(@$,NodeType::OBJECT_SQL_JSON_OBJECT,&[attr(Key::SQL_JSON_MEMBERS,ctx.array_ex(@$,NO_NODES,false,false))]) }
+  | JSON_OBJECT LRB RRB { ctx.object(@$,NodeType::OBJECT_SQL_JSON_OBJECT,&[attr(Key::SQL_JSON_MEMBERS,ctx.array_keep_empty(@$,NO_NODES))]) }
   | JSON_ARRAY LRB sql_json_value_list sql_json_nulls RRB {
         ctx.object(
             @$,
@@ -24,7 +24,7 @@ sql_json_expr:
             ],
         )
     }
-  | JSON_ARRAY LRB RRB { ctx.object(@$,NodeType::OBJECT_SQL_JSON_ARRAY,&[attr(Key::SQL_JSON_VALUES,ctx.array_ex(@$,NO_NODES,false,false))]) }
+  | JSON_ARRAY LRB RRB { ctx.object(@$,NodeType::OBJECT_SQL_JSON_ARRAY,&[attr(Key::SQL_JSON_VALUES,ctx.array_keep_empty(@$,NO_NODES))]) }
   | JSON_QUERY LRB sql_json_value COMMA sql_a_expr sql_json_passing sql_json_returning sql_json_wrapper sql_json_quotes sql_json_behaviors RRB {
         ctx.object(
             @$,

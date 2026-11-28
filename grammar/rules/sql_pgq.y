@@ -30,7 +30,7 @@ sql_common_element_expr:
       )
   }
   | sql_name AS PROPERTY GRAPH LRB sql_property_graph_definition RRB {
-      let graph = ctx.object_ex(@$, NodeType::OBJECT_SQL_PROPERTY_GRAPH, $6, false, false);
+      let graph = ctx.object_keep_empty(@$, NodeType::OBJECT_SQL_PROPERTY_GRAPH, $6);
       ctx.object(@$, NodeType::OBJECT_SQL_CTE, &[attr(Key::SQL_CTE_NAME, $1), attr(Key::SQL_CTE_PROPERTY_GRAPH, graph)])
   }
     ;
@@ -279,7 +279,7 @@ sql_graph_label_and_properties:
     ;
 
 sql_graph_element_table_properties:
-    NO PROPERTIES { ctx.object_ex(@$, NodeType::OBJECT_SQL_GRAPH_PROPERTIES, NO_NODES, false, false) }
+    NO PROPERTIES { ctx.object_keep_empty(@$, NodeType::OBJECT_SQL_GRAPH_PROPERTIES, NO_NODES) }
   | PROPERTIES sql_opt_are ALL COLUMNS sql_opt_graph_except_clause {
       ctx.object(
           @$,
@@ -496,7 +496,7 @@ sql_graph_pattern_quantifier:
           &[attr(Key::SQL_GRAPH_QUANTIFIER_LOWER, const_node(@2, AConstType::INTEGER))],
       )
   }
-  | LCB COMMA RCB { ctx.object_ex(@$, NodeType::OBJECT_SQL_GRAPH_QUANTIFIER, NO_NODES, false, false) }
+  | LCB COMMA RCB { ctx.object_keep_empty(@$, NodeType::OBJECT_SQL_GRAPH_QUANTIFIER, NO_NODES) }
   | PARAM {
         ctx.require_operator(@1, "?");
         ctx.object(

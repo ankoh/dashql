@@ -41,7 +41,7 @@ sql_function_param_type:
 
 sql_aggregate_signature:
  LRB STAR RRB { ctx.list(&[attr(Key::SQL_CREATE_FUNCTION_STAR,bool_node(@2,true))]) }
- | LRB RRB { ctx.list(&[attr(Key::SQL_CREATE_FUNCTION_PARAMS,ctx.array_ex(@$,NO_NODES,false,false))]) }
+ | LRB RRB { ctx.list(&[attr(Key::SQL_CREATE_FUNCTION_PARAMS,ctx.array_keep_empty(@$,NO_NODES))]) }
  | LRB sql_cmd_aggr_args_list RRB { ctx.list(&[attr(Key::SQL_CREATE_FUNCTION_PARAMS,ctx.array(@$,$2))]) }
  | LRB ORDER BY sql_cmd_aggr_args_list RRB { ctx.list(&[attr(Key::SQL_CREATE_FUNCTION_ORDER_PARAMS,ctx.array(@4,$4))]) }
  | LRB sql_cmd_aggr_args_list ORDER BY sql_cmd_aggr_args_list RRB {

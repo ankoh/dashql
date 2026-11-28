@@ -211,12 +211,10 @@ pub fn indirection_index(ctx: &ParseContext, loc: SymbolSpan, index: Node) -> No
 /// A slice indirection with bounds
 pub fn indirection_index_bounds(ctx: &ParseContext, loc: SymbolSpan, lower: Node, upper: Node) -> Node {
     // Both bounds are optional, `[:]` stays an object without attributes
-    ctx.object_ex(
+    ctx.object_keep_empty(
         loc,
         NodeType::OBJECT_SQL_INDIRECTION_INDEX,
         &[attr(Key::SQL_INDIRECTION_INDEX_LOWER_BOUND, lower), attr(Key::SQL_INDIRECTION_INDEX_UPPER_BOUND, upper)],
-        false,
-        false,
     )
 }
 
