@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -23,6 +23,14 @@ describe('acquireDatabaseLock', () => {
         expect(readFileSync(lockPathOf(database), 'utf8')).toBe(`${process.pid}\n`);
         release();
         expect(existsSync(lockPathOf(database))).toBe(false);
+    });
+
+    it('leaves no file but the lock next to the database', () => {
+        const release = acquireDatabaseLock(database, { pid: 1007, isAlive: () => true });
+        expect(() => acquireDatabaseLock(database, { pid: 1008, isAlive: () => true })).toThrow(DatabaseInUseError);
+        expect(readdirSync(directory)).toEqual(['sales.hyper.lock']);
+        release();
+        expect(readdirSync(directory)).toEqual([]);
     });
 
     it('refuses a database that a living process holds', () => {

@@ -1,4 +1,5 @@
-import { closeSync, openSync, readFileSync, unlinkSync, writeSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { linkSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 
 /// Another living process holds the database
 export class DatabaseInUseError extends Error {
@@ -40,6 +41,18 @@ function readLockPid(lockPath: string): number | null {
     }
 }
 
+/// Create the lock file with the process id in it. A file of its own is linked to the lock path, which fails if the
+/// lock exists, so a second process never reads a lock file before it holds the id.
+function createLockFile(lockPath: string, pid: number): void {
+    const temporary = `${lockPath}.${pid}.${randomUUID()}`;
+    writeFileSync(temporary, `${pid}\n`, { flag: 'wx' });
+    try {
+        linkSync(temporary, lockPath);
+    } finally {
+        unlinkSync(temporary);
+    }
+}
+
 /// Lock a database file for this process and return the function that releases it.
 /// hyperdb-wasm leaves it to the caller to keep a second engine away from a database. The lock is a file next to the
 /// database that holds the id of the process; the lock of a process that ended is taken over.
@@ -50,12 +63,7 @@ export function acquireDatabaseLock(database: string, options: LockOptions = {})
 
     for (let attempt = 0; ; ++attempt) {
         try {
-            const fd = openSync(lockPath, 'wx');
-            try {
-                writeSync(fd, `${pid}\n`);
-            } finally {
-                closeSync(fd);
-            }
+            createLockFile(lockPath, pid);
             break;
         } catch (e) {
             if ((e as NodeJS.ErrnoException).code !== 'EEXIST' || attempt > 0) throw e;
