@@ -3,12 +3,10 @@
 //! The readers of the columns cast what they read, so a count may arrive as any integer type, and return an error,
 //! never a panic, for a missing column or a type they can't cast.
 
-use std::sync::Arc;
-
 use arrow_array::cast::AsArray;
 use arrow_array::types::{Float64Type, Int64Type, UInt64Type};
 use arrow_array::{Array, ArrayRef, RecordBatch};
-use arrow_schema::{DataType, Schema, SchemaRef};
+use arrow_schema::{DataType, SchemaRef};
 use dashql_core::error::{Error, Result};
 
 /// A table of record batches that share a schema
@@ -58,16 +56,6 @@ impl ResultTable {
         Ok(Self { schema, batches })
     }
 
-    /// A table without columns and rows
-    pub fn empty() -> Self {
-        Self { schema: Arc::new(Schema::empty()), batches: Vec::new() }
-    }
-
-    /// A table of one batch
-    pub fn from_batch(batch: RecordBatch) -> Self {
-        Self { schema: batch.schema(), batches: vec![batch] }
-    }
-
     /// Read a table from an Arrow IPC stream
     pub fn from_ipc_stream(bytes: &[u8]) -> Result<Self> {
         let reader = arrow_ipc::reader::StreamReader::try_new(bytes, None).map_err(arrow_error("an IPC stream"))?;
@@ -80,16 +68,6 @@ impl ResultTable {
     pub fn schema_of_ipc_stream(bytes: &[u8]) -> Result<SchemaRef> {
         let reader = arrow_ipc::reader::StreamReader::try_new(bytes, None).map_err(arrow_error("an IPC stream"))?;
         Ok(reader.schema())
-    }
-
-    /// Write the table as an Arrow IPC stream
-    pub fn to_ipc_stream(&self) -> Result<Vec<u8>> {
-        let mut writer = arrow_ipc::writer::StreamWriter::try_new(Vec::new(), &self.schema)
-            .map_err(arrow_error("writing an IPC stream"))?;
-        for batch in &self.batches {
-            writer.write(batch).map_err(arrow_error("writing an IPC stream"))?;
-        }
-        writer.into_inner().map_err(arrow_error("writing an IPC stream"))
     }
 
     /// The schema

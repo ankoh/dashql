@@ -27,6 +27,8 @@ use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::CancellationToken;
 use dashql_core_runtime::settings::RuntimeSettings;
 
+use crate::compute_tasks_test::ipc_stream;
+
 // The executor
 
 struct TaskWaker {
@@ -235,17 +237,17 @@ impl ComputeHost for FakeHost {
                 ("column_idx", a(Int64Array::from(vec![1]))),
                 ("column_group_idx", a(Int64Array::from(vec![2]))),
             ]);
-            return matches.to_ipc_stream().map_err(|e| HostError::new(e.to_string()));
+            return Ok(ipc_stream(&matches));
         }
         if sql.starts_with("SELECT count(*)") {
             let count = table(vec![("count", a(Int64Array::from(vec![1])))]);
-            return count.to_ipc_stream().map_err(|e| HostError::new(e.to_string()));
+            return Ok(ipc_stream(&count));
         }
         let name = read_table(sql).ok_or_else(|| HostError::new(format!("no table in {sql}")))?;
         let mut database = self.database.borrow_mut();
         database.parsed.push(sql.to_string());
         let table = database.tables.get(&name).ok_or_else(|| HostError::new(format!("no table {name}")))?;
-        table.to_ipc_stream().map_err(|e| HostError::new(e.to_string()))
+        Ok(ipc_stream(table))
     }
 
     async fn query_table(&self, sql: &str, _context: &ComputeContext) -> std::result::Result<KeptTable, HostError> {
@@ -318,7 +320,8 @@ fn shape(table: &ResultTable) -> TableShape {
 }
 
 fn table(columns: Vec<(&str, ArrayRef)>) -> ResultTable {
-    ResultTable::from_batch(RecordBatch::try_from_iter(columns).unwrap())
+    let batch = RecordBatch::try_from_iter(columns).unwrap();
+    ResultTable::try_new(batch.schema(), vec![batch]).unwrap()
 }
 
 /// The result of the tests: a score and a name

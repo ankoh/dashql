@@ -55,10 +55,19 @@ fn arrow_table(id: u32, rows: i64) -> ArrowTable {
     ArrowTable::new(id, rows as u64, table.schema().clone())
 }
 
+/// A table as an Arrow IPC stream, as the host hands it over
+pub(crate) fn ipc_stream(table: &ResultTable) -> Vec<u8> {
+    let mut writer = arrow_ipc::writer::StreamWriter::try_new(Vec::new(), table.schema()).expect("a writer");
+    for batch in table.batches() {
+        writer.write(batch).expect("a batch");
+    }
+    writer.into_inner().expect("an IPC stream")
+}
+
 /// A table of named columns
 fn table(columns: Vec<(&str, ArrayRef)>) -> ResultTable {
     let batch = RecordBatch::try_from_iter(columns).expect("a batch");
-    ResultTable::from_batch(batch)
+    ResultTable::try_new(batch.schema(), vec![batch]).expect("a table")
 }
 
 fn order(field: &str, ascending: Option<bool>, nulls_first: Option<bool>) -> OrderByConstraint {
@@ -588,7 +597,7 @@ fn analysis_names_the_row_numbers_apart_from_the_fields() {
     assert_eq!(start.fields, vec!["_rownum".to_string()]);
     assert_eq!(start.import.table_name, "__df_3");
     // The import crosses as IPC, with its batches
-    let bytes = input.to_ipc_stream().expect("IPC");
+    let bytes = ipc_stream(&input);
     let imported = ResultTable::from_ipc_stream(&bytes).expect("a table");
     assert_eq!(imported, input);
     assert_eq!(imported.batches().len(), 2);
