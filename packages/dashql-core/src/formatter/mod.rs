@@ -911,10 +911,7 @@ impl<'a> Formatter<'a> {
             base_reg = f.concat(&[base_reg, f.text(" with options "), f.parenthesized(options_reg)]);
         }
         if let Some(alias) = alias {
-            let alias_reg = self.reg(alias);
-            if alias_reg == 0 {
-                return self.format_unimplemented(node);
-            }
+            let alias_reg = self.reg_or_placeholder(alias);
             // The alias of the target of an INSERT and of the table of a property graph element needs its AS
             let separator = if matches!(node.attribute_key(), K::SQL_INSERT_TARGET | K::SQL_GRAPH_ELEMENT_TABLE_TABLE) {
                 " as "
@@ -924,10 +921,7 @@ impl<'a> Formatter<'a> {
             base_reg = f.concat(&[base_reg, f.text(separator), alias_reg]);
         }
         if let Some(sample) = sample {
-            let sample_reg = self.reg(sample);
-            if sample_reg == 0 {
-                return self.format_unimplemented(node);
-            }
+            let sample_reg = self.reg_or_placeholder(sample);
             base_reg = f.concat(&[base_reg, f.text(" "), sample_reg]);
         }
         base_reg
@@ -1077,11 +1071,8 @@ impl<'a> Formatter<'a> {
         }
         let [left, right] = self.children(inputs) else { return self.format_unimplemented(node) };
 
-        let left_reg = self.reg(left);
-        let right_reg = self.reg(right);
-        if left_reg == 0 || right_reg == 0 {
-            return self.format_unimplemented(node);
-        }
+        let left_reg = self.reg_or_placeholder(left);
+        let right_reg = self.reg_or_placeholder(right);
 
         let join_text = match JoinType(value_u8(join_type)) {
             JoinType::NONE => "cross join",
@@ -1100,16 +1091,10 @@ impl<'a> Formatter<'a> {
 
         let mut join_clause_parts = vec![f.concat(&[f.text(join_text), f.text(" "), right_reg])];
         if let Some(join_on) = join_on {
-            let on_reg = self.reg(join_on);
-            if on_reg == 0 {
-                return self.format_unimplemented(node);
-            }
+            let on_reg = self.reg_or_placeholder(join_on);
             join_clause_parts.push(f.concat(&[f.text("on "), on_reg]));
         } else if let Some(join_using) = join_using {
-            let using_reg = self.reg(join_using);
-            if using_reg == 0 {
-                return self.format_unimplemented(node);
-            }
+            let using_reg = self.reg_or_placeholder(join_using);
             join_clause_parts.push(f.concat(&[f.text("using "), f.parenthesized(using_reg)]));
         }
         let join_clause = self.space_join(&join_clause_parts, FormattingJoinPolicy::BreakOnOverflow, true);
@@ -1228,18 +1213,12 @@ impl<'a> Formatter<'a> {
         // the type
         if self.config.dialect == FormattingDialect::TRINO {
             if let Some(keyword) = self.zone_clause_time_type(type_node) {
-                let value_reg = self.reg(value);
-                if value_reg == 0 {
-                    return self.format_unimplemented(node);
-                }
+                let value_reg = self.reg_or_placeholder(value);
                 return f.concat(&[f.text(keyword), f.text(" "), value_reg]);
             }
         }
-        let type_reg = self.reg(type_node);
-        let value_reg = self.reg(value);
-        if type_reg == 0 || value_reg == 0 {
-            return self.format_unimplemented(node);
-        }
+        let type_reg = self.reg_or_placeholder(type_node);
+        let value_reg = self.reg_or_placeholder(value);
         f.concat(&[type_reg, f.text(" "), value_reg])
     }
 
@@ -1274,22 +1253,13 @@ impl<'a> Formatter<'a> {
         f.concat(&parts)
     }
 
-    /// The arguments of a function call, None if an argument cannot be formatted
+    /// The arguments of a function call, None if they are no array
     fn format_call_arguments(&self, args: Option<&'a Node>) -> Option<Vec<FmtReg>> {
-        let mut arg_items = Vec::new();
-        if let Some(args) = args {
-            if args.node_type() != NodeType::ARRAY {
-                return None;
-            }
-            for arg in self.children(args) {
-                let reg = self.reg(arg);
-                if reg == 0 {
-                    return None;
-                }
-                arg_items.push(reg);
-            }
+        let Some(args) = args else { return Some(Vec::new()) };
+        if args.node_type() != NodeType::ARRAY {
+            return None;
         }
-        Some(arg_items)
+        Some(self.children(args).iter().map(|arg| self.reg_or_placeholder(arg)).collect())
     }
 
     fn format_const_function_cast(&self, node: &'a Node) -> FmtReg {
@@ -1304,7 +1274,6 @@ impl<'a> Formatter<'a> {
             ],
         );
         let (Some(name), Some(value)) = (name, value) else { return self.format_unimplemented(node) };
-        let name_reg = self.reg(name);
         // Trino reads the time zone of a timestamp or time literal from its text, `timestamptz '...'` is `timestamp '...'`.
         // Its literals take no precision either, it is that of the text, like for `timestamp(3) with time zone '...'`.
         if self.config.dialect == FormattingDialect::TRINO {
@@ -1317,32 +1286,21 @@ impl<'a> Formatter<'a> {
                 return f.concat(&[f.text(keyword), f.text(" "), self.reg_or_placeholder(value)]);
             }
         }
-        let value_reg = self.reg(value);
-        if name_reg == 0 || value_reg == 0 {
-            return self.format_unimplemented(node);
-        }
-
+        let (name_reg, value_reg) = (self.reg_or_placeholder(name), self.reg_or_placeholder(value));
         let Some(arg_items) = self.format_call_arguments(args) else { return self.format_unimplemented(node) };
         let mut call_parts = Vec::with_capacity(3);
         if !arg_items.is_empty() {
             call_parts.push(self.comma_join_on_overflow(&arg_items, true));
         }
         if let Some(order) = order {
-            let order_reg = self.reg(order);
-            if order_reg == 0 {
-                return self.format_unimplemented(node);
-            }
+            let order_reg = self.reg_or_placeholder(order);
             call_parts.push(f.text(if call_parts.is_empty() { "order by " } else { " order by " }));
             call_parts.push(order_reg);
         }
 
         let mut call_reg = name_reg;
         if !call_parts.is_empty() {
-            let call_body = f.concat(&call_parts);
-            if call_body == 0 {
-                return self.format_unimplemented(node);
-            }
-            call_reg = f.concat(&[name_reg, f.parenthesized(call_body)]);
+            call_reg = f.concat(&[name_reg, f.parenthesized(f.concat(&call_parts))]);
         }
         f.concat(&[call_reg, f.text(" "), value_reg])
     }
@@ -1479,10 +1437,7 @@ impl<'a> Formatter<'a> {
         }
         // `order by a using <`
         if let Some(using) = using {
-            let using_reg = self.reg(using);
-            if using_reg == 0 {
-                return self.format_unimplemented(node);
-            }
+            let using_reg = self.reg_or_placeholder(using);
             parts.push(self.fmt.concat(&[self.fmt.text("using "), using_reg]));
         }
         if let Some(nullrule) = nullrule {
@@ -1547,16 +1502,10 @@ impl<'a> Formatter<'a> {
     fn format_parameter_ref(&self, node: &'a Node) -> FmtReg {
         let [prefix, name] = attrs!(self.children(node), [K::SQL_PARAMETER_PREFIX, K::SQL_PARAMETER_NAME]);
         let Some(prefix) = prefix else { return self.format_unimplemented(node) };
-        let prefix_reg = self.reg(prefix);
-        if prefix_reg == 0 {
-            return self.format_unimplemented(node);
-        }
+        let prefix_reg = self.reg_or_placeholder(prefix);
         // Positional parameters (?) have no name
         let Some(name) = name else { return prefix_reg };
-        let name_reg = self.reg(name);
-        if name_reg == 0 {
-            return self.format_unimplemented(node);
-        }
+        let name_reg = self.reg_or_placeholder(name);
         self.fmt.concat(&[prefix_reg, name_reg])
     }
 
@@ -1569,10 +1518,7 @@ impl<'a> Formatter<'a> {
         if child.node_type() == NodeType::ARRAY && child.children_count() == 0 {
             return f.concat(&[f.text(keyword), f.text("()")]);
         }
-        let child_reg = self.reg(child);
-        if child_reg == 0 {
-            return self.format_unimplemented(node);
-        }
+        let child_reg = self.reg_or_placeholder(child);
         f.concat(&[f.text(keyword), f.parenthesized(child_reg)])
     }
 
@@ -1590,10 +1536,10 @@ impl<'a> Formatter<'a> {
             ],
         );
         let Some(relation) = name.or(statement) else { return self.format_unimplemented(node) };
-        let relation_reg = self.reg(relation);
-        if relation_reg == 0 || (name.is_some() && statement.is_some()) {
+        if name.is_some() && statement.is_some() {
             return self.format_unimplemented(node);
         }
+        let relation_reg = self.reg_or_placeholder(relation);
         let mut parts = vec![f.concat(&[f.text("table"), f.parenthesized(relation_reg)])];
         if let Some(alias) = alias {
             parts.push(f.concat(&[f.text("as "), self.reg_or_placeholder(alias)]));
@@ -1684,11 +1630,8 @@ impl<'a> Formatter<'a> {
     fn format_indirection(&self, node: &'a Node) -> FmtReg {
         let [value, path] = attrs!(self.children(node), [K::SQL_INDIRECTION_VALUE, K::SQL_INDIRECTION_PATH]);
         let (Some(value), Some(path)) = (value, path) else { return self.format_unimplemented(node) };
-        let value_reg = self.reg(value);
-        let path_reg = self.reg(path);
-        if value_reg == 0 || path_reg == 0 {
-            return self.format_unimplemented(node);
-        }
+        let value_reg = self.reg_or_placeholder(value);
+        let path_reg = self.reg_or_placeholder(path);
         self.fmt.concat(&[self.fmt.parenthesized(value_reg), path_reg])
     }
 
@@ -1706,10 +1649,7 @@ impl<'a> Formatter<'a> {
         if values.children_count() == 0 {
             return f.text("row()");
         }
-        let values_reg = self.reg(values);
-        if values_reg == 0 {
-            return self.format_unimplemented(node);
-        }
+        let values_reg = self.reg_or_placeholder(values);
         // (x) is just x, so a single value always needs the row keyword
         if is_explicit.is_some() || values.children_count() == 1 {
             return f.concat(&[f.text("row"), f.parenthesized(values_reg)]);
@@ -1737,10 +1677,7 @@ impl<'a> Formatter<'a> {
         if values.children_count() == 0 {
             return f.text("array[]");
         }
-        let values_reg = self.reg(values);
-        if values_reg == 0 {
-            return self.format_unimplemented(node);
-        }
+        let values_reg = self.reg_or_placeholder(values);
         f.concat(&[f.text("array"), f.bracketed(values_reg)])
     }
 
@@ -2083,15 +2020,9 @@ impl<'a> Formatter<'a> {
         let f = &self.fmt;
         let [arg_name, arg_value] = attrs!(self.children(node), [K::SQL_FUNCTION_ARG_NAME, K::SQL_FUNCTION_ARG_VALUE]);
         let Some(arg_value) = arg_value else { return self.format_unimplemented(node) };
-        let value_reg = self.reg(arg_value);
-        if value_reg == 0 {
-            return self.format_unimplemented(node);
-        }
+        let value_reg = self.reg_or_placeholder(arg_value);
         let Some(arg_name) = arg_name else { return value_reg };
-        let name_reg = self.reg(arg_name);
-        if name_reg == 0 {
-            return self.format_unimplemented(node);
-        }
+        let name_reg = self.reg_or_placeholder(arg_name);
         f.concat(&[name_reg, f.text(" => "), value_reg])
     }
 
@@ -2166,15 +2097,12 @@ impl<'a> Formatter<'a> {
         }
 
         let name_reg = if name.node_type() == NodeType::ARRAY {
-            self.reg(name)
+            self.reg_or_placeholder(name)
         } else if let Some(name_text) = known_function_text() {
             f.text(name_text)
         } else {
             return self.format_unimplemented(node);
         };
-        if name_reg == 0 {
-            return self.format_unimplemented(node);
-        }
 
         let mut call_parts = Vec::with_capacity(4);
         if star.is_some() {
@@ -2185,10 +2113,7 @@ impl<'a> Formatter<'a> {
         } else {
             let Some(mut arg_items) = self.format_call_arguments(args) else { return self.format_unimplemented(node) };
             if let Some(variadic) = variadic {
-                let variadic_reg = self.reg(variadic);
-                if variadic_reg == 0 {
-                    return self.format_unimplemented(node);
-                }
+                let variadic_reg = self.reg_or_placeholder(variadic);
                 arg_items.push(f.concat(&[f.text("variadic "), variadic_reg]));
             }
             if all.is_some() || distinct.is_some() {
@@ -2210,10 +2135,7 @@ impl<'a> Formatter<'a> {
         }
 
         if let Some(order) = order {
-            let order_reg = self.reg(order);
-            if order_reg == 0 {
-                return self.format_unimplemented(node);
-            }
+            let order_reg = self.reg_or_placeholder(order);
             call_parts.push(f.text(if call_parts.is_empty() { "order by " } else { " order by " }));
             call_parts.push(order_reg);
         }
@@ -2253,18 +2175,12 @@ impl<'a> Formatter<'a> {
         }
         // The grammar reads WITHIN GROUP before FILTER
         if let Some(within_group) = within_group {
-            let wg_reg = self.reg(within_group);
-            if wg_reg == 0 {
-                return self.format_unimplemented(node);
-            }
+            let wg_reg = self.reg_or_placeholder(within_group);
             let body = f.concat(&[f.text("order by "), wg_reg]);
             result = f.concat(&[result, f.text(" within group "), f.parenthesized(body)]);
         }
         if let Some(filter) = filter {
-            let filter_reg = self.reg(filter);
-            if filter_reg == 0 {
-                return self.format_unimplemented(node);
-            }
+            let filter_reg = self.reg_or_placeholder(filter);
             let body = f.concat(&[f.text("where "), filter_reg]);
             result = f.concat(&[result, f.text(" filter "), f.parenthesized(body)]);
         }
@@ -2437,32 +2353,20 @@ impl<'a> Formatter<'a> {
 
         let mut clauses = Vec::with_capacity(4);
         if let Some(name) = name {
-            let name_reg = self.reg(name);
-            if name_reg == 0 {
-                return self.format_unimplemented(node);
-            }
+            let name_reg = self.reg_or_placeholder(name);
             clauses.push(name_reg);
         }
         if let Some(partition) = partition {
-            let part_reg = self.reg(partition);
-            if part_reg == 0 {
-                return self.format_unimplemented(node);
-            }
+            let part_reg = self.reg_or_placeholder(partition);
             clauses.push(f.concat(&[f.text("partition by "), part_reg]));
         }
         if let Some(order) = order {
-            let order_reg = self.reg(order);
-            if order_reg == 0 {
-                return self.format_unimplemented(node);
-            }
+            let order_reg = self.reg_or_placeholder(order);
             clauses.push(f.concat(&[f.text("order by "), order_reg]));
         }
         if let (Some(mode), Some(bounds)) = (mode, bounds) {
-            let mode_reg = self.reg(mode);
-            let bounds_reg = self.reg(bounds);
-            if mode_reg == 0 || bounds_reg == 0 {
-                return self.format_unimplemented(node);
-            }
+            let mode_reg = self.reg_or_placeholder(mode);
+            let bounds_reg = self.reg_or_placeholder(bounds);
             clauses.push(f.concat(&[mode_reg, f.text(" "), bounds_reg]));
         }
         if let Some(exclude) = exclude {
@@ -2551,10 +2455,7 @@ impl<'a> Formatter<'a> {
                 None => self.format_unimplemented(node),
             };
         };
-        let name_reg = self.reg(name);
-        if name_reg == 0 {
-            return self.format_unimplemented(node);
-        }
+        let name_reg = self.reg_or_placeholder(name);
         for columns in [col_names, col_defs].into_iter().flatten() {
             if columns.node_type() == NodeType::ARRAY && columns.children_count() > 0 {
                 let cols = self.format_comma_list(columns, true);
@@ -2568,11 +2469,8 @@ impl<'a> Formatter<'a> {
         let f = &self.fmt;
         let [value, type_node] = attrs!(self.children(node), [K::SQL_TYPECAST_VALUE, K::SQL_TYPECAST_TYPE]);
         let (Some(value), Some(type_node)) = (value, type_node) else { return self.format_unimplemented(node) };
-        let mut value_reg = self.reg(value);
-        let type_reg = self.reg(type_node);
-        if value_reg == 0 || type_reg == 0 {
-            return self.format_unimplemented(node);
-        }
+        let mut value_reg = self.reg_or_placeholder(value);
+        let type_reg = self.reg_or_placeholder(type_node);
         if value.node_type() == NodeType::OBJECT_SQL_NARY_EXPRESSION {
             value_reg = f.parenthesized(value_reg);
         }
@@ -2587,25 +2485,16 @@ impl<'a> Formatter<'a> {
 
         let mut parts = Vec::new();
         if let Some(argument) = argument {
-            let arg_reg = self.reg(argument);
-            if arg_reg == 0 {
-                return self.format_unimplemented(node);
-            }
+            let arg_reg = self.reg_or_placeholder(argument);
             parts.push(f.concat(&[f.text("case "), arg_reg]));
         } else {
             parts.push(f.text("case"));
         }
-        for clause in self.array_regs(clauses) {
-            if clause == 0 {
-                return self.format_unimplemented(node);
-            }
-            parts.push(clause);
+        for clause in self.children(clauses) {
+            parts.push(self.reg_or_placeholder(clause));
         }
         if let Some(default_value) = default_value {
-            let default_reg = self.reg(default_value);
-            if default_reg == 0 {
-                return self.format_unimplemented(node);
-            }
+            let default_reg = self.reg_or_placeholder(default_value);
             parts.push(f.concat(&[f.text("else "), default_reg]));
         }
         parts.push(f.text("end"));
@@ -2623,11 +2512,8 @@ impl<'a> Formatter<'a> {
         let (Some(when_value), Some(then_value)) = (when_value, then_value) else {
             return self.format_unimplemented(node);
         };
-        let when_reg = self.reg(when_value);
-        let then_reg = self.reg(then_value);
-        if when_reg == 0 || then_reg == 0 {
-            return self.format_unimplemented(node);
-        }
+        let when_reg = self.reg_or_placeholder(when_value);
+        let then_reg = self.reg_or_placeholder(then_value);
         f.concat(&[f.text("when "), when_reg, f.text(" then "), then_reg])
     }
 
@@ -2656,10 +2542,8 @@ impl<'a> Formatter<'a> {
         let (Some(arg0), Some(arg1), Some(operator), Some(quantifier)) = (arg0, arg1, operator, quantifier) else {
             return self.format_unimplemented(node);
         };
-        let (arg0_reg, arg1_reg, op_reg) = (self.reg(arg0), self.reg(arg1), self.reg(operator));
-        if arg0_reg == 0 || arg1_reg == 0 || op_reg == 0 {
-            return self.format_unimplemented(node);
-        }
+        let (arg0_reg, arg1_reg, op_reg) =
+            (self.reg_or_placeholder(arg0), self.reg_or_placeholder(arg1), self.reg_or_placeholder(operator));
         // The right hand side is either a subquery, which parenthesizes itself, or an expression
         let arg1_reg = if arg1.node_type() == NodeType::OBJECT_SQL_SELECT_EXPRESSION {
             arg1_reg
@@ -2721,10 +2605,7 @@ impl<'a> Formatter<'a> {
         let [negate, value, types] =
             attrs!(self.children(node), [K::SQL_TYPETEST_NEGATE, K::SQL_TYPETEST_VALUE, K::SQL_TYPETEST_TYPES]);
         let (Some(value), Some(types)) = (value, types) else { return self.format_unimplemented(node) };
-        let (value_reg, types_reg) = (self.reg(value), self.reg(types));
-        if value_reg == 0 || types_reg == 0 {
-            return self.format_unimplemented(node);
-        }
+        let (value_reg, types_reg) = (self.reg_or_placeholder(value), self.reg_or_placeholder(types));
         let keyword = if is_true(negate) { " is not of " } else { " is of " };
         f.concat(&[value_reg, f.text(keyword), f.parenthesized(types_reg)])
     }
@@ -2735,10 +2616,7 @@ impl<'a> Formatter<'a> {
         let [function, columns] =
             attrs!(self.children(node), [K::SQL_ROWSFROM_ITEM_FUNCTION, K::SQL_ROWSFROM_ITEM_COLUMNS]);
         let Some(function) = function else { return self.format_unimplemented(node) };
-        let function_reg = self.reg(function);
-        if function_reg == 0 {
-            return self.format_unimplemented(node);
-        }
+        let function_reg = self.reg_or_placeholder(function);
         match columns.filter(|c| c.node_type() == NodeType::ARRAY) {
             Some(columns) => f.concat(&[function_reg, f.text(" as "), f.parenthesized(self.reg(columns))]),
             None => function_reg,
@@ -2762,12 +2640,9 @@ impl<'a> Formatter<'a> {
         let [key, value] = attrs!(self.children(node), [K::SQL_DEFINITION_ARG_KEY, K::SQL_DEFINITION_ARG_VALUE]);
         let Some(key) = key else { return self.format_unimplemented(node) };
         let value_reg = match value {
-            Some(value) => self.reg(value),
+            Some(value) => self.reg_or_placeholder(value),
             None => f.text("none"),
         };
-        if value_reg == 0 {
-            return self.format_unimplemented(node);
-        }
         f.concat(&[self.reg(key), f.text(" = "), value_reg])
     }
 
@@ -2787,11 +2662,8 @@ impl<'a> Formatter<'a> {
         );
         let Some(name) = name else { return self.format_unimplemented(node) };
         let Some(body_node) = statement.or(graph) else { return self.format_unimplemented(node) };
-        let name_reg = self.reg(name);
-        let body_reg = self.reg(body_node);
-        if name_reg == 0 || body_reg == 0 {
-            return self.format_unimplemented(node);
-        }
+        let name_reg = self.reg_or_placeholder(name);
+        let body_reg = self.reg_or_placeholder(body_node);
 
         let body = if graph.is_some_and(|g| g.children_count() == 0) {
             f.text("()")
@@ -2810,19 +2682,13 @@ impl<'a> Formatter<'a> {
         };
         let mut result = match columns.filter(|c| c.node_type() == NodeType::ARRAY && c.children_count() > 0) {
             Some(columns) => {
-                let cols_reg = self.reg(columns);
-                if cols_reg == 0 {
-                    return self.format_unimplemented(columns);
-                }
+                let cols_reg = self.reg_or_placeholder(columns);
                 f.concat(&[name_reg, f.text(" "), f.parenthesized(cols_reg), as_reg, body])
             }
             None => f.concat(&[name_reg, as_reg, body]),
         };
         if let Some(options) = options {
-            let options_reg = self.reg(options);
-            if options_reg == 0 {
-                return self.format_unimplemented(options);
-            }
+            let options_reg = self.reg_or_placeholder(options);
             result = f.concat(&[result, f.text(" options "), f.parenthesized(options_reg)]);
         }
         result
@@ -2859,10 +2725,7 @@ impl<'a> Formatter<'a> {
                 None => f.text("*"),
             };
             if let Some(exclude) = exclude {
-                let exclude_reg = self.reg(exclude);
-                if exclude_reg == 0 {
-                    return self.format_unimplemented(exclude);
-                }
+                let exclude_reg = self.reg_or_placeholder(exclude);
                 result = if exclude.children_count() == 1 {
                     f.concat(&[result, f.text(" exclude "), exclude_reg])
                 } else {
@@ -2872,15 +2735,9 @@ impl<'a> Formatter<'a> {
             return result;
         }
         let Some(value) = value else { return self.format_unimplemented(node) };
-        let value_reg = self.reg(value);
-        if value_reg == 0 {
-            return self.format_unimplemented(value);
-        }
+        let value_reg = self.reg_or_placeholder(value);
         let Some(name) = name else { return value_reg };
-        let name_reg = self.reg(name);
-        if name_reg == 0 {
-            return self.format_unimplemented(name);
-        }
+        let name_reg = self.reg_or_placeholder(name);
         f.concat(&[value_reg, f.text(" as "), name_reg])
     }
 
@@ -2934,10 +2791,7 @@ impl<'a> Formatter<'a> {
 
         let known_operator = op_node.node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR;
         let op = if known_operator { ExpressionOperator(value_u8(op_node)) } else { ExpressionOperator::DEFAULT };
-        let op_reg = self.reg(op_node);
-        if op_reg == 0 {
-            return self.format_unimplemented(node);
-        }
+        let op_reg = self.reg_or_placeholder(op_node);
 
         let args = self.array_regs(args_node);
         if !known_operator && !matches!(args.len(), 1 | 2) {

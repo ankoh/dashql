@@ -25,28 +25,19 @@ impl<'a> Formatter<'a> {
         if source.is_none() == default_values.is_none() {
             return self.format_unimplemented(node);
         }
-        let target_reg = self.reg(target);
-        if target_reg == 0 {
-            return self.format_unimplemented(target);
-        }
+        let target_reg = self.reg_or_placeholder(target);
 
         let mut clauses = Vec::new();
         let keyword = if bulk.is_some() { "insert bulk into " } else { "insert into " };
         let mut header = f.concat(&[f.text(keyword), target_reg]);
         if let Some(columns) = columns.filter(|c| c.node_type() == NodeType::ARRAY && c.children_count() > 0) {
-            let columns_reg = self.reg(columns);
-            if columns_reg == 0 {
-                return self.format_unimplemented(columns);
-            }
+            let columns_reg = self.reg_or_placeholder(columns);
             header = f.concat(&[header, f.parenthesized(columns_reg)]);
         }
         clauses.push(header);
 
         if let Some(source) = source {
-            let source_reg = self.reg(source);
-            if source_reg == 0 {
-                return self.format_unimplemented(source);
-            }
+            let source_reg = self.reg_or_placeholder(source);
             clauses.push(source_reg);
         } else {
             clauses.push(f.text("default values"));
@@ -56,20 +47,14 @@ impl<'a> Formatter<'a> {
         }
 
         if let Some(returning) = returning.filter(|r| r.node_type() == NodeType::ARRAY && r.children_count() > 0) {
-            let returning_reg = self.reg(returning);
-            if returning_reg == 0 {
-                return self.format_unimplemented(returning);
-            }
+            let returning_reg = self.reg_or_placeholder(returning);
             clauses.push(f.concat(&[f.text("returning "), returning_reg]));
         }
 
         let policy = self.pretty_policy(FormattingJoinPolicy::BreakAllOrNone);
         let mut query = self.space_join(&clauses, policy, false);
         if let Some(with_ctes) = with_ctes {
-            let ctes_reg = self.reg(with_ctes);
-            if ctes_reg == 0 {
-                return self.format_unimplemented(with_ctes);
-            }
+            let ctes_reg = self.reg_or_placeholder(with_ctes);
             query = self.space_join(&[self.format_with_clause(ctes_reg, with_recursive), query], policy, false);
         }
         query

@@ -111,10 +111,7 @@ impl<'a> Formatter<'a> {
 
         let mut query = 0;
         if let Some(select_statement) = select_statement {
-            query = self.reg(select_statement);
-            if query == 0 {
-                return self.format_unimplemented(node);
-            }
+            query = self.reg_or_placeholder(select_statement);
         }
         if let (Some(combine_operation), Some(combine_input)) = (combine_operation, combine_input) {
             let op_text = match CombineOperation(super::value_u8(combine_operation)) {
@@ -155,10 +152,7 @@ impl<'a> Formatter<'a> {
                 tail.push(f.concat(&[f.text("offset "), self.reg(select_offset)]));
             }
             if let Some(select_row_locking) = select_row_locking {
-                let body = self.reg(select_row_locking);
-                if body == 0 {
-                    return self.format_unimplemented(node);
-                }
+                let body = self.reg_or_placeholder(select_row_locking);
                 tail.push(body);
             }
             if !tail.is_empty() {
@@ -170,10 +164,7 @@ impl<'a> Formatter<'a> {
         if query == 0 {
             let mut clauses = Vec::with_capacity(12);
             if let Some(select_values) = select_values {
-                let values_reg = self.reg(select_values);
-                if values_reg == 0 {
-                    return self.format_unimplemented(node);
-                }
+                let values_reg = self.reg_or_placeholder(select_values);
                 if self.config.mode == FormattingMode::PRETTY {
                     clauses.push(f.concat(&[f.text("values"), f.indented(f.concat(&[f.break_(), values_reg]))]));
                 } else {
@@ -181,10 +172,7 @@ impl<'a> Formatter<'a> {
                 }
             }
             if let Some(select_table) = select_table {
-                let table_reg = self.reg(select_table);
-                if table_reg == 0 {
-                    return self.format_unimplemented(select_table);
-                }
+                let table_reg = self.reg_or_placeholder(select_table);
                 clauses.push(f.concat(&[f.text("table "), table_reg]));
             }
             // A select without targets is valid SQL, `select from t`
@@ -218,10 +206,7 @@ impl<'a> Formatter<'a> {
                 }
             }
             if let Some(select_into) = select_into {
-                let body = self.reg(select_into);
-                if body == 0 {
-                    return self.format_unimplemented(node);
-                }
+                let body = self.reg_or_placeholder(select_into);
                 clauses.push(body);
             }
             if let Some(select_from) = select_from {
@@ -248,17 +233,11 @@ impl<'a> Formatter<'a> {
                 clauses.push(f.concat(&[f.text("having "), self.reg(select_having)]));
             }
             if let Some(select_windows) = select_windows {
-                let body = self.reg(select_windows);
-                if body == 0 {
-                    return self.format_unimplemented(node);
-                }
+                let body = self.reg_or_placeholder(select_windows);
                 clauses.push(f.concat(&[f.text("window "), body]));
             }
             if let Some(select_sample) = select_sample {
-                let body = self.reg(select_sample);
-                if body == 0 {
-                    return self.format_unimplemented(node);
-                }
+                let body = self.reg_or_placeholder(select_sample);
                 clauses.push(body);
             }
             if let Some(select_order) = select_order {
@@ -269,10 +248,7 @@ impl<'a> Formatter<'a> {
                 clauses.push(f.concat(&[f.text("offset "), self.reg(select_offset)]));
             }
             if let Some(select_row_locking) = select_row_locking {
-                let body = self.reg(select_row_locking);
-                if body == 0 {
-                    return self.format_unimplemented(node);
-                }
+                let body = self.reg_or_placeholder(select_row_locking);
                 clauses.push(body);
             }
 

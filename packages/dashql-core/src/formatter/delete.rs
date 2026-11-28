@@ -18,22 +18,16 @@ impl<'a> Formatter<'a> {
                 K::SQL_SELECT_WITH_RECURSIVE,
             ],
         );
-        let Some(target) = target.filter(|t| self.reg(t) != 0) else { return self.format_unimplemented(node) };
+        let Some(target) = target else { return self.format_unimplemented(node) };
 
         let mut clauses = Vec::new();
         if let Some(with_ctes) = with_ctes {
-            if self.reg(with_ctes) == 0 {
-                return self.format_unimplemented(with_ctes);
-            }
-            clauses.push(self.format_with_clause(self.reg(with_ctes), with_recursive));
+            clauses.push(self.format_with_clause(self.reg_or_placeholder(with_ctes), with_recursive));
         }
-        clauses.push(f.concat(&[f.text("delete from "), self.reg(target)]));
+        clauses.push(f.concat(&[f.text("delete from "), self.reg_or_placeholder(target)]));
         for (child, keyword) in [(using_clause, "using "), (where_clause, "where "), (returning, "returning ")] {
             let Some(child) = child else { continue };
-            if self.reg(child) == 0 {
-                return self.format_unimplemented(child);
-            }
-            clauses.push(f.concat(&[f.text(keyword), self.reg(child)]));
+            clauses.push(f.concat(&[f.text(keyword), self.reg_or_placeholder(child)]));
         }
         let policy = self.pretty_policy(FormattingJoinPolicy::BreakAllOrNone);
         self.space_join(&clauses, policy, false)

@@ -62,10 +62,7 @@ impl<'a> Formatter<'a> {
         if let Some(elements) = elements {
             let mut parts = Vec::with_capacity(elements.children_count() as usize);
             for element in self.children(elements) {
-                let reg = self.reg(element);
-                if reg == 0 {
-                    return self.format_unimplemented(node);
-                }
+                let reg = self.reg_or_placeholder(element);
                 parts.push(reg);
             }
             element_block = f.parenthesized(self.comma_join(&parts, None, false));
