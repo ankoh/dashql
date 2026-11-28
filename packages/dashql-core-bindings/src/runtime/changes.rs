@@ -26,7 +26,7 @@ use dashql_core_runtime::connections::registry::ConnectionRegistry;
 use dashql_core_runtime::host::LogLevel;
 use dashql_core_runtime::perf_marks::measure_with;
 use dashql_core_runtime::query::{QueryExecutionHistory, QueryId};
-use dashql_core_runtime::workbook::{next_revision, Workbook};
+use dashql_core_runtime::workbook::{next_revision, RunPlanRequest, Workbook};
 use serde::{Serialize, Serializer};
 use wasm_bindgen::prelude::*;
 
@@ -312,7 +312,7 @@ pub(crate) fn derive(workbook: &Workbook) -> (Rc<DerivedParts>, u64) {
 
 /// See `derive`
 fn derive_buffers(workbook: &Workbook) -> (Rc<DerivedParts>, u64) {
-    let buffers = workbook.with_planner(|request, sessions| {
+    let buffers = workbook.with_planner(&RunPlanRequest::default(), |request, sessions| {
         [
             crate::pack_reference_check(request, sessions),
             crate::pack_dataflow(request, sessions),

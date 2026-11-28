@@ -1078,25 +1078,11 @@ impl Workbook {
         self.attachments.iter().flatten().map(|attachment| attachment.name.as_str()).collect()
     }
 
-    /// Run a function with a plan request of the scripts and attachments of the workbook
-    fn with_plan_request<R>(&self, f: impl FnOnce(&SessionPlanRequest) -> R) -> R {
-        self.with_run_plan_request(&RunPlanRequest::default(), f)
-    }
-
-    /// Run a function with a plan request of the scripts and attachments of the workbook for a run: its scope, the
-    /// scripts whose materialized results the host provides, the mount prefix and the files of the materialized results
-    fn with_run_plan_request<R>(&self, run: &RunPlanRequest, f: impl FnOnce(&SessionPlanRequest) -> R) -> R {
-        self.with_run_planner(run, |request, _| f(request))
-    }
-
     /// Run a function with a plan request of the scripts and attachments of the workbook and the sessions of its
-    /// scripts in feed order, e.g. to derive the views of the planner in the offset unit of each session
-    pub fn with_planner<R>(&self, f: impl FnOnce(&SessionPlanRequest, &[Ref<ScriptSession>]) -> R) -> R {
-        self.with_run_planner(&RunPlanRequest::default(), f)
-    }
-
-    /// Run a function with a plan request for a run and the sessions of the scripts
-    fn with_run_planner<R>(
+    /// scripts in feed order, e.g. to derive the views of the planner in the offset unit of each session. The run gives
+    /// the scope, the scripts whose materialized results the host provides, the mount prefix and the files of the
+    /// materialized results, its default plans the whole workbook.
+    pub fn with_planner<R>(
         &self,
         run: &RunPlanRequest,
         f: impl FnOnce(&SessionPlanRequest, &[Ref<ScriptSession>]) -> R,
@@ -1176,12 +1162,12 @@ impl Workbook {
 
     /// Plan the scripts of the workbook for a run, with their analyses as they are
     pub fn plan_run(&self, run: &RunPlanRequest) -> ExecutionGraphT {
-        self.with_run_plan_request(run, plan_session)
+        self.with_planner(run, |request, _| plan_session(request))
     }
 
     /// The dataflow of the scripts of the workbook, with their analyses as they are
     pub fn dataflow(&self) -> Dataflow {
-        self.with_plan_request(derive_session_dataflow)
+        self.with_planner(&RunPlanRequest::default(), |request, _| derive_session_dataflow(request))
     }
 
     /// Analyze the scripts for a run: the scripts whose analysis is outdated analyze until none is, their declarations
@@ -1312,7 +1298,7 @@ impl Workbook {
             return Ok(Vec::new());
         };
         // The spans of the parameters that read the target, in UTF-8 bytes of the text of each script
-        let spans: Vec<Vec<(usize, usize)>> = self.with_plan_request(|request| {
+        let spans: Vec<Vec<(usize, usize)>> = self.with_planner(&RunPlanRequest::default(), |request, _| {
             check_script_references(request)
                 .into_iter()
                 .map(|checked| {
