@@ -1,9 +1,7 @@
 import * as React from 'react';
 import * as styles from './workbook_views_page.module.css';
 
-import { LinkIcon, PaperclipIcon, SymbolIcon, ThreeBarsIcon } from '@akohn/dashql-react/components/symbol_icon';
-import * as ActionList from '@akohn/dashql-react/components/action_list';
-import * as actionMenuStyles from '../../app/action_menu.module.css';
+import { SymbolIcon, ThreeBarsIcon } from '@akohn/dashql-react/components/symbol_icon';
 
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import {
@@ -12,32 +10,28 @@ import {
     type ModifyWorkbookScripts,
     type WorkbookScripts,
 } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { WorkbookNavigationDrawer } from '../navigation/workbook_navigation_drawer.js';
 import { WorkbookWorkbenchSidebar } from '../navigation/workbook_workbench_sidebar.js';
 import { useWorkbenchHidden } from '../navigation/workbench_hidden.js';
-import { WorkbookURLShareOverlay } from '../persistence/workbook_url_share_overlay.js';
-import { WorkbookFileSaveOverlay } from '../persistence/workbook_file_save_overlay.js';
 import { WorkbookFeed, type WorkbookFeedInsets, type WorkbookFeedRevealRequest } from '../feed/workbook_feed.js';
 import { WorkbookPrompt, WorkbookPromptPlacement, type WorkbookPromptFeed, type WorkbookPromptHandle } from '../feed/workbook_prompt.js';
 import type { AgentFollowTarget } from '../../agent/agent_session.js';
 import { Dashboard } from '../dashboard/dashboard.js';
 import { DataflowView } from '../dataflow/dataflow_view.js';
 import { WorkbookViewMode, defaultViewOfViewMode, useWorkbookViewMode, viewModeOfDefaultView } from '../workbook_view_mode.js';
-import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
 import { PanelResizeHandle } from '@akohn/dashql-react/components/panel_resize_handle';
 import { useWorkbookExecution, useWorkbookShown } from '@akohn/dashql-react/hooks';
-import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
-import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { WorkbookConnectionButtons } from './workbook_connection_buttons.js';
 import { WorkbookExecutionControls, useSkippedRunAttention } from './workbook_execution_controls.js';
+import { WorkbookActions, type WorkbookAttach } from './workbook_actions.js';
+import { WorkbookViewSwitch } from './workbook_view_switch.js';
 import { WorkbookErrors } from '../scripts/workbook_errors.js';
-import { useAppFlavor } from '../../config/flavor_provider.js';
 import { ConnectionOverviewPage } from '../../connections/connection_overview_page.js';
 import { CloudOverviewPage } from '../../cloud/cloud_overview_page.js';
 import type { RenameDraftReferences } from '../attachment_rename.js';
-import { CloudPreviewActions, CloudPreviewBadge, CloudWorkbookLoadingCard } from '../../cloud/cloud_preview_actions.js';
+import { CloudPreviewBadge, CloudWorkbookLoadingCard } from '../../cloud/cloud_preview_actions.js';
 import { useCloudWorkbookLoading } from '../../cloud/cloud_workbook_loading.js';
 import { WorkbookReadOnlyContext } from '../workbook_read_only.js';
 import { useAppConfig } from '../../config/app_config.js';
@@ -47,39 +41,9 @@ import { useRenderSchedule } from '@akohn/dashql-react/components/deferred';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { transitionsEnd } from '@akohn/dashql-react/dom/calm_frames';
 
-const FileZipIcon = SymbolIcon('file_zip_16');
-const MoreIcon = SymbolIcon('kebab_horizontal');
-const PreviousViewIcon = SymbolIcon('chevron_left_12');
-const NextViewIcon = SymbolIcon('chevron_right_12');
-// The bookmark of the view that the workbook opens in, octicons
-const DefaultViewIcon = SymbolIcon('bookmark_16');
-const DefaultViewSetIcon = SymbolIcon('bookmark_filled_16');
 // The octicons show the sidebar on the right, flipped it sits on the left like the workbench
 const CollapseSidebarIcon = SymbolIcon('sidebar_collapse_16');
 const ExpandSidebarIcon = SymbolIcon('sidebar_expand_16');
-// The views of the workbook view switch, octicons
-const FeedViewIcon = SymbolIcon('rows_16');
-const DashboardViewIcon = SymbolIcon('dashboard_16');
-const DataflowViewIcon = SymbolIcon('workflow_16');
-/// The views of the switch, the workbook first
-const WORKBOOK_VIEWS: [WorkbookViewMode, string, typeof FeedViewIcon][] = [
-    [WorkbookViewMode.Feed, 'Feed', FeedViewIcon],
-    [WorkbookViewMode.Dashboard, 'Dashboard', DashboardViewIcon],
-    [WorkbookViewMode.Dataflow, 'Dataflow', DataflowViewIcon],
-];
-/// The elements that move with the arrow keys themselves: text, editors, composite widgets, dialogs and the handle of a
-/// card that the keyboard drags (dnd-kit presses the handle of the dragged item, its keyboard sensor listens on the
-/// document after the page). Elsewhere the arrow keys switch the views of the workbook.
-const ARROW_KEY_TARGETS = [
-    'input', 'textarea', 'select', '[contenteditable]:not([contenteditable="false"])',
-    '[role="grid"]', '[role="treegrid"]', '[role="listbox"]', '[role="menu"]', '[role="menubar"]', '[role="radiogroup"]',
-    '[role="slider"]', '[role="tablist"]', '[role="tree"]', '[role="dialog"]',
-    '[aria-roledescription][aria-pressed="true"]',
-].join(', ');
-
-function usesArrowKeys(target: EventTarget | null): boolean {
-    return target instanceof Element && target.closest(ARROW_KEY_TARGETS) != null;
-}
 /// The width of the workbench sidebar in pixels, the handle next to it resizes it
 const SIDEBAR_DEFAULT_WIDTH = 276;
 const SIDEBAR_MIN_WIDTH = 200;
@@ -154,18 +118,6 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
     // scroll positions. A workbook just imported, e.g. from a dropped file, hides it.
     const [sidebarHidden, setSidebarHidden] = useWorkbenchHidden(props.workbookScripts.workbookId);
     const navigationDrawerTriggerRef = React.useRef<HTMLButtonElement>(null);
-    // The menu of the workbook actions; Share as URL opens at the menu button, Export .dashql at the button that
-    // opened it
-    const menuTriggerRef = React.useRef<HTMLButtonElement>(null);
-    const exportTriggerRef = React.useRef<HTMLButtonElement>(null);
-    const [menuOpen, setMenuOpen] = React.useState(false);
-    const [shareOpen, setShareOpen] = React.useState(false);
-    const [exportOpen, setExportOpen] = React.useState<'button' | 'menu' | null>(null);
-    const setExportOverlayOpen = React.useCallback((open: boolean) => setExportOpen(current => open ? current ?? 'button' : null), []);
-    const flavor = useAppFlavor();
-    const archiveExport = flavor.features.workbookArchiveExport;
-    // The DashQL flavor also shows Export .dashql next to the menu
-    const exportButton = archiveExport && flavor.id === 'dashql';
     // A workbook run takes every connection that a script runs on. Connections that aren't connected serve the cached
     // results of their scripts, the others are skipped.
     const scriptConnections = props.scriptConnections;
@@ -191,7 +143,10 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
     const attachmentsVisible = useAppConfig()?.settings?.experimental_file_attachments === true;
     const attachEnabled = attachmentsVisible && !preview && (props.connection?.readsAttachments ?? false);
     const attachRef = React.useRef<((files: File[]) => void) | null>(null);
-    const attachInputRef = React.useRef<HTMLInputElement>(null);
+    const attachFromMenu = React.useMemo<WorkbookAttach | null>(() => !attachmentsVisible ? null : {
+        enabled: attachEnabled,
+        attach: files => attachRef.current?.(files),
+    }, [attachmentsVisible, attachEnabled]);
     // The page shows while the shell is closed, the view that it shows is the view mode then
     const pageShown = mode !== WorkbookViewMode.Shell;
     const activeView = pageShown ? mode : WorkbookViewMode.Feed;
@@ -233,50 +188,22 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
         attach(files);
         return true;
     } : null);
-    // The views in the order of the switch, the arrow keys and the arrows beside the switch step through them
-    const viewIndex = WORKBOOK_VIEWS.findIndex(([view]) => view === activeView);
     const showView = React.useCallback((view: WorkbookViewMode) => {
         setOverviewConnectionId(null);
         setMode(view);
     }, [setMode, setOverviewConnectionId]);
-    const stepView = React.useCallback((step: number) => {
-        const next = WORKBOOK_VIEWS[viewIndex + step];
-        if (next != null) showView(next[0]);
-    }, [viewIndex, showView]);
     // A preview shows its scripts only, it runs nothing until it is imported
     const viewSwitchShown = !preview && !overviewActive;
-    // The bookmark beside the switch marks the view that the workbook opens in, also for the people it is shared
-    // with. Marking the bookmarked view again returns the workbook to the feed. The greeter has nothing to share.
+    // The view that the workbook opens in, also for the people it is shared with. The greeter has nothing to share.
     const defaultView = viewModeOfDefaultView(props.workbookScripts.defaultView);
-    const activeViewIsDefault = activeView === defaultView;
-    const activeViewLabel = WORKBOOK_VIEWS[viewIndex]?.[1] ?? 'Feed';
     const modifyWorkbookScripts = props.modifyWorkbookScripts;
-    const toggleDefaultView = React.useCallback(() => {
-        const next = activeViewIsDefault ? WorkbookViewMode.Feed : activeView;
-        if (next === defaultView) return;
-        modifyWorkbookScripts({ kind: 'setDefaultView', value: { view: defaultViewOfViewMode(next) } });
-    }, [activeView, activeViewIsDefault, defaultView, modifyWorkbookScripts]);
-    const defaultViewDescription = !activeViewIsDefault
-        ? `Open the workbook in the ${activeViewLabel.toLowerCase()}`
-        : activeView === WorkbookViewMode.Feed
-            ? 'The workbook opens in the feed'
-            : `The workbook opens in the ${activeViewLabel.toLowerCase()}, click to open it in the feed`;
+    const setDefaultView = React.useCallback((view: WorkbookViewMode) => {
+        modifyWorkbookScripts({ kind: 'setDefaultView', value: { view: defaultViewOfViewMode(view) } });
+    }, [modifyWorkbookScripts]);
     // The groups at the end of the bar. An ephemeral workbook has no actions and no Execute All, a preview has its own
     // actions and says next to Execute All that it is read-only.
     const connectionsShown = barConnections.length > 0;
     const actionsShown = preview || !ephemeral;
-    React.useEffect(() => {
-        if (!pageShown || !viewSwitchShown) return;
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-            const step = event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0;
-            if (step === 0 || usesArrowKeys(event.target)) return;
-            event.preventDefault();
-            stepView(step);
-        };
-        document.addEventListener('keydown', onKeyDown);
-        return () => document.removeEventListener('keydown', onKeyDown);
-    }, [pageShown, viewSwitchShown, stepView]);
     // A script opened from the sidebar shows in the feed
     const [revealRequest, setRevealRequest] = React.useState<WorkbookFeedRevealRequest | null>(null);
     const openScript = React.useCallback((workbookId: string, fileName: string) => {
@@ -484,124 +411,21 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
                                 </div>
                             )}
                             {connectionsShown && (actionsShown || viewSwitchShown) && <BarSeparator />}
-                            {actionsShown && <div className={classNames(styles.bar_group, styles.actions_group)} role="group" aria-label="Actions" data-testid="workbook-actions-group">
-                                {preview && <CloudPreviewActions workbookId={props.workbookScripts.workbookId} labelClassName={styles.action_label} />}
-                                {exportButton && !ephemeral && !preview && (
-                                    <Button ref={exportTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={FileZipIcon} aria-label="Export .dashql" data-testid="export-workbook" aria-expanded={exportOpen === 'button'} onClick={() => {
-                                        setShareOpen(false);
-                                        setExportOpen(value => value === 'button' ? null : 'button');
-                                    }}>
-                                        <span className={styles.action_label}>Export .dashql</span>
-                                    </Button>
-                                )}
-                                {!ephemeral && !preview && (
-                                    <AnchoredOverlay
-                                        open={menuOpen}
-                                        onOpen={() => setMenuOpen(true)}
-                                        onClose={() => setMenuOpen(false)}
-                                        side={AnchorSide.OutsideBottom}
-                                        align={AnchorAlignment.End}
-                                        anchorOffset={4}
-                                        anchorRef={menuTriggerRef}
-                                        returnFocusRef={menuTriggerRef}
-                                        renderAnchor={anchorProps => (
-                                            <IconButton {...anchorProps} ref={menuTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible}
-                                                aria-label="More workbook actions" data-testid="workbook-actions">
-                                                <MoreIcon size={16} />
-                                            </IconButton>
-                                        )}
-                                    >
-                                        <div className={actionMenuStyles.menu} role="dialog" aria-label="Workbook actions">
-                                            <ActionList.List aria-label="Workbook actions">
-                                                <ActionList.ListItem data-testid="workbook-action" data-action="share-url" onClick={() => {
-                                                    setMenuOpen(false);
-                                                    setExportOpen(null);
-                                                    setShareOpen(true);
-                                                }}>
-                                                    <ActionList.Leading><LinkIcon size={16} /></ActionList.Leading>
-                                                    <ActionList.ItemText>Share as URL</ActionList.ItemText>
-                                                </ActionList.ListItem>
-                                                {/* The list takes elements only, the fragments wrap the optional items */}
-                                                <>{archiveExport && (
-                                                    <ActionList.ListItem data-testid="workbook-action" data-action="export" onClick={() => {
-                                                        setMenuOpen(false);
-                                                        setShareOpen(false);
-                                                        setExportOpen('menu');
-                                                    }}>
-                                                        <ActionList.Leading><FileZipIcon size={16} /></ActionList.Leading>
-                                                        <ActionList.ItemText>Export .dashql</ActionList.ItemText>
-                                                    </ActionList.ListItem>
-                                                )}</>
-                                                <>{attachmentsVisible && (
-                                                    <ActionList.ListItem data-testid="workbook-action" data-action="attach" disabled={!attachEnabled} onClick={() => {
-                                                        setMenuOpen(false);
-                                                        attachInputRef.current?.click();
-                                                    }}>
-                                                        <ActionList.Leading><PaperclipIcon size={16} /></ActionList.Leading>
-                                                        <ActionList.ItemText>Attach File</ActionList.ItemText>
-                                                    </ActionList.ListItem>
-                                                )}</>
-                                            </ActionList.List>
-                                        </div>
-                                    </AnchoredOverlay>
-                                )}
-                                <WorkbookURLShareOverlay workbookId={props.workbookScripts.workbookId} isOpen={shareOpen} setIsOpen={setShareOpen} anchorRef={menuTriggerRef} />
-                                {archiveExport && !ephemeral && !preview && (
-                                    <WorkbookFileSaveOverlay
-                                        isOpen={exportOpen != null}
-                                        setIsOpen={setExportOverlayOpen}
-                                        anchorRef={exportOpen === 'button' ? exportTriggerRef : menuTriggerRef}
-                                        workbookScripts={props.workbookScripts}
-                                        fileName={props.workbookScripts.name ?? props.workbookScripts.workbookMetadata.originalFileName ?? 'workbook'}
-                                    />
-                                )}
-                                {attachmentsVisible && (
-                                    <input ref={attachInputRef} className={styles.attach_input} type="file" multiple accept={ATTACHMENT_EXTENSION}
-                                        aria-label="Attach files to the workbook" disabled={!attachEnabled} onChange={event => {
-                                            const files = event.target.files == null ? [] : Array.from(event.target.files);
-                                            event.target.value = '';
-                                            if (files.length > 0) attachRef.current?.(files);
-                                        }} />
-                                )}
-                            </div>}
+                            {actionsShown && (
+                                <WorkbookActions workbookScripts={props.workbookScripts} ephemeral={ephemeral} preview={preview} attach={attachFromMenu} />
+                            )}
                             {actionsShown && viewSwitchShown && <BarSeparator />}
-                            {/* The arrows beside the switch tell that the arrow keys step through the views */}
-                            {viewSwitchShown && <div className={classNames(styles.bar_group, styles.view_switch)} role="group" aria-label="Views" data-testid="workbook-views-group">
-                                {!ephemeral && (
-                                    <IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible}
-                                        className={classNames(styles.view_default, activeViewIsDefault && styles.view_default_set)}
-                                        aria-label="Default view" aria-pressed={activeViewIsDefault} description={defaultViewDescription}
-                                        data-testid="workbook-view-default" onClick={toggleDefaultView}>
-                                        {activeViewIsDefault ? <DefaultViewSetIcon size={14} /> : <DefaultViewIcon size={14} />}
-                                    </IconButton>
-                                )}
-                                <IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible} className={styles.view_step}
-                                    aria-label="Previous view" description="Previous view (←)" data-testid="workbook-view-previous"
-                                    disabled={viewIndex <= 0} onClick={() => stepView(-1)}>
-                                    <PreviousViewIcon size={12} />
-                                </IconButton>
-                                <SegmentedControl
-                                    aria-label="Workbook view"
-                                    data-testid="workbook-view-switch"
-                                    size={SegmentedControlSize.Small}
-                                    onChange={(selectedIndex) => showView(WORKBOOK_VIEWS[selectedIndex]?.[0] ?? WorkbookViewMode.Feed)}
-                                >
-                                    {WORKBOOK_VIEWS.map(([view, label, Icon]) => (
-                                        <SegmentedControl.IconButton
-                                            key={view}
-                                            className={styles.view_switch_button}
-                                            aria-label={label}
-                                            icon={<Icon size={14} />}
-                                            selected={activeView === view}
-                                        />
-                                    ))}
-                                </SegmentedControl>
-                                <IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible} className={styles.view_step}
-                                    aria-label="Next view" description="Next view (→)" data-testid="workbook-view-next"
-                                    disabled={viewIndex >= WORKBOOK_VIEWS.length - 1} onClick={() => stepView(1)}>
-                                    <NextViewIcon size={12} />
-                                </IconButton>
-                            </div>}
+                            {viewSwitchShown && (
+                                <div className={classNames(styles.bar_group, styles.view_switch)} role="group" aria-label="Views" data-testid="workbook-views-group">
+                                    <WorkbookViewSwitch
+                                        activeView={activeView}
+                                        onShowView={showView}
+                                        defaultView={defaultView}
+                                        onSetDefaultView={ephemeral ? undefined : setDefaultView}
+                                        arrowKeys={pageShown}
+                                    />
+                                </div>
+                            )}
                         </div>
                     </>}
                 </header>

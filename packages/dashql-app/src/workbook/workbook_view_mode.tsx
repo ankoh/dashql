@@ -24,6 +24,11 @@ export function viewModeOfDefaultView(view: string | null | undefined): Workbook
     return DEFAULT_VIEW_NAMES.find(([, name]) => name === view)?.[0] ?? WorkbookViewMode.Feed;
 }
 
+/// Does a workbook open in a view mode? The feed and the views of `DEFAULT_VIEW_NAMES`, not the shell.
+export function isDefaultViewMode(mode: WorkbookViewMode): boolean {
+    return mode === WorkbookViewMode.Feed || DEFAULT_VIEW_NAMES.some(([m]) => m === mode);
+}
+
 /// The name of the default view of a view mode, null for the feed. The shell is no view a workbook opens in.
 export function defaultViewOfViewMode(mode: WorkbookViewMode): string | null {
     return DEFAULT_VIEW_NAMES.find(([m]) => m === mode)?.[1] ?? null;
