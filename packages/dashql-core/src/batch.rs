@@ -95,7 +95,7 @@ pub fn check_script(catalog: &Catalog, text: &str, until: ProcessingStage) -> Ch
                     }
                 }
             }
-            Err(e) => failure = Some(e.message),
+            Err(e) => failure = Some(e.what().to_string()),
         }
     }
     CheckedScript { script, diagnostics, failure }
@@ -150,7 +150,7 @@ pub fn process_batch(request: &[u8]) -> Result<Vec<u8>> {
                 if outputs & 8 != 0 && !checked.has_errors() {
                     match pack_catalog_descriptor(&analyzed.entry) {
                         Ok(descriptor) => out.catalog_descriptor = Some(descriptor),
-                        Err(e) => out.failure = Some(e.message),
+                        Err(e) => out.failure = Some(e.what().to_string()),
                     }
                 }
             }
