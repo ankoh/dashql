@@ -172,22 +172,11 @@ pub struct ScriptDiff<'a> {
     source_subtree_sizes: Vec<usize>,
     /// Memoized subtree sizes of the target (0 = not computed yet)
     target_subtree_sizes: Vec<usize>,
-    /// The computed operations
-    ops: Vec<DiffOp>,
-    /// Whether the operations were computed
-    computed: bool,
 }
 
 impl<'a> ScriptDiff<'a> {
     pub fn new(source: &'a ParsedScript, target: &'a ParsedScript) -> Self {
-        Self {
-            source,
-            target,
-            source_subtree_sizes: Vec::new(),
-            target_subtree_sizes: Vec::new(),
-            ops: Vec::new(),
-            computed: false,
-        }
+        Self { source, target, source_subtree_sizes: Vec::new(), target_subtree_sizes: Vec::new() }
     }
 
     /// The size of the subtree rooted at `root` (memoized iterative DFS)
@@ -658,7 +647,7 @@ impl<'a> ScriptDiff<'a> {
         best_target
     }
 
-    /// Compute the diff (memoized)
+    /// Compute the diff
     ///
     /// The statements are matched first and emitted after, so that the direction of a move does not decide between
     /// a MOVE and an INSERT + DELETE. The matching goes in rounds, each over the statements that are still unmatched:
@@ -666,11 +655,7 @@ impl<'a> ScriptDiff<'a> {
     /// updates the most similar statement of its section (between the same two kept statements), and then the most
     /// similar statement of another section. The operations are emitted section by section: the operations of the
     /// source statements, the inserted target statements, and the kept statement that ends the section.
-    pub fn compute(&mut self) -> &[DiffOp] {
-        if self.computed {
-            return &self.ops;
-        }
-        self.computed = true;
+    pub fn compute(mut self) -> Vec<DiffOp> {
         let source_count = self.source.statements.len();
         let target_count = self.target.statements.len();
         let (unique_pairs, equal_pairs) = self.map_statements();
@@ -731,12 +716,11 @@ impl<'a> ScriptDiff<'a> {
                 self.emit(&mut out, ScriptDiffOpCode::KEEP, Some(source_id), Some(target_id));
             }
         }
-        self.ops = out;
-        &self.ops
+        out
     }
 
     /// Pack the diff into the FlatBuffers object API
-    pub fn pack(&mut self) -> ScriptDiffT {
+    pub fn pack(self) -> ScriptDiffT {
         let span = |s: &TextSpan| TextSpanT { offset: s.offset, length: s.length };
         let ops = self
             .compute()

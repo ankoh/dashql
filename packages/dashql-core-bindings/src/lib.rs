@@ -452,7 +452,7 @@ impl Script {
         let (Some(source), Some(target)) = (&self.inner.parsed, &target.inner.parsed) else {
             return Err(js_error(Error::status(dashql_buffers::status::StatusCode::SCRIPT_NOT_PARSED)));
         };
-        let mut diff = dashql_core::script_diff::ScriptDiff::new(source, target);
+        let diff = dashql_core::script_diff::ScriptDiff::new(source, target);
         Ok(finish!(diff.pack()))
     }
 

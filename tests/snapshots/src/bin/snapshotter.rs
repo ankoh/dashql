@@ -653,13 +653,12 @@ fn generate_diff_snapshots(dir: &Path) {
             println!("  TEST {name}");
             let source_parsed = parse_text(&source, 1);
             let target_parsed = parse_text(&target, 2);
-            let mut script_diff = ScriptDiff::new(&source_parsed, &target_parsed);
-            let ops = script_diff.compute();
+            let ops = ScriptDiff::new(&source_parsed, &target_parsed).compute();
             let mut item = Map::new();
             item.plain("name", name);
             item.insert("source", Node::literal(source.as_str()));
             item.insert("target", Node::literal(target.as_str()));
-            item.insert("expected", diff::encode_diff(ops, &source, &target));
+            item.insert("expected", diff::encode_diff(&ops, &source, &target));
             cases.push(item.into_node());
         }
         write_first_entry(&out, &snapshot_root("diff-snapshots", cases));

@@ -24,8 +24,8 @@ fn main() {
             let target = case.node["target"].as_str().map(trim_input).unwrap_or_default();
             let source_parsed = parse_text(&source, 1);
             let target_parsed = parse_text(&target, 2);
-            let mut diff = ScriptDiff::new(&source_parsed, &target_parsed);
-            let produced = encode_diff(diff.compute(), &source, &target).to_yaml();
+            let ops = ScriptDiff::new(&source_parsed, &target_parsed).compute();
+            let produced = encode_diff(&ops, &source, &target).to_yaml();
             compare(case.expected().unwrap(), &produced).map_err(Failed::from)
         }));
     }
