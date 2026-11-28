@@ -5,7 +5,7 @@ import * as perfMarks from '../../core/perf_marks.js';
 import type { QueryExecutionArgs } from '../../platform/connections/query_execution_args.js';
 import type { HyperDatabaseChannel } from '../../platform/connections/hyper/hyperdb_grpc_client.js';
 import type { HandleTable } from '../store/handles.js';
-import type { CachePins } from './cache_pins.js';
+import type { ResultPins } from './result_pins.js';
 import type { PlatformTables } from '../store/runtime_tables.js';
 import type { WorkbookResultFiles } from '../../platform/workbook/workbook_result_files.js';
 import type { QueryExecutionResponseStream, QueryStreamItem } from '../../platform/query/query_execution_state.js';
@@ -76,7 +76,7 @@ export interface QueryChannelsDependencies {
     /// The stored results of the scripts of the workbooks, null without
     results: WorkbookResultFiles | null;
     /// The files of the results that the runtime keeps
-    pins: CachePins;
+    pins: ResultPins;
 }
 
 /// The half of the queries of the runtime that touches the objects of the platform (docs/design/dashql_runtime.md). The

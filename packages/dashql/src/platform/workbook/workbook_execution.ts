@@ -13,14 +13,14 @@ import { LoggableException } from '../logger/logger.js';
 export type ScriptRunEvent =
     /// It runs once the scripts that it follows in the plan are done
     | { type: 'planned'; follows: string[] }
-    /// The cache served its result instead of its connection, the query reads the cached file
+    /// A stored result whose key fits served it instead of its connection, the query reads the stored file
     | { type: 'cached'; key: string; queryId: number }
     /// It doesn't run: its connection can't run or could not be set up, or it follows a script that doesn't run
     | { type: 'skipped'; reason: string }
     /// Its first statement started
     | { type: 'started' }
-    /// Its statements are done: the key of its result in the query result cache if the key is reusable, the query of
-    /// its last output, null without one
+    /// Its statements are done: the key of its stored result if the key is reusable, the query of its last output, null
+    /// without one
     | { type: 'done'; key: string | null; queryId: number | null }
     /// A statement of the script failed, or a run of the workbook can't plan it. The query of the statement, null for a
     /// failure of no statement. The scripts that follow it don't run, the others run on.

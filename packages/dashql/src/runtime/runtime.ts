@@ -28,7 +28,7 @@ import { ScriptProjection, WORKBOOK_PROJECTION, WorkbookDerivedProjection } from
 import type { ScriptData, WorkbookScripts } from '../platform/workbook/workbook_scripts.js';
 import { createRunMounts } from './run_mounts.js';
 import { AttachmentMounts } from '../platform/workbook/attachment_mounts.js';
-import { CachePins } from './query/cache_pins.js';
+import { ResultPins } from './query/result_pins.js';
 import { scriptRunEvent, workbookRunError, type ScriptRunEvent } from '../platform/workbook/workbook_execution.js';
 import { emptyWorkbookTables, WORKBOOK_TABLE_NAMES, type WorkbookTables } from '../platform/storage/workbook_tables.js';
 
@@ -207,7 +207,7 @@ export class Runtime {
     private readonly tables: PlatformTables;
     private readonly queries: QueryChannels;
     /// The files of the stored results that the runtime keeps
-    private readonly pins = new CachePins();
+    private readonly pins = new ResultPins();
     /// The mounts of the attachments of the workbooks of the runtime in the compute database, removed when the runtime
     /// is destroyed
     readonly attachmentMounts = new AttachmentMounts();
@@ -806,11 +806,11 @@ export class Runtime {
     }
 
     /// Stop the runtime. The commands refuse from the call on. The module shuts down in its order (`shutdown` of the
-    /// module): the runs stop, the catalog loader stops, the writes into the query result cache and the pending writes
-    /// of the storage finish, then the queries are cancelled and the computations go. A wait for a compute database
-    /// that never came up ends. From then on the module calls the platform no more; the store takes the last changes,
-    /// the module is freed, the requests and the OAuth flows of the platform are aborted and the files that the runs and
-    /// the cache kept are released.
+    /// module): the runs stop, the catalog loader stops, the writes of the stored results and the pending writes of the
+    /// storage finish, then the queries are cancelled and the computations go. A wait for a compute database that never
+    /// came up ends. From then on the module calls the platform no more; the store takes the last changes, the module is
+    /// freed, the requests and the OAuth flows of the platform are aborted and the result files that the runs kept are
+    /// released.
     destroy(): Promise<void> {
         this.destroying ??= (async () => {
             this.stopping = true;

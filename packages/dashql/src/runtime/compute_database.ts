@@ -3,8 +3,8 @@ import type { EmbeddedComputeDatabase } from '../platform/embedded_database.js';
 /// The compute database of a platform, it resolves once the platform set it up
 export type ComputeDatabaseProvider = () => Promise<EmbeddedComputeDatabase>;
 
-/// The compute database of a runtime over the provider of its platform: the computations, the runs and the query result
-/// cache wait for it, and the app reads whether it is ready. It is ready once the provider resolved, until a call of the
+/// The compute database of a runtime over the provider of its platform: the computations, the runs and the stored
+/// results wait for it, and the app reads whether it is ready. It is ready once the provider resolved, until a call of the
 /// provider fails, e.g. after a handover of the database. Once the runtime shuts down, a wait for a database that never
 /// came up ends, so a provider that never settles holds up no shutdown.
 export class ComputeDatabase {

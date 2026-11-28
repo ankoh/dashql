@@ -284,7 +284,7 @@ results of the workbook (`script_references.md`). The planner takes the file nam
 
 The run pins every file it writes or reads until it settled, then it removes its transient files. The runtime keeps
 the pins of a run by their ids and releases them through `results.release` (`workbook_run/engine.rs`), the platform
-only maps an id to the release of its pin (`query/cache_pins.ts`) and releases the pins that are left when the runtime
+only maps an id to the release of its pin (`query/result_pins.ts`) and releases the pins that are left when the runtime
 is destroyed. Transient files that a closed window left behind are nobody's pins any more, the next listing in any
 window removes them.
 

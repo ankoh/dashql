@@ -1,8 +1,8 @@
-/// The files of the query result cache that the runtime keeps, by the ids that the runtime releases them with
-/// (`release` of the cache of the platform): the files that `retain` kept and the pins of the files of the runs. The
-/// runtime knows which run keeps which file and when it lets go of it. `close` releases the files that are left when
-/// the runtime goes, a file that is kept after it is released at once.
-export class CachePins {
+/// The stored result files that the runtime keeps, by the ids that the runtime releases them with (`release` of the
+/// results of the platform): the pins of the files of the runs. The runtime knows which run keeps which file and when it
+/// lets go of it. `close` releases the files that are left when the runtime goes, a file that is kept after it is
+/// released at once.
+export class ResultPins {
     private readonly pins = new Map<number, () => Promise<void>>();
     private nextId = 0;
     private closed = false;

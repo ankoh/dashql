@@ -45,7 +45,7 @@ the module, supplies its I/O and holds the views, see [core_first.md](../agents/
   that turn platform objects into the platform of the core: `query/query_channels.ts` (the channels of the host and the
   stored results), `query/query_result_stream.ts`, `compute_platform.ts`, `compute_database.ts`
   (the compute database of the platform and whether it is ready), `run_mounts.ts`,
-  `query/cache_pins.ts` (the releases of the pins of the result files that the runtime keeps, by id),
+  `query/result_pins.ts` (the releases of the pins of the result files that the runtime keeps, by id),
   `runtime_storage.ts` (the storage of the platform and `StorageCommands`, the commands of the storage writer),
   `workbook_archives.ts`, `platform_requests.ts` (the fetches and OAuth flows that `destroy` aborts),
   `embedded_session.ts` (the session of the shell on a connection to the embedded Hyper), `embedded_channels.ts` (the
@@ -142,7 +142,7 @@ declared in `packages/dashql-core-bindings/src/host.rs`) from the members above,
 | `compute` | The compute database: import a table by handle, create a table from a SELECT, query into Arrow IPC or into a table, drop, cancel a run | `compute_platform.ts` |
 | `http` | `fetch` and `abort` by id | `platform_requests.ts` |
 | `channels` | `connect` a setup's channel of the host, `hyperLinkToken`, and the queries of host channels: `describe` (keeps a record of the query until `forget`), `open`, `next`, `cancel` (also of a query that `open` still opens), `forget` | `query/query_channels.ts` |
-| `results` | `mount`, `unmount`, `files`, `pin`, `release`, `read`, `write`, `file`, `import`, `move`, `remove`: the Parquet files of `workbooks/<id>/results/` ([workbook_results.md](workbook_results.md)) | `query/query_channels.ts`, the pins in `query/cache_pins.ts` |
+| `results` | `mount`, `unmount`, `files`, `pin`, `release`, `read`, `write`, `file`, `import`, `move`, `remove`: the Parquet files of `workbooks/<id>/results/` ([workbook_results.md](workbook_results.md)) | `query/query_channels.ts`, the pins in `query/result_pins.ts` |
 | `mounts` | The attachments of the workbooks in the compute database, unmounted when their workbook is deleted | `run_mounts.ts` |
 | `crypto` | `randomUuid`, `sha256` (the core has no randomness and no SHA-256) | `crypto` of the platform |
 | `oauth` | PKCE, flow info, loopback and redirect-page authorization, abort | `platform_requests.ts` |
@@ -383,7 +383,7 @@ runs stop, the catalog loader stops, the writes of the stored results and the pe
 finish, then the imports are dropped, the setups and queries cancelled and the computations deleted, and the platform is
 fenced. The store then takes the last changes, the projection of the scripts destroys its session handles, the module is
 freed, the fetches and OAuth flows are aborted, and the pins of the result files that are left are released
-(`CachePins.close`); a pin that arrives later is released at once.
+(`ResultPins.close`); a pin that arrives later is released at once.
 
 ### Handles
 

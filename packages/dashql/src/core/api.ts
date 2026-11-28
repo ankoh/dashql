@@ -107,7 +107,7 @@ export interface SessionPlanRequest {
     targets?: number[];
     /// The scripts whose materialized results the host provides
     materialized?: number[];
-    /// The directory the host mounts materialized results in, e.g. the query result cache at `/mnt/external/cache`
+    /// The directory the host mounts materialized results in, e.g. the stored results at `/mnt/external/results/<id>`
     mountPrefix?: string;
     /// The attachments of the session
     attachments?: SessionPlanAttachment[];

@@ -93,8 +93,8 @@ interface ResultMount {
     stale: boolean;
 }
 
-/// A file handle that can move itself, not every browser has `move`
-/// `move(directory, name)` of the file handles, WebKit doesn't take the name alone
+/// A file handle that can move itself, not every browser has `move`. `move(directory, name)`: WebKit doesn't take the
+/// name alone.
 type MovableFileHandle = FileSystemFileHandle & { move?(directory: FileSystemDirectoryHandle, name: string): Promise<void> };
 
 /// The results of the workbooks in `workbooks/<id>/results/` of a root

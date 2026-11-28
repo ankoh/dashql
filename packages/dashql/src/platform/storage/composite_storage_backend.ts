@@ -37,9 +37,6 @@ const LOG_CTX = 'composite_storage_backend';
 /// are routed by the workbook UUID to whichever backend physically holds that workbook's files:
 ///   - OPFS workbooks -> the shared OPFS backend (`workbooks/<uuid>/…`).
 ///   - Native workbooks -> a per-workbook `NativeStorageBackend` bound to the recorded directory.
-///
-/// Native filesystem scope is re-granted lazily (and idempotently) the first time a native workbook
-/// is touched. The compatibility scope hook is currently a no-op under Electron.
 export class CompositeStorageBackend implements WorkbookRegistryBackend {
     /// The OPFS backend, which owns the workbook registry
     private readonly opfs: WorkbookRegistryBackend;
@@ -465,7 +462,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
     /// Relocate a single OPFS workbook's files into a native directory.
     ///
     /// The registry entry stays in OPFS; only the files move. Steps:
-    ///   1. Grant scope for, and initialize, the target directory.
+    ///   1. Initialize the target directory.
     ///   2. Copy the workbook's files OPFS -> native (UUID preserved).
     ///   3. Verify the copy; on failure throw without touching OPFS.
     ///   4. Flip the OPFS registry entry to `location=native, nativePath=dir` and persist the
