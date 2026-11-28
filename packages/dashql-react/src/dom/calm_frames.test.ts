@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { CalmFrameSchedule, IMMEDIATE_SCHEDULE, transitionsEnd } from './calm_frames.js';
+import { CalmFrameSchedule, IMMEDIATE_SCHEDULE, suspendWhileWidthChanges, transitionsEnd } from './calm_frames.js';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -66,6 +66,44 @@ describe('CalmFrameSchedule', () => {
         schedule.schedule(task);
         schedule.schedule(task);
         await vi.waitFor(() => expect(task).toHaveBeenCalledTimes(2));
+    });
+});
+
+describe('suspendWhileWidthChanges', () => {
+    it('suspends while the width changes and resumes once it stays the same', async () => {
+        const schedule = new CalmFrameSchedule();
+        const view = Object.assign(new EventTarget(), { innerWidth: 1000 });
+        const stop = suspendWhileWidthChanges(schedule, view);
+        try {
+            // A change of the height only, e.g. of the keyboard of a phone, keeps the renders going
+            view.dispatchEvent(new Event('resize'));
+            expect(schedule.suspended()).toBe(false);
+            view.innerWidth = 900;
+            view.dispatchEvent(new Event('resize'));
+            expect(schedule.suspended()).toBe(true);
+            await sleep(120);
+            // Another step of the drag waits again
+            view.innerWidth = 800;
+            view.dispatchEvent(new Event('resize'));
+            await sleep(120);
+            expect(schedule.suspended()).toBe(true);
+            await vi.waitFor(() => expect(schedule.suspended()).toBe(false));
+        } finally {
+            stop();
+        }
+    });
+
+    it('resumes when it stops listening', () => {
+        const schedule = new CalmFrameSchedule();
+        const view = Object.assign(new EventTarget(), { innerWidth: 1000 });
+        const stop = suspendWhileWidthChanges(schedule, view);
+        view.innerWidth = 900;
+        view.dispatchEvent(new Event('resize'));
+        stop();
+        expect(schedule.suspended()).toBe(false);
+        view.innerWidth = 800;
+        view.dispatchEvent(new Event('resize'));
+        expect(schedule.suspended()).toBe(false);
     });
 });
 

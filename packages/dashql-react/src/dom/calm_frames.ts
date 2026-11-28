@@ -117,6 +117,41 @@ export class CalmFrameSchedule implements RenderSchedule {
     }
 }
 
+/// A change of the width settles after this long without another one
+const WIDTH_QUIET_MS = 200;
+
+/// What `suspendWhileWidthChanges` reads, the window of the page
+interface Viewport extends EventTarget {
+    readonly innerWidth: number;
+}
+
+/// Suspends the renders of the schedule while the width of the window changes, e.g. while a window is dragged wider,
+/// and resumes them once it stays the same for a moment. Only the width counts: on a phone the keyboard and the bar of
+/// the browser change the height, the cards keep their layout. Returns the function that stops listening.
+export function suspendWhileWidthChanges(schedule: RenderSchedule, view: Viewport = window): () => void {
+    let width = view.innerWidth;
+    let resume: (() => void) | null = null;
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    const settle = () => {
+        if (timeout != null) clearTimeout(timeout);
+        timeout = null;
+        resume?.();
+        resume = null;
+    };
+    const onResize = () => {
+        if (view.innerWidth === width) return;
+        width = view.innerWidth;
+        resume ??= schedule.suspend();
+        if (timeout != null) clearTimeout(timeout);
+        timeout = setTimeout(settle, WIDTH_QUIET_MS);
+    };
+    view.addEventListener('resize', onResize);
+    return () => {
+        view.removeEventListener('resize', onResize);
+        settle();
+    };
+}
+
 /// Runs every task right away, e.g. in tests that look at the rendered content
 export const IMMEDIATE_SCHEDULE: RenderSchedule = {
     schedule: task => {

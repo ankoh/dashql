@@ -44,7 +44,7 @@ import { useFileDropHandler } from '../../app/file_drop_handler.js';
 import { ATTACHMENT_EXTENSION } from '@akohn/dashql/platform/storage/storage_backend';
 import { useRenderSchedule } from '@akohn/dashql-react/components/deferred';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
-import { transitionsEnd } from '@akohn/dashql-react/dom/calm_frames';
+import { suspendWhileWidthChanges, transitionsEnd } from '@akohn/dashql-react/dom/calm_frames';
 import { COMPACT_WIDTH_QUERY, useMediaQuery } from '@akohn/dashql-react/dom/media_query';
 
 // The octicons show the sidebar on the right, flipped it sits on the left like the workbench
@@ -178,6 +178,9 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
         shownView.current = activeView;
         renderSchedule.hold(transitionsEnd(contentRef.current));
     }, [activeView, renderSchedule]);
+    // A change of the width of the window shows the skeletons as a drag of the sidebar does, the cards lay out once
+    // after it
+    React.useEffect(() => suspendWhileWidthChanges(renderSchedule), [renderSchedule]);
     const overviewActive = overview != null;
     // A version of a published workbook that is being loaded takes the place of the views
     const cloudLoading = useCloudWorkbookLoading() != null;
