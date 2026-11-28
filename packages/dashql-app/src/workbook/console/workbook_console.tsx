@@ -98,6 +98,8 @@ export function WorkbookConsole(props: WorkbookConsoleProps): React.ReactElement
             tabs={tabs}
             activeTab={scriptKey}
             onSelectTab={selectTab}
+            // A run of the script shows its results on a compact window
+            runKey={model?.query?.queryId ?? null}
             onAddTab={readOnly ? undefined : addTab}
             header={() => scriptKey != null && (
                 // The entry header hides its optional controls when it gets narrow

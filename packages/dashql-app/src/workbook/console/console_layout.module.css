@@ -116,8 +116,8 @@
     background: var(--color_bg_card);
 }
 
-/* A narrow page leaves the width to the editor, the sidebar moves below the results */
-@media only screen and (max-width: 799px) {
+/* Below the expanded width the sidebar gives its width to the editor and moves below the results */
+@media only screen and (max-width: 839px) {
     .body {
         grid-template-columns: minmax(0, 1fr);
         grid-template-rows: minmax(0, 1fr) auto;
@@ -127,4 +127,33 @@
         border-left: none;
         border-top: 1px solid var(--color_border);
     }
+}
+
+/* A compact window shows one pane at a time below the switch of the panes, the others stay mounted */
+.body_compact {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-width: 0;
+    min-height: 0;
+}
+
+/* Full width between the margins */
+.pane_switch {
+    width: calc(100% - 16px);
+    margin: 6px 8px;
+}
+
+.body_compact > .main,
+.body_compact > .sidebar,
+.body_compact > .empty {
+    grid-row: 2;
+    grid-column: 1;
+}
+
+.body_compact > .sidebar {
+    border-left: none;
+}
+
+.body_compact > .pane_hidden {
+    display: none;
 }

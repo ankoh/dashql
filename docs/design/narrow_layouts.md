@@ -39,12 +39,20 @@ valid, and the app no longer reads it.
 - **The bottom** of the window holds one bar, the bar of Wobble. The view switch stays in the bar at the top on every
   width, there is no tab bar at the bottom.
 
+## The console
+
+`ConsoleLayout` (`workbook/console/console_layout.tsx`) shows one pane at a time on a compact window: the editor with
+the header of its script, the results, or the sidebar with the inputs and the attachments. A segmented control below
+the tabs picks the pane (SQL, Results, Inputs). The panes stay mounted while hidden, the editor keeps its state. A new
+run of the active script, a new id of its latest query (`runKey`), shows the results; a switch of the tab keeps the
+pane. Wider windows keep the split of the editor over the results, with the sidebar below them up to the expanded width
+and next to them from there.
+
 ## The views
 
-The views follow, one at a time. Each keeps its components and changes its arrangement:
+The other views follow, one at a time. Each keeps its components and changes its arrangement:
 
-- **Console**: one pane at a time on a compact window (SQL, results, inputs), Run switches to the results, a key bar
-  above the keyboard.
+- **Console**: a key bar above the keyboard.
 - **Result viewer**: the grid stays a grid, with a pinned column, taller rows on touch, a sheet with the detail of a
   row and a menu of the column.
 - **Feed**: cards over the full width, headers that drop their optional controls, a folded SQL, a card in full screen.

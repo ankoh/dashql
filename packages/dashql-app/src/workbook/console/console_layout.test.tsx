@@ -51,6 +51,49 @@ describe('ConsoleLayout', () => {
         expect(part('console-add-script')).toBeNull();
     });
 
+    describe('on a compact window', () => {
+        // Every width query of the layout asks for a compact window. Only matchMedia goes back afterwards, the act
+        // environment of the file stays.
+        const matchMedia = window.matchMedia;
+        beforeEach(() => {
+            window.matchMedia = ((query: string) => ({
+                matches: query.includes('max-width'), media: query, addEventListener: vi.fn(), removeEventListener: vi.fn(),
+            })) as unknown as typeof window.matchMedia;
+        });
+        afterEach(() => { window.matchMedia = matchMedia; });
+        const shown = () => ['editor', 'results', 'sidebar-section'].filter(testId => {
+            let element = part(testId) as HTMLElement | null;
+            while (element != null && element !== root.container) {
+                if (getComputedStyle(element).display === 'none') return false;
+                element = element.parentElement;
+            }
+            return true;
+        });
+        const pick = (label: string) => act(() => [...root.container.querySelectorAll<HTMLButtonElement>('[data-testid="console-pane-switch"] button')]
+            .find(button => button.textContent === label)!.click());
+
+        it('shows one pane at a time, the switch picks it', async () => {
+            await show({});
+            expect(shown()).toEqual(['editor']);
+            pick('Results');
+            expect(shown()).toEqual(['results']);
+            pick('Inputs');
+            expect(shown()).toEqual(['sidebar-section']);
+            // The panes stay mounted while hidden
+            for (const testId of ['header', 'editor', 'results']) expect(part(testId)).not.toBeNull();
+        });
+
+        it('shows the results when the active script runs, not when the tab changes', async () => {
+            await show({ runKey: 7 });
+            expect(shown()).toEqual(['editor']);
+            await show({ runKey: 8 });
+            expect(shown()).toEqual(['results']);
+            pick('SQL');
+            await show({ activeTab: 1, runKey: 3 });
+            expect(shown()).toEqual(['editor']);
+        });
+    });
+
     it('shows no editor without scripts, the sidebar stays', async () => {
         await show({ tabs: [], activeTab: null });
         expect(part('console-empty')).not.toBeNull();
