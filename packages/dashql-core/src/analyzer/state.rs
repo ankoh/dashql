@@ -282,6 +282,18 @@ impl<'a> AnalysisState<'a> {
         });
     }
 
+    /// Add a warning at a span of the text, e.g. of a comment tag that has no AST node
+    pub fn warn_at(&mut self, error_type: AnalyzerErrorType, span: TextSpan, message: String) {
+        self.out.errors.push(AnalyzerError {
+            error_type,
+            severity: AnalyzerErrorSeverity::WARNING,
+            ast_node_id: None,
+            symbol_span: None,
+            text_span: Some(span),
+            message,
+        });
+    }
+
     /// Read a name path
     pub fn read_name_path(&self, node: &Node) -> Vec<NameId> {
         let mut path = Vec::new();

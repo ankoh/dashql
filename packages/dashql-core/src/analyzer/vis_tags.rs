@@ -25,7 +25,7 @@ use super::types::*;
 use super::AnalyzedScript;
 use crate::vis_args::{scan_args, ArgValue};
 use crate::vis_text::{JsonScanner, JsonSlot, TagText};
-use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
+use dashql_buffers::analyzer::AnalyzerErrorType;
 use dashql_buffers::parser::{CommentBlockType, StatementType};
 use dashql_buffers::visualization::{KpiChart, KpiDelta};
 use dashql_parser::comment_blocks::CommentBlock;
@@ -59,25 +59,11 @@ fn split_word(text: &str, from: usize) -> (usize, usize, usize) {
 }
 
 fn warn(state: &mut AnalysisState, span: TextSpan, message: String) {
-    state.out.errors.push(AnalyzerError {
-        error_type: AnalyzerErrorType::INVALID_VIS_TAG,
-        severity: AnalyzerErrorSeverity::WARNING,
-        ast_node_id: None,
-        symbol_span: None,
-        text_span: Some(span),
-        message,
-    });
+    state.warn_at(AnalyzerErrorType::INVALID_VIS_TAG, span, message);
 }
 
 fn warn_layout(state: &mut AnalysisState, span: TextSpan, message: &str) {
-    state.out.errors.push(AnalyzerError {
-        error_type: AnalyzerErrorType::INVALID_DASHBOARD_LAYOUT,
-        severity: AnalyzerErrorSeverity::WARNING,
-        ast_node_id: None,
-        symbol_span: None,
-        text_span: Some(span),
-        message: message.to_string(),
-    });
+    state.warn_at(AnalyzerErrorType::INVALID_DASHBOARD_LAYOUT, span, message.to_string());
 }
 
 /// The names of the output columns of a statement, None if they are not fully known

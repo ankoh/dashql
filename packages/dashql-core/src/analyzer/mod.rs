@@ -33,7 +33,7 @@ use crate::catalog::*;
 use crate::error::Result;
 use crate::hash::HashMap;
 use crate::table_parameters::{TableParameters, TABLE_PARAMETERS_ENTRY_ID};
-use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType, NameTag, SemanticNodeMarkerType};
+use dashql_buffers::analyzer::{AnalyzerErrorType, NameTag, SemanticNodeMarkerType};
 use dashql_buffers::parser::Node;
 use dashql_parser::names::{NameId, NameRegistry};
 use dashql_parser::parser::ParsedScript;
@@ -233,20 +233,11 @@ pub fn analyze_with(
     clfn_calls::analyze(&mut state);
     function_checks::analyze(&mut state);
     transactions::analyze(&mut state);
-
-    let mut out = state.into_script();
     // Malformed comment tags fall back to ordinary comments, warn so that they don't go unnoticed
     for (span, message) in &parsed.comment_blocks.warnings {
-        out.errors.push(AnalyzerError {
-            error_type: AnalyzerErrorType::MALFORMED_COMMENT_TAG,
-            severity: AnalyzerErrorSeverity::WARNING,
-            ast_node_id: None,
-            symbol_span: None,
-            text_span: Some(*span),
-            message: message.clone(),
-        });
+        state.warn_at(AnalyzerErrorType::MALFORMED_COMMENT_TAG, *span, message.clone());
     }
-    Ok(out)
+    Ok(state.into_script())
 }
 
 impl From<Arc<AnalyzedScript>> for PublishedScript {

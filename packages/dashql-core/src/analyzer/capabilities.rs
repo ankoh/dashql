@@ -13,14 +13,8 @@ pub(super) fn tag_enabled(state: &mut AnalysisState, tag: &str, span: TextSpan) 
     if state.catalog.capabilities().tag_enabled(tag) {
         return true;
     }
-    state.out.errors.push(AnalyzerError {
-        error_type: AnalyzerErrorType::DISABLED_CAPABILITY,
-        severity: AnalyzerErrorSeverity::WARNING,
-        ast_node_id: None,
-        symbol_span: None,
-        text_span: Some(span),
-        message: format!("@{tag} is not available here, the tag is ignored"),
-    });
+    let message = format!("@{tag} is not available here, the tag is ignored");
+    state.warn_at(AnalyzerErrorType::DISABLED_CAPABILITY, span, message);
     false
 }
 

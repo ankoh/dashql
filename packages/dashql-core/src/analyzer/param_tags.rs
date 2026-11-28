@@ -17,8 +17,7 @@ use super::state::AnalysisState;
 use super::types::*;
 use crate::sql_literal::SqlLiteral;
 use crate::vis_text::TagText;
-use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
-use dashql_parser::span::TextSpan;
+use dashql_buffers::analyzer::AnalyzerErrorType;
 use std::ops::Range;
 use std::sync::Arc;
 
@@ -63,17 +62,6 @@ pub fn split_param_tag(text: &str) -> Result<ParamTagParts<'_>, String> {
     Ok(ParamTagParts { name, name_range: start..name_end, literal: Some(value_start..value_end) })
 }
 
-fn warn(state: &mut AnalysisState, span: TextSpan, message: String) {
-    state.out.errors.push(AnalyzerError {
-        error_type: AnalyzerErrorType::INVALID_PARAM_TAG,
-        severity: AnalyzerErrorSeverity::WARNING,
-        ast_node_id: None,
-        symbol_span: None,
-        text_span: Some(span),
-        message,
-    });
-}
-
 /// Read the `@param` tags of the statements
 pub(super) fn analyze(state: &mut AnalysisState) {
     let parsed = state.parsed;
@@ -98,14 +86,14 @@ pub(super) fn analyze(state: &mut AnalysisState) {
             let parts = match split_param_tag(&tag.text) {
                 Ok(parts) => parts,
                 Err(message) => {
-                    warn(state, block.tag_span, message);
+                    state.warn_at(AnalyzerErrorType::INVALID_PARAM_TAG, block.tag_span, message);
                     continue;
                 }
             };
             let name_span = tag.span(parts.name_range.start, parts.name_range.end);
             if state.out.param_values.iter().any(|i| &*i.name == parts.name) {
-                warn(
-                    state,
+                state.warn_at(
+                    AnalyzerErrorType::INVALID_PARAM_TAG,
                     name_span,
                     format!("the script already has a value for @param :{}, this tag is ignored", parts.name),
                 );
@@ -116,7 +104,7 @@ pub(super) fn analyze(state: &mut AnalysisState) {
                 Some(range) => match SqlLiteral::parse(tag.text.get(range.clone()).unwrap_or("")) {
                     Ok(literal) => Some(literal),
                     Err(message) => {
-                        warn(state, tag.span(range.start, range.end), message);
+                        state.warn_at(AnalyzerErrorType::INVALID_PARAM_TAG, tag.span(range.start, range.end), message);
                         None
                     }
                 },
