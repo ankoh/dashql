@@ -128,8 +128,6 @@ function logRecoverableReactError(error: unknown, errorInfo: React.ErrorInfo) {
     if (logger == null) {
         return;
     }
-    console.log(error);
-    console.log(errorInfo.componentStack);
     logger.info("React encountered a recoverable error", {
         error: stringifyError(error),
         stack: errorInfo.componentStack,
@@ -154,7 +152,6 @@ root.render(
                     <NavBarContainer>
                         <Routes>
                             <Route index Component={WorkbookPage} />
-                            <Route path="/workbook" Component={WorkbookPage} />
                             <Route path="/workbooks/:workbookId" Component={WorkbookPage} />
                             <Route path="*" element={<NavigateWithState to="/" />} />
                         </Routes>

@@ -13,7 +13,7 @@ import type { AppFlavorRailPage } from '../config/flavors.js';
 
 /// Is the pathname a page of the workspace, the workbooks and their connections?
 export function isWorkspacePath(pathname: string): boolean {
-    return pathname === '/' || pathname === '/workbook' || pathname.startsWith('/workbooks/');
+    return pathname === '/' || pathname.startsWith('/workbooks/');
 }
 
 /// Open the workbench of the current workbook, leaving the shell

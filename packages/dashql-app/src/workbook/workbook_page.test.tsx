@@ -150,7 +150,6 @@ describe('WorkbookPage view transitions', () => {
         render(greeter(WORKBOOK), (
             <Routes>
                 <Route index element={page} />
-                <Route path="/workbook" element={page} />
                 <Route path="/workbooks/:workbookId" element={page} />
             </Routes>
         ));

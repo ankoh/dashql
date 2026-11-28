@@ -13,7 +13,6 @@ import { WorkbookViewModeProvider } from '../workbook/workbook_view_mode.js';
 describe('Nav rail', () => {
     it('marks the workbook pages as the workspace', () => {
         expect(isWorkspacePath('/')).toBe(true);
-        expect(isWorkspacePath('/workbook')).toBe(true);
         expect(isWorkspacePath('/workbooks/abc')).toBe(true);
     });
 
