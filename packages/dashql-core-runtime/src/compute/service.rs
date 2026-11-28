@@ -1109,9 +1109,7 @@ impl<H: ComputeHost> ComputeService<H> {
                         let failed =
                             |e: HostError| Error::invalid_argument(format!("counting the selected rows failed: {e}"));
                         let ipc = shared.host.query(&sql, &context).await.map_err(|e| host_failed(e, failed))?;
-                        let table = ResultTable::from_ipc_stream(&ipc)?;
-                        let count = if table.num_rows() == 0 { None } else { table.integer_value(0, 0)? };
-                        Ok(count.and_then(|count| u64::try_from(count).ok()).unwrap_or(0))
+                        Ok(read_count(&ipc)?)
                     }
                 })
                 .await
@@ -1222,9 +1220,7 @@ impl<H: ComputeHost> ComputeService<H> {
                         WindowRows::Known(rows) => rows,
                         WindowRows::Counted(sql) => {
                             let ipc = shared.host.query(&sql, &context).await.map_err(|e| host_failed(e, failed))?;
-                            let table = ResultTable::from_ipc_stream(&ipc)?;
-                            let count = if table.num_rows() == 0 { None } else { table.integer_value(0, 0)? };
-                            count.and_then(|count| u64::try_from(count).ok()).unwrap_or(0)
+                            read_count(&ipc)?
                         }
                     };
                     let ipc = shared.host.query(&plan.sql, &context).await.map_err(|e| host_failed(e, failed))?;
@@ -1301,6 +1297,13 @@ async fn analyzed<H: ComputeHost, T>(
         };
         waiting.await;
     }
+}
+
+/// The count that a query of a count read, the first value of its first row, 0 without rows
+fn read_count(ipc: &[u8]) -> Result<u64> {
+    let table = ResultTable::from_ipc_stream(ipc)?;
+    let count = if table.num_rows() == 0 { None } else { table.integer_value(0, 0)? };
+    Ok(count.and_then(|count| u64::try_from(count).ok()).unwrap_or(0))
 }
 
 /// How the rows of a selection are counted: known, or by a query that intersects the filter and the data search
