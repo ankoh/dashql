@@ -10,7 +10,6 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::{Rc, Weak};
-use std::sync::Arc;
 
 use dashql_core::catalog::Catalog;
 
@@ -53,14 +52,14 @@ pub trait ClientFunctionBinding: Sync + fmt::Debug {
     }
 }
 
-/// The binding of the client functions of a connector, none if its connections have none
-pub fn client_function_binding(connector: ConnectorType) -> Option<&'static dyn ClientFunctionBinding> {
-    connector.connector().client_functions()
-}
-
-/// The extension of a binding, which tells bindings apart
-fn extension_of(binding: Option<&'static dyn ClientFunctionBinding>) -> Option<&'static str> {
-    binding.map(|binding| binding.extension())
+/// The binding of the client functions of a connector, an error if its connections have none
+pub fn client_function_binding(
+    connector: ConnectorType,
+) -> Result<&'static dyn ClientFunctionBinding, ClientFunctionError> {
+    let connector = connector.connector();
+    connector.client_functions().ok_or_else(|| {
+        ClientFunctionError::new(format!("{} connections have no client functions", connector.display_name()))
+    })
 }
 
 /// What the host does for the client functions of connections
@@ -79,9 +78,7 @@ struct Registration {
     catalog: Weak<RefCell<Catalog>>,
     /// The binding
     binding: &'static dyn ClientFunctionBinding,
-    /// The namespace, none while the spec loads
-    namespace: Option<Arc<str>>,
-    /// The spec as the runtime reads it, once it's registered
+    /// The spec as the runtime reads it once it's registered, none while it loads
     spec: Option<Rc<ClientFunctionSpec>>,
     /// The load of the spec that this registration waits for
     ticket: u64,
@@ -105,17 +102,17 @@ impl ClientFunctionRegistrations {
     /// Make the catalog of a connection hold the client functions of its connector
     pub fn ensure(&mut self, connection: &ConnectionState) -> Vec<ClientFunctionRegistryEffect> {
         let connection_id = connection.connection_id().to_string();
-        let binding = client_function_binding(connection.connector_type());
-        let registered = self.registration(connection).map(|r| (r.binding, r.namespace.clone()));
-        if registered.as_ref().map(|(binding, _)| binding.extension()) == extension_of(binding) {
+        let binding = client_function_binding(connection.connector_type()).ok();
+        let registered = self.registration(connection).map(|r| (r.binding, r.spec.clone()));
+        if registered.as_ref().map(|(binding, _)| binding.extension()) == binding.map(|binding| binding.extension()) {
             return Vec::new();
         }
         let mut effects = Vec::new();
         // A registration of another catalog stays with it, the catalog of the connection never had it
         self.by_connection.remove(&connection_id);
         // The connection switched its connector
-        if let Some((_, Some(namespace))) = registered {
-            connection.catalog().borrow_mut().drop_client_functions(&namespace);
+        if let Some((_, Some(spec))) = registered {
+            connection.catalog().borrow_mut().drop_client_functions(&spec.namespace);
             effects.push(ClientFunctionRegistryEffect::Updated { connection_id: connection_id.clone() });
         }
         let Some(binding) = binding else { return effects };
@@ -123,7 +120,7 @@ impl ClientFunctionRegistrations {
         let ticket = self.next_ticket;
         self.by_connection.insert(
             connection_id.clone(),
-            Registration { catalog: Rc::downgrade(connection.catalog()), binding, namespace: None, spec: None, ticket },
+            Registration { catalog: Rc::downgrade(connection.catalog()), binding, spec: None, ticket },
         );
         effects.push(ClientFunctionRegistryEffect::LoadSpec { connection_id, extension: binding.extension(), ticket });
         effects
@@ -139,23 +136,22 @@ impl ClientFunctionRegistrations {
         spec: Result<&str, String>,
     ) -> Result<Vec<ClientFunctionRegistryEffect>, ClientFunctionError> {
         let Some(connection) = connection else { return Ok(Vec::new()) };
-        if self.registration(connection).is_none_or(|r| r.ticket != ticket || r.namespace.is_some()) {
+        if self.registration(connection).is_none_or(|r| r.ticket != ticket || r.spec.is_some()) {
             return Ok(Vec::new());
         }
         let connection_id = connection.connection_id().to_string();
         let registered = spec.map_err(ClientFunctionError::new).and_then(|json| {
             let runtime_spec = ClientFunctionSpec::from_json(json)?;
-            let namespace = connection
+            connection
                 .catalog()
                 .borrow_mut()
                 .register_client_functions(json)
                 .map_err(|e| ClientFunctionError::new(e.to_string()))?;
-            Ok((namespace, runtime_spec))
+            Ok(runtime_spec)
         });
         match registered {
-            Ok((namespace, runtime_spec)) => {
+            Ok(runtime_spec) => {
                 if let Some(registration) = self.by_connection.get_mut(&connection_id) {
-                    registration.namespace = Some(namespace);
                     registration.spec = Some(Rc::new(runtime_spec));
                 }
                 Ok(vec![ClientFunctionRegistryEffect::Updated { connection_id }])
@@ -200,13 +196,11 @@ pub fn start_connection_client_function(
     description: &ClientFunctionCallDescription,
     now: f64,
 ) -> Result<ConnectionCallStart, ClientFunctionError> {
-    let name = connector.connector().display_name();
-    let Some(binding) = client_function_binding(connector) else {
-        return Err(ClientFunctionError::new(format!("{name} connections have no client functions")));
-    };
+    let binding = client_function_binding(connector)?;
     if spec.namespace != description.namespace {
         return Err(ClientFunctionError::new(format!(
-            "{name} connections have no client functions in {}",
+            "{} connections have no client functions in {}",
+            connector.connector().display_name(),
             description.namespace
         )));
     }

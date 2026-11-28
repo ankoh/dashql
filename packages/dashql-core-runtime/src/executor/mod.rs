@@ -92,8 +92,8 @@ pub struct ResultRequest {
 pub struct ClientFunctionTarget {
     /// The connector of the connection
     pub connector: ConnectorType,
-    /// The spec of the client functions of the connector, none if it has none
-    pub spec: Option<Rc<ClientFunctionSpec>>,
+    /// The spec of the client functions that the catalog of the connection registered
+    pub spec: Rc<ClientFunctionSpec>,
     /// The call as the core describes it
     pub description: ClientFunctionCallDescription,
     /// The channel of the connection that holds the credentials of the calls, none without one

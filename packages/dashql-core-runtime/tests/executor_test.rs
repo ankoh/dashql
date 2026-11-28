@@ -1680,7 +1680,7 @@ fn a_client_function_call_asks_the_service() {
     let executor = QueryExecutor::new(host.clone());
     let target = ClientFunctionTarget {
         connector: ConnectorType::SalesforceDataCloud,
-        spec: Some(segment_spec()),
+        spec: segment_spec(),
         description: segment_call(),
         channel: Some(salesforce_channel()),
     };
@@ -1711,7 +1711,7 @@ fn a_client_function_call_hands_over_a_page_at_a_time() {
     description.options = json!({ "_pages": 2 }).as_object().cloned().unwrap();
     let target = ClientFunctionTarget {
         connector: ConnectorType::SalesforceDataCloud,
-        spec: Some(Rc::new(ClientFunctionSpec::from_value(spec).unwrap())),
+        spec: Rc::new(ClientFunctionSpec::from_value(spec).unwrap()),
         description,
         channel: Some(salesforce_channel()),
     };
@@ -1724,26 +1724,20 @@ fn a_client_function_call_hands_over_a_page_at_a_time() {
 }
 
 #[test]
-fn a_client_function_call_fails_with_the_service_or_without_a_binding() {
+fn a_client_function_call_fails_with_the_service() {
     let host = FakeHost::new();
     host.serve(|_| Answer::Now(Ok(HttpResponse::new(403, json!([{ "message": "No access" }]).to_string()))));
     let executor = QueryExecutor::new(host.clone());
     let target = ClientFunctionTarget {
         connector: ConnectorType::SalesforceDataCloud,
-        spec: Some(segment_spec()),
+        spec: segment_spec(),
         description: segment_call(),
         channel: Some(salesforce_channel()),
     };
-    let mut query = request(1, QueryTarget::ClientFunction(target.clone()));
+    let mut query = request(1, QueryTarget::ClientFunction(target));
     query.throw_on_error = true;
     let QueryOutcome::Rejected(failure) = run(&host, &executor, query) else { panic!("expected a rejection") };
     assert_eq!(failure.details, [("status".to_string(), "403".to_string())]);
-
-    let trino = ClientFunctionTarget { connector: ConnectorType::Trino, spec: None, ..target };
-    let mut query = request(2, QueryTarget::ClientFunction(trino));
-    query.throw_on_error = true;
-    let QueryOutcome::Rejected(failure) = run(&host, &executor, query) else { panic!("expected a rejection") };
-    assert_eq!(failure.message, "Trino connections have no client functions");
 }
 
 #[test]
@@ -1753,7 +1747,7 @@ fn a_client_function_call_stops_its_request_when_cancelled() {
     let executor = QueryExecutor::new(host.clone());
     let target = ClientFunctionTarget {
         connector: ConnectorType::SalesforceDataCloud,
-        spec: Some(segment_spec()),
+        spec: segment_spec(),
         description: segment_call(),
         channel: Some(salesforce_channel()),
     };

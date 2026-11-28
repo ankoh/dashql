@@ -581,11 +581,7 @@ async fn run_client_function<H: ExecutorHost>(
     target: &ClientFunctionTarget,
 ) -> Result<StreamEnd, QueryFailure> {
     let host = context.host.clone();
-    let Some(spec) = target.spec.clone() else {
-        // The connector has no binding, starting the call names it
-        return Err(start_without_spec(target));
-    };
-    match start_connection_client_function(target.connector, spec, &target.description, host.now())? {
+    match start_connection_client_function(target.connector, target.spec.clone(), &target.description, host.now())? {
         ConnectionCallStart::Explained(result) => client_function_rows(context, result)?,
         ConnectionCallStart::Running { binding, mut run, mut step } => loop {
             // The rows of a page go to the host once the page arrived
@@ -639,12 +635,6 @@ fn client_function_rows<H: ExecutorHost>(
     context.metrics.total_batches_received += 1;
     context.metrics.total_rows_received += batch.num_rows() as u64;
     context.batch(batch)
-}
-
-/// The failure of a call on a connector without client functions
-fn start_without_spec(target: &ClientFunctionTarget) -> QueryFailure {
-    let name = target.connector.connector().display_name();
-    QueryFailure::new(FailureKind::Error, format!("{name} connections have no client functions"))
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

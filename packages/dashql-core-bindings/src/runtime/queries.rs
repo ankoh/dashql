@@ -30,7 +30,7 @@ use std::pin::Pin;
 use std::rc::{Rc, Weak};
 use std::task::{Context, Poll};
 
-use dashql_core_runtime::clfn::{client_function_binding, ClientFunctionCallDescription};
+use dashql_core_runtime::clfn::{client_function_binding, ClientFunctionCallDescription, ClientFunctionSpec};
 use dashql_core_runtime::compute::service::AnalysisHandles;
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as RuntimeAnalyzeOptions;
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionChannel, ConnectorType, DetailedError};
@@ -997,12 +997,16 @@ impl Connections {
             connector: connector.connector().display_name(),
         };
         let target = match (&options.client_function_call, channel) {
-            // The call runs with the spec that the catalog of the connection registered (`load_spec`) and sends its
-            // requests with the credentials of the channel of the connection
+            // The call runs with the spec that the catalog of the connection registered and sends its requests with
+            // the credentials of the channel of the connection
             (Some(call), channel) => {
                 let description = ClientFunctionCallDescription::from_value(call.0.clone())
                     .map_err(|error| QueryFailure::new(FailureKind::Error, error.message))?;
-                QueryTarget::ClientFunction(ClientFunctionTarget { connector, spec: None, description, channel })
+                let spec = self
+                    .client_function_spec(connection_id, connector)
+                    .await
+                    .map_err(|message| QueryFailure::new(FailureKind::Error, message))?;
+                QueryTarget::ClientFunction(ClientFunctionTarget { connector, spec, description, channel })
             }
             // The queries of a connection share its channel
             (None, Some(ConnectionChannel::Trino(trino))) => QueryTarget::Trino(trino),
@@ -1078,16 +1082,11 @@ impl Connections {
             return fail(QueryFailure { value: Some(value), ..QueryFailure::new(FailureKind::Error, message) });
         }
         let token = &run.token;
-        let mut request = match token.run(self.describe(run, &description)).await {
+        let request = match token.run(self.describe(run, &description)).await {
             None => return fail(QueryFailure::cancelled()),
             Some(Err(failure)) => return fail(failure),
             Some(Ok(request)) => request,
         };
-        match token.run(self.load_spec(&mut request)).await {
-            None => return fail(QueryFailure::cancelled()),
-            Some(Err(message)) => return fail(QueryFailure::new(FailureKind::Error, message)),
-            Some(Ok(())) => {}
-        }
         if request.analyze_results && !self.platform.has_compute() {
             return fail(QueryFailure::new(FailureKind::Error, "Compute database is not yet ready"));
         }
@@ -1100,27 +1099,21 @@ impl Connections {
     }
 
     /// The spec of the client functions of a call: the one that the catalog of its connection registered, so a call
-    /// runs only with the spec that the core checked it against. A connector without a binding has no spec, starting
-    /// the call names it.
-    async fn load_spec(&self, request: &mut QueryRequest) -> Result<(), String> {
-        let QueryTarget::ClientFunction(target) = &mut request.target else { return Ok(()) };
-        if target.spec.is_some() || client_function_binding(target.connector).is_none() {
-            return Ok(());
-        }
-        // A spec that the registration still loads is awaited
-        let spec = self.loader.borrow().as_ref().map(|loader| loader.client_function_spec(&request.connection_id));
+    /// runs only with the spec that the core checked it against. A spec that the registration still loads is awaited.
+    async fn client_function_spec(
+        &self,
+        connection_id: &str,
+        connector: ConnectorType,
+    ) -> Result<Rc<ClientFunctionSpec>, String> {
+        client_function_binding(connector).map_err(|error| error.message)?;
+        let spec = self.loader.borrow().as_ref().map(|loader| loader.client_function_spec(connection_id));
         let spec = match spec {
             Some(spec) => spec.await,
             None => None,
         };
-        let Some(spec) = spec else {
-            return Err(format!(
-                "The client functions of {} connections are not registered",
-                target.connector.connector().display_name()
-            ));
-        };
-        target.spec = Some(spec);
-        Ok(())
+        spec.ok_or_else(|| {
+            format!("The client functions of {} connections are not registered", connector.connector().display_name())
+        })
     }
 
     /// Run a query of the runtime on a connection, e.g. a metadata query of the catalog loader or the probe of a health
