@@ -8,10 +8,8 @@ import {
     DashQLShell,
 } from '../../shell/terminal/api.js';
 import { ShellView, type ShellViewController } from '../../shell/view/shell_view.js';
-import {
-    createWorkbookShellEnvironment,
-    resolveClientFunctionCall,
-} from './workbook_shell_environment.js';
+import { resolveClientFunctionCall } from './workbook_shell_environment.js';
+import { createShellEnvironment } from '../../shell/terminal/shell_environment.js';
 import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
 import { createShellLastCommand } from '../../shell/terminal/shell_result.js';
 import { useAppConfig } from '../../config/app_config.js';
@@ -111,21 +109,22 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     React.useEffect(() => {
         if (shellConnectionId == null || catalog == null) return;
         let cancelled = false;
-        const environment = createWorkbookShellEnvironment(
-            workbookId,
-            shellConnectionId,
+        const environment = createShellEnvironment(
             (connectionId, args) => {
                 const current = runtimeRef.current;
                 if (current == null) throw new Error('the query executor needs a RuntimeProvider');
                 return current.execute(connectionId, args);
             },
-            async queryId => { await runtimeRef.current?.cancel(queryId); },
-            releaseResult,
-            query => resolveClientFunctionCall(catalog, query),
-            async (queryId, limit) => {
-                const current = runtimeRef.current;
-                if (current == null) throw new Error('the preview of a result needs a RuntimeProvider');
-                return await current.previewResult(queryId, 0, limit, false);
+            shellConnectionId,
+            {
+                workbookId,
+                resolveCall: query => resolveClientFunctionCall(catalog, query),
+                previewResult: async (queryId, limit) => {
+                    const current = runtimeRef.current;
+                    if (current == null) throw new Error('the preview of a result needs a RuntimeProvider');
+                    return await current.previewResult(queryId, 0, limit, false);
+                },
+                releaseResult,
             },
         );
         const lastCommand = createShellLastCommand(reopenResultQuery);

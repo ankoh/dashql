@@ -13,7 +13,7 @@ import {
 } from './api.js';
 import * as dashql from '@akohn/dashql';
 import { vectorFromArray } from '@akohn/dashql/platform/testing/arrow_fixtures';
-import { createEmbeddedDatabaseShellEnvironment } from '../page/embedded_database_shell_environment.js';
+import { createShellEnvironment } from './shell_environment.js';
 import { setupWebHyperDB } from '../../host/hyperdb/hyperdb_provider_web.js';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { HyperDB, HyperDBConnection } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
@@ -286,7 +286,7 @@ describe('DashQL shell Wasm', () => {
             // An executor that runs the statements on the connection of the test
             const session = connection;
             let queryId = 0;
-            const environment = createEmbeddedDatabaseShellEnvironment((_connectionId, args) => [++queryId, session.query(args.query)], 'shell');
+            const environment = createShellEnvironment((_connectionId, args) => [++queryId, session.query(args.query)], 'shell');
             executeQuery = (query, signal, onResult) => environment.executeQuery(query, signal, undefined, onResult);
 
             await expect(run(shell, 'CREATE TABLE foo(a INT)')).resolves.toEqual([record(Kind.STATUS, 'No results')]);

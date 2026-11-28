@@ -1,8 +1,13 @@
+import type { ClientFunctionCallDescription } from '@akohn/dashql/platform/connections/clfn_spec';
 import type { QueryExecutor } from '@akohn/dashql/platform/connections/query_execution_args';
-import { DashQLShellEnvironment } from '../terminal/api.js';
-import { reportShellTiming, SHELL_QUERY_METADATA } from '../terminal/shell_result.js';
+import type { DashQLShellEnvironment } from './api.js';
+import { SHELL_QUERY_METADATA } from './shell_result.js';
 
-interface EmbeddedDatabaseShellEnvironmentOptions {
+interface ShellEnvironmentOptions {
+    /// The workbook of the shell, its queries name it in their metadata
+    workbookId?: string;
+    /// The client function call of a statement, null if the statement goes to the backend
+    resolveCall?: (query: string) => ClientFunctionCallDescription | null;
     /// Called after a statement ran or failed, before its result shows and the prompt returns, e.g. to wait for the
     /// catalog of the connection
     afterStatement?: (query: string) => Promise<void>;
@@ -13,26 +18,27 @@ interface EmbeddedDatabaseShellEnvironmentOptions {
     releaseResult?: (queryId: number) => void;
 }
 
-/// The environment of a shell whose statements run with the query executor of a runtime on a connection, e.g. the
-/// embedded Hyper of the shell. A statement is a query of the history of the connection, the executor analyzes its
-/// result as the computation of the query and tells the catalog loader about the relations it touched.
-export function createEmbeddedDatabaseShellEnvironment(
+/// The environment of a shell whose statements run with the query executor of a runtime on a connection. A statement
+/// is a query of the history of the connection, the executor analyzes its result as the computation of the query and
+/// tells the catalog loader about the relations it touched. The cancellation of the shell cancels the query.
+export function createShellEnvironment(
     execute: QueryExecutor,
     connectionId: string,
-    options: EmbeddedDatabaseShellEnvironmentOptions = {},
+    options: ShellEnvironmentOptions = {},
 ): DashQLShellEnvironment {
     return {
         previewResult: options.previewResult,
         releaseResult: options.releaseResult,
         executeQuery: async (query, signal, onProgress, onResult, onTiming) => {
             signal?.throwIfAborted();
-            onProgress?.('Executing query');
             const [queryId, execution] = execute(connectionId, {
                 query,
-                metadata: { ...SHELL_QUERY_METADATA },
+                clientFunctionCall: options.resolveCall?.(query) ?? undefined,
+                metadata: { ...SHELL_QUERY_METADATA, workbookId: options.workbookId },
                 abortSignal: signal,
                 analyzeResults: true,
-                onTiming: elapsedMs => reportShellTiming(onTiming, elapsedMs),
+                onLog: onProgress,
+                onTiming,
             });
             let table;
             try {

@@ -1,9 +1,6 @@
 import * as dashql from '@akohn/dashql';
 
 import type { ClientFunctionCallDescription } from '@akohn/dashql/platform/connections/clfn_spec';
-import type { CancelQuery, QueryExecutor } from '@akohn/dashql/platform/connections/query_execution_args';
-import type { DashQLShellEnvironment } from '../../shell/terminal/api.js';
-import { reportShellTiming, SHELL_QUERY_METADATA } from '../../shell/terminal/shell_result.js';
 
 /// The client function call of a shell statement, null if the statement goes to the backend. A spec shadows its
 /// namespace and no backend judges a call in it, so a call that can't run fails here, like it fails a workbook plan.
@@ -30,52 +27,4 @@ export function resolveClientFunctionCall(catalog: dashql.DashQLCatalog, query: 
     } finally {
         script.destroy();
     }
-}
-
-export function createWorkbookShellEnvironment(
-    workbookId: string,
-    connectionId: string,
-    executeQuery: QueryExecutor,
-    cancelQuery: CancelQuery,
-    releaseResult: (queryId: number) => void = () => { },
-    resolveCall: (query: string) => ClientFunctionCallDescription | null = () => null,
-    previewResult?: (queryId: number, limit: number) => Promise<Uint8Array>,
-): DashQLShellEnvironment {
-    return {
-        previewResult,
-        releaseResult,
-        async executeQuery(query, signal, onProgress, onResult, onTiming) {
-            const reportTiming = (elapsedMs: number) => reportShellTiming(onTiming, elapsedMs);
-            const clientFunctionCall = resolveCall(query) ?? undefined;
-            const [queryId, execution] = executeQuery(connectionId, {
-                query,
-                clientFunctionCall,
-                analyzeResults: true,
-                onLog: onProgress,
-                onTiming: reportTiming,
-                metadata: { ...SHELL_QUERY_METADATA, workbookId },
-            });
-            const abort = () => cancelQuery(queryId);
-            if (signal?.aborted) {
-                abort();
-            } else {
-                signal?.addEventListener('abort', abort, { once: true });
-            }
-            try {
-                const table = await execution;
-                if (table == null) {
-                    if (signal?.aborted) throw new DOMException('Query was cancelled', 'AbortError');
-                    throw new Error('Query failed without an error');
-                }
-                if (table.numCols > 0) {
-                    onResult?.(queryId, table.numRows);
-                } else {
-                    // A statement without columns has nothing to show, its computation is not needed
-                    releaseResult(queryId);
-                }
-            } finally {
-                signal?.removeEventListener('abort', abort);
-            }
-        },
-    };
 }

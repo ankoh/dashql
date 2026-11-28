@@ -11,7 +11,7 @@ import { ShellView, type ShellViewController } from '../view/shell_view.js';
 import { useRuntime } from '@akohn/dashql-react/hooks';
 import { ShellQueryResultOverlay } from '../../workbook/shell/shell_query_result_overlay.js';
 import { connectEmbeddedSession, type EmbeddedSession } from '@akohn/dashql/runtime/embedded_session';
-import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
+import { createShellEnvironment } from '../terminal/shell_environment.js';
 import { createLoginCommand } from './commands/login.js';
 import { SalesforceLoginHistoryStore } from './salesforce_login_history.js';
 import { createExamplesCommand } from '../terminal/shell_examples.js';
@@ -252,7 +252,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 catalog: nextSession.catalog,
                 // The executor analyzes the results as computations on the database of the shell, the connection lists
                 // their queries
-                environment: createEmbeddedDatabaseShellEnvironment((connectionId, args) => runtime.execute(connectionId, args), nextSession.connectionId, {
+                environment: createShellEnvironment((connectionId, args) => runtime.execute(connectionId, args), nextSession.connectionId, {
                     // The prompt returns once the catalog followed the statement, waiting must not fail it
                     afterStatement: async () => {
                         try {

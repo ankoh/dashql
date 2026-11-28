@@ -2,7 +2,7 @@
 import type * as arrow from 'apache-arrow';
 
 import type { QueryExecutionArgs, QueryExecutor } from '@akohn/dashql/platform/connections/query_execution_args';
-import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
+import { createShellEnvironment } from './shell_environment.js';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 
 function deferred<T>() {
@@ -22,10 +22,10 @@ function executor(result: (args: QueryExecutionArgs) => Promise<arrow.Table | nu
     return { execute, calls };
 }
 
-describe('embedded database shell environment', () => {
+describe('shell environment', () => {
     it('runs a statement with the query executor on the connection of the shell', async () => {
         const { execute, calls } = executor(async () => tableFromArrays({ value: [42] }));
-        const environment = createEmbeddedDatabaseShellEnvironment(execute, 'shell');
+        const environment = createShellEnvironment(execute, 'shell');
 
         await environment.executeQuery('SELECT 42');
         expect(calls).toHaveLength(1);
@@ -34,12 +34,22 @@ describe('embedded database shell environment', () => {
         expect(calls[0][1]).toMatchObject({ query: 'SELECT 42', analyzeResults: true, metadata: { userProvided: true } });
     });
 
-    it('reports progress, the timings of the executor and the result by the id of its query', async () => {
+    it('names the workbook of the shell and the client function call of a statement', async () => {
+        const call = { namespace: 'd360' } as never;
+        const { execute, calls } = executor(async () => tableFromArrays({ value: [42] }));
+        const environment = createShellEnvironment(execute, 'shell', { workbookId: 'workbook', resolveCall: () => call });
+
+        await environment.executeQuery('CALL d360.segment_list()');
+        expect(calls[0][1]).toMatchObject({ clientFunctionCall: call, metadata: { userProvided: true, workbookId: 'workbook' } });
+    });
+
+    it('reports the logs and timings of the executor and the result by the id of its query', async () => {
         const { execute } = executor(async args => {
+            args.onLog?.('Executing query');
             args.onTiming?.(1);
             return tableFromArrays({ value: [2, 3] });
         });
-        const environment = createEmbeddedDatabaseShellEnvironment(execute, 'shell');
+        const environment = createShellEnvironment(execute, 'shell');
         const onProgress = vi.fn();
         const onResult = vi.fn();
         const onTiming = vi.fn();
@@ -59,7 +69,7 @@ describe('embedded database shell environment', () => {
             return tableFromArrays({});
         });
         const releaseResult = vi.fn();
-        const environment = createEmbeddedDatabaseShellEnvironment(execute, 'shell', { afterStatement, releaseResult });
+        const environment = createShellEnvironment(execute, 'shell', { afterStatement, releaseResult });
         const onResult = vi.fn();
 
         const execution = environment.executeQuery('CREATE TABLE foo(a INT)', undefined, undefined, onResult);
@@ -82,7 +92,7 @@ describe('embedded database shell environment', () => {
         const abort = new AbortController();
         const { execute } = executor(async () => tableFromArrays({ value: [42] }));
         const releaseResult = vi.fn();
-        const environment = createEmbeddedDatabaseShellEnvironment(execute, 'shell', {
+        const environment = createShellEnvironment(execute, 'shell', {
             afterStatement: async () => abort.abort(),
             releaseResult,
         });
@@ -95,7 +105,7 @@ describe('embedded database shell environment', () => {
 
     it('rejects an already cancelled query before it reaches the executor', async () => {
         const { execute, calls } = executor(async () => null);
-        const environment = createEmbeddedDatabaseShellEnvironment(execute, 'shell');
+        const environment = createShellEnvironment(execute, 'shell');
         const abort = new AbortController();
         abort.abort();
 
@@ -107,7 +117,7 @@ describe('embedded database shell environment', () => {
         const { execute, calls } = executor(args => new Promise((_resolve, reject) => {
             args.abortSignal?.addEventListener('abort', () => reject(args.abortSignal!.reason));
         }));
-        const environment = createEmbeddedDatabaseShellEnvironment(execute, 'shell');
+        const environment = createShellEnvironment(execute, 'shell');
         const abort = new AbortController();
 
         const execution = environment.executeQuery('SELECT 42', abort.signal);
