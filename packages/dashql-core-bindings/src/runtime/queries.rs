@@ -267,9 +267,6 @@ struct ChannelQuery<'a> {
     publish_results: bool,
     /// The name of the connector, e.g. for the error of a channel that is not set up
     connector: &'static str,
-    /// Is the query a call of a client function? The runtime sends its requests itself, the platform names only the
-    /// tokens of the channel.
-    client_function: bool,
 }
 
 /// A query that the runtime runs, one object from its registration in the history to the end of its last follow-up.
@@ -998,7 +995,6 @@ impl Connections {
             read_timeout_ms: options.read_timeout_ms,
             publish_results,
             connector: connector.connector().display_name(),
-            client_function: options.client_function_call.is_some(),
         };
         let target = match (&options.client_function_call, channel) {
             // The call runs with the spec that the catalog of the connection registered (`load_spec`) and sends its

@@ -357,8 +357,6 @@ export interface RuntimeChannelQuery {
     publishResults: boolean;
     /** The name of the connector, e.g. for the error of a channel that is not set up */
     connector: string;
-    /** Is the query a call of a client function? The runtime sends its requests itself, the host names only the tokens of a Salesforce channel. */
-    clientFunction: boolean;
 }
 /** The channels of the host. The setups connect them, the queries of the host run on them by query: the host knows the channel of a query from the query it described. */
 export interface RuntimeChannels {
