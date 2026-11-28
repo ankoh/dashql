@@ -8,7 +8,7 @@ import { useConnectionDraftForm } from './connection_draft.js';
 import { useConnection, useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { useConnectionSave } from './connection_persistence.js';
 import { useConnectionSetup } from './connection_setup.js';
-import { ConnectionHealth, ConnectionStatus } from '@akohn/dashql/platform/connections/connection_state';
+import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { getSalesforceConnectionDetails } from '@akohn/dashql/platform/connections/salesforce/salesforce_connection_state';
 import {
     TextField,
@@ -18,7 +18,6 @@ import {
 } from '@akohn/dashql-react/components/text_field';
 import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
-import { Logger } from '@akohn/dashql/platform/logger/logger';
 import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { connectionParamsOf } from '@akohn/dashql/platform/connections/connection_params';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
@@ -34,74 +33,6 @@ interface PageState {
     login: string;
     databaseName: string;
 };
-
-export function getConnectionStatusText(status: ConnectionStatus | undefined, logger: Logger) {
-    switch (status) {
-        case ConnectionStatus.NOT_STARTED:
-            return "Disconnected";
-        case ConnectionStatus.AUTH_STARTED:
-            return "Starting authorization";
-        case ConnectionStatus.AUTH_CANCELLED:
-            return "Cancelled authorization";
-        case ConnectionStatus.AUTH_FAILED:
-            return "Authorization failed";
-        case ConnectionStatus.PKCE_GENERATION_STARTED:
-            return "Generating PKCE challenge";
-        case ConnectionStatus.PKCE_GENERATED:
-            return "Generated PKCE challenge";
-        case ConnectionStatus.WAITING_FOR_OAUTH_CODE_VIA_LINK:
-        case ConnectionStatus.WAITING_FOR_OAUTH_CODE_VIA_WINDOW:
-            return "Waiting for OAuth code";
-        case ConnectionStatus.OAUTH_CODE_RECEIVED:
-            return "Received OAuth code";
-        case ConnectionStatus.ACCESS_TOKEN_REQUESTED:
-            return "Requesting access token";
-        case ConnectionStatus.ACCESS_TOKEN_RECEIVED:
-            return "Received access token";
-        case ConnectionStatus.CORE_ACCESS_TOKEN_RECEIVED:
-            return "Received Core access token";
-        case ConnectionStatus.DATA_CLOUD_TOKEN_REQUESTED:
-            return "Requesting Data Cloud access token";
-        case ConnectionStatus.DATA_CLOUD_TOKEN_RECEIVED:
-            return "Received Data Cloud access token";
-        case ConnectionStatus.CHANNEL_SETUP_STARTED:
-            return "Creating channel";
-        case ConnectionStatus.CHANNEL_SETUP_FAILED:
-            return "Failed to create channel";
-        case ConnectionStatus.CHANNEL_SETUP_CANCELLED:
-            return "Cancelled channel setup";
-        case ConnectionStatus.CHANNEL_READY:
-            return "Channel is ready";
-        case ConnectionStatus.HEALTH_CHECK_STARTED:
-            return "Health check started";
-        case ConnectionStatus.HEALTH_CHECK_FAILED:
-            return "Health check failed";
-        case ConnectionStatus.HEALTH_CHECK_CANCELLED:
-            return "Health check cancelled";
-        case ConnectionStatus.HEALTH_CHECK_SUCCEEDED:
-            return "Health check succeeded";
-        case undefined:
-            break;
-        default:
-            logger.warn("unexpected connection status", { "status": status });
-    }
-    return "";
-}
-
-export function getConnectionHealthIndicator(health: ConnectionHealth | null) {
-    switch (health) {
-        case ConnectionHealth.NOT_STARTED:
-            return IndicatorStatus.None;
-        case ConnectionHealth.ONLINE:
-            return IndicatorStatus.Succeeded;
-        case ConnectionHealth.FAILED:
-            return IndicatorStatus.Failed;
-        case ConnectionHealth.CONNECTING:
-            return IndicatorStatus.Running;
-        default:
-            return IndicatorStatus.None;
-    }
-}
 
 interface Props {
     connectionId: string | null;

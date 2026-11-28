@@ -7,7 +7,7 @@ export type StoreAction<T> = T | ((prev: T) => T);
 ///
 /// React may invoke the updater of a state hook more than once, e.g. when it rebases updates or double-invokes them in
 /// strict mode. A store applies every update exactly once, right away, synchronously and in call order, and notifies
-/// its subscribers afterwards. The hooks that bind a store to React are in `store_hooks.ts`.
+/// its subscribers afterwards.
 export class Store<T> {
     /// The current state
     current: T;

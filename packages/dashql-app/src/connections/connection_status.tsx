@@ -1,17 +1,6 @@
-import * as React from 'react';
-import symbols from '@akohn/dashql-svg-symbols';
-
-import { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { Button, ButtonVariant } from '@akohn/dashql-react/components/button';
-import { STATUS_COLOR_FAILED, STATUS_COLOR_IN_PROGRESS, STATUS_COLOR_OTHER, STATUS_COLOR_SUCCESS } from '@akohn/dashql-react/components/status_indicator';
-import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
-
-interface ButtonProps {
-    workbookId?: string;
-    conn: ConnectionState;
-    onClick?: () => void;
-    compact?: boolean;
-}
+import { ConnectionHealth, ConnectionStatus } from '@akohn/dashql/platform/connections/connection_state';
+import { IndicatorStatus, STATUS_COLOR_FAILED, STATUS_COLOR_IN_PROGRESS, STATUS_COLOR_OTHER, STATUS_COLOR_SUCCESS } from '@akohn/dashql-react/components/status_indicator';
+import type { Logger } from '@akohn/dashql/platform/logger/logger';
 
 export const CONNECTION_HEALTH_NAMES: string[] = [
     "Disconnected",
@@ -29,41 +18,70 @@ export const CONNECTION_HEALTH_COLORS: string[] = [
     STATUS_COLOR_FAILED,
 ];
 
-export const ConnectionStatus = React.forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
-    const health = props.conn.connectionHealth ?? 0;
-    const connectorIcon = connectorInfoOf(props.conn).icons.outlines;
+export function getConnectionStatusText(status: ConnectionStatus | undefined, logger: Logger) {
+    switch (status) {
+        case ConnectionStatus.NOT_STARTED:
+            return "Disconnected";
+        case ConnectionStatus.AUTH_STARTED:
+            return "Starting authorization";
+        case ConnectionStatus.AUTH_CANCELLED:
+            return "Cancelled authorization";
+        case ConnectionStatus.AUTH_FAILED:
+            return "Authorization failed";
+        case ConnectionStatus.PKCE_GENERATION_STARTED:
+            return "Generating PKCE challenge";
+        case ConnectionStatus.PKCE_GENERATED:
+            return "Generated PKCE challenge";
+        case ConnectionStatus.WAITING_FOR_OAUTH_CODE_VIA_LINK:
+        case ConnectionStatus.WAITING_FOR_OAUTH_CODE_VIA_WINDOW:
+            return "Waiting for OAuth code";
+        case ConnectionStatus.OAUTH_CODE_RECEIVED:
+            return "Received OAuth code";
+        case ConnectionStatus.ACCESS_TOKEN_REQUESTED:
+            return "Requesting access token";
+        case ConnectionStatus.ACCESS_TOKEN_RECEIVED:
+            return "Received access token";
+        case ConnectionStatus.CORE_ACCESS_TOKEN_RECEIVED:
+            return "Received Core access token";
+        case ConnectionStatus.DATA_CLOUD_TOKEN_REQUESTED:
+            return "Requesting Data Cloud access token";
+        case ConnectionStatus.DATA_CLOUD_TOKEN_RECEIVED:
+            return "Received Data Cloud access token";
+        case ConnectionStatus.CHANNEL_SETUP_STARTED:
+            return "Creating channel";
+        case ConnectionStatus.CHANNEL_SETUP_FAILED:
+            return "Failed to create channel";
+        case ConnectionStatus.CHANNEL_SETUP_CANCELLED:
+            return "Cancelled channel setup";
+        case ConnectionStatus.CHANNEL_READY:
+            return "Channel is ready";
+        case ConnectionStatus.HEALTH_CHECK_STARTED:
+            return "Health check started";
+        case ConnectionStatus.HEALTH_CHECK_FAILED:
+            return "Health check failed";
+        case ConnectionStatus.HEALTH_CHECK_CANCELLED:
+            return "Health check cancelled";
+        case ConnectionStatus.HEALTH_CHECK_SUCCEEDED:
+            return "Health check succeeded";
+        case undefined:
+            break;
+        default:
+            logger.warn("unexpected connection status", { "status": status });
+    }
+    return "";
+}
 
-    const connStatusText = connectorInfoOf(props.conn).names.displayShort;
-    const connStatusColor = CONNECTION_HEALTH_COLORS[health];
-
-    const handleClick = () => {
-        if (props.onClick) {
-            props.onClick();
-        }
-    };
-
-    // This status button is the small-screen connector affordance, so it uses the outline variant.
-    const ConnectorIconVisual = React.useCallback(() => (
-        <svg width="16" height="16">
-            <use xlinkHref={`${symbols}#${connectorIcon}`} />
-        </svg>
-    ), [connectorIcon]);
-    const StatusDotVisual = React.useCallback(() => (
-        <svg width="8" height="8" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="4" cy="4" r="4" style={{ fill: connStatusColor }} />
-        </svg>
-    ), [connStatusColor]);
-
-    return (
-        <Button
-            ref={ref}
-            variant={ButtonVariant.Default}
-            leadingVisual={ConnectorIconVisual}
-            trailingVisual={StatusDotVisual}
-            onClick={handleClick}
-            aria-label={props.compact ? connStatusText : undefined}
-        >
-            {props.compact ? null : connStatusText}
-        </Button>
-    );
-});
+export function getConnectionHealthIndicator(health: ConnectionHealth | null) {
+    switch (health) {
+        case ConnectionHealth.NOT_STARTED:
+            return IndicatorStatus.None;
+        case ConnectionHealth.ONLINE:
+            return IndicatorStatus.Succeeded;
+        case ConnectionHealth.FAILED:
+            return IndicatorStatus.Failed;
+        case ConnectionHealth.CONNECTING:
+            return IndicatorStatus.Running;
+        default:
+            return IndicatorStatus.None;
+    }
+}
