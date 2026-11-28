@@ -1345,6 +1345,12 @@ impl Workbook {
             }
             rewrites.push((index, text, ExternalChanges { from_text, changes }));
         }
+        self.commit_rewrites(rewrites)
+    }
+
+    /// Replace the texts of scripts by their indexes and analyze them, all scripts change or none. A mounted editor
+    /// applies the changes and keeps its cursor. Returns the keys of the scripts.
+    fn commit_rewrites(&mut self, rewrites: Vec<(usize, String, ExternalChanges)>) -> Result<Vec<ScriptKey>> {
         self.commit_texts(
             rewrites.iter().map(|(index, text, external)| (*index, text.as_str(), external.from_text.as_str())),
         )?;
@@ -1999,7 +2005,7 @@ impl Workbook {
     ) -> Result<()> {
         let unit = self.offset_unit;
         // The new texts of all scripts first, then the scripts: all of them change or none
-        let mut rewrites: Vec<(usize, String, String)> = Vec::new();
+        let mut rewrites: Vec<(usize, String, ExternalChanges)> = Vec::new();
         for key in keys {
             let Some((index, script)) = self.scripts.iter().enumerate().find(|(_, script)| script.key == *key) else {
                 continue;
@@ -2013,28 +2019,12 @@ impl Workbook {
                 continue;
             };
             if text != from_text {
-                rewrites.push((index, text, from_text));
+                let changes = vec![text_change(&from_text, &text, unit)];
+                rewrites.push((index, text, ExternalChanges { from_text, changes }));
             }
         }
-        self.commit_texts(rewrites.iter().map(|(index, text, from_text)| (*index, text.as_str(), from_text.as_str())))?;
-        let mut rewritten: Vec<(ScriptKey, Rc<ScriptConnection>)> = Vec::new();
-        for (index, text, from_text) in rewrites {
-            let Some(script) = self.scripts.get_mut(index) else {
-                continue;
-            };
-            script.analyze();
-            script.pending_diff = None;
-            // A mounted editor applies the change and keeps its cursor
-            script.external_changes =
-                Some(ExternalChanges { changes: vec![text_change(&from_text, &text, unit)], from_text });
-            script.revision = next_revision();
-            outcome.effects.push(Self::write_script(script));
-            rewritten.push((script.key, script.connection.clone()));
-        }
-        for (key, connection) in &rewritten {
-            self.mark_others_outdated(*key, connection);
-        }
-        outcome.changed |= !rewritten.is_empty();
+        let rewritten = self.commit_rewrites(rewrites)?;
+        self.after_rewrite(&rewritten, outcome);
         Ok(())
     }
 
