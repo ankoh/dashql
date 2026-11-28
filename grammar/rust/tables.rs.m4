@@ -4,7 +4,7 @@
 # This is NOT a parser skeleton. It emits only data plus the user actions:
 #
 #   - the integral parser tables (yypact, yydefact, yypgoto, yydefgoto, yytable,
-#     yycheck, yystos, yyr1, yyr2, yyrline) as `pub static` slices,
+#     yycheck, yystos, yyr1, yyr2) as `pub static` slices,
 #   - the automaton constants (YYNTOKENS, YYLAST, YYFINAL, ...),
 #   - the symbol names (yytname) for verbose error messages,
 #   - one `pub const S_*: u16` per symbol kind (mirrors bison's C++ symbol_kind),
@@ -12,7 +12,7 @@
 #
 # The LR driver (parse loop, LAC, error recovery, completion probes) is hand-written
 # Rust and lives in the consuming crate. Keeping it out of the skeleton lets the
-# completion engine drive the tables directly, exactly as the C++ core does.
+# completion engine drive the tables directly.
 #
 # `%code use { ... }` blocks are emitted at the top of the file, e.g. to import the types
 # below into the generated module.
@@ -43,19 +43,9 @@ b4_percent_define_default([[api.symbol.prefix]], [[S_]])
 b4_percent_define_default([[api.rust.context]], [[ParseContext]])
 b4_percent_define_default([[api.rust.location]], [[Location]])
 
-# The C++ grammar prologue defines options for lalr1.cc (variants, token
-# constructors, ...). They are irrelevant for table emission; mark them as used so
-# that bison does not complain when the same grammar is fed to this skeleton.
-b4_percent_define_use([[api.namespace]])
-b4_percent_define_use([[api.parser.class]])
-b4_percent_define_use([[api.token.constructor]])
-b4_percent_define_use([[api.token.prefix]])
-b4_percent_define_use([[api.value.type]])
-b4_percent_define_use([[api.location.type]])
-b4_percent_define_use([[parse.error]])
-b4_percent_define_use([[parse.lac]])
+# The token numbers are the symbol kinds (`%define api.token.raw true` of the grammar), the
+# skeleton emits no separate token numbers.
 b4_percent_define_use([[api.token.raw]])
-m4_define([b4_percent_code_bison_qualifiers(requires)])
 
 ## ------------ ##
 ## Data types.  ##
@@ -192,8 +182,6 @@ pub const YYPACT_NINF: i32 = ]b4_pact_ninf[;
 pub const YYTABLE_NINF: i32 = ]b4_table_ninf[;
 
 ]b4_parser_tables_define[
-]b4_integral_parser_table_define([rline], [b4_rline],
-     [[YYRLINE[YYN] -- Source line where rule number YYN was defined.]])[
 
 const YY_NULLPTR: &str = "";
 

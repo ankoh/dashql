@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Assembles the dashql.y grammar from grammar fragments: prologue, keyword declarations/rules from
-.list files, precedences, types, rule files, epilogue.
+.list files, precedences, types, rule files.
 Accepts paths via arguments for hermetic Bazel genrules.
 """
 import argparse
@@ -56,7 +56,6 @@ def main():
     ap = argparse.ArgumentParser(description="Assemble dashql.y from grammar fragments")
     ap.add_argument("--output", required=True, help="Output .y file")
     ap.add_argument("--prologue", required=True)
-    ap.add_argument("--epilogue", required=True)
     ap.add_argument("--precedences", required=True)
     ap.add_argument("--keyword_lists", nargs="+", required=True, help="Paths to .list files")
     ap.add_argument("--type_files", nargs="+", required=True, help="Paths to .yh files")
@@ -100,10 +99,6 @@ def main():
                 out.write(f.read())
 
         out.write("%%\n")
-
-        if os.path.exists(args.epilogue):
-            with open(args.epilogue) as f:
-                out.write(f.read())
 
 
 if __name__ == "__main__":

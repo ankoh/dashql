@@ -14,11 +14,6 @@ filegroup(
 )
 
 filegroup(
-    name = "epilogue",
-    srcs = ["epilogue.y"],
-)
-
-filegroup(
     name = "precedences",
     srcs = ["precedences.y"],
 )
@@ -89,7 +84,6 @@ genrule(
     name = "grammar_y",
     srcs = [
         ":prologue",
-        ":epilogue",
         ":precedences",
         ":keyword_lists",
         ":type_files",
@@ -100,7 +94,6 @@ genrule(
         "python3 $(location assemble_grammar.py) " +
         "--output $(location dashql.y) " +
         "--prologue $(location :prologue) " +
-        "--epilogue $(location :epilogue) " +
         "--precedences $(location :precedences) " +
         "--keyword_lists $(locations :keyword_lists) " +
         "--type_files $(locations :type_files) " +
