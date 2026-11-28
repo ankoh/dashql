@@ -107,11 +107,6 @@ pub struct WorkbookBundleHead {
     pub files_valid: bool,
 }
 
-/// The path of a catalog file of a connection in a bundle, e.g. `connections/<id>/dashql-catalog-relations.sql`
-pub fn bundle_catalog_path(connection_id: &str, file_name: &str) -> String {
-    connection_file_path(connection_id, file_name)
-}
-
 /// Is a path of a bundle the path of a catalog file of a connection?
 pub fn is_bundle_catalog_path(path: &str) -> bool {
     let parts: Vec<&str> = path.split('/').collect();
@@ -274,8 +269,10 @@ pub fn read_workbook_bundle_head(folder: &mut MigrationFolder, error_prefix: &st
     let mut catalogs = Vec::new();
     for connection in &workbook.connections {
         let connection_id = &connection.connection_id;
-        let relations = folder.read(&bundle_catalog_path(connection_id, STORAGE_CATALOG_RELATIONS)).map(str::to_string);
-        let functions = folder.read(&bundle_catalog_path(connection_id, STORAGE_CATALOG_FUNCTIONS)).map(str::to_string);
+        let relations =
+            folder.read(&connection_file_path(connection_id, STORAGE_CATALOG_RELATIONS)).map(str::to_string);
+        let functions =
+            folder.read(&connection_file_path(connection_id, STORAGE_CATALOG_FUNCTIONS)).map(str::to_string);
         if let Some(catalog) = catalog_of_files(connection_id, relations, functions) {
             catalogs.push(catalog);
         } else if *connection_id == legacy_owner && (legacy_relations.is_some() || legacy_functions.is_some()) {
@@ -364,7 +361,7 @@ pub fn filter_invalid_workbook_catalogs(
         .map(|catalog| {
             let mut validate = |sql: &Option<String>, file_name: &str| match sql {
                 Some(text) if !parses_without_errors(text) => {
-                    invalid.push(bundle_catalog_path(&catalog.connection_id, file_name));
+                    invalid.push(connection_file_path(&catalog.connection_id, file_name));
                     None
                 }
                 other => other.clone(),

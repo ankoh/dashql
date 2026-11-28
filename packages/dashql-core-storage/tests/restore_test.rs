@@ -396,11 +396,11 @@ fn acknowledges_the_stamps_of_a_folder_that_it_reads_before_the_reads() {
         reads.get(..3),
         Some(&[format!("stamps:{WORKBOOK}"), format!("workbook:{WORKBOOK}"), format!("scripts:{WORKBOOK}")][..])
     );
-    assert!(writer.stamps().changes(WORKBOOK, &at_restore, "dashql-workbook.json").is_empty());
+    assert!(writer.stamps().changes(WORKBOOK, &at_restore).is_empty());
     // The folder comes back before the first check, its scripts are new to the app
     let back =
         FolderListing { scripts: vec![NamedStamp { name: "a.sql".to_string(), stamp: stamp(3.0) }], ..at_restore };
-    assert_eq!(writer.stamps().changes(WORKBOOK, &back, "dashql-workbook.json"), ["a.sql"]);
+    assert_eq!(writer.stamps().changes(WORKBOOK, &back), ["a.sql"]);
     // A workbook of the storage root has no stamps
     assert!(!writer.stamps().is_acknowledged(OTHER_WORKBOOK));
 }

@@ -1092,7 +1092,7 @@ fn records_the_stamp_of_the_workbook_file_that_a_migration_of_an_acknowledged_fo
     let stamp = FileStamp { size: written.unwrap(), mtime_ms: 2.0 };
     assert_eq!(stamps.expect_workbook(SESSION_A), Expect::Stamp(stamp));
     let listing = FolderListing { workbook: Some(stamp), ..FolderListing::default() };
-    assert!(stamps.changes(SESSION_A, &listing, "dashql-workbook.json").is_empty());
+    assert!(stamps.changes(SESSION_A, &listing).is_empty());
 }
 
 #[test]

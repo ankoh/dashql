@@ -1538,11 +1538,11 @@ fn checks_the_writes_of_an_acknowledged_folder_against_its_stamps() {
     // The writes of the app are no changes outside the app
     h.block_on(h.writer.write_durable(write_script(WORKBOOK, "a.sql", "app 2")));
     h.block_on(h.writer.write_durable(properties("renamed")));
-    assert!(h.writer.stamps().changes(WORKBOOK, &h.listing(WORKBOOK), "dashql-workbook.json").is_empty());
+    assert!(h.writer.stamps().changes(WORKBOOK, &h.listing(WORKBOOK)).is_empty());
     // An edit outside the app holds the next write of the script, a new file is no script of the app
     h.edit_outside(WORKBOOK, "a.sql", "edited outside");
     h.edit_outside(WORKBOOK, "b.sql", "added outside");
-    assert_eq!(h.writer.stamps().changes(WORKBOOK, &h.listing(WORKBOOK), "dashql-workbook.json"), ["a.sql", "b.sql"]);
+    assert_eq!(h.writer.stamps().changes(WORKBOOK, &h.listing(WORKBOOK)), ["a.sql", "b.sql"]);
     schedule(&h, write_script(WORKBOOK, "a.sql", "app 3"), 0.0);
     schedule(&h, write_script(WORKBOOK, "b.sql", "app b"), 0.0);
     h.advance(0);
@@ -1568,7 +1568,7 @@ fn renames_a_script_to_another_case_of_its_name_on_a_case_insensitive_folder() {
     assert!(h.store.borrow().status.holds.is_empty());
     assert_eq!(h.script(WORKBOOK, "query.sql"), Some(("query.sql".to_string(), "select 1".to_string())));
     // The renamed file keeps its stamp, it is no change outside the app
-    assert!(h.writer.stamps().changes(WORKBOOK, &h.listing(WORKBOOK), "dashql-workbook.json").is_empty());
+    assert!(h.writer.stamps().changes(WORKBOOK, &h.listing(WORKBOOK)).is_empty());
     assert!(written(&h.block_on(h.writer.write_durable(write_script(WORKBOOK, "query.sql", "select 2")))));
 }
 

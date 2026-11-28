@@ -21,10 +21,10 @@ use dashql_core_runtime::workbook_run::result_key::UNMATCHED_RESULT_KEY;
 use dashql_core_runtime::workbook_run::ResultKey;
 use dashql_core_storage::storage::{HoldReason, WriteError, WriteOutcome, WriteTask};
 use dashql_core_storage::workbook_format::bundle::{
-    assemble_workbook_bundle, bundle_catalog_path, catalog_seed_files, check_workbook_bundle,
-    describe_workbook_bundle_difference, filter_invalid_workbook_catalogs, prepare_workbook_bundle_write,
-    read_workbook_bundle, read_workbook_bundle_head, reconcile_stored_workbook_files, rename_bundle_catalogs,
-    DataFileData, ScriptData, WorkbookBundle, WorkbookBundleResult, WorkbookBundleWriteOptions,
+    assemble_workbook_bundle, catalog_seed_files, check_workbook_bundle, describe_workbook_bundle_difference,
+    filter_invalid_workbook_catalogs, prepare_workbook_bundle_write, read_workbook_bundle, read_workbook_bundle_head,
+    reconcile_stored_workbook_files, rename_bundle_catalogs, DataFileData, ScriptData, WorkbookBundle,
+    WorkbookBundleResult, WorkbookBundleWriteOptions,
 };
 use dashql_core_storage::workbook_format::connection_import::{
     apply_connection_import_plan, connection_refs_changed, plan_connection_import, ConnectionImportChoice,
@@ -40,7 +40,7 @@ use dashql_core_storage::workbook_format::import::{
     FolderArchiveFiles, TableArchiveEntry,
 };
 use dashql_core_storage::workbook_format::layout::{
-    StorageType, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_WORKBOOK_FILE,
+    connection_file_path, StorageType, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_WORKBOOK_FILE,
 };
 use dashql_core_storage::workbook_format::migration::{MigrationFolder, MIGRATION_FILES};
 use dashql_core_storage::workbook_format::query_results::ImportedWorkbookQueryResults;
@@ -553,7 +553,7 @@ impl Imports {
         let mut catalogs = Vec::new();
         for connection in &head.workbook.connections {
             for file_name in [STORAGE_CATALOG_RELATIONS, STORAGE_CATALOG_FUNCTIONS] {
-                let path = bundle_catalog_path(&connection.connection_id, file_name);
+                let path = connection_file_path(&connection.connection_id, file_name);
                 if let Some(content) = read_text(&path).await?.as_string() {
                     catalogs.push((path, content));
                 }

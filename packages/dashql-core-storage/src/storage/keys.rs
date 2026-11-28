@@ -9,6 +9,10 @@
 //! This module is the one source of the formats: the writer, the runtime of the module and the platform build keys
 //! with its functions, a task names its own key (`WriteTask::key`).
 
+use crate::workbook_format::layout::{
+    STORAGE_ATTACHMENTS_FOLDER, STORAGE_CONNECTIONS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE,
+};
+
 /// Does a key belong to a workbook? The key is the workbook id or a path below it.
 pub fn belongs_to_workbook(key: &str, workbook_id: &str) -> bool {
     match key.strip_prefix(workbook_id) {
@@ -34,12 +38,12 @@ pub fn chain_key(key: &str) -> String {
 
 /// The prefix of the keys of the files of a connection
 pub fn connection_file_prefix(connection_id: &str) -> String {
-    format!("@{}/{connection_id}/", super::CONNECTIONS_FOLDER)
+    format!("@{STORAGE_CONNECTIONS_FOLDER}/{connection_id}/")
 }
 
 /// The key of the entry of a connection in the app manifest, `@manifest/connections/<id>`
 pub fn connection_entry_key(connection_id: &str) -> String {
-    format!("@manifest/{}/{connection_id}", super::CONNECTIONS_FOLDER)
+    format!("@manifest/{}/{connection_id}", STORAGE_CONNECTIONS_FOLDER)
 }
 
 /// The key of a file of a connection, `@connections/<id>/<file>`
@@ -49,7 +53,7 @@ pub fn connection_file_key(connection_id: &str, file_name: &str) -> String {
 
 /// The key of the workbook file of a workbook, e.g. its properties
 pub fn workbook_file_key(workbook_id: &str) -> String {
-    format!("{workbook_id}/{}", super::WORKBOOK_FILE)
+    format!("{workbook_id}/{STORAGE_WORKBOOK_FILE}")
 }
 
 /// The key of the creation of a workbook, apart from its properties so that a rename in the same turn doesn't replace it
@@ -74,7 +78,7 @@ pub fn workbook_attachment_list_key(workbook_id: &str) -> String {
 
 /// The key of an attachment of a workbook, `<workbookId>/attachments/<file>`
 pub fn attachment_key(workbook_id: &str, file_name: &str) -> String {
-    format!("{workbook_id}/{}/{file_name}", super::ATTACHMENTS_FOLDER)
+    format!("{workbook_id}/{STORAGE_ATTACHMENTS_FOLDER}/{file_name}")
 }
 
 /// The key of the rename of an attachment, by the name it had, apart from its file so that a rename and a save of the
@@ -96,7 +100,7 @@ pub fn attachment_file(workbook_id: &str, file_name: &str) -> String {
 
 /// The folder of the scripts of a workbook, `<workbookId>/scripts`
 fn workbook_scripts_key(workbook_id: &str) -> String {
-    format!("{workbook_id}/{}", super::SCRIPTS_FOLDER)
+    format!("{workbook_id}/{STORAGE_SCRIPTS_FOLDER}")
 }
 
 /// The key of the text of a script, `<workbookId>/scripts/<file>`

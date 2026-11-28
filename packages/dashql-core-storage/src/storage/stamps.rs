@@ -13,6 +13,7 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
 
 use crate::workbook_format::files::file_name_key;
+use crate::workbook_format::layout::STORAGE_WORKBOOK_FILE;
 
 /// The size and the modification time of a file
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -139,14 +140,13 @@ impl FolderStamps {
     }
 
     /// The scripts whose stamps on disk differ from what the app wrote or acknowledged, by name and sorted, then the
-    /// workbook file (`workbook_file`) when its stamp differs. Every file differs in a folder that was never
-    /// acknowledged.
-    pub fn changes(&self, workbook_id: &str, listing: &FolderListing, workbook_file: &str) -> Vec<String> {
+    /// workbook file when its stamp differs. Every file differs in a folder that was never acknowledged.
+    pub fn changes(&self, workbook_id: &str, listing: &FolderListing) -> Vec<String> {
         let folders = self.folders.borrow();
         let Some(folder) = folders.get(workbook_id) else {
             let mut names: Vec<String> = listing.scripts.iter().map(|script| script.name.clone()).collect();
             names.sort();
-            names.extend(listing.workbook.map(|_| workbook_file.to_string()));
+            names.extend(listing.workbook.map(|_| STORAGE_WORKBOOK_FILE.to_string()));
             return names;
         };
         let disk: BTreeMap<String, &NamedStamp> =
@@ -164,7 +164,7 @@ impl FolderStamps {
         }
         changed.sort();
         if listing.workbook != folder.workbook {
-            changed.push(workbook_file.to_string());
+            changed.push(STORAGE_WORKBOOK_FILE.to_string());
         }
         changed
     }
@@ -194,8 +194,8 @@ mod tests {
         let stamps = FolderStamps::default();
         assert_eq!(stamps.expect_script("w", "a.sql"), Expect::Any);
         assert_eq!(
-            stamps.changes("w", &listing(&[("b.sql", 1.0), ("a.sql", 1.0)], Some(1.0)), "wb.json"),
-            ["a.sql", "b.sql", "wb.json"]
+            stamps.changes("w", &listing(&[("b.sql", 1.0), ("a.sql", 1.0)], Some(1.0))),
+            ["a.sql", "b.sql", "dashql-workbook.json"]
         );
         // A host without stamps records nothing
         stamps.wrote_script("w", "a.sql", Some(stamp(1.0)));
@@ -206,12 +206,12 @@ mod tests {
     fn finds_edited_added_and_removed_scripts_against_own_writes() {
         let stamps = FolderStamps::default();
         stamps.acknowledge("w", &listing(&[("a.sql", 1.0), ("b.sql", 1.0)], Some(1.0)));
-        assert!(stamps.changes("w", &listing(&[("a.sql", 1.0), ("b.sql", 1.0)], Some(1.0)), "wb.json").is_empty());
+        assert!(stamps.changes("w", &listing(&[("a.sql", 1.0), ("b.sql", 1.0)], Some(1.0))).is_empty());
         stamps.wrote_script("w", "a.sql", Some(stamp(2.0)));
         stamps.wrote_workbook("w", Some(stamp(3.0)));
-        assert!(stamps.changes("w", &listing(&[("a.sql", 2.0), ("b.sql", 1.0)], Some(3.0)), "wb.json").is_empty());
-        let changed = stamps.changes("w", &listing(&[("a.sql", 5.0), ("c.sql", 1.0)], Some(1.0)), "wb.json");
-        assert_eq!(changed, ["a.sql", "b.sql", "c.sql", "wb.json"]);
+        assert!(stamps.changes("w", &listing(&[("a.sql", 2.0), ("b.sql", 1.0)], Some(3.0))).is_empty());
+        let changed = stamps.changes("w", &listing(&[("a.sql", 5.0), ("c.sql", 1.0)], Some(1.0)));
+        assert_eq!(changed, ["a.sql", "b.sql", "c.sql", "dashql-workbook.json"]);
         assert_eq!(stamps.expect_script("w", "c.sql"), Expect::Absent);
         assert_eq!(stamps.expect_script("w", "a.sql"), Expect::Stamp(stamp(2.0)));
     }
@@ -223,7 +223,7 @@ mod tests {
         // A rename that only changes the case keeps the one entry of the file
         stamps.renamed_script("w", "Query.sql", "query.sql");
         assert_eq!(stamps.expect_script("w", "QUERY.sql"), Expect::Stamp(stamp(1.0)));
-        assert!(stamps.changes("w", &listing(&[("query.sql", 1.0)], None), "wb.json").is_empty());
+        assert!(stamps.changes("w", &listing(&[("query.sql", 1.0)], None)).is_empty());
         stamps.renamed_script("w", "query.sql", "b.sql");
         assert_eq!(stamps.expect_script("w", "query.sql"), Expect::Absent);
         stamps.deleted_script("w", "b.sql");

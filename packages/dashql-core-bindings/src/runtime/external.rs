@@ -26,7 +26,7 @@ use dashql_core_runtime::host::{Host, HostError, LogLevel};
 use dashql_core_runtime::workbook::WorkbookAction;
 use dashql_core_storage::restore::connection_state;
 use dashql_core_storage::storage::keys::is_reloaded_key;
-use dashql_core_storage::storage::{FolderListing, HoldReason, WriteTask, WORKBOOK_FILE};
+use dashql_core_storage::storage::{FolderListing, HoldReason, WriteTask};
 use dashql_core_storage::workbook_format::data::{WorkbookConnection, WorkbookData};
 use dashql_core_storage::workbook_format::files::nfc;
 use dashql_core_storage::workbook_format::restore::RestoreConnection;
@@ -341,7 +341,7 @@ impl ExternalChanges {
 
         // The restore acknowledged the folder as it read it, the stamps of the app's own writes are recorded since. A
         // folder that was never acknowledged differs in every file and is compared with what the app shows.
-        if stamps.changes(workbook_id, &listing, WORKBOOK_FILE).is_empty() {
+        if stamps.changes(workbook_id, &listing).is_empty() {
             return Ok(Checked::Settled);
         }
 

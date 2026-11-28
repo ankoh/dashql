@@ -16,12 +16,14 @@ use serde_json::{json, Value};
 use dashql_core::error::{Error, Result};
 
 use crate::workbook_format::bundle::{
-    assemble_workbook_bundle, bundle_catalog_path, check_workbook_bundle, read_workbook_bundle_head, DataFileData,
-    ScriptData, WorkbookBundle, WorkbookBundleResult,
+    assemble_workbook_bundle, check_workbook_bundle, read_workbook_bundle_head, DataFileData, ScriptData,
+    WorkbookBundle, WorkbookBundleResult,
 };
 use crate::workbook_format::files::nfc;
 use crate::workbook_format::json::{to_text, JsonObject};
-use crate::workbook_format::layout::{STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_WORKBOOK_FILE};
+use crate::workbook_format::layout::{
+    connection_file_path, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_WORKBOOK_FILE,
+};
 use crate::workbook_format::migration::MigrationFolder;
 use dashql_core_runtime::catalog_loader::tables::Groups;
 use dashql_core_runtime::catalog_loader::tables::{
@@ -835,13 +837,13 @@ pub fn workbook_tables_to_bundle<B: Clone>(
     for (connection_id, catalog) in catalog_structures(tables) {
         if !catalog.tables.is_empty() {
             folder.write(
-                bundle_catalog_path(&connection_id, STORAGE_CATALOG_RELATIONS),
+                connection_file_path(&connection_id, STORAGE_CATALOG_RELATIONS),
                 catalog_tables_sql(&catalog.tables),
             );
         }
         if !catalog.functions.is_empty() {
             folder.write(
-                bundle_catalog_path(&connection_id, STORAGE_CATALOG_FUNCTIONS),
+                connection_file_path(&connection_id, STORAGE_CATALOG_FUNCTIONS),
                 catalog_functions_sql(&catalog.functions),
             );
         }

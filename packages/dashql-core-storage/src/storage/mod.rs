@@ -18,15 +18,6 @@ pub use writer::{
     WriteStatistics, WriteTask, WriterStatus,
 };
 
-/// The workbook file of a workbook
-pub const WORKBOOK_FILE: &str = "dashql-workbook.json";
-/// The folder of the scripts of a workbook
-pub const SCRIPTS_FOLDER: &str = "scripts";
-/// The folder of the attachments of a workbook
-pub const ATTACHMENTS_FOLDER: &str = "attachments";
-/// The folder of the files of the connections
-pub const CONNECTIONS_FOLDER: &str = "connections";
-
 /// Rewrites the connection entries of the app manifest: gets the entries, none before the connections were migrated,
 /// and returns the new ones, none if nothing changed
 pub type ConnectionsUpdate = Box<dyn FnMut(Option<Vec<Value>>) -> Option<Vec<Value>>>;

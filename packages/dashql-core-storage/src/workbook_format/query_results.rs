@@ -1,20 +1,6 @@
 //! The query results that an exported workbook carries, and the outcome of their import into the results folder of the
 //! workbook (docs/design/workbook_results.md).
 
-/// The folder of the query results in an exported workbook of older versions, `results/<key>.parquet`
-pub const WORKBOOK_RESULTS_FOLDER: &str = "results";
-
-/// The path of a query result in an exported workbook of older versions
-pub fn workbook_result_path(key: &str) -> String {
-    format!("{WORKBOOK_RESULTS_FOLDER}/{key}.parquet")
-}
-
-/// The cache key of a file of the results folder, 64 lowercase hex digits, None for any other file
-pub fn workbook_result_key(file_name: &str) -> Option<&str> {
-    let key = file_name.strip_suffix(".parquet")?;
-    (key.len() == 64 && key.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))).then_some(key)
-}
-
 /// The outcome of an import of the query results of a workbook into its results folder
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ImportedWorkbookQueryResults {
@@ -62,15 +48,6 @@ impl ImportedWorkbookQueryResults {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn names_result_files_after_their_keys() {
-        let key = "a".repeat(64);
-        assert_eq!(workbook_result_path(&key), format!("results/{key}.parquet"));
-        assert_eq!(workbook_result_key(&format!("{key}.parquet")), Some(key.as_str()));
-        assert_eq!(workbook_result_key(&format!("{}.parquet", "A".repeat(64))), None);
-        assert_eq!(workbook_result_key("notes.txt"), None);
-    }
 
     #[test]
     fn counts_the_outcome_of_an_import() {

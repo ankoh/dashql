@@ -17,7 +17,7 @@ use crate::workbook_format::layout::{
     validate_data_file_name, DRAFT_SCRIPT_FILE, STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER,
 };
 use crate::workbook_format::migration::MigrationFolder;
-use crate::workbook_format::query_results::{workbook_result_key, WORKBOOK_RESULTS_FOLDER};
+use crate::workbook_format::results::{is_result_key, RESULTS_FOLDER};
 use crate::workbook_format::tables::{
     is_data_table_name, WorkbookTableName, WorkbookTables, RESULT_TABLE_PREFIX, TABLE_FILE_EXTENSION,
 };
@@ -77,7 +77,7 @@ fn is_bundle_file(path: &str) -> bool {
     is_top_level_file(&key)
         || is_bundle_catalog_path(path)
         || key.starts_with(&format!("{STORAGE_ATTACHMENTS_FOLDER}/"))
-        || key.starts_with(&format!("{WORKBOOK_RESULTS_FOLDER}/"))
+        || key.starts_with(&format!("{RESULTS_FOLDER}/"))
         || (key.starts_with(&format!("{STORAGE_SCRIPTS_FOLDER}/")) && key.ends_with(".sql"))
 }
 
@@ -242,8 +242,8 @@ fn plan_folder_archive(entries: &[ArchiveEntry]) -> Result<FolderArchivePlan> {
     for (_, path, index) in &destinations {
         let parts: Vec<&str> = path.split('/').collect();
         if let [folder, file] = parts.as_slice() {
-            if *folder == WORKBOOK_RESULTS_FOLDER {
-                if let Some(key) = workbook_result_key(file) {
+            if *folder == RESULTS_FOLDER {
+                if let Some(key) = file.strip_suffix(".parquet").filter(|key| is_result_key(key)) {
                     plan.entries.push((*index, FolderArchiveEntry::Result { key: key.to_string() }));
                 }
             }
