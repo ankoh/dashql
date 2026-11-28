@@ -24,6 +24,7 @@ import { deleteScript, useScriptSelection, useSelectedScriptKey } from '../scrip
 import { StageSection } from '../stage_section.js';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { ConsoleLayout, type ConsoleTab } from './console_layout.js';
+import { SqlKeyBar } from '../editor/sql_key_bar.js';
 import { ConsoleResults } from './console_results.js';
 
 const LOG_CTX = 'workbook_console';
@@ -129,6 +130,9 @@ export function WorkbookConsole(props: WorkbookConsoleProps): React.ReactElement
                 />
             )}
             results={() => model != null && <ConsoleResults model={model} />}
+            keyBar={() => scriptKey != null && (
+                <SqlKeyBar editor={editorView} onRun={readOnly || model == null ? undefined : () => void model.run()} />
+            )}
             sidebar={() => (
                 <>
                     <WorkbookInputStrip workbookId={workbookId} modifyWorkbookScripts={modifyWorkbookScripts} className={styles.inputs} />

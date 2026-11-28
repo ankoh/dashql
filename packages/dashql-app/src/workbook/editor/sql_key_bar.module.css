@@ -1,0 +1,44 @@
+/* The keys for SQL above the keyboard of a touch screen, see sql_key_bar.tsx */
+.key_bar {
+    display: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+@media (pointer: coarse) {
+    .key_bar {
+        display: flex;
+        flex: none;
+        gap: 6px;
+        padding: 6px 8px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        border-top: 1px solid var(--color_border);
+        background: var(--color_bg_subtle);
+    }
+
+    .key_bar button {
+        flex: none;
+        min-width: 40px;
+        height: 36px;
+        padding: 0 10px;
+        border: 1px solid var(--color_border);
+        border-radius: 8px;
+        background: var(--color_bg_card);
+        color: var(--color_fg);
+        font: inherit;
+        font-size: var(--font_size_body);
+        touch-action: manipulation;
+    }
+
+    .key_bar .symbol {
+        font-family: var(--font_family_mono);
+    }
+
+    .key_bar .run {
+        border-color: var(--color_accent_emphasis);
+        background: var(--color_accent_emphasis);
+        color: var(--color_fg_on_emphasis);
+        font-weight: 600;
+    }
+}

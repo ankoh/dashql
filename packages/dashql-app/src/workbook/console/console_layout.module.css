@@ -81,7 +81,7 @@
 /* The header of the script and its editor, the editor fills what is left */
 .editor_pane {
     display: grid;
-    grid-template-rows: 40px minmax(0, 1fr);
+    grid-template-rows: 40px minmax(0, 1fr) auto;
     height: 100%;
     min-height: 0;
 }

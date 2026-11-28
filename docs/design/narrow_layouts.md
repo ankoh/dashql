@@ -49,6 +49,12 @@ run of the active script, a new id of its latest query (`runKey`), shows the res
 pane. Wider windows keep the split of the editor over the results, with the sidebar below them up to the expanded width
 and next to them from there.
 
+A touch screen (`pointer: coarse`) shows the keys of SQL below the editor (`SqlKeyBar` of
+`workbook/editor/sql_key_bar.tsx`): Run, Tab (what the keymap of the editor does with it, else the completion), the
+symbols that the letter keyboard hides on another page, and the arrows that move the cursor. A key keeps the focus in
+the editor, so the keyboard stays open. The viewport of the app resizes its content for the keyboard
+(`interactive-widget=resizes-content`, Chromium and Firefox), the keys sit right above it.
+
 ## The feed
 
 The cards of the feed hide the optional controls of their header when they get narrow, by a container query on the
@@ -101,7 +107,6 @@ script fills a compact window, as does any expanded overlay. `dataflow.md` descr
 
 The other views follow, one at a time. Each keeps its components and changes its arrangement:
 
-- **Console**: a key bar above the keyboard.
 - **Result viewer**: a pinned column, taller rows on touch, a menu of the column.
 - **Feed**: a folded SQL, a card in full screen.
 - **Dashboard**: the inputs as chips with a sheet.

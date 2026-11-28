@@ -33,6 +33,8 @@ export interface ConsoleLayoutProps {
     results: () => React.ReactNode;
     /// The sections of the sidebar right of the editor and the results
     sidebar: () => React.ReactNode;
+    /// The keys below the editor that the keyboard of a touch screen lacks
+    keyBar?: () => React.ReactNode;
     /// The latest run of the active script, e.g. the id of its latest query. A new one shows the results on a compact
     /// window.
     runKey?: number | null;
@@ -74,6 +76,7 @@ export function ConsoleLayout(props: ConsoleLayoutProps): React.ReactElement {
         <div className={styles.editor_pane}>
             {props.header()}
             <div className={styles.editor}>{props.editor()}</div>
+            {props.keyBar?.()}
         </div>
     );
     const resultsPane = <div className={styles.results_pane}>{props.results()}</div>;
