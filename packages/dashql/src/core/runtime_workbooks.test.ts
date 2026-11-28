@@ -108,13 +108,13 @@ describe('The workbooks of the runtime', () => {
         expect(storage.workbooks.get('w')).toMatchObject({ name: 'Sales' });
         expect(storage.workbooks.get('w')).not.toHaveProperty('defaultView');
 
-        // The view that the workbook opens in is written with its properties, the feed is left out
-        expect(viewOf(runtime, 'workbook', 'w')!.defaultView).toBe('feed');
+        // The view that the workbook opens in is a name of the host, written with its properties. None is left out.
+        expect(viewOf(runtime, 'workbook', 'w')!.defaultView).toBeNull();
         expect(runtime.dispatch({ workbook: 'w' }, { kind: 'setDefaultView', value: { view: 'dashboard' } }).changed).toBe(true);
         expect(viewOf(runtime, 'workbook', 'w')!.defaultView).toBe('dashboard');
         await runtime.storage({ kind: 'flush' });
         expect(storage.workbooks.get('w')).toMatchObject({ name: 'Sales', defaultView: 'dashboard' });
-        runtime.dispatch({ workbook: 'w' }, { kind: 'setDefaultView', value: { view: 'feed' } });
+        runtime.dispatch({ workbook: 'w' }, { kind: 'setDefaultView', value: { view: null } });
         await runtime.storage({ kind: 'flush' });
         expect(storage.workbooks.get('w')).not.toHaveProperty('defaultView');
 

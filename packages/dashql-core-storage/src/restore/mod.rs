@@ -36,7 +36,7 @@ use dashql_core_runtime::attachments::DataFile;
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams, ConnectionState, ConnectionStateOptions};
 use dashql_core_runtime::host::{Host, HostError, LogLevel};
 use dashql_core_runtime::time::iso_timestamp_f64;
-use dashql_core_runtime::workbook::{new_catalog, ScriptConnection, Workbook, WorkbookDefaultView, WorkbookOrigin};
+use dashql_core_runtime::workbook::{new_catalog, ScriptConnection, Workbook, WorkbookOrigin};
 
 /// What the restore asks of the platform: the workbook tree, the workbook file, the scripts and attachments of a
 /// workbook, the connections of the app manifest and the files of a connection. Stored files are untrusted, the restore
@@ -221,7 +221,7 @@ enum WorkbookOutcome {
 struct Promotion {
     workbook_id: String,
     name: Option<String>,
-    default_view: WorkbookDefaultView,
+    default_view: Option<String>,
     cloud: Option<WorkbookCloudLink>,
 }
 
@@ -534,7 +534,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         };
         let texts: HashMap<String, String> = scripts.unwrap_or_default().into_iter().collect();
         let promoted = plan.promoted;
-        let default_view = plan.default_view;
+        let default_view = plan.default_view.clone();
         let created = match self.create_registered_connections() {
             Ok(()) => self.create_workbook(plan, metadata, &texts, &data_files),
             Err(error) => Err(error),

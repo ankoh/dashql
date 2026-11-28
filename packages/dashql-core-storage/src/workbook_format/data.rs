@@ -8,7 +8,6 @@
 
 use dashql_core::error::{Error, Result};
 use dashql_core_runtime::connections::{ConnectionDetails, ConnectionParams, ConnectorType, CONNECTOR_TYPES};
-use dashql_core_runtime::workbook::WorkbookDefaultView;
 use serde_json::{json, Value};
 
 use crate::workbook_format::json::JsonObject;
@@ -224,8 +223,8 @@ pub struct WorkbookData {
     pub native_path: Option<String>,
     /// The name the user gave the workbook
     pub name: Option<String>,
-    /// The view that the workbook opens in, the feed if the file names none or an unknown one
-    pub default_view: WorkbookDefaultView,
+    /// The view that the workbook opens in, a name of the host, none for the default of the host
+    pub default_view: Option<String>,
     /// The copies of the connections that the scripts use, in the order the scripts first use them
     pub connections: Vec<WorkbookConnection>,
     /// The scripts in feed order
@@ -263,9 +262,7 @@ impl WorkbookData {
                 "storageType" => data.storage_type = value.as_str().and_then(StorageType::parse),
                 "nativePath" => data.native_path = string(value),
                 "name" => data.name = string(value),
-                "defaultView" => {
-                    data.default_view = value.as_str().and_then(WorkbookDefaultView::parse).unwrap_or_default()
-                }
+                "defaultView" => data.default_view = string(value).filter(|view| !view.is_empty()),
                 "connections" => {
                     data.connections = value
                         .as_array()
@@ -335,7 +332,7 @@ impl WorkbookData {
         if let Some(name) = &self.name {
             object.insert("name".into(), json!(name));
         }
-        if let Some(view) = self.default_view.stored() {
+        if let Some(view) = &self.default_view {
             object.insert("defaultView".into(), json!(view));
         }
         object.insert(

@@ -11,7 +11,7 @@ use dashql_core_runtime::connections::ConnectionParams;
 use dashql_core_runtime::workbook::{
     new_catalog, text_change, ConnectionCopy, EditorUpdateId, ExternalChanges, ScriptConnection,
     ScriptConnectionProfile, ScriptKey, ScriptList, ScriptListEntry, ScriptStoredResult, StoredScript, TextChange,
-    Workbook, WorkbookAction, WorkbookDefaultView, WorkbookEffect, WorkbookOrigin,
+    Workbook, WorkbookAction, WorkbookEffect, WorkbookOrigin,
 };
 
 /// Connection params of their JSON text
@@ -523,7 +523,7 @@ fn renames_the_workbook() {
         outcome.effects,
         [WorkbookEffect::WriteProperties {
             name: Some("Sales".into()),
-            default_view: WorkbookDefaultView::Feed,
+            default_view: None,
             ephemeral: false,
             origin: None
         }]
@@ -536,35 +536,32 @@ fn renames_the_workbook() {
 #[test]
 fn picks_the_view_that_the_workbook_opens_in() {
     let (mut workbook, _) = workbook(&[]);
-    assert_eq!(workbook.default_view(), WorkbookDefaultView::Feed);
-    let set = |view| WorkbookAction::SetDefaultView { view };
-    let outcome = workbook.apply(set(WorkbookDefaultView::Dashboard)).unwrap();
-    assert_eq!(workbook.default_view(), WorkbookDefaultView::Dashboard);
+    assert_eq!(workbook.default_view(), None);
+    let set = |view: Option<&str>| WorkbookAction::SetDefaultView { view: view.map(str::to_string) };
+    let outcome = workbook.apply(set(Some("dashboard"))).unwrap();
+    assert_eq!(workbook.default_view(), Some("dashboard"));
     assert!(outcome.changed);
     assert_eq!(
         outcome.effects,
         [WorkbookEffect::WriteProperties {
             name: Some("Test".into()),
-            default_view: WorkbookDefaultView::Dashboard,
+            default_view: Some("dashboard".into()),
             ephemeral: false,
             origin: None
         }]
     );
-    assert!(!workbook.apply(set(WorkbookDefaultView::Dashboard)).unwrap().changed);
+    assert!(!workbook.apply(set(Some("dashboard"))).unwrap().changed);
+    // The name is the host's, the core keeps any
+    workbook.apply(set(Some("console"))).unwrap();
+    assert_eq!(workbook.default_view(), Some("console"));
+    // An empty name opens the default of the host
+    workbook.apply(set(Some(""))).unwrap();
+    assert_eq!(workbook.default_view(), None);
+    workbook.apply(set(Some("dashboard"))).unwrap();
     // A read-only workbook keeps the view it came with
     workbook.apply(WorkbookAction::SetOrigin { origin: Some(published(true)) }).unwrap();
-    assert!(workbook.apply(set(WorkbookDefaultView::Feed)).is_err());
-    assert_eq!(workbook.default_view(), WorkbookDefaultView::Dashboard);
-}
-
-#[test]
-fn names_the_default_views_as_files_store_them() {
-    for view in [WorkbookDefaultView::Feed, WorkbookDefaultView::Dashboard, WorkbookDefaultView::Dataflow] {
-        assert_eq!(WorkbookDefaultView::parse(view.as_str()), Some(view));
-    }
-    assert_eq!(WorkbookDefaultView::Feed.stored(), None);
-    assert_eq!(WorkbookDefaultView::Dataflow.stored(), Some("dataflow"));
-    assert_eq!(WorkbookDefaultView::parse("board"), None);
+    assert!(workbook.apply(set(None)).is_err());
+    assert_eq!(workbook.default_view(), Some("dashboard"));
 }
 
 #[test]
@@ -961,7 +958,7 @@ fn promotes_an_ephemeral_workbook_that_holds_a_script() {
         effect,
         Some(WorkbookEffect::WriteProperties {
             name: Some("Untitled 2".into()),
-            default_view: WorkbookDefaultView::Feed,
+            default_view: None,
             ephemeral: false,
             origin: None
         })

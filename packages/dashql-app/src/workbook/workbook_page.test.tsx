@@ -101,7 +101,7 @@ describe('WorkbookPage view transitions', () => {
     }
 
     /// Create the connections and a workbook on the first one, with a default view
-    async function seed(workbooks: { workbookId: string; ephemeral?: boolean; defaultView?: core.WorkbookDefaultView }[]) {
+    async function seed(workbooks: { workbookId: string; ephemeral?: boolean; defaultView?: string }[]) {
         await act(async () => {
             await addTestConnection(runtime, { connectionId: 'database', params: hyperServer('http://database') });
             await addTestConnection(runtime, { connectionId: 'other', params: hyperServer('http://other') });

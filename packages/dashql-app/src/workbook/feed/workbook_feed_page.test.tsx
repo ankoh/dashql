@@ -407,7 +407,7 @@ describe('WorkbookFeedPage', () => {
         const render = (defaultView: string) => show(<Page workbookScripts={{ ...scripts(), defaultView } as WorkbookScripts}
             modifyWorkbookScripts={modify} connection={null} />);
         const bookmark = () => container.querySelector<HTMLButtonElement>('[data-testid="workbook-view-default"]')!;
-        // The feed is the default view, it can't be bookmarked away
+        // The feed is the default view, it can't be bookmarked away. A name that the app doesn't know opens the feed.
         await render('feed');
         expect(bookmark().getAttribute('aria-pressed')).toBe('true');
         act(() => bookmark().click());
@@ -421,7 +421,7 @@ describe('WorkbookFeedPage', () => {
         await render('dashboard');
         expect(bookmark().getAttribute('aria-pressed')).toBe('true');
         act(() => bookmark().click());
-        expect(modify).toHaveBeenLastCalledWith({ kind: 'setDefaultView', value: { view: 'feed' } });
+        expect(modify).toHaveBeenLastCalledWith({ kind: 'setDefaultView', value: { view: null } });
         // The bookmark sits left of the arrow before the switch
         const previous = container.querySelector('[data-testid="workbook-view-previous"]')!;
         expect(bookmark().compareDocumentPosition(previous) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

@@ -1,37 +1,37 @@
 import * as React from 'react';
 
 import * as styles from './workbook_export_settings_view.module.css';
-import type * as core from '@akohn/dashql';
 import { ToggleSwitch } from '@akohn/dashql-react/components/toggle_switch';
 import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
 import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { isCloudPreview, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import { WorkbookViewMode, defaultViewOfViewMode, viewModeOfDefaultView } from '../workbook_view_mode.js';
 
 // The views a workbook opens in, with the octicons of the view switch of the workbook bar
-const DEFAULT_VIEWS: [core.WorkbookDefaultView, string, ReturnType<typeof SymbolIcon>][] = [
-    ['feed', 'Feed', SymbolIcon('rows_16')],
-    ['dashboard', 'Dashboard', SymbolIcon('dashboard_16')],
-    ['dataflow', 'Dataflow', SymbolIcon('workflow_16')],
+const DEFAULT_VIEWS: [WorkbookViewMode, string, ReturnType<typeof SymbolIcon>][] = [
+    [WorkbookViewMode.Workbook, 'Feed', SymbolIcon('rows_16')],
+    [WorkbookViewMode.Dashboard, 'Dashboard', SymbolIcon('dashboard_16')],
+    [WorkbookViewMode.Dataflow, 'Dataflow', SymbolIcon('workflow_16')],
 ];
 
 /// The view that the workbook opens in, a property of the workbook that the export carries
 export interface WorkbookDefaultViewSetting {
-    view: core.WorkbookDefaultView;
-    setView: (view: core.WorkbookDefaultView) => void;
+    view: WorkbookViewMode;
+    setView: (view: WorkbookViewMode) => void;
 }
 
 /// The default view of a workbook as the export settings show it, none without a workbook. A read-only look at a
 /// published workbook keeps the view it came with.
 export function useWorkbookDefaultViewSetting(
     workbook: WorkbookScripts | null,
-    modify: (action: { kind: 'setDefaultView'; value: { view: core.WorkbookDefaultView } }) => unknown,
+    modify: (action: { kind: 'setDefaultView'; value: { view: string | null } }) => unknown,
 ): WorkbookDefaultViewSetting | undefined {
     const view = workbook?.defaultView;
     const shown = workbook != null && !isCloudPreview(workbook);
     return React.useMemo(
         () => !shown ? undefined : {
-            view: view ?? 'feed',
-            setView: (next: core.WorkbookDefaultView) => { modify({ kind: 'setDefaultView', value: { view: next } }); },
+            view: viewModeOfDefaultView(view),
+            setView: (next: WorkbookViewMode) => { modify({ kind: 'setDefaultView', value: { view: defaultViewOfViewMode(next) } }); },
         },
         [shown, view, modify],
     );

@@ -1,7 +1,6 @@
 import * as React from 'react';
 
 import { useLocation, useNavigate } from 'react-router-dom';
-import type * as core from '@akohn/dashql';
 
 /// How a workbook is shown
 export enum WorkbookViewMode {
@@ -11,23 +10,22 @@ export enum WorkbookViewMode {
     Dataflow = 3,
 }
 
+/// The views that a workbook opens in besides the feed, by the name that the workbook file stores (`defaultView`). The
+/// name is the app's, the core keeps it without reading it.
+const DEFAULT_VIEW_NAMES: [WorkbookViewMode, string][] = [
+    [WorkbookViewMode.Dashboard, 'dashboard'],
+    [WorkbookViewMode.Dataflow, 'dataflow'],
+];
+
 /// The view mode that a workbook opens in, the workbook (its feed) unless it names the dashboard or the dataflow. A
-/// view that the workbook file doesn't name reads as the feed.
-export function viewModeOfDefaultView(view: core.WorkbookDefaultView | null | undefined): WorkbookViewMode {
-    switch (view) {
-        case 'dashboard': return WorkbookViewMode.Dashboard;
-        case 'dataflow': return WorkbookViewMode.Dataflow;
-        default: return WorkbookViewMode.Workbook;
-    }
+/// name that the app doesn't know reads as the feed, e.g. one of a newer app.
+export function viewModeOfDefaultView(view: string | null | undefined): WorkbookViewMode {
+    return DEFAULT_VIEW_NAMES.find(([, name]) => name === view)?.[0] ?? WorkbookViewMode.Workbook;
 }
 
-/// The default view of a view mode, the shell is no view a workbook opens in
-export function defaultViewOfViewMode(mode: WorkbookViewMode): core.WorkbookDefaultView {
-    switch (mode) {
-        case WorkbookViewMode.Dashboard: return 'dashboard';
-        case WorkbookViewMode.Dataflow: return 'dataflow';
-        default: return 'feed';
-    }
+/// The name of the default view of a view mode, null for the feed. The shell is no view a workbook opens in.
+export function defaultViewOfViewMode(mode: WorkbookViewMode): string | null {
+    return DEFAULT_VIEW_NAMES.find(([m]) => m === mode)?.[1] ?? null;
 }
 
 /// Does the URL name a view? A link that names one opens in it, not in the default view of the workbook.

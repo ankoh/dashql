@@ -33,8 +33,7 @@
     },
     "defaultView": {
       "type": "string",
-      "enum": ["feed", "dashboard", "dataflow"],
-      "description": "The view that the workbook opens in, also for the people it is shared with. Optional: absent (or unknown) means the feed, which is never written."
+      "description": "The view that the workbook opens in, also for the people it is shared with: a name of the app, e.g. dashboard or dataflow. Optional: absent (or empty) means the default of the app, the feed, which is never written. The app opens the feed for a name it doesn't know."
     },
     "connections": {
       "type": "array",

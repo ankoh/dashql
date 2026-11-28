@@ -655,7 +655,7 @@ pub fn workbook_bundle_to_tables<B: Clone>(
         format_version: i32::try_from(workbook.format_version).unwrap_or(0),
         name: workbook.name.clone(),
         metadata: to_text(&workbook.metadata.to_json()),
-        default_view: workbook.default_view.stored().map(str::to_string),
+        default_view: workbook.default_view.clone(),
     });
     for (position, connection) in workbook.connections.iter().enumerate() {
         tables.connections.push(ConnectionRow {

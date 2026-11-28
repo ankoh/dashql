@@ -29,8 +29,10 @@ in NFC.
 ### Default View
 
 A workbook opens in its default view: `defaultView` of `dashql-workbook.json` and `default_view` of
-`workbook_versions`, `dashboard` or `dataflow`. The field is optional, absent (or unknown) means the feed, and the feed
-is never written. A shared workbook opens in it wherever it arrives, e.g. in its dashboard. The bookmark left of the
+`workbook_versions`, `dashboard` or `dataflow`. The field is optional, absent (or empty) means the feed, and the feed
+is never written. The name is the app's: the core and the storage keep any name without reading it
+(`Workbook::default_view`, an `Option<String>`), the app maps it to its views (`viewModeOfDefaultView` of
+`workbook_view_mode.tsx`) and opens the feed for a name it doesn't know, e.g. one of a newer app. A shared workbook opens in it wherever it arrives, e.g. in its dashboard. The bookmark left of the
 arrows of the view switch marks the view that shows as the default one (filled while the default view shows, again on
 the bookmarked view returns the workbook to the feed), and the overlays of the link and of the file pick it as well
 (`Default View` of the export settings). Both change the workbook (`setDefaultView`), not only the export. The app opens

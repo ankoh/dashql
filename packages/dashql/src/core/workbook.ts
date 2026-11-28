@@ -8,7 +8,6 @@ export type {
     WorkbookAttachmentView,
     WorkbookCloudLink,
     WorkbookDataFile,
-    WorkbookDefaultView,
     WorkbookDerivedView,
     WorkbookExternalChanges,
     WorkbookListEntry,

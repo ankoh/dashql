@@ -5,7 +5,6 @@
 //! the fields of its task and keeps the others, a write that changes nothing is skipped (`same_file`). The connections
 //! of a workbook follow its scripts, see `files::with_workbook_scripts`.
 
-use dashql_core_runtime::workbook::WorkbookDefaultView;
 use serde_json::Value;
 
 use crate::workbook_format::data::{
@@ -24,13 +23,13 @@ pub fn same_file(a: &WorkbookData, b: &WorkbookData) -> bool {
 pub fn properties_patch(
     existing: &WorkbookData,
     name: Option<&str>,
-    default_view: WorkbookDefaultView,
+    default_view: Option<&str>,
     ephemeral: bool,
     cloud: Option<&WorkbookCloudLink>,
 ) -> WorkbookData {
     let mut file = existing.clone();
     file.name = name.filter(|name| !name.is_empty()).map(str::to_string);
-    file.default_view = default_view;
+    file.default_view = default_view.filter(|view| !view.is_empty()).map(str::to_string);
     if !ephemeral {
         file.metadata.ephemeral = None;
     }
@@ -125,7 +124,7 @@ mod tests {
             "formatVersion": 11, "workbookId": "w", "nativePath": "/a", "custom": { "x": 1 }, "name": "n",
             "connections": [], "scripts": [], "attachments": [], "metadata": { "createdAt": "t", "tag": "kept" },
         }));
-        let next = properties_patch(&existing, Some("m"), WorkbookDefaultView::Feed, false, None).to_json();
+        let next = properties_patch(&existing, Some("m"), None, false, None).to_json();
         assert_eq!(next["custom"], json!({ "x": 1 }));
         assert_eq!(next["nativePath"], json!("/a"));
         assert_eq!(next["metadata"], json!({ "createdAt": "t", "tag": "kept" }));
@@ -153,8 +152,8 @@ mod tests {
         let keys: Vec<String> = created.to_json().as_object().map(|o| o.keys().cloned().collect()).unwrap_or_default();
         assert_eq!(keys, ["formatVersion", "workbookId", "connections", "scripts", "attachments", "metadata"]);
         // The properties remove the marker once the workbook is promoted, a write that keeps it changes nothing
-        assert!(same_file(&properties_patch(&created, None, WorkbookDefaultView::Feed, true, None), &created));
-        assert!(!properties_patch(&created, None, WorkbookDefaultView::Feed, false, None).metadata.is_ephemeral());
+        assert!(same_file(&properties_patch(&created, None, None, true, None), &created));
+        assert!(!properties_patch(&created, None, None, false, None).metadata.is_ephemeral());
     }
 
     #[test]

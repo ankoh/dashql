@@ -6,7 +6,7 @@ use serde::Deserialize;
 use tsify::Tsify;
 
 use super::computation::{ComputationOrderBy, ComputationSearchKind};
-use super::workbooks::view::{WorkbookDataFile, WorkbookDefaultView};
+use super::workbooks::view::WorkbookDataFile;
 use crate::runtime::connections::view::{ConnectionTableName, ConnectorType, JsonParams};
 use crate::views::JsonValue;
 
@@ -166,9 +166,11 @@ pub enum WorkbookAction {
         #[tsify(optional)]
         name: Option<String>,
     },
-    /// Pick the view that the workbook opens in, e.g. its dashboard for the people it is shared with
+    /// Pick the view that the workbook opens in, e.g. its dashboard for the people it is shared with. The name is the
+    /// host's, null or an empty name opens the default of the host.
     SetDefaultView {
-        view: WorkbookDefaultView,
+        #[serde(default)]
+        view: Option<String>,
     },
     /// Move a script to another connection
     SetScriptConnection {

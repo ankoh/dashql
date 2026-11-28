@@ -56,7 +56,6 @@ use dashql_core_runtime::host::signal::{cancellable, oneshot, CancelHandle, Rece
 use dashql_core_runtime::host::{HostError, LogLevel};
 use dashql_core_runtime::http::HostBytes;
 use dashql_core_runtime::time::iso_timestamp_f64;
-use dashql_core_runtime::workbook::WorkbookDefaultView;
 
 /// A text that is written, or how to read it when the write runs
 pub enum TextSource {
@@ -90,7 +89,7 @@ pub enum WriteTask {
     WriteWorkbookProperties {
         workbook_id: String,
         name: Option<String>,
-        default_view: WorkbookDefaultView,
+        default_view: Option<String>,
         ephemeral: bool,
         cloud: Option<WorkbookCloudLink>,
     },
@@ -1181,7 +1180,7 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
         }
         WriteTask::WriteWorkbookProperties { workbook_id, name, default_view, ephemeral, cloud } => {
             patch_workbook_file(shared, key, workbook_id, |existing| {
-                properties_patch(existing, name.as_deref(), *default_view, *ephemeral, cloud.as_ref())
+                properties_patch(existing, name.as_deref(), default_view.as_deref(), *ephemeral, cloud.as_ref())
             })
             .await?;
         }
