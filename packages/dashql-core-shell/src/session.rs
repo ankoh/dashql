@@ -1,7 +1,6 @@
 //! The shell session.
 
 use super::arrow_renderer::ArrowRenderer;
-use super::unicode::is_valid;
 use super::*;
 use dashql_core::catalog::Catalog;
 use dashql_core::script::Script;
@@ -9,37 +8,8 @@ use dashql_parser::symbol_kind::S_SEMICOLON;
 use std::collections::VecDeque;
 
 const HISTORY_LIMIT: usize = 1000;
-const WHITESPACE: &[u8] = b" \t\r\n";
-
-/// The bytes between two offsets, empty if the range is out of bounds
-fn byte_range(text: &[u8], begin: usize, end: usize) -> &[u8] {
-    text.get(begin..end).unwrap_or(&[])
-}
-
-/// The bytes before an offset, all of them if the offset is past the end
-fn bytes_before(text: &[u8], end: usize) -> &[u8] {
-    text.get(..end).unwrap_or(text)
-}
-
-/// The bytes from an offset on, none if the offset is past the end
-fn bytes_from(text: &[u8], begin: usize) -> &[u8] {
-    text.get(begin..).unwrap_or(&[])
-}
-
-/// The first byte that is not in a set
-fn find_first_not_of(text: &[u8], set: &[u8]) -> Option<usize> {
-    text.iter().position(|c| !set.contains(c))
-}
-
-/// The last byte that is not in a set
-fn find_last_not_of(text: &[u8], set: &[u8]) -> Option<usize> {
-    text.iter().rposition(|c| !set.contains(c))
-}
-
-/// The first byte at or after an offset that is in a set
-fn find_first_of(text: &[u8], set: &[u8], from: usize) -> Option<usize> {
-    text.get(from..)?.iter().position(|c| set.contains(c)).map(|i| i + from)
-}
+/// The whitespace around a prompt
+const WHITESPACE: &[char] = &[' ', '\t', '\r', '\n'];
 
 /// The text of a record: line breaks as `\n`, without trailing line breaks
 fn record_text(data: &[u8]) -> String {
@@ -47,10 +17,9 @@ fn record_text(data: &[u8]) -> String {
     text.replace("\r\n", "\n").replace('\r', "\n").trim_end_matches('\n').to_string()
 }
 
-/// The begin of the dot command of a prompt, None if the prompt is no dot command
-fn command_begin(text: &[u8]) -> Option<usize> {
-    let begin = find_first_not_of(text, WHITESPACE)?;
-    (text.get(begin) == Some(&b'.')).then_some(begin)
+/// The dot command of a prompt from its dot on, None if the prompt is no dot command
+fn command_of(text: &str) -> Option<&str> {
+    Some(text.trim_start_matches(WHITESPACE)).filter(|command| command.starts_with('.'))
 }
 
 /// The completion of the name of a dot command
@@ -119,29 +88,15 @@ impl ShellSession {
     }
 
     /// Register the dot commands, one name per line
-    pub fn set_commands(&mut self, commands: &[u8]) -> ShellStatus {
-        if !is_valid(commands) {
-            return ShellStatus::InvalidArgument;
-        }
+    pub fn set_commands(&mut self, commands: &str) -> ShellStatus {
         let mut parsed = Vec::new();
-        let mut begin = 0;
-        while begin < commands.len() {
-            let end = find_first_of(commands, b"\n", begin);
-            let name = byte_range(commands, begin, end.unwrap_or(commands.len()));
-            if name.is_empty()
-                || name.first() == Some(&b'.')
-                || !name.iter().all(|&c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'_' || c == b'-')
-            {
-                return ShellStatus::InvalidArgument;
-            }
-            // The name is ASCII, the conversion does not fail
-            let Ok(name) = std::str::from_utf8(name) else {
-                return ShellStatus::InvalidArgument;
-            };
-            parsed.push(name.to_string());
-            match end {
-                Some(end) => begin = end + 1,
-                None => break,
+        if !commands.is_empty() {
+            for name in commands.strip_suffix('\n').unwrap_or(commands).split('\n') {
+                let valid = |c: char| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-';
+                if name.is_empty() || !name.chars().all(valid) {
+                    return ShellStatus::InvalidArgument;
+                }
+                parsed.push(name.to_string());
             }
         }
         self.commands = parsed;
@@ -154,26 +109,23 @@ impl ShellSession {
     }
 
     /// What a prompt is: a dot command, and whether Enter submits it
-    pub fn prompt_info(&mut self, text: &[u8]) -> PromptInfo {
-        let Some(begin) = find_first_not_of(text, WHITESPACE) else {
+    pub fn prompt_info(&mut self, text: &str) -> PromptInfo {
+        if text.trim_start_matches(WHITESPACE).is_empty() {
             return PromptInfo::default();
-        };
-        if text.get(begin) == Some(&b'.') {
-            return PromptInfo { is_command: true, is_complete: find_first_of(text, b"\r\n", begin).is_none() };
+        }
+        if let Some(command) = command_of(text) {
+            return PromptInfo { is_command: true, is_complete: !command.contains(['\r', '\n']) };
         }
         PromptInfo { is_command: false, is_complete: self.is_complete_statement(text) }
     }
 
     /// Is the text a single statement that ends with a semicolon? Text that the local parser does not recognize but
     /// ends with a semicolon is complete as well, the remote grammar may accept it.
-    fn is_complete_statement(&mut self, text: &[u8]) -> bool {
-        let Ok(utf8) = std::str::from_utf8(text) else {
-            return false;
-        };
-        if find_last_not_of(text, WHITESPACE).is_none_or(|end| text.get(end) != Some(&b';')) {
+    fn is_complete_statement(&mut self, text: &str) -> bool {
+        if !text.trim_end_matches(WHITESPACE).ends_with(';') {
             return false;
         }
-        self.script.replace_text(utf8);
+        self.script.replace_text(text);
         self.script.parse();
         let Some(parsed) = self.script.parsed.as_ref() else {
             return false;
@@ -191,20 +143,20 @@ impl ShellSession {
 
     /// Complete the name of the dot command of a prompt that holds only the name. A single match is completed with a
     /// space after it, several are completed to their common prefix and listed.
-    pub fn complete_command(&self, text: &[u8]) -> CommandCompletion {
-        let unchanged = CommandCompletion { text: String::from_utf8_lossy(text).into_owned(), candidates: Vec::new() };
-        let Some(begin) = command_begin(text) else {
+    pub fn complete_command(&self, text: &str) -> CommandCompletion {
+        let unchanged = CommandCompletion { text: text.to_string(), candidates: Vec::new() };
+        let Some(command) = command_of(text) else {
             return unchanged;
         };
-        if find_first_of(text, WHITESPACE, begin).is_some() {
+        if command.contains(WHITESPACE) {
             return unchanged;
         }
-        let typed = bytes_from(text, begin + 1);
-        let matches: Vec<&String> = self.commands.iter().filter(|c| c.as_bytes().starts_with(typed)).collect();
+        let typed = command.strip_prefix('.').unwrap_or(command);
+        let matches: Vec<&String> = self.commands.iter().filter(|c| c.starts_with(typed)).collect();
         let Some((first, rest)) = matches.split_first() else {
             return unchanged;
         };
-        let mut completed = String::from_utf8_lossy(bytes_before(text, begin)).into_owned();
+        let mut completed = text.strip_suffix(command).unwrap_or_default().to_string();
         completed.push('.');
         if rest.is_empty() {
             completed.push_str(first);
@@ -222,13 +174,13 @@ impl ShellSession {
 
     /// The previous entry of the history for the prompt `current`, None at the oldest entry. A prompt that differs
     /// from the entry it showed was edited: browsing starts again from the newest entry with it as the draft.
-    pub fn history_previous(&mut self, current: &[u8]) -> Option<String> {
+    pub fn history_previous(&mut self, current: &str) -> Option<String> {
         self.restart_history_if_edited(current);
         if self.history_cursor == 0 {
             return None;
         }
         if self.history_cursor == self.history.len() {
-            self.history_draft = String::from_utf8_lossy(current).into_owned();
+            self.history_draft = current.to_string();
         }
         self.history_cursor -= 1;
         self.history.get(self.history_cursor).cloned()
@@ -236,7 +188,7 @@ impl ShellSession {
 
     /// The next entry of the history for the prompt `current`, the draft after the newest entry, None if the prompt
     /// shows no entry
-    pub fn history_next(&mut self, current: &[u8]) -> Option<String> {
+    pub fn history_next(&mut self, current: &str) -> Option<String> {
         self.restart_history_if_edited(current);
         if self.history_cursor >= self.history.len() {
             return None;
@@ -248,8 +200,8 @@ impl ShellSession {
         }
     }
 
-    fn restart_history_if_edited(&mut self, current: &[u8]) {
-        if self.history.get(self.history_cursor).is_some_and(|entry| entry.as_bytes() != current) {
+    fn restart_history_if_edited(&mut self, current: &str) {
+        if self.history.get(self.history_cursor).is_some_and(|entry| entry != current) {
             self.reset_history_cursor();
         }
     }
@@ -307,35 +259,27 @@ impl ShellSession {
     }
 
     /// Execute a prompt as a dot command or a query, the history remembers it
-    pub fn submit(&mut self, prompt: &[u8]) -> ShellOperation {
-        let Ok(text) = std::str::from_utf8(prompt) else {
-            return ShellOperation::error(ShellStatus::InvalidArgument, "prompt must contain valid UTF-8");
-        };
-        if find_first_not_of(prompt, WHITESPACE).is_none() {
+    pub fn submit(&mut self, prompt: &str) -> ShellOperation {
+        if prompt.trim_start_matches(WHITESPACE).is_empty() {
             return ShellOperation::error(ShellStatus::InvalidArgument, "prompt must not be empty");
         }
-        self.remember_prompt(text);
-        if let Some(begin) = command_begin(prompt) {
-            let end = find_last_not_of(prompt, WHITESPACE).map_or(prompt.len(), |end| end + 1);
-            return self.suspend_effect(EffectType::ExecuteCommand, byte_range(prompt, begin, end).to_vec());
+        self.remember_prompt(prompt);
+        if let Some(command) = command_of(prompt) {
+            let command = command.trim_end_matches(WHITESPACE);
+            return self.suspend_effect(EffectType::ExecuteCommand, command.as_bytes().to_vec());
         }
-        if let Some(query_end) = find_last_not_of(prompt, WHITESPACE) {
-            if prompt.get(query_end) == Some(&b';') {
-                return self.start_query(bytes_before(prompt, query_end));
-            }
+        match prompt.trim_end_matches(WHITESPACE).strip_suffix(';') {
+            Some(query) => self.start_query(query),
+            None => self.start_query(prompt),
         }
-        self.start_query(prompt)
     }
 
     /// Start a query: returns the effect of the query
-    pub fn start_query(&mut self, query: &[u8]) -> ShellOperation {
+    pub fn start_query(&mut self, query: &str) -> ShellOperation {
         if query.is_empty() {
             return ShellOperation::error(ShellStatus::InvalidArgument, "query must not be empty");
         }
-        if !is_valid(query) {
-            return ShellOperation::error(ShellStatus::InvalidArgument, "query must contain valid UTF-8");
-        }
-        self.suspend_effect(EffectType::ExecuteQuery, query.to_vec())
+        self.suspend_effect(EffectType::ExecuteQuery, query.as_bytes().to_vec())
     }
 
     /// Suspend an operation on an effect, unless another effect is pending
@@ -401,7 +345,7 @@ impl ShellSession {
                 };
                 match ArrowRenderer::new(self.columns).render_ipc(rows) {
                     Ok(table) => {
-                        let mut records = vec![ShellRecord::new(ShellRecordKind::Table, record_text(&table))];
+                        let mut records = vec![ShellRecord::new(ShellRecordKind::Table, record_text(table.as_bytes()))];
                         let status = record_text(status);
                         if !status.is_empty() {
                             records.push(ShellRecord::new(ShellRecordKind::Status, status));

@@ -3,13 +3,14 @@
 //! Cell values are formatted by arrow-cast (`ArrayFormatter`): floats with their shortest round-trip digits,
 //! temporal values in ISO 8601, binaries in hex, nested values like `[1, 2]` or `{a: 1}`.
 
-use super::unicode::{display_width, graphemes};
+use super::unicode::display_width;
 use arrow_array::timezone::Tz;
 use arrow_array::{make_array, Array, ArrayRef, RecordBatch};
 use arrow_cast::display::{ArrayFormatter, FormatOptions};
 use arrow_schema::{DataType, Schema};
 use std::fmt::Write;
 use std::io::Cursor;
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Alignment {
@@ -20,15 +21,15 @@ enum Alignment {
 const CELL_PADDING: usize = 2;
 const MIN_CONTENT_WIDTH: usize = 1;
 const MAX_ROW_HEIGHT: usize = 20;
-const TRUNCATION_MARKER: &[u8] = b"...";
-const NO_RESULTS_MESSAGE: &[u8] = b"No results";
+const TRUNCATION_MARKER: &str = "...";
+const NO_RESULTS_MESSAGE: &str = "No results";
 /// Null cells stay empty, nulls inside nested values print as `null`
 const FORMAT_OPTIONS: FormatOptions<'static> = FormatOptions::new().with_null("null");
 
 /// A cell of a rendered table
 struct Cell {
     /// The escaped cell text
-    text: Vec<u8>,
+    text: String,
     /// The horizontal alignment of the text
     alignment: Alignment,
 }
@@ -36,7 +37,7 @@ struct Cell {
 /// A result table with formatted cells
 struct Table {
     /// The escaped column names
-    headers: Vec<Vec<u8>>,
+    headers: Vec<String>,
     /// The alignment of every column, right for numeric and boolean columns
     alignments: Vec<Alignment>,
     /// The rows of cells
@@ -44,25 +45,19 @@ struct Table {
 }
 
 /// Make cell text safe for a terminal
-fn escape_cell_text(text: &[u8]) -> Vec<u8> {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut output = Vec::with_capacity(text.len());
-    let mut bytes = text.iter().copied().peekable();
-    while let Some(value) = bytes.next() {
-        if value == b'\n' {
-            output.push(b'\n');
-        } else if value == b'\r' {
-            if bytes.peek() != Some(&b'\n') {
-                output.push(b'\n');
+fn escape_cell_text(text: &str) -> String {
+    let mut output = String::with_capacity(text.len());
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '\n' => output.push('\n'),
+            '\r' if chars.peek() != Some(&'\n') => output.push('\n'),
+            '\r' => {}
+            '\t' => output.push_str("    "),
+            c if c < '\x20' || c == '\x7f' => {
+                let _ = write!(output, "\\x{:02x}", u32::from(c));
             }
-        } else if value == b'\t' {
-            output.extend_from_slice(b"    ");
-        } else if value < 0x20 || value == 0x7f {
-            output.extend_from_slice(b"\\x");
-            output.extend(HEX.get(usize::from(value >> 4)));
-            output.extend(HEX.get(usize::from(value & 0x0f)));
-        } else {
-            output.push(value);
+            c => output.push(c),
         }
     }
     output
@@ -75,7 +70,7 @@ fn is_right_aligned(data_type: &DataType) -> bool {
 
 fn create_table(schema: &Schema) -> Table {
     Table {
-        headers: schema.fields().iter().map(|f| escape_cell_text(f.name().as_bytes())).collect(),
+        headers: schema.fields().iter().map(|f| escape_cell_text(f.name())).collect(),
         alignments: schema
             .fields()
             .iter()
@@ -117,7 +112,7 @@ fn append_batch(table: &mut Table, batch: &RecordBatch) {
                     None => write!(text, "{}", column.data_type()),
                 };
             }
-            cells.push(Cell { text: escape_cell_text(text.as_bytes()), alignment: *alignment });
+            cells.push(Cell { text: escape_cell_text(&text), alignment: *alignment });
         }
         table.rows.push(cells);
     }
@@ -142,7 +137,7 @@ struct Grapheme {
     end: usize,
     /// The display width in terminal columns
     width: usize,
-    /// Is the cluster one byte of ASCII whitespace?
+    /// Is the cluster one character of ASCII whitespace?
     space: bool,
 }
 
@@ -151,23 +146,24 @@ fn is_space(c: u8) -> bool {
     matches!(c, b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r')
 }
 
-fn text_graphemes(text: &[u8]) -> Vec<Grapheme> {
-    graphemes(text)
-        .into_iter()
-        .map(|(begin, end)| {
-            let cluster = text.get(begin..end).unwrap_or_default();
-            Grapheme { begin, end, width: display_width(cluster), space: matches!(cluster, [c] if is_space(*c)) }
+fn text_graphemes(text: &str) -> Vec<Grapheme> {
+    text.grapheme_indices(true)
+        .map(|(begin, cluster)| Grapheme {
+            begin,
+            end: begin + cluster.len(),
+            width: display_width(cluster),
+            space: matches!(cluster.as_bytes(), [c] if is_space(*c)),
         })
         .collect()
 }
 
-/// The bytes of a text in a range, empty for a range outside of it
-fn bytes_in(text: &[u8], begin: usize, end: usize) -> &[u8] {
+/// The text in a range of byte offsets at cluster boundaries, empty for a range outside of it
+fn text_in(text: &str, begin: usize, end: usize) -> &str {
     text.get(begin..end).unwrap_or_default()
 }
 
 /// Cut a text to a width and append "..."
-fn mark_truncated(text: &[u8], width: usize) -> Vec<u8> {
+fn mark_truncated(text: &str, width: usize) -> String {
     let marker_width = width.min(TRUNCATION_MARKER.len());
     let content_width = width - marker_width;
     let mut end = 0;
@@ -179,15 +175,15 @@ fn mark_truncated(text: &[u8], width: usize) -> Vec<u8> {
         rendered += grapheme.width;
         end = grapheme.end;
     }
-    let mut output = bytes_in(text, 0, end).to_vec();
-    output.extend_from_slice(TRUNCATION_MARKER.get(..marker_width).unwrap_or_default());
+    let mut output = text_in(text, 0, end).to_string();
+    output.push_str(TRUNCATION_MARKER.get(..marker_width).unwrap_or_default());
     output
 }
 
-fn wrap_line(text: &[u8], width: usize) -> Vec<Vec<u8>> {
+fn wrap_line(text: &str, width: usize) -> Vec<String> {
     let width = width.max(1);
     if text.is_empty() {
-        return vec![Vec::new()];
+        return vec![String::new()];
     }
     let graphemes = text_graphemes(text);
     let mut lines = Vec::new();
@@ -217,16 +213,16 @@ fn wrap_line(text: &[u8], width: usize) -> Vec<Vec<u8>> {
             None => &[],
         };
         match (content.first(), content.last()) {
-            (Some(first), Some(last)) => lines.push(bytes_in(text, first.begin, last.end).to_vec()),
-            _ => lines.push(Vec::new()),
+            (Some(first), Some(last)) => lines.push(text_in(text, first.begin, last.end).to_string()),
+            _ => lines.push(String::new()),
         }
         begin = end;
     }
     lines
 }
 
-fn wrap_text(text: &[u8], width: usize) -> Vec<Vec<u8>> {
-    text.split(|&c| c == b'\n').flat_map(|line| wrap_line(line, width)).collect()
+fn wrap_text(text: &str, width: usize) -> Vec<String> {
+    text.split('\n').flat_map(|line| wrap_line(line, width)).collect()
 }
 
 fn frame_width(column_count: usize) -> usize {
@@ -306,36 +302,34 @@ fn resolve_column_widths(table: &Table, terminal_columns: usize) -> Vec<usize> {
     widths
 }
 
-fn append_rule(output: &mut Vec<u8>, left: &str, middle: &str, right: &str, fill: &str, widths: &[usize]) {
-    output.extend_from_slice(left.as_bytes());
+fn append_rule(output: &mut String, left: &str, middle: &str, right: &str, fill: &str, widths: &[usize]) {
+    output.push_str(left);
     for (column, width) in widths.iter().enumerate() {
         if column != 0 {
-            output.extend_from_slice(middle.as_bytes());
+            output.push_str(middle);
         }
-        for _ in 0..width + 2 {
-            output.extend_from_slice(fill.as_bytes());
-        }
+        output.push_str(&fill.repeat(width + 2));
     }
-    output.extend_from_slice(right.as_bytes());
-    output.push(b'\n');
+    output.push_str(right);
+    output.push('\n');
 }
 
-fn append_cell(output: &mut Vec<u8>, text: &[u8], width: usize, alignment: Alignment) {
-    let padding = width.saturating_sub(display_width(text));
+fn append_cell(output: &mut String, text: &str, width: usize, alignment: Alignment) {
+    let padding = " ".repeat(width.saturating_sub(display_width(text)));
     if alignment == Alignment::Right {
-        output.extend(std::iter::repeat_n(b' ', padding));
+        output.push_str(&padding);
     }
-    output.extend_from_slice(text);
+    output.push_str(text);
     if alignment == Alignment::Left {
-        output.extend(std::iter::repeat_n(b' ', padding));
+        output.push_str(&padding);
     }
 }
 
-fn append_row(output: &mut Vec<u8>, cells: &[Cell], widths: &[usize], separator: &str) {
+fn append_row(output: &mut String, cells: &[Cell], widths: &[usize], separator: &str) {
     let mut wrapped = Vec::with_capacity(widths.len());
     let mut row_height = 1;
     for (column, &width) in widths.iter().enumerate() {
-        let text: &[u8] = cells.get(column).map_or(&[], |c| &c.text);
+        let text = cells.get(column).map_or("", |c| &c.text);
         let mut lines = wrap_text(text, width);
         if lines.len() > MAX_ROW_HEIGHT {
             lines.truncate(MAX_ROW_HEIGHT);
@@ -347,27 +341,27 @@ fn append_row(output: &mut Vec<u8>, cells: &[Cell], widths: &[usize], separator:
         wrapped.push(lines);
     }
     for line in 0..row_height {
-        output.extend_from_slice("│ ".as_bytes());
+        output.push_str("│ ");
         for (column, (&width, lines)) in widths.iter().zip(&wrapped).enumerate() {
             if column != 0 {
-                output.push(b' ');
-                output.extend_from_slice(separator.as_bytes());
-                output.push(b' ');
+                output.push(' ');
+                output.push_str(separator);
+                output.push(' ');
             }
-            let text: &[u8] = lines.get(line).map_or(&[], |l| l);
+            let text = lines.get(line).map_or("", String::as_str);
             let alignment = cells.get(column).map_or(Alignment::Left, |c| c.alignment);
             append_cell(output, text, width, alignment);
         }
-        output.extend_from_slice(" │\n".as_bytes());
+        output.push_str(" │\n");
     }
 }
 
-fn render_table(table: &Table, terminal_columns: usize) -> Vec<u8> {
+fn render_table(table: &Table, terminal_columns: usize) -> String {
     if table.headers.is_empty() {
-        return NO_RESULTS_MESSAGE.to_vec();
+        return NO_RESULTS_MESSAGE.to_string();
     }
     let widths = resolve_column_widths(table, terminal_columns);
-    let mut output = Vec::new();
+    let mut output = String::new();
     append_rule(&mut output, "╭", "┬", "╮", "─", &widths);
     // The header of the last visible column is marked when columns are left out
     let hides_columns = widths.len() < table.headers.len();
@@ -416,7 +410,7 @@ impl ArrowRenderer {
     }
 
     /// Render an Arrow IPC stream. Errors are Arrow error texts.
-    pub fn render_ipc(&self, data: &[u8]) -> Result<Vec<u8>, String> {
+    pub fn render_ipc(&self, data: &[u8]) -> Result<String, String> {
         let table = read_ipc(data)?;
         Ok(render_table(&table, self.terminal_columns as usize))
     }

@@ -6,8 +6,6 @@
 //! completes or cancels the effect by id, which yields the records of the output.
 //!
 //! The session does not own its catalog, it parses its prompts with a script on the catalog (see [`ShellSession`]).
-//!
-//! Inputs that must be valid UTF-8 are byte slices so that invalid input is reported as an error.
 
 pub mod arrow_renderer;
 mod session;

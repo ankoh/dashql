@@ -38,13 +38,12 @@ fn make_batch() -> RecordBatch {
 }
 
 fn render(columns: u32, ipc: &[u8]) -> String {
-    let output = ArrowRenderer::new(columns).render_ipc(ipc).unwrap();
-    String::from_utf8(output).unwrap()
+    ArrowRenderer::new(columns).render_ipc(ipc).unwrap()
 }
 
 fn expect_lines_fit(output: &str, width: usize) {
     for line in output.split('\n') {
-        assert!(display_width(line.as_bytes()) <= width, "{line}");
+        assert!(display_width(line) <= width, "{line}");
     }
 }
 
@@ -193,7 +192,7 @@ fn preview(status: &str, ipc: &[u8]) -> Vec<u8> {
 }
 
 fn complete_query(session: &mut ShellSession, data: &[u8]) -> ShellOperation {
-    let pending = session.start_query(b"SELECT 42");
+    let pending = session.start_query("SELECT 42");
     let id = pending.effect.expect("a pending query has an effect").id;
     session.complete_effect(id, EffectCompletionStatus::Success, data)
 }
@@ -333,10 +332,10 @@ fn resize_changes_the_wrap_width() {
         vec![Arc::new(StringArray::from(vec!["one two three four five six seven eight nine ten eleven twelve"]))],
     ));
     let mut renderer = ArrowRenderer::new(80);
-    let wide = String::from_utf8(renderer.render_ipc(&ipc).unwrap()).unwrap();
+    let wide = renderer.render_ipc(&ipc).unwrap();
     renderer.resize(30);
     assert_eq!(renderer.terminal_columns(), 30);
-    let narrow = String::from_utf8(renderer.render_ipc(&ipc).unwrap()).unwrap();
+    let narrow = renderer.render_ipc(&ipc).unwrap();
     assert!(narrow.lines().count() > wide.lines().count());
     expect_lines_fit(&narrow, 30);
     // A width of zero is clamped
@@ -353,6 +352,6 @@ fn zero_column_batches_with_rows_render_no_table() {
     )
     .unwrap();
     // No columns, no table
-    let output = String::from_utf8(ArrowRenderer::new(80).render_ipc(&write_ipc(&rows)).unwrap()).unwrap();
+    let output = ArrowRenderer::new(80).render_ipc(&write_ipc(&rows)).unwrap();
     assert!(!output.contains('╭') && !output.contains('│'), "{output}");
 }

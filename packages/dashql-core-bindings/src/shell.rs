@@ -138,32 +138,32 @@ impl Shell {
     /// Register dot commands, one name per line, returns the status
     #[wasm_bindgen(js_name = setCommands)]
     pub fn set_commands(&mut self, commands: &str) -> u32 {
-        self.inner.set_commands(commands.as_bytes()) as u32
+        self.inner.set_commands(commands) as u32
     }
 
     /// What a prompt is: a dot command, and whether Enter submits it
     #[wasm_bindgen(js_name = promptInfo)]
     pub fn prompt_info(&mut self, text: &str) -> ShellPromptInfo {
-        ShellPromptInfo { inner: self.inner.prompt_info(text.as_bytes()) }
+        ShellPromptInfo { inner: self.inner.prompt_info(text) }
     }
 
     /// Complete the name of the dot command of a prompt
     #[wasm_bindgen(js_name = completeCommand)]
     pub fn complete_command(&self, text: &str) -> ShellCommandCompletion {
-        ShellCommandCompletion { inner: self.inner.complete_command(text.as_bytes()) }
+        ShellCommandCompletion { inner: self.inner.complete_command(text) }
     }
 
     /// The previous entry of the history for the prompt, undefined at the oldest entry
     #[wasm_bindgen(js_name = historyPrevious)]
     pub fn history_previous(&mut self, text: &str) -> Option<String> {
-        self.inner.history_previous(text.as_bytes())
+        self.inner.history_previous(text)
     }
 
     /// The next entry of the history for the prompt, the draft after the newest one, undefined if the prompt shows no
     /// entry
     #[wasm_bindgen(js_name = historyNext)]
     pub fn history_next(&mut self, text: &str) -> Option<String> {
-        self.inner.history_next(text.as_bytes())
+        self.inner.history_next(text)
     }
 
     /// The history as length-prefixed (u32 little-endian) UTF-8 entries
@@ -180,12 +180,7 @@ impl Shell {
 
     /// Execute a prompt as a dot command or a query
     pub fn submit(&mut self, prompt: &str) -> ShellOperation {
-        operation(self.inner.submit(prompt.as_bytes()))
-    }
-
-    #[wasm_bindgen(js_name = startQuery)]
-    pub fn start_query(&mut self, query: &str) -> ShellOperation {
-        operation(self.inner.start_query(query.as_bytes()))
+        operation(self.inner.submit(prompt))
     }
 
     /// Finish an effect with a `DashQLShellEffectCompletionStatus` and its data (for queries a `QueryResultTag` and a
