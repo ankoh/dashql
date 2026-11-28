@@ -43,7 +43,12 @@ export function createEmbeddedDatabaseShellEnvironment(
             }
             // The result is analyzed now, it is reported also when the statement was cancelled meanwhile: the shell
             // releases it then
-            if (table != null && table.numCols > 0) onResult?.(queryId, table.numRows);
+            if (table != null && table.numCols > 0) {
+                onResult?.(queryId, table.numRows);
+            } else if (table != null) {
+                // A statement without columns has nothing to show, its computation is not needed
+                options.releaseResult?.(queryId);
+            }
             signal?.throwIfAborted();
         },
     };

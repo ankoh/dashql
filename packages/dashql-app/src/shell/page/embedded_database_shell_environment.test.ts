@@ -58,7 +58,8 @@ describe('embedded database shell environment', () => {
             if (args.query.startsWith('SELEC ')) throw new Error('syntax error');
             return tableFromArrays({});
         });
-        const environment = createEmbeddedDatabaseShellEnvironment(execute, 'shell', { afterStatement });
+        const releaseResult = vi.fn();
+        const environment = createEmbeddedDatabaseShellEnvironment(execute, 'shell', { afterStatement, releaseResult });
         const onResult = vi.fn();
 
         const execution = environment.executeQuery('CREATE TABLE foo(a INT)', undefined, undefined, onResult);
@@ -69,8 +70,9 @@ describe('embedded database shell environment', () => {
         expect(done).toBe(false);
         followed.resolve();
         await execution;
-        // A statement without columns shows no result
+        // A statement without columns shows no result, its computation goes
         expect(onResult).not.toHaveBeenCalled();
+        expect(releaseResult).toHaveBeenCalledWith(1);
 
         await expect(environment.executeQuery('SELEC 1')).rejects.toThrow('syntax error');
         expect(afterStatement).toHaveBeenCalledWith('SELEC 1');
