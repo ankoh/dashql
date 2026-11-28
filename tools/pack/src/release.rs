@@ -341,18 +341,16 @@ mod tests {
     fn release_args(dir: &TempDir, iteration: u32) -> ReleaseArgs {
         let manifest =
             |zip: &str| format!("version: 1.2.3\nfiles:\n  - url: {zip}\n    sha512: abc\npath: {zip}\nsha512: abc\n");
-        let git_version = GitVersion {
-            description: format!("v1.2.3-{iteration}-gabc1234"),
-            major: 1,
-            minor: 2,
-            patch: 3,
-            iteration,
-            short_hash: "abc1234".to_string(),
+        let git_version =
+            GitVersion { description: format!("v1.2.3-{iteration}-gabc1234"), short_hash: "abc1234".to_string() };
+        let (version, channel) = if iteration == 0 {
+            (Version::new(1, 2, 3), ReleaseChannel::Stable)
+        } else {
+            (Version::parse(&format!("1.2.4-dev.{iteration}")).unwrap(), ReleaseChannel::Latest)
         };
-        let channel = if iteration == 0 { ReleaseChannel::Stable } else { ReleaseChannel::Latest };
         ReleaseArgs {
             remote_base_url: "https://get.example".to_string(),
-            release_version: build_release_version(git_version.as_semver(), channel),
+            release_version: build_release_version(version, channel),
             git_repo: GitInfo { version: git_version },
             macos_arm64_dmg_path: dir.write(ARM64_DMG, b"arm64 dmg"),
             macos_arm64_zip_path: dir.write(ARM64_ZIP, b"arm64 zip"),

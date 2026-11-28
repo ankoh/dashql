@@ -3,10 +3,6 @@ use anyhow::Result;
 use git2::Repository;
 use lazy_static::lazy_static;
 use regex::Regex;
-use semver::BuildMetadata;
-use semver::Prerelease;
-use semver::Version;
-use std::fmt;
 use std::path::PathBuf;
 
 lazy_static! {
@@ -18,45 +14,8 @@ lazy_static! {
 pub struct GitVersion {
     /// The raw `git describe` output, e.g. `v1.2.3-4-gabcdef0`
     pub description: String,
-    /// The major version of the latest tag
-    pub major: u32,
-    /// The minor version of the latest tag
-    pub minor: u32,
-    /// The patch version of the latest tag
-    pub patch: u32,
-    /// The number of commits since the latest tag, 0 for a tagged commit
-    pub iteration: u32,
     /// The abbreviated hash of the described commit
     pub short_hash: String,
-}
-
-impl GitVersion {
-    pub fn as_semver(&self) -> Version {
-        if self.iteration == 0 {
-            Version {
-                major: self.major as u64,
-                minor: self.minor as u64,
-                patch: self.patch as u64,
-                pre: Prerelease::EMPTY,
-                build: BuildMetadata::EMPTY,
-            }
-        } else {
-            Version {
-                major: self.major as u64,
-                minor: self.minor as u64,
-                patch: (self.patch + 1) as u64,
-                pre: Prerelease::new(&format!("dev.{}", self.iteration)).unwrap(),
-                // build: BuildMetadata::new(&self.short_hash).unwrap(),
-                build: BuildMetadata::EMPTY,
-            }
-        }
-    }
-}
-
-impl fmt::Display for GitVersion {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.as_semver().fmt(f)
-    }
 }
 
 /// The git information of the repository a release is built from
@@ -86,22 +45,7 @@ pub fn describe_git_version(source_dir: &PathBuf) -> Result<GitVersion> {
         None => return Err(anyhow!("git describe output is not matching version regex: {}", &description_text)),
     };
 
-    Ok(GitVersion {
-        description: description_text.clone(),
-        major: description_parts[1]
-            .parse()
-            .map_err(|e| anyhow!("failed to parse major version {}, {}", &description_parts[1], e))?,
-        minor: description_parts[2]
-            .parse()
-            .map_err(|e| anyhow!("failed to parse minor version {}, {}", &description_parts[2], e))?,
-        patch: description_parts[3]
-            .parse()
-            .map_err(|e| anyhow!("failed to parse patch version {}, {}", &description_parts[3], e))?,
-        iteration: description_parts[4]
-            .parse()
-            .map_err(|e| anyhow!("failed to parse iteration version {}, {}", &description_parts[4], e))?,
-        short_hash: description_parts[5].to_string(),
-    })
+    Ok(GitVersion { description: description_text.clone(), short_hash: description_parts[5].to_string() })
 }
 
 pub fn collect_git_info(source_dir: &PathBuf) -> Result<GitInfo> {
@@ -119,10 +63,8 @@ mod tests {
         let dir = TempDir::new();
         git_repository(dir.path(), "v1.2.3", 0);
         let info = collect_git_info(&dir.path().to_path_buf()).unwrap();
-        assert_eq!((info.version.major, info.version.minor, info.version.patch, info.version.iteration), (1, 2, 3, 0));
         assert_eq!(info.version.short_hash.len(), 7);
         assert!(info.version.description.starts_with("v1.2.3-0-g"), "{}", info.version.description);
-        assert_eq!(info.version.to_string(), "1.2.3");
     }
 
     #[test]
@@ -130,8 +72,7 @@ mod tests {
         let dir = TempDir::new();
         git_repository(dir.path(), "v1.2.3", 4);
         let version = describe_git_version(&dir.path().to_path_buf()).unwrap();
-        assert_eq!(version.iteration, 4);
-        assert_eq!(version.as_semver().to_string(), "1.2.4-dev.4");
+        assert!(version.description.starts_with("v1.2.3-4-g"), "{}", version.description);
     }
 
     #[test]

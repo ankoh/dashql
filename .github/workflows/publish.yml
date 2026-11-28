@@ -184,7 +184,7 @@ jobs:
                   DASHQL_GET_R2_ACCESS_KEY_ID: ${{ secrets.R2_DASHQL_GET_ACCESS_KEY_ID }}
                   DASHQL_GET_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_DASHQL_GET_SECRET_ACCESS_KEY }}
               run: |
-                  bazel run --config=release //tools/pack:vacuum -- \
+                  bazel run --config=release //tools/pack:pack -- vacuum \
                       --keep-stable 100 \
                       --keep-latest 10
 

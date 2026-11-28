@@ -51,8 +51,7 @@ bazel build //...
 | `//packages/dashql:dep_wasm`, `:dep_flatbuffers` | The generated packages of the core module that the bindings import by path, `@akohn/dashql-wasm` (the wasm-bindgen glue and the Wasm of the core and of the dataflow layout) and `@akohn/dashql-flatbuffers`, in `bazel-bin/packages/dashql/dependencies/` |
 | `//packages/dashql-native:mac_package_arm64` | arm64 macOS Electron app, DMG, ZIP, and blockmaps |
 | `//packages/dashql-native:mac_package_x86_64` | x86_64 macOS Electron app, DMG, ZIP, and blockmaps |
-| `//tools/pack:pack` | Publish architecture-specific Electron artifacts and update manifests to R2 |
-| `//tools/pack:vacuum` | Remove complete expired release versions, including old updater blockmaps |
+| `//tools/pack:pack` | Release tool of the desktop app: `publish` uploads the architecture-specific Electron artifacts and update manifests to R2, `vacuum` removes complete expired release versions, including old updater blockmaps, `coverage-badge` renders the coverage badge |
 | `//packages/dashql-core-bindings:core_wasm` | Core Wasm module (Rust, wasm-bindgen) with the core and the shell, shipped by `@akohn/dashql`. It needs no database, hyperdb-wasm stays optional |
 | `//packages/dashql-dataflow:dataflow_wasm` | Dataflow Wasm module of the dataflow canvas (ELK), shipped by `@akohn/dashql`, loaded when the canvas opens |
 | `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff, and the scripts on it: editor sessions, compilation, batch, the relations that statements touch, visualizations |
@@ -69,7 +68,7 @@ bazel build //...
 | `//packages/dashql-cli:dashql` | The `dashql` of the agents of the desktop app (Rust): the commands that an agent runs for a question, each a call of the page of the workbook through the server of the app, see `docs/design/agent_integration.md`; `:dashql_aarch64` and `:dashql_x86_64` for the macOS bundle |
 | `//tools/sql_format` | Pretty prints SQL files with the native dashql-core, `--write` and `--check`, see "Formatting SQL Scripts" |
 
-`mac_package_arm64`, `mac_package_x86_64`, `pack` and `vacuum` produce their outputs when they run, not when they are
+`mac_package_arm64`, `mac_package_x86_64` and `pack` produce their outputs when they run, not when they are
 built: use `bazel run`. The macOS packages land in `dist/electron/<arch>/`.
 
 ### Build Configs

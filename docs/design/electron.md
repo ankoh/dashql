@@ -175,7 +175,7 @@ moves only its own channel. A tag on an older commit therefore leaves latest at 
 the update manifests of the artifacts, so a tag pushed after the build does not change what a run publishes. When main
 builds a commit that is already tagged, its publish uploads nothing and leaves that version to the run of the tag.
 
-`:vacuum` removes expired versions (`--keep-stable 100 --keep-latest 10`). The updater reads the feed of its
+`pack vacuum` removes expired versions (`--keep-stable 100 --keep-latest 10`). The updater reads the feed of its
 channel (`src/update_feed.ts`), downloads only on request, installs on quit, and can switch between stable
 and latest. Integrity relies on electron-updater's SHA-512 manifest and Apple code signing.
 

@@ -152,29 +152,6 @@ pub struct ReleaseMetadata {
     pub bundles: Vec<Bundle>,
 }
 
-/// A summary of a published release, optionally written by the publish command
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ReleaseSummary {
-    /// The release id, a UUID derived from the version
-    pub release_id: String,
-    /// The release version
-    #[serde(with = "serde_version")]
-    pub version: Version,
-    /// The publication date
-    #[serde(with = "serde_date")]
-    pub pub_date: DateTime<Utc>,
-    /// The abbreviated hash of the released commit
-    pub git_commit_hash: String,
-    /// The GitHub URL of the released commit
-    pub git_commit_url: String,
-    /// The public URL of the release metadata
-    pub release_metadata_url: String,
-    /// The public URL of the release update manifest
-    pub update_manifest_url: String,
-    /// The public URL of the first macOS DMG bundle
-    pub bundle_macos_dmg_url: String,
-}
-
 impl Default for ReleaseMetadata {
     fn default() -> Self {
         Self {

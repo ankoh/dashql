@@ -1,14 +1,12 @@
 use crate::{
     git_info::collect_git_info,
     release::{Release, ReleaseArgs},
-    release_metadata::ReleaseSummary,
     release_version::{build_release_version, read_manifest_version, ReleaseChannel},
     remote_access::RemoteAccess,
 };
 
 use anyhow::{anyhow, Result};
 use clap::Parser;
-use std::io::Write;
 use std::path::PathBuf;
 
 /// Publish the macOS Electron artifacts of a release to R2
@@ -17,9 +15,6 @@ pub struct PublishArgs {
     /// Build the release without uploading anything to R2
     #[arg(long, required = false, default_value = "false")]
     dry_run: bool,
-    /// Write a JSON summary of the release to this path
-    #[arg(long, required = false)]
-    save_summary: Option<PathBuf>,
     /// The release channel to move to this release
     #[arg(long, value_enum, required = true)]
     channel: ReleaseChannel,
@@ -113,25 +108,6 @@ pub async fn publish(args: PublishArgs) -> Result<()> {
     log::info!("r2 secret access key: **** (from environment)");
 
     let r2_client = remote_access.r2_client();
-
-    // Write the metadata (if requested)
-    if let Some(path) = &args.save_summary {
-        let summary = ReleaseSummary {
-            release_id: rel.release_metadata.release_id.clone(),
-            pub_date: rel.release_metadata.pub_date.clone(),
-            version: rel.release_metadata.version.clone(),
-            git_commit_hash: git_repo.version.short_hash.clone(),
-            git_commit_url: format!("https://github.com/ankoh/dashql/tree/{}", &git_repo.version.short_hash),
-            bundle_macos_dmg_url: rel.release_metadata.bundles[0].url.clone(),
-            release_metadata_url: format!("{}/{}", &url, &rel.release_metadata_path),
-            update_manifest_url: rel.release_metadata.update_manifest_url.clone(),
-        };
-        let file = std::fs::File::create(path)?;
-        let mut writer = std::io::BufWriter::new(file);
-        serde_json::to_writer_pretty(&mut writer, &summary)?;
-        writer.flush()?;
-        log::info!("wrote release metadata to: {:?}", &path.as_path());
-    }
 
     // Publish the release
     if !args.dry_run {
@@ -256,22 +232,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_dry_run_writes_the_summary_and_uploads_nothing() {
+    async fn a_dry_run_uploads_nothing() {
         let _guard = ENV_LOCK.lock().await;
         let (source, artifacts) = (TempDir::new(), TempDir::new());
         git_repository(source.path(), "v1.2.3", 0);
         let s3 = FakeS3::start().await;
         point_to(&s3);
-        let summary = artifacts.path().join("summary.json");
-        let extra = ["--dry-run".to_string(), "--save-summary".to_string(), summary.display().to_string()];
-        publish(args(&source, &artifacts, "1.2.3", "stable", &extra)).await.unwrap();
+        publish(args(&source, &artifacts, "1.2.3", "stable", &["--dry-run".to_string()])).await.unwrap();
         assert!(s3.requests().is_empty());
-
-        let summary: serde_json::Value = serde_json::from_slice(&std::fs::read(summary).unwrap()).unwrap();
-        assert_eq!(summary["version"], "1.2.3");
-        assert_eq!(summary["release_metadata_url"], "https://get.dashql.app/releases/1.2.3/metadata.json");
-        assert_eq!(summary["update_manifest_url"], "https://get.dashql.app/releases/1.2.3/update.json");
-        assert_eq!(summary["bundle_macos_dmg_url"], "https://get.dashql.app/releases/1.2.3/macos/arm64/arm64.dmg");
     }
 
     #[tokio::test]

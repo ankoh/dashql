@@ -36,17 +36,6 @@ rust_test(
     visibility = ["//visibility:public"],
 )
 
-rust_binary(
-    name = "vacuum",
-    srcs = glob(["src/**/*.rs"]),
-    crate_root = "src/main.rs",
-    args = [
-        "vacuum",
-    ],
-    deps = _DEPS,
-    visibility = ["//visibility:public"]
-)
-
 # rustfmt of the Rust files of the package, see //bazel:rustfmt.bzl
 rustfmt_test(
     name = "rustfmt_test",
