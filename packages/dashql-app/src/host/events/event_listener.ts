@@ -233,7 +233,7 @@ export class PlatformEventListener {
     /// OAuth succeeded, let the subscriber now
     protected dispatchOAuthRedirect(data: app_event.OAuthRedirectData) {
         if (!this.oAuthSubscriber) {
-            console.warn("Received oauth redirect data but there's no registered oauth subscriber", {}, LOG_CTX);
+            this.logger.warn("Received oauth redirect data but there's no registered oauth subscriber", {}, LOG_CTX);
         } else {
             const sub = this.oAuthSubscriber;
             if (!sub.accepts(data)) {
@@ -318,12 +318,6 @@ export class PlatformEventListener {
         // Make sure everything arriving here is a valid base64 string
         if (!dataBase64 || typeof dataBase64 !== 'string') {
             this.logger.trace("Skipping app event with non-string data", {}, LOG_CTX);
-            return null;
-        }
-        if (dataBase64.startsWith("webpackHotUpdate")) {
-            this.logger.debug("Received hot update", {
-                event: dataBase64,
-            }, LOG_CTX);
             return null;
         }
         // Is a valid base64?
