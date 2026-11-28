@@ -115,12 +115,14 @@ export function ConsoleLayout(props: ConsoleLayoutProps): React.ReactElement {
             {compact ? (
                 // The panes stay mounted while hidden, the editor keeps its state when the results show
                 <div className={styles.body_compact}>
-                    <SegmentedControl className={styles.pane_switch} aria-label="Pane" data-testid="console-pane-switch" fullWidth
-                        size={SegmentedControlSize.Small} onChange={index => setPane(PANES[index][0])}>
-                        {PANES.map(([value, label]) => (
-                            <SegmentedControl.Button key={value} selected={pane === value} data-pane={value}>{label}</SegmentedControl.Button>
-                        ))}
-                    </SegmentedControl>
+                    <div className={styles.pane_switch}>
+                        <SegmentedControl aria-label="Pane" data-testid="console-pane-switch" fullWidth
+                            size={SegmentedControlSize.Small} onChange={index => setPane(PANES[index][0])}>
+                            {PANES.map(([value, label]) => (
+                                <SegmentedControl.Button key={value} selected={pane === value} data-pane={value}>{label}</SegmentedControl.Button>
+                            ))}
+                        </SegmentedControl>
+                    </div>
                     {activeTab == null ? (
                         <div className={classNames(styles.empty, pane === ConsolePane.Sidebar && styles.pane_hidden)} data-testid="console-empty">No scripts yet</div>
                     ) : <>

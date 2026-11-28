@@ -30,6 +30,19 @@
     background: var(--color_bg_card);
 }
 
+/* The brand at the start of the header, in the color of the text */
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-right: auto;
+    color: var(--color_fg);
+    fill: currentColor;
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+
 .body {
     min-height: 0;
     overflow: hidden;

@@ -333,7 +333,7 @@
         grid-column: 1;
         display: flex;
         align-items: center;
-        gap: 2px;
+        gap: 12px;
         min-width: 0;
         min-height: 44px;
         padding: env(safe-area-inset-top, 0px) 4px 0;
@@ -341,13 +341,13 @@
     .compact_chrome .system_actions {
         display: flex;
         align-items: center;
-        gap: 2px;
+        gap: 8px;
         margin-left: auto;
     }
     .compact_chrome .rail_pages {
         display: flex;
         align-items: center;
-        gap: 2px;
+        gap: 8px;
     }
     /* The bar of the workbook is the top of the card, like on a wide window: the execution with its status, the
        connections and the actions. The views switch in the tab bar at the bottom. */

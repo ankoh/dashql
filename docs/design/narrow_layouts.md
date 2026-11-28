@@ -43,13 +43,13 @@ valid, and the app no longer reads it.
   rail to leave it; the bar of the workbook and the tab bar don't show. A page without that bar keeps the stripe with the pages of the
   rail in its middle.
 - **The workbench** opens in a drawer below the expanded width (`WorkbookNavigationDrawer`), the same component as the
-  sidebar.
+  sidebar. Its white header has the brand like the stripe, in the color of the text.
 
 ## The console
 
 `ConsoleLayout` (`workbook/console/console_layout.tsx`) shows one pane at a time on a compact window: the editor with
-the header of its script, the results, or the sidebar with the inputs and the attachments. A segmented control below
-the tabs picks the pane (SQL, Results, Inputs). The panes stay mounted while hidden, the editor keeps its state. A new
+the header of its script, the results, or the sidebar with the inputs and the attachments. A segmented control at the
+bottom of the console, in reach of the thumb, picks the pane (SQL, Results, Inputs). The panes stay mounted while hidden, the editor keeps its state. A new
 run of the active script, a new id of its latest query (`runKey`), shows the results; a switch of the tab keeps the
 pane. Wider windows keep the split of the editor over the results, with the sidebar below them up to the expanded width
 and next to them from there.
