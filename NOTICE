@@ -9,7 +9,7 @@ their own licenses.
 1. GitHub Octicons
 --------------------------------------------------------------------------------
 
-Icon geometry under `packages/dashql-app/static/svg/icons/` includes icons from
+Icon geometry under `packages/dashql-react/svg/icons/` includes icons from
 GitHub Octicons (https://github.com/primer/octicons).
 
     MIT License
@@ -64,3 +64,55 @@ and used here under the MIT license.
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
+
+--------------------------------------------------------------------------------
+3. Instrument Sans and JetBrains Mono
+--------------------------------------------------------------------------------
+
+The fonts under `packages/dashql-react/fonts/` are Instrument Sans
+(https://github.com/Instrument/instrument-sans, Copyright 2022 The Instrument
+Sans Project Authors) and JetBrains Mono
+(https://github.com/JetBrains/JetBrainsMono, Copyright 2020 The JetBrains Mono
+Project Authors), both under the SIL Open Font License, Version 1.1. The full
+license text ships next to the fonts in `InstrumentSans-OFL.txt` and
+`JetBrainsMono-OFL.txt`.
+
+--------------------------------------------------------------------------------
+4. Google protocol buffers
+--------------------------------------------------------------------------------
+
+`proto/pb/google/rpc/status.proto` is a copy of google/rpc/status.proto
+(https://github.com/googleapis/googleapis), Copyright 2020 Google LLC, licensed
+under the Apache License, Version 2.0
+(http://www.apache.org/licenses/LICENSE-2.0).
+
+`proto/pb/google/protobuf/{any,empty,timestamp}.proto` are copies of the
+well-known types of Protocol Buffers (https://github.com/protocolbuffers/protobuf).
+
+    Copyright 2008 Google Inc.  All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are
+    met:
+
+        * Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above
+    copyright notice, this list of conditions and the following disclaimer
+    in the documentation and/or other materials provided with the
+    distribution.
+        * Neither the name of Google Inc. nor the names of its
+    contributors may be used to endorse or promote products derived from
+    this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+    OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
