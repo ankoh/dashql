@@ -461,4 +461,24 @@ describe('Dashboard', () => {
         expect(actions().map(action => action.value.scriptKey).sort()).toEqual([2, 3]);
         expect(actions()).toContainEqual({ kind: 'setScriptText', value: { scriptKey: 3, text: 'board 0 1 1 6 3', withDiff: false } });
     });
+
+    it('measures the grid that mounts after the empty state', async () => {
+        Object.assign(container.style, { position: 'fixed', top: '0', left: '0' });
+        render(workbook());
+        render(workbook(SALES, TREND));
+        const handle = card(3).querySelector<HTMLButtonElement>('button[aria-label="Move 3_trend"]')!;
+        const key = (target: EventTarget, code: string) => act(() => {
+            target.dispatchEvent(new KeyboardEvent('keydown', { code, key: code === 'Space' ? ' ' : code, bubbles: true, cancelable: true }));
+        });
+        const frame = () => act(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve(null)))));
+        handle.focus();
+        key(handle, 'Space');
+        await frame();
+        // A step moves the card by one column of the measured grid
+        key(document, 'ArrowRight');
+        await frame();
+        key(document, 'Space');
+        await frame();
+        expect(card(3).style.gridColumn).toBe('2 / span 6');
+    });
 });

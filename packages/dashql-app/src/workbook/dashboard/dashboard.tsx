@@ -29,6 +29,7 @@ import { persistDashboardPlacement, setDashboardRenderer, type DashboardRenderer
 import { WorkbookInputStrip } from '../inputs/workbook_input_strip.js';
 import { StageSection } from '../stage_section.js';
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
+import { useObservedSize } from '@akohn/dashql-react/components/size_observer';
 import * as styles from './dashboard.module.css';
 
 const GRID_GAP = DASHBOARD_GRID_GAP;
@@ -156,7 +157,8 @@ export function Dashboard(props: Props): React.ReactElement {
     const liveScripts = useWorkbookScriptMap(props.workbookScripts.workbookId);
     const scriptMap = props.scripts ?? liveScripts;
     const [layout, setLayout] = React.useState(() => readLayout(props.workbookScripts, scriptMap));
-    const [gridWidth, setGridWidth] = React.useState(0);
+    // The grid mounts with the first script, after the empty state
+    const gridWidth = useObservedSize(gridRef)?.width ?? 0;
     const [announcement, setAnnouncement] = React.useState('');
     const [overlay, setOverlay] = React.useState<DashboardOverlayState>(null);
     const logger = useLogger();
@@ -170,14 +172,6 @@ export function Dashboard(props: Props): React.ReactElement {
     // The layout is read again when a placement changes, an edit of the text of a script keeps it
     const readCurrentLayout = React.useEffectEvent(() => readLayout(props.workbookScripts, scriptMap));
     React.useEffect(() => setLayout(readCurrentLayout()), [layoutSourceKey]);
-    React.useEffect(() => {
-        const grid = gridRef.current;
-        if (grid == null) return;
-        const observer = new ResizeObserver(entries => setGridWidth(entries[0]?.contentRect.width ?? grid.clientWidth));
-        observer.observe(grid);
-        setGridWidth(grid.clientWidth);
-        return () => observer.disconnect();
-    }, []);
 
     const columnStep = gridWidth > 0 ? (gridWidth - GRID_GAP * (DASHBOARD_COLUMN_COUNT - 1)) / DASHBOARD_COLUMN_COUNT + GRID_GAP : 1;
     const rowStep = DASHBOARD_ROW_HEIGHT + GRID_GAP;
