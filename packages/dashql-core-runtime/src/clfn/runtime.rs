@@ -10,9 +10,7 @@ use std::rc::Rc;
 
 use serde_json::{Map, Value};
 
-use super::json::{
-    is_empty_value, js_number, js_string, json_pointer_segments, number_value, read_json_pointer, to_json_text,
-};
+use super::json::{is_empty_value, js_number, js_string, json_pointer_segments, number_value, to_json_text};
 use super::request::{
     build_client_function_request, follow_request, is_standard_option, ClientFunctionRequest, ClientFunctionVariables,
 };
@@ -359,7 +357,7 @@ impl ClientFunctionCallRun {
         let Some(source) = source else { return Ok(None) };
         let field = |name: &str| source.get(name).map(js_string);
         if let Some(pointer) = field("last_row") {
-            return Ok(page.items.last().and_then(|last| read_json_pointer(last, &pointer)).cloned());
+            return Ok(page.items.last().and_then(|last| last.pointer(&pointer)).cloned());
         }
         if let Some(rel) = field("link") {
             return Ok(read_link(page.header("Link").as_deref(), &rel).map(Value::String));
@@ -368,7 +366,7 @@ impl ClientFunctionCallRun {
             return Ok(page.header(&header).map(Value::String));
         }
         if let Some(pointer) = field("body") {
-            return Ok(read_json_pointer(&page.body, &pointer).cloned());
+            return Ok(page.body.pointer(&pointer).cloned());
         }
         // A mistake in a spec would end the list without a word otherwise
         Err(ClientFunctionError::new(format!(
@@ -389,11 +387,11 @@ impl ClientFunctionCallRun {
             },
             Some(end) if end.get("has_more").is_some() => {
                 let pointer = end.get("has_more").map(js_string).unwrap_or_default();
-                read_json_pointer(&page.body, &pointer) != Some(&Value::Bool(true))
+                page.body.pointer(&pointer) != Some(&Value::Bool(true))
             }
             Some(end) => {
                 let pointer = end.get("total").map(js_string).unwrap_or_default();
-                let total = read_json_pointer(&page.body, &pointer).map_or(f64::NAN, js_number);
+                let total = page.body.pointer(&pointer).map_or(f64::NAN, js_number);
                 if total.is_nan() {
                     return page.items.is_empty();
                 }
@@ -431,12 +429,12 @@ impl ClientFunctionCallRun {
     /// The error message of a response
     fn error_message(&self, body: &Value, fallback: String) -> String {
         for pointer in self.spec.error_pointers(&self.function) {
-            let Some(Value::String(message)) = read_json_pointer(body, pointer) else { continue };
+            let Some(Value::String(message)) = body.pointer(pointer) else { continue };
             if message.is_empty() {
                 continue;
             }
             if self.spec.message_is_json(&self.function) {
-                if let Some(Value::String(nested)) = read_json_pointer(&parse_body(message), "/message") {
+                if let Some(Value::String(nested)) = parse_body(message).pointer("/message") {
                     return nested.clone();
                 }
             }
@@ -457,7 +455,7 @@ impl ClientFunctionCallRun {
                 return Page { status, items, meta: None, body, headers, unexpected: None };
             }
         };
-        let items = read_json_pointer(&body, &rows).cloned();
+        let items = body.pointer(&rows).cloned();
         // An explicit null and an empty object are an empty list
         let is_empty = matches!(items, Some(Value::Null))
             || body.is_null()
@@ -495,7 +493,7 @@ impl ClientFunctionCallRun {
         }
         let error_if = self.function.errors.as_ref().and_then(|e| e.error_if.as_ref());
         if let Some(pointer) = error_if {
-            if !is_empty_value(read_json_pointer(&body, pointer)) {
+            if !is_empty_value(body.pointer(pointer)) {
                 return Err(ClientFunctionError::with_status(self.error_message(&body, fallback), response.status));
             }
         }

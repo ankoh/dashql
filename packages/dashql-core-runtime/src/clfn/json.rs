@@ -1,27 +1,11 @@
-//! JSON the way JavaScript reads it: JSON pointers, the text of a value and the number of a value, so a request carries
-//! the text that JavaScript would write.
+//! JSON the way JavaScript reads it: the segments of JSON pointers, the text of a value and the number of a value, so a
+//! request carries the text that JavaScript would write.
 
 use serde_json::{Number, Value};
 
 /// The segments of a JSON pointer
 pub fn json_pointer_segments(pointer: &str) -> Vec<String> {
     pointer.split('/').skip(1).map(|segment| segment.replace("~1", "/").replace("~0", "~")).collect()
-}
-
-/// Read a JSON pointer, none if the path doesn't exist
-pub fn read_json_pointer<'a>(value: &'a Value, pointer: &str) -> Option<&'a Value> {
-    if pointer.is_empty() {
-        return Some(value);
-    }
-    let mut current = value;
-    for segment in json_pointer_segments(pointer) {
-        current = match current {
-            Value::Array(items) => items.get(segment.parse::<usize>().ok()?)?,
-            Value::Object(fields) => fields.get(&segment)?,
-            _ => return None,
-        };
-    }
-    Some(current)
 }
 
 /// The text of a number as JavaScript writes it: integers without a fraction
@@ -133,13 +117,9 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn reads_pointers() {
-        let value = json!({ "a": [{ "b/c": 1 }], "": 2 });
-        assert_eq!(read_json_pointer(&value, "/a/0/b~1c"), Some(&json!(1)));
-        assert_eq!(read_json_pointer(&value, "/a/1"), None);
-        assert_eq!(read_json_pointer(&value, "/a/x"), None);
-        assert_eq!(read_json_pointer(&value, "/"), Some(&json!(2)));
-        assert_eq!(read_json_pointer(&value, ""), Some(&value));
+    fn splits_pointers() {
+        assert_eq!(json_pointer_segments("/a/0/b~1c~0"), ["a", "0", "b/c~"]);
+        assert!(json_pointer_segments("").is_empty());
     }
 
     #[test]
