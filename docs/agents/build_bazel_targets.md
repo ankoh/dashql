@@ -62,6 +62,7 @@ bazel build //...
 | `//packages/dashql-dataflow:dashql_dataflow` | The layout of the dataflow canvas: ELK (elk-rs) places the boxes and routes the edges |
 | `//packages/dashql-parser:dashql_parser` | Parser crate: scanner, parser tables and actions, keywords |
 | `//packages/dashql-react:npm_package` | `@akohn/dashql-react`, linked as `//:node_modules/@akohn/dashql-react`: the hooks of the runtime, the models that components show, the components, and the tokens, fonts and brand code shared with the website; a source package on `@akohn/dashql` with nothing compiled, see `docs/design/dashql_runtime.md` |
+| `//packages/dashql-react:npm_tarball` | The npm archive of `@akohn/dashql-react` at `bazel-bin/packages/dashql-react/dashql-react.tgz`, built by `:bundle` (`npm/build.mjs`) |
 | `//packages/dashql:bundle` | `dist/` of `@akohn/dashql` on npm: the modules as JavaScript (Vite, preserved modules) with their declarations, the generated packages inlined, see `packages/dashql/npm/build.mjs` |
 | `//packages/dashql:npm_package` | The npm package directory of `@akohn/dashql` (`npm/package.json`) |
 | `//packages/dashql:npm_tarball` | The npm archive of `@akohn/dashql` at `bazel-bin/packages/dashql/dashql.tgz` |
@@ -128,7 +129,7 @@ bazel test //...
 | `//packages/dashql-native:test` | Electron host unit tests |
 | `//packages/dashql-cli:all` | `dashql`: the command line, the session file, the calls against a fake server of the app with their streamed answers and exit codes, the usage and the guide; Clippy with the safety lints and rustfmt |
 | `//tools/sql_format:all` | `sql_format`: the arguments, the inputs, the dialects, `--write` and `--check`; `example_snippets_formatted_test`: the example snippets of the app are what it prints, in the dialect of their engine |
-| `//packages/dashql-react:all` | Type check of `@akohn/dashql-react` against the sources of `@akohn/dashql`, and the boundary test of its imports (React, apache-arrow, `@akohn/dashql`, the libraries of the components, vitest in tests and `src/testing/`; components reach neither the hooks nor the runtime). Its tests run in the browser tests of the app |
+| `//packages/dashql-react:all` | Type check of `@akohn/dashql-react` against the sources of `@akohn/dashql`, and the boundary test of its imports (React, apache-arrow, `@akohn/dashql`, the libraries of the components, vitest in tests and `src/testing/`; components reach neither the hooks nor the runtime), and the package on npm as a host installs it (`:tarball_consumer_test`). Its unit tests run in the browser tests of the app |
 | `//packages/dashql:tsc_typecheck_test` | Type check of `@akohn/dashql` against the WebWorker lib, without the DOM and without the types of Node |
 | `//packages/dashql:tsc_typecheck_tests_test` | Type check of the tests and test helpers of the runtime and of the platform (`src/*/testing/`), with the globals of vitest |
 | `//packages/dashql:tsc_typecheck_node_test` | Type check of the modules of Node in `src/runtime/node` and `src/platform/node` and their tests, with the types of Node |
@@ -562,30 +563,23 @@ bazel test //packages/dashql-parser:all //packages/dashql-core:all //packages/da
     //packages/dashql-dataflow:all //tests/snapshots:all
 ```
 
-### The npm Package of DashQL
+### The npm Packages
 
 ```bash
 # Bundle the modules with their declarations into dist/
-bazel build //packages/dashql:bundle
+bazel build //packages/dashql:bundle //packages/dashql-react:bundle
 
-# Assemble the npm directory
-bazel build //packages/dashql:npm_package
+# Run the tests in Node, the tarball consumers, and the browser tests
+bazel test //packages/dashql:all //packages/dashql-react:all //packages/dashql/test/browser:all
 
-# Run the tests in Node, the tarball consumer, and the browser tests
-bazel test //packages/dashql:all //packages/dashql/test/browser:all
-
-# Build the release archive without building the app or native packages
-bazel build --config=release //packages/dashql:npm_tarball
+# Build the release archives without building the app or native packages
+bazel build --config=release //packages/dashql:npm_tarball //packages/dashql-react:npm_tarball
 ```
 
-`@akohn/dashql` is a source package, only the package on npm is built. `:dep_wasm` takes
-`//packages/dashql-core-bindings:core_wasm`, `//packages/dashql-dataflow:dataflow_wasm` and their wasm-bindgen glue
-(`:dashql_core_bindgen`, `:dashql_dataflow_bindgen`), `:bundle` builds the JavaScript and the declarations around them.
-The release archive is `bazel-bin/packages/dashql/dashql.tgz`. Trusted CI waits for the release
-Wasm build and requires that artifact to be available in the remote cache before
-packaging, so it does not rebuild the same Wasm action. It uploads the archive as
-`dashql_npm`; it does not publish to npm. Trusted fastbuild/release and
-untrusted fastbuild CI run both test target sets of the package.
+`@akohn/dashql` and `@akohn/dashql-react` are source packages in the workspace, only the packages on npm are built, see
+"The package on npm" in [dashql_runtime.md](../design/dashql_runtime.md). Trusted CI requires the release Wasm in the
+remote cache, so it does not rebuild it, builds and tests both archives and uploads them as `dashql_npm`; the publish
+workflow puts them on npm.
 
 ### After Changing Parser Grammar
 
