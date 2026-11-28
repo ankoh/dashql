@@ -1197,9 +1197,6 @@ impl<'a> Formatter<'a> {
     }
 
     fn format_interval_type_enum(&self, node: &'a Node) -> FmtReg {
-        if node.node_type() != NodeType::ENUM_SQL_INTERVAL_TYPE {
-            return self.format_unimplemented(node);
-        }
         match crate::analyzer::sql_types::interval_keyword(IntervalType(value_u8(node))) {
             Some(text) => self.fmt.text(text),
             None => self.format_unimplemented(node),
@@ -1358,9 +1355,6 @@ impl<'a> Formatter<'a> {
     }
 
     fn format_numeric_type_base(&self, node: &'a Node) -> FmtReg {
-        if node.node_type() != NodeType::ENUM_SQL_NUMERIC_TYPE {
-            return self.format_unimplemented(node);
-        }
         let text = match NumericType(value_u8(node)) {
             NumericType::INT1 => "tinyint",
             NumericType::INT2 => "smallint",
@@ -1392,9 +1386,6 @@ impl<'a> Formatter<'a> {
     }
 
     fn format_character_type_base(&self, node: &'a Node) -> FmtReg {
-        if node.node_type() != NodeType::ENUM_SQL_CHARACTER_TYPE {
-            return self.format_unimplemented(node);
-        }
         let text = match CharacterType(value_u8(node)) {
             CharacterType::VARCHAR => "varchar",
             CharacterType::BLANK_PADDED_CHAR => "char",
@@ -1513,9 +1504,6 @@ impl<'a> Formatter<'a> {
     }
 
     fn format_order_direction(&self, node: &'a Node) -> FmtReg {
-        if node.node_type() != NodeType::ENUM_SQL_ORDER_DIRECTION {
-            return self.format_unimplemented(node);
-        }
         let text = match OrderDirection(value_u8(node)) {
             OrderDirection::ASCENDING => "asc",
             OrderDirection::DESCENDING => "desc",
@@ -1525,9 +1513,6 @@ impl<'a> Formatter<'a> {
     }
 
     fn format_order_null_rule(&self, node: &'a Node) -> FmtReg {
-        if node.node_type() != NodeType::ENUM_SQL_ORDER_NULL_RULE {
-            return self.format_unimplemented(node);
-        }
         let text = match OrderNullRule(value_u8(node)) {
             OrderNullRule::NULLS_FIRST => "nulls first",
             OrderNullRule::NULLS_LAST => "nulls last",
@@ -1537,9 +1522,6 @@ impl<'a> Formatter<'a> {
     }
 
     fn format_extract_target(&self, node: &'a Node) -> FmtReg {
-        if node.node_type() != NodeType::ENUM_SQL_EXTRACT_TARGET {
-            return self.format_unimplemented(node);
-        }
         let text = match ExtractTarget(value_u8(node)) {
             ExtractTarget::YEAR => "year",
             ExtractTarget::MONTH => "month",
@@ -1553,9 +1535,6 @@ impl<'a> Formatter<'a> {
     }
 
     fn format_trim_direction(&self, node: &'a Node) -> FmtReg {
-        if node.node_type() != NodeType::ENUM_SQL_TRIM_TARGET {
-            return self.format_unimplemented(node);
-        }
         let text = match TrimDirection(value_u8(node)) {
             TrimDirection::BOTH => "both",
             TrimDirection::LEADING => "leading",
@@ -1843,9 +1822,6 @@ impl<'a> Formatter<'a> {
     }
 
     fn format_table_constraint_type(&self, node: &'a Node) -> FmtReg {
-        if node.node_type() != NodeType::ENUM_SQL_TABLE_CONSTRAINT {
-            return self.format_unimplemented(node);
-        }
         let text = match TableConstraint(value_u8(node)) {
             TableConstraint::CHECK => "check",
             TableConstraint::UNIQUE => "unique",
@@ -1857,9 +1833,6 @@ impl<'a> Formatter<'a> {
     }
 
     fn format_key_match(&self, node: &'a Node) -> FmtReg {
-        if node.node_type() != NodeType::ENUM_SQL_KEY_MATCH {
-            return self.format_unimplemented(node);
-        }
         let text = match KeyMatch(value_u8(node)) {
             KeyMatch::FULL => "match full",
             KeyMatch::PARTIAL => "match partial",
@@ -1870,9 +1843,6 @@ impl<'a> Formatter<'a> {
     }
 
     fn format_key_action_command(&self, node: &'a Node) -> FmtReg {
-        if node.node_type() != NodeType::ENUM_SQL_KEY_ACTION_COMMAND {
-            return self.format_unimplemented(node);
-        }
         let text = match KeyActionCommand(value_u8(node)) {
             KeyActionCommand::NO_ACTION => "no action",
             KeyActionCommand::RESTRICT => "restrict",
@@ -1885,9 +1855,6 @@ impl<'a> Formatter<'a> {
     }
 
     fn format_key_action_trigger(&self, node: &'a Node) -> FmtReg {
-        if node.node_type() != NodeType::ENUM_SQL_KEY_ACTION_TRIGGER {
-            return self.format_unimplemented(node);
-        }
         let text = match KeyActionTrigger(value_u8(node)) {
             KeyActionTrigger::UPDATE => "on update",
             KeyActionTrigger::DELETE => "on delete",
@@ -1999,9 +1966,6 @@ impl<'a> Formatter<'a> {
     }
 
     fn format_column_constraint_type(&self, node: &'a Node) -> FmtReg {
-        if node.node_type() != NodeType::ENUM_SQL_COLUMN_CONSTRAINT {
-            return self.format_unimplemented(node);
-        }
         let text = match ColumnConstraint(value_u8(node)) {
             ColumnConstraint::NOT_NULL => "not null",
             ColumnConstraint::NULL_ => "null",
@@ -2106,9 +2070,6 @@ impl<'a> Formatter<'a> {
     }
 
     fn format_constraint_attribute(&self, node: &'a Node) -> FmtReg {
-        if node.node_type() != NodeType::ENUM_SQL_CONSTRAINT_ATTRIBUTE {
-            return self.format_unimplemented(node);
-        }
         let text = match ConstraintAttribute(value_u8(node)) {
             ConstraintAttribute::DEFERRABLE => "deferrable",
             ConstraintAttribute::NOT_DEFERRABLE => "not deferrable",
@@ -2983,9 +2944,6 @@ impl<'a> Formatter<'a> {
     }
 
     fn format_expression_operator_type(&self, node: &'a Node) -> FmtReg {
-        if node.node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR {
-            return self.format_unimplemented(node);
-        }
         let text = get_operator_text(ExpressionOperator(value_u8(node)));
         if text.is_empty() {
             return self.format_unimplemented(node);
