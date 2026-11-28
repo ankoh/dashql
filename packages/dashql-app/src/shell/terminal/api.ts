@@ -286,22 +286,18 @@ export class DashQLShell {
 
         try {
             let operation = start();
-            let queryStartedAt: number | null = null;
             // The milliseconds until the results of the queries arrived
             const resultTimings: number[] = [];
             while (operation.status === DashQLShellStatus.PENDING) {
                 const effect = this.requireEffect(operation);
-                if (effect.type === DashQLShellEffectType.EXECUTE_QUERY && this.settings.timer) {
-                    queryStartedAt = performance.now();
-                }
                 const completion = await this.runEffect(
                     effect,
                     executionAbort.signal,
                     onProgress,
                     onResult,
-                    queryStartedAt == null
-                        ? undefined
-                        : elapsedMs => { resultTimings.push(elapsedMs); },
+                    effect.type === DashQLShellEffectType.EXECUTE_QUERY && this.settings.timer
+                        ? elapsedMs => { resultTimings.push(elapsedMs); }
+                        : undefined,
                 );
                 if (this.shell == null) {
                     throw new DashQLShellError(DashQLShellStatus.STALE_EFFECT, 'DashQL shell was destroyed');
