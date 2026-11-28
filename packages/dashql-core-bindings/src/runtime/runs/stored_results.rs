@@ -17,13 +17,12 @@ use std::rc::Rc;
 
 use dashql_core_runtime::connections::label::is_hyper_wasm_connection;
 use dashql_core_runtime::executor::StoredFile;
-use dashql_core_runtime::host::{Host, LogLevel};
+use dashql_core_runtime::host::{Host, LocalFuture, LogLevel};
 use dashql_core_runtime::workbook::{ScriptStoredResult, WorkbookAction, WorkbookScript};
 use dashql_core_runtime::workbook_run::{start_run, PlanRun, RunOptions};
 
 use super::view::WorkbookRunKind;
 use super::{HeldRun, Runs};
-use crate::runtime::queries::LocalFuture;
 use crate::runtime::results;
 
 /// What the runtime looks up of the stored results of the workbooks

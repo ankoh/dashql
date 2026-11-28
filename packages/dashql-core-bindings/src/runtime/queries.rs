@@ -40,7 +40,7 @@ use dashql_core_runtime::executor::{
 };
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
-use dashql_core_runtime::host::{Host, HostError, LogLevel, OnHost};
+use dashql_core_runtime::host::{Host, HostError, LocalFuture, LogLevel, OnHost};
 use dashql_core_runtime::http::{Body, CancellationToken, Headers, HttpHost, HttpRequest, HttpResponse};
 use dashql_core_runtime::query::{
     QueryError, QueryExecutionAction, QueryExecutionProgress, QueryExecutionState, QueryMetadata, QueryResultTable,
@@ -1290,9 +1290,6 @@ impl Connections {
         }
     }
 }
-
-/// A future of the runtime
-pub(crate) type LocalFuture<T> = Pin<Box<dyn Future<Output = T>>>;
 
 /// A statement of a run of a workbook
 pub(crate) struct Statement {

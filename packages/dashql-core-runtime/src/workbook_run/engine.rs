@@ -7,9 +7,7 @@
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet};
 use std::future::Future;
-use std::pin::Pin;
 use std::rc::Rc;
-use std::task::{Context, Poll};
 
 use dashql_buffers::execution::ExecutionGraphT;
 
@@ -24,7 +22,7 @@ use super::{
 };
 use crate::executor::{QueryId, StoredFile};
 use crate::host::signal::{oneshot, Sender};
-use crate::host::LogLevel;
+use crate::host::{join_all, HostError, LocalFuture, LogLevel};
 use crate::perf_marks;
 use crate::planner::runs_on_request;
 use crate::workbook::{RunPlanRequest, ScriptKey, ScriptVisualization, SessionHandle, Workbook, WorkbookAction};
@@ -310,42 +308,6 @@ fn unique_mount_prefix(now: f64) -> String {
     format!("/mnt/external/dashql-run-{}-{next}", now as u64)
 }
 
-/// Waits for every future of a list
-struct JoinAll<T> {
-    futures: Vec<Option<Pin<Box<dyn Future<Output = T>>>>>,
-    results: Vec<Option<T>>,
-}
-
-impl<T: Unpin> Future for JoinAll<T> {
-    type Output = Vec<T>;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Vec<T>> {
-        let this = self.get_mut();
-        let mut pending = false;
-        for (future, result) in this.futures.iter_mut().zip(this.results.iter_mut()) {
-            if let Some(f) = future {
-                match f.as_mut().poll(cx) {
-                    Poll::Ready(value) => {
-                        *result = Some(value);
-                        *future = None;
-                    }
-                    Poll::Pending => pending = true,
-                }
-            }
-        }
-        if pending {
-            Poll::Pending
-        } else {
-            Poll::Ready(this.results.iter_mut().filter_map(Option::take).collect())
-        }
-    }
-}
-
-fn join_all<T>(futures: Vec<Pin<Box<dyn Future<Output = T>>>>) -> JoinAll<T> {
-    let results = futures.iter().map(|_| None).collect();
-    JoinAll { futures: futures.into_iter().map(Some).collect(), results }
-}
-
 impl<H: RunHost> Run<H> {
     fn log(&self, level: LogLevel, message: &str, details: Details) {
         let details: Vec<(&str, &str)> = details.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
@@ -618,7 +580,7 @@ impl<H: RunHost> Run<H> {
     /// (`stands_in`) takes the key of its stored file, whatever key the script has now, the lookup of the stored
     /// results derives the keys of the scripts of connections that can't run the same way (`stored_result_keys`). The
     /// file stays retained until the run released its files. A refresh reuses nothing and keeps the key.
-    fn key_of(self: &Rc<Self>) -> impl Fn(u32, String) -> Pin<Box<dyn Future<Output = Option<String>>>> {
+    fn key_of(self: &Rc<Self>) -> impl Fn(u32, String) -> LocalFuture<Option<String>> {
         let run = self.clone();
         move |script, key| {
             let run = run.clone();
@@ -1145,9 +1107,10 @@ impl<H: RunHost> Run<H> {
                 let connecting = needed.clone();
                 self.emit(|state| state.step = Some(RunStep::Connecting { connections: connecting }));
             }
-            type Setup = Pin<Box<dyn Future<Output = Result<(), crate::host::HostError>>>>;
-            let setups: Vec<Setup> =
-                needed.iter().map(|connection| Box::pin(host.prepare_connection(connection)) as Setup).collect();
+            let setups: Vec<LocalFuture<Result<(), HostError>>> = needed
+                .iter()
+                .map(|connection| Box::pin(host.prepare_connection(connection)) as LocalFuture<_>)
+                .collect();
             let results = join_all(setups).await;
             for (connection, result) in needed.iter().zip(results) {
                 if let Err(error) = result {

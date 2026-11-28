@@ -5,10 +5,8 @@ use std::future::{poll_fn, Future};
 use std::pin::Pin;
 use std::task::{Context, Poll, Waker};
 
+use crate::host::LocalFuture;
 use crate::http::CancellationToken;
-
-/// A future of the task
-pub(crate) type LocalFuture<T> = Pin<Box<dyn Future<Output = T>>>;
 
 /// Futures by key, e.g. the requests and timers of a query
 pub(crate) struct TaskSet<K, T> {

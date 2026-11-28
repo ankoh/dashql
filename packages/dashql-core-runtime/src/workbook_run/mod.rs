@@ -19,10 +19,9 @@ pub mod report;
 pub mod result_key;
 
 use std::future::Future;
-use std::pin::Pin;
 
 use crate::executor::{HostValue, QueryId, StoredFile};
-use crate::host::{Host, HostError};
+use crate::host::{Host, HostError, LocalFuture};
 use crate::workbook::{ScriptKey, WorkbookEffect};
 pub use engine::{start_run, RunHandle};
 pub use plan::{PlanRun, PlannedStatement};
@@ -30,9 +29,6 @@ pub use result_key::ResultKey;
 
 /// The target of the log messages of the runs
 pub const LOG_TARGET: &str = "workbook_execution";
-
-/// A future of the host
-pub type LocalFuture<T> = Pin<Box<dyn Future<Output = T>>>;
 
 /// How a statement uses the stored result of its script
 #[derive(Clone, Debug, PartialEq)]
