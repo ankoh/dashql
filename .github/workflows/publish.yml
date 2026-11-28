@@ -200,10 +200,6 @@ jobs:
             name: cloudflare-pages
             url: ${{ steps.deployment.outputs.deployment-url }}
         steps:
-            - uses: actions/checkout@v7
-              with:
-                  ref: ${{ inputs.commit || github.sha }}
-
             - uses: actions/download-artifact@v8
               with:
                   name: dashql_app_pages
@@ -232,10 +228,6 @@ jobs:
             name: cloudflare-pages-stable
             url: ${{ steps.deployment.outputs.deployment-url }}
         steps:
-            - uses: actions/checkout@v7
-              with:
-                  ref: ${{ inputs.commit || github.sha }}
-
             - uses: actions/download-artifact@v8
               with:
                   name: dashql_app_pages
@@ -264,10 +256,6 @@ jobs:
             name: cloudflare-pages-dev
             url: ${{ steps.deployment.outputs.deployment-url }}
         steps:
-            - uses: actions/checkout@v7
-              with:
-                  ref: ${{ inputs.commit || github.sha }}
-
             - uses: actions/download-artifact@v8
               with:
                   name: dashql_app_pages
@@ -297,10 +285,6 @@ jobs:
             name: cloudflare-pages-org
             url: ${{ steps.deployment.outputs.deployment-url }}
         steps:
-            - uses: actions/checkout@v7
-              with:
-                  ref: ${{ inputs.commit || github.sha }}
-
             - uses: actions/download-artifact@v8
               with:
                   name: dashql_org_pages
@@ -332,10 +316,6 @@ jobs:
             name: cloudflare-pages-coverage
             url: ${{ steps.deployment.outputs.deployment-url }}
         steps:
-            - uses: actions/checkout@v7
-              with:
-                  ref: ${{ inputs.commit || github.sha }}
-
             - uses: actions/download-artifact@v8
               with:
                   name: coverage_site

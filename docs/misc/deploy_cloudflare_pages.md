@@ -14,8 +14,9 @@ artifact. Cloudflare does not clone or build the repository.
    - `PAGES_DASHQL_API_TOKEN`: the Pages API token.
 
    The deploy jobs of `publish.yml` run in the GitHub environments `cloudflare-pages` (the app),
-   `cloudflare-pages-stable` (stable.dashql.app), `cloudflare-pages-dev` (dev.dashql.app) and
-   `cloudflare-pages-org` (dashql.org). Add the secrets to the repository, or scope them to all four environments.
+   `cloudflare-pages-stable` (stable.dashql.app), `cloudflare-pages-dev` (dev.dashql.app),
+   `cloudflare-pages-org` (dashql.org) and `cloudflare-pages-coverage` (coverage.dashql.app). Add the secrets to the
+   repository, or scope them to all five environments.
 4. Run the main-branch workflow once. The publish job downloads the `dashql_app_pages` artifact
    produced by Bazel and uploads it with `wrangler pages deploy`.
 5. In the Pages project's **Custom domains** settings, add both `dashql.app` and `hyperdb.sh`.
