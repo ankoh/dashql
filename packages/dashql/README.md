@@ -115,7 +115,7 @@ TypeScript, see `docs/design/dashql_runtime.md`. Only the package on npm is buil
 - `bazel test //packages/dashql:node_smoke_test` checks the bindings and a runtime of the assembled package in Node.
 - `bazel test //packages/dashql:tarball_consumer_test` validates the actual archive as an external consumer.
 - `bazel test //packages/dashql:test_core_node` runs the colocated tests of the bindings in Node.
-- `bazel test //packages/dashql/test/browser:all` runs source and packaged-consumer tests in Chromium and Firefox.
+- `bazel test //packages/dashql/test/browser:all` runs source and packaged-consumer tests in Chromium, Firefox and WebKit.
 
 The real browser-worker integration test requires a browser and is skipped in
 Node; worker transport tests run in both environments.

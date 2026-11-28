@@ -1,12 +1,13 @@
 # Browser Tests of the Bindings
 
-The harness runs the TypeScript tests of the bindings (`src/core`) in real Chromium and Firefox without the app bundle,
+The harness runs the TypeScript tests of the bindings (`src/core`) in real Chromium, Firefox and WebKit without the app bundle,
 React, or HyperDB. Mocha provides scoped hooks and test execution; `vitest_compat.ts` exposes the existing Jest-style
 matchers and spies.
 
 ```sh
 bazel test //packages/dashql/test/browser:test_chromium
 bazel test //packages/dashql/test/browser:test_firefox
+bazel test //packages/dashql/test/browser:test_webkit
 bazel test //packages/dashql/test/browser:test_chromium --test_arg=src/core/api.test.ts
 bazel test //packages/dashql/test/browser:test_chromium --test_arg=package_consumer.test.ts
 ```
@@ -30,10 +31,11 @@ and real worker `processBatch` results.
 
 Each file runs serially with fresh Mocha hooks. The test entry point compiles Wasm once, overrides `DashQL.create` only
 in the test page to share one runtime, and resets that runtime between files. The production factory reads no test
-globals. `DASHQL_PRECOMPILED` remains available for fixtures not yet migrated to explicit test-only loading. Hook
+globals. `DASHQL_PRECOMPILED` holds the bytes of the Wasm that the tests pass to `DashQL.create`. Hook
 failures, import failures, empty suites, and browser console errors all fail the Bazel test.
 
 The Playwright driver reads `__DASHQL_BROWSER_TESTS__`, matching the app driver's summary protocol. Browser executables
 come from the same Bazel-managed Playwright repositories as the app harness.
 
-The app's separate `src/tests/core_pool.ts` keeps its existing cross-frame sharing in test-only code.
+The browser tests of the app share one module between their frames with the test-only `src/tests/core_pool.ts` of the
+app.

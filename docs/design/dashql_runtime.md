@@ -571,7 +571,7 @@ Its dependencies are `flatbuffers`, `apache-arrow`, `@bufbuild/protobuf`, `immut
 `hyperdb-wasm` and `vega-lite` are optional peers. `:tarball_consumer_test` installs the archive like a consumer and
 checks its files, the exports of the bindings in Node and their declarations for `NodeNext`; `:node_smoke_test` runs the
 bindings and a runtime over the platform of Node from `dist/`; `//packages/dashql/test/browser` runs the bindings of the
-archive in Chromium and Firefox.
+archive in Chromium, Firefox and WebKit.
 
 `//packages/dashql-react:npm_tarball` (`dashql-react.tgz`) is `@akohn/dashql-react` on npm, for hosts outside of this
 repository; in the workspace it stays a source package. Its `npm/build.mjs` compiles the modules of `src/` without the
