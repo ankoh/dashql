@@ -1,4 +1,4 @@
-# Rust Coverage under Bazel 8/9
+# Rust Coverage
 
 The coverage workflow (`.github/workflows/coverage.yml`) covers the Rust core and the Rust tools: it runs
 `bazel coverage` over the core crates (`//packages/dashql-core/...` and its `-runtime`, `-storage`, `-shell` and
@@ -18,28 +18,27 @@ latest push to main.
 
 A test that runs a binary in a subprocess reports nothing either.
 
-## Rust tests reported no coverage
+## Rust tests need GENERATE_LLVM_LCOV
 
-Under Bazel 9 every `rust_test` produced an empty `coverage.dat`, and the per-test LCOV merger logged
-`There was no coverage found.` `collect_coverage.sh` runs the collector of the test rule
-(`CC_CODE_COVERAGE_SCRIPT`, the `collect_coverage` binary of `rules_rust`) only if `GENERATE_LLVM_LCOV` is set.
-`--experimental_generate_llvm_lcov` does not set it for every test anymore: `cc_test` of `rules_cc` puts it into
-its own test environment, `rust_test` does not. `.bazelrc` sets it for all tests under `coverage`:
+`collect_coverage.sh` runs the collector of the test rule (`CC_CODE_COVERAGE_SCRIPT`, the `collect_coverage` binary
+of `rules_rust`) only if `GENERATE_LLVM_LCOV` is set. `cc_test` of `rules_cc` puts it into its own test environment,
+`rust_test` does not, so `.bazelrc` sets it for all tests under `coverage`; without it every `rust_test` writes an
+empty `coverage.dat` and the LCOV merger logs `There was no coverage found.`
 
 ```starlark
 coverage --test_env=GENERATE_LLVM_LCOV=1
 ```
 
-## Sources of dashql-parser were dropped
+## Sources of dashql-parser
 
 `dashql-parser` has generated sources (`src/tables.rs`, `src/keywords/table.rs`). `rules_rust` then copies all
 sources of the crate into `bazel-out/<config>/bin`, and llvm-cov reports them as
 `bazel-out/<config>/bin/packages/dashql-parser/src/...`. The LCOV merger keeps only files listed in the
-instrumented files manifest, which names them at their source paths, so the whole parser vanished from the
+instrumented files manifest, which names them at their source paths, so it would drop the whole parser from the
 report.
 
 **`bazel/patches/rules_rust_coverage_source_paths.patch`** makes `collect_coverage.rs` strip the
-`bazel-out/<config>/bin/` prefix from the `SF:` records. The checked-in sources now match the manifest; the
+`bazel-out/<config>/bin/` prefix from the `SF:` records. The checked-in sources then match the manifest; the
 generated ones are not in it and stay excluded.
 
 `MODULE.bazel` applies it with a `single_version_override` of `rules_rust`, and `bazel/patches/BUILD.bazel`
