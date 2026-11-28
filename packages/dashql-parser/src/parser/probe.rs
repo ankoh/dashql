@@ -167,45 +167,39 @@ fn drive<P: Policy>(policy: &mut P, states: &mut Vec<StateId>, tokens: &mut Toke
                             next
                         }
                     };
-                    if kind == S_YYerror {
-                        // The scanner already reported the error, recover directly
-                        lookahead = Some(S_YYUNDEF);
-                        Label::ErrLab1
-                    } else {
-                        let mut establish = |states: &[StateId]| {
-                            if !lac_established {
-                                lac_established = true;
-                                return lac_check(states, kind, &mut scratch);
+                    let mut establish = |states: &[StateId]| {
+                        if !lac_established {
+                            lac_established = true;
+                            return lac_check(states, kind, &mut scratch);
+                        }
+                        true
+                    };
+                    match table_action(state, kind) {
+                        None => {
+                            if establish(states) {
+                                Label::Default
+                            } else {
+                                Label::ErrLab
                             }
-                            true
-                        };
-                        match table_action(state, kind) {
-                            None => {
-                                if establish(states) {
-                                    Label::Default
-                                } else {
-                                    Label::ErrLab
-                                }
+                        }
+                        Some(Action::Error) => Label::ErrLab,
+                        Some(Action::Reduce(rule)) => {
+                            if establish(states) {
+                                Label::Reduce(rule)
+                            } else {
+                                Label::ErrLab
                             }
-                            Some(Action::Error) => Label::ErrLab,
-                            Some(Action::Reduce(rule)) => {
-                                if establish(states) {
-                                    Label::Reduce(rule)
-                                } else {
-                                    Label::ErrLab
-                                }
+                        }
+                        Some(Action::Shift(next)) => {
+                            if errstatus > 0 {
+                                errstatus -= 1;
                             }
-                            Some(Action::Shift(next)) => {
-                                if errstatus > 0 {
-                                    errstatus -= 1;
-                                }
-                                states.push(next);
-                                lookahead = None;
-                                lac_established = false;
-                                reductions_without_shift = 0;
-                                policy.on_shifted(kind);
-                                Label::NewState
-                            }
+                            states.push(next);
+                            lookahead = None;
+                            lac_established = false;
+                            reductions_without_shift = 0;
+                            policy.on_shifted(kind);
+                            Label::NewState
                         }
                     }
                 }

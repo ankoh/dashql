@@ -3,7 +3,7 @@
 //! Every value is `Copy`: node lists and n-ary expressions live in arenas of the parse context and are referenced by id.
 
 use crate::names::NameId;
-use dashql_buffers::parser::{AttributeKey, JoinType, Node, NumericType};
+use dashql_buffers::parser::{JoinType, Node, NumericType};
 
 /// The text of a keyword token
 pub type Str = &'static str;
@@ -39,7 +39,6 @@ pub enum Value {
     Empty,
     Node(Node),
     List(NodeList),
-    Key(AttributeKey),
     Expr(ExprVariant),
     Bool(bool),
     Join(JoinType),
@@ -60,7 +59,6 @@ macro_rules! value_from {
 
 value_from!(Node, Node);
 value_from!(NodeList, List);
-value_from!(AttributeKey, Key);
 value_from!(ExprVariant, Expr);
 value_from!(bool, Bool);
 value_from!(JoinType, Join);
@@ -121,7 +119,6 @@ macro_rules! from_value {
     };
 }
 
-from_value!(AttributeKey, Key);
 from_value!(bool, Bool);
 from_value!(JoinType, Join);
 from_value!(NumericType, Numeric);
