@@ -7,7 +7,7 @@ import type { HttpClient, HttpFetchResult } from '@akohn/dashql/platform/http_cl
 import { PlatformType } from '../host/platform_type.js';
 import { AppOAuthFlow } from '../oauth/app_oauth_flow.js';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import { createRuntime } from '@akohn/dashql/runtime/runtime';
+import { createRuntime } from '@akohn/dashql/runtime';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { TASK_UPDATE_SCHEDULER } from '@akohn/dashql/runtime/store/update_scheduler';

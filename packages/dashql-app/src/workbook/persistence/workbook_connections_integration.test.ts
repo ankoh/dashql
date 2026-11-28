@@ -10,7 +10,7 @@ import { makeFsMock, resetFsStore } from '@akohn/dashql/platform/testing/test_fs
 import type { ScriptData, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import type { StorageBackend } from '@akohn/dashql/platform/storage/storage_backend';
 import { createTestRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
 

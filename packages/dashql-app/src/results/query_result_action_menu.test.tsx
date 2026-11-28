@@ -7,7 +7,7 @@ import type { ConnectionParams } from '@akohn/dashql/platform/connections/connec
 import { LoggerProvider } from '../host/logger_provider.js';
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { scriptResultOwner } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { createTestConnection } from '@akohn/dashql/runtime/testing/connection_fixtures';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { StorageProvider } from '../storage/storage_provider.js';

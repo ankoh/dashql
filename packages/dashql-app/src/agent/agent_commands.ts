@@ -14,7 +14,7 @@ import type { ScriptData, WorkbookScripts } from '@akohn/dashql/platform/workboo
 import type { WorkbookResultFiles } from '@akohn/dashql/platform/workbook/workbook_result_files';
 import { stringifyError, type Logger } from '@akohn/dashql/platform/logger/logger';
 import { describeRunError, runScriptsOf, runWorkbookReported } from '@akohn/dashql/runtime/workbook_run_report';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 
 import { renderVegaLitePng } from '@akohn/dashql-react/vegalite/vegalite_image';
 import { arrowTableToRows, CHART_ROWS } from '@akohn/dashql-react/vegalite/vegalite_rows';

@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { useOwnedRuntime } from '../hooks.js';
 
 /// The runtime of a page (docs/design/dashql_runtime.md): created with the first render and destroyed with the

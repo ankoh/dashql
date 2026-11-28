@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useRuntime } from '@akohn/dashql-react/hooks';
 import { AppConfigProvider, useAppReconfigure, type AppConfig } from '../../config/app_config.js';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { addTestConnection, runTestQuery } from '../../tests/test_connections.js';
 import { type TestQueryExecutorFunctions, TestRuntime } from '../../tests/test_runtime.js';
 import { loadClientFunctionSpec } from '@akohn/dashql/platform/connections/clfn_specs';

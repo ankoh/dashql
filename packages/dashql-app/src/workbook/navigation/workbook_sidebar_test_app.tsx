@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { MemoryRouter, useLocation, type Location } from 'react-router-dom';
 
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import type { StorageBackend } from '@akohn/dashql/platform/storage/storage_backend';
 import { useRuntime, useWorkbook } from '@akohn/dashql-react/hooks';
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';

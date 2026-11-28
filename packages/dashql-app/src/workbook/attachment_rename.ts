@@ -1,4 +1,4 @@
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
 /// Renames the references to an attachment in a draft, by display names

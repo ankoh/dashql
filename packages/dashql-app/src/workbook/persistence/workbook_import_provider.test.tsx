@@ -19,7 +19,7 @@ import { fsStore, makeFsMock, resetFsStore } from '@akohn/dashql/platform/testin
 import { WorkbookImportProvider, importConflictOf, useWorkbookImport, type ConflictChoice, type WorkbookImportOptions } from './workbook_import_provider.js';
 import { memoryImportFolder } from './import_test_sources.js';
 import { ELECTRON_FILE_SYSTEM } from '@akohn/dashql/platform/electron_fs';
-import type { Runtime, ImportSource } from '@akohn/dashql/runtime/runtime';
+import type { Runtime, ImportSource } from '@akohn/dashql/runtime';
 import { QueryType } from '@akohn/dashql/platform/query/query_execution_state';
 import { useConnections, useRuntime, useWorkbooks } from '@akohn/dashql-react/hooks';
 import { addTestConnection, pendingTestChannel, runTestQuery } from '../../tests/test_connections.js';

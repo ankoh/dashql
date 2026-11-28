@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { createTestConnection } from '@akohn/dashql/runtime/testing/connection_fixtures';
 import { createTestRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
 

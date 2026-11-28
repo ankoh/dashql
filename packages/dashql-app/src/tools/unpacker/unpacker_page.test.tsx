@@ -3,7 +3,7 @@ import { act } from '@akohn/dashql-react/testing/react_act';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import * as core from '@akohn/dashql';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import type { HyperDB } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { exportArrowTableAsParquet } from '@akohn/dashql/platform/hyperdb/hyperdb_parquet_export';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';

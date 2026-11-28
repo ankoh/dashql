@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type * as core from '@akohn/dashql';
 
-import type { ImportSource } from '@akohn/dashql/runtime/runtime';
+import type { ImportSource } from '@akohn/dashql/runtime';
 import { StorageBackendType, type WorkbookData, type WorkbookEntry } from '@akohn/dashql/platform/storage/storage_backend';
 import { findWorkbookQueries, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { displayPath, locationFromEntry } from '@akohn/dashql/platform/storage/workbook_locator';

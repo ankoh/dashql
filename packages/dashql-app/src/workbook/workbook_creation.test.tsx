@@ -13,7 +13,7 @@ import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_s
 import { useEphemeralWorkbook, useWorkbookCreation, type WorkbookCreation } from './workbook_creation.js';
 import { setHyperLinkToken } from '../connections/hyper/hyper_link.js';
 import { TestRuntime } from '../tests/test_runtime.js';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { newConnectionFromParams } from '@akohn/dashql/platform/connections/connection_params';
 import { useRuntime, useWorkbooks } from '@akohn/dashql-react/hooks';
 

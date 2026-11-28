@@ -4,7 +4,7 @@ import * as dashql from '@akohn/dashql';
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { QueryResultActionMenu as QueryResultActionMenuView } from '@akohn/dashql-react/components/query_result/query_result_action_menu';
 import { useAppConfig } from '../config/app_config.js';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { scriptResultOwner, type ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';

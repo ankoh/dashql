@@ -99,7 +99,7 @@ module replaces the glue and the Wasm and reloads the page.
 ## Creating a runtime
 
 ```ts
-const runtime = createRuntime(options);   // RuntimeOptions, @akohn/dashql/runtime/runtime
+const runtime = createRuntime(options);   // RuntimeOptions, @akohn/dashql/runtime
 await runtime.restore();
 // ...
 await runtime.destroy();

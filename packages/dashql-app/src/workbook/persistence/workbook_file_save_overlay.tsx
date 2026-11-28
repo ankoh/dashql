@@ -15,7 +15,7 @@ import { IconButton } from '@akohn/dashql-react/components/button';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { useWorkbookResults } from '../../storage/workbook_results_provider.js';
 import { useDispatch, useOptionalRuntime, useConnectionViews } from '@akohn/dashql-react/hooks';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import type { ExportedResults } from '@akohn/dashql';
 import { stringifyError, type LoggerLike } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../../host/logger_provider.js';

@@ -6,7 +6,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { MemoryRouter, Route, Routes, useLocation, type InitialEntry, type Location } from 'react-router-dom';
 import * as core from '@akohn/dashql';
 
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { LoggerProvider } from '../host/logger_provider.js';

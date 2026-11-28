@@ -5,7 +5,7 @@ import { useRuntime } from '@akohn/dashql-react/hooks';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as core from '@akohn/dashql';
 
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { LoggerProvider } from '../../host/logger_provider.js';

@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { Store } from '../../utils/store.js';
 import type { ScriptRef } from '@akohn/dashql/platform/workbook/script_types';
 import type { ModifyWorkbookScripts, ScriptKey, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';

@@ -29,7 +29,7 @@ import { deleteScript, useScriptSelection } from '../scripts/script_selection.js
 import { getScriptRefs, type ModifyWorkbookScripts, type WorkbookDerived, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { createScriptAction } from '../scripts/script_creation.js';
 import { useOptionalRuntime, useRuntime, useViewReader, useViewSelector } from '@akohn/dashql-react/hooks';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { renameAttachment, type RenameDraftReferences } from '../attachment_rename.js';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import { insertMentionAtCursor, useLastFocusedEditor } from '../editor/editor_focus.js';

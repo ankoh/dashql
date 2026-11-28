@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type * as core from '@akohn/dashql';
 
-import { createRuntime, type ChannelConnector } from '@akohn/dashql/runtime/runtime';
+import { createRuntime, type ChannelConnector } from '@akohn/dashql/runtime';
 import { FRAME_UPDATE_SCHEDULER } from '@akohn/dashql/runtime/store/update_scheduler';
 import { RuntimeContextProvider, useOwnedRuntime } from '@akohn/dashql-react/hooks';
 

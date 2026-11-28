@@ -2,7 +2,7 @@ import * as React from 'react';
 import type * as arrow from 'apache-arrow';
 import type * as core from '@akohn/dashql';
 
-import type { Runtime, Settled } from '@akohn/dashql/runtime/runtime';
+import type { Runtime, Settled } from '@akohn/dashql/runtime';
 import type { StoreView } from '@akohn/dashql/runtime/store/runtime_store';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { EmbeddedClientContext, EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';

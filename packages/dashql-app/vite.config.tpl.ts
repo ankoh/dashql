@@ -355,6 +355,7 @@ export default vite.defineConfig(({ mode, command }) => {
             alias: [
                 { find: /^@akohn\/dashql$/, replacement: path.join(DASHQL_PATH, 'src/core/index.ts') },
                 { find: /^@akohn\/dashql\/buffers$/, replacement: path.join(DASHQL_PATH, 'src/core/buffers.ts') },
+                { find: /^@akohn\/dashql\/runtime$/, replacement: path.join(DASHQL_PATH, 'src/runtime/runtime.ts') },
                 { find: /^@akohn\/dashql\/browser-worker$/, replacement: path.join(DASHQL_PATH, 'src/core/browser_worker.ts') },
                 // The script of the core batch worker, for pages that start it from a blob: URL (the embed)
                 { find: /^@akohn\/dashql\/batch-worker(\?.*)?$/, replacement: path.join(DASHQL_PATH, 'src/core/batch_worker.ts') + '$1' },

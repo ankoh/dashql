@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type * as core from '@akohn/dashql';
 
-import { createRuntime, type QueryCommands, type Runtime } from '@akohn/dashql/runtime/runtime';
+import { createRuntime, type QueryCommands, type Runtime } from '@akohn/dashql/runtime';
 import { createRuntimeArchives } from '@akohn/dashql/runtime/workbook_archives';
 import type { HttpClient } from '@akohn/dashql/platform/http_client';
 import { FRAME_UPDATE_SCHEDULER } from '@akohn/dashql/runtime/store/update_scheduler';

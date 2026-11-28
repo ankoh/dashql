@@ -5,7 +5,7 @@ import type { ConnectionState, NewConnection } from '@akohn/dashql/platform/conn
 import { createAttachedConnectionParamsForConnector, newConnectionFromParams, newDefaultHyperWasmConnection, type ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { embeddedConnection, findEmbeddedConnection, newWorkbookConnection } from './embedded_connection.js';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { testRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;

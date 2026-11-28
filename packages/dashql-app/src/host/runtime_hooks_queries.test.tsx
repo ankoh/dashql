@@ -22,7 +22,7 @@ import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_tes
 import { StorageProvider } from '../storage/storage_provider.js';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { createTestConnection } from '@akohn/dashql/runtime/testing/connection_fixtures';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import type { QueryExecutionArgs, QueryExecutor, WatchQueryProfile } from '@akohn/dashql/platform/connections/query_execution_args';
 import { useComputeReady, useQuery, useQueryProfileDetail, useRuntime } from '@akohn/dashql-react/hooks';
 import { useQueryModel, type QueryModel } from '@akohn/dashql-react/models/query_model';

@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type * as dashql from '@akohn/dashql';
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { createTestConnection } from '@akohn/dashql/runtime/testing/connection_fixtures';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 

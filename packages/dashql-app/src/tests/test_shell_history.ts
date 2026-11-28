@@ -1,6 +1,6 @@
 import type * as core from '@akohn/dashql';
 
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { newDefaultHyperWasmConnection } from '@akohn/dashql/platform/connections/connection_params';
 import { testRuntime } from '@akohn/dashql/runtime/testing/test_runtime';

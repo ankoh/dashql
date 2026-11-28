@@ -22,7 +22,7 @@ import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_tes
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import * as core from '@akohn/dashql';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { useRuntime } from '@akohn/dashql-react/hooks';
 import { addTestConnection, setTestConnectionHealth } from '../tests/test_connections.js';
 

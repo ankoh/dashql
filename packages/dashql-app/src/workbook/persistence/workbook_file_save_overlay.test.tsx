@@ -21,7 +21,7 @@ import { EmbeddedDatabaseProvider } from '../../host/embedded_database_provider.
 import { DashQLCoreProvider } from '../../host/core_provider.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
 import * as core from '@akohn/dashql';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { useRuntime } from '@akohn/dashql-react/hooks';
 import { addTestConnections } from '../../tests/test_connections.js';
 import { analyzeWorkbook } from '@akohn/dashql/runtime/testing/test_runtime';

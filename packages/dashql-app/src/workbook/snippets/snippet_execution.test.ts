@@ -2,7 +2,7 @@ import * as dashql from '@akohn/dashql';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createRuntime } from '@akohn/dashql/runtime/runtime';
+import { createRuntime } from '@akohn/dashql/runtime';
 import { TASK_UPDATE_SCHEDULER } from '@akohn/dashql/runtime/store/update_scheduler';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';

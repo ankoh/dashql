@@ -10,7 +10,7 @@ import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_da
 import { LoggerProvider } from '../../host/logger_provider.js';
 import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionResponseStream } from '@akohn/dashql/platform/query/query_execution_state';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { useComputeReady, useConnections, useRuntime } from '@akohn/dashql-react/hooks';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';

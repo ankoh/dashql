@@ -1,4 +1,4 @@
-import type { ChannelConnector } from '@akohn/dashql/runtime/runtime';
+import type { ChannelConnector } from '@akohn/dashql/runtime';
 import { connectEmbeddedHyper } from '@akohn/dashql/platform/connections/embedded_database_channel';
 import type { EmbeddedDatabaseSetupFn } from '../../host/embedded_database_provider.js';
 

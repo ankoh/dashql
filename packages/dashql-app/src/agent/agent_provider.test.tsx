@@ -6,7 +6,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type Mock }
 import * as dashql from '@akohn/dashql';
 import { newDefaultHyperWasmConnection } from '@akohn/dashql/platform/connections/connection_params';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { testRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
 import { RuntimeContextProvider } from '@akohn/dashql-react/hooks';
 import { LoggerProvider } from '../host/logger_provider.js';

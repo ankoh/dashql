@@ -3,7 +3,7 @@ import * as core from '@akohn/dashql';
 import type * as connection from '@akohn/dashql-jsonschema/connection.js';
 
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import { createRuntime } from '@akohn/dashql/runtime/runtime';
+import { createRuntime } from '@akohn/dashql/runtime';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { CONNECTOR_INFOS } from '@akohn/dashql/platform/connections/connector_info';

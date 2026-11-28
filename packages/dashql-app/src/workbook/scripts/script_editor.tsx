@@ -8,7 +8,7 @@ import { CodeMirror, createCodeMirrorExtensions } from '../editor/codemirror.js'
 import { DashQLProcessorPlugin, DashQLUpdateEffect, type DashQLParameterClick } from '../editor/dashql_processor.js';
 import { DashQLProcessorUpdateOut } from '../editor/completion/dashql_completion_state.js';
 import { isCloudPreview, type ModifyWorkbookScripts, type ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { useIsScriptSelected } from './script_selection.js';
 import { useAgentHasControl } from '../../agent/agent_provider.js';
 import { AppConfig, useAppConfig } from '../../config/app_config.js';

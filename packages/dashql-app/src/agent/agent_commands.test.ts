@@ -3,7 +3,7 @@ import * as dashql from '@akohn/dashql';
 
 import { newDefaultHyperWasmConnection } from '@akohn/dashql/platform/connections/connection_params';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { testRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
 
 import { describeAgentCall, EXIT_FAILED, EXIT_OK, EXIT_USAGE, runAgentCommand, type AgentCall, type AgentCommandHost } from './agent_commands.js';

@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import * as core from '@akohn/dashql';
 
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 

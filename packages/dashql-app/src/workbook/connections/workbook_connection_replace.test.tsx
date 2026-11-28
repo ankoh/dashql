@@ -7,7 +7,7 @@ import { EmbeddedDatabaseProvider } from '../../host/embedded_database_provider.
 import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
 import { LoggerProvider } from '../../host/logger_provider.js';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { useComputeReady, useConnections, useRuntime, useWorkbooks } from '@akohn/dashql-react/hooks';
 
 import { WorkbookTestBackend, testWorkbook } from '@akohn/dashql/platform/testing/workbook_test_backend';

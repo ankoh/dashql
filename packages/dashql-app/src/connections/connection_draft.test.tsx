@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { beforeAll, describe, expect, it } from 'vitest';
 import * as core from '@akohn/dashql';
 import { testRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { useConnection, useDispatch, useRuntime } from '@akohn/dashql-react/hooks';
 import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { useConnectionDraftForm } from './connection_draft.js';

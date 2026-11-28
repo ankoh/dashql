@@ -99,7 +99,6 @@
     "./platform/workbook/workbook_zip": "./src/platform/workbook/workbook_zip.ts",
     "./runtime/embedded_channels": "./src/runtime/embedded_channels.ts",
     "./runtime/embedded_session": "./src/runtime/embedded_session.ts",
-    "./runtime/runtime": "./src/runtime/runtime.ts",
     "./runtime/runtime_storage": "./src/runtime/runtime_storage.ts",
     "./runtime/store/runtime_store": "./src/runtime/store/runtime_store.ts",
     "./runtime/store/update_scheduler": "./src/runtime/store/update_scheduler.ts",

@@ -15,7 +15,7 @@ import { OPFSDirectoryMock } from '@akohn/dashql/platform/testing/opfs_mock';
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { TestRuntime } from '../tests/test_runtime.js';
 import * as core from '@akohn/dashql';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { useRuntime } from '@akohn/dashql-react/hooks';
 import { addTestConnection, pendingTestChannel, runTestQuery } from '../tests/test_connections.js';
 

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as core from '@akohn/dashql';
 
-import type { QueryCommands } from '@akohn/dashql/runtime/runtime';
+import type { QueryCommands } from '@akohn/dashql/runtime';
 
 import { RuntimeProvider } from '../host/runtime_provider.js';
 

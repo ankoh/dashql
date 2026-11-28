@@ -32,7 +32,7 @@ import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_clien
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { quoteLiteral } from '@akohn/dashql/platform/utils/sql_quote';
 import * as core from '@akohn/dashql';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { useRuntime } from '@akohn/dashql-react/hooks';
 import { addTestConnection } from '../tests/test_connections.js';
 

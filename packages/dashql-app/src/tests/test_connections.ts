@@ -1,5 +1,5 @@
 import type * as core from '@akohn/dashql';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { createTestConnection, setupTestConnection } from '@akohn/dashql/runtime/testing/connection_fixtures';

@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import type { HyperDatabaseChannel } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';

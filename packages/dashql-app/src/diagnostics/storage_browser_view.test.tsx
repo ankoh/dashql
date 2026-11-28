@@ -2,7 +2,7 @@ import * as React from 'react';
 import { act } from '@akohn/dashql-react/testing/react_act';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as core from '@akohn/dashql';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { RuntimeContextProvider } from '@akohn/dashql-react/hooks';
 
 import { StorageBrowserView } from './storage_browser_view.js';

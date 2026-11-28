@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type * as arrow from 'apache-arrow';
 
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { RuntimeContextProvider, useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import type { QueryModel } from '@akohn/dashql-react/models/query_model';

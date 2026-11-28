@@ -16,7 +16,7 @@ import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { LoggerProvider } from '../host/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { Runtime } from '@akohn/dashql/runtime';
 import { useConnections, useRuntime } from '@akohn/dashql-react/hooks';
 
 const CONNECTION_ID = 'trino-settings-test';

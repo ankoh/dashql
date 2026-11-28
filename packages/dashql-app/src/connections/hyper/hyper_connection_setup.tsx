@@ -1,7 +1,7 @@
 import type * as core from '@akohn/dashql';
 import * as connection from '@akohn/dashql-jsonschema/connection.js';
 
-import type { ChannelConnector } from '@akohn/dashql/runtime/runtime';
+import type { ChannelConnector } from '@akohn/dashql/runtime';
 import { HyperDatabaseClient } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';
 import { connectEmbeddedChannel } from '@akohn/dashql/runtime/embedded_channels';
 import { connectionClientContext } from '@akohn/dashql/platform/connections/hyper/hyper_client_context';

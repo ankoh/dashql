@@ -58,7 +58,7 @@ import { openPageStorage } from '@akohn/dashql/platform/storage/page_storage';
 import { createWorkbookResultFiles } from '@akohn/dashql/platform/workbook/workbook_result_files';
 import { WebHttpClient } from '@akohn/dashql/platform/web_http_client';
 import { createEmbeddedChannelConnector } from '@akohn/dashql/runtime/embedded_channels';
-import { createRuntime } from '@akohn/dashql/runtime/runtime';
+import { createRuntime } from '@akohn/dashql/runtime';
 import { FRAME_UPDATE_SCHEDULER } from '@akohn/dashql/runtime/store/update_scheduler';
 import { createRuntimeArchives } from '@akohn/dashql/runtime/workbook_archives';
 import { RuntimeContextProvider } from '@akohn/dashql-react/hooks';
