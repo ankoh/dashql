@@ -21,7 +21,7 @@ use dashql_core_storage::restore::{
 use dashql_core_storage::storage::{
     ConnectionsUpdate, Expect, FileStamp, FolderListing, NamedStamp, StorageHost, StorageWriter,
 };
-use dashql_core_storage::workbook_format::bundle::{DataFileData, ScriptData, WorkbookBundle};
+use dashql_core_storage::workbook_format::bundle::{DataFileData, ScriptData, WorkbookBundle, WorkbookBundleCatalog};
 use dashql_core_storage::workbook_format::data::{WorkbookData, WORKBOOK_FORMAT_VERSION};
 use dashql_core_storage::workbook_format::restore::RestoreConnection;
 use dashql_core_storage::workbook_format::validation::WorkbookValidationError;
@@ -240,7 +240,12 @@ impl RestoreHost for FakeHost {
     }
 
     async fn load_connection_file(&self, connection_id: &str, file_name: &str) -> Result<Option<String>, HostError> {
-        Ok(self.store.borrow().connection_files.get(&format!("{connection_id}/{file_name}")).cloned())
+        // Like the storage of the platform, a storage without connections has no files of them
+        let store = self.store.borrow();
+        if !store.owns_connections {
+            return Ok(None);
+        }
+        Ok(store.connection_files.get(&format!("{connection_id}/{file_name}")).cloned())
     }
 
     async fn stamp_folder(&self, workbook_id: &str) -> Result<Option<FolderListing>, HostError> {
@@ -471,6 +476,33 @@ fn restores_a_bundle_into_memory_without_reading_storage() {
         vec![("orders.parquet", 5)]
     );
     assert!(fixture.host.store.borrow().reads.is_empty());
+    assert!(fixture.host.store.borrow().calls.is_empty());
+}
+
+#[test]
+fn restores_the_catalogs_of_a_bundle_into_memory() {
+    // A runtime without storage opens an archive with catalogs: the connections start with them before they connect
+    let fixture = Fixture::new();
+    let copies = json!([{ "connectionId": REMOTE, "params": hyper_http() }]);
+    let scripts = json!([{ "name": "1.sql", "connectionId": REMOTE }]);
+    let bundle = WorkbookBundle {
+        workbook: WorkbookData::from_json(&workbook(WORKBOOK, copies, scripts)),
+        catalogs: vec![WorkbookBundleCatalog {
+            connection_id: REMOTE.to_string(),
+            relations: Some("CREATE TABLE db.public.seeded(id integer);".to_string()),
+            functions: None,
+        }],
+        scripts: vec![ScriptData::new("1.sql", "SELECT 1")],
+        data: Vec::new(),
+        results: Vec::new(),
+    };
+    let host = BundleHost { host: fixture.host.clone(), bundle };
+    let options = RestoreOptions { offset_unit: EditorOffsetUnit::UTF16_CODE_UNITS, new_uuid: Box::new(|| None) };
+    let restore: AppRestore<BundleHost<FakeHost, Vec<u8>>, FakeHost> = AppRestore::in_memory(host, options);
+    let restored = fixture.run(restore.restore_workbook(WORKBOOK)).unwrap();
+    let remote = connection(&restored, REMOTE);
+    assert_eq!(relation_tables(remote), 1);
+    assert!(remote.catalog_updates().described);
     assert!(fixture.host.store.borrow().calls.is_empty());
 }
 

@@ -471,13 +471,11 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         self.progress.connections.succeeded += 1;
 
         // Restore the catalogs of the connections that the workbook registered, the connections of the app manifest
-        // restored theirs already
+        // restored theirs already. A storage without connections has no catalog files, a bundle has those it carries.
         self.log(LogLevel::Info, "Restoring catalog", &[("workbookId", workbook_id)]);
-        if self.host.owns_connections() {
-            for connection_id in restore.catalogs_to_restore.clone() {
-                let context = [("workbookId", workbook_id), ("connectionId", connection_id.as_str())];
-                self.restore_catalog(&connection_id, &context).await;
-            }
+        for connection_id in restore.catalogs_to_restore.clone() {
+            let context = [("workbookId", workbook_id), ("connectionId", connection_id.as_str())];
+            self.restore_catalog(&connection_id, &context).await;
         }
 
         // Restore the scripts
