@@ -41,7 +41,7 @@ with `RenderScheduleContext`.
 A rule about SQL that a component would need goes into the core and reaches the component through its container, e.g.
 the projection of the columns of a result (`rewriteResultProjection` of a script session). A component shared there
 reaches neither the hooks nor the runtime of `@akohn/dashql`, a model only by type
-(`//packages/dashql-react:boundary_test`). Their tests sit next to them (`button.test.tsx`) with the helpers of
+(`//packages/dashql-react:boundary_test`). Their tests sit next to them (`data_table/data_table_focus.test.tsx`) with the helpers of
 `src/testing` (`react_act`, `ResizeObserverMock`, `fake_models`, `computation_mocks`); the browser tests of the app run
 them as `dashql-react/src/<path>` (`//packages/dashql-react:browser_test_files`, `//packages/dashql-app:test_chromium`).
 A component doesn't talk to the runtime: it knows no view kinds, slices, targets, actions, commands or handles, and it
