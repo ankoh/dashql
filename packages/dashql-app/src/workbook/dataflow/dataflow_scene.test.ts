@@ -207,7 +207,7 @@ describe('dataflow scene', () => {
         const type = { kind: core.buffers.analyzer.SqlTypeKind.INT4, sql: 'integer', arrayDimensions: 0, withTimeZone: false, cast: true, known: true };
         const graph: DataflowGraph = {
             ...GRAPH,
-            inputs: [{ name: 'min', type, value: '10' }],
+            inputs: [{ name: 'min', type }],
             edges: [
                 ...GRAPH.edges,
                 { key: 'i', from: { scriptKey: -1, statementId: 0 }, to: { scriptKey: 2, statementId: 0 }, kind: DataflowEdgeKind.Input, name: 'min', input: 'min' },

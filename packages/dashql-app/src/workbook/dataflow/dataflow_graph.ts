@@ -46,8 +46,6 @@ export interface DataflowScript {
 export interface DataflowInput {
     name: string;
     type: WorkbookInputType;
-    /// The value of the workbook, null if no script has an `@param` tag of the input
-    value: string | null;
 }
 
 /// The script key of the source port of an input edge, the input of the edge names its source
@@ -162,7 +160,6 @@ function computeDataflowGraph(derived: WorkbookDerived, scriptMap: ScriptDataMap
     const inputs: DataflowInput[] = dataflow.inputs.map(input => ({
         name: String(input.name ?? ''),
         type: readWorkbookInputType(input.sqlType, input.typeSource),
-        value: input.hasValue ? String(input.value ?? '') : null,
     }));
     const edges: DataflowEdge[] = dataflow.edges.flatMap(edge => {
         // The canvas draws no attachments yet
