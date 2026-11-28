@@ -8,7 +8,7 @@ import * as core from '@akohn/dashql';
 import { useHyperLinks } from './hyper_links.js';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 
-import { getHyperLinkTabState } from '../connections/hyper/hyper_link_tab.js';
+import { getHyperLinkTabState } from '../connections/hyper/hyper_link.js';
 import { PlatformEventListenerProvider, usePlatformEventListener } from '../host/events/event_listener_provider.js';
 import type { PlatformEventListener } from '../host/events/event_listener.js';
 import { LoggerProvider } from '../host/logger_provider.js';

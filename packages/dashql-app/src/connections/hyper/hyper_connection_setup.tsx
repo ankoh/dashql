@@ -6,7 +6,7 @@ import { HyperDatabaseClient } from '@akohn/dashql/platform/connections/hyper/hy
 import { connectEmbeddedChannel } from '@akohn/dashql/runtime/embedded_channels';
 import { connectionClientContext } from '@akohn/dashql/platform/connections/hyper/hyper_client_context';
 import type { EmbeddedDatabaseSetupFn } from '../../host/embedded_database_provider.js';
-import { getHyperLinkTabState } from './hyper_link_tab.js';
+import { getHyperLinkTabState } from './hyper_link.js';
 
 // The runtime sets up the connections (`connection_setup/` of the Rust runtime): it picks the channel of the params and
 // resolves the params of a link with its token. The runtime speaks Hyper over HTTP and the Hyper of Salesforce itself,

@@ -103,7 +103,7 @@ folder. Only the token is not stored. There can be several such connections, e.g
   2. takes the connection of the binding (`bind_hyper_link`): the connection to the endpoint of the link, otherwise the
      user may reuse the connection of the latest link, which is saved with the new endpoint, otherwise a new connection,
   3. remembers the token of the connection in the session storage of the tab and makes it the connection of new
-     workbooks (`setHyperLinkToken` of `connections/hyper/hyper_link_tab.ts`), a reload keeps both and closing the tab
+     workbooks (`setHyperLinkToken` of `connections/hyper/hyper_link.ts`), a reload keeps both and closing the tab
      ends them,
   4. opens the open workbook if it runs on the connection, otherwise the first workbook on it, otherwise the greeter on
      the connection. The first script of the greeter creates the workbook.

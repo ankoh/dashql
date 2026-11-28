@@ -11,7 +11,7 @@ import { useLogger } from '../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { newConnectionFromParams, type ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import type { HyperLinkEvent } from '../host/events/event_listener.js';
-import { getHyperLinkTabState, setHyperLinkToken } from '../connections/hyper/hyper_link_tab.js';
+import { getHyperLinkTabState, setHyperLinkToken } from '../connections/hyper/hyper_link.js';
 
 const LOG_CTX = 'hyper_link';
 

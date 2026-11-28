@@ -11,7 +11,7 @@ import type { StorageCommands } from '@akohn/dashql/runtime/runtime_storage';
 import { WorkbookTestBackend, TEST_CONNECTION_ID } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { useEphemeralWorkbook, useWorkbookCreation, type WorkbookCreation } from './workbook_creation.js';
-import { setHyperLinkToken } from '../connections/hyper/hyper_link_tab.js';
+import { setHyperLinkToken } from '../connections/hyper/hyper_link.js';
 import { TestRuntime } from '../tests/test_runtime.js';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { newConnectionFromParams } from '@akohn/dashql/platform/connections/connection_params';

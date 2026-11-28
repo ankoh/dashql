@@ -5,7 +5,7 @@ import { useLocation } from 'react-router-dom';
 import { OPEN_EPHEMERAL_WORKBOOK, OPEN_LINK_WORKBOOK, workbookIdFromPathname, useRouterNavigate } from '../router.js';
 import { useRuntime } from '@akohn/dashql-react/hooks';
 import { embeddedConnection, newWorkbookConnection } from '../../connections/embedded_connection.js';
-import { getHyperLinkTabState } from '../../connections/hyper/hyper_link_tab.js';
+import { getHyperLinkTabState } from '../../connections/hyper/hyper_link.js';
 import { useDashQLCoreSetup } from '../../host/core_provider.js';
 import { useLogger } from '../../host/logger_provider.js';
 import { createTrace } from '@akohn/dashql/platform/logger/trace_context';

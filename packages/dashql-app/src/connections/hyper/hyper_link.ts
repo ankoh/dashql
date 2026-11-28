@@ -1,3 +1,5 @@
+import * as React from 'react';
+
 import type { KeyValueStorage } from '@akohn/dashql/platform/key_value_storage';
 
 // The Hyper links of a tab: the runtime reads the target of a link, asks for confirmation and binds it to a connection
@@ -31,10 +33,10 @@ export function readHyperLinkTabState(storage: KeyValueStorage | null): HyperLin
 
 /// The Hyper links of a tab, kept in the storage of the tab, null if there is none
 export class HyperLinkTabStore {
-    protected state: HyperLinkTabState | null = null;
-    protected readonly listeners = new Set<() => void>();
+    private state: HyperLinkTabState | null = null;
+    private readonly listeners = new Set<() => void>();
 
-    constructor(protected readonly storage: KeyValueStorage | null) {}
+    constructor(private readonly storage: KeyValueStorage | null) {}
 
     /// The Hyper links of the tab
     get = (): HyperLinkTabState => {
@@ -59,4 +61,31 @@ export class HyperLinkTabStore {
         this.listeners.add(listener);
         return () => this.listeners.delete(listener);
     };
+}
+
+/// The storage of the tab, null if the browser refuses it
+function tabStorage(): Storage | null {
+    try {
+        return globalThis.sessionStorage ?? null;
+    } catch {
+        return null;
+    }
+}
+
+/// The Hyper links of this tab
+const HYPER_LINK_TAB = new HyperLinkTabStore(tabStorage());
+
+/// Get the Hyper links of the tab
+export function getHyperLinkTabState(): HyperLinkTabState {
+    return HYPER_LINK_TAB.get();
+}
+
+/// Remember the token of the connection that a link was bound to, new workbooks start on the connection
+export function setHyperLinkToken(connectionId: string, token: string): void {
+    HYPER_LINK_TAB.setToken(connectionId, token);
+}
+
+/// The Hyper links of the tab, they change with every link
+export function useHyperLinkTabState(): HyperLinkTabState {
+    return React.useSyncExternalStore(HYPER_LINK_TAB.subscribe, HYPER_LINK_TAB.get);
 }

@@ -3,7 +3,7 @@ import * as React from 'react';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { embeddedConnection, newWorkbookConnection } from './embedded_connection.js';
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
-import { getHyperLinkTabState } from './hyper/hyper_link_tab.js';
+import { getHyperLinkTabState } from './hyper/hyper_link.js';
 
 /// Resolve the connection that new workbooks start on, see `newWorkbookConnection`
 export function useNewWorkbookConnection(): () => ConnectionState {

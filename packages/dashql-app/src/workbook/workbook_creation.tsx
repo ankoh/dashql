@@ -2,7 +2,7 @@ import * as React from 'react';
 import { OPEN_EPHEMERAL_WORKBOOK, useRouterNavigate } from '../app/router.js';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { findEmbeddedConnection, newWorkbookConnection } from '../connections/embedded_connection.js';
-import { getHyperLinkTabState } from '../connections/hyper/hyper_link_tab.js';
+import { getHyperLinkTabState } from '../connections/hyper/hyper_link.js';
 import {
     EPHEMERAL_WORKBOOK_NAME,
     WorkbookScripts,
