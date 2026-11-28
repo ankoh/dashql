@@ -7,8 +7,6 @@ import { useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
 import { useScriptModel } from '@akohn/dashql-react/models/script_model';
 import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
-import { useLiveScriptReader } from '../scripts/script_creation.js';
-import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
 import type { DashboardSpec } from '@akohn/dashql/platform/workbook/script_types';
 import { DashboardCard, type DashboardCardDependencies, type DashboardCardProps } from './dashboard_card.js';
 import { DashboardChartOverlay, DashboardEditorOverlay, DashboardTableOverlay, type DashboardOverlayState } from './dashboard_overlays.js';
@@ -62,8 +60,6 @@ export interface DashboardDependencies {
     DashboardEditorOverlay: typeof DashboardEditorOverlay;
     DashboardTableOverlay: typeof DashboardTableOverlay;
     DashboardChartOverlay: typeof DashboardChartOverlay;
-    /// Reads a script as the runtime holds it now, e.g. the name of a renamed script
-    useLiveScriptReader: typeof useLiveScriptReader;
     /// The dependencies of the cards, the defaults of the card if unset
     card?: DashboardCardDependencies;
 }
@@ -73,7 +69,6 @@ const DEFAULT_DEPENDENCIES: DashboardDependencies = {
     DashboardEditorOverlay,
     DashboardTableOverlay,
     DashboardChartOverlay,
-    useLiveScriptReader,
 };
 
 interface Props {
@@ -83,8 +78,6 @@ interface Props {
     modifyWorkbookScripts: ModifyWorkbookScripts;
     /// The connections that the scripts run on, a card refreshes while its connection is online
     scriptConnections?: ReadonlyMap<string, ConnectionState>;
-    /// The function that renames the references in the draft of the composer
-    draftRenameRef?: React.RefObject<RenameDraftReferences | null>;
     /// A script to show, e.g. one that the prompt created: the board scrolls its card into view, once
     revealRequest?: DashboardRevealRequest | null;
     dependencies?: DashboardDependencies;
@@ -267,14 +260,11 @@ export function Dashboard(props: Props): React.ReactElement {
     const isOnline = (script: ScriptData) =>
         props.scriptConnections?.get(script.connectionId)?.connectionHealth === ConnectionHealth.ONLINE;
     // Rename and delete a card from its menu, like a script in the feed
-    const draftRenameRef = props.draftRenameRef;
-    const readScript = dependencies.useLiveScriptReader();
     const handleRename = React.useCallback((scriptKey: number, name: string) => {
-        const workbookScripts = workbookScriptsRef.current;
         const script = scriptsRef.current[scriptKey];
         if (script == null) return;
-        renameScript(workbookScripts, modifyWorkbookScripts, script.fileName, name, draftRenameRef?.current, key => readScript(key)?.fileName ?? null);
-    }, [modifyWorkbookScripts, draftRenameRef, readScript]);
+        modifyWorkbookScripts({ kind: 'renameScript', value: { fileName: script.fileName, newName: name } });
+    }, [modifyWorkbookScripts]);
     const selection = useScriptSelection();
     const handleDelete = React.useCallback((scriptKey: number) => {
         const workbookScripts = workbookScriptsRef.current;

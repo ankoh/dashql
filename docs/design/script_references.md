@@ -244,8 +244,10 @@ of the feed inserts its table parameter the same way, it shows the name and warn
 
 A rename of a script rewrites the references to it in the other scripts of the workbook: the references of the check
 that read the script, with the names before the rename. A mounted editor applies the rewrite as changes, it keeps its
-cursor and undoes the rewrite as one step (`ScriptData.externalChanges`). Once the rename is applied, the feed asks the
-composer to rename the references in its draft. The SQL draft follows the rename through its own analysis: the table parameters that find the script among the names before the rename
+cursor and undoes the rewrite as one step (`ScriptData.externalChanges`). The prompt renames the references in the
+draft of its composer when a script key names another file than before, wherever the script was renamed: in the feed,
+the dashboard, the dataflow, the workbench or by the agent. The SQL draft follows the rename through its own analysis:
+the table parameters that find the script among the names before the rename
 (`DashQLScriptSession.findScriptReferences`), never the text of string literals or comments.
 
 An attachment renames the same way (`renameAttachment` of the runtime, `RenameAttachment` of the workbook): the tag of

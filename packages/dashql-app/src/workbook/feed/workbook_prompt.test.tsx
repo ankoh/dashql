@@ -266,6 +266,19 @@ describe('Workbook prompt', () => {
         expect(target).toHaveBeenCalledExactlyOnceWith('alpha');
     });
 
+    it('renames the references of the draft when a script of the workbook gets another name', () => {
+        render(workbook(['1_alpha.sql', '2_beta.sql']));
+        const rename = vi.fn();
+        promptState.composerProps!.renameScriptRef!.current = rename;
+        // A rename anywhere, e.g. in the workbench or by the agent, gives the key another file name
+        render(workbook(['1_alpha.sql', 'revenue.sql']));
+        expect(rename).toHaveBeenCalledExactlyOnceWith('2_beta', 'revenue');
+        // A new order or a new script renames nothing
+        render({ ...workbook(['1_alpha.sql', 'revenue.sql']), scriptKeys: [2, 1], scriptOrder: ['revenue.sql', '1_alpha.sql'] });
+        render(workbook(['1_alpha.sql', 'revenue.sql', '3_gamma.sql']));
+        expect(rename).toHaveBeenCalledOnce();
+    });
+
     it('passes the conversation of the agent to the bar and closes the greeting', async () => {
         render(workbook());
         expect(promptState.barProps).toMatchObject({ workbookId: 'workbook', variant: 'prompt', session: null });

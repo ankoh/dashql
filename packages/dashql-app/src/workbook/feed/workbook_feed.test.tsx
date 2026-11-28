@@ -29,7 +29,6 @@ import type { ConnectionParams } from '@akohn/dashql/platform/connections/connec
 import { createTestRuntime, type TestRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
 import { useKeyEvents } from '@akohn/dashql-react/dom/key_events';
 import { usePickScriptConnection } from '../scripts/script_connection_picker.js';
-import { useLiveScriptReader } from '../scripts/script_creation.js';
 import { scriptSelectionOf } from '../scripts/script_selection.js';
 import { ScriptReferenceKind } from '@akohn/dashql/platform/workbook/script_reference_check';
 
@@ -242,7 +241,6 @@ describe('Workbook feed', () => {
         useKeyEvents: handlers => { feedState.keyHandlers = handlers; },
         useViewReader: () => readFeedView,
         useViewSelector: ((kind: string, id: string, select: (view: unknown) => unknown) => select(readFeedView(kind as 'workbookDerived', id))) as WorkbookFeedDependencies['useViewSelector'],
-        useLiveScriptReader: () => (key: number) => feedState.next?.scripts[key] ?? null,
         ScriptFeedRow: (props: RowProps) => {
             feedState.rowProps = props;
             const entry = props.entries[props.index];
@@ -626,7 +624,7 @@ describe('Workbook feed on a runtime', () => {
         const dependencies: WorkbookFeedDependencies = {
             useStorageReader: () => storageReader,
             useAttachmentCommands: () => attachmentCommands,
-            usePickScriptConnection, useKeyEvents, useViewReader, useViewSelector, useLiveScriptReader,
+            usePickScriptConnection, useKeyEvents, useViewReader, useViewSelector,
             ScriptFeedRow: props => <ScriptFeedRow {...props} dependencies={rowDependencies} />,
         };
         const modify: ModifyWorkbookScripts = action => rt.dispatch({ workbook: workbook.workbookId }, action);

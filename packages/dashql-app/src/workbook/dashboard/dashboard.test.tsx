@@ -10,7 +10,6 @@ import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_tes
 import { LoggerProvider } from '../../host/logger_provider.js';
 import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 import { flushContinuousUpdates } from '@akohn/dashql-react/testing/react_act';
-import type { RenameDraftReferences } from '../scripts/script_rename.js';
 import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { DashboardCardDependencies } from './dashboard_card.js';
 import { Dashboard, revealScrollTop, type DashboardDependencies, type DashboardRevealRequest } from './dashboard.js';
@@ -113,8 +112,6 @@ describe('Dashboard', () => {
     let modify: ReturnType<typeof vi.fn>;
     let executor: TestQueryExecutorFunctions;
     let dependencies: DashboardDependencies;
-    /// The file name that the runtime gives a renamed script
-    let renamedFileName: string | null;
 
     beforeEach(() => {
         container = document.createElement('div');
@@ -128,12 +125,10 @@ describe('Dashboard', () => {
             [30, { queryId: 30, status: QueryExecutionStatus.RUNNING }],
         ]);
         modify = vi.fn();
-        renamedFileName = null;
         executor = { execute: vi.fn(), cancel: vi.fn(), watchProfile: vi.fn() } as unknown as TestQueryExecutorFunctions;
         for (const operation of Object.values(operations)) operation.mockReset();
         dependencies = {
             useScriptModel: useFakeScriptModel,
-            useLiveScriptReader: () => (key: number) => key === 2 && renamedFileName != null ? { fileName: renamedFileName } as ScriptData : null,
             DashboardEditorOverlay: (props: { model: ScriptModel; onClose: () => void }) => (
                 <div data-testid="editor-overlay" data-script={props.model.script.fileName}>
                     <button data-testid="editor-accept" onClick={() => void props.model.acceptDiff()} />
@@ -164,7 +159,7 @@ describe('Dashboard', () => {
     const backend = new WorkbookTestBackend();
     const online = new Map([['db', { connectionHealth: ConnectionHealth.ONLINE } as ConnectionState]]);
 
-    function render(workbookScripts: WorkbookScripts & { scripts: ScriptDataMap }, extra: { scriptConnections?: ReadonlyMap<string, ConnectionState>; draftRenameRef?: React.RefObject<RenameDraftReferences | null>; revealRequest?: DashboardRevealRequest } = {}) {
+    function render(workbookScripts: WorkbookScripts & { scripts: ScriptDataMap }, extra: { scriptConnections?: ReadonlyMap<string, ConnectionState>; revealRequest?: DashboardRevealRequest } = {}) {
         shownScripts = workbookScripts.scripts;
         act(() => root.render(
             <LoggerProvider>
@@ -177,7 +172,6 @@ describe('Dashboard', () => {
                                 scripts={workbookScripts.scripts}
                                 modifyWorkbookScripts={modify as unknown as ModifyWorkbookScripts}
                                 scriptConnections={extra.scriptConnections ?? online}
-                                draftRenameRef={extra.draftRenameRef}
                                 revealRequest={extra.revealRequest}
                                 dependencies={dependencies}
                             /></WithResultTables>
@@ -281,10 +275,7 @@ describe('Dashboard', () => {
     });
 
     it('renames and deletes a card from its menu', async () => {
-        const renameDraft = vi.fn();
-        // The runtime renames the script
-        renamedFileName = 'revenue.sql';
-        render(workbook(SETUP, SALES, TREND), { draftRenameRef: { current: renameDraft } });
+        render(workbook(SETUP, SALES, TREND));
 
         const menuItem = (action: string) => document.querySelector<HTMLElement>(`[data-testid="dashboard-card-menu-item"][data-action="${action}"]`)!;
         act(() => cardButton(2, 'dashboard-card-more').click());
@@ -296,8 +287,6 @@ describe('Dashboard', () => {
             input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
         });
         expect(actions()).toEqual([{ kind: 'renameScript', value: { fileName: '2_sales.sql', newName: 'revenue' } }]);
-        // The draft of the composer follows the name
-        expect(renameDraft).toHaveBeenCalledWith('2_sales', 'revenue');
 
         act(() => cardButton(2, 'dashboard-card-more').click());
         act(() => menuItem('delete').click());

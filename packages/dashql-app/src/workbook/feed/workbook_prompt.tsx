@@ -18,7 +18,7 @@ import { useSettledHeight } from '@akohn/dashql-react/components/size_observer';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { useScriptSelection } from '../scripts/script_selection.js';
 import { createScriptAction, useLiveScriptReader } from '../scripts/script_creation.js';
-import type { RenameDraftReferences } from '../scripts/script_rename.js';
+import type { RenameDraftReferences } from '../attachment_rename.js';
 import { getKeywordCase } from '../scripts/script_format.js';
 import { ScriptConnectionPicker, scriptConnectionView, usePickPendingConnection } from '../scripts/script_connection_picker.js';
 import { useConnectionLabeler } from '../connections/connection_labels.js';
@@ -83,7 +83,7 @@ export interface WorkbookPromptProps {
     feed: WorkbookPromptFeed;
     /// Receives what the feed asks of the prompt
     handleRef?: React.Ref<WorkbookPromptHandle>;
-    /// Receives the function that renames the references in the draft of the composer, for renames of the views
+    /// Receives the function that renames the references in the draft of the composer, for renamed attachments
     draftRenameRef?: React.RefObject<RenameDraftReferences | null>;
     /// The parts of the feed that the prompt lines up with: the head above the greeting, the scrollbar beside the
     /// docked composer
@@ -179,6 +179,21 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
     const scriptNames = React.useMemo(() => props.workbookScripts.scriptOrder.map(scriptDisplayName), [props.workbookScripts.scriptOrder]);
     const ownDraftRenameRef = React.useRef<RenameDraftReferences | null>(null);
     const renameScriptRef = props.draftRenameRef ?? ownDraftRenameRef;
+    // The draft follows a renamed script, wherever it was renamed: a key that names another file than before
+    const lastFileNames = React.useRef<{ workbookId: string; fileNames: ReadonlyMap<number, string> } | null>(null);
+    const { scriptKeys, scriptOrder } = props.workbookScripts;
+    React.useEffect(() => {
+        const fileNames = new Map(scriptKeys.map((key, i) => [key, scriptOrder[i]]));
+        const last = lastFileNames.current;
+        lastFileNames.current = { workbookId, fileNames };
+        if (last?.workbookId !== workbookId) return;
+        for (const [key, fileName] of fileNames) {
+            const before = last.fileNames.get(key);
+            if (before != null && before !== fileName) {
+                renameScriptRef.current?.(scriptDisplayName(before), scriptDisplayName(fileName));
+            }
+        }
+    }, [workbookId, scriptKeys, scriptOrder, renameScriptRef]);
 
     // The workbook scripts change with every keystroke and the connections with every query event
     const latest = React.useRef({ workbookScripts: props.workbookScripts, connections });

@@ -27,14 +27,13 @@ import type { ConnectionState } from '@akohn/dashql/platform/connections/connect
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
 import { getScriptRefs, type ModifyWorkbookScripts, type WorkbookDerived, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import { createScriptAction, useLiveScriptReader } from '../scripts/script_creation.js';
+import { createScriptAction } from '../scripts/script_creation.js';
 import { useOptionalRuntime, useRuntime, useViewReader, useViewSelector } from '@akohn/dashql-react/hooks';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { renameAttachment } from '../attachment_rename.js';
+import { renameAttachment, type RenameDraftReferences } from '../attachment_rename.js';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import { insertMentionAtCursor, useLastFocusedEditor } from '../editor/editor_focus.js';
 import { DashQLProcessorPlugin, type DashQLParameterClick } from '../editor/dashql_processor.js';
-import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
 import { type KeyEventHandler, useKeyEvents } from '@akohn/dashql-react/dom/key_events';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { quoteIdentifier as quoteSqlIdentifier } from '@akohn/dashql/platform/utils/sql_quote';
@@ -65,7 +64,7 @@ import type { WorkbookPromptFeed, WorkbookPromptHandle } from './workbook_prompt
 export interface WorkbookFeedProps {
     workbookScripts: WorkbookScripts;
     modifyWorkbookScripts: ModifyWorkbookScripts;
-    /// Receives the function that renames the references in the draft of the composer, for renames of other views
+    /// The function that renames the references in the draft of the composer, for renamed attachments
     draftRenameRef?: React.RefObject<RenameDraftReferences | null>;
     /// The connection that the next script runs on
     conn: ConnectionState | null;
@@ -117,7 +116,6 @@ export interface WorkbookFeedDependencies {
     useViewReader: typeof useViewReader;
     /// Selects the attachments that collide with the scripts from the derived view of the workbook
     useViewSelector: typeof useViewSelector;
-    useLiveScriptReader: typeof useLiveScriptReader;
     ScriptFeedRow: typeof ScriptFeedRow;
 }
 
@@ -128,7 +126,6 @@ const DEFAULT_DEPENDENCIES: WorkbookFeedDependencies = {
     useKeyEvents,
     useViewReader,
     useViewSelector,
-    useLiveScriptReader,
     ScriptFeedRow,
 };
 
@@ -171,7 +168,7 @@ function estimateFeedEntryHeight(scriptText: string) {
 
 export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
-    const { modifyWorkbookScripts } = props;
+    const { modifyWorkbookScripts, draftRenameRef } = props;
     const config = useAppConfig();
     const logger = useLogger();
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
@@ -283,14 +280,10 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         deleteScript(selection, latest.current.workbookScripts, modifyWorkbookScripts, fileName);
     }, [modifyWorkbookScripts, selection]);
 
-    // A rename rewrites the references in the other scripts and in the draft of the composer
-    const ownDraftRenameRef = React.useRef<RenameDraftReferences | null>(null);
-    const composerRenameScriptRef = props.draftRenameRef ?? ownDraftRenameRef;
-    const readScript = dependencies.useLiveScriptReader();
+    // A rename rewrites the references in the other scripts, the draft of the composer follows the new name itself
     const handleRename = React.useCallback((oldFileName: string, newFileName: string) => {
-        renameScript(props.workbookScripts, modifyWorkbookScripts, oldFileName, newFileName, composerRenameScriptRef.current,
-            key => readScript(key)?.fileName ?? null);
-    }, [props.workbookScripts, modifyWorkbookScripts, composerRenameScriptRef, readScript]);
+        modifyWorkbookScripts({ kind: 'renameScript', value: { fileName: oldFileName, newName: newFileName } });
+    }, [modifyWorkbookScripts]);
 
     // Move a script one position up/down within the workbook by swapping it with its neighbour in the
     // feed order and dispatching the new full order.
@@ -380,12 +373,12 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     // An attachment renames like a script, the scripts and the draft that read it follow
     const handleRenameAttachment = React.useCallback((fileName: string, name: string) => {
         if (runtime == null) return;
-        void renameAttachment(runtime, latest.current.workbookScripts, fileName, name, composerRenameScriptRef.current)
+        void renameAttachment(runtime, latest.current.workbookScripts, fileName, name, draftRenameRef?.current)
             .catch(e => {
                 setAttachmentError('Renaming attachment failed');
                 logger.error('Renaming workbook attachment failed', { workbookId, error: stringifyError(e) }, LOG_CTX);
             });
-    }, [runtime, composerRenameScriptRef, logger, workbookId]);
+    }, [runtime, draftRenameRef, logger, workbookId]);
 
     // The feed stays mounted (just hidden) while another view, e.g. a connection overview, is open, so its global
     // key handlers would otherwise keep firing behind the overlay. Gate them all on the active flag.

@@ -18,7 +18,6 @@ import { ScriptEntryHeader } from '../feed/script_entry_header.js';
 import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { deleteScript, useScriptSelection } from './script_selection.js';
 import { ScriptEditor } from './script_editor.js';
-import type { RenameDraftReferences } from './script_rename.js';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 
 export interface ScriptEditorDialogProps {
@@ -27,8 +26,6 @@ export interface ScriptEditorDialogProps {
     scriptKey: number;
     /// The connections that the scripts run on
     scriptConnections: ReadonlyMap<string, ConnectionState>;
-    /// The function that renames the references in the draft of the composer
-    draftRenameRef?: React.RefObject<RenameDraftReferences | null>;
     /// Delete the script, the workbook deletes it by default. The dialog closes.
     onDelete?: (script: ScriptData) => void;
     /// Open another script, e.g. one that the script references
@@ -121,7 +118,6 @@ export function ScriptEditorDialog(props: ScriptEditorDialogProps): React.ReactE
                             scriptKey={scriptKey}
                             scriptConnections={props.scriptConnections}
                             scriptReferences={scriptReferences}
-                            draftRenameRef={props.draftRenameRef}
                             editorView={editorView}
                             onDelete={remove}
                             className={styles.header}

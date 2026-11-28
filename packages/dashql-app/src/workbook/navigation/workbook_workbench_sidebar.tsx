@@ -60,7 +60,6 @@ import { useWorkbookImport } from '../persistence/workbook_import_provider.js';
 import { EPHEMERAL_WORKBOOK_NAME, isCloudPreview, workbookCloudLink, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { useScriptSelection } from '../scripts/script_selection.js';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
-import { renameScript } from '../scripts/script_rename.js';
 import { useDeleteWorkbook, useInvalidWorkbooks } from '../workbook_lifecycle.js';
 import { useEnsureEphemeralWorkbook, useOpenGreeter, useWorkbookCreation } from '../workbook_creation.js';
 import { WORKBOOK_LIST_CARET_COLUMN, WorkbookFolderRow, WorkbookListRowMenu, useNameEditor, useSortableRow, workbookListRowPadding } from './workbook_folder_row.js';
@@ -430,7 +429,7 @@ const WorkbookRow: React.FC<WorkbookRowProps> = ({ item, depth, selected, onOpen
                 fileName={fileName}
                 depth={depth}
                 onOpen={() => openScript(fileName)}
-                onRename={name => { renameScript(item.scripts, modifyWorkbookScripts, fileName, name, null, () => null); }}
+                onRename={name => { modifyWorkbookScripts({ kind: 'renameScript', value: { fileName, newName: name } }); }}
             />
         ))}
         </>

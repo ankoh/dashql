@@ -1,6 +1,8 @@
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import type { RenameDraftReferences } from './scripts/script_rename.js';
+
+/// Renames the references to an attachment in a draft, by display names
+export type RenameDraftReferences = (from: string, to: string) => void;
 
 /// Rename an attachment like a script: the runtime names it, the scripts that read its table parameter read the new
 /// name and the file moves (`renameAttachment` of the runtime), then the draft reads the new name too. The name takes

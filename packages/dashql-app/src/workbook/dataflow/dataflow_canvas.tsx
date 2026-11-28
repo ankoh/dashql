@@ -12,7 +12,6 @@ import * as graphStyles from '@akohn/dashql-react/components/graph.module.css';
 import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
-import type { RenameDraftReferences } from '../scripts/script_rename.js';
 import { ScriptEntryHeader } from '../feed/script_entry_header.js';
 import { deriveDataflowGraph, DataflowEdgeKind, INPUT_PORT_SCRIPT_KEY, statementTypeLabel, type DataflowGraph, type DataflowInput, type DataflowScript } from './dataflow_graph.js';
 import { WorkbookInputCard } from '../inputs/workbook_input_card.js';
@@ -84,8 +83,6 @@ interface Props {
     modifyWorkbookScripts: ModifyWorkbookScripts;
     /// The connections that the scripts run on, the headers of the boxes show and pick them
     scriptConnections: ReadonlyMap<string, ConnectionState>;
-    /// The function that renames the references in the draft of the composer
-    draftRenameRef?: React.RefObject<RenameDraftReferences | null>;
     /// Open the script in the editor dialog
     onInspect?: (scriptKey: number) => void;
     /// A script to show, e.g. one that the prompt created: the canvas moves its box into view, once
@@ -671,7 +668,6 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                                 modifyWorkbookScripts={modifyWorkbookScripts}
                                 scriptConnections={props.scriptConnections}
                                 scriptReferences={scriptReferences.get(box.script.scriptKey) ?? null}
-                                draftRenameRef={props.draftRenameRef}
                                 script={scripts[box.script.scriptKey]}
                                 selection={selection?.scriptKey === box.script.scriptKey ? selection : null}
                                 dragging={drag?.node === nodeKeyOfScript(box.script.scriptKey)}
@@ -746,7 +742,6 @@ interface BoxProps {
     modifyWorkbookScripts: ModifyWorkbookScripts;
     scriptConnections: ReadonlyMap<string, ConnectionState>;
     scriptReferences: ScriptReferenceReport | null;
-    draftRenameRef?: React.RefObject<RenameDraftReferences | null>;
     script: ScriptData | undefined;
     selection: DataflowSelection | null;
     dragging: boolean;
@@ -876,7 +871,6 @@ function DataflowBox(props: BoxProps): React.ReactElement {
                         scriptKey={scriptKey}
                         scriptConnections={props.scriptConnections}
                         scriptReferences={props.scriptReferences}
-                        draftRenameRef={props.draftRenameRef}
                         onDelete={props.onDelete}
                         onEdit={onInspect != null ? edit : undefined}
                         // The snippets show in the editor dialog, the box has no room for them

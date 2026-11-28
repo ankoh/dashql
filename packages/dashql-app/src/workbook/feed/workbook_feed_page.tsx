@@ -38,7 +38,7 @@ import { WorkbookErrors } from '../scripts/workbook_errors.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import { ConnectionOverviewPage } from '../../connections/connection_overview_page.js';
 import { CloudOverviewPage } from '../../cloud/cloud_overview_page.js';
-import type { RenameDraftReferences } from '../scripts/script_rename.js';
+import type { RenameDraftReferences } from '../attachment_rename.js';
 import { CloudPreviewActions, CloudPreviewBadge, CloudWorkbookLoadingCard } from '../../cloud/cloud_preview_actions.js';
 import { useCloudWorkbookLoading } from '../../cloud/cloud_workbook_loading.js';
 import { WorkbookReadOnlyContext } from '../workbook_read_only.js';
@@ -139,7 +139,7 @@ export const WorkbookFeedPage = React.memo(function WorkbookFeedPage(props: Prop
         feed = renderFeed, prompt = renderPrompt, dashboard = renderDashboard, dataflow = renderDataflow,
         editorDialog = renderEditorDialog, workbench: workbenchSlot = renderWorkbench,
     } = props;
-    // The composer of the prompt renames the references in its draft, also for renames in the feed and the dataflow
+    // The composer of the prompt renames the references in its draft, also for the attachments renamed in the feed
     const draftRenameRef = React.useRef<RenameDraftReferences | null>(null);
     // The script that the editor dialog of the dataflow shows. It belongs to the workbook it was opened in and closes
     // when another workbook is selected or the script is gone.
@@ -429,7 +429,6 @@ export const WorkbookFeedPage = React.memo(function WorkbookFeedPage(props: Prop
                                 workbookScripts: props.workbookScripts,
                                 modifyWorkbookScripts: props.modifyWorkbookScripts,
                                 scriptConnections,
-                                draftRenameRef,
                                 revealRequest: dashboardReveal,
                             })
                         )}
@@ -441,7 +440,6 @@ export const WorkbookFeedPage = React.memo(function WorkbookFeedPage(props: Prop
                                             workbookScripts: props.workbookScripts,
                                             modifyWorkbookScripts: props.modifyWorkbookScripts,
                                             scriptConnections,
-                                            draftRenameRef,
                                             onInspect: inspectScript,
                                             revealRequest: dataflowReveal,
                                             bottomInset: readOverlayInset,
@@ -455,7 +453,6 @@ export const WorkbookFeedPage = React.memo(function WorkbookFeedPage(props: Prop
                                             modifyWorkbookScripts: props.modifyWorkbookScripts,
                                             scriptKey: details.scriptId,
                                             scriptConnections,
-                                            draftRenameRef,
                                             onNavigateToScript: inspectScript,
                                             onClose: closeDetails,
                                         })}

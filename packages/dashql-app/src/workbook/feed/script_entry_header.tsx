@@ -7,9 +7,7 @@ import { useStorageReader } from '../../storage/storage_provider.js';
 import { useConnectionLabeler } from '../connections/connection_labels.js';
 import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
-import { useLiveScriptReader } from '../scripts/script_creation.js';
 import { useScriptModel } from '@akohn/dashql-react/models/script_model';
-import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
 import { getKeywordCase } from '../scripts/script_format.js';
 import { scriptConnectionView, usePickScriptConnection } from '../scripts/script_connection_picker.js';
 import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
@@ -23,8 +21,6 @@ export interface ScriptEntryHeaderProps {
     scriptConnections: ReadonlyMap<string, ConnectionState>;
     /// The checked script references of the script
     scriptReferences: ScriptReferenceReport | null;
-    /// The function that renames the references in the draft of the composer
-    draftRenameRef?: React.RefObject<RenameDraftReferences | null>;
     /// The editor of the script, formatting needs it
     editorView?: EditorView | null;
     /// Delete the script, the workbook deletes it by default
@@ -66,12 +62,11 @@ export const ScriptEntryHeader: React.FC<ScriptEntryHeaderProps> = React.memo((p
         focused: true, canTarget: false, scriptDebugMode, formattingDebugMode, keywordCase, references: props.scriptReferences,
     };
 
-    const readScript = useLiveScriptReader();
     const selection = useScriptSelection();
 
     if (model == null) return null;
     const rename = (name: string) => {
-        renameScript(workbookScripts, modifyWorkbookScripts, fileName, name, props.draftRenameRef?.current, key => readScript(key)?.fileName ?? null);
+        modifyWorkbookScripts({ kind: 'renameScript', value: { fileName, newName: name } });
     };
     const remove = () => {
         if (props.onDelete != null) props.onDelete(model.script);
