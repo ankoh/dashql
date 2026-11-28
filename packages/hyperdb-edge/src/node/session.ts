@@ -1,6 +1,5 @@
 import { fork, type ChildProcess } from 'node:child_process';
-import { existsSync, statSync } from 'node:fs';
-import path from 'node:path';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import type { HyperDBSettingValue } from 'hyperdb-wasm';
@@ -9,7 +8,7 @@ import type { OutputFormat } from '../format.js';
 import { splitStatements } from '../statements.js';
 import { acquireDatabaseLock } from './database_lock.js';
 import type { EngineMessage, EngineRequest, FailedStatement } from './engine_protocol.js';
-import { DatabaseFolderMissingError } from './open_engine.js';
+import { resolveDatabaseFile } from './open_engine.js';
 
 export interface EdgeSessionOptions {
     /// A .hyper file, created when missing and locked while the session is open; relative to the working folder
@@ -120,14 +119,6 @@ function defaultEngineEntry(): string {
     return fileURLToPath(new URL('../../dist/node/engine_process.js', import.meta.url));
 }
 
-function isDirectory(folder: string): boolean {
-    try {
-        return statSync(folder).isDirectory();
-    } catch {
-        return false;
-    }
-}
-
 /// The sessions that are open, closed hard when the process exits
 const OPEN_SESSIONS = new Set<EdgeSession>();
 let exitHookInstalled = false;
@@ -184,10 +175,9 @@ export class EdgeSession {
         let databaseName: string | null = null;
         let releaseLock = () => {};
         if (options.database != null) {
-            database = path.resolve(options.workDirectory, options.database);
-            if (!isDirectory(path.dirname(database))) throw new DatabaseFolderMissingError(path.dirname(database));
-            const fileName = path.basename(database);
-            databaseName = fileName.endsWith('.hyper') ? fileName.slice(0, -'.hyper'.length) : fileName;
+            const file = resolveDatabaseFile(options.workDirectory, options.database);
+            database = file.path;
+            databaseName = file.name;
             releaseLock = acquireDatabaseLock(database);
         }
 

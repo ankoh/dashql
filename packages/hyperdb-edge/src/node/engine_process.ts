@@ -85,7 +85,6 @@ async function close(): Promise<void> {
     await queue.catch(() => {});
     await engine?.close().catch(() => {});
     engine = null;
-    await send({ type: 'closed' }).catch(() => {});
     process.exit(0);
 }
 

@@ -61,6 +61,25 @@ function isDirectory(folder: string): boolean {
     }
 }
 
+/// A database file of the working folder
+export interface DatabaseFile {
+    /// The absolute path
+    readonly path: string;
+    /// The name of the file
+    readonly fileName: string;
+    /// The name the database is attached under, the file name without .hyper
+    readonly name: string;
+}
+
+/// Resolve a database file against the working folder. Fails if its folder does not exist.
+export function resolveDatabaseFile(workDirectory: string, database: string): DatabaseFile {
+    const databasePath = path.resolve(workDirectory, database);
+    if (!isDirectory(path.dirname(databasePath))) throw new DatabaseFolderMissingError(path.dirname(databasePath));
+    const fileName = path.basename(databasePath);
+    const name = fileName.endsWith('.hyper') ? fileName.slice(0, -'.hyper'.length) : fileName;
+    return { path: databasePath, fileName, name };
+}
+
 /// Start the engine, mount the working folder and open the database.
 /// The engine stores in the folder of the database file: hyperdb-wasm mounts one host folder as its storage, and
 /// the engine writes its logs/ there as well. Without a database it stores in a temporary folder that close() removes.
@@ -68,13 +87,11 @@ export async function openEngine(options: OpenEngineOptions): Promise<OpenEngine
     checkWasmFeatures();
 
     let storagePath: string;
-    let fileName: string | null = null;
+    let file: DatabaseFile | null = null;
     let temporary = false;
     if (options.database != null) {
-        const databasePath = path.resolve(options.workDirectory, options.database);
-        storagePath = path.dirname(databasePath);
-        fileName = path.basename(databasePath);
-        if (!isDirectory(storagePath)) throw new DatabaseFolderMissingError(storagePath);
+        file = resolveDatabaseFile(options.workDirectory, options.database);
+        storagePath = path.dirname(file.path);
     } else {
         storagePath = mkdtempSync(path.join(tmpdir(), 'hyperdb-edge-'));
         temporary = true;
@@ -113,13 +130,11 @@ export async function openEngine(options: OpenEngineOptions): Promise<OpenEngine
     try {
         mount = await database.mount(options.workDirectory, { path: WORK_MOUNT, mode: 'readwrite' });
         connection = await database.connect();
-        let databaseName: string | null = null;
-        if (fileName != null) {
-            databaseName = fileName.endsWith('.hyper') ? fileName.slice(0, -'.hyper'.length) : fileName;
-            await connection.execute(`CREATE DATABASE IF NOT EXISTS ${quoteIdentifier(fileName)}`);
-            await connection.execute(`ATTACH DATABASE ${quoteIdentifier(fileName)} AS ${quoteIdentifier(databaseName)}`);
+        if (file != null) {
+            await connection.execute(`CREATE DATABASE IF NOT EXISTS ${quoteIdentifier(file.fileName)}`);
+            await connection.execute(`ATTACH DATABASE ${quoteIdentifier(file.fileName)} AS ${quoteIdentifier(file.name)}`);
         }
-        return { database, connection, databaseName, storagePath, close };
+        return { database, connection, databaseName: file?.name ?? null, storagePath, close };
     } catch (e) {
         await close().catch(() => {});
         throw e;

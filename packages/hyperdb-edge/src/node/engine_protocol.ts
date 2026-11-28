@@ -38,5 +38,4 @@ export type EngineMessage =
     | { readonly type: 'open-failed'; readonly message: string; readonly usage: boolean }
     | { readonly type: 'stdout'; readonly id: number; readonly text: string }
     | { readonly type: 'stderr'; readonly id: number; readonly text: string }
-    | { readonly type: 'done'; readonly id: number; readonly failed: FailedStatement | null; readonly cancelled: boolean }
-    | { readonly type: 'closed' };
+    | { readonly type: 'done'; readonly id: number; readonly failed: FailedStatement | null; readonly cancelled: boolean };
