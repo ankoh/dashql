@@ -1,13 +1,13 @@
-/* The views at the bottom of a compact window with Wobble in their middle, see workbook_tab_bar.tsx. Dark chrome like
-   the bar at the top, above the home indicator of a phone. */
+/* The views at the bottom of a compact window with Wobble in their middle, see workbook_tab_bar.tsx. The bottom of the
+   card of the workbook below the dark bar at the top, above the home indicator of a phone. */
 .tab_bar {
-    color-scheme: dark;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
     min-height: 52px;
     padding: 0 4px env(safe-area-inset-bottom, 0px);
-    background: var(--chrome_bg_100);
+    border-top: 1px solid var(--color_border);
+    background: var(--color_bg_card);
     color: var(--color_fg);
 }
 
@@ -34,7 +34,7 @@
 }
 
 .tab_active {
-    color: var(--color_fg);
+    color: var(--color_accent_fg);
 }
 
 .tab_active .label {
@@ -79,7 +79,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    box-shadow: 0 0 0 2px var(--chrome_bg_100);
+    box-shadow: 0 0 0 2px var(--color_bg_card);
 }
 
 .wobble[data-run='running'] .run_dot {

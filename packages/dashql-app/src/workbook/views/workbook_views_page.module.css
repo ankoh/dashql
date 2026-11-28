@@ -314,8 +314,15 @@
         /* The cards of the feed and the dashboard get the width of a phone, a narrow gutter keeps them apart from the
            edges */
         --page_gutter: 8px;
-        /* The bar is the top of the window, there is no stripe above the card (navbar.module.css) */
+        /* The bar is the top of the window, there is no stripe above the card (navbar.module.css). The dark chrome
+           shows in the rounded corners of the card below it, like below the stripe of a wide window. */
         border-radius: 0;
+        background: var(--chrome_bg_100);
+    }
+    .body_container {
+        border-radius: var(--border_radius) var(--border_radius) 0 0;
+        overflow: hidden;
+        background: var(--page_background);
     }
     .page::after {
         border: none;

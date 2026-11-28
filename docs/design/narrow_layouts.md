@@ -32,9 +32,11 @@ valid, and the app no longer reads it.
   the drawer, the pages of the rail (Workspace, Shell), Execute All with the indicator of its run, then at its end the
   overlays of the stripe (the client, the version, the color scheme), the connections and the actions. The text of the
   run shows in the bar of Wobble, Export .dashql stays in the menu of the actions. The pages of the rail and the
-  overlays render in the bar on a compact window only, the rail and the stripe have them on wider windows.
-- **The bottom of a compact window** is the tab bar of the views (`WorkbookTabBar`): Feed and Console, Wobble in the
-  middle, Board and Flow. The face of Wobble tells the run of the workbook by a dot (running, succeeded, failed), a
+  overlays render in the bar on a compact window only, the rail and the stripe have them on wider windows. The card of
+  the workbook below the bar has the rounded top corners of the card below the stripe of a wide window, the dark
+  chrome shows in them.
+- **The bottom of a compact window** is the tab bar of the views (`WorkbookTabBar`), the light bottom of the card:
+  Feed and Console, Wobble in the middle, Board and Flow, the active view in the accent color. The face of Wobble tells the run of the workbook by a dot (running, succeeded, failed), a
   tap opens the composer over the view and closes it again; the composer shrunk into its bar doesn't show. Wider
   windows switch the views in the bar at the top and show the bar of Wobble at the bottom of the views.
 - **The shell** keeps the bar of the workbook above it on a compact window (`workbook_page.module.css`), with the pages
