@@ -1,6 +1,6 @@
 {
   "name": "@akohn/dashql",
-  "version": "0.0.19-dev.250",
+  "version": "0.0.0",
   "description": "DashQL in TypeScript: the WebAssembly bindings of its SQL core, its runtime and the platforms of the runtime",
   "type": "module",
   "license": "MPL-2.0",
