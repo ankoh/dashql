@@ -1088,28 +1088,16 @@ fn unquote_type(text: &str) -> String {
 pub fn pack_catalog_descriptor(entry: &CatalogEntryData) -> crate::error::Result<Vec<u8>> {
     let mut descriptor = dashql_buffers::catalog::CatalogDescriptorT::default();
     // Both vectors are always written, even when empty
-    // A descriptor has no script: it holds no locations, and its columns are in declaration order. The analyzer sorts
-    // the columns of CREATE TABLE by name, the AST nodes restore the order.
+    // A descriptor has no script: it holds no locations. The columns keep their declaration order.
     let tables: Vec<_> = entry
         .table_declarations
         .iter()
         .map(|declaration| {
             let mut table = pack_table(declaration);
             table.location = None;
-            if let Some(columns) = table.table_columns.take() {
-                let mut columns: Vec<_> = declaration.table_columns.iter().zip(columns).collect();
-                // Derived columns have no node, they come first and an ALTER adds to them
-                columns.sort_by_key(|(declared, _)| declared.ast_node_id.unwrap_or(0));
-                table.table_columns = Some(
-                    columns
-                        .into_iter()
-                        .map(|(_, mut column)| {
-                            column.location = None;
-                            column.column_type = column.column_type.map(|t| unquote_type(&t));
-                            column
-                        })
-                        .collect(),
-                );
+            for column in table.table_columns.iter_mut().flatten() {
+                column.location = None;
+                column.column_type = column.column_type.take().map(|t| unquote_type(&t));
             }
             table
         })

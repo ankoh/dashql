@@ -309,11 +309,10 @@ fn describe_table(table: &TableDeclaration) -> CandidateInfo {
         (true, None) => Some("view".to_string()),
         (false, count) => count,
     };
-    // A declaration keeps its columns sorted by name, a list shows them as they are written
-    let mut columns: Vec<&TableColumn> = table.table_columns.iter().collect();
-    columns.sort_by_key(|column| column.location.map(|location| location.offset));
-    let columns = columns
-        .into_iter()
+    // A declaration keeps its columns in the order they are written
+    let columns = table
+        .table_columns
+        .iter()
         .take(MAX_DESCRIBED_COLUMNS)
         .map(|column| CandidateField {
             name: column.column_name.text.to_string(),
