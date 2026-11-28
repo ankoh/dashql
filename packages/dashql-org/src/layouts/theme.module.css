@@ -27,8 +27,6 @@
     --site_fg_subtle: var(--base_color_neutral_3);
     --site_link: var(--base_color_blue_2);
     --site_border: hsla(0, 0%, 100%, 0.1);
-    --site_surface: hsla(0, 0%, 100%, 0.06);
-    --site_surface_hover: hsla(0, 0%, 100%, 0.12);
     --site_border_strong: hsla(0, 0%, 100%, 0.18);
     /* The buttons on the backdrop, styled like the segmented control in the header */
     --site_button_bg: var(--site_header_segment_bg);

@@ -2,15 +2,16 @@
 import ArchitectureFigure from '../components/architecture_figure.astro';
 import ArchitectureViewer from '../components/architecture_viewer.astro';
 import PackageDiagram from '../components/package_diagram.astro';
+import feature from '../components/feature_section.module.css';
 import SiteLayout from '../layouts/site_layout.astro';
 import styles from './architecture.module.css';
 ---
 
 <SiteLayout title="Architecture" description="How DashQL fits together: the packages of DashQL and their dependencies.">
     <div class={styles.page}>
-        <header class={styles.intro}>
-            <p class={styles.eyebrow}>Architecture</p>
-            <h1 class={styles.title}>How DashQL fits together</h1>
+        <header class={`${styles.intro} ${feature.copy}`}>
+            <p class={feature.eyebrow}>Architecture</p>
+            <h1 class={feature.title}>How DashQL fits together</h1>
             <nav class={styles.diagram_navigation} aria-label="Architecture diagrams">
                 <a href="#packages">Packages</a>
             </nav>

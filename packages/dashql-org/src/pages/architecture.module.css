@@ -5,35 +5,10 @@
     padding-block: 3.5rem 5rem;
 }
 
+/* The eyebrow, title and copy are those of the sections of the front page */
 .intro {
     max-width: 48rem;
     margin-bottom: 2.5rem;
-}
-
-.intro p {
-    margin: 0;
-    font-size: 1.0625rem;
-    line-height: 1.65;
-    color: var(--site_fg_muted);
-}
-
-/* Like the eyebrows of the front page */
-.intro .eyebrow {
-    margin: 0 0 0.75rem;
-    font-family: var(--font_family_mono);
-    font-size: 0.8rem;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--hero_accent);
-}
-
-.title {
-    margin: 0 0 1.25rem;
-    font-size: clamp(1.75rem, 3vw, 2.25rem);
-    font-weight: 600;
-    line-height: 1.15;
-    letter-spacing: -0.03em;
 }
 
 .diagram_navigation {
