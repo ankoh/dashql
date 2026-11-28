@@ -52,7 +52,7 @@ describe('HandleTable', () => {
 });
 
 describe('The tables of the platform', () => {
-    it('drops a table that streams or builds when its handle is released before it finished', () => {
+    it('drops a table that streams when its handle is released before it finished', () => {
         const handles = new HandleTable();
         const tables = createRuntimeTables(handles);
         const ipc = arrow.tableToIPC(arrow.tableFromArrays({ n: Int32Array.from([1, 2]) }), 'stream');
@@ -60,13 +60,11 @@ describe('The tables of the platform', () => {
         const streamed = tables.open();
         tables.push(streamed, ipc.subarray(0, 16));
         expect(tables.stream(streamed)).not.toBeNull();
-        const built = tables.begin(ipc);
-        expect(handles.size).toBe(2);
+        expect(handles.size).toBe(1);
         handles.release(streamed);
-        handles.release(built);
         expect(handles.size).toBe(0);
         expect(tables.stream(streamed)).toBeNull();
-        expect(() => tables.append(built, ipc)).toThrow();
+        expect(() => tables.finish(streamed)).toThrow();
     });
 
     it('describes a finished table by its rows and its schema, the rows stay with the host', () => {

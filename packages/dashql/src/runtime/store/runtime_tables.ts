@@ -5,22 +5,16 @@ import type { HandleTable } from './handles.js';
 import { QueryResultStream } from '../query/query_result_stream.js';
 
 /// The Arrow tables of the platform by handle (docs/design/dashql_runtime.md): result data never enters the module, a
-/// table is an object of the handle table. A table begins with an Arrow IPC stream, its schema and maybe batches, takes
-/// the batches of more streams and is a table of the handle table once it finished. The result of a query streams into
-/// a table that was opened: the parts of one Arrow IPC stream as they arrive, or the record batches of a channel of the
-/// host (`stream`). The runtime reads the small tables that it parses back as Arrow IPC streams, of the others it
+/// table is an object of the handle table. A table streams into a table that was opened: the parts of one Arrow IPC
+/// stream as they arrive, or the record batches of a channel of the host (`stream`), and is a table of the handle table
+/// once it finished. The runtime reads the small tables that it parses back as Arrow IPC streams, of the others it
 /// learns the rows and the schema (`describe`).
 ///
-/// A table that didn't finish is the object of its handle as well, a builder or a stream that `finish` replaces with
-/// the table: a release of the handle, e.g. of the result of a cancelled query, drops what it holds.
+/// A table that didn't finish is the object of its handle as well, a stream that `finish` replaces with the table: a
+/// release of the handle, e.g. of the result of a cancelled query, drops what it holds.
 export interface PlatformTables extends core.RuntimeTables {
     /// The stream of a table that was opened and didn't finish, a channel of the host pushes its batches into it
     stream(table: number): QueryResultStream | null;
-}
-
-/// A table that began and didn't finish: its schema and its batches
-class TableBuilder {
-    constructor(public readonly schema: arrow.Schema, public readonly batches: arrow.RecordBatch[], public bytes: number) { }
 }
 
 /// A table that streams and didn't finish
@@ -36,12 +30,6 @@ function schemaIPC(schema: arrow.Schema): Uint8Array {
 }
 
 export function createRuntimeTables(handles: HandleTable): PlatformTables {
-    const read = (ipc: Uint8Array) => arrow.tableFromIPC(new Uint8Array(ipc));
-    const builderOf = (handle: number) => {
-        const builder = handles.get<unknown>(handle);
-        if (!(builder instanceof TableBuilder)) throw new Error(`the table ${handle} did not begin`);
-        return builder;
-    };
     const streamOf = (handle: number) => {
         const stream = handles.get<unknown>(handle);
         return stream instanceof TableStream ? stream : null;
@@ -52,15 +40,6 @@ export function createRuntimeTables(handles: HandleTable): PlatformTables {
         return table;
     };
     return {
-        begin: ipc => {
-            const table = read(ipc);
-            return handles.register(new TableBuilder(table.schema, [...table.batches], ipc.byteLength));
-        },
-        append: (handle, ipc) => {
-            const builder = builderOf(handle);
-            builder.batches.push(...read(ipc).batches);
-            builder.bytes += ipc.byteLength;
-        },
         open: () => handles.register(new TableStream()),
         push: (handle, part) => {
             const stream = streamOf(handle);
@@ -71,15 +50,10 @@ export function createRuntimeTables(handles: HandleTable): PlatformTables {
         stream: handle => streamOf(handle)?.stream ?? null,
         finish: handle => {
             const stream = streamOf(handle);
-            if (stream != null) {
-                const finished = stream.stream.finish();
-                handles.set(handle, finished);
-                return { rows: finished.numRows, bytes: stream.bytes, columns: finished.numCols, batches: finished.batches.length };
-            }
-            const builder = builderOf(handle);
-            const finished = new arrow.Table(builder.schema, builder.batches);
+            if (stream == null) throw new Error(`the table ${handle} was not opened`);
+            const finished = stream.stream.finish();
             handles.set(handle, finished);
-            return { rows: finished.numRows, bytes: builder.bytes, columns: finished.numCols, batches: finished.batches.length };
+            return { rows: finished.numRows, bytes: stream.bytes, columns: finished.numCols, batches: finished.batches.length };
         },
         read: handle => arrow.tableToIPC(tableOf(handle), 'stream'),
         describe: handle => {

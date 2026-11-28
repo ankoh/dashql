@@ -33,8 +33,6 @@ function platform() {
             },
         },
         tables: {
-            begin: () => { throw new Error('no tables'); },
-            append: () => { throw new Error('no tables'); },
             finish: () => { throw new Error('no tables'); },
             read: () => { throw new Error('no tables'); },
             describe: () => { throw new Error('no tables'); },

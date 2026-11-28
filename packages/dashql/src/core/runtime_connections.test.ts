@@ -54,8 +54,6 @@ class TestPlatform {
             duplicate: handle => this.register(this.objects.get(handle)),
         },
         tables: {
-            begin: () => { throw new Error('no tables'); },
-            append: () => { throw new Error('no tables'); },
             open: () => {
                 const handle = this.register(null);
                 this.parts.set(handle, []);

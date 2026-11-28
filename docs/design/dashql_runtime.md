@@ -138,7 +138,7 @@ declared in `packages/dashql-core-bindings/src/host.rs`) from the members above,
 |---|---|---|
 | `clock`, `log` | Time, timers, the log | `runtime.ts` |
 | `handles` | The handle table: `register`, `get`, `duplicate`, `release`, `close`, `abort` | `store/handles.ts` |
-| `tables` | Arrow tables by handle: `open`, `push`, `finish` of a streamed result, `begin`, `append`, `read`, `describe` | `store/runtime_tables.ts` |
+| `tables` | Arrow tables by handle: `open`, `push`, `finish` of a streamed table, `read`, `describe` | `store/runtime_tables.ts` |
 | `compute` | The compute database: import a table by handle, create a table from a SELECT, query into Arrow IPC or into a table, drop, cancel a run | `compute_platform.ts` |
 | `http` | `fetch` and `abort` by id | `platform_requests.ts` |
 | `channels` | `connect` a setup's channel of the host, `hyperLinkToken`, and the queries of host channels: `describe` (keeps a record of the query until `forget`), `open`, `next`, `cancel` (also of a query that `open` still opens), `forget` | `query/query_channels.ts` |

@@ -170,7 +170,7 @@ export function testPlatform(storage: MemoryStorage = new MemoryStorage()): { pl
                 return next++;
             },
         },
-        tables: { begin: none, append: none, finish: none, read: none, open: none, push: none },
+        tables: { finish: none, read: none, open: none, push: none },
         compute: null,
         http: { fetch: () => Promise.reject(new Error('no http')), abort: () => { } },
         channels: {

@@ -309,10 +309,6 @@ export interface RuntimeHandles {
 
 /** The Arrow tables of the host by handle */
 export interface RuntimeTables {
-    /** Begin a table with an Arrow IPC stream, its schema and maybe batches, returns its handle */
-    begin(ipc: Uint8Array): number;
-    /** Append the batches of an Arrow IPC stream to a table that began */
-    append(table: number, ipc: Uint8Array): void;
     /** Open a table that streams in parts of one Arrow IPC stream, a message may span parts. A channel of the host pushes its batches into it. */
     open(): number;
     /** Push the next part of the Arrow IPC stream of a table that was opened */
@@ -1577,8 +1573,9 @@ impl ComputeHost for JsPlatform {
 
     fn register_table(&self, ipc: &[u8]) -> Result<Handle, HostError> {
         let tables = self.member("tables")?;
-        let table = call(&tables, "begin", &[Uint8Array::from(ipc).into()])?;
+        let table = call(&tables, "open", &[])?;
         let handle = as_handle(&table).ok_or_else(|| HostError::new("the tables returned no handle"))?;
+        call(&tables, "push", &[table.clone(), Uint8Array::from(ipc).into()])?;
         call(&tables, "finish", &[table])?;
         Ok(handle)
     }
