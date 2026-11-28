@@ -306,20 +306,6 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
             if (update == null) {
                 throw new Error('the editor event targets a session that the script no longer holds');
             }
-            console.debug(`${LOG_PREFIX} applied CodeMirror transaction`, {
-                scriptKey: state.scriptKey,
-                docChanged: transaction.docChanged,
-                selectionChanged,
-                expectedTextVersion,
-                resultTextVersion: update.textVersion,
-                resultStateRevision: update.stateRevision,
-                status: update.status,
-                statusMessage: update.statusMessage,
-                analysisAvailable: update.analysisAvailable,
-                analysisUpdated: update.analysisUpdated,
-                documentLength: transaction.newDoc.length,
-                cursorOffset: selection,
-            });
             if (update.status !== dashql.buffers.editor.EditorUpdateStatus.OK) {
                 console.error(`${LOG_PREFIX} native editor workbook rejected CodeMirror transaction`, {
                     scriptKey: state.scriptKey,
@@ -353,14 +339,6 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
         // It's the responsibility of the user to persist anything here and cleanup whatever is now dead.
         // We cannot do that on behalf of the user since CodeMirror lacks "destroy" lifecycle hooks.
         if (prevState !== state && !externalUpdate) {
-            console.debug(`${LOG_PREFIX} emitting processor update`, {
-                scriptKey: state.scriptKey,
-                textVersion: state.editorUpdate?.textVersion,
-                stateRevision: state.editorUpdate?.stateRevision,
-                analysisAvailable: state.editorUpdate?.analysisAvailable,
-                analysisUpdated: state.editorUpdate?.analysisUpdated,
-                cursorOffset: state.editorUpdate?.primaryCursorState?.textOffset?.toString(),
-            });
             state.onUpdate(state);
         }
         return state;

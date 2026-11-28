@@ -178,16 +178,6 @@ export function createScannerHighlightPlugin(
                 this.decorations = this.lastUpdate
                     ? buildDecorationsForRanges(view.state, this.lastUpdate, view.visibleRanges)
                     : Decoration.none;
-                console.debug('[workbook-editor-debug] initialized syntax highlighting', {
-                    hasProjection: this.lastUpdate != null,
-                    textVersion: this.lastUpdate?.textVersion,
-                    stateRevision: this.lastUpdate?.stateRevision,
-                    syntaxSpanCount: this.lastUpdate?.syntaxSpans.length ?? 0,
-                    semanticSpanCount: this.lastUpdate?.semanticSpans.length ?? 0,
-                    visibleRanges: view.visibleRanges.map(range => `${range.from}-${range.to}`).join(','),
-                    documentLength: view.state.doc.length,
-                    decorationCount: this.decorations.size,
-                });
             }
             update(u: ViewUpdate) {
                 const update = getUpdate(u.view);
@@ -199,19 +189,6 @@ export function createScannerHighlightPlugin(
                     this.decorations = update
                         ? buildDecorationsForRanges(u.view.state, update, u.view.visibleRanges)
                         : Decoration.none;
-                    console.debug('[workbook-editor-debug] rebuilt syntax highlighting', {
-                        hasProjection: update != null,
-                        projectionChanged,
-                        viewportChanged: u.viewportChanged,
-                        docChanged: u.docChanged,
-                        textVersion: update?.textVersion,
-                        stateRevision: update?.stateRevision,
-                        syntaxSpanCount: update?.syntaxSpans.length ?? 0,
-                        semanticSpanCount: update?.semanticSpans.length ?? 0,
-                        visibleRanges: u.view.visibleRanges.map(range => `${range.from}-${range.to}`).join(','),
-                        documentLength: u.view.state.doc.length,
-                        decorationCount: this.decorations.size,
-                    });
                 }
             }
         },
