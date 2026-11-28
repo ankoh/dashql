@@ -27,7 +27,8 @@ start with `packages/` or `extensions/`.
   `design/workbook_graph_execution.md`, `design/workbook_results.md` (stored results of the scripts),
   `wip/result_windows.md` (results out of the JavaScript heap, the grid reads windows)
 - Core and runtime: `design/dashql_core.md` (the Rust crates, the core module, the host, the rules),
-  `design/dashql_runtime.md` (`@akohn/dashql`, views, dispatch, where tests go, perf marks)
+  `design/dashql_runtime.md` (`@akohn/dashql`, views, dispatch, where tests go, perf marks),
+  `packages/dashql/test/browser/README.md` (the browser tests of the bindings)
 - Workbooks: `design/workbook_inputs.md` (`@param`), `design/vis_comments.md` (`@vis`, `@board`, `@flow`),
   `design/workbook_tables.md` (`.dashql` files, links), `design/workbook_publishing.md` (static hosts),
   `design/cloud.md` (published workbooks in a connection), `design/storage_layout.md` (OPFS, Node, migrations),
@@ -43,8 +44,8 @@ start with `packages/` or `extensions/`.
 - hyperdb-edge: `wip/hyperdb_edge.md`, `wip/hyperdb_edge_stores.md`
 - Website: `agents/architecture_diagrams.md` (the style of the architecture diagrams of dashql.org, for new ones)
 - Hosts and embeds: `design/electron.md` (desktop app), `design/app_csp.md`, `design/document_isolation_policy.md`,
-  `wip/embeds.md`, `design/slack_app.md`, `packages/dashql-mcp/README.md`, `design/tools.md` (pages of their own at
-  `tools.html#/<id>`, e.g. unpacker)
+  `wip/embeds.md`, `design/slack_app.md` (deploy: `packages/dashql-slack/README.md`), `packages/dashql-mcp/README.md`,
+  `design/tools.md` (pages of their own at `tools.html#/<id>`, e.g. unpacker)
 
 ## Third-party notices
 
