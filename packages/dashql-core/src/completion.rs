@@ -1648,99 +1648,76 @@ impl<'c, 'a> Completion<'c, 'a> {
         let Some(analyzed) = self.analyzed() else { return };
         let (Some(scanned), Some(target)) = (cursor.script.scanned, self.target_symbol) else { return };
 
-        // A recovered `alias.` context without a column ref node: resolve the alias in the scopes
-        if let CursorContext::AliasDot = cursor.context {
-            let Some(location) = cursor.scanner_location else { return };
-            let Some(dot) = ScriptCursor::dot_symbol(&location, &target) else { return };
-            let (alias_begin, alias_end) =
-                crate::cursor::qualifier_before(&scanned.text, dot.symbol.location.offset as usize);
-            let alias_text = scanned.text.get(alias_begin..alias_end).unwrap_or("");
-            // The qualifier is sealed, only the text after the dot is replaced
-            let replace_at = SymbolSpan::new(cursor.text_offset as u32, 0);
-            let qualified_at = SymbolSpan::new(alias_begin as u32, (cursor.text_offset - alias_begin) as u32);
-            let tags = CandidateTag::DOT_RESOLUTION_COLUMN.0 | CandidateTag::IN_NAME_SCOPE.0;
-            let names: Vec<Arc<str>> = match Self::find_qualified_relation(analyzed, cursor, alias_text) {
-                Some(QualifiedRelation::Source(source)) => match &source.table {
-                    ReferencedTable::Table(loc) => self
-                        .table(*loc)
-                        .map(|t| {
-                            let names = t.table_columns.iter().map(|c| &c.column_name);
-                            let names = source.column_aliases.iter().chain(names.skip(source.column_aliases.len()));
-                            names.map(|n| n.text.clone()).collect()
-                        })
-                        .unwrap_or_default(),
-                    ReferencedTable::Cte(_) | ReferencedTable::Subquery(_) => Self::derived_columns(analyzed, source),
-                    ReferencedTable::Unresolved(_) => Vec::new(),
-                },
-                Some(QualifiedRelation::Join(join)) => Self::join_columns(join),
-                None => Vec::new(),
-            };
-            for name in names {
-                self.add_local_candidate(&name, NameTag::COLUMN_NAME.0, tags, &[], replace_at, qualified_at);
-            }
-            return;
-        }
-
-        let cursor_location = target.text_offset;
-        let mut name_path_loc = SymbolSpan::default();
-        let name_path = cursor.read_cursor_name_path(&mut name_path_loc);
-        let resolve = |span: SymbolSpan| resolve_text_span(&scanned.text, &scanned.symbols, span);
-
-        // Count the names and the sealed names before the cursor
-        let mut name_count = 0;
-        let mut sealed = 0;
-        let mut last_text_prefix: &[u8] = &[];
-        let name_path_ts = resolve(name_path_loc);
-        let mut truncate_at = name_path_ts.offset + name_path_ts.length;
-        // Is the cursor before the name after a dot and whitespace? `sch.| set a = 1` reads `sch.set`.
-        let mut before_name = false;
-        for component in &name_path {
-            let comp_ts = resolve(component.loc);
-            if component.component_type == NameComponentType::TrailingDot {
-                truncate_at = comp_ts.offset + 1;
-                break;
-            }
-            if component.component_type != NameComponentType::Name {
-                truncate_at = comp_ts.offset;
-                break;
-            }
-            if comp_ts.offset + comp_ts.length < cursor_location {
-                sealed += 1;
-            } else if comp_ts.offset > cursor_location {
-                // The name is no part of what the cursor completes, insert at the cursor
-                before_name = true;
-                break;
+        // The sealed names before the cursor, the text after the last dot that filters the candidates, and the text
+        // ranges that a candidate and a qualified candidate replace
+        let (names, last_text_prefix, replace_text_at, name_path_text_loc) =
+            if cursor.context == CursorContext::AliasDot {
+                // A recovered `alias.` without a column ref node: the qualifier is sealed, the text after the dot replaced
+                let Some((qualifier, name)) = cursor.dot_qualifier() else { return };
+                let begin = qualifier.location.offset;
+                let end = (cursor.text_offset as u32).max(begin);
+                (vec![name], &[][..], SymbolSpan::new(end, 0), SymbolSpan::new(begin, end - begin))
             } else {
-                // The cursor points into a name, complete the text left of the cursor
-                let last_text = self.text_at(comp_ts.offset, comp_ts.length);
-                let last_content = last_text.iter().position(|&c| c != b'"').unwrap_or(last_text.len());
-                let last_content_ofs = comp_ts.offset as usize + last_content;
-                let prefix_length = (cursor_location as usize).max(last_content_ofs) - last_content_ofs;
-                let end = (last_content + prefix_length).min(last_text.len());
-                last_text_prefix = last_text.get(last_content..end).unwrap_or_default();
-                truncate_at = comp_ts.offset;
-                break;
-            }
-            name_count += 1;
-        }
-        let name_path = name_path.get(..name_count).unwrap_or_default();
+                let cursor_location = target.text_offset;
+                let mut name_path_loc = SymbolSpan::default();
+                let name_path = cursor.read_cursor_name_path(&mut name_path_loc);
+                let resolve = |span: SymbolSpan| resolve_text_span(&scanned.text, &scanned.symbols, span);
 
-        // The text ranges to replace
-        let script_length = scanned.text.len() as u32;
-        let mut name_path_end = (name_path_ts.offset + name_path_ts.length).min(script_length);
-        if before_name {
-            truncate_at = cursor_location;
-            name_path_end = cursor_location.max(name_path_ts.offset);
-        }
-        let replace_text_at = SymbolSpan::new(truncate_at, name_path_end.max(truncate_at) - truncate_at);
-        let name_path_text_loc =
-            SymbolSpan::new(name_path_ts.offset, name_path_end.max(name_path_ts.offset) - name_path_ts.offset);
-        if name_path.is_empty() {
+                // Count the sealed names before the cursor
+                let mut sealed = 0;
+                let mut last_text_prefix: &[u8] = &[];
+                let name_path_ts = resolve(name_path_loc);
+                let mut truncate_at = name_path_ts.offset + name_path_ts.length;
+                // Is the cursor before the name after a dot and whitespace? `sch.| set a = 1` reads `sch.set`.
+                let mut before_name = false;
+                for component in &name_path {
+                    let comp_ts = resolve(component.loc);
+                    if component.component_type == NameComponentType::TrailingDot {
+                        truncate_at = comp_ts.offset + 1;
+                        break;
+                    }
+                    if component.component_type != NameComponentType::Name {
+                        truncate_at = comp_ts.offset;
+                        break;
+                    }
+                    if comp_ts.offset + comp_ts.length < cursor_location {
+                        sealed += 1;
+                    } else if comp_ts.offset > cursor_location {
+                        // The name is no part of what the cursor completes, insert at the cursor
+                        before_name = true;
+                        break;
+                    } else {
+                        // The cursor points into a name, complete the text left of the cursor
+                        let last_text = self.text_at(comp_ts.offset, comp_ts.length);
+                        let last_content = last_text.iter().position(|&c| c != b'"').unwrap_or(last_text.len());
+                        let last_content_ofs = comp_ts.offset as usize + last_content;
+                        let prefix_length = (cursor_location as usize).max(last_content_ofs) - last_content_ofs;
+                        let end = (last_content + prefix_length).min(last_text.len());
+                        last_text_prefix = last_text.get(last_content..end).unwrap_or_default();
+                        truncate_at = comp_ts.offset;
+                        break;
+                    }
+                }
+
+                // The text ranges to replace
+                let script_length = scanned.text.len() as u32;
+                let mut name_path_end = (name_path_ts.offset + name_path_ts.length).min(script_length);
+                if before_name {
+                    truncate_at = cursor_location;
+                    name_path_end = cursor_location.max(name_path_ts.offset);
+                }
+                let replace_text_at = SymbolSpan::new(truncate_at, name_path_end.max(truncate_at) - truncate_at);
+                let name_path_text_loc =
+                    SymbolSpan::new(name_path_ts.offset, name_path_end.max(name_path_ts.offset) - name_path_ts.offset);
+                let names: Vec<&str> =
+                    name_path.iter().take(sealed).map(|c| c.name.map_or("", |name| analyzed.name_text(name))).collect();
+                (names, last_text_prefix, replace_text_at, name_path_text_loc)
+            };
+        let sealed = names.len();
+        if sealed == 0 {
             return;
         }
-
-        let name_text =
-            |i: usize| -> &str { name_path.get(i).and_then(|c| c.name).map_or("", |name| analyzed.name_text(name)) };
+        let name_text = |i: usize| -> &str { names.get(i).copied().unwrap_or("") };
         let mut dot_candidates: Vec<DotCandidate> = Vec::new();
         match cursor.context {
             CursorContext::TableRef { .. } => match sealed {
@@ -1973,11 +1950,6 @@ impl<'c, 'a> Completion<'c, 'a> {
             }
         }
         None
-    }
-
-    /// The column names of an aliased join
-    fn join_columns(join: &ScopeJoin) -> Vec<Arc<str>> {
-        join.columns.iter().map(|c| c.column.column_name.text.clone()).filter(|n| !n.is_empty()).collect()
     }
 
     /// A table column as the candidate of a dot, with a name that a column alias may give it

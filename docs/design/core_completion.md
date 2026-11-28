@@ -92,6 +92,7 @@ When dot-completion is active, the engine restricts candidates to those reachabl
 Each component is classified as `Name`, `Star`, `TrailingDot`, or `Index`.
 The engine determines how many components are *sealed* (fully typed, before a dot) and uses the sealed prefix to resolve the dot context.
 A keyword after a dot and whitespace continues the name, so `update sch. set a = 1` reads `sch.set`: a name that begins after the cursor is no part of the completion, the candidates are inserted at the cursor and the name stays.
+An `AliasDot` has no name path node: its one sealed name is the scanner symbol before the dot (`ScriptCursor::dot_qualifier`), folded like the names of the scopes (`O.` is `o`, `"O".` stays `O`), and it is resolved like the one sealed name of a column ref.
 
 ## Completion strategies
 

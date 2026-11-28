@@ -1208,22 +1208,43 @@ completion-snapshots:
       entries:
         - value: a
           name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,IN_NAME_SCOPE]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: ""
           location-qualified: "q."
-          objects: []
+          objects:
+            - type: column
+              id: "256.65536.1:0.0"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: q.a
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "integer · t"
         - value: b
           name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,IN_NAME_SCOPE]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: ""
           location-qualified: "q."
-          objects: []
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: q.b
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "integer · t"
         - value: name
           name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,IN_NAME_SCOPE]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: ""
           location-qualified: "q."
-          objects: []
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: q.name
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "text · t"
       text: "."
 
   - name: aliasdot_table_column_aliases
@@ -1255,22 +1276,43 @@ completion-snapshots:
       entries:
         - value: b
           name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,IN_NAME_SCOPE]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: ""
           location-qualified: "q."
-          objects: []
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: q.b
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "integer · t"
         - value: name
           name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,IN_NAME_SCOPE]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: ""
           location-qualified: "q."
-          objects: []
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: q.name
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "text · t"
         - value: p
           name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,IN_NAME_SCOPE]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: ""
           location-qualified: "q."
-          objects: []
+          objects:
+            - type: column
+              id: "256.65536.1:0.0"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: q.p
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "integer · t"
       text: "."
 
   - name: aliasdot_join
@@ -1303,28 +1345,56 @@ completion-snapshots:
       entries:
         - value: a
           name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,IN_NAME_SCOPE]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: ""
           location-qualified: "j."
-          objects: []
+          objects:
+            - type: column
+              id: "256.65536.1:0.0"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: j.a
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "integer · t"
         - value: b
           name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,IN_NAME_SCOPE]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: ""
           location-qualified: "j."
-          objects: []
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: j.b
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "integer · t"
         - value: c
           name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,IN_NAME_SCOPE]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: ""
           location-qualified: "j."
-          objects: []
+          objects:
+            - type: column
+              id: "256.65536.1:1.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: j.c
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "integer · u"
         - value: name
           name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,IN_NAME_SCOPE]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: ""
           location-qualified: "j."
-          objects: []
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: j.name
+              qualified-idx: 1
+              prefer-qualified: 1
+              detail: "text · t"
       text: "."
 
   - name: aliasdot_subquery

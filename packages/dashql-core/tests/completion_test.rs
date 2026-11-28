@@ -145,8 +145,30 @@ fn dot_completion_before_later_cte_lines() {
     assert!(matches!(cursor.context, dashql_core::cursor::CursorContext::AliasDot));
 
     let completion = Script::complete_at_cursor(&cursor, 50).unwrap();
-    assert!(find_candidate(&completion, "event_id").is_some());
-    assert!(find_candidate(&completion, "processed_rows").is_some());
+    // The columns of the table carry their catalog objects, like those of a column ref
+    for name in ["event_id", "processed_rows"] {
+        let candidate = find_candidate(&completion, name).unwrap_or_else(|| panic!("{name}"));
+        assert!(!candidate.catalog_objects.is_empty(), "{name}");
+    }
+}
+
+#[test]
+fn dot_completion_after_recovery_folds_the_qualifier() {
+    let mut catalog = Catalog::new();
+    let _schema = load_schema(&mut catalog, "CREATE TABLE events(event_id BIGINT, processed_rows BIGINT);");
+
+    // The qualifier is read like the scanner reads the alias: `Q` is `q`, `"Q"` stays `Q`
+    for (alias, qualifier) in [("q", "Q."), ("\"Q\"", "\"Q\"."), ("Q", "q.")] {
+        let text = format!("with foo as (\nselect * from events {alias} where {qualifier}\n\n) ");
+        let mut script = analyze(&catalog, &text);
+        let cursor_offset = text.find(&format!("{qualifier}\n")).unwrap() + qualifier.len();
+        let cursor = script.move_cursor(&catalog, cursor_offset);
+        assert!(matches!(cursor.context, dashql_core::cursor::CursorContext::AliasDot), "{alias} {qualifier}");
+
+        let completion = Script::complete_at_cursor(&cursor, 50).unwrap();
+        assert!(find_candidate(&completion, "event_id").is_some(), "{alias} {qualifier}");
+        assert!(find_candidate(&completion, "processed_rows").is_some(), "{alias} {qualifier}");
+    }
 }
 
 #[test]

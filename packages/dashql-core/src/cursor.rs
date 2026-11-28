@@ -8,7 +8,7 @@ use dashql_buffers::parser::{NodeType, SymbolSpan};
 use dashql_parser::names::NameId;
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::parser::ParsedScript;
-use dashql_parser::scanner::{ScannedScript, Symbol};
+use dashql_parser::scanner::{ScannedScript, Symbol, SymbolValue};
 use dashql_parser::symbol_kind::*;
 use std::sync::Arc;
 
@@ -366,12 +366,20 @@ impl<'a> ScriptCursor<'a> {
         }
     }
 
-    /// The dot symbol at or before the cursor
-    pub fn dot_symbol(location: &LocationInfo, current: &SymbolLocation) -> Option<SymbolLocation> {
-        if current.is_dot() || current.is_trailing_dot() {
-            return Some(*current);
-        }
-        location.previous.filter(|p| p.is_dot() || p.is_trailing_dot())
+    /// The name before the dot at or before the cursor, `o` of `o.`, with its symbol. The scanner folds the name like
+    /// the names of the scopes: `O.` is `o`, `"O".` is `O`.
+    pub fn dot_qualifier(&self) -> Option<(Symbol, &'a str)> {
+        let (location, scanned) = (self.scanner_location?, self.script.scanned?);
+        let is_dot = |s: &SymbolLocation| s.is_dot() || s.is_trailing_dot();
+        let dot = Some(location.current).filter(is_dot).or(location.previous.filter(is_dot))?;
+        let symbol = *scanned.symbols.get(dot.symbol_id.checked_sub(1)? as usize)?;
+        let name = match symbol.value {
+            SymbolValue::Name(name) => scanned.names.get(name).text.as_str(),
+            // A keyword that names a relation
+            SymbolValue::Text(keyword) => keyword,
+            SymbolValue::None => return None,
+        };
+        Some((symbol, name))
     }
 
     /// In incomplete SQL, the parser can omit the column ref node of `alias.` although name
@@ -380,14 +388,8 @@ impl<'a> ScriptCursor<'a> {
         if self.context != CursorContext::None {
             return;
         }
-        let (Some(location), Some(analyzed), Some(scanned)) =
-            (self.scanner_location, self.script.analyzed, self.script.scanned)
-        else {
-            return;
-        };
-        let Some(dot) = Self::dot_symbol(&location, &location.current) else { return };
-        let qualifier = qualifier_before(&scanned.text, dot.symbol.location.offset as usize);
-        let qualifier_text = scanned.text.get(qualifier.0..qualifier.1).unwrap_or("");
+        let (Some(analyzed), Some(scanned)) = (self.script.analyzed, self.script.scanned) else { return };
+        let Some((_, qualifier_text)) = self.dot_qualifier() else { return };
 
         let mut best_scope = None;
         for &scope in &self.name_scopes {
@@ -466,15 +468,4 @@ impl<'a> ScriptCursor<'a> {
         }
         components
     }
-}
-
-/// The identifier before a dot at a byte offset: skips dots, then takes `[A-Za-z0-9_]*`.
-/// Returns the byte range.
-pub fn qualifier_before(text: &str, dot_offset: usize) -> (usize, usize) {
-    let bytes = text.as_bytes();
-    let head = bytes.get(..dot_offset.min(bytes.len())).unwrap_or_default();
-    let dots = head.iter().rev().take_while(|&&b| b == b'.').count();
-    let identifier = head.iter().rev().skip(dots).take_while(|&&b| b.is_ascii_alphanumeric() || b == b'_').count();
-    let end = head.len() - dots;
-    (end - identifier, end)
 }
