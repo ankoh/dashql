@@ -1,11 +1,10 @@
 import * as React from 'react';
 
 import {
-    getQueryTarget,
+    getQuerySourceName,
     QueryHistoryViewer,
     type QueryEntry,
 } from '@akohn/dashql-react/components/query_history_viewer';
-import { QueryType } from '@akohn/dashql/platform/query/query_execution_state';
 import { useAllQueries, useConnections } from '@akohn/dashql-react/hooks';
 import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 
@@ -16,22 +15,13 @@ export function QueryViewer(props: {
     const queries = useAllQueries();
     const entries = React.useMemo(() => {
         const next: QueryEntry[] = [];
-        for (const [connectionId, conn] of connections) {
+        for (const conn of connections.values()) {
             const connectorName = connectorInfoOf(conn).names.displayShort;
             for (const queryIds of [conn.queriesFinishedOrdered, conn.queriesActiveOrdered]) {
                 for (const queryId of queryIds) {
                     const query = queries.get(queryId);
                     if (query == null) continue;
-                    const sourceName = query.queryMetadata.queryType == QueryType.INTERNAL_SQLFRAME
-                        ? 'SQLFrame'
-                        : connectorName;
-                    next.push({
-                        connectionId,
-                        sourceName,
-                        target: getQueryTarget(query),
-                        queryId,
-                        query,
-                    });
+                    next.push({ sourceName: getQuerySourceName(query, connectorName), query });
                 }
             }
         }

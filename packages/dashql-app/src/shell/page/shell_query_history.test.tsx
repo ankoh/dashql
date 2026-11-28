@@ -7,7 +7,6 @@ import { QueryType, type QueryExecutionState } from '@akohn/dashql/platform/quer
 import { newDefaultHyperWasmConnection } from '@akohn/dashql/platform/connections/connection_params';
 import {
     SHELL_CONNECTION_ID,
-    SHELL_DATABASE_ID,
     ShellQueryHistoryProvider,
     shellQueryEntries,
     useShellQueries,
@@ -79,7 +78,7 @@ describe('ShellQueryHistoryProvider', () => {
         await vi.waitFor(() => expect(queries).toHaveLength(1));
         const entries = shellQueryEntries(queries);
         expect(entries).toHaveLength(1);
-        expect(entries[0]).toMatchObject({ connectionId: SHELL_DATABASE_ID, sourceName: 'Hyper', queryId: queries[0].queryId });
+        expect(entries[0]).toMatchObject({ sourceName: 'Hyper', query: queries[0] });
         expect(entries[0].query).toMatchObject({ queryText: 'SELECT 1' });
     });
 });

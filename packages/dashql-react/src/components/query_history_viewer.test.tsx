@@ -58,13 +58,7 @@ describe('QueryHistoryViewer', () => {
 
     it('shows the source, target and title of each query', () => {
         const query = createExecution(QueryType.INTERNAL_SQLFRAME, false);
-        const entries: QueryEntry[] = [{
-            connectionId: 'shell',
-            sourceName: 'Hyper',
-            target: QueryTarget.MEMORY,
-            queryId: query.queryId,
-            query,
-        }];
+        const entries: QueryEntry[] = [{ sourceName: 'Hyper', query }];
 
         act(() => root.render(<QueryHistoryViewer entries={entries} onClose={() => {}} dependencies={dependencies} />));
 

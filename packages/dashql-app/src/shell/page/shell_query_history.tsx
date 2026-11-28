@@ -1,11 +1,9 @@
 import * as React from 'react';
 
-import { QueryType, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
-import { getQueryTarget, QueryHistoryViewer, type QueryEntry } from '@akohn/dashql-react/components/query_history_viewer';
+import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
+import { getQuerySourceName, QueryHistoryViewer, type QueryEntry } from '@akohn/dashql-react/components/query_history_viewer';
 import { useAllQueries, useConnection, useRuntime } from '@akohn/dashql-react/hooks';
 
-/// The id under which the queries of the shell are listed
-export const SHELL_DATABASE_ID = 'shell';
 /// The connection of the shell to the embedded Hyper of the page, a connection of the runtime of the shell
 export const SHELL_CONNECTION_ID = 'shell';
 /// The issuer of the queries of the catalog loader, the shell doesn't list them
@@ -47,13 +45,7 @@ export function useShellQueries(): QueryExecutionState[] {
 
 /// The queries of the shell, the shell runs them on its embedded database
 export function shellQueryEntries(queries: readonly QueryExecutionState[]): QueryEntry[] {
-    return queries.map(query => ({
-        connectionId: SHELL_DATABASE_ID,
-        sourceName: query.queryMetadata.queryType == QueryType.INTERNAL_SQLFRAME ? 'SQLFrame' : 'Hyper',
-        target: getQueryTarget(query),
-        queryId: query.queryId,
-        query,
-    }));
+    return queries.map(query => ({ sourceName: getQuerySourceName(query, 'Hyper'), query }));
 }
 
 /// The query history of the shell

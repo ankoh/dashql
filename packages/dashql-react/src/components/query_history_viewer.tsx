@@ -10,7 +10,7 @@ import { AnchoredOverlay } from './anchored_overlay.js';
 import { OverlaySize } from './overlay.js';
 import { AnchorAlignment, AnchorSide } from '../dom/anchored_position.js';
 import { JsonView } from './json/json_view.js';
-import { QueryExecutionState, QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
+import { QueryExecutionState, QueryExecutionStatus, QueryType } from '@akohn/dashql/platform/query/query_execution_state';
 import { useObservedSize } from './size_observer.js';
 import { useKeyEvents } from '../dom/key_events.js';
 import { VerticalScrollShadows } from './vertical_scroll_shadows.js';
@@ -27,11 +27,13 @@ export function getQueryTarget(query: QueryExecutionState): QueryTarget {
     return query.queryMetadata.userProvided ? QueryTarget.CONNECTION : QueryTarget.MEMORY;
 }
 
+/// The name of the source of a query: SQLFrame for the queries of SQLFrame, else the connector
+export function getQuerySourceName(query: QueryExecutionState, connectorName: string): string {
+    return query.queryMetadata.queryType == QueryType.INTERNAL_SQLFRAME ? 'SQLFrame' : connectorName;
+}
+
 export interface QueryEntry {
-    connectionId: string;
     sourceName: string;
-    target: QueryTarget;
-    queryId: number;
     query: QueryExecutionState;
 }
 
@@ -61,7 +63,7 @@ function entryToObject(entry: QueryEntry): object {
         traceId: q.traceId,
         status: QueryExecutionStatus[q.status],
         source: entry.sourceName,
-        target: entry.target,
+        target: getQueryTarget(entry.query),
         queryText: q.queryText,
         metadata: q.queryMetadata,
         metrics: {
@@ -111,7 +113,7 @@ export const QueryRow = (props: RowComponentProps<QueryRowProps>) => {
             <div className={styles.query_row_main}>
                 <div className={styles.query_cell}>{time}</div>
                 <div className={styles.query_cell}>{entry.sourceName}</div>
-                <div className={styles.query_cell}>{entry.target}</div>
+                <div className={styles.query_cell}>{getQueryTarget(entry.query)}</div>
                 <div className={styles.query_cell_status}>{getStatusLabel(entry.query.status)}</div>
                 <div className={styles.query_cell_title} title={entry.query.queryMetadata.title ?? ''}>
                     {entry.query.queryMetadata.title ?? '—'}
