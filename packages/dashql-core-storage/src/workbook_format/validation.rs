@@ -6,6 +6,7 @@ use serde_json::Value;
 
 use crate::workbook_format::data::{WorkbookData, WORKBOOK_FORMAT_VERSION};
 use crate::workbook_format::json::is_truthy;
+use dashql_core_runtime::connections::sharing::descriptor_of_params;
 use dashql_core_runtime::connections::ConnectorType;
 use dashql_core_runtime::hyper::local_cloud::embedded_cloud_databases;
 
@@ -87,15 +88,6 @@ impl WorkbookValidationError {
     }
 }
 
-/// The connector of connection params, by the first key of `hyper`, `salesforce`, `dbcom` and `trino` that they have.
-/// None for anything but an object with one of the keys.
-pub fn connector_of_params(params: &Value) -> Option<ConnectorType> {
-    let object = params.as_object()?;
-    [ConnectorType::Hyper, ConnectorType::SalesforceDataCloud, ConnectorType::Dbcom, ConnectorType::Trino]
-        .into_iter()
-        .find(|connector| object.contains_key(connector.connector().params_key()))
-}
-
 /// Validate the JSON of a workbook file before it is restored: the current format version, a workbook id that is a
 /// UUID and at least one connection with a unique UUID and params of a known connector. A draft must be of the
 /// connector of the params.
@@ -126,11 +118,11 @@ pub fn validate_workbook_json(data: &Value) -> Result<(), WorkbookValidationErro
         let Some(params) = params else {
             return Err(WorkbookValidationError::MissingConnectionParams);
         };
-        let Some(connector) = connector_of_params(params) else {
+        let Some(connector) = descriptor_of_params(params) else {
             return Err(WorkbookValidationError::UnknownConnector);
         };
         if let Some(draft) = connection.get("paramsDraft").filter(|draft| !draft.is_null()) {
-            if connector_of_params(draft) != Some(connector) {
+            if descriptor_of_params(draft) != Some(connector) {
                 return Err(WorkbookValidationError::UnknownConnector);
             }
         }
@@ -183,7 +175,7 @@ pub fn describe_invalid_workbook(
         .unwrap_or(entry_path)
         .to_string();
     let connector_type =
-        data.and_then(|data| data.connections.first()).and_then(|connection| connector_of_params(&connection.params));
+        data.and_then(|data| data.connections.first()).and_then(|connection| descriptor_of_params(&connection.params));
     InvalidWorkbook { workbook_id: entry_path.to_string(), title, connector_type, error }
 }
 
