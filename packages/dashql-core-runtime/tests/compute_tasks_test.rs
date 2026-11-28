@@ -493,7 +493,7 @@ fn data_search_reads_the_matching_rows_ordered_by_row() {
     assert_eq!(plan.query.read_sql.as_deref(), Some("SELECT * FROM \"__df_11\"\nORDER BY \"row_idx\" ASC NULLS LAST"));
 
     // The host keeps the rows that the search matched
-    let result = plan.finish();
+    let result = plan.finish(arrow_table(1, 3));
     assert_eq!(result.input_row_number_column_name, "rownum");
     assert_eq!(result.data_frame, 11);
     assert_eq!(result.version, ComputationVersion::new(1, 2));
@@ -721,7 +721,7 @@ fn system_columns_bin_and_number_the_values_in_the_order_of_the_rows() {
     );
     let ColumnGroup::Ordinal(total) = &plan.column_groups[2] else { panic!("an ordinal column") };
     assert_eq!(total.bin_field_name.as_deref(), Some("_2_bin"));
-    assert_eq!(plan.finish().data_frame, 12);
+    assert_eq!(plan.query.data_frame, 12);
 }
 
 #[test]
@@ -746,7 +746,7 @@ fn table_filtering_lists_the_rows_in_the_order_of_the_input() {
     assert!(sql.contains(r#"FROM "__df_10" WHERE "value" >= 50 AND "_name_id" IN (1, 4)"#), "{sql}");
     assert!(sql.contains(r#"SELECT "_rownum" FROM"#), "{sql}");
     assert_eq!(plan.query.read_sql.as_deref(), Some("SELECT * FROM \"__df_11\"\nORDER BY \"_rownum\" ASC NULLS LAST"));
-    let filter = plan.finish();
+    let filter = plan.finish(arrow_table(2, 5));
     assert_eq!(filter.version, ComputationVersion::new(0, 1));
     assert!(filter.data_frame == 11);
 }
@@ -786,7 +786,7 @@ fn table_ordering_orders_equal_rows_by_their_row_number() {
     assert!(read_sql.starts_with(r#"SELECT "_rownum" FROM "__df_11""#), "{read_sql}");
     assert!(read_sql.contains(r#"ORDER BY "group" DESC NULLS LAST, "_rownum" ASC NULLS LAST"#), "{read_sql}");
     assert!(read_sql.trim_end().ends_with(r#""_rownum" ASC NULLS LAST"#), "{read_sql}");
-    let ordering = plan.finish();
+    let ordering = plan.finish(arrow_table(2, 5));
     assert_eq!(ordering.data_search_request_id, Some(4));
     assert_eq!(ordering.ordering_constraints.len(), 2);
 }

@@ -553,13 +553,7 @@ async fn execute<H: ComputeHost>(
                 return Ok((action, TaskOutput::Filtering(None)));
             };
             let table = run_query_kept(shared, &plan.query, context).await?;
-            let filter = plan.finish();
-            let filter = FilterTable {
-                input_row_number_column_name: filter.input_row_number_column_name,
-                table,
-                data_frame: filter.data_frame,
-                version: filter.version,
-            };
+            let filter = plan.finish(table);
             let action = ComputationAction::TableFilteringSucceeded {
                 table_id,
                 version: task.table_version,
@@ -571,15 +565,7 @@ async fn execute<H: ComputeHost>(
         ComputationTask::TableOrdering(task) => {
             let plan = plan_table_ordering(task, output);
             let table = run_query_kept(shared, &plan.query, context).await?;
-            let ordering = plan.finish();
-            let ordering = OrderingTable {
-                input_row_number_column_name: ordering.input_row_number_column_name,
-                ordering_constraints: ordering.ordering_constraints,
-                table,
-                data_frame: ordering.data_frame,
-                version: ordering.version,
-                data_search_request_id: ordering.data_search_request_id,
-            };
+            let ordering = plan.finish(table);
             let action =
                 ComputationAction::TableOrderingSucceeded { table_id, ordering: ordering.clone(), now: now(shared) };
             Ok((action, TaskOutput::Ordering(ordering)))
@@ -607,14 +593,14 @@ async fn execute<H: ComputeHost>(
             // The filters and the summaries read the system columns in the compute database, nothing reads their rows
             let plan = plan_system_columns(task, &task.input_table.schema, output)?;
             run_create(shared, &plan.query, context).await?;
-            let columns = plan.finish();
+            let data_frame = plan.query.data_frame;
             let action = ComputationAction::SystemColumnsSucceeded {
                 table_id,
-                data_frame: columns.data_frame,
-                column_groups: columns.column_groups.clone(),
+                data_frame,
+                column_groups: plan.column_groups.clone(),
                 now: now(shared),
             };
-            Ok((action, TaskOutput::SystemColumns(columns.data_frame, columns.column_groups)))
+            Ok((action, TaskOutput::SystemColumns(data_frame, plan.column_groups)))
         }
         ComputationTask::ColumnAggregation(task) => {
             let plan = plan_column_aggregation(task, schema, output)?;
@@ -651,14 +637,7 @@ async fn execute<H: ComputeHost>(
             let plan = plan_data_search(task, output);
             let table = run_query_kept(shared, &plan.query, context).await?;
             let matching_rows = table.rows();
-            let search = plan.finish();
-            let table = DataSearchTable {
-                input_row_number_column_name: search.input_row_number_column_name,
-                table,
-                data_frame: search.data_frame,
-                version: search.version,
-                request_id: search.request_id,
-            };
+            let table = plan.finish(table);
             let action = ComputationAction::DataSearchSucceeded {
                 table_id,
                 data_frame: task.input_data_frame,

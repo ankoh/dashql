@@ -40,8 +40,6 @@ enum SummarizedColumn {
 pub struct ColumnAggregationPlan {
     /// The query
     pub query: TaskQuery,
-    /// The column group
-    pub column_id: u32,
     column: SummarizedColumn,
 }
 
@@ -63,37 +61,18 @@ pub struct FilteredColumnAggregationPlan {
 pub enum ColumnAggregateResult {
     /// The histogram of an ordinal column
     Ordinal {
-        /// The column
-        column: OrdinalColumnGroup,
         /// The data frame of the binned values
         data_frame: DataFrameId,
-        /// The binned values ordered by bin, the bin of the nulls last
-        binned_values: ResultTable,
         /// The analysis
         analysis: OrdinalColumnAnalysis,
     },
     /// The frequent values of a string column
     String {
-        /// The column
-        column: StringColumnGroup,
         /// The data frame of the frequent values
         data_frame: DataFrameId,
-        /// The frequent values, most frequent first
-        frequent_values: ResultTable,
         /// The analysis
         analysis: StringColumnAnalysis,
     },
-}
-
-impl ColumnAggregateResult {
-    /// The data frame of the summary
-    pub fn data_frame(&self) -> DataFrameId {
-        match self {
-            ColumnAggregateResult::Ordinal { data_frame, .. } | ColumnAggregateResult::String { data_frame, .. } => {
-                *data_frame
-            }
-        }
-    }
 }
 
 /// The summary of a column over the selected rows
@@ -202,7 +181,7 @@ pub fn plan_column_aggregation(
     let (sql, order) = build_column_aggregation_sql(task, &column, None)?;
     let read = read_data_frame_sql(output, Some(order), None);
     let query = TaskQuery::new("Column aggregation", "Computing column aggregate failed", output, sql, read);
-    Ok(ColumnAggregationPlan { query, column_id: task.column_id, column })
+    Ok(ColumnAggregationPlan { query, column })
 }
 
 /// Plan the summary of a column over the selected rows into a new data frame. The schema is the one of the table.
@@ -217,7 +196,7 @@ pub fn plan_filtered_column_aggregation(
     let query =
         TaskQuery::new("Filtered column aggregation", "Failed to compute filtered column aggregate", output, sql, read);
     Ok(FilteredColumnAggregationPlan {
-        plan: ColumnAggregationPlan { query, column_id: task.column.column_id, column },
+        plan: ColumnAggregationPlan { query, column },
         filter_version: task.column.table_version,
         data_search_request_id: task.data_search_table.as_ref().map(|search| search.request_id),
         selection_row_count: task.selection_row_count,
@@ -232,12 +211,12 @@ impl ColumnAggregationPlan {
             SummarizedColumn::Ordinal(column, data_type) => {
                 let analysis = analyze_ordinal_column(stats, &column, &data_type, &result, selection)
                     .map_err(|e| query.failed(e))?;
-                Ok(ColumnAggregateResult::Ordinal { column, data_frame, binned_values: result, analysis })
+                Ok(ColumnAggregateResult::Ordinal { data_frame, analysis })
             }
             SummarizedColumn::String(column) => {
                 let analysis =
                     analyze_string_column(stats, &column, &result, selection).map_err(|e| query.failed(e))?;
-                Ok(ColumnAggregateResult::String { column, data_frame, frequent_values: result, analysis })
+                Ok(ColumnAggregateResult::String { data_frame, analysis })
             }
         }
     }

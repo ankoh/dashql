@@ -7,7 +7,9 @@ use dashql_core::utils::quote_string_literal;
 use super::result_table::ResultTable;
 use super::{ascending, data_frame_table_name, read_data_frame_sql, TaskQuery};
 use crate::catalog_loader::sql::quote_identifier;
-use crate::compute::types::{ColumnGroup, ComputationVersion, DataFrameId, DataSearchColumn, DataSearchTask};
+use crate::compute::types::{
+    ArrowTable, ColumnGroup, ComputationVersion, DataFrameId, DataSearchColumn, DataSearchTable, DataSearchTask,
+};
 
 /// The row number of a matching row in the result of a data search
 pub const DATA_SEARCH_ROW_FIELD: &str = "row_idx";
@@ -104,20 +106,6 @@ pub struct DataSearchPlan {
     pub request_id: u64,
 }
 
-/// The rows that a data search matched. The host keeps the table of the matched rows that the query read, ordered by
-/// row number with their matching columns, and parses the matching columns of a row itself.
-#[derive(Clone, Debug, PartialEq)]
-pub struct DataSearchResult {
-    /// The row numbers that the table holds
-    pub input_row_number_column_name: String,
-    /// The data frame of the matched rows
-    pub data_frame: DataFrameId,
-    /// The version of the data that was searched
-    pub version: ComputationVersion,
-    /// The search request
-    pub request_id: u64,
-}
-
 /// Plan a data search into a new data frame
 pub fn plan_data_search(task: &DataSearchTask, output: DataFrameId) -> DataSearchPlan {
     let sql = build_data_search_sql(
@@ -136,10 +124,12 @@ pub fn plan_data_search(task: &DataSearchTask, output: DataFrameId) -> DataSearc
 }
 
 impl DataSearchPlan {
-    /// The matched rows
-    pub fn finish(self) -> DataSearchResult {
-        DataSearchResult {
+    /// The matched rows. The host keeps the table of the matched rows that the query read, ordered by row number with
+    /// their matching columns, and parses the matching columns of a row itself.
+    pub fn finish(self, table: ArrowTable) -> DataSearchTable {
+        DataSearchTable {
             input_row_number_column_name: self.row_number_column_name,
+            table,
             data_frame: self.query.data_frame,
             version: self.version,
             request_id: self.request_id,

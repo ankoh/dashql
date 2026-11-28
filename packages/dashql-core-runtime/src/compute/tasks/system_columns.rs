@@ -21,15 +21,6 @@ pub struct SystemColumnsPlan {
     pub column_groups: Vec<ColumnGroup>,
 }
 
-/// The data frame with the system columns
-#[derive(Clone, Debug, PartialEq)]
-pub struct SystemColumnsResult {
-    /// The data frame with the system columns
-    pub data_frame: DataFrameId,
-    /// The column groups that use the system columns
-    pub column_groups: Vec<ColumnGroup>,
-}
-
 /// Plan the system columns of a table into a new data frame. The schema is the one of the table.
 pub fn plan_system_columns(
     task: &SystemColumnsTask,
@@ -92,11 +83,4 @@ pub fn plan_system_columns(
     let (title, failure) = ("System column computation", "Failed to precompute column");
     let query = TaskQuery::unread(title, failure, output, frame.to_sql());
     Ok(SystemColumnsPlan { query, column_groups })
-}
-
-impl SystemColumnsPlan {
-    /// The data frame with the system columns
-    pub fn finish(self) -> SystemColumnsResult {
-        SystemColumnsResult { data_frame: self.query.data_frame, column_groups: self.column_groups }
-    }
 }

@@ -2,7 +2,7 @@
 
 use super::sql::SqlFrame;
 use super::{ascending, data_frame_table_name, read_data_frame_sql, TaskQuery};
-use crate::compute::types::{ComputationVersion, DataFrameId, TableFilteringTask};
+use crate::compute::types::{ArrowTable, ComputationVersion, DataFrameId, FilterTable, TableFilteringTask};
 
 /// The query of a filter
 #[derive(Clone, Debug, PartialEq)]
@@ -12,17 +12,6 @@ pub struct TableFilteringPlan {
     /// The row numbers of the table
     pub row_number_column_name: String,
     /// The version that the filter is computed for
-    pub version: ComputationVersion,
-}
-
-/// The rows that pass the filters, the host keeps their row numbers in the order of the table that the query read
-#[derive(Clone, Debug, PartialEq)]
-pub struct FilterResult {
-    /// The row numbers that the table holds
-    pub input_row_number_column_name: String,
-    /// The data frame of the row numbers
-    pub data_frame: DataFrameId,
-    /// The version that the filter was computed for, the state moved to it when the task was scheduled
     pub version: ComputationVersion,
 }
 
@@ -46,10 +35,11 @@ pub fn plan_table_filtering(task: &TableFilteringTask, output: DataFrameId) -> O
 }
 
 impl TableFilteringPlan {
-    /// The rows that pass
-    pub fn finish(self) -> FilterResult {
-        FilterResult {
+    /// The rows that pass, the host keeps their row numbers in the order of the table that the query read
+    pub fn finish(self, table: ArrowTable) -> FilterTable {
+        FilterTable {
             input_row_number_column_name: self.row_number_column_name,
+            table,
             data_frame: self.query.data_frame,
             version: self.version,
         }
