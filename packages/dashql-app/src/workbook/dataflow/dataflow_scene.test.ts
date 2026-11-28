@@ -316,6 +316,8 @@ describe('dataflow scene', () => {
         expect(fitDataflowScene({ x: 0, y: 0, width: 100, height: 100 }, 1000, 1000)).toEqual({ x: 450, y: 450, scale: 1 });
         const fit = fitDataflowScene({ x: 0, y: 0, width: 2000, height: 100 }, 1064, 600);
         expect(fit.scale).toBe(0.5);
+        // At the least scale a larger scene starts at its top left corner
+        expect(fitDataflowScene({ x: 100, y: 50, width: 4000, height: 3000 }, 1064, 600, 32, 0.6)).toEqual({ x: 32 - 60, y: 32 - 30, scale: 0.6 });
     });
 
     it('moves the canvas as little as possible to show a box above the prompt', () => {

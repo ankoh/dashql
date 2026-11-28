@@ -178,7 +178,9 @@ switch. `src/workbook/dataflow/` holds it:
   workbook stays cheap. Its text keeps 12px on the screen: the zoom writes its scale into `--dataflow_zoom` of the
   scene, the text of a tile is `clamp(12px, 12px / zoom, what fits the box)`, without a render per frame; only the
   crossing of the threshold renders. Above it the boxes draw with their headers, rows and results. A tile of a
-  zoomed out box drags and selects like the header of the box.
+  zoomed out box drags and selects like the header of the box. The full layout fits at most down to `TILE_SCALE`, so
+  the canvas opens with the results in the boxes and only zooming out shows the tiles; a scene larger than the canvas
+  at that scale starts at its top left corner and pans.
 - **A narrow canvas** (narrower than `MEDIUM_WIDTH`, 600px, measured on the canvas, not the window) shows the dense
   layout: every box is a tile from top to bottom, fitted at a scale of at least 0.75 so that the text stays legible,
   a wider layout pans. The layout waits for the width of the canvas, a change between the dense and the full layout

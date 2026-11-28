@@ -347,7 +347,9 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         if (viewport == null || svg == null || behavior == null) return;
         const { x, y, scale } = dense
             ? fitDataflowScene(scene.bounds, viewport.clientWidth, viewport.clientHeight, DENSE_PADDING, DENSE_MIN_SCALE)
-            : fitDataflowScene(scene.bounds, viewport.clientWidth, viewport.clientHeight);
+            // The full boxes fit at most down to the scale of the tiles: the canvas opens with the results in the boxes,
+            // zooming out further shows the tiles
+            : fitDataflowScene(scene.bounds, viewport.clientWidth, viewport.clientHeight, undefined, TILE_SCALE);
         const target = zoomIdentity.translate(x, y).scale(scale);
         if (animate) select(svg).transition().duration(160).call(behavior.transform, target);
         else select(svg).call(behavior.transform, target);

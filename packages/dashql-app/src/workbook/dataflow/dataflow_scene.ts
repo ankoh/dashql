@@ -663,11 +663,13 @@ export function dataflowNeighbors(scene: DataflowScene, node: { scriptKey: numbe
     return { reads, readBy };
 }
 
-/// The transform that fits a scene into a viewport: centered, at most at its real size and at least at `minScale`
+/// The transform that fits a scene into a viewport: centered, at most at its real size and at least at `minScale`, a
+/// scene that is larger at `minScale` from its top left corner
 export function fitDataflowScene(bounds: Rect, viewportWidth: number, viewportHeight: number, padding = 32, minScale = 0.25): { x: number; y: number; scale: number } {
     if (bounds.width <= 0 || bounds.height <= 0) return { x: padding, y: padding, scale: 1 };
     const scale = Math.max(minScale, Math.min(1, (viewportWidth - 2 * padding) / bounds.width, (viewportHeight - 2 * padding) / bounds.height));
-    const x = (viewportWidth - bounds.width * scale) / 2 - bounds.x * scale;
+    // A scene larger than the viewport at the least scale starts at its top left corner, the rest pans into view
+    const x = Math.max(padding, (viewportWidth - bounds.width * scale) / 2) - bounds.x * scale;
     const y = Math.max(padding, (viewportHeight - bounds.height * scale) / 2) - bounds.y * scale;
     return { x, y, scale };
 }
