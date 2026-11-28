@@ -279,6 +279,18 @@ describe('DashQLCompletionListPlugin', () => {
         expect(badgeOf('id')).toBe('OPT');
     });
 
+    it('shows the badge of a CTE, a table without catalog objects', async () => {
+        editorAt('with foo as (select 1 as total) select * from fo', dql.createCatalog(), 'foo');
+        await waitForSelected();
+        expect(badgeOf('foo')).toBe('TBL');
+    });
+
+    it('shows the badge of an output column, a column without catalog objects', async () => {
+        editorAt('select 1 as total order by tot', dql.createCatalog(), 'total');
+        await waitForSelected();
+        expect(badgeOf('total')).toBe('COL');
+    });
+
     it('keeps the badge of a selected table parameter', async () => {
         const registry = dql.createTableParameters();
         editorAt('select * from :sal', dql.createCatalog(), 'sales', session => {

@@ -161,7 +161,7 @@ Each candidate carries a coarse type used for visual identification:
 | ATTACHMENT | :      | Attachment of the session, after the `:` of a table parameter (`script_references.md`) |
 | OPTION     | OPT    | Option or attribute of a client function (`client_functions.md`) |
 
-The type comes from the catalog object of a candidate, the selected one on the selected row. A candidate without objects has only its name tags: the candidates of a client function call carry `SCHEMA_NAME`, `FUNCTION_NAME` or `OPTION_NAME`, and everything else is a keyword.
+The type comes from the catalog object of a candidate, the selected one on the selected row. A candidate without objects has only its name tags: the candidates of a client function call carry `SCHEMA_NAME`, `FUNCTION_NAME` or `OPTION_NAME`, the names of the script (CTEs and aliases, derived and output columns) `TABLE_NAME`, `TABLE_ALIAS` or `COLUMN_NAME`, and everything else is a keyword. The fields of `@vis` tags have no name tags and show as keywords.
 
 ### Name-index candidates
 

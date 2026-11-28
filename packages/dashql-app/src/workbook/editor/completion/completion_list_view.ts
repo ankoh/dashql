@@ -89,6 +89,9 @@ function getCandidateType(
     if (nameTags & dashql.buffers.analyzer.NameTag.FUNCTION_NAME) return CompletionCandidateType.FUNCTION;
     if (nameTags & dashql.buffers.analyzer.NameTag.SCHEMA_NAME) return CompletionCandidateType.SCHEMA;
     if (nameTags & dashql.buffers.analyzer.NameTag.OPTION_NAME) return CompletionCandidateType.OPTION;
+    // The names of the script without catalog objects: CTEs, aliases, derived and output columns
+    if (nameTags & (dashql.buffers.analyzer.NameTag.TABLE_NAME | dashql.buffers.analyzer.NameTag.TABLE_ALIAS)) return CompletionCandidateType.TABLE;
+    if (nameTags & dashql.buffers.analyzer.NameTag.COLUMN_NAME) return CompletionCandidateType.COLUMN;
     return CompletionCandidateType.KEYWORD;
 }
 
