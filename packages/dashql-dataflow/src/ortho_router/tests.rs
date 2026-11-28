@@ -19,6 +19,21 @@ fn router(obstacles: &[Rect]) -> Router {
     Router::new(Options::default()).with_obstacles(obstacles.iter().copied())
 }
 
+/// Routes one connector.
+fn route(router: &mut Router, connector: &Connector) -> Route {
+    router.route_all(std::slice::from_ref(connector)).pop().unwrap_or_default()
+}
+
+/// How many times a route turns.
+fn bends(route: &Route) -> usize {
+    route.points.len().saturating_sub(2)
+}
+
+/// The length of a route.
+fn length(route: &Route) -> f32 {
+    route.points.windows(2).map(|w| (w[1].x - w[0].x).abs() + (w[1].y - w[0].y).abs()).sum()
+}
+
 /// Every segment is horizontal or vertical.
 fn assert_orthogonal(route: &Route) {
     for w in route.points.windows(2) {
@@ -47,20 +62,20 @@ fn assert_clear(route: &Route, obstacles: &[Rect]) {
 fn a_clear_line_is_one_straight_segment() {
     let nodes = [rect(0.0, 0.0, 100.0, 60.0), rect(300.0, 0.0, 100.0, 60.0)];
     let wire = Connector::new(right(100.0, 30.0), left(300.0, 30.0));
-    let route = router(&nodes).route(&wire);
+    let route = route(&mut router(&nodes), &wire);
     assert!(route.routed);
     assert_eq!(route.points, vec![wire.from.at, wire.to.at]);
-    assert_eq!(route.bends(), 0);
-    assert_eq!(route.length(), 200.0);
+    assert_eq!(bends(&route), 0);
+    assert_eq!(length(&route), 200.0);
 }
 
 #[test]
 fn offset_ports_take_two_bends() {
     let nodes = [rect(0.0, 0.0, 100.0, 60.0), rect(300.0, 100.0, 100.0, 60.0)];
     let wire = Connector::new(right(100.0, 30.0), left(300.0, 130.0));
-    let route = router(&nodes).route(&wire);
+    let route = route(&mut router(&nodes), &wire);
     assert!(route.routed);
-    assert_eq!(route.bends(), 2);
+    assert_eq!(bends(&route), 2);
     assert_orthogonal(&route);
     assert_clear(&route, &nodes);
     // Out to the right, in from the left.
@@ -72,11 +87,11 @@ fn offset_ports_take_two_bends() {
 fn a_node_in_the_way_is_gone_around() {
     let nodes = [rect(0.0, 0.0, 100.0, 60.0), rect(400.0, 0.0, 100.0, 60.0), rect(200.0, -40.0, 100.0, 140.0)];
     let wire = Connector::new(right(100.0, 30.0), left(400.0, 30.0));
-    let route = router(&nodes).route(&wire);
+    let route = route(&mut router(&nodes), &wire);
     assert!(route.routed);
     assert_orthogonal(&route);
     assert_clear(&route, &nodes);
-    assert_eq!(route.bends(), 4);
+    assert_eq!(bends(&route), 4);
     // At the margin's distance, above or below the wall.
     let margin = Options::default().margin;
     assert!(route.points.iter().any(|p| p.y == -40.0 - margin || p.y == 100.0 + margin), "{:?}", route.points);
@@ -93,13 +108,13 @@ fn a_corridor_between_two_nodes_is_taken() {
         rect(250.0, 260.0, 100.0, 1000.0),
     ];
     let wire = Connector::new(right(100.0, 30.0), left(600.0, 430.0));
-    let route = router(&nodes).route(&wire);
+    let route = route(&mut router(&nodes), &wire);
     assert!(route.routed);
     assert_orthogonal(&route);
     assert_clear(&route, &nodes);
     let through = route.points.windows(2).any(|w| w[0].y == w[1].y && w[0].y > 200.0 && w[0].y < 260.0);
     assert!(through, "not through the gap: {:?}", route.points);
-    assert!(route.length() < 1200.0);
+    assert!(length(&route) < 1200.0);
 }
 
 #[test]
@@ -108,7 +123,7 @@ fn a_backward_wire_goes_around_its_own_nodes() {
     // left, never through either node.
     let nodes = [rect(300.0, 0.0, 100.0, 60.0), rect(0.0, 0.0, 100.0, 60.0)];
     let wire = Connector::new(right(400.0, 30.0), left(0.0, 30.0));
-    let route = router(&nodes).route(&wire);
+    let route = route(&mut router(&nodes), &wire);
     assert!(route.routed);
     assert_orthogonal(&route);
     assert_clear(&route, &nodes);
@@ -120,7 +135,7 @@ fn a_backward_wire_goes_around_its_own_nodes() {
 fn top_and_bottom_ports_leave_vertically() {
     let nodes = [rect(0.0, 0.0, 100.0, 60.0), rect(0.0, 200.0, 100.0, 60.0)];
     let wire = Connector::new(Port::new([50.0, 60.0], Side::Bottom), Port::new([50.0, 200.0], Side::Top));
-    let route = router(&nodes).route(&wire);
+    let route = route(&mut router(&nodes), &wire);
     assert!(route.routed);
     assert_eq!(route.points, vec![wire.from.at, wire.to.at]);
 }
@@ -138,20 +153,20 @@ fn a_boxed_in_port_falls_back_to_one_elbow() {
         rect(520.0, -60.0, 40.0, 180.0),
     ];
     let wire = Connector::new(right(100.0, 30.0), left(400.0, 50.0));
-    let route = router(&nodes).route(&wire);
+    let route = route(&mut router(&nodes), &wire);
     assert!(!route.routed);
     assert_orthogonal(&route);
     assert_eq!(route.points.first(), Some(&wire.from.at));
     assert_eq!(route.points.last(), Some(&wire.to.at));
     // Out, one elbow halfway, in: the stubs merge into its arms.
-    assert_eq!(route.bends(), 2);
+    assert_eq!(bends(&route), 2);
     assert_eq!(route.points[1].x, 250.0);
 }
 
 #[test]
 fn a_coordinate_that_is_not_finite_falls_back_to_a_segment() {
     let wire = Connector::new(right(f32::NAN, 0.0), left(10.0, 0.0));
-    let route = router(&[]).route(&wire);
+    let route = route(&mut router(&[]), &wire);
     assert!(!route.routed);
     assert_eq!(route.points.len(), 2);
 }
@@ -250,31 +265,18 @@ fn a_batch_routes_like_single_calls() {
     let mut r = router(&nodes);
     let batch = r.route_all(&wires);
     for (w, b) in wires.iter().zip(&batch) {
-        let one = r.route(w);
+        let one = route(&mut r, w);
         assert!(one.routed && b.routed);
-        assert_eq!(one.bends(), b.bends());
-        assert_eq!(one.length(), b.length());
+        assert_eq!(bends(&one), bends(&b));
+        assert_eq!(length(&one), length(&b));
     }
-}
-
-#[test]
-fn the_fingerprint_follows_the_layout() {
-    let nodes = [rect(0.0, 0.0, 100.0, 60.0)];
-    let wires = [Connector::new(right(100.0, 30.0), left(300.0, 30.0))];
-    let r = router(&nodes);
-    let key = r.fingerprint(&wires);
-    assert_eq!(key, router(&nodes).fingerprint(&wires));
-    assert_ne!(key, router(&[rect(0.0, 0.0, 100.0, 61.0)]).fingerprint(&wires));
-    let moved = [Connector::new(right(100.0, 31.0), left(300.0, 30.0))];
-    assert_ne!(key, r.fingerprint(&moved));
-    let mut wider = router(&nodes);
-    wider.set_options(Options { margin: 20.0, ..Options::default() });
-    assert_ne!(key, wider.fingerprint(&wires));
 }
 
 #[test]
 fn invalid_obstacles_are_ignored() {
     let bad = Rect { min: Point::new(10.0, 10.0), max: Point::new(f32::INFINITY, 0.0) };
-    let r = router(&[bad]);
-    assert!(r.obstacles().is_empty());
+    let wire = Connector::new(right(0.0, 5.0), left(300.0, 5.0));
+    let route = route(&mut router(&[bad]), &wire);
+    assert!(route.routed);
+    assert_eq!(route.points, vec![wire.from.at, wire.to.at]);
 }

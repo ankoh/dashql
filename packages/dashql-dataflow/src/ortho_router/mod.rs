@@ -4,7 +4,8 @@
 //! Vendored from ortho-router 0.1.0 (https://crates.io/crates/ortho-router, part of
 //! https://github.com/quazardous/egui-pop), MIT license (`LICENSE-MIT`, NOTICE). Changed: the crate root is this
 //! module, its tests are `tests.rs`, and it indexes no slice (the safety lints of the crate): the grid and the search
-//! look up their cells with `get`, the search keeps one `Node` per state.
+//! look up their cells with `get`, the search keeps one `Node` per state. The router keeps only the API that the
+//! layout calls: no cache key, no setters, no single-route call.
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
@@ -87,24 +88,7 @@ pub struct Route {
     pub routed: bool,
 }
 
-impl Route {
-    /// How many times it turns.
-    pub fn bends(&self) -> usize {
-        self.points.len().saturating_sub(2)
-    }
-
-    /// Its length.
-    pub fn length(&self) -> f32 {
-        self.points.iter().zip(self.points.iter().skip(1)).map(|(a, b)| (b.x - a.x).abs() + (b.y - a.y).abs()).sum()
-    }
-}
-
 /// Routes connectors around obstacles.
-///
-/// Keep one between frames: it keeps the obstacles and the search's
-/// buffers. Its output depends only on its obstacles, its options and
-/// the connectors, so a caller can cache routes under
-/// [`fingerprint`](Router::fingerprint).
 #[derive(Clone, Debug, Default)]
 pub struct Router {
     obstacles: Vec<Rect>,
@@ -118,37 +102,11 @@ impl Router {
         Router { options, ..Router::default() }
     }
 
-    /// The router with these obstacles.
+    /// The router with these obstacles, typically the nodes' rectangles.
+    /// A rectangle that is not [valid](Rect::is_valid) is ignored.
     pub fn with_obstacles(mut self, obstacles: impl IntoIterator<Item = Rect>) -> Router {
-        self.set_obstacles(obstacles);
+        self.obstacles = obstacles.into_iter().filter(Rect::is_valid).collect();
         self
-    }
-
-    /// Replaces the obstacles, typically the nodes' rectangles. A
-    /// rectangle that is not [valid](Rect::is_valid) is ignored.
-    pub fn set_obstacles(&mut self, obstacles: impl IntoIterator<Item = Rect>) {
-        self.obstacles.clear();
-        self.obstacles.extend(obstacles.into_iter().filter(Rect::is_valid));
-    }
-
-    /// The obstacles.
-    pub fn obstacles(&self) -> &[Rect] {
-        &self.obstacles
-    }
-
-    /// The options.
-    pub fn options(&self) -> &Options {
-        &self.options
-    }
-
-    /// Replaces the options.
-    pub fn set_options(&mut self, options: Options) {
-        self.options = options;
-    }
-
-    /// Routes one connector.
-    pub fn route(&mut self, connector: &Connector) -> Route {
-        self.route_all(std::slice::from_ref(connector)).pop().unwrap_or_default()
     }
 
     /// Routes connectors, in order: the routes match `connectors`.
@@ -172,31 +130,6 @@ impl Router {
             connectors.iter().map(|c| route_in(&grid, &mut self.search, c, margin, bend)).collect();
         nudge::nudge(&mut routes, self.options.spacing, margin);
         routes
-    }
-
-    /// A hash of the obstacles, the options and `connectors`: the same
-    /// value, the same routes. Stable across runs and platforms (FNV-1a
-    /// over the coordinates' bits), so it can key a cache.
-    pub fn fingerprint(&self, connectors: &[Connector]) -> u64 {
-        let mut h = Fnv::default();
-        h.f32(self.options.margin);
-        h.f32(self.options.bend_penalty);
-        h.f32(self.options.spacing);
-        h.u64(self.obstacles.len() as u64);
-        for o in &self.obstacles {
-            for v in [o.min.x, o.min.y, o.max.x, o.max.y] {
-                h.f32(v);
-            }
-        }
-        h.u64(connectors.len() as u64);
-        for c in connectors {
-            for p in [c.from, c.to] {
-                h.f32(p.at.x);
-                h.f32(p.at.y);
-                h.u64(p.side as u64);
-            }
-        }
-        h.0
     }
 }
 
@@ -239,29 +172,6 @@ fn fallback(a: Point, sa: Point, side: Side, sb: Point, b: Point) -> [Point; 6] 
         (Point::new(sa.x, y), Point::new(sb.x, y))
     };
     [a, sa, p, q, sb, b]
-}
-
-/// FNV-1a, 64 bits.
-struct Fnv(u64);
-
-impl Default for Fnv {
-    fn default() -> Fnv {
-        Fnv(0xcbf2_9ce4_8422_2325)
-    }
-}
-
-impl Fnv {
-    fn u64(&mut self, v: u64) {
-        for b in v.to_le_bytes() {
-            self.0 ^= u64::from(b);
-            self.0 = self.0.wrapping_mul(0x0000_0100_0000_01b3);
-        }
-    }
-
-    fn f32(&mut self, v: f32) {
-        // -0.0 and 0.0 route the same.
-        self.u64(u64::from((v + 0.0).to_bits()));
-    }
 }
 
 /// The points without repeats and without the middle of three on one
