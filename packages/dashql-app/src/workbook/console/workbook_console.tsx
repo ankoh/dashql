@@ -5,7 +5,7 @@ import type { EditorView } from '@codemirror/view';
 
 import { useOptionalRuntime, useScriptReferences, useViewSelector } from '@akohn/dashql-react/hooks';
 import { useScriptModel } from '@akohn/dashql-react/models/script_model';
-import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import type { ModifyWorkbookScripts, WorkbookDerived, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { quoteIdentifier as quoteSqlIdentifier } from '@akohn/dashql/platform/utils/sql_quote';
@@ -89,8 +89,6 @@ export function WorkbookConsole(props: WorkbookConsoleProps): React.ReactElement
         focusScript.current = null;
         editorView.focus();
     }, [editorView, scriptKey]);
-    const connection = model == null ? null : scriptConnections.get(model.script.connectionId) ?? null;
-    const online = connection?.connectionHealth === ConnectionHealth.ONLINE;
     const removeScript = React.useCallback((script: { fileName: string }) => {
         deleteScript(selection, workbookScripts, modifyWorkbookScripts, script.fileName);
     }, [selection, workbookScripts, modifyWorkbookScripts]);
@@ -112,6 +110,8 @@ export function WorkbookConsole(props: WorkbookConsoleProps): React.ReactElement
                         scriptReferences={references}
                         editorView={editorView}
                         onDelete={removeScript}
+                        // The script runs from the bar of the workbook, with what it needs
+                        execute={false}
                         className={styles.header}
                     />
                 </div>
@@ -126,7 +126,7 @@ export function WorkbookConsole(props: WorkbookConsoleProps): React.ReactElement
                     onNavigateToScript={selectTab}
                 />
             )}
-            results={() => model != null && <ConsoleResults model={model} runnable={online && !readOnly} />}
+            results={() => model != null && <ConsoleResults model={model} />}
             sidebar={() => (
                 <>
                     <WorkbookInputStrip workbookId={workbookId} modifyWorkbookScripts={modifyWorkbookScripts} className={styles.inputs} />

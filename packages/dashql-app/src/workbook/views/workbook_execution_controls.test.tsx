@@ -107,6 +107,18 @@ describe('WorkbookExecutionControls', () => {
         expect(executeAll()?.disabled).toBe(true);
     });
 
+    it('runs a target script with what it needs instead of the whole workbook', () => {
+        const execution = fakeExecution(null);
+        act(() => root.render(
+            <WorkbookExecutionControls workbookId="workbook" execution={execution} startable showScript={showScript}
+                target={{ index: 2, fileName: 'orders.sql' }} />,
+        ));
+        expect(executeAll()?.textContent).toBe('Execute');
+        expect(executeAll()?.getAttribute('aria-label')).toBe('Execute orders with what it needs');
+        act(() => executeAll()!.click());
+        expect(execution.start).toHaveBeenCalledExactlyOnceWith({ targets: [2] });
+    });
+
     it('shows the execution progress and stops the running workbook', () => {
         const running = runState('running', { activeFileName: '3_customers.sql', activeStatementIndex: 2, activeStatementCount: 3 });
         const execution = fakeExecution(running);

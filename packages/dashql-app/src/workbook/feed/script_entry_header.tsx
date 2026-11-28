@@ -27,6 +27,8 @@ export interface ScriptEntryHeaderProps {
     onDelete?: (script: ScriptData) => void;
     /// Show the snippets button, true by default. The boxes of the dataflow leave it to the editor dialog.
     snippets?: boolean;
+    /// Show the button that runs and stops the script, true by default. The console runs its script from the bar.
+    execute?: boolean;
     /// Open the script in an editor, an edit button left of the script menu offers it
     onEdit?: () => void;
     className?: string;
@@ -85,6 +87,7 @@ export const ScriptEntryHeader: React.FC<ScriptEntryHeaderProps> = React.memo((p
             onDelete={remove}
             onEdit={props.onEdit}
             snippets={props.snippets}
+            execute={props.execute}
             className={props.className}
         />
     );

@@ -23,8 +23,8 @@ export interface WorkbookExecutionModel {
     ready: boolean;
     /// Does a run hold the workbook, a run of the workbook or of one of its scripts?
     runActive: boolean;
-    /// Run the whole workbook
-    start(): void;
+    /// Run the whole workbook, or the target scripts with what they need
+    start(options?: { targets?: readonly number[] }): void;
     /// Stop the run of the workbook
     stop(): void;
 }
@@ -57,10 +57,19 @@ interface Props {
     startable: boolean;
     /// Show a script in the feed, by its file name
     showScript(fileName: string): void;
+    /// The script that the button runs with what it needs instead of the whole workbook, e.g. the script of the console
+    target?: WorkbookExecutionTarget | null;
+}
+
+/// A script that a run targets
+export interface WorkbookExecutionTarget {
+    /// The index of the script in feed order
+    index: number;
+    fileName: string;
 }
 
 /// Execute All of a workbook and the status of its run, the details of the run open from the status
-export function WorkbookExecutionControls({ workbookId, execution, startable, showScript }: Props): React.ReactElement {
+export function WorkbookExecutionControls({ workbookId, execution, startable, showScript, target }: Props): React.ReactElement {
     const run = execution.state;
     const [detailsOpen, setDetailsOpen] = React.useState(false);
     React.useEffect(() => setDetailsOpen(false), [workbookId]);
@@ -79,16 +88,20 @@ export function WorkbookExecutionControls({ workbookId, execution, startable, sh
                 : run.phase === 'cancelled' ? `Stopped · ${progress} completed`
                     : run.phase === 'succeeded' ? (skipped ? `${progress} completed${skipped}` : `${progress} succeeded`) : `${progress} completed${skipped}`;
     const skippedTitle = run != null && run.skippedFiles.length > 0 ? `Need a connection: ${run.skippedFiles.join(', ')}` : undefined;
+    // A run of a target is the run of the workbook that targets one script instead of all of them
+    const startLabel = target != null ? 'Execute' : 'Execute All';
+    const startDescription = target != null ? `Execute ${scriptDisplayName(target.fileName)} with what it needs` : 'Execute All';
+    const start = () => target != null ? execution.start({ targets: [target.index] }) : execution.start();
     return (
         <>
             <Button size={ButtonSize.Small} variant={ButtonVariant.Invisible}
                 leadingVisual={execution.busy ? SquareFillIcon : PaperAirplaneIcon}
-                aria-label={execution.busy ? 'Stop workbook execution' : 'Execute All'}
+                aria-label={execution.busy ? 'Stop workbook execution' : startDescription}
                 data-testid={execution.busy ? 'stop-execution' : 'execute-all'}
                 // A run waits for the compute database, it reads the cached results
                 disabled={execution.busy ? run?.phase === 'stopping' : !execution.ready || !startable || execution.runActive}
-                onClick={() => execution.busy ? execution.stop() : execution.start()}>
-                <span className={styles.action_label}>{execution.busy ? run?.phase === 'stopping' ? 'Stopping' : 'Stop' : 'Execute All'}</span>
+                onClick={() => execution.busy ? execution.stop() : start()}>
+                <span className={styles.action_label}>{execution.busy ? run?.phase === 'stopping' ? 'Stopping' : 'Stop' : startLabel}</span>
             </Button>
             <div className={styles.execution_status} role="status" aria-live="polite" aria-atomic="true" data-testid="execution-status" data-phase={run?.phase}
                 title={run?.error ?? skippedTitle} aria-label={run?.error ? `${statusText}: ${run.error}` : undefined}>

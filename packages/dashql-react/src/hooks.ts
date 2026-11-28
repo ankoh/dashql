@@ -334,6 +334,9 @@ export interface WorkbookExecutionOptions {
     /// Run the scripts that a change of these inputs affects. A run that holds the workbook stops, the run starts
     /// once the workbook is free, with the inputs of every change since.
     inputs?: readonly string[];
+    /// Run these scripts with what they need, by their indexes in feed order. Every script without, a run of the
+    /// workbook targets all of them and runs on past the scripts that fail to plan.
+    targets?: readonly number[];
 }
 
 /// Is the compute database of the runtime ready? The runs and the computations wait for it.
@@ -381,7 +384,10 @@ export function useWorkbookExecution(workbookId: string) {
                 if (runtime == null) return;
                 // A failed statement and a failed plan show on their scripts, a run that fails otherwise shows as an error
                 const failed = (error: unknown) => runtime.logger.error('The run of the workbook failed', { workbookId, error: stringifyError(error) }, 'workbook_execution');
-                runtime.runWorkbook(workbookId, { inputs: options?.inputs == null ? undefined : [...options.inputs] }).then(result => {
+                runtime.runWorkbook(workbookId, {
+                    inputs: options?.inputs == null ? undefined : [...options.inputs],
+                    targets: options?.targets == null ? undefined : [...options.targets],
+                }).then(result => {
                     const failure = result.outcome.failure;
                     if (failure != null && failure.kind === 'error' && failure.queryId == null) failed(result.error);
                 }, failed);

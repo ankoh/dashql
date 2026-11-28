@@ -83,6 +83,8 @@ export interface FeedEntryHeaderProps {
     onEdit?: () => void;
     /// Show the snippets button, true by default
     snippets?: boolean;
+    /// Show the button that runs and stops the script, true by default. The console runs its script from the bar.
+    execute?: boolean;
     /// Add a script above or below, in the feed order
     onAddAbove?: () => void;
     onAddBelow?: () => void;
@@ -151,7 +153,7 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
                     role="img" aria-label="Read-only" data-testid="script-read-only">
                     <LockIcon size={14} />
                 </span>
-            ) : (
+            ) : props.execute !== false && (
             <ExecuteConnectionGuard blocked={!queryActive && connectionHealth !== ConnectionHealth.ONLINE}>
             <IconButton
                 className={needsConnection ? styles.feed_entry_execute_offline : display.focused ? styles.feed_entry_execute_focused : styles.feed_entry_execute_unfocused}
@@ -177,7 +179,7 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
             )}
             {/* A read-only workbook runs on no connection, a preview maps its connections when it is imported */}
             {!readOnly && <>
-            <span className={styles.feed_entry_action_separator} aria-hidden="true" />
+            {props.execute !== false && <span className={styles.feed_entry_action_separator} aria-hidden="true" />}
             <div className={styles.feed_entry_file_name}>
                 <ScriptConnectionPicker
                     workbookId={workbookId}

@@ -204,6 +204,23 @@ describe('WorkbookViewsPage', () => {
         expect(container.querySelector('[data-testid="execute-all"]')).toBe(executeAll);
     });
 
+    it('executes the script of the console with what it needs', async () => {
+        await setMode(WorkbookViewMode.Console);
+        await show(<Page workbookScripts={scripts()} connection={connection('main')} />);
+        const execute = container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')!;
+        expect(execute.textContent).toBe('Execute');
+        expect(execute.getAttribute('aria-label')).toBe('Execute 01_alpha with what it needs');
+        const runWorkbook = vi.spyOn(captured.runtime, 'runWorkbook');
+        await vi.waitFor(() => expect(execute.disabled).toBe(false));
+        await act(async () => execute.click());
+        expect(runWorkbook).toHaveBeenCalledWith(WORKBOOK, { inputs: undefined, targets: [0] });
+        await act(async () => captured.runtime.stopRun(WORKBOOK));
+        await vi.waitFor(() => expect(container.querySelector('[data-testid="execution-status"]')?.getAttribute('data-phase')).toBe('cancelled'));
+        // The other views execute the whole workbook
+        await setMode(WorkbookViewMode.Feed);
+        expect(container.querySelector('[data-testid="execute-all"]')?.textContent).toBe('Execute All');
+    });
+
     it('shows the attention of the connections in the bar', async () => {
         const lake = connection('lake');
         const workbook = { ...scripts(), scriptConnections: ['lake'], connectionIds: ['lake'] } as WorkbookScripts;

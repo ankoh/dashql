@@ -160,13 +160,14 @@ async function testAppWorkbook(page, navigate) {
     await page.getByTestId('script-editor-dialog-close').click();
     await editorDialog.waitFor({ state: 'hidden' });
 
-    // The console shows the script as a tab with its editor, a run shows its result below
+    // The console shows the script as a tab with its editor, Execute of the bar runs it and shows its result below
     await page.getByRole('button', { name: 'Console' }).click();
     const consoleView = page.getByTestId('workbook-console');
     await consoleView.getByTestId('console-tab').filter({ hasText: /\S/ }).first().waitFor();
     await consoleView.locator('.cm-content').filter({ hasText: 'select 43 as answer' }).waitFor();
-    await consoleView.getByTestId('console-run').click();
-    await consoleView.locator('[data-testid="entry-status"][data-status="succeeded"]').waitFor();
+    if (await consoleView.getByTestId('script-execute').count() !== 0) throw new Error('The console runs its script from the bar');
+    await page.getByRole('button', { name: /with what it needs$/ }).click();
+    await page.locator('[data-testid="execution-status"][data-phase="succeeded"]').waitFor();
     await consoleView.getByText('43', { exact: true }).last().waitFor();
 
     await page.getByRole('button', { name: 'Feed' }).click();

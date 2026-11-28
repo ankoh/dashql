@@ -25,7 +25,8 @@ import { PanelResizeHandle } from '@akohn/dashql-react/components/panel_resize_h
 import { useWorkbookExecution, useWorkbookShown } from '@akohn/dashql-react/hooks';
 import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { WorkbookConnectionButtons } from './workbook_connection_buttons.js';
-import { WorkbookExecutionControls, useSkippedRunAttention } from './workbook_execution_controls.js';
+import { WorkbookExecutionControls, useSkippedRunAttention, type WorkbookExecutionTarget } from './workbook_execution_controls.js';
+import { useSelectedScriptKey } from '../scripts/script_selection.js';
 import { WorkbookActions, type WorkbookAttach } from './workbook_actions.js';
 import { WorkbookViewSwitch } from './workbook_view_switch.js';
 import { WorkbookErrors } from '../scripts/workbook_errors.js';
@@ -135,6 +136,8 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
     const scriptConnectionsIdle = runConnections.length > 0 && runConnections.every(connection =>
         connection.connectionHealth !== ConnectionHealth.CONNECTING && (connection.queriesActiveOrdered?.length ?? 0) === 0);
     const execution = useWorkbookExecution(props.workbookScripts.workbookId);
+    // The console runs its script with what it needs, the other views run the whole workbook
+    const selectedScriptKey = useSelectedScriptKey(props.workbookScripts.workbookId);
     // The workbook shows the stored results of its scripts once it is shown (docs/design/workbook_results.md)
     useWorkbookShown(props.workbookScripts.workbookId);
     useSkippedRunAttention(props.workbookScripts.workbookId, execution);
@@ -176,6 +179,13 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
     const cloudLoading = useCloudWorkbookLoading() != null;
     // The active view shows unless an overview or a loading version takes its place
     const viewShown = pageShown && !overviewActive && !cloudLoading;
+    const consoleScriptIndex = activeView === WorkbookViewMode.Console && selectedScriptKey != null
+        ? props.workbookScripts.scriptKeys.indexOf(selectedScriptKey) : -1;
+    const consoleScriptFile = props.workbookScripts.scriptOrder[consoleScriptIndex];
+    const executionTarget = React.useMemo<WorkbookExecutionTarget | null>(
+        () => consoleScriptFile == null ? null : { index: consoleScriptIndex, fileName: consoleScriptFile },
+        [consoleScriptIndex, consoleScriptFile],
+    );
     const feedActive = viewShown && activeView === WorkbookViewMode.Feed;
     // The prompt floats over the views of the workbook and creates scripts in every one of them. It docks below the
     // scripts of the feed and floats over the other views.
@@ -400,6 +410,7 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
                             {!ephemeral && (
                                 <WorkbookExecutionControls
                                     workbookId={props.workbookScripts.workbookId}
+                                    target={executionTarget}
                                     execution={execution}
                                     startable={scriptConnectionsIdle && props.workbookScripts.scriptOrder.length > 0}
                                     showScript={showScriptOfFile}
