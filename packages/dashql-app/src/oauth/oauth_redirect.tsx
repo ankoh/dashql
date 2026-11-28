@@ -161,16 +161,15 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
     });
     React.useEffect(() => startAutoTrigger(), [props.state, code]);
 
+    // The code expires with the time of the render, the timer below renders the page again when it expires
+    const [, setCodeExpiredTick] = React.useState(false);
+    const codeIsExpired = now.getTime() > (props.state.salesforceProvider?.expiresAt ?? 0);
+    const codeExpiresAt = codeIsExpired ? undefined : new Date(Number(props.state.salesforceProvider?.expiresAt));
+
     // Render provider options
     let providerOptionsSection: React.ReactElement = <div />;
-    let codeExpiresAt: Date | undefined = undefined;
-    // eslint-disable-next-line prefer-const
-    let [codeIsExpired, setCodeIsExpired] = React.useState(false);
     if (props.state.salesforceProvider) {
         const salesforceProvider = props.state.salesforceProvider;
-        const expiresAt = salesforceProvider.expiresAt;
-        codeIsExpired = now.getTime() > (expiresAt ?? 0);
-        codeExpiresAt = codeIsExpired ? undefined : new Date(Number(expiresAt));
         providerOptionsSection = (
             <div className={baseStyles.card_section}>
                 <div className={baseStyles.section_entries}>
@@ -201,7 +200,7 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
     // The expiration is timed once per state, the remaining time of a later render doesn't time it again
     const startExpiration = React.useEffectEvent(() => {
         logger.info("Determining code expiration", { "remaining": formatHHMMSS(remainingUntilExpiration / 1000) }, LOG_CTX);
-        const timeoutId = setTimeout(() => setCodeIsExpired(true), remainingUntilExpiration);
+        const timeoutId = setTimeout(() => setCodeExpiredTick(true), remainingUntilExpiration);
         return () => clearTimeout(timeoutId);
     });
     React.useEffect(() => startExpiration(), [props.state]);
@@ -305,22 +304,13 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
                                     aria-label="copy-deeplink"
                                     aria-labelledby=""
                                 />
-                                {
-                                    wasTriggered
-                                        ? <Button
-                                            variant={ButtonVariant.Primary}
-                                            onClick={() => triggerFlow(props.state, eventBase64, deepLink, logger)}
-                                        >
-                                            Open in App
-                                        </Button>
-                                        : <Button
-                                            variant={ButtonVariant.Primary}
-                                            onClick={() => triggerFlow(props.state, eventBase64, deepLink, logger)}
-                                            trailingVisual={() => <div>{Math.ceil(remainingUntilAutoTrigger / 1000)}</div>}
-                                        >
-                                            Open in App
-                                        </Button>
-                                }
+                                <Button
+                                    variant={ButtonVariant.Primary}
+                                    onClick={() => triggerFlow(props.state, eventBase64, deepLink, logger)}
+                                    trailingVisual={wasTriggered ? undefined : () => <div>{Math.ceil(remainingUntilAutoTrigger / 1000)}</div>}
+                                >
+                                    Open in App
+                                </Button>
                             </div>
                         </div>
                     </div>
