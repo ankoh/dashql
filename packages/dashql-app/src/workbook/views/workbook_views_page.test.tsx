@@ -26,7 +26,6 @@ import { LoggerProvider } from '../../host/logger_provider.js';
 import { StorageProvider } from '../../storage/storage_provider.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
 import { addTestConnection, pendingTestChannel } from '../../tests/test_connections.js';
-import { scriptSelectionOf } from '../scripts/script_selection.js';
 import { WorkbookPromptPlacement } from '../feed/workbook_prompt.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -39,7 +38,7 @@ const trino = (endpoint: string) => ({ trino: { endpoint } }) as ConnectionParam
 
 type PageProps = React.ComponentProps<typeof WorkbookViewsPage>;
 /// The props of a slot of the page
-type SlotProps<K extends 'feed' | 'prompt' | 'dashboard' | 'dataflow' | 'editorDialog' | 'workbench'> = Parameters<NonNullable<PageProps[K]>>[0];
+type SlotProps<K extends 'feed' | 'prompt' | 'dashboard' | 'dataflow' | 'workbench'> = Parameters<NonNullable<PageProps[K]>>[0];
 
 /// The props of the last render of the stand-ins of the slots: the views need editors, charts or the storage of the app
 const slots = {
@@ -47,15 +46,13 @@ const slots = {
     prompt: null as SlotProps<'prompt'> | null,
     dashboard: null as SlotProps<'dashboard'> | null,
     dataflow: null as SlotProps<'dataflow'> | null,
-    editorDialog: null as SlotProps<'editorDialog'> | null,
     workbench: null as SlotProps<'workbench'> | null,
 };
-const STAND_INS: Pick<PageProps, 'feed' | 'prompt' | 'dashboard' | 'dataflow' | 'editorDialog' | 'workbench'> = {
+const STAND_INS: Pick<PageProps, 'feed' | 'prompt' | 'dashboard' | 'dataflow' | 'workbench'> = {
     feed: props => { slots.feed = props; return null; },
     prompt: props => { slots.prompt = props; return null; },
     dashboard: props => { slots.dashboard = props; return <div data-testid="dashboard" />; },
     dataflow: props => { slots.dataflow = props; return <div data-testid="dataflow" />; },
-    editorDialog: props => { slots.editorDialog = props; return <div data-testid="script-editor-dialog" />; },
     workbench: props => { slots.workbench = props; return <nav data-testid="workbench" />; },
 };
 
@@ -131,8 +128,6 @@ describe('WorkbookViewsPage', () => {
     const scripts = (): WorkbookScripts => captured.runtime.store.get('workbook', WORKBOOK)!;
     /// A connection of the test, the view of the runtime
     const connection = (connectionId: string): ConnectionState => captured.runtime.connection(connectionId)!;
-    /// The key of the script of the workbook
-    const scriptKey = () => scripts().scriptKeys[0]!;
     const mode = () => captured.viewMode.mode;
     /// The view mode is part of the URL, the router navigates in a transition
     const expectMode = (expected: WorkbookViewMode) => waitForRender(() => expect(mode()).toBe(expected));
@@ -652,7 +647,7 @@ describe('WorkbookViewsPage', () => {
         await expectMode(WorkbookViewMode.Dataflow);
     });
 
-    it('renders the Dataflow canvas and opens a script in the editor dialog', async () => {
+    it('renders the Dataflow beneath the view bar without activating the feed', async () => {
         await setMode(WorkbookViewMode.Dataflow);
         const workbookScripts = scripts();
         const modifyWorkbookScripts = vi.fn();
@@ -663,37 +658,8 @@ describe('WorkbookViewsPage', () => {
         expect(slots.prompt?.placement).toBe(WorkbookPromptPlacement.Overlay);
         const buttons = container.querySelectorAll<HTMLButtonElement>('[data-testid="workbook-view-switch"] button');
         expect(buttons[2]?.getAttribute('aria-current')).toBe('true');
-
-        expect(container.querySelector('[data-testid="script-editor-dialog"]')).toBeNull();
-        act(() => slots.dataflow!.onInspect!(scriptKey()));
-        expect(container.querySelector('[data-testid="script-editor-dialog"]')).not.toBeNull();
-        expect(slots.editorDialog?.scriptKey).toBe(scriptKey());
-        // The dialog selects its script, the commands of the workbook run it
-        expect(scriptSelectionOf(captured.runtime).store.current.get(workbookScripts.workbookId)).toBe(scriptKey());
-        act(() => slots.editorDialog!.onClose());
-        expect(container.querySelector('[data-testid="script-editor-dialog"]')).toBeNull();
-    });
-
-    it('closes the dataflow editor dialog when another workbook is selected', async () => {
-        await setMode(WorkbookViewMode.Dataflow);
-        const render = (workbookId: string) => show(<Page workbookScripts={{ ...scripts(), workbookId }} connection={null} />);
-        await render(WORKBOOK);
-        act(() => slots.dataflow!.onInspect!(scriptKey()));
-        expect(container.querySelector('[data-testid="script-editor-dialog"]')).not.toBeNull();
-        await render('other');
-        expect(container.querySelector('[data-testid="script-editor-dialog"]')).toBeNull();
-        // Coming back does not reopen the dialog
-        await render(WORKBOOK);
-        expect(container.querySelector('[data-testid="script-editor-dialog"]')).toBeNull();
-    });
-
-    it('closes the dataflow editor dialog when its script is gone', async () => {
-        await setMode(WorkbookViewMode.Dataflow);
-        const render = (workbookScripts: WorkbookScripts) => show(<Page workbookScripts={workbookScripts} connection={null} />);
-        await render(scripts());
-        act(() => slots.dataflow!.onInspect!(scriptKey()));
-        expect(container.querySelector('[data-testid="script-editor-dialog"]')).not.toBeNull();
-        await render({ ...scripts(), scriptRefs: {}, scriptOrder: [], scriptKeys: [], scriptConnections: [] } as unknown as WorkbookScripts);
-        expect(container.querySelector('[data-testid="script-editor-dialog"]')).toBeNull();
+        // A connection overview covers the dataflow
+        act(() => slots.workbench!.onOpenOverview!('lake'));
+        expect(container.querySelector('[data-testid="dataflow"]')).toBeNull();
     });
 });

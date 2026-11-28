@@ -12,19 +12,17 @@ import {
     type ModifyWorkbookScripts,
     type WorkbookScripts,
 } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import { useScriptSelection } from '../scripts/script_selection.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { WorkbookNavigationDrawer } from '../navigation/workbook_navigation_drawer.js';
 import { WorkbookWorkbenchSidebar } from '../navigation/workbook_workbench_sidebar.js';
 import { useWorkbenchHidden } from '../navigation/workbench_hidden.js';
 import { WorkbookURLShareOverlay } from '../persistence/workbook_url_share_overlay.js';
 import { WorkbookFileSaveOverlay } from '../persistence/workbook_file_save_overlay.js';
-import { ScriptEditorDialog } from '../scripts/script_editor_dialog.js';
 import { WorkbookFeed, type WorkbookFeedInsets, type WorkbookFeedRevealRequest } from '../feed/workbook_feed.js';
 import { WorkbookPrompt, WorkbookPromptPlacement, type WorkbookPromptFeed, type WorkbookPromptHandle } from '../feed/workbook_prompt.js';
 import type { AgentFollowTarget } from '../../agent/agent_session.js';
 import { Dashboard } from '../dashboard/dashboard.js';
-import { DataflowCanvas } from '../dataflow/dataflow_canvas.js';
+import { DataflowView } from '../dataflow/dataflow_view.js';
 import { WorkbookViewMode, defaultViewOfViewMode, useWorkbookViewMode, viewModeOfDefaultView } from '../workbook_view_mode.js';
 import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
 import { PanelResizeHandle } from '@akohn/dashql-react/components/panel_resize_handle';
@@ -97,15 +95,13 @@ const BarSeparator = ({ className }: { className?: string }) => (
 type FeedProps = React.ComponentProps<typeof WorkbookFeed>;
 type PromptProps = React.ComponentProps<typeof WorkbookPrompt>;
 type DashboardProps = React.ComponentProps<typeof Dashboard>;
-type DataflowProps = React.ComponentProps<typeof DataflowCanvas>;
-type EditorDialogProps = React.ComponentProps<typeof ScriptEditorDialog>;
+type DataflowProps = React.ComponentProps<typeof DataflowView>;
 type WorkbenchProps = React.ComponentProps<typeof WorkbookWorkbenchSidebar>;
 
 const renderFeed = (props: FeedProps) => <WorkbookFeed {...props} />;
 const renderPrompt = (props: PromptProps) => <WorkbookPrompt {...props} />;
 const renderDashboard = (props: DashboardProps) => <Dashboard {...props} />;
-const renderDataflow = (props: DataflowProps) => <DataflowCanvas {...props} />;
-const renderEditorDialog = (props: EditorDialogProps) => <ScriptEditorDialog {...props} />;
+const renderDataflow = (props: DataflowProps) => <DataflowView {...props} />;
 const renderWorkbench = (props: WorkbenchProps) => <WorkbookWorkbenchSidebar {...props} />;
 
 interface Props {
@@ -124,10 +120,8 @@ interface Props {
     prompt?: (props: PromptProps) => React.ReactNode;
     /// The dashboard
     dashboard?: (props: DashboardProps) => React.ReactNode;
-    /// The canvas of the dataflow
+    /// The dataflow, its canvas and the editor dialog of a script
     dataflow?: (props: DataflowProps) => React.ReactNode;
-    /// The editor dialog of a script of the dataflow
-    editorDialog?: (props: EditorDialogProps) => React.ReactNode;
     /// The workbench next to the views and in the drawer
     workbench?: (props: WorkbenchProps) => React.ReactNode;
 }
@@ -137,25 +131,10 @@ interface Props {
 export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Props): React.ReactElement {
     const {
         feed = renderFeed, prompt = renderPrompt, dashboard = renderDashboard, dataflow = renderDataflow,
-        editorDialog = renderEditorDialog, workbench: workbenchSlot = renderWorkbench,
+        workbench: workbenchSlot = renderWorkbench,
     } = props;
     // The composer of the prompt renames the references in its draft, also for the attachments renamed in the feed
     const draftRenameRef = React.useRef<RenameDraftReferences | null>(null);
-    // The script that the editor dialog of the dataflow shows. It belongs to the workbook it was opened in and closes
-    // when another workbook is selected or the script is gone.
-    const [details, setDetails] = React.useState<{ workbookId: string; scriptId: number } | null>(null);
-    const showDetails = details != null && details.workbookId === props.workbookScripts.workbookId
-        && props.workbookScripts.scriptKeys.includes(details.scriptId);
-    React.useEffect(() => setDetails(null), [props.workbookScripts.workbookId]);
-    // The dialog selects its script, the commands of the workbook (Ctrl+E) run the selected script
-    const selection = useScriptSelection();
-    const inspectScript = React.useCallback((scriptKey: number) => {
-        const fileName = props.workbookScripts.scriptOrder[props.workbookScripts.scriptKeys.indexOf(scriptKey)];
-        if (fileName == null) return;
-        selection.selectFile(props.workbookScripts, fileName);
-        setDetails({ workbookId: props.workbookScripts.workbookId, scriptId: scriptKey });
-    }, [props.workbookScripts, selection]);
-    const closeDetails = React.useCallback(() => setDetails(null), []);
     const [navigationDrawerOpen, setNavigationDrawerOpen] = React.useState(false);
     const closeNavigationDrawer = React.useCallback(() => setNavigationDrawerOpen(false), []);
     const [sidebarWidth, setSidebarWidth] = React.useState(SIDEBAR_DEFAULT_WIDTH);
@@ -259,8 +238,6 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
     const viewIndex = WORKBOOK_VIEWS.findIndex(([view]) => view === activeView);
     const showView = React.useCallback((view: WorkbookViewMode) => {
         setOverviewConnectionId(null);
-        // The editor dialog belongs to the dataflow view
-        setDetails(null);
         setMode(view);
     }, [setMode, setOverviewConnectionId]);
     const stepView = React.useCallback((step: number) => {
@@ -305,7 +282,6 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
     const [revealRequest, setRevealRequest] = React.useState<WorkbookFeedRevealRequest | null>(null);
     const openScript = React.useCallback((workbookId: string, fileName: string) => {
         setOverviewConnectionId(null);
-        setDetails(null);
         if (mode !== WorkbookViewMode.Feed) setMode(WorkbookViewMode.Feed);
         setRevealRequest({ workbookId, fileName });
     }, [mode, setMode, setOverviewConnectionId]);
@@ -325,7 +301,6 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
         // A script that the user picks in the log of the agent shows in the feed
         show: (scriptKey: number) => {
             setOverviewConnectionId(null);
-            setDetails(null);
             if (modeRef.current !== WorkbookViewMode.Feed) setMode(WorkbookViewMode.Feed);
             feedRef.current?.show(scriptKey);
         },
@@ -432,32 +407,13 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
                             })
                         )}
                         {dataflowActive && !overviewActive && !cloudLoading && (
-                            <div className={styles.dataflow_layout}>
-                                <div className={styles.dataflow_canvas}>
-                                    <React.Fragment key={props.workbookScripts.workbookId}>
-                                        {dataflow({
-                                            workbookScripts: props.workbookScripts,
-                                            modifyWorkbookScripts: props.modifyWorkbookScripts,
-                                            scriptConnections,
-                                            onInspect: inspectScript,
-                                            revealRequest: dataflowReveal,
-                                            bottomInset: readOverlayInset,
-                                        })}
-                                    </React.Fragment>
-                                </div>
-                                {showDetails && (
-                                    <React.Fragment key={details.scriptId}>
-                                        {editorDialog({
-                                            workbookScripts: props.workbookScripts,
-                                            modifyWorkbookScripts: props.modifyWorkbookScripts,
-                                            scriptKey: details.scriptId,
-                                            scriptConnections,
-                                            onNavigateToScript: inspectScript,
-                                            onClose: closeDetails,
-                                        })}
-                                    </React.Fragment>
-                                )}
-                            </div>
+                            dataflow({
+                                workbookScripts: props.workbookScripts,
+                                modifyWorkbookScripts: props.modifyWorkbookScripts,
+                                scriptConnections,
+                                revealRequest: dataflowReveal,
+                                bottomInset: readOverlayInset,
+                            })
                         )}
                         {/* Over the views, the composer keeps its draft and its focus when the view switches */}
                         {prompt({
