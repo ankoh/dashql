@@ -1,7 +1,7 @@
 //! The persistence of connections: what storage keeps of a connection and when it is written.
 //!
-//! The app manifest is the source of truth of a connection: its entry holds the params, the draft, the name and the
-//! caching choice. Every workbook that references the connection keeps a copy of its saved params. The files of a
+//! The app manifest is the source of truth of a connection: its entry holds the params, the draft and the name. Every
+//! workbook that references the connection keeps a copy of its saved params. The files of a
 //! durable connection hold its catalog: the relations, the functions and the state of the lookups. The decisions are
 //! functions of the connection before and after a change, the writes go through the storage writer.
 
@@ -116,8 +116,7 @@ fn params_writes(id: &str, next: &ConnectionState, workbook_ids: &[String], out:
 /// The writes after a change of the connection `id` that the workbooks `workbook_ids` reference.
 ///
 /// Only connections that workbooks reference or that were activated are written. Saved params are written to the app
-/// manifest and into every workbook that references the connection, drafts, names and the caching choice to the app
-/// manifest only. The catalog of an active connection is written into the files of the connection, workbooks keep no
+/// manifest and into every workbook that references the connection, drafts and names to the app manifest only. The catalog of an active connection is written into the files of the connection, workbooks keep no
 /// copy, and the relations of a connection whose database doesn't outlive the app are never written. The relations
 /// are rendered when the write runs, a run of statements saves them once.
 pub fn connection_writes(

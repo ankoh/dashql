@@ -1,5 +1,5 @@
 //! Workbook bundles: the durable, portable content of a workbook (the workbook file, the scripts, the attachments, the
-//! catalogs of its connections and, in exported workbooks, cached query results).
+//! catalogs of its connections and, in exported workbooks, the stored results of the scripts).
 //!
 //! The bytes of attachments and results are a type of the host, `B`: e.g. the bytes themselves in tests, or a handle
 //! of a file or of a slice of an archive that stays with the host.
@@ -92,7 +92,7 @@ pub struct WorkbookBundle<B> {
     pub scripts: Vec<ScriptData>,
     /// The attachments
     pub data: Vec<DataFileData<B>>,
-    /// The cached query results of an exported workbook, never written to the workbook folder
+    /// The stored results of the scripts of an exported workbook, never written to the workbook folder
     pub results: Vec<WorkbookBundleResult<B>>,
 }
 

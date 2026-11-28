@@ -33,7 +33,7 @@ use dashql_core_runtime::catalog_loader::tables::{
 
 /// The prefix of a table that holds the data of an attachment
 pub const ATTACHMENT_TABLE_PREFIX: &str = "workbook_attachment_";
-/// The prefix of a table that holds a cached query result
+/// The prefix of a table that holds the stored result of a script
 pub const RESULT_TABLE_PREFIX: &str = "workbook_result_";
 /// The extension of a table in a `.dashql` file
 pub const TABLE_FILE_EXTENSION: &str = ".parquet";

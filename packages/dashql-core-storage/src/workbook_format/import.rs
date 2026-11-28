@@ -113,7 +113,7 @@ pub enum FolderArchiveEntry {
     Script { name: String },
     /// An attachment, read as bytes
     Attachment { name: String },
-    /// A cached query result, a slice of the archive if it is stored, else inflated with its CRC-32 checked
+    /// A stored result of a script, a slice of the archive if it is stored, else inflated with its CRC-32 checked
     Result { key: String },
 }
 
@@ -238,7 +238,7 @@ fn plan_folder_archive(entries: &[ArchiveEntry]) -> Result<FolderArchivePlan> {
         let name = path.split('/').nth(1).unwrap_or("").to_string();
         plan.entries.push((index, FolderArchiveEntry::Attachment { name }));
     }
-    // The cached query results, named after their keys. Other files of the folder are ignored.
+    // The results of older versions, named after their keys. Other files of the folder are ignored.
     for (_, path, index) in &destinations {
         let parts: Vec<&str> = path.split('/').collect();
         if let [folder, file] = parts.as_slice() {

@@ -1,6 +1,6 @@
 //! The storage of DashQL on the runtime: the storage writer, the restore of the stored state, the workbook format with
-//! its imports, exports, migrations and the eviction of the query result cache, and the saves of the connections. The
-//! runtime (`dashql_core_runtime`) doesn't know this crate: the bindings of a product wire it in, see
+//! its imports, exports and migrations and the names of the stored results of the scripts, and the saves of the
+//! connections. The runtime (`dashql_core_runtime`) doesn't know this crate: the bindings of a product wire it in, see
 //! docs/design/dashql_core.md.
 
 #![cfg_attr(clippy, deny(warnings))]

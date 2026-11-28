@@ -30,7 +30,7 @@ overwrites a script, which is the moment an external change would be lost.
   stamp like a script; it asks when the script list or the name differ from the app, other fields (connection
   parameters, metadata) are kept by the next write, which patches the file as it is on disk. Connection identity and
   parameters require a complete connection lifecycle and are not replaced in place.
-- Watching query cache files, `.gitignore`, or other generated and unrelated files.
+- Watching `.gitignore` or other generated and unrelated files.
 - Automatic text merging. A conflict is resolved by keeping the current application state or loading
   the complete external snapshot.
 - Coordinating simultaneous DashQL processes editing the same native directory. The desktop app is a
