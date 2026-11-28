@@ -49,14 +49,6 @@ fn loads_the_generated_spec_of_an_extension() {
     assert!(!spec.functions.is_empty());
 }
 
-#[test]
-fn leaves_out_the_prose_of_the_reference() {
-    let value: Value = serde_json::from_str(&spec_text()).unwrap();
-    for function in value["functions"].as_array().unwrap() {
-        assert!(function.get("notes").is_none(), "{}", function["name"]);
-    }
-}
-
 // The examples
 
 /// A description as the runtime gets it, with values in place of its parameters

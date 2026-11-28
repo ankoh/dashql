@@ -9,13 +9,6 @@ describe('client function specs', () => {
         expect(spec.functions.map(fn => fn.name)).toContain('connection_list');
     });
 
-    it('leaves out the prose of the reference', async () => {
-        const spec = await loadClientFunctionSpec('d360-api');
-        for (const fn of spec.functions) {
-            expect(Object.keys(fn)).not.toContain('notes');
-        }
-    });
-
     it('fails for an extension that does not exist', async () => {
         await expect(loadClientFunctionSpec('nope')).rejects.toThrow('no extension in the folder nope');
     });

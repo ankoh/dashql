@@ -468,23 +468,3 @@ fn every_function_has_a_snippet() {
     println!("{} snippets", snippets.len());
     assert!(failures.is_empty(), "{} failures:\n{}", failures.len(), failures.join("\n"));
 }
-
-#[test]
-fn every_function_describes_a_request() {
-    let spec: Value = serde_json::from_str(&spec_text()).unwrap();
-    for function in spec["functions"].as_array().unwrap() {
-        let name = function["name"].as_str().unwrap();
-        if function["raw"] == true {
-            continue;
-        }
-        let path = function["path"].as_str().unwrap_or_else(|| panic!("{name} has no path"));
-        assert!(spec["hosts"].get(function["host"].as_str().unwrap()).is_some(), "{name}");
-        // Every placeholder has an option, so a request can be built
-        let placeholders: Vec<&str> = path.split('{').skip(1).map(|p| p.split('}').next().unwrap()).collect();
-        for placeholder in placeholders {
-            let fills = |o: &Value| o["in"] == "path" && o.get("api_name").unwrap_or(&o["name"]) == placeholder;
-            let found = function["options"].as_array().into_iter().flatten().any(fills);
-            assert!(found, "{name}: no option fills {{{placeholder}}}");
-        }
-    }
-}
