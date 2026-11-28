@@ -89,8 +89,8 @@ export function EmbeddedDatabaseProvider(props: Props) {
 }
 
 /// Set up the embedded database of the provider above, null without one
-export function useEmbeddedDatabaseSetup(): EmbeddedDatabaseSetupFn {
-    return (React.useContext(DATABASE_CTX)?.setup ?? null) as EmbeddedDatabaseSetupFn;
+export function useEmbeddedDatabaseSetup(): EmbeddedDatabaseSetupFn | null {
+    return React.useContext(DATABASE_CTX)?.setup ?? null;
 }
 
 /// Terminate the embedded database of the provider above, e.g. before another tab takes over the files of the page.

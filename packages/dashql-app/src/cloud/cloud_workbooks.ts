@@ -250,6 +250,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
     const readVersion = React.useCallback(async (cloudId: string, cloudWorkbookId: string, versionId?: string) => {
         if (runtime == null) throw new Error('the workbooks need a RuntimeProvider');
         const { query, database } = readyCloud(cloudId);
+        if (archiveDatabase == null) throw new Error('Reading a published workbook needs the embedded database');
         const local = await archiveDatabase('cloud_read');
         const { version, tables } = await readCloudWorkbook(runtime.core, query, local, cloudWorkbookId, { database, versionId });
         return { version, tables, preview: await readTables(tables) };
@@ -387,6 +388,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
         // A new version goes to the published workbook of the link only in its own cloud
         const linkedHere = link?.connectionId === options.cloudId;
         if (runtime == null) throw new Error('Publishing a workbook needs the runtime');
+        if (archiveDatabase == null) throw new Error('Publishing a workbook needs the embedded database');
         const local = await archiveDatabase('cloud_publish');
         const cloudWorkbookId = options.asNew || !linkedHere ? undefined : link?.workbookId;
         const folderId = options.folderId ?? undefined;

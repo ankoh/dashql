@@ -44,6 +44,7 @@ export function useDemoDataSource(): DemoDataSourceState {
         setState({ source: null, error: null });
         let cancelled = false;
         const setup = async (): Promise<DemoDataSource> => {
+            if (setupEmbedded == null) throw new Error('The demos need the embedded database');
             const embedded = await setupEmbedded('demos');
             // The tables of the demo live in the user database of the page, a fresh one per page load
             const database: HyperDBSourceDatabase = {

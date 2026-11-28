@@ -16,7 +16,7 @@ function SetupConsumer(props: {
 }) {
     const setup = useEmbeddedDatabaseSetup();
     React.useEffect(() => {
-        void setup(props.context, props.onSetupProgress).then(props.onReady);
+        void setup!(props.context, props.onSetupProgress).then(props.onReady);
     }, [props.context, props.onSetupProgress, props.onReady, setup]);
     return null;
 }

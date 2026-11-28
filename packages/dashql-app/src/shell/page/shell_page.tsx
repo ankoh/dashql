@@ -115,6 +115,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
 
         const setup = async () => {
             setStatus('Instantiating hyperdb-wasm');
+            if (setupEmbeddedDatabase == null) throw new Error('The shell has no embedded database');
             const database = await setupEmbeddedDatabase(LOG_CTX, progress => {
                 if (!cancelled) {
                     setStatus(`Instantiating hyperdb-wasm: ${formatInstantiationProgress(progress.bytesLoaded, progress.bytesTotal)}`);

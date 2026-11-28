@@ -74,10 +74,12 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; queryCo
     const runtime = usePageRuntime(() => {
         // The desktop app speaks Hyper over gRPC through its native proxy, the runtime speaks Hyper over HTTP itself
         const grpcClient = isDesktopHost() ? new NativeHyperDatabaseClient(logger) : null;
-        const clients = (): ChannelClients => ({
-            grpcClient,
-            setupEmbeddedDatabase: ref.current.setupEmbeddedDatabase,
-        });
+        const setupEmbeddedDatabase = async (context: string) => {
+            const setup = ref.current.setupEmbeddedDatabase;
+            if (setup == null) throw new Error('The app has no embedded database');
+            return await setup(context);
+        };
+        const clients = (): ChannelClients => ({ grpcClient, setupEmbeddedDatabase });
         return createRuntime({
             logger,
             core: props.core,
@@ -87,9 +89,9 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; queryCo
             oauthFlow: mockSalesforceOAuthFlow(() => ref.current.salesforceMock, new AppOAuthFlow(appEvents, platformType)),
             channels: createChannelConnector(clients),
             // The embedded database starts once the settings loaded, the runtime waits for it
-            computeDatabase: ref.current.setupEmbeddedDatabase == null ? null : () => ref.current.setupEmbeddedDatabase('compute'),
+            computeDatabase: ref.current.setupEmbeddedDatabase == null ? null : () => setupEmbeddedDatabase('compute'),
             results,
-            archives: handles => createRuntimeArchives(handles, context => ref.current.setupEmbeddedDatabase(context)),
+            archives: handles => createRuntimeArchives(handles, setupEmbeddedDatabase),
             catalogLoader: props.catalogLoader,
             // The commands that a test replaces are read when they are called
             queryCommands: {

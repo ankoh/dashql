@@ -115,6 +115,7 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
             traced.info("Initializing Core and embedded database", {}, LOG_CTX);
             const coreStartTime = performance.now();
 
+            if (setupEmbeddedDatabase == null) throw new Error("The app has no embedded database");
             const corePromise = trackInitialization("Core", setupCore("app_setup"));
             setEmbeddedDatabaseStatus(IndicatorStatus.Running);
             const embeddedDatabasePromise = trackInitialization(

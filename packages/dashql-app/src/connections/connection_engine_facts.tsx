@@ -8,7 +8,7 @@ function useEmbeddedHyperVersion(embedded: boolean): string | null {
     const setupDatabase = useEmbeddedDatabaseSetup();
     const [version, setVersion] = React.useState<string | null>(null);
     React.useEffect(() => {
-        if (!embedded) {
+        if (!embedded || setupDatabase == null) {
             setVersion(null);
             return;
         }

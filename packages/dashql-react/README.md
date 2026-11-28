@@ -97,7 +97,8 @@ function Console() {
 }
 
 function ConsoleRuntime(props: { core: DashQL; storage: StorageBackend }) {
-    const database = useEmbeddedDatabaseSetup();
+    // Null only outside of an EmbeddedDatabaseProvider
+    const database = useEmbeddedDatabaseSetup()!;
     const runtime = usePageRuntime(() => createRuntime({
         logger,
         scheduler: FRAME_UPDATE_SCHEDULER,
