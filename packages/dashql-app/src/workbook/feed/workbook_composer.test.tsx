@@ -67,13 +67,13 @@ describe('Workbook composer', () => {
     });
 
     // The view is created by a chain of effects, wait until the composer hands it out
-    async function render(variant = WorkbookComposerVariant.Docked, offlineWorkbookId: string | null = null, agentActivity: AgentActivity['kind'] = 'idle', bar: React.ReactNode = undefined, collapsed = false) {
+    async function render(variant = WorkbookComposerVariant.Docked, offline = false, agentActivity: AgentActivity['kind'] = 'idle', bar: React.ReactNode = undefined, collapsed = false) {
         const snippets = buildSnippetRegistry(dql, { 'hyper/dates/month.sql': `/**\n * Text.\n */\nselect 42;` });
         act(() => root.render(<LoggerProvider>
             <WorkbookConnectionAttentionContext.Provider value={attention}>
                 <WorkbookComposer instance={dql} catalog={catalog} variant={variant}
                     snippetConnector={ConnectorType.HYPER} snippetRegistry={snippets}
-                    scriptNames={['revenue', 'revenue-2']} targetScriptRef={targetScript} offlineWorkbookId={offlineWorkbookId} agentActivity={agentActivity} bar={bar} collapsed={collapsed}
+                    scriptNames={['revenue', 'revenue-2']} targetScriptRef={targetScript} offline={offline} agentActivity={agentActivity} bar={bar} collapsed={collapsed}
                     keywordCase={core.buffers.formatting.KeywordCase.LOWER} onSend={onSend} setView={v => { view = v; }} />
             </WorkbookConnectionAttentionContext.Provider>
         </LoggerProvider>));
@@ -178,7 +178,7 @@ describe('Workbook composer', () => {
         ['landing', WorkbookComposerVariant.Hero],
         ['docked', WorkbookComposerVariant.Docked],
     ])('keeps a SQL draft on the %s composer while its connection is not connected and pulses the connections', async (_, variant) => {
-        const editor = await render(variant, 'workbook');
+        const editor = await render(variant, true);
         // The button is clickable even without a draft, it never sends
         expect(sendButton().disabled).toBe(false);
         expect(sendButton().getAttribute('aria-label')).toBe('Connect to run');
@@ -191,7 +191,7 @@ describe('Workbook composer', () => {
         expect(attention.request).toHaveBeenCalledWith();
         expect(editor.state.doc.toString()).toBe('select 1');
         // Once connected the draft is sent
-        await render(variant, null);
+        await render(variant, false);
         expect(sendButton().getAttribute('aria-label')).toBe('Run query');
         act(() => sendButton().click());
         expect(onSend).toHaveBeenCalledExactlyOnceWith('select 1');
@@ -226,7 +226,7 @@ describe('Workbook composer', () => {
         expect(bar().childElementCount).toBe(0);
         expect(getComputedStyle(bar()).display).toBe('none');
         expect(container.querySelector('[data-agent]')).toBeNull();
-        await render(WorkbookComposerVariant.Docked, null, 'thinking', <span data-testid="agent-bar">Agent</span>);
+        await render(WorkbookComposerVariant.Docked, false, 'thinking', <span data-testid="agent-bar">Agent</span>);
         expect(bar().querySelector('[data-testid="agent-bar"]')).not.toBeNull();
         expect(getComputedStyle(bar()).display).not.toBe('none');
         expect(container.querySelector('[data-agent="working"]')).not.toBeNull();
@@ -235,14 +235,14 @@ describe('Workbook composer', () => {
     it('keeps the editor when the bar appears', async () => {
         const editor = await render(WorkbookComposerVariant.Docked);
         act(() => type(editor, 'select 5'));
-        expect(await render(WorkbookComposerVariant.Docked, null, 'idle', <span data-testid="agent-bar">Agent</span>)).toBe(editor);
+        expect(await render(WorkbookComposerVariant.Docked, false, 'idle', <span data-testid="agent-bar">Agent</span>)).toBe(editor);
         expect(container.querySelector('[data-testid="composer-bar"] [data-testid="agent-bar"]')).not.toBeNull();
         expect(editor.state.doc.toString()).toBe('select 5');
     });
 
     it('shrinks into its bar while another view shows and grows out of it with the draft', async () => {
         const bar = <span data-testid="agent-bar">Agent</span>;
-        const editor = await render(WorkbookComposerVariant.Docked, null, 'idle', bar);
+        const editor = await render(WorkbookComposerVariant.Docked, false, 'idle', bar);
         act(() => type(editor, 'select :min'));
         const composer = () => container.querySelector<HTMLElement>('[data-variant="docked"]')!;
         const prompt = () => container.querySelector<HTMLElement>('[data-testid="composer-prompt"]')!;
@@ -250,13 +250,13 @@ describe('Workbook composer', () => {
         expect(prompt().inert).toBe(false);
 
         // The bar stays, the prompt and the inputs of the draft can't be reached
-        expect(await render(WorkbookComposerVariant.Docked, null, 'idle', bar, true)).toBe(editor);
+        expect(await render(WorkbookComposerVariant.Docked, false, 'idle', bar, true)).toBe(editor);
         expect(composer().hasAttribute('data-collapsed')).toBe(true);
         expect(prompt().inert).toBe(true);
         expect(container.querySelector('[data-testid="composer-bar"] [data-testid="agent-bar"]')).not.toBeNull();
         expect(container.querySelector('[data-testid="composer-inputs"]')).toBeNull();
 
-        expect(await render(WorkbookComposerVariant.Docked, null, 'idle', bar)).toBe(editor);
+        expect(await render(WorkbookComposerVariant.Docked, false, 'idle', bar)).toBe(editor);
         expect(prompt().inert).toBe(false);
         expect(editor.state.doc.toString()).toBe('select :min');
         expect(container.querySelector('[data-testid="composer-inputs"]')).not.toBeNull();

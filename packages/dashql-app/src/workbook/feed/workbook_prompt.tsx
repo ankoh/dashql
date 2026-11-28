@@ -427,7 +427,7 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
                         renameScriptRef={renameScriptRef}
                         tableParameters={composerCore.tableParameters}
                         snippetConnector={composerConnectorType}
-                        offlineWorkbookId={composerConnection?.connectionHealth === ConnectionHealth.ONLINE ? null : workbookId}
+                        offline={composerConnection?.connectionHealth !== ConnectionHealth.ONLINE}
                         connectionPicker={(
                             <ScriptConnectionPicker
                                 workbookId={workbookId}

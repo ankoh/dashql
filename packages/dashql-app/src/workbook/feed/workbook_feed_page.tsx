@@ -285,11 +285,10 @@ export const WorkbookFeedPage = React.memo(function WorkbookFeedPage(props: Prop
         : activeView === WorkbookViewMode.Workbook
             ? 'The workbook opens in the feed'
             : `The workbook opens in the ${activeViewLabel.toLowerCase()}, click to open it in the feed`;
-    // The groups at the end of the bar. An ephemeral workbook has no actions, a preview has its own.
+    // The groups at the end of the bar. An ephemeral workbook has no actions and no Execute All, a preview has its own
+    // actions and says next to Execute All that it is read-only.
     const connectionsShown = barConnections.length > 0;
     const actionsShown = preview || !ephemeral;
-    // Execute All and its status, a preview says next to them that it is read-only
-    const executionShown = preview || !ephemeral;
     React.useEffect(() => {
         if (!pageShown || !viewSwitchShown) return;
         const onKeyDown = (event: KeyboardEvent) => {
@@ -498,8 +497,8 @@ export const WorkbookFeedPage = React.memo(function WorkbookFeedPage(props: Prop
                     </div>
                     {/* A connection overview is not part of the workbook, its controls are hidden */}
                     {!overviewActive && <>
-                        {executionShown && <BarSeparator className={styles.start_separator} />}
-                        {executionShown && <div className={styles.execution_controls} role="group" aria-label="Execution" data-testid="workbook-execution-group">
+                        {actionsShown && <BarSeparator className={styles.start_separator} />}
+                        {actionsShown && <div className={styles.execution_controls} role="group" aria-label="Execution" data-testid="workbook-execution-group">
                             {!ephemeral && (
                                 <WorkbookExecutionControls
                                     workbookId={props.workbookScripts.workbookId}

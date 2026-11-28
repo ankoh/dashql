@@ -68,8 +68,6 @@ export interface WorkbookComposerProps {
     onSend: (text: string) => void;
     /// Called with a question for the agent when the user sends it in AI, the draft is cleared before
     onAsk?: (question: string) => void;
-    /// Called with whether the draft is blank, once on mount and whenever that changes
-    onDraftEmptyChange?: (empty: boolean) => void;
     /// The bar above the editor, e.g. the bar of Wobble. The inputs of a SQL draft follow it, the bar is hidden
     /// while it is empty.
     bar?: React.ReactNode;
@@ -91,9 +89,9 @@ export interface WorkbookComposerProps {
     connectionPicker?: React.ReactNode;
     /// Picks the connections that the agent may use, in place of the connection picker in AI
     agentConnectionsPicker?: React.ReactNode;
-    /// The workbook of the draft, set while the connection of the draft is not connected.
-    /// A SQL draft is not sent then, the connections of the workbook ask for attention instead.
-    offlineWorkbookId?: string | null;
+    /// Is the connection of the draft not connected? A SQL draft is not sent then, the connections of the workbook
+    /// ask for attention instead.
+    offline?: boolean;
     /// The connector of the draft, the composer offers the snippets that run on it
     snippetConnector?: ConnectorType;
     /// The snippets to browse, the bundled ones by default
@@ -150,7 +148,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
 
     const [view, setView] = React.useState<EditorView | null>(null);
     const [empty, setEmpty] = React.useState(true);
-    const { setView: forwardView, onDraftEmptyChange, onSend } = props;
+    const { setView: forwardView, onSend } = props;
     const handleView = React.useCallback((next: EditorView | null) => {
         setView(next);
         forwardView?.(next);
@@ -160,7 +158,6 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
     const handleTextChange = React.useCallback((text: string) => {
         setEmpty(text.trim().length === 0);
     }, []);
-    React.useEffect(() => onDraftEmptyChange?.(empty), [empty, onDraftEmptyChange]);
     // The inputs of the draft follow its analysis, a cursor move changes nothing
     const [draftInputs, setDraftInputs] = React.useState(NO_INPUTS);
     const handleEditorUpdate = React.useCallback((update: core.buffers.editor.EditorUpdateT) => {
@@ -187,7 +184,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
 
     // The connection of a SQL draft has to be connected first, the draft stays until it is
     const connectionAttention = React.useContext(WorkbookConnectionAttentionContext);
-    const offlineWorkbookId = props.offlineWorkbookId ?? null;
+    const offline = props.offline ?? false;
     const inputsRef = React.useRef<HTMLDivElement>(null);
     // In AI the draft is a question for the agent, the desktop app runs it. The web app has no agents.
     const agent = props.agent ?? null;
@@ -204,7 +201,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
             if (question != null) onAsk?.(question.trim());
             return;
         }
-        if (offlineWorkbookId != null) {
+        if (offline) {
             connectionAttention?.request();
             return;
         }
@@ -215,7 +212,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
         if (text != null) {
             onSend(text);
         }
-    }, [onSend, onAsk, view, ai, askable, working, offlineWorkbookId, connectionAttention]);
+    }, [onSend, onAsk, view, ai, askable, working, offline, connectionAttention]);
     // A snippet replaces the draft right away, there is no script yet whose text could be compared
     const applySnippet = React.useCallback((text: string) => {
         if (view == null) return;
@@ -278,8 +275,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
     React.useEffect(() => focusHero(view), [view]);
 
     const showDraftInputs = !ai && draftInputs.length > 0;
-    const blockedWorkbookId = ai ? null : offlineWorkbookId;
-    const blocked = blockedWorkbookId != null;
+    const blocked = !ai && offline;
     // A blocked button stays clickable, it pulses the connections that are not connected
     const sendButton = (
         <IconButton
@@ -418,7 +414,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
                                             testId="composer-snippets"
                                         />
                                     )}
-                                    {blockedWorkbookId != null
+                                    {blocked
                                         ? <ExecuteConnectionGuard blocked>{sendButton}</ExecuteConnectionGuard>
                                         : sendButton}
                                 </div>

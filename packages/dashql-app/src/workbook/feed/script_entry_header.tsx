@@ -58,7 +58,7 @@ export const ScriptEntryHeader: React.FC<ScriptEntryHeaderProps> = React.memo((p
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
     const keywordCase = getKeywordCase(config?.settings);
     const display: FeedEntryHeaderDisplay = {
-        // There is no composer outside of the feed
+        // Only the cards of the feed mention their script in the composer, the boxes of the dataflow and the dialog don't
         focused: true, canTarget: false, scriptDebugMode, formattingDebugMode, keywordCase, references: props.scriptReferences,
     };
 

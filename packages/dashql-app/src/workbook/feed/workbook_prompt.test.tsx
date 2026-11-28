@@ -227,9 +227,9 @@ describe('Workbook prompt', () => {
 
     it('keeps the composer draft while the connection of the next script is not connected', () => {
         render(workbook());
-        expect(promptState.composerProps?.offlineWorkbookId).toBeNull();
+        expect(promptState.composerProps?.offline).toBe(false);
         render(workbook(), vi.fn(), { ...onlineConn, connectionHealth: ConnectionHealth.NOT_STARTED });
-        expect(promptState.composerProps?.offlineWorkbookId).toBe('workbook');
+        expect(promptState.composerProps?.offline).toBe(true);
     });
 
     it('only creates the script without a healthy connection', async () => {

@@ -64,9 +64,9 @@ export interface DashboardCardProps {
     /// Is the connection of the script online? The card runs only then, and while no run holds the workbook.
     online: boolean;
     /// Rename the script, the name is the new display name. The menu of the card offers it.
-    onRename?: (scriptId: number, name: string) => void;
+    onRename: (scriptId: number, name: string) => void;
     /// Delete the script, the menu of the card offers it
-    onDelete?: (scriptId: number) => void;
+    onDelete: (scriptId: number) => void;
     dependencies?: DashboardCardDependencies;
 }
 
@@ -100,7 +100,7 @@ export const DashboardCard = React.memo(function DashboardCard(props: DashboardC
     const scriptKey = script.scriptKey;
     const commitRename = React.useCallback((name: string) => {
         setRenaming(false);
-        if (name.trim() !== '' && name.trim() !== displayName) onRename?.(scriptKey, name.trim());
+        if (name.trim() !== '' && name.trim() !== displayName) onRename(scriptKey, name.trim());
     }, [onRename, scriptKey, displayName]);
     const cancelRename = React.useCallback(() => setRenaming(false), []);
     const transform = draggable.transform == null ? undefined : CSS.Translate.toString(draggable.transform);
@@ -317,13 +317,11 @@ export const DashboardCard = React.memo(function DashboardCard(props: DashboardC
                             >
                                 <PencilIcon size={12} />
                             </IconButton>
-                            {(props.onRename != null || props.onDelete != null) && (
-                                <DashboardCardMenu
-                                    scriptName={displayName}
-                                    onRename={props.onRename != null ? () => setRenaming(true) : undefined}
-                                    onDelete={props.onDelete != null ? () => props.onDelete!(script.scriptKey) : undefined}
-                                />
-                            )}
+                            <DashboardCardMenu
+                                scriptName={displayName}
+                                onRename={() => setRenaming(true)}
+                                onDelete={() => props.onDelete(script.scriptKey)}
+                            />
                         </ButtonGroup>
                         <SegmentedControl
                             aria-label={`Renderer of ${displayName}`}
@@ -401,7 +399,7 @@ export const DashboardCard = React.memo(function DashboardCard(props: DashboardC
 });
 
 /// The menu of a card with the actions that change the script itself
-function DashboardCardMenu(props: { scriptName: string; onRename?: () => void; onDelete?: () => void }): React.ReactElement {
+function DashboardCardMenu(props: { scriptName: string; onRename: () => void; onDelete: () => void }): React.ReactElement {
     const [open, setOpen] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
     const run = (action: () => void) => {
@@ -433,24 +431,19 @@ function DashboardCardMenu(props: { scriptName: string; onRename?: () => void; o
         >
             <div className={menuStyles.menu} role="dialog" aria-label={`Actions for ${props.scriptName}`}>
                 <ActionList.List aria-label={`Actions for ${props.scriptName}`}>
-                    {/* The list takes elements only, the fragments wrap the optional items */}
-                    <>{props.onRename != null && (
-                        <ActionList.ListItem data-testid="dashboard-card-menu-item" data-action="rename" onClick={() => run(props.onRename!)}>
-                            <ActionList.Leading><RenameIcon size={16} /></ActionList.Leading>
-                            <ActionList.ItemText>Rename</ActionList.ItemText>
-                        </ActionList.ListItem>
-                    )}</>
-                    <>{props.onDelete != null && (
-                        <ActionList.ListItem
-                            data-testid="dashboard-card-menu-item"
-                            data-action="delete"
-                            className={menuStyles.delete_action}
-                            onClick={() => run(props.onDelete!)}
-                        >
-                            <ActionList.Leading><TrashIcon size={16} /></ActionList.Leading>
-                            <ActionList.ItemText>Delete</ActionList.ItemText>
-                        </ActionList.ListItem>
-                    )}</>
+                    <ActionList.ListItem data-testid="dashboard-card-menu-item" data-action="rename" onClick={() => run(props.onRename)}>
+                        <ActionList.Leading><RenameIcon size={16} /></ActionList.Leading>
+                        <ActionList.ItemText>Rename</ActionList.ItemText>
+                    </ActionList.ListItem>
+                    <ActionList.ListItem
+                        data-testid="dashboard-card-menu-item"
+                        data-action="delete"
+                        className={menuStyles.delete_action}
+                        onClick={() => run(props.onDelete)}
+                    >
+                        <ActionList.Leading><TrashIcon size={16} /></ActionList.Leading>
+                        <ActionList.ItemText>Delete</ActionList.ItemText>
+                    </ActionList.ListItem>
                 </ActionList.List>
             </div>
         </AnchoredOverlay>

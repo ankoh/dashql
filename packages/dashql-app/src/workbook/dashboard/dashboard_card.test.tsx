@@ -54,6 +54,8 @@ function card(options: { script?: ScriptData; query?: QueryModel | null; model?:
                 onRemoveVisualization={vi.fn()}
                 onOpenEditor={vi.fn()}
                 onOpenTable={vi.fn()}
+                onRename={vi.fn()}
+                onDelete={vi.fn()}
                 online
                 dependencies={dependencies}
                 {...props}

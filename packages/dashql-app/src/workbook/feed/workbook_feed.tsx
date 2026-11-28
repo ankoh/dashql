@@ -612,7 +612,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         formattingDebugMode,
         keywordCase,
         active: rowsActive,
-        canTarget: true,
         collapsedResults,
         fold,
         feed: feedCommands,
