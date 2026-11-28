@@ -1,4 +1,4 @@
-//! The parser: the grammar actions (`grammar/rules_rs`), the parse context, and the LALR(1) driver.
+//! The parser: the grammar actions (`//grammar:parser_tables_rs`), the parse context, and the LALR(1) driver.
 
 pub mod actions;
 pub mod context;

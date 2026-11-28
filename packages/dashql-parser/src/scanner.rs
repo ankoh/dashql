@@ -5,8 +5,9 @@
 //! time, so that actions can switch the start condition and put text back with `yyless`. See
 //! docs/design/core_quirks.md for the quirks of the scanner.
 //!
-//! [`scan`] then applies a lookahead filter, which turns `NOT`, `NULLS`, `WITH` and `.` into their
-//! `*_LA` variants depending on the following tokens.
+//! [`scan`] then applies a lookahead filter, which turns `NOT`, `NULLS`, `WITH`, `WITHOUT`, `ARRAY`, `SEMI`, `ANTI`
+//! and `.` into their lookahead tokens depending on the following tokens, and marks the operators of quantified
+//! comparisons, see "Lookahead rewrites" in docs/design/core_parser.md.
 
 use crate::keywords::{Keyword, KeywordCategory};
 use crate::names::{NameId, NameRegistry};
@@ -719,7 +720,7 @@ impl<'a> Lexer<'a> {
         Symbol::new(kind, self.ext_begin.cover(loc))
     }
 
-    /// `{quotecontinue}`: a bit or hex string continues after whitespace with a line break and
+    /// `{quotecontinue}`: a quoted, bit or hex string continues after whitespace with a line break and
     /// another quote. Consumes the whitespace and the quote and records the comments in it.
     fn quote_continue(&mut self, out: &mut ScannedScript) -> bool {
         let mut i = self.pos;

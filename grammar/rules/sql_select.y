@@ -1,7 +1,6 @@
 // A complete SELECT statement looks like this.
 //
-// The rule returns either a single PGSelectStmt node or a tree of them,
-// representing a set-operation tree.
+// The rule returns a SELECT or a tree of set operations over them.
 //
 // There is an ambiguity when a sub-SELECT is within an a_expr and there
 // are excess parentheses: do the parentheses belong to the sub-SELECT or
@@ -18,7 +17,7 @@
 //
 // This approach is implemented by defining a nonterminal select_with_parens,
 // which represents a SELECT with at least one outer layer of parentheses,
-// and being careful to use select_with_parens, never LRB PGSelectStmt RRB,
+// and being careful to use select_with_parens, never LRB select_stmt RRB,
 // in the expression grammar.  We will then have shift-reduce conflicts
 // which we can resolve in favor of always treating LRB <select> RRB as
 // a select_with_parens.  To resolve the conflicts, the productions that
@@ -32,7 +31,7 @@
 // a nonterminal select_no_parens that represents a SELECT structure with no
 // outermost parentheses.  This is a little bit tedious, but it works.
 //
-// In non-expression contexts, we use PGSelectStmt which can represent a SELECT
+// In non-expression contexts, we use select_stmt which can represent a SELECT
 // with or without outer parentheses.
 
 sql_select_stmt:
@@ -102,8 +101,8 @@ sql_select_clause:
 // This does not limit functionality, because you can reintroduce these
 // clauses inside parentheses.
 //
-// NOTE: only the leftmost component PGSelectStmt should have INTO.
-// However, this is not checked by the grammar; parse analysis must check it.
+// NOTE: only the leftmost SELECT of a set operation should have INTO, the
+// grammar doesn't check it.
 
 sql_simple_select:
     SELECT sql_opt_aggregation_threshold sql_opt_all_clause sql_opt_target_list
@@ -295,8 +294,7 @@ sql_all_or_distinct:
   | %empty      { null() }
     ;
 
-// We use (NIL) as a placeholder to indicate that all target expressions
-// should be placed in the DISTINCT list during parsetree analysis.
+// DISTINCT without ON is an empty array, all target expressions are distinct.
 
 sql_distinct_clause:
     DISTINCT                            { ctx.array_keep_empty(@$, NO_NODES) }
@@ -468,17 +466,11 @@ sql_first_or_next:
 //
 // We handle this by using the a_expr production for what the spec calls
 // <ordinary grouping set>, which in the spec represents either one column
-// reference or a parenthesized list of column references. Then, we check the
-// top node of the a_expr to see if it's an implicit PGRowExpr, and if so, just
-// grab and use the list, discarding the node. (this is done in parse analysis,
-// not here)
+// reference or a parenthesized list of column references, so `(a, b)` is a
+// row expression here.
 //
-// (we abuse the row_format field of PGRowExpr to distinguish implicit and
-// explicit row constructors; it's debatable if anyone sanely wants to use them
-// in a group clause, but if they have a reason to, we make it possible.)
-//
-// Each item in the group_clause list is either an expression tree or a
-// PGGroupingSet node of some type.
+// Each item in the group_clause list is a group by item: an expression, the
+// empty grouping set, ROLLUP, CUBE or GROUPING SETS.
 
 sql_group_clause:
 GROUP_P BY sql_group_by_list { ctx.list(&[attr(Key::SQL_SELECT_GROUPS, ctx.array(@$, $3))]) }
@@ -882,8 +874,8 @@ sql_opt_alias_clause:
   | %empty              { null() }
     ;
 
-// func_alias_clause can include both an PGAlias and a coldeflist, so we make it
-// return a 2-element list that gets disassembled by calling production.
+// func_alias_clause is an alias that can have column definitions instead of
+// column names, `AS t (a int, b text)`.
 sql_func_alias_clause:
     sql_alias_clause { $1 }
   | AS LRB sql_table_func_element_list RRB { ctx.object(@$, NodeType::OBJECT_SQL_ALIAS, &[attr(Key::SQL_ALIAS_COLUMN_DEFS, ctx.array(@3, $3))]) }
@@ -922,8 +914,6 @@ sql_join_outer:
 //    USING ( column list ) allows only unqualified column names,
 //                          which must match between tables.
 //    ON expr allows more general qualifications.
-//
-// We return USING as a PGList node, while an ON-expr will not be a List.
 
 sql_join_qual:
     USING LRB sql_name_list RRB   { ctx.list(&[attr(Key::SQL_JOIN_USING, ctx.array(loc(&[@2, @3, @4]), $3))]) }
@@ -1071,7 +1061,7 @@ sql_opt_repeatable_clause:
 // function, for example:
 //     ROWS FROM (foo() AS (foo_res_a text, foo_res_b text),
 //                bar() AS (bar_res_a text, bar_res_b text))
-// It's also possible to attach a column list to the PGRangeFunction
+// It's also possible to attach a column list to the function table
 // as a whole, but that's handled by the table_ref production.
 
 sql_func_table:
@@ -1320,8 +1310,7 @@ sql_const_typename:
 // GenericType covers all type names that don't have special syntax mandated
 // by the standard, including qualified names.  We also allow type modifiers.
 // To avoid parsing conflicts against function invocations, the modifiers
-// have to be shown as expr_list here, but parse analysis will only accept
-// constants for them.
+// have to be shown as expr_list here.
 
 sql_generic_type:
     sql_type_function_name sql_opt_type_modifiers {
@@ -2442,11 +2431,7 @@ sql_opt_partition_clause:
   | %empty                      { ctx.list(NO_NODES) }
     ;
 
-// For frame clauses, we return a PGWindowDef, but only some fields are used:
-// frameOptions, startOffset, and endOffset.
-//
-// This is only a subset of the full SQL:2008 frame_clause grammar.
-// We don't support <window frame exclusion> yet.
+// A frame clause is the mode, the bounds and the exclusion of the window frame.
 
 sql_opt_frame_clause:
     RANGE sql_frame_extent sql_opt_window_exclusion {
@@ -2642,13 +2627,7 @@ sql_qual_all_op:
   | OPERATOR LRB sql_any_operator RRB   { ctx.array(@$, $3) } // XXX Make object
     ;
 
-// cannot put SIMILAR TO into sql_subquery_op, because SIMILAR TO is a hack.
-// the regular expression is preprocessed by a function (similar_escape),
-// and the ~ operator for posix regular expressions is used.
-//        x SIMILAR TO y     ->    x ~ similar_escape(y)
-// this transformation is made on the fly by the parser upwards.
-// however the PGSubLink structure which handles any/some/all stuff
-// is not ready for such a thing.
+// SIMILAR TO is no operator of a quantified comparison.
 
 sql_subquery_op:
     sql_math_op { $1 }

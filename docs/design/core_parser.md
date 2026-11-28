@@ -387,6 +387,16 @@ The scanner wraps the raw lexer with a lookahead filter (`next_symbol` in `scann
 - `WITH` → `WITH_OPTIONS_LA` when followed by `OPTIONS ( name :=` or `OPTIONS ( name =>`, the options of a table ref
   (`t with options (a := 1)`). It looks four tokens ahead: `OPTIONS` is an unreserved keyword, so `with options as
   (...)` and `with options (a, b) as (...)` stay common table expressions named options.
+- `WITHOUT` → `WITHOUT_LA` when followed by `TIME`
+- `ARRAY` → `ARRAY_LA` when followed by `(` or `WRAPPER`
+- `SEMI` → `SEMI_JOIN_LA` and `ANTI` → `ANTI_JOIN_LA` when followed by `JOIN`
+- `.` → `DOT_STAR_LA` when followed by `*`, and `.` → `DOT_TRAILING` when no name continues after it: whitespace and
+  then no name or non-reserved keyword, or a `)`, `]`, `,` or `;` (`sum(t.)` while the editor closes the parenthesis),
+  see [sql_grammar.md](sql_grammar.md)
+
+After the scan, `classify_quantified_operators` turns the operator of a quantified comparison, an operator followed by
+`ANY`, `SOME` or `ALL` and `(`, into `QUANTIFIED_OP` (`a ~ any (...)`), and `OPERATOR(...)` there into
+`QUANTIFIED_OPERATOR`, so that it isn't read as a postfix operator followed by an alias.
 
 ## Comment Tags
 
@@ -397,8 +407,8 @@ first text is a known tag, `@<tag>`. The known tags are `vis`, `board`, `flow`, 
 offers, the analyzer flags the tags of a missing capability ([capabilities.md](capabilities.md)). A tag runs to the next tag
 line or to the end of the comment, like the block tags of Javadoc: in a block comment the comment end
 closes the last tag, in a run of line comments the end of the run. Tags whose content is one line end at
-their line if it has content: `@board` and `@flow` with their args, `@vis table` (and the `@vis board`, `card`
-and `flow` of older scripts) and `@param :name = <literal>`. The Javadoc `@param x ...`, `@vis vegalite`,
+their line if it has content: `@board` and `@flow` with their args, `@vis table`, `@vis kpi` with its args (and the
+`@vis board`, `card` and `flow` of older scripts) and `@param :name = <literal>`. The Javadoc `@param x ...`, `@vis vegalite`,
 `@vis markdown` and the free text of `@manual` run to the next tag. Text before the first tag of a block
 comment and the lines after a tag that ends at its line are ordinary blocks, the description of the
 statement. Older scripts close the last region of line comments with `-- @end`, the

@@ -1,4 +1,4 @@
-//! The vocabulary of the grammar actions. The generated rules module (`grammar/rules_rs`) imports everything from here.
+//! The vocabulary of the grammar actions. The generated tables (`//grammar:parser_tables_rs`) import everything from here.
 
 pub use super::context::{null, IntoNodeList, ParseContext, NO_PARENT};
 pub use super::value::{ExprVariant, FromValue, NodeList, Str, Value};

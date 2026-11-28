@@ -14,12 +14,8 @@ use crate::parser::actions::*;
 // ---------------------------------------------------------------------------
 // TOKENS
 
-/*
- * Non-keyword token types.  These are hard-wired into the scanner.
- * They must be listed first so that their numeric codes do not depend on
- * the set of keywords.  PL/pgSQL depends on this so that it can share the
- * same lexer.  If you add/change tokens here, fix PL/pgSQL to match!
- */
+// The tokens that are no keywords, the scanner emits them. They come first, so their symbol kinds don't depend on the
+// keyword lists.
 
 %token<NameId> IDENT   "identifier literal"
 %token         SCONST  "string literal"
@@ -40,16 +36,14 @@ use crate::parser::actions::*;
 %token EOF 0
 
 
-/*
- * The grammar thinks these are keywords, but they are not in the kwlist.h
- * list and so can never be entered directly.  The filter in parser.c
- * creates these tokens when required (based on looking one token ahead).
- *
- * NOT_LA exists so that productions such as NOT LIKE can be given the same
- * precedence as LIKE; otherwise they'd effectively have the same precedence
- * as NOT, at least with respect to their left-hand subexpression.
- * NULLS_LA, WITH_LA, and DOT_STAR_LA are needed to make the grammar LALR(1).
- */
+// The lookahead tokens: no keyword list has them, the lookahead filter of the scanner (`next_symbol` in scanner.rs)
+// emits them for a keyword or a dot by the tokens after it, and `classify_quantified_operators` emits QUANTIFIED_OP and
+// QUANTIFIED_OPERATOR for the operator of a quantified comparison, `a ~ any (...)`. See "Lookahead rewrites" in
+// docs/design/core_parser.md.
+//
+// NOT_LA exists so that productions such as NOT LIKE can be given the same precedence as LIKE; otherwise they'd
+// effectively have the same precedence as NOT, at least with respect to their left-hand subexpression. The others make
+// the grammar LALR(1).
 %token        NOT_LA NULLS_LA WITH_LA DOT_STAR_LA
 
 %token ARRAY_LA WITHOUT_LA WITH_OPTIONS_LA SEMI_JOIN_LA ANTI_JOIN_LA

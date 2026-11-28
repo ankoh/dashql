@@ -4,7 +4,8 @@
 Each list line is an X-macro `X(CATEGORY, "name", TOKEN, LABEL)`, shared with the grammar assembly.
 LABEL is BARE_LABEL for a keyword that may be a column label without AS, as in PostgreSQL's kwlist,
 and AS_LABEL otherwise. The output is a Rust module (to be declared inside dashql-parser, next to
-`tables`) that defines `KEYWORDS`, sorted by name for binary search, and `MAX_KEYWORD_LENGTH`.
+`tables`) that defines `KEYWORDS`, sorted by name, `KEYWORD_TABLE`, a hash table of FNV-1a hashes that finds a
+keyword by its name, and `MAX_KEYWORD_LENGTH`.
 """
 
 import argparse
