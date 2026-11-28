@@ -245,6 +245,13 @@ a pointer move over the canvas runs the view, and the fit of a temporal axis wit
 labels can alternate between two plot widths with two different sets of ticks. With
 `resize: true` the x labels flickered while the pointer moved over the chart.
 
+Vega-Lite fits a size of `container` on `container:resize`, the resize observer of the
+container, and on `window:resize` for Vega before 6.4. `createEmbedOptions` drops the
+updates on `window:resize` from the compiled spec (`withoutWindowResize`): every step of a
+resize of the window ran every chart, also the hidden ones of a suspended render schedule
+(265 ms per step for a dashboard of six charts on the dev server, 33 ms without). The
+observer sees every change of the size of a chart.
+
 ## Composition behavior
 
 The named source and leading transforms are installed at the top level. Unit, layer,

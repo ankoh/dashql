@@ -5,7 +5,7 @@ import type { Config, TopLevelSpec } from 'vega-lite';
 import * as styles from './vegalite_view.module.css';
 import { loadVega } from '../vegalite/vegalite_loader.js';
 import { arrowTableToRows, CHART_ROWS } from '../vegalite/vegalite_rows.js';
-import { type ChartColors, createEmbedOptions, createVegaLiteConfig, resolveChartColors } from '../vegalite/vegalite_theme.js';
+import { type ChartColors, createEmbedOptions, createVegaLiteConfig, resolveChartColors, withoutWindowResize } from '../vegalite/vegalite_theme.js';
 import { withViewEncodings } from '@akohn/dashql/platform/workbook/chart_config';
 import { useColorScheme } from '../theme/color_scheme.js';
 import { useBrand } from '../brand/brand.js';
@@ -223,7 +223,7 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
             return embed(el, runtimeSpec, {
                 ...options,
                 patch: compiledSpec => {
-                    const stableScales = injectVegaStableScaleDomains(compiledSpec);
+                    const stableScales = injectVegaStableScaleDomains(withoutWindowResize(compiledSpec));
                     stableScaleDomains = stableScales.domains;
                     return stableScales.spec;
                 },

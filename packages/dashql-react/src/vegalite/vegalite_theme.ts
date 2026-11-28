@@ -1,3 +1,4 @@
+import type { Spec as VegaSpec } from 'vega';
 import type { Config } from 'vega-lite';
 import type { EmbedOptions } from 'vega-embed';
 
@@ -132,6 +133,26 @@ export function createEmbedOptions(
         config: createVegaLiteConfig(colors),
         tooltip: { theme: VEGA_TOOLTIP_THEME },
         logLevel: VEGA_LOG_LEVEL_ERROR,
+        patch: withoutWindowResize,
+    };
+}
+
+/// The event of the window that Vega-Lite updates a size of `container` on, next to `container:resize`
+const WINDOW_RESIZE = 'window:resize';
+
+/// Drops `window:resize` from the updates of the signals of a compiled spec. Vega-Lite fits a size of `container` on it
+/// for Vega before 6.4, and on `container:resize`, the resize observer of the container, which sees every change of the
+/// size of the chart. Every step of a resize of the window ran every chart, also the hidden ones of a suspended render
+/// schedule (`Deferred`), whose containers keep their size.
+export function withoutWindowResize(spec: VegaSpec): VegaSpec {
+    if (spec.signals == null) return spec;
+    return {
+        ...spec,
+        signals: spec.signals.map(signal => {
+            if (!('on' in signal) || signal.on == null) return signal;
+            const on = signal.on.filter(update => update.events !== WINDOW_RESIZE);
+            return on.length === signal.on.length ? signal : { ...signal, on };
+        }),
     };
 }
 
