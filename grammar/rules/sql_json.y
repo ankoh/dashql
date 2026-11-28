@@ -2,7 +2,7 @@
 sql_json_expr:
     JSON LRB sql_json_value sql_json_unique RRB { ctx.object(@$,NodeType::OBJECT_SQL_JSON_PARSE,&[attr(Key::SQL_JSON_VALUE,$3),attr(Key::SQL_JSON_UNIQUE_KEYS,$4)]) }
   | JSON_SCALAR LRB sql_a_expr RRB { ctx.object(@$,NodeType::OBJECT_SQL_JSON_SCALAR,&[attr(Key::SQL_JSON_VALUE,ctx.expression($3))]) }
-  | JSON_OBJECT LRB sql_json_member_list sql_json_nulls sql_json_unique RRB {
+  | JSON_OBJECT LRB sql_json_member_list sql_opt_null_on_null sql_json_unique RRB {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_JSON_OBJECT,
@@ -14,7 +14,7 @@ sql_json_expr:
         )
     }
   | JSON_OBJECT LRB RRB { ctx.object(@$,NodeType::OBJECT_SQL_JSON_OBJECT,&[attr(Key::SQL_JSON_MEMBERS,ctx.array_keep_empty(@$,NO_NODES))]) }
-  | JSON_ARRAY LRB sql_json_value_list sql_json_nulls RRB {
+  | JSON_ARRAY LRB sql_json_value_list sql_opt_null_on_null RRB {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_JSON_ARRAY,
@@ -105,11 +105,6 @@ sql_json_member:
 sql_json_value_list:
     sql_json_value { ctx.list(&[$1]) }
   | sql_json_value_list COMMA sql_json_value { ctx.push_back($1,$3);$1 }
-    ;
-sql_json_nulls:
-    NULL_P ON NULL_P { bool_node(@$,false) }
-  | ABSENT ON NULL_P { bool_node(@$,true) }
-  | %empty { null() }
     ;
 sql_json_passing:
     PASSING sql_json_arguments { ctx.array(@$,$2) }

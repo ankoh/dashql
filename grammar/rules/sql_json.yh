@@ -6,7 +6,6 @@
 %type<Node> sql_json_format;
 %type<Node> sql_json_unique;
 %type<Node> sql_json_member;
-%type<Node> sql_json_nulls;
 %type<Node> sql_json_passing;
 %type<Node> sql_json_argument;
 %type<Node> sql_json_returning;

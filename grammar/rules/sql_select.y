@@ -1268,7 +1268,7 @@ sql_simple_typename:
   | ROW LRB sql_table_func_element_list RRB { ctx.object(@$, NodeType::OBJECT_SQL_ROW_TYPE, &[attr(Key::SQL_ROW_TYPE_FIELDS, ctx.array(@3, $3))]) }
   | sql_numeric                         { $1 }
   | sql_bit                             { $1 }
-  | sql_const_character                 { $1 }
+  | sql_character                       { $1 }
   | sql_const_datetime                  { $1 }
   | sql_const_interval sql_opt_interval {
       let mut yy_2 = $2;
@@ -1312,7 +1312,7 @@ sql_simple_typename:
 
 sql_const_typename:
     sql_numeric         { $1 }
-  | sql_const_bit       { $1 }
+  | sql_bit             { $1 }
   | sql_character       { $1 }
   | sql_const_datetime  { $1 }
   | JSON { ctx.object(@$,NodeType::OBJECT_SQL_GENERIC_TYPE,&[attr(Key::SQL_GENERIC_TYPE_NAME,ctx.name_from_keyword(@1,$1))]) }
@@ -1404,15 +1404,6 @@ sql_bit:
   | sql_bit_without_length  { $1 }
     ;
 
-// ConstBit is like Bit except "BIT" defaults to unspecified length
-// See notes for ConstCharacter, which addresses same issue for "CHAR"
-// Andre: XXX Relevant for DashQL?
-
-sql_const_bit:
-    sql_bit_with_length     { $1 }
-  | sql_bit_without_length  { $1 }
-    ;
-
 sql_bit_with_length:
     BIT sql_opt_varying LRB sql_a_expr RRB {
         ctx.object(
@@ -1435,11 +1426,6 @@ sql_bit_without_length:
 // The following implements CHAR() and VARCHAR().
 
 sql_character:
-    sql_character_with_length     { ctx.object(@$, NodeType::OBJECT_SQL_CHARACTER_TYPE, $1) }
-  | sql_character_without_length  { ctx.object(@$, NodeType::OBJECT_SQL_CHARACTER_TYPE, $1) }
-    ;
-
-sql_const_character:
     sql_character_with_length     { ctx.object(@$, NodeType::OBJECT_SQL_CHARACTER_TYPE, $1) }
   | sql_character_without_length  { ctx.object(@$, NodeType::OBJECT_SQL_CHARACTER_TYPE, $1) }
     ;

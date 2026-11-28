@@ -2009,7 +2009,7 @@ sql_cmd_stream_type:
     ;
 
 sql_cmd_truncate_stmt:
-    TRUNCATE sql_cmd_opt_table sql_cmd_relation_expr_list sql_cmd_opt_restart_seqs sql_cmd_opt_drop_behavior {
+    TRUNCATE sql_opt_table sql_cmd_relation_expr_list sql_cmd_opt_restart_seqs sql_cmd_opt_drop_behavior {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_TRUNCATE,
@@ -3476,11 +3476,6 @@ sql_cmd_opt_reloptions:
 sql_cmd_opt_restart_seqs:
     CONTINUE_P IDENTITY_P { null() }
     | RESTART IDENTITY_P { bool_node(@$,true) }
-    | %empty { null() }
-    ;
-
-sql_cmd_opt_table:
-    TABLE { null() }
     | %empty { null() }
     ;
 

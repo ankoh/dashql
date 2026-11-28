@@ -31,12 +31,12 @@ sql_create_as_stmt:
     ;
 
 sql_create_as_target:
-    sql_qualified_name sql_opt_column_list sql_opt_with sql_on_commit_option {
+    sql_qualified_name sql_opt_column_list sql_on_commit_option {
         ctx.list(
             &[
                 attr(Key::SQL_CREATE_AS_NAME, $1),
                 attr(Key::SQL_CREATE_AS_COLUMNS, ctx.array(@2, $2)),
-                attr(Key::SQL_CREATE_AS_ON_COMMIT, $4),
+                attr(Key::SQL_CREATE_AS_ON_COMMIT, $3),
             ],
         )
     }
@@ -362,11 +362,6 @@ sql_on_commit_option:
   | ON COMMIT PRESERVE ROWS     { enum_node(@$, OnCommitOption::PRESERVE_ROWS) }
   | %empty                      { null() }
   ;
-
-// XXX omitted reloptions and OIDS
-sql_opt_with:
-    %empty          { null() }
-    ;
 
 sql_table_constraint:
     CONSTRAINT sql_name sql_table_constraint_elem {

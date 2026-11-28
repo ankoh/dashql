@@ -170,7 +170,6 @@
 %type<Node> sql_cmd_opt_procedural;
 %type<NodeList> sql_cmd_opt_reloptions;
 %type<Node> sql_cmd_opt_restart_seqs;
-%type<Node> sql_cmd_opt_table;
 %type<Node> sql_cmd_opt_table_arg_pruning;
 %type<Node> sql_cmd_opt_table_arg_semantics;
 %type<NodeList> sql_cmd_opt_table_func_column_list;

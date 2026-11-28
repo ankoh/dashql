@@ -84,8 +84,6 @@
 %type<Node> sql_col_label_or_string;
 %type<Node> sql_columnref;
 %type<Node> sql_common_table_expr;
-%type<Node> sql_const_bit;
-%type<Node> sql_const_character;
 %type<Node> sql_const_datetime;
 %type<Node> sql_const_typename;
 %type<Node> sql_distinct_clause;

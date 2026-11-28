@@ -32,7 +32,6 @@
 %type<Node> sql_on_commit_option;
 %type<Node> sql_opt_no_inherit;
 %type<Node> sql_opt_temp;
-%type<Node> sql_opt_with;
 %type<Node> sql_opt_with_data;
 %type<Node> sql_signed_iconst;
 %type<Node> sql_table_constraint;
