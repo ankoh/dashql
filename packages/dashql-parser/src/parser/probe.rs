@@ -8,8 +8,8 @@
 //!   snapshot to test whether candidate symbols fit the rest of the script.
 
 use super::driver::{
-    default_rule, feed, is_default_state, lac_check, rule_length, rule_lhs, state_below, table_action, Action, StateId,
-    NO_STATE,
+    default_rule, feed, inside_statement, is_default_state, lac_check, rule_length, rule_lhs, state_below,
+    statement_bottom, table_action, Action, StateId, NO_STATE,
 };
 use crate::keywords::Keyword;
 use crate::scanner::Symbol;
@@ -130,6 +130,8 @@ fn drive<P: Policy>(policy: &mut P, states: &mut Vec<StateId>, tokens: &mut Toke
     let mut scratch = Vec::new();
     let mut errstatus = 0;
     let mut reductions_without_shift = 0;
+    // Does the recovery drop the rest of the statement?
+    let mut unwind = false;
 
     enum Label {
         NewState,
@@ -230,6 +232,8 @@ fn drive<P: Policy>(policy: &mut P, states: &mut Vec<StateId>, tokens: &mut Toke
                 if errstatus == 3 {
                     match lookahead {
                         Some(S_YYEOF) => return,
+                        // Like the parser, a statement separator ends the statement and stays for the next one
+                        Some(S_SEMICOLON) if inside_statement(states) => unwind = true,
                         Some(_) => lookahead = None,
                         None => {}
                     }
@@ -239,6 +243,11 @@ fn drive<P: Policy>(policy: &mut P, states: &mut Vec<StateId>, tokens: &mut Toke
             Label::ErrLab1 => {
                 errstatus = 3;
                 policy.on_recover();
+                if std::mem::take(&mut unwind) {
+                    if let Some(bottom) = statement_bottom(states) {
+                        states.truncate(bottom + 1);
+                    }
+                }
                 let next = loop {
                     if let Some(Action::Shift(next)) =
                         table_action(states.last().copied().unwrap_or(NO_STATE), S_YYerror)
@@ -577,4 +586,26 @@ pub fn probe_suffix_batch(
         return vec![SuffixProbe::default(); feed.len()];
     }
     feed.iter().map(|&kind| probe_suffix_sequence(symbols, target, prefix, &[kind], replace_target)).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::scanner::scan;
+
+    /// The expected symbols at the end of a script
+    fn expected_at_end(text: &str) -> ExpectedAtCursor {
+        let scanned = scan(text, 0, 0);
+        let eof = scanned.symbols.len().saturating_sub(1) as u32;
+        parse_until_with_snapshot(&scanned.symbols, eof)
+    }
+
+    #[test]
+    fn recovers_like_the_parser_at_a_semicolon() {
+        // The parser drops the broken statement at its `;` and parses the next one, the probe does the same
+        let after_broken = expected_at_end("select (1; create table t (a int, ");
+        let alone = expected_at_end("create table t (a int, ");
+        assert!(alone.expected.contains(&S_PRIMARY));
+        assert_eq!(after_broken.expected, alone.expected);
+    }
 }

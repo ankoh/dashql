@@ -113,6 +113,8 @@ While the parser recovers from a syntax error, fewer than three tokens shifted s
 don't fit, and the expected symbols after the recovery are no guide: `select (a from foo where b` expects only what
 follows an expression at `b`. The snapshot records that (`PrefixSnapshot::recovering`), and a name or a keyword at the
 cursor then searches the name indexes as if a name were expected.
+The probes recover at a `;` like the parser, it ends the broken statement, so the statement after it expects what it
+would expect alone: `select (1; create table t (a int, ` expects the column definitions and table constraints.
 Keywords bypass the candidate registration and enter the result heap directly.
 They receive a +17 keyword-substring bonus when both `EXPECTED_PARSER_SYMBOL` and `SUBSTRING_MATCH` are set on the candidate, plus a prevalence modifier for common keywords (e.g. `SELECT` +4, `AS` +2).
 

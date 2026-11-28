@@ -413,11 +413,7 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
                 errstatus = 3;
                 // A statement that nests too deep recovers at the lowest state that shifts the error token
                 if std::mem::take(&mut unwind) {
-                    let bottom = stack
-                        .states
-                        .iter()
-                        .position(|&state| matches!(table_action(state, S_YYerror), Some(Action::Shift(_))));
-                    if let Some(bottom) = bottom {
+                    if let Some(bottom) = statement_bottom(&stack.states) {
                         error_range_begin = stack.locations.get(bottom + 1).copied().unwrap_or(error_range_begin);
                         stack.pop(stack.states.len().saturating_sub(bottom + 1));
                     }
@@ -448,11 +444,15 @@ fn keeps_after_recovery(kind: SymbolKind) -> bool {
     matches!(kind, S_SEMICOLON | S_RRB | S_RSB)
 }
 
+/// The index of the lowest state that shifts the error token, where a statement begins
+pub(super) fn statement_bottom(states: &[StateId]) -> Option<usize> {
+    states.iter().position(|&state| matches!(table_action(state, S_YYerror), Some(Action::Shift(_))))
+}
+
 /// Is the stack above the error token of the lowest state that shifts one? Then unwinding to that state drops a
 /// part of a statement, otherwise the recovery is already at the statement level.
-fn inside_statement(states: &[StateId]) -> bool {
-    let bottom = states.iter().position(|&state| matches!(table_action(state, S_YYerror), Some(Action::Shift(_))));
-    bottom.is_some_and(|bottom| states.len() > bottom + 2)
+pub(super) fn inside_statement(states: &[StateId]) -> bool {
+    statement_bottom(states).is_some_and(|bottom| states.len() > bottom + 2)
 }
 
 /// Run the action of a rule
