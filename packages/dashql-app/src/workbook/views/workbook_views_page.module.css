@@ -161,6 +161,13 @@
     background-color: var(--color_border);
 }
 
+/* The pages of the rail, the overlays of the stripe and the tab bar of the views show on a compact window only */
+.rail_pages,
+.system_actions,
+.tab_bar {
+    display: none;
+}
+
 /* The file input that Attach File of the menu opens */
 .attach_input {
     display: none;
@@ -328,8 +335,29 @@
     .view_bar .view_default,
     .view_bar .bar_separator,
     .view_bar .export_button,
+    .view_bar .view_switch,
     .execution_progress {
         display: none;
+    }
+    .view_bar .system_actions,
+    .view_bar .rail_pages {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+    /* The views and Wobble at the bottom, below the body */
+    .page {
+        grid-template-rows: auto minmax(0, 1fr) auto;
+    }
+    .tab_bar {
+        display: block;
+        grid-row: 3;
+        grid-column: 1;
+        z-index: 25;
+    }
+    /* The shrunk composer doesn't float over the views, an open one sets its height (workbook_views_page.tsx) */
+    .page .content_container {
+        --status_bar_dock_space: 12px;
     }
     .execution_controls {
         flex-shrink: 0;

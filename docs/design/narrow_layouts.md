@@ -29,16 +29,19 @@ valid, and the app no longer reads it.
 
 - **The top of a compact window** is one dark bar, the bar of the workbook (`workbook/views/workbook_views_page.tsx`,
   `data-workbook-bar`): the stripe and the rail don't show next to it (`navbar.module.css`). It is one row of 44px:
-  the drawer, Execute All with the indicator of its run, the connections, the actions and the view switch. The text of
-  the run shows in the bar of Wobble, Export .dashql stays in the menu of the actions. The bookmark of the default view,
-  the arrows of the view switch and the separators stay on wider windows. A page without that bar, e.g. the shell,
-  keeps the stripe with the pages of the rail in its middle.
-- **The drawer** of the workbench has the pages of the rail and the overlays of the stripe (the client, the version,
-  the color scheme) in its dark header on a compact window; a page of the rail closes it.
+  the drawer, the pages of the rail (Workspace, Shell), Execute All with the indicator of its run, then at its end the
+  overlays of the stripe (the client, the version, the color scheme), the connections and the actions. The text of the
+  run shows in the bar of Wobble, Export .dashql stays in the menu of the actions. The pages of the rail and the
+  overlays render in the bar on a compact window only, the rail and the stripe have them on wider windows.
+- **The bottom of a compact window** is the tab bar of the views (`WorkbookTabBar`): Feed and Console, Wobble in the
+  middle, Board and Flow. The face of Wobble tells the run of the workbook by a dot (running, succeeded, failed), a
+  tap opens the composer over the view and closes it again; the composer shrunk into its bar doesn't show. Wider
+  windows switch the views in the bar at the top and show the bar of Wobble at the bottom of the views.
+- **The shell** keeps the bar of the workbook above it on a compact window (`workbook_page.module.css`), with the pages
+  of the rail to leave it; the tab bar doesn't show. A page without that bar keeps the stripe with the pages of the
+  rail in its middle.
 - **The workbench** opens in a drawer below the expanded width (`WorkbookNavigationDrawer`), the same component as the
   sidebar.
-- **The bottom** of the window holds one bar, the bar of Wobble. The view switch stays in the bar at the top on every
-  width, there is no tab bar at the bottom.
 
 ## The console
 

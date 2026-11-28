@@ -1,0 +1,106 @@
+/* The views at the bottom of a compact window with Wobble in their middle, see workbook_tab_bar.tsx. Dark chrome like
+   the bar at the top, above the home indicator of a phone. */
+.tab_bar {
+    color-scheme: dark;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    min-height: 52px;
+    padding: 0 4px env(safe-area-inset-bottom, 0px);
+    background: var(--chrome_bg_100);
+    color: var(--color_fg);
+}
+
+.tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 48px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--color_fg_muted);
+    fill: currentColor;
+    font: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.tab_active {
+    color: var(--color_fg);
+}
+
+.tab_active .label {
+    font-weight: 600;
+}
+
+.label {
+    font-size: var(--font_size_micro);
+}
+
+/* Wobble in the middle, a little larger than the icons of the views */
+.wobble {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 40px;
+    margin: 0 4px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: var(--color_bg_hover);
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.wobble_open {
+    border-color: var(--color_border);
+    background: var(--color_bg_selected);
+}
+
+.face {
+    width: 28px;
+    height: 28px;
+}
+
+/* The run of the workbook as a dot at the corner of the face */
+.run_dot {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px var(--chrome_bg_100);
+}
+
+.wobble[data-run='running'] .run_dot {
+    background: var(--color_attention_fg);
+    animation: run_dot_pulse 1.2s ease-in-out infinite;
+}
+
+.wobble[data-run='succeeded'] .run_dot {
+    background: var(--color_success_fg);
+}
+
+.wobble[data-run='failed'] .run_dot {
+    background: var(--color_danger_fg);
+}
+
+@keyframes run_dot_pulse {
+    50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wobble[data-run='running'] .run_dot {
+        animation: none;
+    }
+}

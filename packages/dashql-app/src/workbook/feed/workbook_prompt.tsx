@@ -376,6 +376,7 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
             data-testid="workbook-prompt"
             data-placement={placement}
             data-landing={landing ? '' : undefined}
+            data-collapsed={collapsed ? '' : undefined}
             style={{
                 '--prompt_feed_head': `${insets.head}px`,
                 '--prompt_scrollbar_inset': `${insets.scrollbarInset}px`,

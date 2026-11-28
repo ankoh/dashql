@@ -287,14 +287,24 @@ describe('WorkbookViewsPage', () => {
                     const header = host.querySelector('header')!;
                     const bounds = header.getBoundingClientRect();
                     expect(header.scrollWidth).toBeLessThanOrEqual(header.clientWidth);
-                    const controls = [host.querySelector('[data-testid="workbook-view-switch"]')!,
-                        host.querySelector(busy ? '[data-testid="stop-execution"]' : '[data-testid="execute-all"]')!];
+                    // A compact frame switches the views in the tab bar at the bottom, the header keeps Execute All
+                    const compact = width < 600;
+                    const controls = [host.querySelector(busy ? '[data-testid="stop-execution"]' : '[data-testid="execute-all"]')!];
+                    if (!compact) controls.push(host.querySelector('[data-testid="workbook-view-switch"]')!);
                     for (const control of controls) {
                         const rect = control.getBoundingClientRect();
                         expect(rect.width).toBeGreaterThan(0);
                         expect(rect.left).toBeGreaterThanOrEqual(bounds.left);
                         expect(rect.right).toBeLessThanOrEqual(bounds.right);
                         expect(rect.bottom).toBeLessThanOrEqual(bounds.bottom);
+                    }
+                    const tabBar = host.querySelector('[data-testid="workbook-tab-bar"]')!.getBoundingClientRect();
+                    if (compact) {
+                        expect(tabBar.width).toBeGreaterThan(0);
+                        expect(tabBar.right).toBeLessThanOrEqual(bounds.right);
+                        expect(tabBar.top).toBeGreaterThan(bounds.bottom);
+                    } else {
+                        expect(tabBar.width).toBe(0);
                     }
                 }
             }

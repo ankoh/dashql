@@ -25,37 +25,9 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 4px;
     padding: 0 8px 0 16px;
     border-bottom: 1px solid var(--color_border);
     background: var(--color_bg_card);
-}
-
-/* The pages of the rail and the overlays of the stripe, which a compact window doesn't show */
-.areas,
-.actions {
-    display: none;
-}
-
-/* On a compact window the header is dark chrome like the bar of the workbook, with the pages of the rail at its start */
-@media only screen and (max-width: 599px) {
-    .header {
-        color-scheme: dark;
-        color: var(--color_fg);
-        justify-content: space-between;
-        padding: env(safe-area-inset-top, 0px) 8px 0 8px;
-        border-bottom-color: transparent;
-        background: var(--chrome_bg_100);
-    }
-    .areas,
-    .actions {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-    }
-    .areas {
-        margin-right: auto;
-    }
 }
 
 .body {

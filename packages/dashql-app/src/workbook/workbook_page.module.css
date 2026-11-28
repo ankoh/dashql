@@ -17,6 +17,20 @@
     pointer-events: none;
 }
 
+/* A compact window has no rail and no stripe next to the bar of the workbook, the bar stays over the shell with the
+   pages of the rail: the shell fills the page below it (docs/design/narrow_layouts.md) */
+@media only screen and (max-width: 599px) {
+    .page[data-shell] > .view_hidden {
+        visibility: visible;
+        pointer-events: auto;
+    }
+    /* The shell draws on the dark backdrop of the window, the workbook below it would show through */
+    .page[data-shell] > .shell_view {
+        top: calc(44px + env(safe-area-inset-top, 0px));
+        background: var(--chrome_bg_100);
+    }
+}
+
 .shell_loading {
     width: calc(100% - 8px);
     height: calc(100% - 4px);

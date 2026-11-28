@@ -83,7 +83,7 @@ export const WorkbookPage: React.FC<Props> = ({ views = renderViews, shells = re
         return <div />;
     }
     return (
-        <div className={styles.page}>
+        <div className={styles.page} data-shell={workbookPageVisible ? undefined : ''}>
             <div className={workbookPageVisible ? styles.view : styles.view_hidden}>
                 {views({
                     workbookScripts,
@@ -93,7 +93,7 @@ export const WorkbookPage: React.FC<Props> = ({ views = renderViews, shells = re
                 })}
             </div>
             {workbookMode === WorkbookViewMode.Shell && (
-                <div className={styles.view}>
+                <div className={`${styles.view} ${styles.shell_view}`}>
                     <React.Suspense fallback={(
                         <div className={styles.shellLoading} role="status">
                             <strong>[ RUN ]</strong> Loading shell

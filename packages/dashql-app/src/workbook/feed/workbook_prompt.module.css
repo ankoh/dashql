@@ -17,6 +17,14 @@
     visibility: hidden;
 }
 
+/* A compact window shows Wobble in the tab bar of the views, the composer shrunk into its bar doesn't show
+   (docs/design/narrow_layouts.md) */
+@media only screen and (max-width: 599px) {
+    .prompt_layer[data-collapsed] {
+        display: none;
+    }
+}
+
 /* The head of the feed, the greeting, the hero composer, then a spacer that keeps the prompt slightly above center */
 .prompt_layer[data-landing] {
     grid-template-rows: var(--prompt_feed_head, 0px) minmax(0, 1fr) auto minmax(0, 1.3fr);

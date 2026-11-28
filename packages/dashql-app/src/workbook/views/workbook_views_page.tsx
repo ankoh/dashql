@@ -29,6 +29,9 @@ import { WorkbookExecutionControls, useSkippedRunAttention, type WorkbookExecuti
 import { useSelectedScriptKey } from '../scripts/script_selection.js';
 import { WorkbookActions, type WorkbookAttach } from './workbook_actions.js';
 import { WorkbookViewSwitch } from './workbook_view_switch.js';
+import { WorkbookTabBar, type WorkbookTabBarRun } from './workbook_tab_bar.js';
+import { DETACHED_NAV_BAR_ACTIONS, NavBarActions } from '../../app/navbar.js';
+import { NavRailPages } from '../../app/nav_rail.js';
 import { WorkbookErrors } from '../scripts/workbook_errors.js';
 import { ConnectionOverviewPage } from '../../connections/connection_overview_page.js';
 import { CloudOverviewPage } from '../../cloud/cloud_overview_page.js';
@@ -212,6 +215,9 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
     }, [setMode, setOverviewConnectionId]);
     // A preview shows its scripts only, it runs nothing until it is imported
     const viewSwitchShown = !preview && !overviewActive;
+    // The face of Wobble in the tab bar of a compact window tells the run of the workbook
+    const tabBarRun: WorkbookTabBarRun = execution.busy ? 'running'
+        : execution.state?.phase === 'failed' ? 'failed' : execution.state?.phase === 'succeeded' ? 'succeeded' : 'idle';
     // The view that the workbook opens in, also for the people it is shared with. The greeter has nothing to share.
     const defaultView = viewModeOfDefaultView(props.workbookScripts.defaultView);
     const modifyWorkbookScripts = props.modifyWorkbookScripts;
@@ -406,6 +412,13 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
                             {sidebarHidden ? <ExpandSidebarIcon size={16} /> : <CollapseSidebarIcon size={16} />}
                         </IconButton>
                     </div>
+                    {/* A compact window has no rail, its pages follow the drawer. Rendered there only, the rail has them
+                        on wider windows. */}
+                    {compact && (
+                        <nav className={styles.rail_pages} aria-label="Areas">
+                            <NavRailPages wide={false} />
+                        </nav>
+                    )}
                     {/* A connection overview is not part of the workbook, its controls are hidden */}
                     {!overviewActive && <>
                         {actionsShown && <BarSeparator className={styles.start_separator} />}
@@ -433,6 +446,10 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
                         {/* The groups at the end of the bar: the connections of the workbook, its actions, then its views. A
                             separator stands between two groups that show. */}
                         <div className={styles.bar_end}>
+                            {/* A compact window has no stripe, its overlays sit at the end of the bar before the actions */}
+                            {compact && (
+                                <NavBarActions workbookId={props.workbookScripts.workbookId} className={`${DETACHED_NAV_BAR_ACTIONS} ${styles.system_actions}`} />
+                            )}
                             {connectionsShown && (
                                 <div className={classNames(styles.bar_group, styles.connections_group)} role="group" aria-label="Connections" data-testid="workbook-connections-group">
                                     {/* The connections of the workbook, the user sees which one is not connected */}
@@ -459,6 +476,18 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
                         </div>
                     </>}
                 </header>
+                {/* The views at the bottom of a compact window with Wobble in their middle, the bar at the top has no switch there */}
+                {viewSwitchShown && pageShown && (
+                    <div className={styles.tab_bar}>
+                        <WorkbookTabBar
+                            activeView={activeView}
+                            onShowView={showView}
+                            promptExpanded={promptExpanded}
+                            onTogglePrompt={viewShown ? togglePrompt : undefined}
+                            run={tabBarRun}
+                        />
+                    </div>
+                )}
                 {navigationDrawerOpen && (
                     <WorkbookNavigationDrawer open onClose={closeNavigationDrawer} returnFocusRef={navigationDrawerTriggerRef}>
                         {workbench(true)}
