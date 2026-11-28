@@ -99,7 +99,7 @@ The feed marks the script as manual.
 A table parameter also reads the attachments of a workbook, which are Parquet files only: `sales.parquet` is `:sales`. Scripts and
 attachments share one namespace, a name that a script and an attachment share is ambiguous: every table parameter
 with the name is an error ("the table parameter :sales matches sales.sql and sales.parquet") and the check lists
-the names that collide (`table_parameter_collisions`, `ScriptReferenceCheck.collisions`). The card of an attachment
+the names that collide (`table_parameter_collisions`). The card of an attachment
 flags one that a script shares (`collidingAttachments` of the derived view, `Workbook::attachments_named_like_scripts`).
 
 | bar.sql runs on | `:sales` in bar.sql |

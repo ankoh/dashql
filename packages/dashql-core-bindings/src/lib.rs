@@ -1379,7 +1379,7 @@ pub(crate) fn pack_reference_check(
     sessions: &[std::cell::Ref<CoreScriptSession>],
 ) -> Vec<u8> {
     use dashql_buffers::execution::{
-        CheckedScriptReferenceT, CheckedScriptT, ScriptReferenceCheckT, ScriptReferenceKind, TableParameterCollisionT,
+        CheckedScriptReferenceT, CheckedScriptT, ScriptReferenceCheckT, ScriptReferenceKind,
     };
     use dashql_core_runtime::planner::script_references::ReferenceKind;
     {
@@ -1431,17 +1431,6 @@ pub(crate) fn pack_reference_check(
             })
             .collect();
         out.scripts = Some(scripts);
-        let collisions: Vec<_> = dashql_core_runtime::planner::script_references::table_parameter_collisions(core)
-            .into_iter()
-            .map(|c| {
-                let mut t = TableParameterCollisionT::default();
-                t.name = Some(c.name);
-                t.scripts = Some(c.scripts);
-                t.attachments = Some(c.attachments);
-                t
-            })
-            .collect();
-        out.collisions = (!collisions.is_empty()).then_some(collisions);
         finish!(out)
     }
 }

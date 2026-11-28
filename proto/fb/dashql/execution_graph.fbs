@@ -193,16 +193,6 @@ table CheckedScriptReference {
     attachment: uint32 = 4294967295;
 }
 
-/// Scripts and attachments whose names are equal in case, a table parameter with the name is ambiguous
-table TableParameterCollision {
-    /// The name of the first of them
-    name: string;
-    /// The scripts with the name
-    scripts: [uint32];
-    /// The attachments with the name
-    attachments: [uint32];
-}
-
 /// The checked script references of a script
 table CheckedScript {
     /// Was the script checked? A script whose analysis is not current with its text is not.
@@ -216,8 +206,6 @@ table CheckedScript {
 /// The checked script references of the scripts of a session, in session order
 table ScriptReferenceCheck {
     scripts: [CheckedScript];
-    /// The names of table parameters that collide
-    collisions: [TableParameterCollision];
 }
 
 /// What carries the data of a dataflow edge
