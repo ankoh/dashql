@@ -22,8 +22,6 @@ use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sh
 
 /// The parameter of a link that carries a `.dashql` archive inline, base64url-encoded
 pub const ZIP_QUERY_PARAMETER: &str = "zip";
-/// The base of a link that the desktop app opens
-pub const DESKTOP_APP_LINK_BASE: &str = "dashql://localhost";
 
 /// The workbook tables of a bundle that leaves the app, in a `.dashql` file or in a cloud: the connection params are
 /// sanitized for sharing, drafts and the names the schema doesn't know stay behind, and so do the draft script and the

@@ -97,8 +97,8 @@ that wants the composition would depend on that rather than copy it.
   workbook as it was, but for the scripts that analyzed on the way, which show their analyses.
 - **The runtime holds the workbooks** in the order they were registered, with the metadata of their workbook files that
   a workbook doesn't keep, and the workbooks that the restore refused. An action names a connection by id; the runtime
-  gives the scripts the `ScriptConnection` of that connection (`restore::script_connection_of`), one per connection and
-  shared by all its scripts. All catalogs take their entry ids, and the scripts their keys, from one source
+  gives the scripts the `ScriptConnection` of that connection (`ConnectionState::script_connection`), one per connection
+  and shared by all its scripts. All catalogs take their entry ids, and the scripts their keys, from one source
   (`workbook::new_catalog`); script keys are unique in the module.
 - **The rules of the registry are Rust.** An ephemeral workbook that got a script is promoted with a free name, the
   registry of connections learns which workbooks use a connection after every action that can change it, and an

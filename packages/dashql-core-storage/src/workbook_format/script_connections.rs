@@ -26,8 +26,6 @@ pub trait ConnectionResolver {
         -> Result<Option<ResolvedConnection>>;
     /// The connection that scripts on unknown connections run on, the embedded database
     fn fallback(&mut self) -> Result<ResolvedConnection>;
-    /// A script references a connection that couldn't be resolved
-    fn unresolved(&mut self, _connection_id: &str) {}
 }
 
 /// A script of a workbook file with the connection it runs on
@@ -128,9 +126,6 @@ fn resolve_once(
     }
     let copy = workbook.connections.iter().find(|copy| copy.connection_id == connection_id);
     let connection = resolver.resolve(connection_id, copy)?;
-    if connection.is_none() {
-        resolver.unresolved(connection_id);
-    }
     resolved.insert(connection_id.to_string(), connection.clone());
     Ok(connection)
 }

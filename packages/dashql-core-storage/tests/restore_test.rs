@@ -16,7 +16,7 @@ use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_storage::restore::bundle::BundleHost;
 use dashql_core_storage::restore::{
-    script_connection_of, AppRestore, LiveConnection, RestoreHost, RestoreOptions, RestoreProgress, RestoredState,
+    AppRestore, LiveConnection, RestoreHost, RestoreOptions, RestoreProgress, RestoredState,
 };
 use dashql_core_storage::storage::{
     ConnectionsUpdate, Expect, FileStamp, FolderListing, NamedStamp, StorageHost, StorageWriter,
@@ -864,7 +864,7 @@ fn restores_an_imported_workbook_against_the_live_connections() {
             params_draft: None,
             name: None,
         },
-        script_connection: script_connection_of(&live_state),
+        script_connection: live_state.script_connection().clone(),
     };
     let copies = json!([
         { "connectionId": OTHER_CONNECTION, "params": trino("https://known") },

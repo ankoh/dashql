@@ -729,7 +729,7 @@ pub(crate) struct Restorer {
 impl Restorer {
     /// The connections of the runtime, a restored workbook resolves against them
     fn live_connections(&self) -> Vec<dashql_core_storage::restore::LiveConnection> {
-        use dashql_core_storage::restore::{script_connection_of, LiveConnection};
+        use dashql_core_storage::restore::LiveConnection;
         use dashql_core_storage::workbook_format::restore::RestoreConnection;
         let mut live = Vec::new();
         for (connection_id, connection) in self.connections.registry.borrow().connections() {
@@ -737,7 +737,7 @@ impl Restorer {
             let params = state.params().to_value();
             let connection =
                 RestoreConnection { connection_id: connection_id.to_string(), params, params_draft: None, name: None };
-            live.push(LiveConnection { connection, script_connection: script_connection_of(&state) });
+            live.push(LiveConnection { connection, script_connection: state.script_connection().clone() });
         }
         live
     }

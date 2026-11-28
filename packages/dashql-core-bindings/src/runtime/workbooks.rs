@@ -23,7 +23,6 @@ use dashql_core_runtime::workbook::{
     next_revision, EditorUpdateId, ScriptConnection, ScriptKey, StoredScript, Workbook, WorkbookAction, WorkbookEffect,
     WorkbookOutcome, WorkbookScript as Script,
 };
-use dashql_core_storage::restore::script_connection_of;
 use dashql_core_storage::storage::WriteResult;
 use serde_json::{json, Map, Value};
 
@@ -260,7 +259,7 @@ impl Workbooks {
             .get(connection_id)
             .ok_or_else(|| Error::invalid_argument(format!("no connection registered with id {connection_id}")))?;
         let state = connection.state.borrow();
-        Ok(script_connection_of(&state))
+        Ok(state.script_connection().clone())
     }
 
     /// Tell the connections which workbooks use them, e.g. a connection that a workbook uses is never deleted

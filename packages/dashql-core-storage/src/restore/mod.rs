@@ -147,11 +147,6 @@ pub struct LiveConnection {
     pub script_connection: Rc<ScriptConnection>,
 }
 
-/// The connection of the scripts of a connection state
-pub fn script_connection_of(state: &ConnectionState) -> Rc<ScriptConnection> {
-    state.script_connection().clone()
-}
-
 /// Create the state of a stored connection. A restored connection is active. A draft that can't be read is dropped,
 /// the saved params stay. The runtime creates the connections of a workbook folder that changed outside the app with it.
 pub fn connection_state<H: RestoreHost>(
@@ -306,7 +301,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
             .collect();
         for connection in missing {
             let state = connection_state(self.host, &connection, new_catalog())?;
-            self.script_connections.insert(connection.connection_id.clone(), script_connection_of(&state));
+            self.script_connections.insert(connection.connection_id.clone(), state.script_connection().clone());
             self.states.push(state);
         }
         Ok(())
@@ -329,7 +324,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
             .and_then(|state| self.planner.restore_manifest_connection(&entry).map(|_| state));
         match created {
             Ok(state) => {
-                self.script_connections.insert(entry.id.clone(), script_connection_of(&state));
+                self.script_connections.insert(entry.id.clone(), state.script_connection().clone());
                 self.states.push(state);
                 self.restore_catalog(&entry.id, &[("connectionId", &entry.id)]).await;
             }

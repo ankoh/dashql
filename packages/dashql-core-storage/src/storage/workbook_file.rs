@@ -8,7 +8,9 @@
 use dashql_core_runtime::workbook::WorkbookDefaultView;
 use serde_json::Value;
 
-use crate::workbook_format::data::{WorkbookAttachment, WorkbookCloudLink, WorkbookConnection, WorkbookData};
+use crate::workbook_format::data::{
+    WorkbookAttachment, WorkbookCloudLink, WorkbookConnection, WorkbookData, WORKBOOK_FORMAT_VERSION,
+};
 use crate::workbook_format::files::with_workbook_scripts;
 
 /// Do two workbook files hold the same fields? The order of their keys doesn't count.
@@ -41,7 +43,6 @@ pub fn properties_patch(
 /// one or the one on disk, an ephemeral workbook is marked as one.
 pub struct CreatedWorkbook<'a> {
     pub workbook_id: &'a str,
-    pub format_version: i64,
     pub name: Option<&'a str>,
     pub connection: Option<&'a WorkbookConnection>,
     pub ephemeral: bool,
@@ -57,7 +58,7 @@ pub fn created_workbook_file(existing: Option<&WorkbookData>, created: &CreatedW
             WorkbookData { connections: created.connection.into_iter().cloned().collect(), ..WorkbookData::default() }
         }
     };
-    file.format_version = created.format_version;
+    file.format_version = WORKBOOK_FORMAT_VERSION;
     file.workbook_id = created.workbook_id.to_string();
     file.name =
         created.name.filter(|name| !name.is_empty()).map(str::to_string).or(file.name.filter(|name| !name.is_empty()));
@@ -139,15 +140,7 @@ mod tests {
         connection: Option<&'a WorkbookConnection>,
         ephemeral: bool,
     ) -> CreatedWorkbook<'a> {
-        CreatedWorkbook {
-            workbook_id: "w",
-            format_version: 11,
-            name,
-            connection,
-            ephemeral,
-            original_file_name: None,
-            now: NOW,
-        }
+        CreatedWorkbook { workbook_id: "w", name, connection, ephemeral, original_file_name: None, now: NOW }
     }
 
     #[test]

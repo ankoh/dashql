@@ -94,18 +94,13 @@ pub fn connection_entry(connection_id: &str, state: &ConnectionState) -> Value {
     Value::Object(entry)
 }
 
-/// The copy of a connection that a workbook file keeps: its id and its saved params
-pub fn workbook_copy(connection_id: &str, params: &Value) -> WorkbookConnection {
-    WorkbookConnection::new(connection_id, params.clone())
-}
-
 /// The writes of the saved params of a connection: the app manifest and every workbook that references it
 fn params_writes(id: &str, next: &ConnectionState, workbook_ids: &[String], out: &mut Vec<ConnectionWrite>) {
     out.push(ConnectionWrite {
         task: WriteTask::WriteConnectionEntry { entry: connection_entry(id, next) },
         debounce_ms: CONNECTION_WRITE_DEBOUNCE_MS,
     });
-    let copy = workbook_copy(id, &next.params().to_value());
+    let copy = WorkbookConnection::new(id, next.params().to_value());
     for workbook_id in workbook_ids {
         out.push(ConnectionWrite {
             task: WriteTask::PatchWorkbookConnection {
@@ -240,7 +235,7 @@ pub async fn write_workbook_copies<W: StorageHost>(
     params: &Value,
     workbook_ids: &[String],
 ) -> Vec<(String, WriteOutcome)> {
-    let copy = workbook_copy(connection_id, params);
+    let copy = WorkbookConnection::new(connection_id, params.clone());
     let pending: Vec<_> = workbook_ids
         .iter()
         .map(|workbook_id| {

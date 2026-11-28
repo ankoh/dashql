@@ -382,7 +382,7 @@ fn round_trips_the_workbook_file() {
     assert!(data.metadata.is_ephemeral());
     assert_eq!(data.default_view, WorkbookDefaultView::Dashboard);
     assert_eq!(data.to_json(), json);
-    assert_eq!(WorkbookData::from_text(&data.to_text()), Some(data));
+    assert_eq!(WorkbookData::from_json(&data.to_json()), data);
 }
 
 #[test]
@@ -1500,7 +1500,7 @@ fn shares_a_connection_as_an_empty_workbook_in_a_link() {
     assert_eq!(workbook.connections[0].name.as_deref(), Some("Org"));
     let link = workbook_link(&[0xfb, 0xff, 0x01], "https://dashql.app");
     assert_eq!(link, "https://dashql.app/?zip=-_8B");
-    assert_eq!(workbook_link(&[1], DESKTOP_APP_LINK_BASE), "dashql://localhost?zip=AQ");
+    assert_eq!(workbook_link(&[1], "dashql://localhost"), "dashql://localhost?zip=AQ");
 }
 
 // ---- workbook_connection_import.test.ts ---------------------------------------------------------

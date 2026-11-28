@@ -11,7 +11,7 @@ use dashql_core_runtime::connections::{ConnectionDetails, ConnectionParams, Conn
 use dashql_core_runtime::workbook::WorkbookDefaultView;
 use serde_json::{json, Value};
 
-use crate::workbook_format::json::{to_pretty_text, JsonObject};
+use crate::workbook_format::json::JsonObject;
 use crate::workbook_format::layout::StorageType;
 
 /// The format version of the workbook file, `formatVersion`
@@ -318,11 +318,6 @@ impl WorkbookData {
         data
     }
 
-    /// Read a workbook file from its text, None if it isn't JSON
-    pub fn from_text(text: &str) -> Option<Self> {
-        serde_json::from_str::<Value>(text).ok().map(|value| Self::from_json(&value))
-    }
-
     /// The workbook file as JSON, the fields in the order of the schema
     pub fn to_json(&self) -> Value {
         let mut object = JsonObject::new();
@@ -366,11 +361,6 @@ impl WorkbookData {
         }
         append_extra(&mut object, &self.extra);
         Value::Object(object)
-    }
-
-    /// The text of the workbook file, as the storage writes it
-    pub fn to_text(&self) -> String {
-        to_pretty_text(&self.to_json())
     }
 
     /// The trimmed name, None if it is empty

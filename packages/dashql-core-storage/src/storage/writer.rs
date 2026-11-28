@@ -49,9 +49,7 @@ use super::workbook_file::{
     attachments_patch, created_workbook_file, properties_patch, same_file, upsert_connection_entry, CreatedWorkbook,
 };
 use super::StorageHost;
-use crate::workbook_format::data::{
-    WorkbookCloudLink, WorkbookConnection, WorkbookData, WorkbookScript, WORKBOOK_FORMAT_VERSION,
-};
+use crate::workbook_format::data::{WorkbookCloudLink, WorkbookConnection, WorkbookData, WorkbookScript};
 use crate::workbook_format::files::{file_name_key, patch_workbook_connection, with_workbook_scripts};
 use crate::workbook_format::layout::gitignore_with_entries;
 use dashql_core_runtime::host::signal::{cancellable, oneshot, CancelHandle, Receiver, Sender};
@@ -1063,10 +1061,6 @@ async fn timed_write<H: StorageHost, T>(
     Ok(written)
 }
 
-fn log<H: StorageHost>(shared: &Rc<Shared<H>>, level: LogLevel, message: &str, details: &[(&str, &str)]) {
-    shared.host.log(level, message, details);
-}
-
 /// Save the workbook file of a workbook, expecting what the app wrote or acknowledged, and record the write
 async fn save_workbook_file<H: StorageHost>(
     shared: &Rc<Shared<H>>,
@@ -1104,8 +1098,7 @@ async fn ensure_gitignore<H: StorageHost>(shared: &Rc<Shared<H>>, workbook_id: &
         }
     };
     if let Err(error) = ensured.await {
-        log(
-            shared,
+        shared.host.log(
             LogLevel::Warn,
             "Failed to write the .gitignore of a workbook",
             &[("workbookId", workbook_id), ("error", error.message())],
@@ -1159,7 +1152,7 @@ async fn patch_workbook_file<H: StorageHost>(
     if same_file(&existing, &next) {
         return Ok(());
     }
-    log(shared, LogLevel::Info, "Patching workbook", &[("key", key), ("workbookId", workbook_id)]);
+    shared.host.log(LogLevel::Info, "Patching workbook", &[("key", key), ("workbookId", workbook_id)]);
     save_workbook_file(shared, workbook_id, &next).await.map_err(|error| workbook_error(workbook_id, error))
 }
 
@@ -1168,13 +1161,12 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
     let stamps = &shared.stamps;
     match task {
         WriteTask::CreateWorkbook { workbook_id, name, connection, ephemeral, original_file_name } => {
-            log(shared, LogLevel::Info, "Creating workbook", &[("key", key), ("workbookId", workbook_id)]);
+            shared.host.log(LogLevel::Info, "Creating workbook", &[("key", key), ("workbookId", workbook_id)]);
             // A workbook file on disk keeps its scripts, its name and its creation time
             let existing = load_workbook_file(shared, workbook_id).await;
             let now = iso_timestamp_f64(host.now());
             let created = CreatedWorkbook {
                 workbook_id,
-                format_version: WORKBOOK_FORMAT_VERSION,
                 name: name.as_deref(),
                 connection: connection.as_ref(),
                 ephemeral: *ephemeral,
@@ -1200,7 +1192,7 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
             .await?;
         }
         WriteTask::SaveDataFile { workbook_id, file_name, file } => {
-            log(shared, LogLevel::Info, "Writing attachment", &[("key", key), ("workbookId", workbook_id)]);
+            shared.host.log(LogLevel::Info, "Writing attachment", &[("key", key), ("workbookId", workbook_id)]);
             let write = host.save_data_file(workbook_id, file_name, file);
             timed_write(shared, key, file.len(), write).await.map_err(|error| workbook_error(workbook_id, error))?;
         }
@@ -1217,7 +1209,7 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
             timed_write(shared, key, bytes, host.update_connections(update)).await?;
         }
         WriteTask::DeleteConnectionEntry { connection_id } => {
-            log(shared, LogLevel::Info, "Deleting connection", &[("key", key), ("connectionId", connection_id)]);
+            shared.host.log(LogLevel::Info, "Deleting connection", &[("key", key), ("connectionId", connection_id)]);
             let id = connection_id.clone();
             let update = Box::new(move |connections: Option<Vec<Value>>| {
                 let connections = connections?;
@@ -1248,8 +1240,7 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
             .await?;
         }
         WriteTask::WriteScript { workbook_id, file_name, text } => {
-            log(
-                shared,
+            shared.host.log(
                 LogLevel::Info,
                 "Writing workbook script",
                 &[("key", key), ("workbookId", workbook_id), ("file", file_name)],
@@ -1260,8 +1251,7 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
                 .map_err(|error| workbook_error(workbook_id, error))?;
         }
         WriteTask::DeleteScript { workbook_id, file_name } => {
-            log(
-                shared,
+            shared.host.log(
                 LogLevel::Info,
                 "Deleting workbook script",
                 &[("key", key), ("workbookId", workbook_id), ("file", file_name)],
@@ -1273,8 +1263,7 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
             stamps.deleted_script(workbook_id, file_name);
         }
         WriteTask::RenameScript { workbook_id, from, to } => {
-            log(
-                shared,
+            shared.host.log(
                 LogLevel::Info,
                 "Renaming workbook script",
                 &[("key", key), ("workbookId", workbook_id), ("from", from), ("to", to)],
@@ -1292,8 +1281,7 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
             stamps.renamed_script(workbook_id, from, to);
         }
         WriteTask::RenameDataFile { workbook_id, from, to } => {
-            log(
-                shared,
+            shared.host.log(
                 LogLevel::Info,
                 "Renaming attachment",
                 &[("key", key), ("workbookId", workbook_id), ("from", from), ("to", to)],
@@ -1301,8 +1289,7 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
             host.rename_data_file(workbook_id, from, to).await.map_err(|error| workbook_error(workbook_id, error))?;
         }
         WriteTask::DeleteDataFile { workbook_id, file_name } => {
-            log(
-                shared,
+            shared.host.log(
                 LogLevel::Info,
                 "Deleting attachment",
                 &[("key", key), ("workbookId", workbook_id), ("file", file_name)],
@@ -1564,8 +1551,7 @@ impl<H: StorageHost> StorageWriter<H> {
                     let name = recovery_name(&file_name, n);
                     match save_script_file(&shared, &workbook_id, &name, &text, Expect::Absent).await {
                         Ok(()) => {
-                            log(
-                                &shared,
+                            shared.host.log(
                                 LogLevel::Warn,
                                 "Kept a held script as a recovery copy",
                                 &[("workbookId", &workbook_id), ("file", &name)],
@@ -1580,7 +1566,11 @@ impl<H: StorageHost> StorageWriter<H> {
                                 ("file", file_name.as_str()),
                                 ("error", error.message()),
                             ];
-                            log(&shared, LogLevel::Error, "Failed to keep a held script as a recovery copy", &details);
+                            shared.host.log(
+                                LogLevel::Error,
+                                "Failed to keep a held script as a recovery copy",
+                                &details,
+                            );
                             break;
                         }
                     }
@@ -1643,7 +1633,7 @@ impl<H: StorageHost> StorageWriter<H> {
             }
             update(&shared, |state| state.forget_workbook(&workbook_id));
             shared.stamps.forget(&workbook_id);
-            log(&shared, LogLevel::Info, "Deleted workbook", &[("workbookId", &workbook_id)]);
+            shared.host.log(LogLevel::Info, "Deleted workbook", &[("workbookId", &workbook_id)]);
             Ok(())
         }
     }
