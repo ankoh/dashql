@@ -362,10 +362,9 @@ fn records_the_error_of_a_failed_column_search() {
         ComputationAction::SetResultSearchPattern { table_id: 1, kind: SearchKind::Columns, pattern: "sc".into() },
     );
     let request_id = state.computation(1).unwrap().column_search.request_id;
-    let failed = |request_id: u64, error: &str| ComputationAction::ResultSearchFailed {
+    let failed = |request_id: u64, error: &str| ComputationAction::ColumnSearchFailed {
         table_id: 1,
         data_frame: 1,
-        kind: SearchKind::Columns,
         request_id,
         error: error.into(),
     };

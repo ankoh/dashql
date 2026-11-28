@@ -415,8 +415,8 @@ pub enum ComputationAction {
     /// A search of the data of a data frame failed, it drops the rows of the data search. It is dropped unless the
     /// data frame and the request are current.
     DataSearchFailed { table_id: TableId, data_frame: DataFrameId, request_id: u64, error: String },
-    /// A search of a data frame failed. It is dropped unless the data frame and the request are current.
-    ResultSearchFailed { table_id: TableId, data_frame: DataFrameId, kind: SearchKind, request_id: u64, error: String },
+    /// A search of the columns of a data frame failed. It is dropped unless the data frame and the request are current.
+    ColumnSearchFailed { table_id: TableId, data_frame: DataFrameId, request_id: u64, error: String },
 }
 
 impl ComputationAction {
@@ -454,7 +454,7 @@ impl ComputationAction {
             | ComputationAction::SetResultSearchPattern { .. }
             | ComputationAction::ColumnSearchSucceeded { .. }
             | ComputationAction::DataSearchFailed { .. }
-            | ComputationAction::ResultSearchFailed { .. } => {}
+            | ComputationAction::ColumnSearchFailed { .. } => {}
         }
     }
 }
@@ -782,7 +782,7 @@ impl ComputationState {
             | ComputationAction::ColumnSearchSucceeded { table_id, .. }
             | ComputationAction::DataSearchSucceeded { table_id, .. }
             | ComputationAction::DataSearchFailed { table_id, .. }
-            | ComputationAction::ResultSearchFailed { table_id, .. } => Some(*table_id),
+            | ComputationAction::ColumnSearchFailed { table_id, .. } => Some(*table_id),
         }
     }
 
@@ -1138,15 +1138,9 @@ fn reduce_computation(
             computation.data_search_table = None;
             computation.ordering_table = None;
         }
-        ComputationAction::ResultSearchFailed { data_frame, kind, request_id, error, .. } => {
-            if computation.data_frame != Some(data_frame) {
-                return false;
-            }
-            let state = match kind {
-                SearchKind::Columns => &mut computation.column_search,
-                SearchKind::Data => &mut computation.data_search,
-            };
-            if state.request_id != request_id {
+        ComputationAction::ColumnSearchFailed { data_frame, request_id, error, .. } => {
+            let state = &mut computation.column_search;
+            if computation.data_frame != Some(data_frame) || state.request_id != request_id {
                 return false;
             }
             state.applied_pattern.clear();

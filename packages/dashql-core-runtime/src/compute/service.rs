@@ -1632,13 +1632,7 @@ fn start_column_search<H: ComputeHost>(
                 let message = error.to_string();
                 let table = table_id.to_string();
                 shared.host.log(LogLevel::Warn, "Column search failed", &[("table", &table), ("error", &message)]);
-                ComputationAction::ResultSearchFailed {
-                    table_id,
-                    data_frame,
-                    kind: SearchKind::Columns,
-                    request_id,
-                    error: message,
-                }
+                ComputationAction::ColumnSearchFailed { table_id, data_frame, request_id, error: message }
             }
         };
         // A superseded search changes nothing
