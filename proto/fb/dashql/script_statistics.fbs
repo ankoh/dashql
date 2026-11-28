@@ -1,14 +1,5 @@
 namespace dashql.buffers.statistics;
 
-struct ScriptProcessingTimings {
-    /// The last duration of the scanner
-    scanner_last_elapsed: double;
-    /// The last duration of the parser
-    parser_last_elapsed: double;
-    /// The last duration of the analyzer
-    analyzer_last_elapsed: double;
-}
-
 struct ScriptProcessingMemoryStatistics {
     /// The size of the scanner input
     scanner_input_bytes: uint32;
@@ -31,11 +22,4 @@ struct ScriptMemoryStatistics {
     rope_bytes: uint32;
     /// The memory statistics of the latest script
     latest_script: ScriptProcessingMemoryStatistics;
-}
-
-table ScriptStatistics {
-    /// The analyzer statistics
-    timings: ScriptProcessingTimings;
-    /// The memory statistics
-    memory: ScriptMemoryStatistics;
 }

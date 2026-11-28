@@ -275,18 +275,6 @@ fn describe_entries_lists_scripts_as_one_anonymous_schema() {
 }
 
 #[test]
-fn statistics_count_scripts() {
-    let mut catalog = Catalog::new();
-    let script = analyze(&catalog, "create table db.main.t(a int, b int); create table db.other.u(c int);");
-    catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
-    let content = catalog.statistics().content.unwrap();
-    assert_eq!(
-        (content.database_count, content.schema_count, content.table_count, content.table_column_count),
-        (1, 2, 2, 3)
-    );
-}
-
-#[test]
 fn drop_script_removes_unreferenced_databases_and_schemas() {
     let mut catalog = Catalog::new();
     let first = analyze(&catalog, "create table db.main.t(a int);");

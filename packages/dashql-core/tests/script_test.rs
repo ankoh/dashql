@@ -886,19 +886,13 @@ fn statistics_describe_the_latest_analysis() {
     assert_eq!(memory.latest_script.scanner_input_bytes, 0);
 
     script.analyze(&catalog, true).unwrap();
-    let statistics = script.statistics();
-    let memory = statistics.memory.unwrap();
+    let memory = script.memory_statistics();
     assert_eq!(memory.rope_bytes as usize, script.to_text().len());
     assert_eq!(memory.latest_script.scanner_input_bytes as usize, script.to_text().len());
     assert!(memory.latest_script.scanner_symbol_bytes > 0);
     assert!(memory.latest_script.scanner_name_dictionary_bytes > 0);
     assert!(memory.latest_script.parser_ast_bytes > 0);
     assert!(memory.latest_script.analyzer_description_bytes > 0);
-    assert!(statistics.timings.is_some());
-    let timings = statistics.timings.as_ref().unwrap();
-    assert_eq!(timings.scanner_last_elapsed, script.timings().scanner_ns);
-    assert_eq!(timings.parser_last_elapsed, script.timings().parser_ns);
-    assert_eq!(timings.analyzer_last_elapsed, script.timings().analyzer_ns);
 }
 
 #[test]

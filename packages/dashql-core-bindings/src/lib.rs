@@ -271,11 +271,6 @@ impl Catalog {
         finish!(self.inner.borrow().flatten())
     }
 
-    /// The `CatalogStatistics`
-    pub fn statistics(&self) -> Vec<u8> {
-        finish!(self.inner.borrow().statistics())
-    }
-
     /// Load the analysis of a script into a `CatalogLayer`
     #[wasm_bindgen(js_name = loadScript)]
     pub fn load_script(&self, script: &Script, layer: u8) -> Result<(), JsError> {
@@ -520,12 +515,6 @@ impl Script {
     ) -> Result<String, JsError> {
         let annotation = parse_annotation(annotation)?;
         self.inner.rewrite_annotation(statement_id as usize, &annotation, parse_if_outdated).map_err(js_error)
-    }
-
-    /// The packed `ScriptStatistics`
-    #[wasm_bindgen(js_name = getStatistics)]
-    pub fn get_statistics(&self) -> Vec<u8> {
-        finish!(self.inner.statistics())
     }
 
     /// Format the script into a new script of the catalog of this script

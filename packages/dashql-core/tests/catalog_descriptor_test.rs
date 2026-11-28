@@ -469,29 +469,6 @@ fn descriptors_are_described_with_their_schemas() {
 }
 
 #[test]
-fn statistics_count_content_of_all_entries() {
-    let mut catalog = Catalog::new();
-    let empty = catalog.statistics().content.unwrap();
-    assert_eq!((empty.database_count, empty.schema_count, empty.table_count, empty.table_column_count), (0, 0, 0, 0));
-
-    add(
-        &mut catalog,
-        CatalogLayer::CONNECTION,
-        &tables_only(vec![table("db", "main", "t", &["a", "b"]), table("db", "other", "u", &["c"])]),
-    );
-    let mut script = Script::new(&catalog);
-    script.insert_text_at(0, "create table db.main.s (x int, y int, z int)");
-    script.analyze(&catalog, true).unwrap();
-    catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
-
-    let content = catalog.statistics().content.unwrap();
-    assert_eq!(content.database_count, 1);
-    assert_eq!(content.schema_count, 2);
-    assert_eq!(content.table_count, 3);
-    assert_eq!(content.table_column_count, 6);
-}
-
-#[test]
 fn replaced_descriptors_keep_the_ids_of_their_tables() {
     let mut catalog = Catalog::new();
     let id = add(&mut catalog, CatalogLayer::CONNECTION, &tables_only(vec![table("", "main", "orders", &["id"])]));

@@ -1147,8 +1147,7 @@ fn reports_memory_statistics_of_the_latest_analysis() {
     let mut script = Script::new(&catalog);
     let text = "select a from b";
     script.replace_text(text);
-    let statistics = script.statistics();
-    let memory = statistics.memory.as_ref().unwrap();
+    let memory = script.memory_statistics();
     assert_eq!(memory.rope_bytes as usize, text.len());
     assert_eq!(memory.latest_script.scanner_input_bytes, 0);
     script.analyze(&catalog, true).unwrap();

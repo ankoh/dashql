@@ -230,7 +230,7 @@ table EditorScriptAnnotations {
     board_position: EditorBoardPosition;
 }
 
-/// Plain processing values copied from ScriptStatistics.
+/// The timings of the last processing steps and the `ScriptMemoryStatistics` of a script, as plain values.
 table EditorProcessingStatistics {
     scanner_last_elapsed_ns: double;
     parser_last_elapsed_ns: double;

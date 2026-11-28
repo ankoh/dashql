@@ -18,7 +18,7 @@ use crate::table_parameters::TableParameters;
 use crate::vis_rewrite::{VisBoard, VisFlow, VisRenderer};
 use dashql_buffers::formatting::FormattingConfigT;
 use dashql_buffers::parser::{Node, StatementType};
-use dashql_buffers::statistics::{ScriptMemoryStatisticsT, ScriptProcessingTimingsT, ScriptStatisticsT};
+use dashql_buffers::statistics::ScriptMemoryStatisticsT;
 use dashql_buffers::status::StatusCode;
 use dashql_parser::parser::{parse, ParsedScript};
 use dashql_parser::scanner::{scan, ScannedScript};
@@ -523,17 +523,5 @@ impl Script {
             scanned.names.iter().map(|n| n.text.len() + size_of::<dashql_parser::names::RegisteredName>()).sum();
         latest.scanner_name_dictionary_bytes = name_bytes as u32;
         memory
-    }
-
-    /// The processing statistics
-    pub fn statistics(&self) -> ScriptStatisticsT {
-        let mut statistics = ScriptStatisticsT::default();
-        let mut timings = ScriptProcessingTimingsT::default();
-        timings.scanner_last_elapsed = self.timings.scanner_ns;
-        timings.parser_last_elapsed = self.timings.parser_ns;
-        timings.analyzer_last_elapsed = self.timings.analyzer_ns;
-        statistics.timings = Some(timings);
-        statistics.memory = Some(self.memory_statistics());
-        statistics
     }
 }

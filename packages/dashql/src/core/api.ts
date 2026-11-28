@@ -171,7 +171,6 @@ interface NativeObject {
 
 const ANALYZED_SCRIPT_TYPE = Symbol('ANALYZED_SCRIPT_TYPE');
 const CATALOG_ENTRIES_TYPE = Symbol('CATALOG_ENTRIES_TYPE');
-const CATALOG_STATISTICS_TYPE = Symbol('CATALOG_STATISTICS_TYPE');
 const CATALOG_TYPE = Symbol('CATALOG_TYPE');
 const COMPLETION_TYPE = Symbol('COMPLETION_TYPE');
 const CURSOR_TYPE = Symbol('CURSOR_TYPE');
@@ -187,7 +186,6 @@ const FLAT_QUERY_PROFILE_TYPE = Symbol('FLAT_QUERY_PROFILE_TYPE');
 const QUERY_PROFILE_EVENTS_TYPE = Symbol('QUERY_PROFILE_EVENTS_TYPE');
 const PARSED_SCRIPT_TYPE = Symbol('PARSED_SCRIPT_TYPE');
 const QUERY_PROFILE_TYPE = Symbol('QUERY_PROFILE_TYPE');
-const SCRIPT_STATISTICS_TYPE = Symbol('SCRIPT_STATISTICS_TYPE');
 const SCRIPT_TYPE = Symbol('SCRIPT_TYPE');
 
 /// The instantiation of the module by this copy of the package
@@ -1144,15 +1142,6 @@ export class DashQLScript {
             return null;
         }
     }
-    /// Get the script statistics.
-    /// Timings are useless in some browsers today.
-    /// For example, Firefox rounds to millisecond precision, so all our step timings will be 0 for most foundations.
-    /// One way out might be COEP but we cannot easily set that with GitHub pages.
-    /// https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/High_precision_timing#reduced_precision
-    public getStatistics(): FlatBufferPtr<buffers.statistics.ScriptStatistics> {
-        const bytes = this.ptr.assertNotNull().getStatistics();
-        return new FlatBufferPtr(SCRIPT_STATISTICS_TYPE, this.ptr.api, bytes, () => new buffers.statistics.ScriptStatistics());
-    }
     /// Format the script
     public format(
         config: buffers.formatting.FormattingConfigT,
@@ -1365,11 +1354,6 @@ export class DashQLCatalog {
     public dropScript(script: DashQLScript) {
         this.deleteFlat();
         this.ptr.assertNotNull().dropScript(script.ptr.assertNotNull());
-    }
-    /// Get the catalog statistics.
-    public getStatistics(): FlatBufferPtr<buffers.catalog.CatalogStatistics, buffers.catalog.CatalogStatisticsT> {
-        const bytes = this.ptr.assertNotNull().statistics();
-        return new FlatBufferPtr(CATALOG_STATISTICS_TYPE, this.ptr.api, bytes, () => new buffers.catalog.CatalogStatistics());
     }
 }
 

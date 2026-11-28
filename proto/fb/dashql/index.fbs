@@ -2,7 +2,6 @@ include "dashql/algebra_expressions.fbs";
 include "dashql/analyzed_script.fbs";
 include "dashql/batch.fbs";
 include "dashql/catalog.fbs";
-include "dashql/catalog_statistics.fbs";
 include "dashql/completion.fbs";
 include "dashql/editor.fbs";
 include "dashql/execution_graph.fbs";

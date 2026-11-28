@@ -1227,22 +1227,4 @@ impl CatalogSnapshot {
         out.entries = Some(vec![describe_entry(self, *layer, entry)]);
         Some(out)
     }
-
-    /// The statistics of the catalog content
-    pub fn statistics(&self) -> dashql_buffers::catalog::CatalogStatisticsT {
-        let content = dashql_buffers::catalog::CatalogContentStatisticsT {
-            database_count: self.databases.len() as u32,
-            schema_count: self.schemas.len() as u32,
-            table_count: self.entries.values().map(|(e, _)| e.data().table_declarations.len() as u32).sum(),
-            table_column_count: self
-                .entries
-                .values()
-                .flat_map(|(e, _)| e.data().table_declarations.iter())
-                .map(|t| t.table_columns.len() as u32)
-                .sum(),
-        };
-        let mut out = dashql_buffers::catalog::CatalogStatisticsT::default();
-        out.content = Some(content);
-        out
-    }
 }
