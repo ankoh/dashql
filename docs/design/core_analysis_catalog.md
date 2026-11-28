@@ -17,8 +17,9 @@ the wasm boundary, and the way the app drives them.
  │  current             Arc<CatalogSnapshot>            ← copied on write                │
  │  ids                 canonical database and schema ids, never reused                 │
  │ ┌───────────────────────────── CatalogSnapshot ─────────────────────────────────────┐ │
- │ │ script entries      (PublishedScript, CatalogLayer) ← declarations of editor scripts│ │
- │ │ descriptor entries  Arc<DescriptorEntry>            ← schemas of connections       │ │
+ │ │ entries             (CatalogEntryRef, CatalogLayer)                               │ │
+ │ │                     scripts                         ← declarations of scripts     │ │
+ │ │                     descriptor pools                ← schemas of connections      │ │
  │ │ global indexes      by layer, by schema, by (database, schema)                    │ │
  │ │ version             bumped when what other entries resolve against changes        │ │
  │ └───────────────────────────────────────────────────────────────────────────────────┘ │
@@ -157,9 +158,7 @@ pub struct Catalog {
 pub struct CatalogSnapshot {
     id: u64,
     version: CatalogVersion,
-    entries: HashMap<CatalogEntryId, CatalogEntryRef>,
-    script_entries: HashMap<CatalogEntryId, (PublishedScript, CatalogLayer)>,
-    descriptor_entries: HashMap<CatalogEntryId, Arc<DescriptorEntry>>,
+    entries: HashMap<CatalogEntryId, (CatalogEntryRef, CatalogLayer)>,   // scripts and descriptor pools
     entries_ranked: BTreeSet<(CatalogLayer, CatalogEntryId)>,
     entries_by_qualified_schema: BTreeMap<(db, schema, CatalogLayer, CatalogEntryId), SchemaEntryInfo>,
     entries_by_schema: BTreeMap<(schema, CatalogLayer, CatalogEntryId), SchemaEntryInfo>,
@@ -204,7 +203,7 @@ catalog, so it only moves when what other entries resolve against may have chang
 | Operation | Effect | Version |
 |---|---|---|
 | `load_script` / `load_scripts` | Publish analyses atomically. Validates catalog id, entry id collisions and canonical ids (`CATALOG_ID_OUT_OF_SYNC`). | **Unchanged** if every analysis replaces a published script in the same layer and `CatalogEntryData::same_declarations`; the entries are swapped in place. Otherwise +1 and all indexes are rebuilt. |
-| `drop_script` | Remove a script entry and its index entries. | +1 if the entry existed |
+| `drop_script` | Remove a script entry, all indexes are rebuilt. | +1 if the entry existed |
 | `replace_descriptor` | Import descriptor bytes and publish them. | **Unchanged** if the entry holds the same bytes in the same layer. Otherwise +1. |
 | `replace_tables` | Unpack a descriptor, update tables by name, replace it, remember relations that are gone. | As `replace_descriptor`. **Unchanged** if the update leaves the tables and the relations that are gone as they are. |
 | `drop_descriptor` | Remove a descriptor. | +1 if it existed |

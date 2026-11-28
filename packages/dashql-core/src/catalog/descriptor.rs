@@ -27,8 +27,6 @@ pub struct DescriptorName {
 pub struct DescriptorEntry {
     /// The declarations of the entry, shared with the analyzed scripts that depend on it
     pub entry: Arc<CatalogEntryData>,
-    /// The layer of the entry
-    pub layer: CatalogLayer,
     /// The names in registration order
     pub names: Vec<DescriptorName>,
     /// The objects the names resolve to, in registration order
@@ -148,11 +146,10 @@ impl DescriptorEntry {
     }
 
     /// Import descriptor bytes
-    pub fn new(catalog: &Catalog, id: CatalogEntryId, layer: CatalogLayer, bytes: &[u8]) -> Result<Self> {
+    pub fn new(catalog: &Catalog, id: CatalogEntryId, bytes: &[u8]) -> Result<Self> {
         let descriptor = validate_descriptor(bytes)?;
         let mut out = DescriptorEntry {
             entry: Arc::new(CatalogEntryData::new(id, catalog.version())),
-            layer,
             names: Vec::new(),
             name_objects: Vec::new(),
             bytes: bytes.to_vec(),
