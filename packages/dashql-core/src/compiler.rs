@@ -197,7 +197,7 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
     let vis_tags = terminal_statement.statement_type == StatementType::SELECT
         && catalog.capabilities().vis
         && crate::analyzer::has_vis_tags(&parsed, terminal_statement_id);
-    let descriptions = parsed.associate_descriptions();
+    let descriptions = &parsed.descriptions;
     // There is one description per statement
     let terminal_span =
         descriptions.last().map_or_else(|| TextSpan::new(0, scanned.text.len() as u32), |d| d.statement_span);

@@ -65,11 +65,11 @@ fn encode_node(parsed: &ParsedScript, text: &str, node_id: usize) -> Node {
 /// Encode a parsed script like the parser snapshots expect it
 pub fn encode_script(parsed: &ParsedScript, text: &str) -> Node {
     let scanned = &*parsed.scanned;
-    let descriptions = parsed.associate_descriptions();
+    let descriptions = &parsed.descriptions;
     let mut root = Map::new();
 
     let mut statements = Vec::new();
-    for (statement, description) in parsed.statements.iter().zip(&descriptions) {
+    for (statement, description) in parsed.statements.iter().zip(descriptions) {
         let mut s = Map::new();
         s.plain("type", enum_name(StatementType::variant_name(statement.statement_type)));
         s.int("ast-begin", statement.nodes_begin as i64);

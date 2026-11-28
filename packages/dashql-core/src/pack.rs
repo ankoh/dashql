@@ -299,7 +299,7 @@ pub fn pack_parsed_statement(parsed: &ParsedScript, statement_id: usize) -> Stat
 /// Pack a parsed script
 pub fn pack_parsed_script(parsed: &ParsedScript) -> ParsedScriptT {
     let scanned = &parsed.scanned;
-    let descriptions = parsed.associate_descriptions();
+    let descriptions = &parsed.descriptions;
     let statements = parsed
         .statements
         .iter()

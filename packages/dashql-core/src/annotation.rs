@@ -222,7 +222,7 @@ fn check_statement(parsed: &ParsedScript, statement_id: usize) -> Result<()> {
 /// of the script. Every comment in front of the statement belongs to it, the ordinary ones are its description.
 fn read_with_comments(parsed: &ParsedScript, statement_id: usize) -> Result<(Annotation, Vec<usize>)> {
     let blocks = &parsed.comment_blocks;
-    let Some(&description) = parsed.associate_descriptions().get(statement_id) else {
+    let Some(&description) = parsed.descriptions.get(statement_id) else {
         return Err(Error::invalid_argument("unknown statement"));
     };
     let begin = description.description_blocks_begin as usize;
@@ -336,7 +336,7 @@ pub(crate) fn rewrite(
                 (first.offset as usize, first.end() as usize)
             }
             None => {
-                let Some(description) = parsed.associate_descriptions().get(statement_id).copied() else {
+                let Some(description) = parsed.descriptions.get(statement_id).copied() else {
                     return Err(outdated());
                 };
                 let at = description.statement_span.offset as usize;

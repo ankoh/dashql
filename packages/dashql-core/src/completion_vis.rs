@@ -510,7 +510,7 @@ fn add_json_candidates(candidates: &mut Candidates, context: &JsonContext, colum
 
 /// The statement whose description holds a comment block
 fn statement_of_block(parsed: &ParsedScript, block: usize) -> Option<usize> {
-    parsed.associate_descriptions().iter().position(|d| {
+    parsed.descriptions.iter().position(|d| {
         let begin = d.description_blocks_begin as usize;
         (begin..begin + d.description_blocks_count as usize).contains(&block)
     })

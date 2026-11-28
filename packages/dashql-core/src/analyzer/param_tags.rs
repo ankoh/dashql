@@ -67,7 +67,7 @@ pub(super) fn analyze(state: &mut AnalysisState) {
     let parsed = state.parsed;
     let script = parsed.scanned.text.as_str();
     let blocks = &parsed.comment_blocks;
-    let descriptions = parsed.associate_descriptions();
+    let descriptions = &parsed.descriptions;
     for (statement_id, description) in descriptions.iter().enumerate() {
         for (block, _) in super::vis_tags::statement_tags(parsed, description, &[PARAM_TAG]) {
             let Some(lines) =

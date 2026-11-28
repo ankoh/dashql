@@ -3631,7 +3631,7 @@ impl<'a> Formatter<'a> {
                 + comments.get(begin..).unwrap_or_default().iter().take_while(|c| (c.offset as usize) < offset).count()
         };
         let max_width = self.config.max_width as usize;
-        let descriptions = self.parsed.associate_descriptions();
+        let descriptions = &self.parsed.descriptions;
         let mut comment_begin = 0;
         // The leaves, only needed for the comments inside of statements
         let mut leaves: Option<Vec<(TextSpan, usize)>> = None;

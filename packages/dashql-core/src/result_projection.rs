@@ -50,7 +50,7 @@ pub fn rewrite_result_projection(
     if statement.statement_type != StatementType::SELECT {
         return Err(Error::invalid_argument(NO_QUERY));
     }
-    let Some(span) = parsed.associate_descriptions().last().map(|description| description.statement_span) else {
+    let Some(span) = parsed.descriptions.last().map(|description| description.statement_span) else {
         return Err(Error::invalid_argument(NOT_PARSED));
     };
     let start = span.offset as usize;

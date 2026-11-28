@@ -996,9 +996,7 @@ impl ScriptSession {
         });
         let mut statements = Vec::with_capacity(parsed.statements.len());
         let mut statement_descriptions = Vec::new();
-        for (statement_id, (statement, metadata)) in
-            parsed.statements.iter().zip(parsed.associate_descriptions()).enumerate()
-        {
+        for (statement_id, (statement, metadata)) in parsed.statements.iter().zip(&parsed.descriptions).enumerate() {
             let Some(text_span) = projector.span(metadata.statement_span) else {
                 continue;
             };

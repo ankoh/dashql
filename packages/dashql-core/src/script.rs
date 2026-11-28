@@ -310,7 +310,7 @@ impl Script {
             return Ok(String::new());
         }
         // One description per statement
-        let Some(description) = parsed.associate_descriptions().first().copied() else { return Ok(String::new()) };
+        let Some(description) = parsed.descriptions.first().copied() else { return Ok(String::new()) };
         Ok(self.to_text_span(description.statement_span))
     }
 

@@ -1082,8 +1082,7 @@ pub(crate) fn splice_statement(
                 let Some(p) = prepared.get(producer as usize).and_then(Option::as_ref) else { continue };
                 let Some(terminal) = p.terminal() else { continue };
                 // The parser describes every statement
-                let Some(span) = p.parsed.associate_descriptions().get(terminal as usize).map(|d| d.statement_span)
-                else {
+                let Some(span) = p.parsed.descriptions.get(terminal as usize).map(|d| d.statement_span) else {
                     continue;
                 };
                 let mut edits = reference_edits(p, terminal, references.of(producer));

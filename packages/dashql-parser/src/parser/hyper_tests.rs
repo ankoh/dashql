@@ -78,7 +78,7 @@ fn typed_statements_preserve_structure_and_source_spans() {
     assert_eq!(parsed.statements[0].statement_type, StatementType::SELECT);
     assert_eq!(parsed.statements[1].statement_type, StatementType::UPDATE);
     assert_eq!(parsed.statements[2].statement_type, StatementType::SELECT);
-    let descriptions = parsed.associate_descriptions();
+    let descriptions = &parsed.descriptions;
     assert_eq!(descriptions[1].description_count, 1);
     let statement = parsed.statements[1];
     let root = &parsed.nodes[statement.root as usize];

@@ -27,6 +27,8 @@ pub struct ParsedScript {
     pub errors: Vec<ParseError>,
     /// The comments grouped into blocks
     pub comment_blocks: CommentBlocks,
+    /// The source spans and description comments of the statements, one per statement
+    pub descriptions: Vec<StatementDescription>,
 }
 
 /// Source spans and description comments of a statement
@@ -108,7 +110,7 @@ impl ParsedScript {
     }
 
     /// Derive source spans and contiguous description comment blocks
-    pub fn associate_descriptions(&self) -> Vec<StatementDescription> {
+    fn associate_descriptions(&self) -> Vec<StatementDescription> {
         let scanned = &*self.scanned;
         let input = scanned.text.as_bytes();
         let comments = &scanned.comments;
@@ -212,13 +214,16 @@ pub fn parse(scanned: Arc<ScannedScript>) -> ParsedScript {
 
     let comment_blocks = group_comments(&scanned.text, &scanned.comments);
     replace_obfuscated_cast_literals(&mut scanned, &state.nodes);
-    ParsedScript {
+    let mut parsed = ParsedScript {
         scanned: Arc::new(scanned),
         nodes: state.nodes,
         statements: state.statements,
         errors: state.errors,
         comment_blocks,
-    }
+        descriptions: Vec::new(),
+    };
+    parsed.descriptions = parsed.associate_descriptions();
+    parsed
 }
 
 /// Obfuscated strings that are cast to a type need a replacement that the type accepts, e.g.

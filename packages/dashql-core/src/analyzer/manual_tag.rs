@@ -19,7 +19,7 @@ pub const MANUAL_TAG: &str = "manual";
 /// Read the `@manual` tags of the statements
 pub(super) fn analyze(state: &mut AnalysisState) {
     let parsed = state.parsed;
-    for description in parsed.associate_descriptions() {
+    for description in &parsed.descriptions {
         for (block, _) in super::vis_tags::statement_tags(parsed, &description, &[MANUAL_TAG]) {
             if super::capabilities::tag_enabled(state, MANUAL_TAG, block.tag_span) {
                 state.out.manual = true;

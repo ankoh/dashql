@@ -469,7 +469,7 @@ pub(super) fn append_comments(
 /// the statement again? `statement_end` is the end of the statement in the input, comments before it are inside of the
 /// statement and move behind it. They cannot if a comment after the statement does not follow on its line, or if a
 /// comment would follow a line comment. A tag stays there too: on a line of its own the next statement would read it
-/// as its annotation (see `ParsedScript::associate_descriptions`).
+/// as its annotation (see `ParsedScript::descriptions`).
 pub(super) fn can_trail(input: &[u8], comments: &[TextSpan], statement_end: usize) -> bool {
     let mut previous_end = statement_end;
     let mut after_line_comment = false;

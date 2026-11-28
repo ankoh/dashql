@@ -685,11 +685,11 @@ fn plan_statements(request: &SessionPlanRequest) -> Plan {
             node.barrier = true;
             node.connection = connection;
             state.diagnose(node_id, si as u32, "the script does not parse, it runs as written".into());
-            state.spans.push(parsed.associate_descriptions().first().map(|d| d.statement_span).unwrap_or_default());
+            state.spans.push(parsed.descriptions.first().map(|d| d.statement_span).unwrap_or_default());
             nodes.push(node);
             continue;
         }
-        let descriptions = parsed.associate_descriptions();
+        let descriptions = &parsed.descriptions;
         let terminal = p.terminal();
         for (statement_id, statement) in parsed.statements.iter().enumerate() {
             if !included(si) {

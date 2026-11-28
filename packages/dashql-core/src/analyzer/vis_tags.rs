@@ -524,7 +524,7 @@ fn tag_kind<'p>(parsed: &'p dashql_parser::parser::ParsedScript, block: &Comment
 /// Does a statement have a `@vis` tag that names a renderer? The compiler visualizes such a query. The board
 /// placement and the flow position are no visualization, a query with only a `@board` is a collapsed card.
 pub fn has_vis_tags(parsed: &dashql_parser::parser::ParsedScript, statement_id: usize) -> bool {
-    let descriptions = parsed.associate_descriptions();
+    let descriptions = &parsed.descriptions;
     descriptions.get(statement_id).is_some_and(|d| {
         statement_tags(parsed, d, &[VIS_TAG])
             .any(|(block, _)| vis_family_tag(VIS_TAG, tag_kind(parsed, block)) == Some(VIS_TAG))
@@ -550,7 +550,7 @@ pub(super) fn analyze(state: &mut AnalysisState) {
     let parsed = state.parsed;
     let script = parsed.scanned.text.as_str();
     let blocks = &parsed.comment_blocks;
-    let descriptions = parsed.associate_descriptions();
+    let descriptions = &parsed.descriptions;
     for (statement_id, statement) in parsed.statements.iter().enumerate() {
         let Some(description) = descriptions.get(statement_id) else { continue };
         let tags: Vec<(&CommentBlock, &str)> = statement_tags(parsed, description, VIS_FAMILY).collect();
