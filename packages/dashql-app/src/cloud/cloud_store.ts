@@ -201,18 +201,6 @@ function versionWhere(key: CloudVersionKey): string {
     return `workbook_id = ${quoteLiteral(key.workbookId)} AND version_id = ${quoteLiteral(key.versionId)}`;
 }
 
-/// The ready versions of the workbooks, numbered per workbook in the order they turned ready, the latest last.
-/// Two versions that turned ready at the same time are ordered by their ids, every reader numbers them the same.
-function numberedVersions(rows: readonly CloudWorkbookVersion[]): CloudWorkbookVersion[] {
-    const sorted = rows.filter(row => row.state === 'ready').sort((a, b) =>
-        a.workbookId.localeCompare(b.workbookId) || (a.readyAt ?? 0) - (b.readyAt ?? 0) || a.versionId.localeCompare(b.versionId));
-    let version = 0;
-    return sorted.map((row, index) => {
-        version = index > 0 && sorted[index - 1].workbookId === row.workbookId ? version + 1 : 1;
-        return { ...row, version };
-    });
-}
-
 /// Publish the workbook of a set of tables as a version, the tables hold one workbook.
 ///
 /// Without a workbook id the publish starts a new workbook under a fresh id. With one it adds a version to the workbook.
@@ -397,16 +385,19 @@ export function versionFromRow(row: Record<string, unknown>): CloudWorkbookVersi
     };
 }
 
+/// The columns of a row of the versions table that versionFromRow reads, the ids as text
+function versionColumns(): string {
+    return `${selected('version_id')}, ${selected('workbook_id')}, state, name, format_version, created_at, ready_at, updated_at, published_by, app_version`;
+}
+
 /// Read rows of the versions table, `where` is a condition on the row `v`
 async function readVersionRows(query: CloudQuery, where: string, options: CloudStoreOptions): Promise<CloudWorkbookVersion[]> {
-    const table = await query(`SELECT ${selected('version_id')}, ${selected('workbook_id')}, state, name, format_version, created_at, ready_at, updated_at, `
-        + `published_by, app_version `
-        + `FROM ${versionsTable(options)} v WHERE ${where}`, options.signal);
+    const table = await query(`SELECT ${versionColumns()} FROM ${versionsTable(options)} v WHERE ${where}`, options.signal);
     return [...table].map(row => versionFromRow(row as unknown as Record<string, unknown>));
 }
 
 /// A query of the published workbooks that weren't deleted by their latest versions, one row per workbook. The rows have
-/// the columns of a version, the ids as uuid, its number among the ready versions as `version` (like numberedVersions),
+/// the columns of a version, the ids as uuid, its number among the ready versions as `version` (like readVersions),
 /// and `folder_id`, the folder that the row of the workbook names. Of two rows of a workbook, which two clients that
 /// published its first version at the same time may have written, the one created first counts. A workbook without a
 /// row is at the top.
@@ -462,10 +453,13 @@ export async function listCloudWorkbookVersions(query: CloudQuery, workbookId: s
     return await readVersions(query, workbookId, options);
 }
 
-/// The ready versions of a workbook, the latest first
+/// The ready versions of a workbook, the latest first, numbered as `version` in the order they turned ready. Two
+/// versions that turned ready at the same time are ordered by their ids, so every reader numbers them the same.
 async function readVersions(query: CloudQuery, workbookId: string, options: CloudStoreOptions): Promise<CloudWorkbookVersion[]> {
-    const rows = await readVersionRows(query, `workbook_id = ${quoteLiteral(workbookId)} AND state = 'ready' AND ${liveWorkbook(options)}`, options);
-    return numberedVersions(rows).reverse();
+    const table = await query(`SELECT ${versionColumns()}, row_number() OVER (ORDER BY ready_at, CAST(version_id AS text)) AS version `
+        + `FROM ${versionsTable(options)} v WHERE workbook_id = ${quoteLiteral(workbookId)} AND state = 'ready' AND ${liveWorkbook(options)} `
+        + `ORDER BY version DESC`, options.signal);
+    return [...table].map(row => versionFromRow(row as unknown as Record<string, unknown>));
 }
 
 /// The workbook tables of a version as a cloud holds them: the rows of each table as Arrow IPC, which the runtime

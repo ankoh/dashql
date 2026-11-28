@@ -140,11 +140,11 @@ table of the workbook tables with the columns of the store after its columns, a 
   `UPDATE` and the new one after it, never a half-written one.
 - **No conflicts.** Two publishes of the same workbook at the same time both become versions, the one that turns ready
   last is the current one.
-- **Time travel.** The earlier versions stay. A listing numbers the versions of a workbook in the order they turned
-  ready (`listCloudWorkbookVersions`), a reader reads any of them by its id (`readCloudWorkbook` with `versionId`).
-  Nothing prunes them yet. The listings of the folders compute the latest version of a workbook and its number in SQL
-  (`latestVersionsSQL`): `row_number()` over the ready versions of the workbook by `ready_at` and the id, and their
-  `count(*)` as the number, the same numbers as `listCloudWorkbookVersions`.
+- **Time travel.** The earlier versions stay. A listing numbers the versions of a workbook in SQL in the order they
+  turned ready, `row_number()` by `ready_at` and the id (`listCloudWorkbookVersions`), a reader reads any of them by its
+  id (`readCloudWorkbook` with `versionId`). Nothing prunes them yet. The listings of the folders compute the latest
+  version of a workbook and its number in SQL (`latestVersionsSQL`): the first by `ready_at` and the id, descending,
+  and the `count(*)` of the ready versions as the number, the same numbers as `listCloudWorkbookVersions`.
 - **Deleting.** Deleting a workbook marks its row in `workbooks` (Workbooks and Folders below). A cleanup removes the
   workbook later with all its versions. A version is removed in the reverse order of a publish: its row turns
   `deleting`, the tables of its attachments and results are dropped, its rows of the merged tables are deleted, and its
