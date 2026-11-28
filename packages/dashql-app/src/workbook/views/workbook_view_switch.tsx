@@ -14,12 +14,14 @@ const DefaultViewIcon = SymbolIcon('bookmark_16');
 const DefaultViewSetIcon = SymbolIcon('bookmark_filled_16');
 // The views of the switch, octicons
 const FeedViewIcon = SymbolIcon('rows_16');
+const ConsoleViewIcon = SymbolIcon('code_16');
 const DashboardViewIcon = SymbolIcon('dashboard_16');
 const DataflowViewIcon = SymbolIcon('workflow_16');
 
 /// The views of the switch in its order, the feed first
 export const WORKBOOK_VIEWS: [WorkbookViewMode, string, typeof FeedViewIcon][] = [
     [WorkbookViewMode.Feed, 'Feed', FeedViewIcon],
+    [WorkbookViewMode.Console, 'Console', ConsoleViewIcon],
     [WorkbookViewMode.Dashboard, 'Dashboard', DashboardViewIcon],
     [WorkbookViewMode.Dataflow, 'Dataflow', DataflowViewIcon],
 ];

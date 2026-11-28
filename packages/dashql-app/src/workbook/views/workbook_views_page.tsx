@@ -19,6 +19,7 @@ import { WorkbookPrompt, WorkbookPromptPlacement, type WorkbookPromptFeed, type 
 import type { AgentFollowTarget } from '../../agent/agent_session.js';
 import { Dashboard } from '../dashboard/dashboard.js';
 import { DataflowView } from '../dataflow/dataflow_view.js';
+import { WorkbookConsole } from '../console/workbook_console.js';
 import { WorkbookViewMode, defaultViewOfViewMode, useWorkbookViewMode, viewModeOfDefaultView } from '../workbook_view_mode.js';
 import { PanelResizeHandle } from '@akohn/dashql-react/components/panel_resize_handle';
 import { useWorkbookExecution, useWorkbookShown } from '@akohn/dashql-react/hooks';
@@ -60,12 +61,14 @@ type FeedProps = React.ComponentProps<typeof WorkbookFeed>;
 type PromptProps = React.ComponentProps<typeof WorkbookPrompt>;
 type DashboardProps = React.ComponentProps<typeof Dashboard>;
 type DataflowProps = React.ComponentProps<typeof DataflowView>;
+type ConsoleProps = React.ComponentProps<typeof WorkbookConsole>;
 type WorkbenchProps = React.ComponentProps<typeof WorkbookWorkbenchSidebar>;
 
 const renderFeed = (props: FeedProps) => <WorkbookFeed {...props} />;
 const renderPrompt = (props: PromptProps) => <WorkbookPrompt {...props} />;
 const renderDashboard = (props: DashboardProps) => <Dashboard {...props} />;
 const renderDataflow = (props: DataflowProps) => <DataflowView {...props} />;
+const renderConsole = (props: ConsoleProps) => <WorkbookConsole {...props} />;
 const renderWorkbench = (props: WorkbenchProps) => <WorkbookWorkbenchSidebar {...props} />;
 
 interface Props {
@@ -85,6 +88,8 @@ interface Props {
     dashboard?: (props: DashboardProps) => React.ReactNode;
     /// The dataflow, its canvas and the editor dialog of a script
     dataflow?: (props: DataflowProps) => React.ReactNode;
+    /// The console, the scripts as tabs with an editor over the results
+    console?: (props: ConsoleProps) => React.ReactNode;
     /// The workbench next to the views and in the drawer
     workbench?: (props: WorkbenchProps) => React.ReactNode;
 }
@@ -94,7 +99,7 @@ interface Props {
 export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Props): React.ReactElement {
     const {
         feed = renderFeed, prompt = renderPrompt, dashboard = renderDashboard, dataflow = renderDataflow,
-        workbench: workbenchSlot = renderWorkbench,
+        console: consoleSlot = renderConsole, workbench: workbenchSlot = renderWorkbench,
     } = props;
     // The composer of the prompt renames the references in its draft, also for the attachments renamed in the feed
     const draftRenameRef = React.useRef<RenameDraftReferences | null>(null);
@@ -177,7 +182,7 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
     const promptPlacement = !viewShown ? WorkbookPromptPlacement.Hidden
         : feedActive ? WorkbookPromptPlacement.Feed : WorkbookPromptPlacement.Overlay;
     // A click on the bar of Wobble shows or hides the composer. A switch of the view returns it to the default of the
-    // view: shown in the feed, shrunk into the bar over the dashboard and the dataflow. An overview keeps it.
+    // view: shown in the feed, shrunk into the bar over the other views. An overview keeps it.
     const [promptToggle, setPromptToggle] = React.useState<{ view: WorkbookViewMode; expanded: boolean } | null>(null);
     if (promptToggle != null && promptToggle.view !== activeView) setPromptToggle(null);
     const promptExpanded = promptToggle?.view === activeView ? promptToggle.expanded : activeView === WorkbookViewMode.Feed;
@@ -214,11 +219,12 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
     // The prompt and the feed ask each other through handles: the feed mentions its scripts in the question of the
     // prompt, the prompt has the feed follow the agent and show the scripts it appends
     const promptRef = React.useRef<WorkbookPromptHandle | null>(null);
-    // The script that the dashboard or the dataflow shows, until the view switches or an overview covers it
+    // The script that another view than the feed shows, until the view switches or an overview covers it
     const [viewReveal, setViewReveal] = React.useState<{ view: WorkbookViewMode; scriptKey: number } | null>(null);
     if (viewReveal != null && (viewReveal.view !== activeView || !viewShown)) setViewReveal(null);
     const dashboardReveal = viewReveal?.view === WorkbookViewMode.Dashboard ? viewReveal : null;
     const dataflowReveal = viewReveal?.view === WorkbookViewMode.Dataflow ? viewReveal : null;
+    const consoleReveal = viewReveal?.view === WorkbookViewMode.Console ? viewReveal : null;
     const feedRef = React.useRef<WorkbookPromptFeed | null>(null);
     const modeRef = React.useRef(mode);
     modeRef.current = mode;
@@ -231,7 +237,7 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
             feedRef.current?.show(scriptKey);
         },
         followAgent: () => feedRef.current?.followAgent(),
-        // The feed scrolls to the end also while it is hidden, the dashboard and the dataflow show the new script
+        // The feed scrolls to the end also while it is hidden, the other views show the new script
         appended: (scriptKey: number) => {
             feedRef.current?.appended(scriptKey);
             if (modeRef.current !== WorkbookViewMode.Feed) setViewReveal({ view: modeRef.current, scriptKey });
@@ -323,6 +329,16 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
                                 connectionId={cloudOverviewId}
                                 onClose={closeOverview}
                             />
+                        )}
+                        {viewShown && activeView === WorkbookViewMode.Console && (
+                            consoleSlot({
+                                workbookScripts: props.workbookScripts,
+                                modifyWorkbookScripts: props.modifyWorkbookScripts,
+                                scriptConnections,
+                                connection: props.connection,
+                                draftRenameRef,
+                                revealRequest: consoleReveal,
+                            })
                         )}
                         {viewShown && activeView === WorkbookViewMode.Dashboard && (
                             dashboard({

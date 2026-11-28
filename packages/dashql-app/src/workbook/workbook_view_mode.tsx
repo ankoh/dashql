@@ -9,6 +9,9 @@ export enum WorkbookViewMode {
     Shell = 1,
     Dashboard = 2,
     Dataflow = 3,
+    /// The scripts as tabs, the editor of one over its results, like the console of a database service. A workbook
+    /// doesn't open in it.
+    Console = 4,
 }
 
 /// The views that a workbook opens in besides the feed, by the name that the workbook file stores (`defaultView`). The
@@ -41,6 +44,7 @@ export function searchNamesView(search: string): boolean {
 
 /// The views that are part of the URL, as the value of the `view` query parameter
 const VIEW_PARAMETERS: [WorkbookViewMode, string][] = [
+    [WorkbookViewMode.Console, 'console'],
     [WorkbookViewMode.Dashboard, 'dashboard'],
     [WorkbookViewMode.Dataflow, 'dataflow'],
 ];
@@ -87,8 +91,8 @@ function inSearch(mode: WorkbookViewMode): boolean {
     return VIEW_PARAMETERS.some(([m]) => m === mode);
 }
 
-/// The view mode of the workbook. The dashboard and dataflow views are part of the URL, the shell is a state of the
-/// app that a view in the URL closes.
+/// The view mode of the workbook. The console, the dashboard and the dataflow are part of the URL, the shell is a state
+/// of the app that a view in the URL closes.
 export const WorkbookViewModeProvider: React.FC<React.PropsWithChildren> = (props: React.PropsWithChildren) => {
     const location = useLocation();
     const navigate = useNavigate();

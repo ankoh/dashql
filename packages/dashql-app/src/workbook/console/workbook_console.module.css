@@ -1,0 +1,49 @@
+/* The header of the active script above its editor, it hides its optional controls when it gets narrow */
+.header_container {
+    min-width: 0;
+    height: 100%;
+    overflow: hidden;
+    container-type: inline-size;
+    border-bottom: 1px solid var(--color_border);
+}
+
+.header {
+    height: 100%;
+    padding: 0 4px;
+}
+
+@container (max-width: 760px) {
+    .header [data-entry-optional="1"] {
+        display: none;
+    }
+}
+
+@container (max-width: 400px) {
+    .header [data-entry-optional="2"] {
+        display: none;
+    }
+}
+
+.editor {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+}
+
+/* The sections of the sidebar */
+.inputs,
+.attachments {
+    padding: 12px;
+}
+
+.attachment_cards {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.attachment_error {
+    margin-top: 8px;
+    color: var(--color_danger_fg);
+    font-size: var(--font_size_small);
+}

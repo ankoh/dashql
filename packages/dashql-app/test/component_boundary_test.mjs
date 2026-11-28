@@ -16,6 +16,8 @@ const COMPONENTS = [
     'src/workbook/feed/script_card.tsx',
     'src/workbook/feed/feed_entry_header.tsx',
     'src/workbook/views/workbook_execution_controls.tsx',
+    'src/workbook/console/console_layout.tsx',
+    'src/workbook/console/console_results.tsx',
     'src/workbook/views/workbook_errors_button.tsx',
     'src/workbook/dashboard/dashboard_card.tsx',
     'src/workbook/dashboard/dashboard_overlays.tsx',

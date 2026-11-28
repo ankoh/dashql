@@ -37,6 +37,8 @@ arrows of the view switch marks the view that shows as the default one (filled w
 the bookmarked view returns the workbook to the feed), and the overlays of the link and of the file pick it as well
 (`Default View` of the export settings). Both change the workbook (`setDefaultView`), not only the export. The app opens
 the default view whenever it shows another workbook, unless the URL names a view (`?view=`) or the shell is open.
+The console (`?view=console`, the scripts as tabs with an editor over their results) is no view that a workbook opens
+in: it has no name in the file, and its bookmark is disabled (`isDefaultViewMode`).
 
 A workbook that was just imported from outside the app, a dropped file, a shared link or a version that opens from its
 cloud, shows its default view without the workbench, whatever the setting of the app says. There is no field in

@@ -38,7 +38,7 @@ const trino = (endpoint: string) => ({ trino: { endpoint } }) as ConnectionParam
 
 type PageProps = React.ComponentProps<typeof WorkbookViewsPage>;
 /// The props of a slot of the page
-type SlotProps<K extends 'feed' | 'prompt' | 'dashboard' | 'dataflow' | 'workbench'> = Parameters<NonNullable<PageProps[K]>>[0];
+type SlotProps<K extends 'feed' | 'prompt' | 'dashboard' | 'dataflow' | 'console' | 'workbench'> = Parameters<NonNullable<PageProps[K]>>[0];
 
 /// The props of the last render of the stand-ins of the slots: the views need editors, charts or the storage of the app
 const slots = {
@@ -46,13 +46,15 @@ const slots = {
     prompt: null as SlotProps<'prompt'> | null,
     dashboard: null as SlotProps<'dashboard'> | null,
     dataflow: null as SlotProps<'dataflow'> | null,
+    console: null as SlotProps<'console'> | null,
     workbench: null as SlotProps<'workbench'> | null,
 };
-const STAND_INS: Pick<PageProps, 'feed' | 'prompt' | 'dashboard' | 'dataflow' | 'workbench'> = {
+const STAND_INS: Pick<PageProps, 'feed' | 'prompt' | 'dashboard' | 'dataflow' | 'console' | 'workbench'> = {
     feed: props => { slots.feed = props; return null; },
     prompt: props => { slots.prompt = props; return null; },
     dashboard: props => { slots.dashboard = props; return <div data-testid="dashboard" />; },
     dataflow: props => { slots.dataflow = props; return <div data-testid="dataflow" />; },
+    console: props => { slots.console = props; return <div data-testid="console" />; },
     workbench: props => { slots.workbench = props; return <nav data-testid="workbench" />; },
 };
 
@@ -435,7 +437,7 @@ describe('WorkbookViewsPage', () => {
         expect(mode()).toBe(WorkbookViewMode.Feed);
     });
 
-    it.each([WorkbookViewMode.Dashboard, WorkbookViewMode.Dataflow])('stays in a view while the workbook is ephemeral (%s)', async view => {
+    it.each([WorkbookViewMode.Console, WorkbookViewMode.Dashboard, WorkbookViewMode.Dataflow])('stays in a view while the workbook is ephemeral (%s)', async view => {
         await setMode(view);
         const ephemeral = { ...scripts(), ephemeral: true, scriptOrder: [], scriptKeys: [], scriptConnections: [], scriptRefs: {} } as unknown as WorkbookScripts;
         await show(<Page workbookScripts={ephemeral} connection={null} />);
@@ -462,7 +464,7 @@ describe('WorkbookViewsPage', () => {
         await show(<Page workbookScripts={scripts()} connection={null} />);
         const buttons = container.querySelectorAll<HTMLButtonElement>('[data-testid="workbook-view-switch"] button');
         expect(buttons[0]?.getAttribute('aria-current')).toBe('true');
-        act(() => buttons[1]?.click());
+        act(() => buttons[2]?.click());
         await expectMode(WorkbookViewMode.Dashboard);
     });
 
@@ -479,7 +481,7 @@ describe('WorkbookViewsPage', () => {
         // The prompt shrinks to the bar of Wobble over the dashboard
         expect(slots.prompt?.placement).toBe(WorkbookPromptPlacement.Overlay);
         const switchButtons = () => container.querySelectorAll<HTMLButtonElement>('[data-testid="workbook-view-switch"] button');
-        expect(switchButtons()[1]?.getAttribute('aria-current')).toBe('true');
+        expect(switchButtons()[2]?.getAttribute('aria-current')).toBe('true');
         // A connection overview hides the bar with the dashboard
         act(() => slots.workbench!.onOpenOverview!('lake'));
         expect(slots.prompt?.placement).toBe(WorkbookPromptPlacement.Hidden);
@@ -602,6 +604,8 @@ describe('WorkbookViewsPage', () => {
         act(() => button('workbook-view-previous').click());
         await expectMode(WorkbookViewMode.Dashboard);
         act(() => button('workbook-view-previous').click());
+        await expectMode(WorkbookViewMode.Console);
+        act(() => button('workbook-view-previous').click());
         await expectMode(WorkbookViewMode.Feed);
 
         // The feed is the first view, nothing is left of it
@@ -648,12 +652,34 @@ describe('WorkbookViewsPage', () => {
         await expectMode(WorkbookViewMode.Dataflow);
     });
 
-    it('offers the Dataflow view after the Dashboard', async () => {
+    it('offers the Console after the Feed and the Dataflow after the Dashboard', async () => {
         await show(<Page workbookScripts={scripts()} connection={null} />);
         const buttons = container.querySelectorAll<HTMLButtonElement>('[data-testid="workbook-view-switch"] button');
-        expect([...buttons].map(viewLabel)).toEqual(['Feed', 'Dashboard', 'Dataflow']);
-        act(() => buttons[2]?.click());
+        expect([...buttons].map(viewLabel)).toEqual(['Feed', 'Console', 'Dashboard', 'Dataflow']);
+        act(() => buttons[1]?.click());
+        await expectMode(WorkbookViewMode.Console);
+        act(() => buttons[3]?.click());
         await expectMode(WorkbookViewMode.Dataflow);
+    });
+
+    it('renders the Console beneath the view bar with the prompt over it, a workbook does not open in it', async () => {
+        await setMode(WorkbookViewMode.Console);
+        const workbookScripts = scripts();
+        const modify = vi.fn();
+        await show(<Page workbookScripts={workbookScripts} modifyWorkbookScripts={modify} connection={connection('main')} />);
+        expect(container.querySelector('[data-testid="console"]')).not.toBeNull();
+        expect(slots.console).toMatchObject({ workbookScripts, connection: connection('main'), revealRequest: null });
+        expect(slots.feed?.active).toBe(false);
+        expect(slots.prompt).toMatchObject({ placement: WorkbookPromptPlacement.Overlay, expanded: false });
+        const buttons = container.querySelectorAll<HTMLButtonElement>('[data-testid="workbook-view-switch"] button');
+        expect(buttons[1]?.getAttribute('aria-current')).toBe('true');
+        // The bookmark is disabled, the console is no default view
+        const bookmark = container.querySelector<HTMLButtonElement>('[data-testid="workbook-view-default"]')!;
+        expect(bookmark.disabled).toBe(true);
+        expect(modify).not.toHaveBeenCalled();
+        // A script that the prompt appends shows in the console
+        act(() => slots.prompt!.feed.appended(7));
+        expect(slots.console?.revealRequest).toMatchObject({ scriptKey: 7 });
     });
 
     it('renders the Dataflow beneath the view bar without activating the feed', async () => {
@@ -666,7 +692,7 @@ describe('WorkbookViewsPage', () => {
         expect(slots.feed?.active).toBe(false);
         expect(slots.prompt?.placement).toBe(WorkbookPromptPlacement.Overlay);
         const buttons = container.querySelectorAll<HTMLButtonElement>('[data-testid="workbook-view-switch"] button');
-        expect(buttons[2]?.getAttribute('aria-current')).toBe('true');
+        expect(buttons[3]?.getAttribute('aria-current')).toBe('true');
         // A connection overview covers the dataflow
         act(() => slots.workbench!.onOpenOverview!('lake'));
         expect(container.querySelector('[data-testid="dataflow"]')).toBeNull();

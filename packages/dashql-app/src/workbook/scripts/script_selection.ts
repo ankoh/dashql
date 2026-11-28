@@ -94,6 +94,18 @@ export function useScriptSelection(): ScriptSelection {
 /// The script keys of a workbook, they keep their identity while the scripts of the workbook stay
 const selectScriptKeys = (workbook: WorkbookScripts | null): readonly ScriptKey[] | null => workbook?.scriptKeys ?? null;
 
+/// The selected script of a workbook, the first script without a selection, null without scripts. The component renders
+/// again when another script is selected, e.g. the tabs of the console.
+export function useSelectedScriptKey(workbookId: string): ScriptKey | null {
+    const selection = useScriptSelection();
+    const scriptKeys = useViewSelector('workbook', workbookId, selectScriptKeys);
+    const selected = React.useCallback(() => {
+        if (scriptKeys == null) return null;
+        return selectedScriptKey(scriptKeys, selection.store.current.get(workbookId)) ?? null;
+    }, [selection, workbookId, scriptKeys]);
+    return React.useSyncExternalStore(selection.store.subscribe, selected, selected);
+}
+
 /// Is a script the selected script of its workbook, or the first script without a selection? The component renders
 /// again when that flips, not when another script of the workbook is selected, e.g. a card of the feed that the pointer
 /// enters.

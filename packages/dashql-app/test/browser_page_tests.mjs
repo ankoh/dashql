@@ -160,6 +160,15 @@ async function testAppWorkbook(page, navigate) {
     await page.getByTestId('script-editor-dialog-close').click();
     await editorDialog.waitFor({ state: 'hidden' });
 
+    // The console shows the script as a tab with its editor, a run shows its result below
+    await page.getByRole('button', { name: 'Console' }).click();
+    const consoleView = page.getByTestId('workbook-console');
+    await consoleView.getByTestId('console-tab').filter({ hasText: /\S/ }).first().waitFor();
+    await consoleView.locator('.cm-content').filter({ hasText: 'select 43 as answer' }).waitFor();
+    await consoleView.getByTestId('console-run').click();
+    await consoleView.locator('[data-testid="entry-status"][data-status="succeeded"]').waitFor();
+    await consoleView.getByText('43', { exact: true }).last().waitFor();
+
     await page.getByRole('button', { name: 'Feed' }).click();
     await scriptEditor(page, 'select 43 as answer').waitFor();
     await waitForScriptWrite(page, 'select 43 as answer');

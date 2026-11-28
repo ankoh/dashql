@@ -7,7 +7,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     WorkbookViewMode,
     WorkbookViewModeProvider,
+    defaultViewOfViewMode,
+    isDefaultViewMode,
     useWorkbookViewMode,
+    viewModeOfDefaultView,
     workbookViewModeFromSearch,
     workbookViewNavigation,
     workbookViewSearch,
@@ -16,10 +19,31 @@ import {
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
+describe('default views', () => {
+    it('names the views that a workbook opens in, the feed is no name', () => {
+        expect(defaultViewOfViewMode(WorkbookViewMode.Feed)).toBeNull();
+        expect(defaultViewOfViewMode(WorkbookViewMode.Dashboard)).toBe('dashboard');
+        expect(defaultViewOfViewMode(WorkbookViewMode.Dataflow)).toBe('dataflow');
+        for (const name of ['dashboard', 'dataflow']) expect(defaultViewOfViewMode(viewModeOfDefaultView(name))).toBe(name);
+        // A workbook opens in neither the console nor the shell
+        expect(isDefaultViewMode(WorkbookViewMode.Feed)).toBe(true);
+        expect(isDefaultViewMode(WorkbookViewMode.Console)).toBe(false);
+        expect(isDefaultViewMode(WorkbookViewMode.Shell)).toBe(false);
+        expect(defaultViewOfViewMode(WorkbookViewMode.Console)).toBeNull();
+    });
+
+    it('opens the feed for a name that the app does not know', () => {
+        for (const name of [null, undefined, '', 'feed', 'console', 'board']) {
+            expect(viewModeOfDefaultView(name)).toBe(WorkbookViewMode.Feed);
+        }
+    });
+});
+
 describe('workbook view URL state', () => {
     it('reads the view from the view query parameter', () => {
         expect(workbookViewModeFromSearch('?view=dashboard')).toBe(WorkbookViewMode.Dashboard);
         expect(workbookViewModeFromSearch('?view=dataflow')).toBe(WorkbookViewMode.Dataflow);
+        expect(workbookViewModeFromSearch('?view=console')).toBe(WorkbookViewMode.Console);
         expect(workbookViewModeFromSearch('?view=workbook')).toBe(WorkbookViewMode.Feed);
         expect(workbookViewModeFromSearch('')).toBe(WorkbookViewMode.Feed);
     });

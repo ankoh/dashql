@@ -28,6 +28,8 @@ const FEED_LIMIT_LOG_ROWS = 6;
 /// Cap the Vega-Lite chart height in the feed footer so a single vis entry doesn't dominate the
 /// feed while scrolling. Only the vega-lite renderer honors this.
 const FEED_VISUALIZATION_HEIGHT = 180;
+/// The height of the header of the table and the visualization above them, the panel of the console fills the rest
+const TAB_HEADER_HEIGHT = 32;
 /// The height of the plan in the Progress tab. The plan and its statistics are fetched while the tab is open.
 export const FEED_PROFILE_HEIGHT = 240;
 
@@ -195,6 +197,9 @@ interface FeedEntryFooterProps {
     onShowMoreRows?: () => void;
     /// Show only the first rows again
     onShowFewerRows?: () => void;
+    /// The height of a panel that the result fills, e.g. the results of the console: the table shows all rows with
+    /// the column plots, the chart and the log take the height. Without it, the heights of a feed entry.
+    panelHeight?: number;
 }
 
 // Memoized, the card renders it with the props of its result only
@@ -206,6 +211,8 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = React.memo(functi
     // The visualization renders the full cloud (no feed row cap), so the header just shows the
     // total row count.
     const pointCountDetail = formatRowCountDetail(totalRows);
+    const panelHeight = props.panelHeight;
+    const bodyHeight = panelHeight == null ? null : Math.max(0, panelHeight - TAB_HEADER_HEIGHT);
 
     switch (props.selectedTab) {
         case FeedEntryTab.Progress: return model == null ? null : (
@@ -215,12 +222,23 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = React.memo(functi
             <TraceLogPanel
                 traceId={queryTraceId}
                 title="Execution Logs"
-                maxRows={FEED_LIMIT_LOG_ROWS}
+                maxRows={panelHeight == null ? FEED_LIMIT_LOG_ROWS : undefined}
             />
         );
         // The preview shows the first rows. More rows grow the card in place: the rows scroll below the column plots, the
         // full result table opens from the header.
-        case FeedEntryTab.Table: return model == null ? null : (
+        case FeedEntryTab.Table: return model == null ? null : bodyHeight != null ? (
+            <>
+                <QueryResultHeader model={model} />
+                <QueryResultView
+                    model={model}
+                    columnHeader={TableColumnHeader.WithColumnPlots}
+                    fitHeight
+                    maxHeight={bodyHeight}
+                    compact
+                />
+            </>
+        ) : (
             <>
                 <QueryResultHeader
                     model={model}
@@ -256,7 +274,7 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = React.memo(functi
                             <VisualizationDispatch
                                 model={model}
                                 visualizeQuery={props.visualizeQuery}
-                                height={FEED_VISUALIZATION_HEIGHT}
+                                height={bodyHeight ?? FEED_VISUALIZATION_HEIGHT}
                             />
                         </Deferred>
                     </div>
