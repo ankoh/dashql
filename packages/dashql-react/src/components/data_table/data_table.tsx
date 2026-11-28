@@ -16,6 +16,7 @@ import { useObservedSize } from '../size_observer.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../../logger.js';
 import { useScrollbarHeight, useScrollbarsOverlay } from '../../dom/scrollbar.js';
+import { useMediaQuery } from '../../dom/media_query.js';
 import { useDataTableOrdering } from './data_table_ordering.js';
 import { useDataTablePortalContainers } from './data_table_portals.js';
 import { ResizedColumnWidths, useDataTableColumnResize } from './data_table_column_resize.js';
@@ -80,6 +81,13 @@ const COLUMN_HEADER_PLOTS_HEIGHT = 76;
 /// The row of the column plots shrinks to a strip that still holds its toggle
 const COLUMN_HEADER_PLOTS_COLLAPSED_HEIGHT = 18;
 export const ROW_HEIGHT = 26;
+/// A row on a touch screen, tall enough to hit with a finger (docs/design/narrow_layouts.md)
+export const TOUCH_ROW_HEIGHT = 36;
+
+/// The height of a row: taller on a touch screen, a coarse pointer
+export function useDataTableRowHeight(): number {
+    return useMediaQuery('(pointer: coarse)') ? TOUCH_ROW_HEIGHT : ROW_HEIGHT;
+}
 /// The row under a preview that `maxRows` cuts, it counts the rows that the preview leaves out. The row that shows
 /// fewer rows again has the same height.
 const MORE_ROWS_HEIGHT = 24;
@@ -94,12 +102,13 @@ export function computeGridHeight(
     maxHeight?: number,
     measuredHeight: number = 0,
     maxRows?: number,
+    rowHeight: number = ROW_HEIGHT,
 ): number {
-    const contentHeight = headerHeight + visibleRowCount * ROW_HEIGHT + scrollbarHeight;
+    const contentHeight = headerHeight + visibleRowCount * rowHeight + scrollbarHeight;
     if (fitHeight) {
         const fittedRowCount = maxRows == null ? baseRowCount : Math.min(baseRowCount, maxRows);
         return Math.min(
-            headerHeight + fittedRowCount * ROW_HEIGHT + scrollbarHeight,
+            headerHeight + fittedRowCount * rowHeight + scrollbarHeight,
             maxHeight ?? Number.POSITIVE_INFINITY,
         );
     }
@@ -109,8 +118,8 @@ export function computeGridHeight(
 /// The rows of a table with a column header of names that show in a height, at least one. The last row may be cut
 /// off, the table then ends at the bottom of the height and not a fraction of a row above it. A horizontal scrollbar
 /// covers the bottom of the rows.
-export function fittingRowCount(height: number): number {
-    return Math.max(1, Math.ceil((height - COLUMN_HEADER_HEIGHT) / ROW_HEIGHT));
+export function fittingRowCount(height: number, rowHeight: number = ROW_HEIGHT): number {
+    return Math.max(1, Math.ceil((height - COLUMN_HEADER_HEIGHT) / rowHeight));
 }
 
 interface RenderedCells {
@@ -165,6 +174,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table; matchingRows: Co
     // The rows that show are read in windows around the rendered rows, the core filters and orders them
     const { window: rowWindow, rows: totalRowCount, error: rowsError, retry: retryRows } = useDataTableWindow(props.model, renderedCells.rowStart, renderedCells.rowStop);
     const readRows = props.model.readRows;
+    const rowHeight = useDataTableRowHeight();
 
     // Data row count. Headers are rendered separately via portals
     const dataRowCount = props.maxRows != null ? Math.min(totalRowCount, props.maxRows) : totalRowCount;
@@ -356,6 +366,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table; matchingRows: Co
         props.maxHeight,
         gridContainerSize?.height ?? 0,
         props.maxRows,
+        rowHeight,
     );
     const firstRenderedColumn = gridLayout.columnCount > 1
         ? Math.max(1, Math.min(renderedCells.columnStart, gridLayout.columnCount - 1))
@@ -422,7 +433,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table; matchingRows: Co
     const columnResize = useDataTableColumnResize(gridApi, gridLayout, dataTable, setResizedColumnWidths);
 
     // Total height of data content (for sticky column sizing)
-    const totalDataHeight = dataRowCount * ROW_HEIGHT;
+    const totalDataHeight = dataRowCount * rowHeight;
 
     return (
         // The grid can be rendered within the workbook feed's Electron drag region. Opt out so
@@ -449,7 +460,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table; matchingRows: Co
                     columnCount={gridLayout.columnCount}
                     columnWidth={getColumnWidth}
                     rowCount={dataRowCount}
-                    rowHeight={ROW_HEIGHT}
+                    rowHeight={rowHeight}
                     onCellsRendered={onCellsRendered}
                     overscanCount={GRID_OVERSCAN_COUNT}
                     cellComponent={DataCell}
@@ -475,6 +486,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table; matchingRows: Co
                 />
                 <DataTableStickyColumn
                     container={portalContainers?.data ?? null}
+                    rowHeight={rowHeight}
                     firstColumnWidth={firstColumnWidth}
                     totalDataHeight={totalDataHeight}
                     startRow={Math.max(0, renderedCells.rowStart)}

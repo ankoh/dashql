@@ -5,7 +5,7 @@ import * as styles from './query_result_header.module.css';
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { TabHeader } from '../tab_header.js';
 import { QueryStatusPlaceholder } from '../card_placeholder.js';
-import { fittingRowCount } from '../data_table/data_table.js';
+import { fittingRowCount, useDataTableRowHeight } from '../data_table/data_table.js';
 import { formatBytes } from '../../format/format.js';
 import { useResultRowCounts, type ResultRowCounts } from './query_result_toolbar.js';
 import type { QueryModel } from '../../models/query_model.js';
@@ -109,7 +109,8 @@ export function QueryResultPanel(props: QueryResultPanelProps): React.ReactEleme
         observer.observe(body);
         return () => observer.disconnect();
     }, []);
-    const maxRows = bodyHeight == null ? 0 : fittingRowCount(bodyHeight);
+    const rowHeight = useDataTableRowHeight();
+    const maxRows = bodyHeight == null ? 0 : fittingRowCount(bodyHeight, rowHeight);
     return (
         <div className={styles.panel}>
             {/* The header stays while a query runs, like in the feed: the table may show before the query succeeds and must

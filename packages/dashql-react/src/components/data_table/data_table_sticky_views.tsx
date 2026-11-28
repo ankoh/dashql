@@ -112,6 +112,8 @@ export const DataTableStickyHeaders = React.memo((props: StickyHeadersProps) => 
 interface StickyColumnProps {
     container: DataTablePortalContainers['data'] | null;
     firstColumnWidth: number;
+    /// The height of a row of the grid
+    rowHeight: number;
     totalDataHeight: number;
     startRow: number;
     stopRow: number;
@@ -141,10 +143,10 @@ export const DataTableStickyColumn = React.memo((props: StickyColumnProps) => {
                         key={`col0-${rowIndex}`}
                         style={{
                             position: 'absolute',
-                            top: rowIndex * 26,
+                            top: rowIndex * props.rowHeight,
                             left: 0,
                             width: props.firstColumnWidth,
-                            height: 26,
+                            height: props.rowHeight,
                             pointerEvents: 'auto',
                         }}
                     >
@@ -152,7 +154,7 @@ export const DataTableStickyColumn = React.memo((props: StickyColumnProps) => {
                             ariaAttributes={STICKY_ROW_HEADER_ARIA}
                             rowIndex={rowIndex}
                             columnIndex={0}
-                            style={{ width: props.firstColumnWidth, height: 26 }}
+                            style={{ width: props.firstColumnWidth, height: props.rowHeight }}
                             {...props.gridData}
                             hideRowHeader={false}
                         />

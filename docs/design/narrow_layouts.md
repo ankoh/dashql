@@ -96,6 +96,10 @@ the fields in the order of the columns with their types, the arrows step through
 the table doesn't hold is read on its own, like the detail of a cell. It is what a phone can't show side by side in the
 grid, and the same on every width.
 
+On a touch screen (`pointer: coarse`) the rows of the grid are 36px high instead of 26px (`useDataTableRowHeight`,
+`TOUCH_ROW_HEIGHT`), tall enough to hit a row with a finger; the heights of fitted tables and of the previews of cards
+count with it.
+
 ## The dataflow
 
 The canvas changes its level of detail, not its UI. Below a scale of 0.6 every box draws as a tile: its name, a status
@@ -112,7 +116,7 @@ script fills a compact window, as does any expanded overlay. `dataflow.md` descr
 
 The other views follow, one at a time. Each keeps its components and changes its arrangement:
 
-- **Result viewer**: a pinned column, taller rows on touch, a menu of the column.
+- **Result viewer**: a pinned column, a menu of the column.
 - **Feed**: a folded SQL, a card in full screen.
 - **Dashboard**: the inputs as chips with a sheet.
 
