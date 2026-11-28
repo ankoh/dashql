@@ -48,6 +48,14 @@ run of the active script, a new id of its latest query (`runKey`), shows the res
 pane. Wider windows keep the split of the editor over the results, with the sidebar below them up to the expanded width
 and next to them from there.
 
+## The feed
+
+The cards of the feed hide the optional controls of their header when they get narrow, by a container query on the
+card like the console and the dataflow: below 760px the statistics and Delete (also in the menu of the script), below
+400px the chart builder and the snippets. A compact window narrows the gutter of the page to 8px
+(`--page_gutter` of the workbook page) and starts the composer shrunk into the bar of Wobble in the feed as well, a tap
+expands it; open, it would cover the cards.
+
 ## The views
 
 The other views follow, one at a time. Each keeps its components and changes its arrangement:
@@ -55,7 +63,7 @@ The other views follow, one at a time. Each keeps its components and changes its
 - **Console**: a key bar above the keyboard.
 - **Result viewer**: the grid stays a grid, with a pinned column, taller rows on touch, a sheet with the detail of a
   row and a menu of the column.
-- **Feed**: cards over the full width, headers that drop their optional controls, a folded SQL, a card in full screen.
+- **Feed**: a folded SQL, a card in full screen.
 - **Dashboard**: one column in the reading order of the grid, the inputs as chips with a sheet, arranging on the real
   12-column grid scaled to the window.
 - **Dataflow**: a dense flow, compact tiles from top to bottom in the layout of `dashql-dataflow`, the result inside

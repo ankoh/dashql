@@ -365,6 +365,25 @@
     display: contents;
 }
 
+/* A narrow card hides the optional controls of its header like the console and the dataflow do: the statistics, the
+   separator and Delete first (also in the menu), then the chart builder and the snippets
+   (docs/design/narrow_layouts.md) */
+.feed_entry_cell {
+    container-type: inline-size;
+}
+
+@container (max-width: 760px) {
+    .feed_entry_action_bar [data-entry-optional="1"] {
+        display: none;
+    }
+}
+
+@container (max-width: 400px) {
+    .feed_entry_action_bar [data-entry-optional="2"] {
+        display: none;
+    }
+}
+
 .feed_entry_action_separator {
     flex-shrink: 0;
     width: 1px;

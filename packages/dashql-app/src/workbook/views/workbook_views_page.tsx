@@ -42,6 +42,7 @@ import { ATTACHMENT_EXTENSION } from '@akohn/dashql/platform/storage/storage_bac
 import { useRenderSchedule } from '@akohn/dashql-react/components/deferred';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { transitionsEnd } from '@akohn/dashql-react/dom/calm_frames';
+import { COMPACT_WIDTH_QUERY, useMediaQuery } from '@akohn/dashql-react/dom/media_query';
 
 // The octicons show the sidebar on the right, flipped it sits on the left like the workbench
 const CollapseSidebarIcon = SymbolIcon('sidebar_collapse_16');
@@ -192,10 +193,12 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
     const promptPlacement = !viewShown ? WorkbookPromptPlacement.Hidden
         : feedActive ? WorkbookPromptPlacement.Feed : WorkbookPromptPlacement.Overlay;
     // A click on the bar of Wobble shows or hides the composer. A switch of the view returns it to the default of the
-    // view: shown in the feed, shrunk into the bar over the other views. An overview keeps it.
+    // view: shown in the feed, shrunk into the bar over the other views and on a compact window, where it would cover
+    // the cards (docs/design/narrow_layouts.md). An overview keeps it.
+    const compact = useMediaQuery(COMPACT_WIDTH_QUERY);
     const [promptToggle, setPromptToggle] = React.useState<{ view: WorkbookViewMode; expanded: boolean } | null>(null);
     if (promptToggle != null && promptToggle.view !== activeView) setPromptToggle(null);
-    const promptExpanded = promptToggle?.view === activeView ? promptToggle.expanded : activeView === WorkbookViewMode.Feed;
+    const promptExpanded = promptToggle?.view === activeView ? promptToggle.expanded : activeView === WorkbookViewMode.Feed && !compact;
     const togglePrompt = React.useCallback((expanded: boolean) => setPromptToggle({ view: activeView, expanded }), [activeView]);
     useFileDropHandler(pageShown ? files => {
         const attach = attachRef.current;

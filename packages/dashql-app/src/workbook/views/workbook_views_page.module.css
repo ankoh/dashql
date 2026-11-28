@@ -304,6 +304,9 @@
 @media only screen and (max-width: 599px) {
     .page {
         --workbook_header_height: 44px;
+        /* The cards of the feed and the dashboard get the width of a phone, a narrow gutter keeps them apart from the
+           edges */
+        --page_gutter: 8px;
     }
     .view_bar {
         flex-wrap: nowrap;
