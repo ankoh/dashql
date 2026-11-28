@@ -1127,6 +1127,22 @@ fn a_read_of_rows_waits_for_no_analysis_whose_future_was_dropped() {
 }
 
 #[test]
+fn a_read_of_rows_waits_for_a_newer_analysis_when_an_older_one_ends() {
+    let setup = setup(analysis_answer);
+    // A second analysis of the table replaces the computation of the first, then the first one ends
+    let older = setup.start_analysis(&CancellationToken::new());
+    let newer = setup.start_analysis(&CancellationToken::new());
+    drop(older);
+    // The read waits for the import of the newer analysis
+    let read = setup.run(setup.service.read_rows(1, 0, 10));
+    assert!(read.borrow().is_none());
+    let analysis = setup.run(newer);
+    assert!(analysis.borrow().as_ref().is_some_and(|analysis| analysis.is_ok()));
+    let window = read.borrow_mut().take().expect("the read finished").unwrap();
+    assert_eq!(window.rows, 4);
+}
+
+#[test]
 fn a_read_of_rows_waits_for_the_import() {
     let setup = setup(analysis_answer);
     let (release, gate): (Sender<()>, Receiver<()>) = oneshot();

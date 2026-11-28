@@ -126,8 +126,9 @@ struct Inner {
     runs: BTreeMap<RunId, Run>,
     /// The summaries over the selected rows that count their selection before they are scheduled, by table and column
     counting: std::collections::BTreeSet<(TableId, u32)>,
-    /// The analyses that run, by table, with the previews that wait for their system columns
-    analyses: BTreeMap<TableId, Vec<Sender<()>>>,
+    /// The analyses that run, by table, with the previews that wait for their system columns. An analysis is known by
+    /// the data frame of its import, so that an older analysis of the table that ends lets the newer one be.
+    analyses: BTreeMap<TableId, (DataFrameId, Vec<Sender<()>>)>,
 }
 
 impl Inner {
@@ -257,9 +258,9 @@ impl<H: ComputeHost> ComputeService<H> {
     ) -> impl Future<Output = Result<()>> + 'static {
         let shared = self.shared.clone();
         let started = start_analysis(&shared, table_id, table, handles, connection_id, client_context)
-            .map(|started| started.map(|started| (started, AnalysisEnd::new(&shared, table_id))));
+            .map(|started| started.map(|started| (AnalysisEnd::new(&shared, table_id, started.input), started)));
         async move {
-            let Some((started, end)) = started? else { return Ok(()) };
+            let Some((end, started)) = started? else { return Ok(()) };
             // A stop cancels the runs of the computation, e.g. the step that runs. The reads of its rows go on, the
             // rows that were imported stay readable.
             let watch = (shared.clone(), end.ended.clone(), stop.clone());
@@ -826,7 +827,7 @@ fn start_analysis<H: ComputeHost>(
         release();
         return Err(error);
     }
-    shared.inner.borrow_mut().analyses.insert(table_id, Vec::new());
+    shared.inner.borrow_mut().analyses.insert(table_id, (input, Vec::new()));
     Ok(Some(StartedAnalysis { table_id, input, start, data_table }))
 }
 
@@ -835,12 +836,14 @@ fn start_analysis<H: ComputeHost>(
 struct AnalysisEnd<H: ComputeHost> {
     shared: Rc<Shared<H>>,
     table_id: TableId,
+    /// The data frame of the import, the analysis in `analyses`
+    input: DataFrameId,
     ended: CancellationToken,
 }
 
 impl<H: ComputeHost> AnalysisEnd<H> {
-    fn new(shared: &Rc<Shared<H>>, table_id: TableId) -> Self {
-        Self { shared: shared.clone(), table_id, ended: CancellationToken::new() }
+    fn new(shared: &Rc<Shared<H>>, table_id: TableId, input: DataFrameId) -> Self {
+        Self { shared: shared.clone(), table_id, input, ended: CancellationToken::new() }
     }
 }
 
@@ -848,7 +851,9 @@ impl<H: ComputeHost> Drop for AnalysisEnd<H> {
     fn drop(&mut self) {
         self.ended.cancel();
         if let Ok(mut inner) = self.shared.inner.try_borrow_mut() {
-            inner.analyses.remove(&self.table_id);
+            if inner.analyses.get(&self.table_id).is_some_and(|(input, _)| *input == self.input) {
+                inner.analyses.remove(&self.table_id);
+            }
         }
     }
 }
@@ -903,7 +908,7 @@ async fn analyze<H: ComputeHost>(
     };
     apply(shared, created, true)?;
     // The reads that wait for the rows read them now, dropping their senders wakes them
-    if let Some(reads) = shared.inner.borrow_mut().analyses.get_mut(&table_id) {
+    if let Some((_, reads)) = shared.inner.borrow_mut().analyses.get_mut(&table_id) {
         reads.clear();
     }
 
@@ -1325,7 +1330,7 @@ async fn analyzed<H: ComputeHost, T>(
             if let Some(planned) = plan(computation) {
                 return Ok(planned);
             }
-            let Some(previews) = inner.analyses.get_mut(&table_id) else {
+            let Some((_, previews)) = inner.analyses.get_mut(&table_id) else {
                 return Err(Error::invalid_argument(format!("the result of the table {table_id} is not analyzed")));
             };
             let (sender, receiver) = oneshot();
