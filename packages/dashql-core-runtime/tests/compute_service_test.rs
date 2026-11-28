@@ -183,7 +183,6 @@ fn data_frame_of(call: &str) -> Option<u64> {
 impl ComputeHost for FakeHost {
     async fn import_table(
         &self,
-        _data_frame: u64,
         table_name: &str,
         table: u32,
         fields: &[String],
@@ -202,7 +201,6 @@ impl ComputeHost for FakeHost {
 
     async fn create_table(
         &self,
-        _data_frame: u64,
         table_name: &str,
         sql: &str,
         context: &ComputeContext,
@@ -259,7 +257,7 @@ impl ComputeHost for FakeHost {
         Ok(KeptTable { handle: database.keep(table), shape })
     }
 
-    async fn drop_table(&self, _data_frame: u64, table_name: &str) -> std::result::Result<(), HostError> {
+    async fn drop_table(&self, table_name: &str) -> std::result::Result<(), HostError> {
         let mut database = self.database.borrow_mut();
         database.calls.push(format!("drop {table_name}"));
         database.tables.remove(table_name);

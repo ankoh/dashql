@@ -5,7 +5,7 @@
 //! SELECT and reads it back, the system columns stay unread. The service (`compute::service`) runs the two statements on the host. The `finish` of a
 //! plan returns what the computation state takes: the summaries as Rust values from the small tables that it parses
 //! (the statistics, the bins and the frequent values), the rest names the read table that the host keeps. The analysis
-//! of a result imports the result with row numbers as the first data frame (`TableImport`).
+//! of a result imports the result with row numbers as the first data frame (`ComputeHost::import_table`).
 //!
 //! A data frame is a table of the compute database, named by its id (`data_frame_table_name`). The caller allocates the
 //! id of the data frame of a plan. A query or a finish that fails leaves the data frame to the caller, which drops it.
@@ -132,15 +132,6 @@ impl TaskQuery {
     pub fn failed(&self, error: impl fmt::Display) -> Error {
         Error::invalid_argument(format!("{}: {error}", self.failure))
     }
-}
-
-/// A table of the host that it imports into the compute database as the table of a data frame
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TableImport {
-    /// The data frame
-    pub data_frame: DataFrameId,
-    /// The table of the data frame
-    pub table_name: String,
 }
 
 /// The values of the row of the statistics of a table by field, each an array of one value in the type of its column.

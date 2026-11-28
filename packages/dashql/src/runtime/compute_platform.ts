@@ -59,7 +59,7 @@ export function createComputePlatform(database: () => Promise<EmbeddedComputeDat
         }
     };
     return {
-        importTable: (_dataFrame, tableName, result, fields, rowNumberField, context) => perfMarks.measure('compute:importTable', async () => {
+        importTable: (tableName, result, fields, rowNumberField, context) => perfMarks.measure('compute:importTable', async () => {
             if (!isArrowTable(result)) throw new Error(`the result to import into ${tableName} is no table`);
             // The numbered table shares the columns of the result under the names of the compute database, the runtime
             // keeps it as the table of the computation
@@ -67,7 +67,7 @@ export function createComputePlatform(database: () => Promise<EmbeddedComputeDat
             await inRun(context.run, signal => withConnection(clientContextOf(context.clientContext), conn => conn.insertArrowTable(table, { name: tableName, create: true, abort: signal })));
             return table;
         }, tableName),
-        createTable: (_dataFrame, tableName, sql, context) => perfMarks.measure('compute:createTable', async () => {
+        createTable: (tableName, sql, context) => perfMarks.measure('compute:createTable', async () => {
             await inRun(context.run, signal => withConnection(clientContextOf(context.clientContext), conn => conn.createTableAs(tableName, sql, signal)));
         }, tableName),
         query: (sql, context) => perfMarks.measure('compute:query', async () => {
@@ -77,7 +77,7 @@ export function createComputePlatform(database: () => Promise<EmbeddedComputeDat
         queryTable: (sql, context) => perfMarks.measure('compute:query', async () => {
             return await inRun(context.run, signal => withConnection(clientContextOf(context.clientContext), conn => conn.query(sql, signal)));
         }, () => sqlLabel(sql)),
-        dropTable: async (_dataFrame, _tableName, sql) => {
+        dropTable: async sql => {
             await withConnection(null, conn => conn.execute(sql));
         },
         cancel: run => {

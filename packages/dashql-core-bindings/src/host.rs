@@ -427,15 +427,15 @@ export interface RuntimeMounts {
 /** The compute database of the computations, the embedded Hyper of the platform. The context of a call names the computation, the title of its task, the connection and the client context of the computation, and the run that `cancel` aborts. Result data never enters the module: a result is imported as the Arrow table of its handle, the tables that the tasks read stay Arrow tables, the runtime reads only the small ones that it parses as Arrow IPC streams. */
 export interface ComputePlatform {
     /** Create the table of a data frame from an Arrow table of the handle table, with its fields named `fields` in order and its rows numbered from 1 in an appended column of 64-bit integers that can't be null. Resolves to the numbered Arrow table, the runtime keeps it in the handle table as the table of the computation */
-    importTable(dataFrame: number, tableName: string, table: unknown, fields: string[], rowNumberField: string, context: ComputeCallContext): Promise<unknown>;
+    importTable(tableName: string, table: unknown, fields: string[], rowNumberField: string, context: ComputeCallContext): Promise<unknown>;
     /** Create the table of a data frame from a SELECT, the host tracks the SELECT as a query of the task */
-    createTable(dataFrame: number, tableName: string, sql: string, context: ComputeCallContext): Promise<void>;
+    createTable(tableName: string, sql: string, context: ComputeCallContext): Promise<void>;
     /** Run a query whose small result the runtime parses, resolves to its result as an Arrow IPC stream */
     query(sql: string, context: ComputeCallContext): Promise<Uint8Array>;
     /** Run a query, resolves to its result as an Arrow table that the runtime keeps in the handle table */
     queryTable(sql: string, context: ComputeCallContext): Promise<unknown>;
     /** Drop the table of a data frame with the statement that the runtime wrote */
-    dropTable(dataFrame: number, tableName: string, sql: string): Promise<void>;
+    dropTable(sql: string): Promise<void>;
     /** Abort the calls of a run */
     cancel(run: number): void;
 }
@@ -1505,7 +1505,6 @@ impl HttpHost for JsPlatform {
 impl ComputeHost for JsPlatform {
     async fn import_table(
         &self,
-        data_frame: u64,
         table_name: &str,
         table: Handle,
         fields: &[String],
@@ -1519,7 +1518,6 @@ impl ComputeHost for JsPlatform {
             return Err(HostError::new("the result to import is gone"));
         }
         let args = [
-            JsValue::from_f64(data_frame as f64),
             JsValue::from_str(table_name),
             table,
             fields.iter().map(|field| JsValue::from_str(field)).collect::<js_sys::Array>().into(),
@@ -1538,20 +1536,9 @@ impl ComputeHost for JsPlatform {
         }
     }
 
-    async fn create_table(
-        &self,
-        data_frame: u64,
-        table_name: &str,
-        sql: &str,
-        context: &ComputeContext,
-    ) -> Result<(), HostError> {
+    async fn create_table(&self, table_name: &str, sql: &str, context: &ComputeContext) -> Result<(), HostError> {
         let compute = self.compute()?;
-        let args = [
-            JsValue::from_f64(data_frame as f64),
-            JsValue::from_str(table_name),
-            JsValue::from_str(sql),
-            context_js(context)?,
-        ];
+        let args = [JsValue::from_str(table_name), JsValue::from_str(sql), context_js(context)?];
         settled(call(&compute, "createTable", &args)).await?;
         Ok(())
     }
@@ -1580,16 +1567,11 @@ impl ComputeHost for JsPlatform {
         }
     }
 
-    async fn drop_table(&self, data_frame: u64, table_name: &str) -> Result<(), HostError> {
+    async fn drop_table(&self, table_name: &str) -> Result<(), HostError> {
         let compute = self.compute()?;
         let sql =
             format!("DROP TABLE IF EXISTS {}", dashql_core_runtime::catalog_loader::sql::quote_identifier(table_name));
-        settled(call(
-            &compute,
-            "dropTable",
-            &[JsValue::from_f64(data_frame as f64), JsValue::from_str(table_name), JsValue::from_str(&sql)],
-        ))
-        .await?;
+        settled(call(&compute, "dropTable", &[JsValue::from_str(&sql)])).await?;
         Ok(())
     }
 

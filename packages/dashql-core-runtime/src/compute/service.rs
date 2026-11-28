@@ -322,7 +322,7 @@ fn drop_data_frame<H: ComputeHost>(shared: &Rc<Shared<H>>, data_frame: DataFrame
     let task_shared = shared.clone();
     shared.host.spawn(Box::pin(async move {
         let name = data_frame_table_name(data_frame);
-        if let Err(error) = task_shared.host.drop_table(data_frame, &name).await {
+        if let Err(error) = task_shared.host.drop_table(&name).await {
             let error = error.to_string();
             task_shared.host.log(LogLevel::Warn, "Failed to drop a data frame", &[("table", &name), ("error", &error)]);
         }
@@ -476,7 +476,7 @@ async fn run_query_kept<H: ComputeHost>(
 ) -> RunResult<ArrowTable> {
     let host = &shared.host;
     let failed = |e: HostError| host_failed(e, |e| query.failed(e));
-    host.create_table(query.data_frame, &query.table_name, &query.sql, context).await.map_err(failed)?;
+    host.create_table(&query.table_name, &query.sql, context).await.map_err(failed)?;
     let read = query.read_sql.as_deref().ok_or_else(|| RunError::Failed(query.failed("the task reads no table")))?;
     let KeptTable { handle, shape } = host.query_table(read, context).await.map_err(failed)?;
     Ok(ArrowTable::new(handle, shape.rows, shape.schema))
@@ -485,7 +485,7 @@ async fn run_query_kept<H: ComputeHost>(
 /// Create the table of a query without reading it
 async fn run_create<H: ComputeHost>(shared: &Shared<H>, query: &TaskQuery, context: &ComputeContext) -> RunResult<()> {
     let failed = |e: HostError| host_failed(e, |e| query.failed(e));
-    shared.host.create_table(query.data_frame, &query.table_name, &query.sql, context).await.map_err(failed)
+    shared.host.create_table(&query.table_name, &query.sql, context).await.map_err(failed)
 }
 
 /// Create the table of a query and read it back to parse it, for the small tables of the statistics and the summaries
@@ -496,7 +496,7 @@ async fn run_query<H: ComputeHost>(
 ) -> RunResult<ReadTable> {
     let host = &shared.host;
     let failed = |e: HostError| host_failed(e, |e| query.failed(e));
-    host.create_table(query.data_frame, &query.table_name, &query.sql, context).await.map_err(failed)?;
+    host.create_table(&query.table_name, &query.sql, context).await.map_err(failed)?;
     let read = query.read_sql.as_deref().ok_or_else(|| RunError::Failed(query.failed("the task reads no table")))?;
     let ipc = host.query(read, context).await.map_err(failed)?;
     let table = ResultTable::from_ipc_stream(&ipc).map_err(|e| query.failed(e))?;
@@ -776,7 +776,7 @@ fn start_analysis<H: ComputeHost>(
         shared.host.release(handles.lifetime);
     };
     let input = shared.inner.borrow_mut().allocate();
-    let Some(start) = start_table_analysis(&table.schema, input) else {
+    let Some(start) = start_table_analysis(&table.schema) else {
         release();
         return Ok(None);
     };
@@ -842,18 +842,17 @@ async fn analyze<H: ComputeHost>(
     // Import the result with the row numbers as the first data frame, the host numbers the rows of its table and keeps
     // the numbered table, the table of the computation from now on
     check_stopped(IMPORT_TITLE)?;
-    let import = start.import;
     let row_number_field = start.row_number_field_name.clone();
     let fields = start.fields.clone();
     let result = data_table.id;
     let imported = in_run(shared, table_id, &info, IMPORT_TITLE, RunOf::default(), |context| {
         let shared = shared.clone();
-        let name = import.table_name.clone();
+        let name = data_frame_table_name(input);
         async move {
             let failed = |e: HostError| Error::invalid_argument(format!("importing the result failed: {e}"));
             shared
                 .host
-                .import_table(input, &name, result, &fields, &row_number_field, &context)
+                .import_table(&name, result, &fields, &row_number_field, &context)
                 .await
                 .map_err(|e| host_failed(e, failed))
         }

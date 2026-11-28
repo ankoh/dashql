@@ -19,7 +19,6 @@ use std::collections::HashSet;
 use arrow_schema::{Field, Schema};
 
 use super::columns::{build_column_groups, create_unique_column_name, data_frame_field_names};
-use super::{data_frame_table_name, TableImport};
 use crate::compute::types::{
     ArrowTable, ColumnAggregationTask, ColumnGroup, ComputationVersion, DataFrameId, SystemColumnsTask,
     TableAggregation, TableAggregationTask, TableId,
@@ -50,8 +49,6 @@ pub struct TableAnalysisStart {
     pub column_groups: Vec<ColumnGroup>,
     /// The field with the row numbers, from 1
     pub row_number_field_name: String,
-    /// The import of the result with the row numbers as the first data frame
-    pub import: TableImport,
 }
 
 /// The name of the row numbers that the import appends to a result, unique among its fields. The row numbers are
@@ -61,9 +58,9 @@ pub fn row_number_field_name(schema: &Schema) -> String {
     create_unique_column_name(ROW_NUMBER_FIELD_PREFIX, &mut names)
 }
 
-/// Start the analysis of a result with the data frame of its import, none for a result without columns. The import
-/// names the fields by their names in the compute database, which the computation uses from here on.
-pub fn start_table_analysis(schema: &Schema, input: DataFrameId) -> Option<TableAnalysisStart> {
+/// Start the analysis of a result, none for a result without columns. The import names the fields by their names in the
+/// compute database, which the computation uses from here on.
+pub fn start_table_analysis(schema: &Schema) -> Option<TableAnalysisStart> {
     if schema.fields().is_empty() {
         return None;
     }
@@ -72,12 +69,7 @@ pub fn start_table_analysis(schema: &Schema, input: DataFrameId) -> Option<Table
         schema.fields().iter().zip(&fields).map(|(field, name)| field.as_ref().clone().with_name(name)).collect();
     let schema = Schema::new_with_metadata(named, schema.metadata().clone());
     let row_number_field_name = row_number_field_name(&schema);
-    Some(TableAnalysisStart {
-        fields,
-        column_groups: build_column_groups(&schema),
-        row_number_field_name,
-        import: TableImport { data_frame: input, table_name: data_frame_table_name(input) },
-    })
+    Some(TableAnalysisStart { fields, column_groups: build_column_groups(&schema), row_number_field_name })
 }
 
 /// The statistics of a table, of its first data frame

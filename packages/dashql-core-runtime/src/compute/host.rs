@@ -15,7 +15,7 @@ use arrow_schema::SchemaRef;
 use crate::handles::Handle;
 use crate::host::{Host, HostError};
 
-use super::types::{DataFrameId, TableId};
+use super::types::TableId;
 use super::ComputationEffect;
 
 /// The id of a run of a task, or of the import of a result
@@ -53,12 +53,12 @@ pub struct KeptTable {
 /// The compute database of the host
 #[allow(async_fn_in_trait)] // The futures hold values of the host and run on its thread, they are not Send
 pub trait ComputeHost: Host {
-    /// Create the table of a data frame from a table of the host with its fields named `fields`, in order, and its rows
-    /// numbered from 1 in an appended column of 64-bit integers that can't be null, and keep the numbered table under a
-    /// new handle: the table that the grid shows. The host numbers the rows, the data never enters the module.
+    /// Create the table of a data frame (`data_frame_table_name`) from a table of the host with its fields named
+    /// `fields`, in order, and its rows numbered from 1 in an appended column of 64-bit integers that can't be null, and
+    /// keep the numbered table under a new handle: the table that the grid shows. The host numbers the rows, the data
+    /// never enters the module.
     async fn import_table(
         &self,
-        data_frame: DataFrameId,
         table_name: &str,
         table: Handle,
         fields: &[String],
@@ -67,19 +67,13 @@ pub trait ComputeHost: Host {
     ) -> Result<KeptTable, HostError>;
     /// Create the table of a data frame from a SELECT. The host tracks the SELECT as a query of the task, e.g. in the
     /// query history of the connection of the computation.
-    async fn create_table(
-        &self,
-        data_frame: DataFrameId,
-        table_name: &str,
-        sql: &str,
-        context: &ComputeContext,
-    ) -> Result<(), HostError>;
+    async fn create_table(&self, table_name: &str, sql: &str, context: &ComputeContext) -> Result<(), HostError>;
     /// Run a query whose result the runtime parses, e.g. the statistics of a table: the result is an Arrow IPC stream
     async fn query(&self, sql: &str, context: &ComputeContext) -> Result<Vec<u8>, HostError>;
     /// Run a query and keep its result under a new handle, the runtime learns its rows and its schema
     async fn query_table(&self, sql: &str, context: &ComputeContext) -> Result<KeptTable, HostError>;
     /// Drop the table of a data frame, unless the host still reads it
-    async fn drop_table(&self, data_frame: DataFrameId, table_name: &str) -> Result<(), HostError>;
+    async fn drop_table(&self, table_name: &str) -> Result<(), HostError>;
     /// Keep a small table that a task read and parsed, an Arrow IPC stream, under a new handle
     fn register_table(&self, ipc: &[u8]) -> Result<Handle, HostError>;
     /// Release a handle that the runtime got and doesn't keep, e.g. the table of an analysis without columns

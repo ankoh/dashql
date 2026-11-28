@@ -531,7 +531,7 @@ fn data_search_wraps_failures() {
 
 #[test]
 fn analysis_ignores_results_without_columns() {
-    assert_eq!(start_table_analysis(&Schema::empty(), 1), None);
+    assert_eq!(start_table_analysis(&Schema::empty()), None);
 }
 
 #[test]
@@ -570,7 +570,7 @@ fn the_compute_database_names_the_fields_uniquely() {
     assert_eq!(names(&["column_2", ""]), ["column_2", "column_2_1"]);
     // The analysis starts with these names, its column groups and its row numbers too
     let schema = Schema::new(vec![Field::new("a", DataType::Int32, true), Field::new("a", DataType::Utf8, true)]);
-    let start = start_table_analysis(&schema, 1).expect("columns");
+    let start = start_table_analysis(&schema).expect("columns");
     assert_eq!(start.fields, ["a", "a_1"]);
     let inputs: Vec<&str> = start
         .column_groups
@@ -591,11 +591,10 @@ fn analysis_names_the_row_numbers_apart_from_the_fields() {
         RecordBatch::try_new(schema.clone(), vec![a(StringArray::from(values)) as ArrayRef]).expect("a batch")
     };
     let input = ResultTable::try_new(schema.clone(), vec![batch(vec!["a", "b"]), batch(vec!["c"])]).expect("a table");
-    let start = start_table_analysis(input.schema(), 3).expect("columns");
+    let start = start_table_analysis(input.schema()).expect("columns");
     // The row numbers don't take the name of a field
     assert_eq!(start.row_number_field_name, "__rownum");
     assert_eq!(start.fields, vec!["_rownum".to_string()]);
-    assert_eq!(start.import.table_name, "__df_3");
     // The import crosses as IPC, with its batches
     let bytes = ipc_stream(&input);
     let imported = ResultTable::from_ipc_stream(&bytes).expect("a table");

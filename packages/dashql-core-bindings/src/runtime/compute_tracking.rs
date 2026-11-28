@@ -170,23 +170,16 @@ impl OnHost for ComputeTracker {
 impl ComputeHost for ComputeTracker {
     async fn import_table(
         &self,
-        data_frame: u64,
         table_name: &str,
         table: Handle,
         fields: &[String],
         row_number_field: &str,
         context: &ComputeContext,
     ) -> Result<KeptTable, HostError> {
-        self.inner.platform.import_table(data_frame, table_name, table, fields, row_number_field, context).await
+        self.inner.platform.import_table(table_name, table, fields, row_number_field, context).await
     }
 
-    async fn create_table(
-        &self,
-        data_frame: u64,
-        table_name: &str,
-        sql: &str,
-        context: &ComputeContext,
-    ) -> Result<(), HostError> {
+    async fn create_table(&self, table_name: &str, sql: &str, context: &ComputeContext) -> Result<(), HostError> {
         let connections = self.inner.connections.borrow().upgrade();
         // The queries of a computation go to the history of its connection, a computation without one has none
         let mut open = match (connections, context.connection_id.clone()) {
@@ -206,7 +199,7 @@ impl ComputeHost for ComputeTracker {
         if let Some(open) = &open {
             context.client_context = Some(sqlframe_client_context(&open.connection_id));
         }
-        let outcome = self.inner.platform.create_table(data_frame, table_name, sql, &context).await;
+        let outcome = self.inner.platform.create_table(table_name, sql, &context).await;
         if let Some(open) = open.as_mut() {
             open.close(&outcome);
         }
@@ -221,8 +214,8 @@ impl ComputeHost for ComputeTracker {
         self.inner.platform.query_table(sql, context).await
     }
 
-    async fn drop_table(&self, data_frame: u64, table_name: &str) -> Result<(), HostError> {
-        self.inner.platform.drop_table(data_frame, table_name).await
+    async fn drop_table(&self, table_name: &str) -> Result<(), HostError> {
+        self.inner.platform.drop_table(table_name).await
     }
 
     fn register_table(&self, ipc: &[u8]) -> Result<Handle, HostError> {
