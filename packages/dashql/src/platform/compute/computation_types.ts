@@ -239,11 +239,6 @@ export function resolveSummaries(view: SummaryView, tables: SummaryTables, logge
     return { tableAggregation, columnAggregates, filteredColumnAggregates };
 }
 
-/// The matching columns of the rows of the applied data search by row number from 1, null without a data search
-export function resolveMatchingRows(view: core.ComputationView | null, tables: SummaryTables): Map<number, number[]> | null {
-    return resolveDataSearchMatches(view?.dataSearch.hasMatchingRows ?? false, view?.dataSearchTable?.dataTable, tables);
-}
-
 /// The matching columns by row number from the handle of the table of a data search, null if the search has none
 export function resolveDataSearchMatches(
     hasMatchingRows: boolean,

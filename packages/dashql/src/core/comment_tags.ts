@@ -1,9 +1,5 @@
 import * as buffers from './buffers.js';
 
-/// The prefix of comment tags, e.g. `@vis`
-export const COMMENT_TAG_PREFIX = '@';
-/// The tag that may close a tagged region of line comments, accepted for older scripts and never needed
-export const COMMENT_TAG_END = `${COMMENT_TAG_PREFIX}end`;
 /// A `@<tag>` region of comments. The parser does not interpret the content, readers pick tags by name.
 export interface CommentTag {
     /// The index of the comment block in the parsed script

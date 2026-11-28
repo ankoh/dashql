@@ -3,7 +3,7 @@ import * as core from '../core/index.js';
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 
 import { createRuntime, type Runtime } from './runtime.js';
-import { ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN, TaskStatus, resolveMatchingRows, resolveSummaries } from '../platform/compute/computation_types.js';
+import { ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN, TaskStatus, resolveDataSearchMatches, resolveSummaries } from '../platform/compute/computation_types.js';
 import { openTestHyperDB } from '../platform/testing/test_hyperdb.js';
 import { exportParquet } from '../platform/hyperdb/hyperdb_parquet_export.js';
 import type { HyperDB } from '../platform/hyperdb/hyperdb_wasm.js';
@@ -201,7 +201,7 @@ describe('The computations of the runtime', () => {
         // A search of the data, the ordering follows it
         rt.dispatch(target, { kind: 'setResultSearchPattern', value: { search: 'data', pattern: 'b' } });
         computation = await settled(rt, view => !view.dataSearch.pending && view.dataSearch.appliedPattern === 'b');
-        expect(resolveMatchingRows(computation, rt)).toEqual(new Map([[2, [1]]]));
+        expect(resolveDataSearchMatches(computation.dataSearch.hasMatchingRows, computation.dataSearchTable?.dataTable, rt)).toEqual(new Map([[2, [1]]]));
 
         // A search of the columns
         rt.dispatch(target, { kind: 'setResultSearchPattern', value: { search: 'columns', pattern: 'nam' } });

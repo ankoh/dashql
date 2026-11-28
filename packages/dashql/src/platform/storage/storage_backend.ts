@@ -15,10 +15,6 @@ export const STORAGE_GITIGNORE_FILE = '.gitignore';
 export const STORAGE_SHELL_FOLDER = 'shell';
 /// The folder that holds the files of the connections, e.g. `connections/<uuid>/…`
 export const STORAGE_CONNECTIONS_FOLDER = 'connections';
-/// The monitoring database with the extract of the Hyper log that earlier versions kept in the folder of a connection,
-/// e.g. `connections/<uuid>/monitoring.hyper`. The app writes it no more, it is deleted with the files of the connection
-/// and it is not part of workbook bundles.
-export const STORAGE_CONNECTION_MONITORING_FILE = 'monitoring.hyper';
 
 /// The relations of the catalog, as the last catalog refresh described them
 export const STORAGE_CATALOG_RELATIONS = 'dashql-catalog-relations.sql';

@@ -100,17 +100,6 @@ export function findWorkbookFolder(tree: WorkbookTreeFolder, workbookId: string)
     return null;
 }
 
-/// Every folder of a tree with its path, the root included
-export function listFolders(tree: WorkbookTreeFolder): WorkbookTreeFolder[] {
-    const folders: WorkbookTreeFolder[] = [];
-    const visit = (folder: WorkbookTreeFolder) => {
-        folders.push(folder);
-        for (const child of folder.folders) visit(child);
-    };
-    visit(tree);
-    return folders;
-}
-
 /// The key of a folder path, e.g. for maps of folders
 export function folderPathKey(path: readonly string[]): string {
     return JSON.stringify(path);

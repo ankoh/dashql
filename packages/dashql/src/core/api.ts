@@ -1384,15 +1384,6 @@ export class DashQLCatalog {
     }
 }
 
-export interface DashQLQueryGraphLayoutConfig {
-    boardWidth: number;
-    boardHeight: number;
-    cellWidth: number;
-    cellHeight: number;
-    tableWidth: number;
-    tableHeight: number;
-}
-
 export namespace ExternalObjectID {
     export type Value = bigint;
 

@@ -113,11 +113,6 @@ export function scriptConnectionIds(state: Pick<WorkbookScripts, 'scriptConnecti
 }
 
 
-/// The number of scripts of a workbook that run on a connection. The pending connection alone does not count.
-export function scriptsOnConnection(state: Pick<WorkbookScripts, 'scriptConnections'>, connectionId: string): number {
-    return state.scriptConnections.filter(id => id === connectionId).length;
-}
-
 /// The scripts of a workbook by file name in feed order
 export function getScriptRefs(state: Pick<WorkbookScripts, 'scriptOrder' | 'scriptRefs'>): ScriptRef[] {
     return state.scriptOrder.map(name => state.scriptRefs[name]);
