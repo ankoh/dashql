@@ -7,7 +7,7 @@ import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/comp
 import { VegaLiteChart } from '@akohn/dashql-react/components/vegalite_chart';
 import { arrowTableToRows } from '@akohn/dashql-react/vegalite/vegalite_rows';
 import { useDemoDataSource, type DemoDataSource } from '../shared/data_source.js';
-import { bindSqlTemplate } from '../shared/sql_template.js';
+import { quoteLiteral } from '@akohn/dashql/platform/utils/sql_quote';
 import { useLiveQuery, type LiveQueryState } from '../shared/use_live_query.js';
 import { BinanceFeed } from './binance_feed.js';
 import { CoinbaseFeed } from './coinbase_feed.js';
@@ -234,7 +234,7 @@ export const StockAnalysisPage: React.FC = () => {
     // Without a selection, the chart shows the symbol with the most trades
     const busiest = rows.reduce<BoardRow | null>((best, row) => best == null || row.trades > best.trades ? row : best, null);
     const symbol = selected != null && rows.some(row => row.symbol === selected) ? selected : busiest?.symbol ?? null;
-    const chartSql = React.useMemo(() => symbol == null ? null : bindSqlTemplate(SYMBOL_CHART_SQL, { symbol }), [symbol]);
+    const chartSql = React.useMemo(() => symbol == null ? null : SYMBOL_CHART_SQL.replace(':symbol', quoteLiteral(symbol)), [symbol]);
     const chart = useLiveQuery(database, chartSql, 1000);
 
     const now = useNow(250);

@@ -17,7 +17,6 @@ packages/dashql-app/
     shared/                      # what the demos share
       data_source.ts             # the HyperDB WASM of the page, the source type of the demos
       use_live_query.ts          # runs a query again and again, never two at a time
-      sql_template.ts            # `:name` placeholders in the SQL files
     stock_analysis/              # one folder per demo
       stock_analysis_page.tsx    # the default export is the page
       sql/*.sql                  # the queries of the page, imported with ?raw

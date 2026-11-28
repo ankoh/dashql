@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { EmbeddedComputeDatabase, EmbeddedConnection } from '@akohn/dashql/platform/embedded_database';
 import { setupWebHyperDB } from '../../host/hyperdb/hyperdb_provider_web.js';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import { bindSqlTemplate } from '../shared/sql_template.js';
+import { quoteLiteral } from '@akohn/dashql/platform/utils/sql_quote';
 import { readBoardRows } from './live_board.js';
 import { deleteTicksBeforeSql, insertTicksSql, type Tick } from './tick_feed.js';
 
@@ -54,7 +54,7 @@ describe('Stock Analysis SQL in HyperDB WASM', () => {
     });
 
     it('computes the price of a symbol per second', async () => {
-        const rows = plainRows(await conn.query(bindSqlTemplate(SYMBOL_CHART_SQL, { symbol: 'AAA' })));
+        const rows = plainRows(await conn.query(SYMBOL_CHART_SQL.replace(':symbol', quoteLiteral('AAA'))));
         expect(rows.map(r => r.close)).toEqual([10, 12, 11]);
         expect(rows.map(r => r.t)).toEqual([now - 120_000, now - 90_000, now - 1_000].map(t => Math.floor(t / 1000) * 1000));
         expect(rows[1]).toMatchObject({ open: 12, high: 12, low: 12, close: 12, size: 1 });

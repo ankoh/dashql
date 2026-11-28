@@ -1,5 +1,5 @@
 import type { HyperDBSourceConnection } from '../shared/data_source.js';
-import { sqlLiteral } from '../shared/sql_template.js';
+import { quoteLiteral } from '@akohn/dashql/platform/utils/sql_quote';
 
 /// A trade of a symbol with the best bid and ask at its time, a row of the table `ticks`
 export interface Tick {
@@ -33,15 +33,20 @@ export interface TickFeed {
     stop(): void;
 }
 
+/// A number as a SQL literal, null without a finite one
+function numberLiteral(value: number | null): string {
+    return value == null || !Number.isFinite(value) ? 'null' : String(value);
+}
+
 /// The statement that inserts ticks into the table `ticks`
 export function insertTicksSql(ticks: readonly Tick[]): string {
     const rows = ticks.map(tick => `(${[
-        sqlLiteral(tick.symbol),
-        `${sqlLiteral(new Date(tick.ts).toISOString())}::timestamptz`,
-        sqlLiteral(tick.price),
-        sqlLiteral(tick.size),
-        sqlLiteral(tick.bid),
-        sqlLiteral(tick.ask),
+        quoteLiteral(tick.symbol),
+        `${quoteLiteral(new Date(tick.ts).toISOString())}::timestamptz`,
+        numberLiteral(tick.price),
+        numberLiteral(tick.size),
+        numberLiteral(tick.bid),
+        numberLiteral(tick.ask),
     ].join(', ')})`);
     return `insert into ticks (symbol, ts, price, size, bid, ask) values\n${rows.join(',\n')}`;
 }
