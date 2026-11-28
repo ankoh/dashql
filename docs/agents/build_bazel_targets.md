@@ -397,7 +397,7 @@ A new crate of the module takes the lints with `lint_config = "//bazel:rust_safe
 
 The Rust code is formatted with rustfmt and the `rustfmt.toml` of the repo (120 columns, `use_small_heuristics =
 "Max"`). Every Bazel package with Rust files has a `:rustfmt_test` (`rustfmt_test` of `bazel/rustfmt.bzl`) that runs
-`rustfmt --check` on the files of the package (`glob(["**/*.rs"])`), so CI fails on unformatted code. Generated Rust
+`rustfmt --check` on the files of the package (`rustfmt_test()`, by default `glob(["**/*.rs"])`), so CI fails on unformatted code. Generated Rust
 (the parser tables of `//grammar`, the FlatBuffers of `//proto/fb`, the protos of the native proxy) is not in the tree
 and is not checked. The test and the formatter run the rustfmt of the Rust toolchain of rules_rust, a nightly, with
 `skip_children` so that rustfmt doesn't follow a module into a generated file. `bazel run @rules_rust//:rustfmt` and

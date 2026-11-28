@@ -8,14 +8,17 @@ which crashes Bazel 9 next to the `register_execution_platforms` of MODULE.bazel
 
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
-def rustfmt_test(name, srcs, **kwargs):
+def rustfmt_test(name = "rustfmt_test", srcs = None, **kwargs):
     """A test that passes when rustfmt leaves the Rust files unchanged
 
     Args:
         name: The name of the test
-        srcs: The Rust files to check, the checked-in ones only: a generated file is not formatted
+        srcs: The Rust files to check, the checked-in ones only: a generated file is not formatted. By default the Rust
+            files of the package, `glob(["**/*.rs"])`
         **kwargs: Passed to the test
     """
+    if srcs == None:
+        srcs = native.glob(["**/*.rs"])
     sh_test(
         name = name,
         size = "small",

@@ -181,7 +181,4 @@ rust_binary(
 )
 
 # rustfmt of the Rust files of the package, see //bazel:rustfmt.bzl
-rustfmt_test(
-    name = "rustfmt_test",
-    srcs = glob(["**/*.rs"]),
-)
+rustfmt_test()
