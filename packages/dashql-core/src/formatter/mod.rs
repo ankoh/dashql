@@ -908,8 +908,13 @@ impl<'a> Formatter<'a> {
             if alias_reg == 0 {
                 return self.format_unimplemented(node);
             }
-            // The alias of the target of an INSERT needs its AS
-            let separator = if node.attribute_key() == K::SQL_INSERT_TARGET { " as " } else { " " };
+            // The alias of the target of an INSERT and of the table of a property graph element needs its AS
+            let separator =
+                if matches!(node.attribute_key(), K::SQL_INSERT_TARGET | K::SQL_GRAPH_ELEMENT_TABLE_TABLE) {
+                    " as "
+                } else {
+                    " "
+                };
             base_reg = f.concat(&[base_reg, f.text(separator), alias_reg]);
         }
         if let Some(sample) = sample {

@@ -45,25 +45,7 @@ impl<'a> Formatter<'a> {
             ],
         );
         let Some(table) = table else { return self.format_unimplemented(node) };
-        let [table_name, table_alias, table_query] =
-            attrs!(self.children(table), [K::SQL_TABLEREF_NAME, K::SQL_TABLEREF_ALIAS, K::SQL_TABLEREF_TABLE]);
-        let mut table_reg = self.reg(table);
-        if let Some(table_alias) = table_alias {
-            let mut base_reg = match (table_name, table_query) {
-                (Some(table_name), _) => self.reg(table_name),
-                (None, Some(table_query)) => self.reg(table_query),
-                (None, None) => 0,
-            };
-            let alias_reg = self.reg(table_alias);
-            if base_reg == 0 || alias_reg == 0 {
-                return self.format_unimplemented(node);
-            }
-            if table_query.is_some_and(|q| q.node_type() == NodeType::OBJECT_SQL_SELECT) {
-                base_reg = f.parenthesized(base_reg);
-            }
-            table_reg = f.concat(&[base_reg, f.text(" as "), alias_reg]);
-        }
-        let mut parts = vec![table_reg];
+        let mut parts = vec![self.reg(table)];
         if let Some(key) = key {
             parts.push(f.concat(&[f.text("key "), f.parenthesized(self.reg(key))]));
         }
