@@ -1163,11 +1163,11 @@ fn describe_entry(
     let data = entry.data();
     let mut out = CatalogEntryT::default();
     out.catalog_entry_id = data.catalog_entry_id;
-    out.catalog_entry_type = CatalogEntryType::DESCRIPTOR_POOL;
     out.layer = layer;
     match entry {
         // Scripts are described as one anonymous schema with all tables
         CatalogEntryRef::Script(_) => {
+            out.catalog_entry_type = CatalogEntryType::SCRIPT;
             let tables = data
                 .table_declarations
                 .iter()
@@ -1196,6 +1196,7 @@ fn describe_entry(
             out.schemas = Some(vec![schema]);
         }
         CatalogEntryRef::Descriptor(_) => {
+            out.catalog_entry_type = CatalogEntryType::DESCRIPTOR_POOL;
             let schemas = data
                 .schemas_by_qualified_name
                 .iter()

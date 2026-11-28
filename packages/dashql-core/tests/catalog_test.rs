@@ -1,5 +1,6 @@
 //! Tests of the catalog: loading, publishing, describing, resolving and dropping entries.
 
+use dashql_buffers::catalog::CatalogEntryType;
 use dashql_buffers::status::StatusCode;
 use dashql_core::analyzer::ColumnResolution;
 use dashql_core::capabilities::Capabilities;
@@ -255,6 +256,8 @@ fn describe_entries_lists_scripts_as_one_anonymous_schema() {
     assert_eq!(entries[1].catalog_entry_id, second.catalog_entry_id());
     assert_eq!(entries[0].layer, CatalogLayer::CONNECTION);
     assert_eq!(entries[1].layer, CatalogLayer::SESSION);
+    assert_eq!(entries[0].catalog_entry_type, CatalogEntryType::SCRIPT);
+    assert_eq!(entries[1].catalog_entry_type, CatalogEntryType::SCRIPT);
     let schemas = entries[0].schemas.as_ref().unwrap();
     assert_eq!(schemas.len(), 1);
     let tables = schemas[0].tables.as_ref().unwrap();
