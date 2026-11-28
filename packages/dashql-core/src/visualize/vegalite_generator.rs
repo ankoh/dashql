@@ -8,7 +8,9 @@ pub fn generate_vegalite_spec(spec: &VisualizationSpec, script: &AnalyzedScript)
     let mut root = Map::new();
     root.insert("$schema".to_string(), Value::from("https://vega.github.io/schema/vega-lite/v5.json"));
     let mut data = Map::new();
-    data.insert("$sql".to_string(), Value::from(String::from_utf8_lossy(super::node_text(script, spec.ast_node_id))));
+    let parsed = &script.parsed;
+    let sql = parsed.nodes.get(spec.ast_node_id as usize).map_or("", |node| parsed.node_text(node));
+    data.insert("$sql".to_string(), Value::from(sql));
     root.insert("data".to_string(), Value::Object(data));
     if let Some(vegalite) = &spec.vegalite {
         root.extend(vegalite.iter().map(|(k, v)| (k.clone(), v.clone())));

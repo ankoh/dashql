@@ -80,7 +80,7 @@ fn has(tags: CandidateTags, tag: CandidateTag) -> bool {
     tags & tag.0 != 0
 }
 
-/// `computeCandidateScore`
+/// The score of the tags of a candidate
 fn compute_candidate_score(tags: CandidateTags) -> Score {
     let mut score: Score = 0;
     let add = |score: &mut Score, tag: CandidateTag, value: Score| {
@@ -462,7 +462,6 @@ pub struct Completion<'c, 'a> {
     pub syntax_error: Option<CompletionSyntaxError>,
 }
 
-/// A dot candidate
 /// What the qualifier of a column ref names at the cursor
 enum QualifiedRelation<'s> {
     /// A FROM item
@@ -471,6 +470,7 @@ enum QualifiedRelation<'s> {
     Join(&'s ScopeJoin),
 }
 
+/// A table, schema or column that a dot resolves to
 struct DotCandidate {
     /// The name to complete
     name: Arc<str>,
