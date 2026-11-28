@@ -1103,8 +1103,11 @@ impl RunHost for RuntimeRunHost {
                 read: Some(file),
             }),
         };
+        // A call that doesn't parse fails, it must not reach the backend as SQL
         let client_function_call =
-            request.client_function_call.as_deref().and_then(|call| serde_json::from_str(call).ok());
+            request.client_function_call.as_deref().map(serde_json::from_str).transpose().map_err(|error| {
+                StatementFailure::new(format!("The client function call of the plan is invalid: {error}"))
+            })?;
         let statement = Statement {
             connection_id: request.connection_id,
             text: request.text,
