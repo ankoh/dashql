@@ -8,6 +8,7 @@
 
 use crate::analyzer::*;
 use crate::catalog::*;
+use crate::utils::non_empty;
 use dashql_buffers::algebra::{
     BinaryExpressionT, ColumnRefExpressionT, ComparisonT, ConstIntervalCastT, ExpressionSubTypeT, ExpressionT,
     FunctionCallExpressionT, LiteralT, ResolvedColumnT, UnaryExpressionT,
@@ -43,11 +44,6 @@ macro_rules! build {
     }};
     (@set $v:ident, $field:ident, $value:expr) => { $v.$field = $value; };
     (@set $v:ident, $field:ident) => { $v.$field = $field; };
-}
-
-/// A vector, left out when empty
-fn non_empty<T>(v: Vec<T>) -> Option<Vec<T>> {
-    (!v.is_empty()).then_some(v)
 }
 
 /// A string, left out when empty

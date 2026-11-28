@@ -3,6 +3,11 @@
 pub mod rope;
 pub mod topk;
 
+/// A vector, None when empty
+pub fn non_empty<T>(v: Vec<T>) -> Option<Vec<T>> {
+    (!v.is_empty()).then_some(v)
+}
+
 /// ASCII lower-casing
 #[inline]
 pub fn tolower_fuzzy(c: u8) -> u8 {

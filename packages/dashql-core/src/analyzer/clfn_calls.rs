@@ -13,7 +13,6 @@ use crate::utils::unquote_string_literal;
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
 use dashql_buffers::parser::{AttributeKey as K, Node, NodeType};
 use dashql_parser::attrs;
-use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::parser::ParsedScript;
 use dashql_parser::scanner::{ScannedScript, Symbol};
 use dashql_parser::symbol_kind::*;
@@ -82,23 +81,10 @@ fn call_of_statement(parsed: &ParsedScript, root: u32) -> Option<(u32, bool)> {
         NodeType::OBJECT_EXT_EXPLAIN => {
             let [body] = attrs!(parsed.children(node), [K::EXT_EXPLAIN_STATEMENT]);
             let body = body?;
-            (body.node_type() == NodeType::OBJECT_SQL_CALL).then(|| (node_id(parsed, body), true))
+            (body.node_type() == NodeType::OBJECT_SQL_CALL).then(|| (parsed.node_id(body), true))
         }
         _ => None,
     }
-}
-
-fn node_id(parsed: &ParsedScript, node: &Node) -> u32 {
-    ((node as *const Node as usize - parsed.nodes.as_ptr() as usize) / std::mem::size_of::<Node>()) as u32
-}
-
-/// The source text of a node
-fn source<'a>(parsed: &'a ParsedScript, node: &Node) -> &'a str {
-    let scanned = &parsed.scanned;
-    let span = resolve_text_span(&scanned.text, &scanned.symbols, *node.symbol_span());
-    let begin = (span.offset as usize).min(scanned.text.len());
-    let end = (begin + span.length as usize).min(scanned.text.len());
-    scanned.text.get(begin..end).unwrap_or("")
 }
 
 /// A name in a script, a key of an option or attribute
@@ -111,7 +97,7 @@ struct KeyName {
 
 /// Read a key: a name or a string
 fn read_key(parsed: &ParsedScript, key: &Node) -> KeyName {
-    let text = source(parsed, key);
+    let text = parsed.node_text(key);
     if key.node_type() == NodeType::LITERAL_STRING {
         return KeyName { text: unquote_string_literal(text).unwrap_or_else(|| text.to_string()), quoted: true };
     }
@@ -180,14 +166,14 @@ fn raw_method_is_get(parsed: &ParsedScript, args: Option<&Node>) -> bool {
         let is_method = if name.quoted { name.text == "method" } else { name.text.eq_ignore_ascii_case("method") };
         is_method
             && value.node_type() == NodeType::LITERAL_STRING
-            && string_text(source(parsed, value)).eq_ignore_ascii_case("GET")
+            && string_text(parsed.node_text(value)).eq_ignore_ascii_case("GET")
     })
 }
 
 /// A field as it decides the variant of a union
 fn read_field(parsed: &ParsedScript, key: &Node, value: &Node) -> ClientFunctionField {
     let name = read_key(parsed, key);
-    let text = (value.node_type() == NodeType::LITERAL_STRING).then(|| string_text(source(parsed, value)));
+    let text = (value.node_type() == NodeType::LITERAL_STRING).then(|| string_text(parsed.node_text(value)));
     ClientFunctionField { name: name.text, quoted: name.quoted, text }
 }
 
@@ -211,7 +197,7 @@ pub(super) fn analyze(state: &mut AnalysisState) {
         let Some(call) = parsed.nodes.get(call_id as usize) else { continue };
         let Some(callee) = resolve_callee(parsed, &snapshot, call) else { continue };
         let [name, args] = attrs!(parsed.children(call), [K::SQL_CALL_NAME, K::SQL_CALL_ARGS]);
-        let name_id = name.map(|n| node_id(parsed, n)).unwrap_or(call_id);
+        let name_id = name.map(|n| parsed.node_id(n)).unwrap_or(call_id);
         let spec = callee.spec;
         let function = match callee.path.as_slice() {
             [function_name] => spec.function(function_name),
@@ -262,7 +248,7 @@ struct Checker<'s, 'a, 'c> {
 
 impl Checker<'_, '_, '_> {
     fn error(&mut self, error_type: AnalyzerErrorType, node: &Node, message: String) {
-        let id = node_id(self.state.parsed, node);
+        let id = self.state.parsed.node_id(node);
         self.state.add_error(error_type, AnalyzerErrorSeverity::ERROR, id, message);
     }
 
@@ -355,7 +341,7 @@ impl Checker<'_, '_, '_> {
         match value.node_type() {
             NodeType::OBJECT_SQL_PARAMETER_REF => {}
             NodeType::LITERAL_INTEGER
-                if source(self.state.parsed, value).parse::<u64>().is_ok_and(|n| n > 0 || option == OPTION_WAIT) => {}
+                if self.state.parsed.node_text(value).parse::<u64>().is_ok_and(|n| n > 0 || option == OPTION_WAIT) => {}
             _ => {
                 let expected = if option == OPTION_WAIT { "a number of seconds" } else { "a positive number" };
                 self.error(
@@ -373,7 +359,7 @@ impl Checker<'_, '_, '_> {
             ClientFunctionUnknownPolicy::Warning => AnalyzerErrorSeverity::WARNING,
             ClientFunctionUnknownPolicy::Allow => return,
         };
-        let id = node_id(self.state.parsed, node);
+        let id = self.state.parsed.node_id(node);
         self.state.add_error(AnalyzerErrorType::CLIENT_FUNCTION_UNKNOWN_OPTION, severity, id, message);
     }
 
@@ -633,7 +619,7 @@ impl Describer<'_> {
         pointer: &str,
     ) -> Value {
         let parsed = self.analyzed.parsed.clone();
-        let text = source(&parsed, node);
+        let text = parsed.node_text(node);
         match node.node_type() {
             NodeType::LITERAL_NULL => Value::Null,
             NodeType::BOOL => Value::Bool(node.children_begin_or_value() != 0),
@@ -641,7 +627,7 @@ impl Describer<'_> {
             NodeType::LITERAL_STRING => Value::String(string_text(text)),
             NodeType::OBJECT_SQL_SELECT_EXPRESSION => Value::String(select_text(&parsed, node).to_string()),
             NodeType::OBJECT_SQL_PARAMETER_REF => {
-                let id = node_id(&parsed, node);
+                let id = parsed.node_id(node);
                 let name = self.analyzed.parameters.iter().find(|p| p.ast_node_id == id).and_then(|p| p.name.clone());
                 self.bindings.push(binding(pointer.to_string(), name.as_deref().unwrap_or("").to_string()));
                 Value::Null

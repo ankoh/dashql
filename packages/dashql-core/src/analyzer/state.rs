@@ -176,7 +176,7 @@ impl<'a> AnalysisState<'a> {
 
     /// The id of a node of the AST
     pub fn node_id(&self, node: &Node) -> u32 {
-        ((node as *const Node as usize - self.ast.as_ptr() as usize) / std::mem::size_of::<Node>()) as u32
+        self.parsed.node_id(node)
     }
 
     /// A name of the script, with an empty text for an id that the script doesn't hold
@@ -315,15 +315,16 @@ impl<'a> AnalysisState<'a> {
         path
     }
 
-    /// Read a qualified table name
-    pub fn read_qualified_table_name(&mut self, node: Option<&Node>) -> Option<QualifiedTableName> {
+    /// Read a name qualified by an optional database and schema, tagging the last name with `tag`. Returns the node
+    /// id, the database, the schema and the last name.
+    fn read_qualified_name(&mut self, node: Option<&Node>, tag: NameTag) -> Option<(Option<u32>, Name, Name, Name)> {
         let node = node?;
         let path = self.read_name_path(node);
         let ast_node_id = Some(self.node_id(node));
-        let (db, schema, table) = match *path.as_slice() {
-            [db, schema, table] => (self.name(db), self.name(schema), self.name(table)),
-            [schema, table] => (self.empty_name(), self.name(schema), self.name(table)),
-            [table] => (self.empty_name(), self.empty_name(), self.name(table)),
+        let (db, schema, name) = match *path.as_slice() {
+            [db, schema, name] => (self.name(db), self.name(schema), self.name(name)),
+            [schema, name] => (self.empty_name(), self.name(schema), self.name(name)),
+            [name] => (self.empty_name(), self.empty_name(), self.name(name)),
             _ => return None,
         };
         if path.len() == 3 {
@@ -332,8 +333,15 @@ impl<'a> AnalysisState<'a> {
         if path.len() >= 2 {
             self.tag(&schema, NameTag::SCHEMA_NAME);
         }
-        self.tag(&table, NameTag::TABLE_NAME);
-        Some(QualifiedTableName { ast_node_id, database_name: db, schema_name: schema, table_name: table })
+        self.tag(&name, tag);
+        Some((ast_node_id, db, schema, name))
+    }
+
+    /// Read a qualified table name
+    pub fn read_qualified_table_name(&mut self, node: Option<&Node>) -> Option<QualifiedTableName> {
+        let (ast_node_id, database_name, schema_name, table_name) =
+            self.read_qualified_name(node, NameTag::TABLE_NAME)?;
+        Some(QualifiedTableName { ast_node_id, database_name, schema_name, table_name })
     }
 
     /// The qualified column name of the names of a column ref path, its first two names. More names qualify the column
@@ -356,34 +364,14 @@ impl<'a> AnalysisState<'a> {
 
     /// Read a qualified function name
     pub fn read_qualified_function_name(&mut self, node: Option<&Node>) -> Option<QualifiedFunctionName> {
-        let node = node?;
-        let path = self.read_name_path(node);
-        let ast_node_id = Some(self.node_id(node));
-        let (db, schema, function) = match *path.as_slice() {
-            [db, schema, function] => (self.name(db), self.name(schema), self.name(function)),
-            [schema, function] => (self.empty_name(), self.name(schema), self.name(function)),
-            [function] => (self.empty_name(), self.empty_name(), self.name(function)),
-            _ => return None,
-        };
-        if path.len() == 3 {
-            self.tag(&db, NameTag::DATABASE_NAME);
-        }
-        if path.len() >= 2 {
-            self.tag(&schema, NameTag::SCHEMA_NAME);
-        }
-        self.tag(&function, NameTag::FUNCTION_NAME);
-        Some(QualifiedFunctionName { ast_node_id, database_name: db, schema_name: schema, function_name: function })
+        let (ast_node_id, database_name, schema_name, function_name) =
+            self.read_qualified_name(node, NameTag::FUNCTION_NAME)?;
+        Some(QualifiedFunctionName { ast_node_id, database_name, schema_name, function_name })
     }
 
-    /// A table of this script or of the catalog
+    /// A table of this script, of the results it reads or of the catalog
     pub fn table(&self, loc: TableLoc) -> Option<&TableDeclaration> {
-        if loc.entry == self.entry_id {
-            self.out.entry.table_declarations.get(loc.index as usize)
-        } else if loc.entry == crate::table_parameters::TABLE_PARAMETERS_ENTRY_ID {
-            self.out.table_parameters.as_ref()?.table(loc)
-        } else {
-            self.catalog.table(loc)
-        }
+        self.out.table(loc)
     }
 
     /// Resolve a function: the declarations of the script first, then the catalog in resolution order

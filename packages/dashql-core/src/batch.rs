@@ -5,6 +5,7 @@ use crate::catalog::{Catalog, CatalogLayer};
 use crate::error::{Error, Result};
 use crate::pack::{pack_analyzed_script, pack_catalog_descriptor, pack_parsed_script, pack_scanned_script};
 use crate::script::Script;
+use crate::utils::non_empty;
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
 use dashql_buffers::batch::{BatchDiagnosticT, BatchRequest, BatchResultT, BatchScriptResultT};
 pub use dashql_buffers::batch::{DiagnosticSeverity, ProcessingStage};
@@ -19,11 +20,6 @@ macro_rules! pack_bytes {
         builder.finish(packed, None);
         builder.finished_data().to_vec()
     }};
-}
-
-/// A vector that is left out of the packed buffer when empty
-fn non_empty<T>(v: Vec<T>) -> Option<Vec<T>> {
-    (!v.is_empty()).then_some(v)
 }
 
 /// A diagnostic of a checked script

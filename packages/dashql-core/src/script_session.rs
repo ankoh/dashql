@@ -30,6 +30,7 @@ use crate::pack::{pack_completion, pack_tokens};
 use crate::script::{Script, TextVersion};
 use crate::script_diff::ScriptDiff;
 use crate::table_parameters::TableParameters;
+use crate::utils::non_empty;
 use crate::utils::rope::{resolve_byte_boundary, resolve_utf16_boundary, TextPosition, Utf16Projector};
 use crate::vis_rewrite::{VisBoard, VisFlow, VisRenderer};
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
@@ -58,11 +59,6 @@ use std::sync::Arc;
 
 /// A version that never matches
 const NO_VERSION: u64 = u64::MAX;
-
-/// A vector that is left out of the packed buffer when empty
-fn non_empty<T>(v: Vec<T>) -> Option<Vec<T>> {
-    (!v.is_empty()).then_some(v)
-}
 
 /// A string that is left out of the packed buffer when empty
 fn non_empty_string(s: impl Into<String>) -> Option<String> {

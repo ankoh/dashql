@@ -94,6 +94,11 @@ impl ParsedScript {
         self.nodes.get(begin..begin + node.children_count() as usize).unwrap_or_default()
     }
 
+    /// The id of a node of this script, its index in `nodes`
+    pub fn node_id(&self, node: &Node) -> u32 {
+        ((node as *const Node as usize - self.nodes.as_ptr() as usize) / std::mem::size_of::<Node>()) as u32
+    }
+
     /// The text of a node
     pub fn node_text(&self, node: &Node) -> &str {
         let scanned = &*self.scanned;
