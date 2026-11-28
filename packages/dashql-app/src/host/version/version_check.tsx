@@ -16,7 +16,6 @@ export enum VersionCheckStatusCode {
 }
 
 export enum InstallationStatusCode {
-    Started,
     InProgress,
     RestartPending,
     Failed
