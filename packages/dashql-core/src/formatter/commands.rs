@@ -445,11 +445,21 @@ impl<'a> Formatter<'a> {
 
     /// `(int)`, `(*)` or `(a int order by b int)`, the argument types of an aggregate
     pub(super) fn format_aggregation_arguments(&self, node: &'a Node) -> FmtReg {
-        let f = &self.fmt;
         let [star, params, order_params] = attrs!(
             self.children(node),
             [K::SQL_CREATE_FUNCTION_STAR, K::SQL_CREATE_FUNCTION_PARAMS, K::SQL_CREATE_FUNCTION_ORDER_PARAMS]
         );
+        self.format_function_params(star, params, order_params)
+    }
+
+    /// The parameters of a function or an aggregate, which may end with ordered ones, `(x float8 order by y float8)`
+    pub(super) fn format_function_params(
+        &self,
+        star: Option<&'a Node>,
+        params: Option<&'a Node>,
+        order_params: Option<&'a Node>,
+    ) -> FmtReg {
+        let f = &self.fmt;
         let params = params.filter(|p| p.children_count() > 0).map(|p| self.reg_or_placeholder(p));
         let order_params = order_params.map(|p| f.concat(&[f.text("order by "), self.reg_or_placeholder(p)]));
         match (star, params, order_params) {

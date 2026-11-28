@@ -376,17 +376,7 @@ impl<'a> Formatter<'a> {
         }
         header.push(f.text(if aggregate.is_some() { "aggregate " } else { "function " }));
         header.push(self.reg(name));
-        // The parameters of an aggregate may end with ordered ones, `(x float8 order by y float8)`
-        let params = params.filter(|p| p.children_count() > 0).map(|p| self.reg(p));
-        let order_params = order_params.map(|p| f.concat(&[f.text("order by "), self.reg(p)]));
-        header.push(match (star, params, order_params) {
-            (Some(_), _, _) => f.text("(*)"),
-            (None, Some(params), Some(order_params)) => {
-                f.parenthesized_list(f.concat(&[params, f.text(" "), order_params]))
-            }
-            (None, Some(params), None) | (None, None, Some(params)) => f.parenthesized_list(params),
-            (None, None, None) => f.text("()"),
-        });
+        header.push(self.format_function_params(star, params, order_params));
 
         // The clauses go on indented lines of their own if the statement does not fit on one, the parameters
         // stay at the indentation of the statement
