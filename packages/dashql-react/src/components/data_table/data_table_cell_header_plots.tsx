@@ -6,7 +6,7 @@ import type * as core from '@akohn/dashql';
 import type { ComputationColumnGroup, ComputationTrackedTask, ComputationVersionValue } from '@akohn/dashql';
 import { ColumnAggregationVariant, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from '@akohn/dashql/platform/compute/computation_types';
 import { RectangleWaveSpinner } from '../spinners.js';
-import { BrushingStateCallback, HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
+import { HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentCell, MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { DataTableLayout } from './data_table_layout.js';
 import { arePropsEqualWithStyle } from './memo_props.js';
@@ -30,11 +30,9 @@ export interface HeaderPlotsCellProps {
     selectionEpoch: ComputationVersionValue;
     dataSearchRequestId: number | null;
     crossFilters: core.ComputationCrossFilter[];
-    isVisible: boolean;
     rightmostVisibleColumn: number;
     onRequestFilteredColumnAggregation: (columnId: number) => void;
     onHistogramFilter: HistogramFilterCallback;
-    onBrushingChange: BrushingStateCallback;
     onMostFrequentValueFilter: MostFrequentValueFilterCallback;
 }
 
@@ -58,9 +56,9 @@ function HeaderPlotsCellImpl(props: HeaderPlotsCellProps): React.ReactElement {
     }
 
     // The summary over the selected rows of a column that shows, the runtime computes it once per selection
-    const { isVisible, onRequestFilteredColumnAggregation } = props;
+    const { onRequestFilteredColumnAggregation } = props;
     React.useEffect(() => {
-        if (columnAggregateId == -1 || !isVisible || !filteredColumnAggregationOutdated) {
+        if (columnAggregateId == -1 || !filteredColumnAggregationOutdated) {
             return;
         }
         onRequestFilteredColumnAggregation(columnAggregateId);
@@ -70,13 +68,12 @@ function HeaderPlotsCellImpl(props: HeaderPlotsCellProps): React.ReactElement {
         filteredColumnAggregationTask,
         props.selectionEpoch,
         props.dataSearchRequestId,
-        isVisible,
         onRequestFilteredColumnAggregation,
     ]);
 
     const isRightmost = props.columnIndex === props.rightmostVisibleColumn;
 
-    if (pastFields || !props.isVisible) {
+    if (pastFields) {
         return <div style={props.style} />;
     }
 
@@ -169,7 +166,6 @@ function HeaderPlotsCellImpl(props: HeaderPlotsCellProps): React.ReactElement {
                                 columnAggregate={columnAggregate.value}
                                 selection={histogramSelection}
                                 onFilter={props.onHistogramFilter}
-                                onBrushingChange={props.onBrushingChange}
                             />
                         );
                     case STRING_COLUMN:

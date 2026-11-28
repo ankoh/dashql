@@ -7,7 +7,7 @@ import { Grid, useGridCallbackRef } from 'react-window';
 import { arrowValueToJson, ArrowTableFormatter, isArrowStructuredType } from '@akohn/dashql/platform/compute/arrow_formatter';
 import { resolveSummaries } from '@akohn/dashql/platform/compute/computation_types';
 import type { ComputationModel } from '../../models/computation_model.js';
-import { useComputationTables } from './computation_tables.js';
+import { useComputationTables, type ComputationTables } from './computation_tables.js';
 import { DataCell, DataCellData, TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../dom/classnames.js';
 import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
@@ -83,7 +83,6 @@ export const ROW_HEIGHT = 26;
 /// fewer rows again has the same height.
 const MORE_ROWS_HEIGHT = 24;
 const GRID_OVERSCAN_COUNT = 10;
-const NOOP_BRUSHING = () => { };
 
 export function computeGridHeight(
     baseRowCount: number,
@@ -124,17 +123,16 @@ interface RenderedCells {
 export const DataTable = React.memo((props: Props) => {
     const tables = useComputationTables(props.model.computation, props.model.tables);
     if (tables.dataTable == null) return null;
-    return <DataTableGrid {...props} dataTable={tables.dataTable} />;
+    return <DataTableGrid {...props} dataTable={tables.dataTable} matchingRows={tables.matchingRows} />;
 });
 
-function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
+function DataTableGrid(props: Props & { dataTable: arrow.Table; matchingRows: ComputationTables['matchingRows'] }) {
     const logger = useLogger();
     const computationState = props.model.computation;
     const summaryTables = props.model.tables;
     const dispatchComputation = props.model.dispatch;
     const dataTable = props.dataTable;
-    const tables = useComputationTables(computationState, summaryTables);
-    const matchingRows = tables.matchingRows;
+    const matchingRows = props.matchingRows;
     // The summaries of the columns that the plots draw, they keep their objects while their tables are the same
     const { tableAggregation, columnAggregates, filteredColumnAggregates, columnGroups } = computationState;
     const dataTableHandle = computationState.dataTable;
@@ -369,11 +367,9 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
         selectionEpoch,
         dataSearchRequestId,
         crossFilters,
-        isVisible: true,
         rightmostVisibleColumn: gridLayout.columnCount - 1,
         onRequestFilteredColumnAggregation: requestFilteredColumnAggregation,
         onHistogramFilter: histogramFilter,
-        onBrushingChange: NOOP_BRUSHING,
         onMostFrequentValueFilter: mostFrequentValueFilter,
     }), [
         gridLayout,

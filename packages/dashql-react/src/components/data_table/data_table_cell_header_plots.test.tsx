@@ -113,11 +113,9 @@ describe('HeaderPlotsCell', () => {
             selectionEpoch: { data: 1, filter: 2 },
             dataSearchRequestId: null,
             crossFilters: [],
-            isVisible: true,
             rightmostVisibleColumn: 3,
             onRequestFilteredColumnAggregation: vi.fn(),
             onHistogramFilter: vi.fn(),
-            onBrushingChange: vi.fn(),
             onMostFrequentValueFilter: vi.fn(),
         };
     }
@@ -129,15 +127,11 @@ describe('HeaderPlotsCell', () => {
         return root.container.firstElementChild as HTMLElement;
     }
 
-    it('leaves the columns beyond the layout and the hidden columns blank', async () => {
+    it('leaves the columns beyond the layout blank', async () => {
         const props = await succeeded();
         const beyond = await render({ ...props, columnIndex: 4 });
         expect(beyond.className).toBe('');
         expect(beyond.childElementCount).toBe(0);
-
-        const hidden = await render({ ...props, isVisible: false });
-        expect(hidden.className).toBe('');
-        expect(hidden.childElementCount).toBe(0);
     });
 
     it('shows the corner cell above the row numbers', async () => {
@@ -215,15 +209,11 @@ describe('HeaderPlotsCell', () => {
         expect(cell.classList.contains(styles.plots_cell_rightmost)).toBe(true);
     });
 
-    it('requests the filtered aggregate of a visible column once it is outdated', async () => {
+    it('requests the filtered aggregate of a column once it is outdated', async () => {
         const props = await succeeded();
         const request = vi.fn();
         const outdated = [false, true, false, false];
         await render({ ...props, onRequestFilteredColumnAggregation: request });
-        expect(request).not.toHaveBeenCalled();
-
-        // Hidden columns wait until they are visible
-        await render({ ...props, isVisible: false, filteredColumnAggregationOutdated: outdated, onRequestFilteredColumnAggregation: request });
         expect(request).not.toHaveBeenCalled();
         await render({ ...props, filteredColumnAggregationOutdated: outdated, onRequestFilteredColumnAggregation: request });
         expect(request).toHaveBeenCalledExactlyOnceWith(1);

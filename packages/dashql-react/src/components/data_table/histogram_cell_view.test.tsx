@@ -104,7 +104,6 @@ describe('HistogramCell', () => {
         filtered?: WithFilterEpoch<ColumnAggregationVariant> | null;
         selection?: [number, number] | null;
         onFilter?: HistogramFilterCallback;
-        onBrushingChange?: (brushing: boolean) => void;
     }
 
     function element(options: RenderOptions, onFilter: HistogramFilterCallback) {
@@ -118,7 +117,6 @@ describe('HistogramCell', () => {
                 filteredColumnAggregation={options.filtered ?? null}
                 selection={options.selection ?? null}
                 onFilter={onFilter}
-                onBrushingChange={options.onBrushingChange}
             />
         );
     }
@@ -304,16 +302,13 @@ describe('HistogramCell', () => {
 
     it('filters by the bins of the brushed bars', async () => {
         const column = await aggregate(ROWS, SCORE, BINS());
-        const onBrushingChange = vi.fn();
-        const { onFilter } = await render({ column, onBrushingChange });
+        const { onFilter } = await render({ column });
 
         // Brush from the gap left of bin 1 to the gap right of bin 2
         const bars = barRects();
         mouse('mousedown', bars[1].getBoundingClientRect().left - 1);
-        expect(onBrushingChange).toHaveBeenLastCalledWith(true);
         mouse('mousemove', bars[2].getBoundingClientRect().right + 1);
         mouse('mouseup', bars[2].getBoundingClientRect().right + 1);
-        expect(onBrushingChange).toHaveBeenLastCalledWith(false);
 
         expect(onFilter).toHaveBeenCalledOnce();
         const [table, columnIndex, aggregate_, selection] = vi.mocked(onFilter).mock.calls[0];

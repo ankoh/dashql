@@ -15,7 +15,6 @@ export { NULL_SYMBOL } from './histogram_bars.js';
 export { SettledBrushUpdates } from './histogram_brush.js';
 
 export type HistogramFilterCallback = (table: TableAggregation, columnId: number, column: OrdinalColumnAggregation, filter: [number, number] | null) => void;
-export type BrushingStateCallback = (isBrushing: boolean) => void;
 
 interface HistogramCellProps {
     className?: string;
@@ -26,7 +25,6 @@ interface HistogramCellProps {
     filteredColumnAggregation: WithFilterEpoch<ColumnAggregationVariant> | null;
     selection: [number, number] | null;
     onFilter: HistogramFilterCallback;
-    onBrushingChange?: BrushingStateCallback;
 }
 
 function HistogramCellImpl(props: HistogramCellProps): React.ReactElement {
@@ -124,7 +122,6 @@ function HistogramCellImpl(props: HistogramCellProps): React.ReactElement {
         selection: brushSelection,
         onBrushUpdate,
         onClear: clearFilter,
-        onBrushingChange: props.onBrushingChange,
     });
 
     // Adjust null padding to center null bar horizontally
