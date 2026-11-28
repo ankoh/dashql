@@ -2,6 +2,8 @@
 .dialog {
     display: grid;
     grid-template-rows: 40px minmax(0, 1fr) auto;
+    /* The long lines of the editor scroll, they don't widen the dialog past the window */
+    grid-template-columns: minmax(0, 1fr);
     width: 100%;
     height: 100%;
     min-height: 0;

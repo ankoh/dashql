@@ -7,6 +7,7 @@ import { useOptionalRuntime, useQuery, useScript, useScriptReferences, useWorkbo
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { ButtonGroup } from '@akohn/dashql-react/components/button_group';
 import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
+import { COMPACT_WIDTH_QUERY, useMediaQuery } from '@akohn/dashql-react/dom/media_query';
 import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import { CheckIcon, ScreenFullIcon, ScreenNormalIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { DashQLCompletionAbortEffect, DashQLProcessorPlugin } from '../editor/dashql_processor.js';
@@ -43,6 +44,8 @@ export function ScriptEditorDialog(props: ScriptEditorDialogProps): React.ReactE
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
     // An expanded dialog fills the window
     const [expanded, setExpanded] = React.useState(false);
+    // A compact window has no room for a dialog of its own size, it fills the window and has nothing to expand
+    const compact = useMediaQuery(COMPACT_WIDTH_QUERY);
     const scriptReferences = useScriptReferences(workbookId, scriptKey);
     const queryState = useQuery(script?.latestQueryId ?? null);
     const status = deriveEntryStatus(queryState, queryState?.progress ?? null);
@@ -97,7 +100,7 @@ export function ScriptEditorDialog(props: ScriptEditorDialogProps): React.ReactE
             width={OverlaySize.XXL}
             // No max height, the overlay keeps the dialog inside a short window
             height={OverlaySize.XL}
-            expanded={expanded}
+            expanded={expanded || compact}
             onEscape={onEscape}
             onClickOutside={ignoreOutsideClick}
         >
@@ -106,7 +109,7 @@ export function ScriptEditorDialog(props: ScriptEditorDialogProps): React.ReactE
                 role="dialog"
                 aria-modal="true"
                 aria-label={`Edit ${displayName}`}
-                data-expanded={expanded || undefined}
+                data-expanded={expanded || compact || undefined}
                 data-testid="script-editor-dialog"
             >
                 <div className={styles.titlebar}>
@@ -123,16 +126,18 @@ export function ScriptEditorDialog(props: ScriptEditorDialogProps): React.ReactE
                             className={styles.header}
                         />
                     </div>
-                    <IconButton
-                        variant={ButtonVariant.Invisible}
-                        size={ButtonSize.Small}
-                        aria-label={expanded ? 'Restore size' : 'Expand'}
-                        aria-pressed={expanded}
-                        data-testid="script-editor-dialog-expand"
-                        onClick={() => setExpanded(e => !e)}
-                    >
-                        {expanded ? <ScreenNormalIcon size={16} /> : <ScreenFullIcon size={16} />}
-                    </IconButton>
+                    {!compact && (
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            size={ButtonSize.Small}
+                            aria-label={expanded ? 'Restore size' : 'Expand'}
+                            aria-pressed={expanded}
+                            data-testid="script-editor-dialog-expand"
+                            onClick={() => setExpanded(e => !e)}
+                        >
+                            {expanded ? <ScreenNormalIcon size={16} /> : <ScreenFullIcon size={16} />}
+                        </IconButton>
+                    )}
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}

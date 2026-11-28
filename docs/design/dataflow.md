@@ -201,7 +201,9 @@ into its `@flow` tag, tags that hold them already stay, so a reload shows the sa
 statements is not remembered until it has some. Opening a box (the edit button of its header, a double click on its header or
 a statement, or Enter) selects the script and shows it in the editor dialog (`ScriptEditorDialog`), an overlay of
 960×600px that shrinks to the window: the same entry header, then expand and close, the editor with accept and reject
-of a staged rewrite, and the status of the last run. Expand fills the window. A narrow dialog hides the debug statistics
+of a staged rewrite, and the status of the last run. Expand fills the window. A compact window (below 600px) shows
+the dialog expanded and without the expand button: an expanded overlay fills a compact window below its top bar,
+without the inset and the border. A narrow dialog hides the debug statistics
 and delete of the header first, then the chart builder and the snippets, expand and close always show. Escape
 closes an open completion first, then the dialog, a click outside keeps it open. Switching the view or the workbook
 closes it.
