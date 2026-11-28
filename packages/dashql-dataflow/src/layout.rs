@@ -13,6 +13,10 @@
 //!   the x of the boxes, the order in a column their y, and a box keeps its y where it does not overlap another. A
 //!   dropped box goes into the column under its center, or into a new column in a gap between two columns. A layout
 //!   that starts from where an earlier one put every box reproduces it.
+//!
+//! The dense layout of a narrow canvas draws every box as a tile of one size and flows from top to bottom: the same
+//! layered layout with the inputs of a tile on its top border and the outputs on its bottom border. It ignores the
+//! hints, the positions of the boxes belong to the layout of the full boxes.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -55,6 +59,18 @@ pub struct DataflowLayoutConfig {
     pub isolated_per_row: usize,
     /// The grid that drags and resizes on the canvas snap to, the layout does not snap
     pub grid: f64,
+    /// The size of a tile of the dense layout: a name, a status and a summary of its result
+    pub tile_width: f64,
+    pub tile_height: f64,
+    /// The least vertical space between the rows of tiles of the dense layout, wider where the edges need more rails
+    pub dense_layer_gap: f64,
+    /// The least horizontal space between the tiles of a row of the dense layout
+    pub dense_box_gap: f64,
+    /// The tiles without edges per row of the dense layout
+    pub dense_isolated_per_row: usize,
+    /// The ratio of width to height that ELK packs the connected parts of the dense layout to, a narrow canvas is
+    /// higher than wide
+    pub dense_aspect_ratio: f64,
 }
 
 impl Default for DataflowLayoutConfig {
@@ -78,6 +94,12 @@ impl Default for DataflowLayoutConfig {
             align_snap: 24.0,
             isolated_per_row: 4,
             grid: 8.0,
+            tile_width: 160.0,
+            tile_height: 56.0,
+            dense_layer_gap: 48.0,
+            dense_box_gap: 24.0,
+            dense_isolated_per_row: 2,
+            dense_aspect_ratio: 0.5,
         }
     }
 }
@@ -206,24 +228,24 @@ fn components(count: usize, edges: &[DataflowLayoutEdge]) -> Vec<Vec<usize>> {
     parts.into_iter().map(|(_, part)| part).collect()
 }
 
-/// Put boxes into rows of `isolated_per_row` from a top left corner, returns the bottom of the rows with a gap
+/// Put boxes into rows of `per_row` from a top left corner, `gap` apart, returns the bottom of the rows with a gap
 fn place_in_rows(
     boxes: &[usize],
     (left, mut top): (f64, f64),
-    config: &DataflowLayoutConfig,
+    (per_row, gap): (usize, f64),
     geometry: &mut [DataflowBoxGeometry],
 ) -> f64 {
-    for row in boxes.chunks(config.isolated_per_row.max(1)) {
+    for row in boxes.chunks(per_row.max(1)) {
         let mut x = left;
         let mut height: f64 = 0.0;
         for &i in row {
             let Some(g) = geometry.get_mut(i) else { continue };
             g.x = x;
             g.y = top;
-            x += g.width + config.box_gap;
+            x += g.width + gap;
             height = height.max(g.height);
         }
-        top += height + config.box_gap;
+        top += height + gap;
     }
     top
 }
@@ -259,6 +281,57 @@ pub fn compute_dataflow_layout_with_routes(
         arrange(boxes, &edges, config, &mut geometry)
     };
     (geometry, routes)
+}
+
+/// The geometry of a tile of the dense layout: every box is one size, its edges meet the middle of its top and
+/// bottom borders
+fn tile_geometry(b: &DataflowLayoutBox, config: &DataflowLayoutConfig) -> DataflowBoxGeometry {
+    DataflowBoxGeometry {
+        width: config.tile_width,
+        height: config.tile_height,
+        rows: vec![0.0; b.statements as usize],
+        ..Default::default()
+    }
+}
+
+/// Lay out the boxes as the tiles of a narrow canvas, from top to bottom, with the routes of the edges between them.
+/// The hints are ignored: the positions of the boxes belong to `compute_dataflow_layout_with_routes`, so a dense
+/// layout is the same wherever the boxes were. ELK arranges every connected part in layers from top to bottom and
+/// packs the parts higher than wide, the tiles without edges go into rows below them. A route runs from the middle of
+/// the bottom border of its source tile to the middle of the top border of its target tile, the edges of one pair
+/// of tiles share it.
+pub fn compute_dense_dataflow_layout_with_routes(
+    boxes: &[DataflowLayoutBox],
+    edges: &[DataflowLayoutEdge],
+    config: &DataflowLayoutConfig,
+) -> (Vec<DataflowBoxGeometry>, Vec<DataflowEdgeRoute>) {
+    let mut geometry: Vec<DataflowBoxGeometry> = boxes.iter().map(|b| tile_geometry(b, config)).collect();
+    let edges = box_edges(edges, boxes.len());
+    let count = geometry.len();
+    let linked: BTreeSet<usize> = edges.iter().flat_map(|e| [e.from_box as usize, e.to_box as usize]).collect();
+    let connected: Vec<usize> = (0..count).filter(|b| linked.contains(b)).collect();
+    let routes = if connected.is_empty() {
+        Vec::new()
+    } else {
+        elk(boxes, &edges, config, &mut geometry, &connected, &vec![None; count], Mode::Dense)
+    };
+    let left = geometry_of(&geometry, &connected).map(|g| g.x).fold(f64::INFINITY, f64::min);
+    let bottom = geometry_of(&geometry, &connected).map(|g| g.y + g.height).fold(f64::NEG_INFINITY, f64::max);
+    let corner = if left.is_finite() { (left, bottom + config.dense_layer_gap) } else { (0.0, 0.0) };
+    let isolated: Vec<usize> = (0..count).filter(|b| !linked.contains(b)).collect();
+    place_in_rows(&isolated, corner, (config.dense_isolated_per_row, config.dense_box_gap), &mut geometry);
+    (geometry, routes)
+}
+
+/// How ELK lays out a subset of the boxes
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Mode {
+    /// From scratch, from left to right in the order of the session
+    Arrange,
+    /// From the seeds of the boxes, from left to right
+    Interactive,
+    /// The tiles of the dense layout from scratch, from top to bottom
+    Dense,
 }
 
 /// How far apart the seeds of two columns are, more than the widest box
@@ -343,13 +416,13 @@ fn arrange(
         let routes = if connected.is_empty() {
             Vec::new()
         } else {
-            elk(boxes, edges, config, geometry, &connected, &vec![None; count], false)
+            elk(boxes, edges, config, geometry, &connected, &vec![None; count], Mode::Arrange)
         };
         let left = geometry_of(geometry, &connected).map(|g| g.x).fold(f64::INFINITY, f64::min);
         let bottom = geometry_of(geometry, &connected).map(|g| g.y + g.height).fold(f64::NEG_INFINITY, f64::max);
         let corner = if left.is_finite() { (left, bottom + config.box_gap * 2.0) } else { (0.0, 0.0) };
         let isolated: Vec<usize> = (0..count).filter(|b| !linked.contains(b)).collect();
-        place_in_rows(&isolated, corner, config, geometry);
+        place_in_rows(&isolated, corner, (config.isolated_per_row, config.box_gap), geometry);
         return routes;
     }
     // Interactive: every connected part on its own, so that moving a box in one part leaves the others alone
@@ -481,7 +554,7 @@ fn arrange(
                 }
             }
         }
-        routes.extend(elk(boxes, edges, config, geometry, &part, &seeds, true));
+        routes.extend(elk(boxes, edges, config, geometry, &part, &seeds, Mode::Interactive));
     }
     // Boxes without edges keep their hints, the others and the parts without any hint go below everything
     let mut placed: Vec<usize> =
@@ -502,7 +575,7 @@ fn arrange(
     let bottom = geometry_of(geometry, &placed).map(|g| g.y + g.height).fold(f64::NEG_INFINITY, f64::max);
     let mut top = if bottom.is_finite() { bottom + config.box_gap * 2.0 } else { 0.0 };
     for part in fresh {
-        let part_routes = elk(boxes, edges, config, geometry, &part, &vec![None; count], false);
+        let part_routes = elk(boxes, edges, config, geometry, &part, &vec![None; count], Mode::Arrange);
         let (x0, y0) =
             geometry_of(geometry, &part).fold((f64::INFINITY, f64::INFINITY), |(x, y), g| (x.min(g.x), y.min(g.y)));
         let (dx, dy) = (left - x0, top - y0);
@@ -517,7 +590,7 @@ fn arrange(
             part_routes.into_iter().map(|(k, points)| (k, points.into_iter().map(|(x, y)| (x + dx, y + dy)).collect())),
         );
     }
-    place_in_rows(&loose, (left, top), config, geometry);
+    place_in_rows(&loose, (left, top), (config.isolated_per_row, config.box_gap), geometry);
     routes
 }
 
@@ -530,8 +603,10 @@ fn elk(
     geometry: &mut [DataflowBoxGeometry],
     subset: &[usize],
     seeds: &[Option<(f64, f64)>],
-    interactive: bool,
+    mode: Mode,
 ) -> Vec<DataflowEdgeRoute> {
+    let interactive = mode == Mode::Interactive;
+    let dense = mode == Mode::Dense;
     use org_eclipse_elk_alg_layered::org::eclipse::elk::alg::layered::layered_layout_provider::LayeredLayoutProvider;
     use org_eclipse_elk_alg_layered::org::eclipse::elk::alg::layered::options::{
         CrossingMinimizationStrategy, CycleBreakingStrategy, LayeredOptions, LayeringStrategy, NodePlacementStrategy,
@@ -557,11 +632,14 @@ fn elk(
 
     initialize_plain_java_layout();
     let graph = ElkGraphUtil::create_graph();
-    set_node(&graph, CoreOptions::DIRECTION, Direction::Right);
+    // The dense layout flows from top to bottom, its layers are rows of tiles
+    let (box_gap, layer_gap) =
+        if dense { (config.dense_box_gap, config.dense_layer_gap) } else { (config.box_gap, config.layer_gap) };
+    set_node(&graph, CoreOptions::DIRECTION, if dense { Direction::Down } else { Direction::Right });
     set_node(&graph, CoreOptions::PADDING, ElkPadding::with_any(0.0));
-    set_node(&graph, LayeredOptions::SPACING_NODE_NODE, config.box_gap);
-    set_node(&graph, LayeredOptions::SPACING_NODE_NODE_BETWEEN_LAYERS, config.layer_gap);
-    set_node(&graph, LayeredOptions::SPACING_COMPONENT_COMPONENT, config.box_gap * 2.0);
+    set_node(&graph, LayeredOptions::SPACING_NODE_NODE, box_gap);
+    set_node(&graph, LayeredOptions::SPACING_NODE_NODE_BETWEEN_LAYERS, layer_gap);
+    set_node(&graph, LayeredOptions::SPACING_COMPONENT_COMPONENT, box_gap * 2.0);
     set_node(&graph, LayeredOptions::SPACING_EDGE_EDGE, config.edge_gap);
     set_node(&graph, LayeredOptions::SPACING_EDGE_EDGE_BETWEEN_LAYERS, config.edge_gap);
     set_node(&graph, LayeredOptions::SPACING_EDGE_NODE, config.edge_box_gap);
@@ -583,6 +661,9 @@ fn elk(
         set_node(&graph, LayeredOptions::NODE_PLACEMENT_STRATEGY, NodePlacementStrategy::NetworkSimplex);
         set_node(&graph, LayeredOptions::CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy::NodesAndEdges);
         set_node(&graph, LayeredOptions::SEPARATE_CONNECTED_COMPONENTS, true);
+        if dense {
+            set_node(&graph, LayeredOptions::ASPECT_RATIO, config.dense_aspect_ratio);
+        }
     }
 
     let hint = |b: usize| boxes.get(b).and_then(|x| x.hint);
@@ -615,6 +696,20 @@ fn elk(
         set_node(&node, CoreOptions::NODE_SIZE_CONSTRAINTS, SizeConstraint::fixed());
         set_node(&node, CoreOptions::PORT_CONSTRAINTS, PortConstraints::FixedPos);
         for (output, statements) in [(false, ins), (true, outs)] {
+            if dense {
+                // A tile has one input in the middle of its top border and one output in the middle of its bottom
+                if statements.is_empty() {
+                    continue;
+                }
+                let port = ElkGraphUtil::create_port(Some(node.clone()));
+                port.borrow_mut()
+                    .connectable()
+                    .shape()
+                    .set_location(g.width / 2.0, if output { g.height } else { 0.0 });
+                set_port(&port, CoreOptions::PORT_SIDE, if output { PortSide::South } else { PortSide::North });
+                ports.insert((b as u32, output, 0), port);
+                continue;
+            }
             for &statement in statements {
                 let port = ElkGraphUtil::create_port(Some(node.clone()));
                 port.borrow_mut()
@@ -629,7 +724,8 @@ fn elk(
     }
     let mut elk_edges = Vec::new();
     for (from, fs, to, ts) in unique {
-        let (Some(source), Some(target)) = (ports.get(&(from, true, fs)), ports.get(&(to, false, ts))) else {
+        let (sp, tp) = if dense { (0, 0) } else { (fs, ts) };
+        let (Some(source), Some(target)) = (ports.get(&(from, true, sp)), ports.get(&(to, false, tp))) else {
             continue;
         };
         let edge = ElkGraphUtil::create_simple_edge(
@@ -695,6 +791,18 @@ fn elk(
             (key, points)
         })
         .collect();
+    if dense {
+        // The rails of the dense layout are horizontal, between the rows: center them like the vertical ones
+        let flip = |(x, y): (f64, f64)| (y, x);
+        let mut transposed: Vec<DataflowEdgeRoute> =
+            routes.into_iter().map(|(k, points)| (k, points.into_iter().map(flip).collect())).collect();
+        let swapped: Vec<DataflowBoxGeometry> = geometry
+            .iter()
+            .map(|g| DataflowBoxGeometry { x: g.y, y: g.x, width: g.height, height: g.width, rows: Vec::new() })
+            .collect();
+        center_rails(&mut transposed, subset, &swapped);
+        return transposed.into_iter().map(|(k, points)| (k, points.into_iter().map(flip).collect())).collect();
+    }
     center_rails(&mut routes, subset, geometry);
     routes
 }
@@ -982,5 +1090,68 @@ mod tests {
         // A box without a hint goes below, at their left edge
         assert_eq!(g[1].x, 120.0);
         assert!(g[1].y > 40.0 + g[0].height);
+    }
+
+    #[test]
+    fn dense_tiles_flow_top_to_bottom() {
+        let config = DataflowLayoutConfig::default();
+        let boxes = [data(2), chart(), data(1)];
+        let edges = [edge(0, 1, 1, 0), edge(1, 0, 2, 0)];
+        let (g, routes) = compute_dense_dataflow_layout_with_routes(&boxes, &edges, &config);
+        // Every box is a tile of one size
+        assert!(g.iter().all(|g| g.width == config.tile_width && g.height == config.tile_height));
+        // A chain is one column from top to bottom
+        assert!(g[0].y + g[0].height + config.dense_layer_gap <= g[1].y);
+        assert!(g[1].y + g[1].height + config.dense_layer_gap <= g[2].y);
+        assert_eq!((g[0].x, g[1].x), (g[1].x, g[2].x));
+        // A route runs from the middle of the bottom of its source to the middle of the top of its target
+        assert_eq!(routes.len(), edges.len());
+        for ((from, _, to, _), points) in &routes {
+            let (f, t) = (&g[*from as usize], &g[*to as usize]);
+            assert_eq!(points.first(), Some(&(f.x + f.width / 2.0, f.y + f.height)));
+            assert_eq!(points.last(), Some(&(t.x + t.width / 2.0, t.y)));
+            assert!(points.windows(2).all(|w| w[0].0 == w[1].0 || w[0].1 == w[1].1));
+        }
+    }
+
+    #[test]
+    fn dense_ignores_the_hints() {
+        let config = DataflowLayoutConfig::default();
+        let (boxes, edges) = two_parts();
+        let fresh = compute_dense_dataflow_layout_with_routes(&boxes, &edges, &config);
+        let full = compute_dataflow_layout(&boxes, &edges, &config);
+        let mut hinted = hinted(&boxes, &full);
+        hinted[2].hint = Some((4000.0, -900.0));
+        hinted[2].dropped = true;
+        assert_eq!(compute_dense_dataflow_layout_with_routes(&hinted, &edges, &config), fresh);
+        assert_no_overlaps(&fresh.0);
+    }
+
+    #[test]
+    fn dense_edges_of_one_pair_of_tiles_share_a_route() {
+        let config = DataflowLayoutConfig::default();
+        let boxes = [data(2), data(2)];
+        let edges = [edge(0, 0, 1, 0), edge(0, 1, 1, 1)];
+        let (_, routes) = compute_dense_dataflow_layout_with_routes(&boxes, &edges, &config);
+        assert_eq!(routes.len(), 2);
+        assert_eq!(routes[0].1, routes[1].1);
+    }
+
+    #[test]
+    fn dense_fan_out_and_parts_stay_apart() {
+        let config = DataflowLayoutConfig::default();
+        let mut boxes = vec![data(1), chart(), chart(), chart(), chart(), chart()];
+        let mut edges: Vec<_> = (1..6).map(|i| edge(0, 0, i, 0)).collect();
+        // A second part and two tiles without edges
+        boxes.extend([data(1), data(1), data(1), data(1)]);
+        edges.push(edge(6, 0, 7, 0));
+        let (g, routes) = compute_dense_dataflow_layout_with_routes(&boxes, &edges, &config);
+        assert_no_overlaps(&g);
+        assert_eq!(routes.len(), edges.len());
+        // The consumers are below their producer
+        assert!(g[1..6].iter().all(|c| c.y > g[0].y + g[0].height));
+        // The tiles without edges are a row of two below everything else
+        let bottom = g[..8].iter().map(|g| g.y + g.height).fold(f64::NEG_INFINITY, f64::max);
+        assert!(g[8].y > bottom && g[8].y == g[9].y && g[8].x < g[9].x);
     }
 }

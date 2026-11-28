@@ -54,6 +54,10 @@ pub struct DataflowConfig {
     #[wasm_bindgen(js_name = edgeBoxGap)]
     pub edge_box_gap: f64,
     pub grid: f64,
+    #[wasm_bindgen(js_name = tileWidth)]
+    pub tile_width: f64,
+    #[wasm_bindgen(js_name = tileHeight)]
+    pub tile_height: f64,
 }
 
 /// The sizes of the dataflow canvas
@@ -77,6 +81,8 @@ pub fn dataflow_config() -> DataflowConfig {
         edge_gap: c.edge_gap,
         edge_box_gap: c.edge_box_gap,
         grid: c.grid,
+        tile_width: c.tile_width,
+        tile_height: c.tile_height,
     }
 }
 
@@ -101,11 +107,13 @@ pub fn route_dataflow_edges(boxes: &[f64], edges: &[f64]) -> Vec<f64> {
     out
 }
 
-/// The layout of the dataflow canvas (`layout::compute_dataflow_layout_with_routes`): boxes and edges in, the geometry
-/// of the boxes out
+/// The layout of the dataflow canvas (`layout::compute_dataflow_layout_with_routes`, or
+/// `layout::compute_dense_dataflow_layout_with_routes` of the tiles of a narrow canvas): boxes and edges in, the
+/// geometry of the boxes out
 #[wasm_bindgen]
 pub struct DataflowLayout {
     config: dashql_dataflow::layout::DataflowLayoutConfig,
+    dense: bool,
     boxes: Vec<dashql_dataflow::layout::DataflowLayoutBox>,
     edges: Vec<dashql_dataflow::layout::DataflowLayoutEdge>,
     geometry: Vec<dashql_dataflow::layout::DataflowBoxGeometry>,
@@ -118,6 +126,7 @@ impl DataflowLayout {
     pub fn new() -> DataflowLayout {
         DataflowLayout {
             config: Default::default(),
+            dense: false,
             boxes: Vec::new(),
             edges: Vec::new(),
             geometry: Vec::new(),
@@ -162,10 +171,20 @@ impl DataflowLayout {
         self.edges.push(dashql_dataflow::layout::DataflowLayoutEdge { from_box, from_statement, to_box, to_statement });
     }
 
+    /// Lay out the boxes as the tiles of a narrow canvas from top to bottom, the hints are ignored
+    #[wasm_bindgen(js_name = setDense)]
+    pub fn set_dense(&mut self, dense: bool) {
+        self.dense = dense;
+    }
+
     /// Lay out the boxes, returns x, y, width and height of every box
     pub fn compute(&mut self) -> Vec<f64> {
-        (self.geometry, self.routes) =
-            dashql_dataflow::layout::compute_dataflow_layout_with_routes(&self.boxes, &self.edges, &self.config);
+        let layout = if self.dense {
+            dashql_dataflow::layout::compute_dense_dataflow_layout_with_routes
+        } else {
+            dashql_dataflow::layout::compute_dataflow_layout_with_routes
+        };
+        (self.geometry, self.routes) = layout(&self.boxes, &self.edges, &self.config);
         self.geometry.iter().flat_map(|g| [g.x, g.y, g.width, g.height]).collect()
     }
 

@@ -45,6 +45,21 @@ describe('DashQL dataflow layout', () => {
         expect([boxes[1].x, boxes[1].y]).toEqual([100 + layout!.config.boxWidth + layout!.config.layerGap, 400]);
     });
 
+    it('lays out the tiles of a narrow canvas from top to bottom', () => {
+        const { boxes, routes } = layout!.computeDataflowLayoutWithRoutes(
+            [{ statements: 2, hint: { x: 900, y: 900 } }, { statements: 1, chartStatement: 0 }],
+            [{ fromBox: 0, fromStatement: 1, toBox: 1, toStatement: 0 }],
+            { dense: true },
+        );
+        const { tileWidth, tileHeight } = layout!.config;
+        // Every box is a tile, the hints are ignored
+        expect(boxes.map(b => [b.x, b.width, b.height])).toEqual([[0, tileWidth, tileHeight], [0, tileWidth, tileHeight]]);
+        expect(boxes[0].y).toBe(0);
+        expect(boxes[1].y).toBeGreaterThan(tileHeight);
+        // The edge runs from the middle of the bottom of the producer to the middle of the top of the consumer
+        expect(routes).toEqual([{ fromBox: 0, fromStatement: 1, toBox: 1, toStatement: 0, points: [[tileWidth / 2, tileHeight], [tileWidth / 2, boxes[1].y]] }]);
+    });
+
     it('routes edges around the boxes in the way', () => {
         const box = (x: number) => ({ x, y: 0, width: 100, height: 60 });
         const [route] = layout!.routeDataflowEdges([box(0), box(200), box(400)], [{ from: [100, 30], to: [400, 30] }]);

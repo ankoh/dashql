@@ -35,6 +35,16 @@ export interface DataflowLayoutConfig {
     edgeBoxGap: number;
     /// The grid that drags and resizes on the canvas snap to, the layout does not snap
     grid: number;
+    /// The size of a tile of the dense layout of a narrow canvas
+    tileWidth: number;
+    tileHeight: number;
+}
+
+/// The options of a layout
+export interface DataflowLayoutOptions {
+    /// Lay out every box as a tile of the size of the config, from top to bottom, for a narrow canvas. The hints are
+    /// ignored, the routes run from the bottom of a tile to the top of the next.
+    dense?: boolean;
 }
 
 /// A script box of the dataflow canvas
@@ -134,6 +144,8 @@ export class DashQLDataflow {
                 edgeGap: c.edgeGap,
                 edgeBoxGap: c.edgeBoxGap,
                 grid: c.grid,
+                tileWidth: c.tileWidth,
+                tileHeight: c.tileHeight,
             });
         } finally {
             c.free();
@@ -158,8 +170,8 @@ export class DashQLDataflow {
 
     /// Lay out the boxes of the dataflow canvas, see docs/design/dataflow.md: from scratch without hints, from where
     /// the boxes were with hints
-    public computeDataflowLayout(boxes: DataflowLayoutBox[], edges: DataflowLayoutEdge[]): DataflowBoxGeometry[] {
-        return this.computeDataflowLayoutWithRoutes(boxes, edges).boxes;
+    public computeDataflowLayout(boxes: DataflowLayoutBox[], edges: DataflowLayoutEdge[], options?: DataflowLayoutOptions): DataflowBoxGeometry[] {
+        return this.computeDataflowLayoutWithRoutes(boxes, edges, options).boxes;
     }
 
     /// Lay out the boxes of the dataflow canvas like `computeDataflowLayout`, with the routes of the edges between
@@ -167,14 +179,16 @@ export class DashQLDataflow {
     public computeDataflowLayoutWithRoutes(
         boxes: DataflowLayoutBox[],
         edges: DataflowLayoutEdge[],
+        options?: DataflowLayoutOptions,
     ): { boxes: DataflowBoxGeometry[]; routes: DataflowLayoutRoute[] } {
-        return perfMarks.measure('dataflow:layout', () => this.layOut(boxes, edges), () => `${boxes.length} boxes, ${edges.length} edges`);
+        return perfMarks.measure('dataflow:layout', () => this.layOut(boxes, edges, options?.dense ?? false), () => `${boxes.length} boxes, ${edges.length} edges`);
     }
 
     /// See `computeDataflowLayoutWithRoutes`
-    private layOut(boxes: DataflowLayoutBox[], edges: DataflowLayoutEdge[]): { boxes: DataflowBoxGeometry[]; routes: DataflowLayoutRoute[] } {
+    private layOut(boxes: DataflowLayoutBox[], edges: DataflowLayoutEdge[], dense: boolean): { boxes: DataflowBoxGeometry[]; routes: DataflowLayoutRoute[] } {
         const layout = new this.bindings.DataflowLayout();
         try {
+            layout.setDense(dense);
             for (const box of boxes) {
                 layout.addBox(
                     box.statements,
