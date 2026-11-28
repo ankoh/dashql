@@ -20,7 +20,8 @@ const USAGE: &str = "Usage:
       --dialect <name>         The dialect of the scripts: hyper (default) or trino
 
 Directories are searched recursively for *.sql files, - reads a script from stdin.
-A script with errors, or with a statement the formatter doesn't know, is reported and stays as it is.
+A script that isn't UTF-8, with errors, or with a statement the formatter doesn't know, is reported and stays as it
+is.
 Exits with 0 if all scripts could be formatted (with --check: are formatted), 1 otherwise and 2 on usage or I/O errors.";
 
 /// The path that reads a script from stdin
@@ -116,13 +117,13 @@ fn sql_files(dir: &Path, out: &mut Vec<PathBuf>) -> std::io::Result<()> {
 }
 
 /// The scripts of the paths, each with its path: files, the *.sql files of directories, and stdin for `-`
-fn read_inputs(paths: &[String], stdin: &mut dyn Read) -> Result<Vec<(PathBuf, String)>, String> {
+fn read_inputs(paths: &[String], stdin: &mut dyn Read) -> Result<Vec<(PathBuf, Vec<u8>)>, String> {
     let mut inputs = Vec::new();
     for path in paths {
         if path == STDIN {
             let mut bytes = Vec::new();
             stdin.read_to_end(&mut bytes).map_err(|e| format!("stdin: {e}"))?;
-            inputs.push((PathBuf::from(STDIN), String::from_utf8_lossy(&bytes).into_owned()));
+            inputs.push((PathBuf::from(STDIN), bytes));
             continue;
         }
         let path = Path::new(path);
@@ -134,15 +135,17 @@ fn read_inputs(paths: &[String], stdin: &mut dyn Read) -> Result<Vec<(PathBuf, S
         }
         for file in files {
             let bytes = std::fs::read(&file).map_err(|e| format!("{}: {e}", file.display()))?;
-            inputs.push((file, String::from_utf8_lossy(&bytes).into_owned()));
+            inputs.push((file, bytes));
         }
     }
     Ok(inputs)
 }
 
-/// Format a script, with a line break at its end. A script with errors isn't formatted, and neither is one that the
-/// formatter can't print completely or that doesn't parse afterwards: the output would replace the script.
-fn format_script(text: &str, dialect: FormattingDialect) -> Result<String, String> {
+/// Format a script, with a line break at its end. A script that isn't UTF-8 or has errors isn't formatted, and neither
+/// is one that the formatter can't print completely or that doesn't parse afterwards: the output would replace the
+/// script.
+fn format_script(bytes: &[u8], dialect: FormattingDialect) -> Result<String, String> {
+    let text = std::str::from_utf8(bytes).map_err(|e| format!("the script is not UTF-8: {e}"))?;
     let parsed = parse(Arc::new(scan(text, 0, 0)));
     let error = parsed.scanned.errors.first().map(|e| &e.message).or(parsed.errors.first().map(|e| &e.message));
     if let Some(message) = error {
@@ -176,8 +179,8 @@ fn format_files(
 ) -> Result<u8, String> {
     let inputs = read_inputs(&args.paths, stdin)?;
     let (mut failed, mut changed) = (0, 0);
-    for (path, text) in &inputs {
-        match format_script(text, args.dialect) {
+    for (path, bytes) in &inputs {
+        match format_script(bytes, args.dialect) {
             Err(e) => {
                 failed += 1;
                 writeln!(stderr, "{}: {e}", path.display()).map_err(|e| format!("stderr: {e}"))?;
@@ -185,7 +188,7 @@ fn format_files(
             Ok(formatted) if args.output == Output::Print => {
                 write!(stdout, "{formatted}").map_err(|e| format!("stdout: {e}"))?
             }
-            Ok(formatted) if formatted != *text => {
+            Ok(formatted) if formatted.as_bytes() != bytes.as_slice() => {
                 // --write takes no stdin
                 if args.output == Output::Write {
                     std::fs::write(path, &formatted).map_err(|e| format!("{}: {e}", path.display()))?;
@@ -319,6 +322,19 @@ mod tests {
         assert!(output.stderr.starts_with(&format!("{a}: syntax error")), "{}", output.stderr);
         assert_eq!(std::fs::read_to_string(&a).unwrap(), "select 1 +;\n");
         // The other scripts are still formatted
+        assert_eq!(std::fs::read_to_string(root.join("b.sql")).unwrap(), "select 1;\n");
+    }
+
+    #[test]
+    fn keeps_a_script_that_is_not_utf8() {
+        let root = files(&[("b.sql", "SELECT  1")]);
+        let a = root.join("a.sql");
+        // `-- café` in Latin-1
+        std::fs::write(&a, b"-- caf\xe9\nSELECT  1").unwrap();
+        let output = run_with(&["--write", &root.display().to_string()], "");
+        assert_eq!(output.code, 1);
+        assert!(output.stderr.starts_with(&format!("{}: the script is not UTF-8", a.display())), "{}", output.stderr);
+        assert_eq!(std::fs::read(&a).unwrap(), b"-- caf\xe9\nSELECT  1");
         assert_eq!(std::fs::read_to_string(root.join("b.sql")).unwrap(), "select 1;\n");
     }
 

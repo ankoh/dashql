@@ -606,7 +606,7 @@ git diff tests/snapshots/parser/
 
 `sql_format` (`//tools/sql_format`) pretty prints SQL scripts with dashql-core as the editor of DashQL formats them, to
 stdout or with `--write` in place. `--check` only names the files that aren't formatted, and `--dialect trino` formats
-Trino scripts. A script with syntax errors is reported and stays as it is.
+Trino scripts. A script with syntax errors or that is not UTF-8 is reported and stays as it is.
 
 ```bash
 bazel run //tools/sql_format -- --write extensions/d360-api/snippets
