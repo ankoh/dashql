@@ -18,7 +18,7 @@ use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
-use crate::views::{app_enum, FlatBufferBytes, JsonValue};
+use crate::views::{app_enum, FlatBufferBytes};
 
 app_enum! {
     "The status of the execution of a query"
@@ -248,7 +248,7 @@ impl QueryLatestProgressView {
     }
 }
 
-/// What a query is and who issued it. A planned statement of a run of a workbook is opaque JSON.
+/// What a query is and who issued it
 #[derive(Clone, Debug, Serialize, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
@@ -265,9 +265,6 @@ pub struct QueryMetadataView {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[tsify(optional)]
     pub result_owner: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[tsify(optional, type = "unknown")]
-    pub planned: Option<JsonValue>,
 }
 
 impl From<QueryMetadataView> for QueryMetadata {
@@ -279,7 +276,6 @@ impl From<QueryMetadataView> for QueryMetadata {
         metadata.user_provided = m.user_provided;
         metadata.workbook_id = m.workbook_id;
         metadata.result_owner = m.result_owner;
-        metadata.planned = m.planned.map(|planned| planned.0).filter(|planned| !planned.is_null());
         metadata
     }
 }
@@ -294,7 +290,6 @@ impl From<&QueryMetadata> for QueryMetadataView {
             user_provided: m.user_provided,
             workbook_id: m.workbook_id.clone(),
             result_owner: m.result_owner.clone(),
-            planned: m.planned.clone().map(JsonValue),
         }
     }
 }

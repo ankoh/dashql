@@ -5,7 +5,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use dashql_buffers::execution::{CompiledVisualizationT, ExecutionGraphEdgeT, ExecutionGraphNodeT, ExecutionGraphT};
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use crate::planner::dataflow::{Dataflow, DataflowEdgeKind};
 
@@ -180,29 +180,6 @@ impl PlannedStatement {
             ("materializes".to_string(), self.materializes.clone().unwrap_or_default()),
             ("after".to_string(), after.join(", ")),
         ]
-    }
-
-    /// The statement as the query metadata of the host holds it (`PlannedStatement` of `@akohn/dashql`)
-    pub fn to_json(&self) -> Value {
-        let (run, target) = match &self.run {
-            PlanRun::Workbook => ("workbook", Value::Null),
-            PlanRun::Script(target) => ("script", Value::String(target.clone())),
-        };
-        json!({
-            "run": run,
-            "target": target,
-            "node": self.node,
-            "script": self.script,
-            "statement": self.statement,
-            "statements": self.statements,
-            "statementType": self.statement_type,
-            "result": self.result,
-            "cached": self.cached,
-            "inlined": self.inlined,
-            "scans": self.scans.iter().map(|scan| json!({ "script": scan.script, "path": scan.path, "cached": scan.cached })).collect::<Vec<_>>(),
-            "materializes": self.materializes,
-            "after": self.after.iter().map(|(node, reason)| json!({ "node": node, "reason": reason })).collect::<Vec<_>>(),
-        })
     }
 }
 

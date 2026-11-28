@@ -1033,11 +1033,9 @@ impl Connections {
         };
         // Where a statement of a plan of workbook scripts comes from, e.g. `bar.sql 2/3 · inlines foo.sql`
         let mut log_details = Vec::new();
-        if let Some(planned) = &description.metadata.planned {
+        if let Some(node) = description.metadata.plan_node {
             log_details.push(("planned".to_string(), description.metadata.title.clone().unwrap_or_default()));
-            let node =
-                planned.get("node").map(|node| node.as_str().map(str::to_string).unwrap_or_else(|| node.to_string()));
-            log_details.push(("node".to_string(), node.unwrap_or_default()));
+            log_details.push(("node".to_string(), node.to_string()));
         }
         Ok(QueryRequest {
             connection_id: connection_id.to_string(),

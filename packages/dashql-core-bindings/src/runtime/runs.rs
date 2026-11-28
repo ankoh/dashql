@@ -1088,7 +1088,7 @@ impl RunHost for RuntimeRunHost {
         metadata.issuer = Some(planned.issuer());
         metadata.workbook_id = Some(self.workbook_id.clone());
         metadata.result_owner = Some(result_owner(&self.workbook_id, request.script_key));
-        metadata.planned = Some(planned.to_json());
+        metadata.plan_node = Some(planned.node);
         let workbook_id = self.workbook_id.clone();
         let result = match request.result {
             StatementResult::None => None,

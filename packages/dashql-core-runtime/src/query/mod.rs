@@ -176,9 +176,8 @@ pub struct QueryMetadata {
     /// The owner of the result, e.g. a script of a workbook. A succeeded query releases the result tables of the
     /// earlier queries of its owner, the owner shows only its latest result.
     pub result_owner: Option<String>,
-    /// Where a statement of a plan of workbook scripts comes from, as the host holds it (`PlannedStatement` of
-    /// `@akohn/dashql`)
-    pub planned: Option<serde_json::Value>,
+    /// The node of a statement of a plan of workbook scripts, its title says where it comes from
+    pub plan_node: Option<u32>,
 }
 
 impl QueryMetadata {
@@ -192,7 +191,7 @@ impl QueryMetadata {
             user_provided: query_type == QueryType::UserProvided,
             workbook_id: None,
             result_owner: None,
-            planned: None,
+            plan_node: None,
         }
     }
 }
