@@ -668,8 +668,10 @@ fn elk(
         set_node(&graph, LayeredOptions::CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy::None);
         set_node(&graph, LayeredOptions::SEPARATE_CONNECTED_COMPONENTS, false);
     } else {
-        // The order of the session, ELK packs the parts
-        set_node(&graph, LayeredOptions::NODE_PLACEMENT_STRATEGY, NodePlacementStrategy::NetworkSimplex);
+        // The order of the session, ELK packs the parts. The rows of the dense layout are centered, the narrowest
+        // placement: network simplex lines up the edges that pass a row and spreads the tiles wider than a phone.
+        let placement = if dense { NodePlacementStrategy::Simple } else { NodePlacementStrategy::NetworkSimplex };
+        set_node(&graph, LayeredOptions::NODE_PLACEMENT_STRATEGY, placement);
         set_node(&graph, LayeredOptions::CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy::NodesAndEdges);
         set_node(&graph, LayeredOptions::SEPARATE_CONNECTED_COMPONENTS, true);
         if dense {
@@ -1182,6 +1184,13 @@ mod tests {
         // The tiles without edges are a row of two below everything else
         let bottom = g[..8].iter().map(|g| g.y + g.height).fold(f64::NEG_INFINITY, f64::max);
         assert!(g[8].y > bottom && g[8].y == g[9].y && g[8].x < g[9].x);
+        // Two tiles and the edges that pass them fit the width of two tiles and the gaps of the edges
+        let left = g[..6].iter().map(|b| b.x).fold(f64::INFINITY, f64::min);
+        let right = g[..6].iter().map(|b| b.x + b.width).fold(f64::NEG_INFINITY, f64::max);
+        assert!(
+            right - left <= 2.0 * config.tile_width + config.dense_box_gap + 2.0 * config.edge_box_gap,
+            "{left} {right}"
+        );
         // A wider canvas takes more tiles per row
         let wide = DataflowLayoutConfig { dense_columns: 3, ..config };
         let (g, _) = compute_dense_dataflow_layout_with_routes(&boxes, &edges, &wide);
