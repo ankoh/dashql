@@ -6,6 +6,7 @@
 use serde_json::Value;
 
 use crate::connections::{ConnectionParams, ConnectorType};
+use crate::names::{find_script_file, script_name_of};
 
 /// The scripts that a run reports
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -14,28 +15,29 @@ pub struct RunScriptSelection {
     pub selected: Vec<String>,
     /// Did the run name scripts? A run without names runs and reports every script.
     pub requested: bool,
-    /// The names that no script of the workbook has
+    /// The names that no script of the workbook has, without path and `.sql`
     pub unknown: Vec<String>,
 }
 
-/// The base name of a path, `scripts/a.sql` names `a.sql`
-fn base_name(name: &str) -> &str {
-    name.rsplit(['/', '\\']).next().unwrap_or(name)
-}
-
-/// The scripts of a run by their file names: a path names the script of its base name, every script without names
+/// The scripts of a run by their names, every script without names. A name names a script as `find_script_file` has
+/// it: `scripts/Orders.sql` names `orders.sql`.
 pub fn select_run_scripts(files: &[String], names: &[String]) -> RunScriptSelection {
-    let mut requested: Vec<&str> = Vec::new();
-    for name in names.iter().map(|name| base_name(name)) {
-        if !requested.contains(&name) {
-            requested.push(name);
+    let mut requested: Vec<&String> = Vec::new();
+    let mut unknown: Vec<String> = Vec::new();
+    for name in names {
+        match find_script_file(files, name) {
+            Some(file) if !requested.contains(&file) => requested.push(file),
+            Some(_) => {}
+            None => {
+                let name = script_name_of(name).to_string();
+                if !unknown.contains(&name) {
+                    unknown.push(name);
+                }
+            }
         }
     }
-    let unknown =
-        requested.iter().filter(|name| !files.iter().any(|file| file == *name)).map(|name| name.to_string()).collect();
-    let selected =
-        files.iter().filter(|file| requested.is_empty() || requested.contains(&file.as_str())).cloned().collect();
-    RunScriptSelection { selected, requested: !requested.is_empty(), unknown }
+    let selected = files.iter().filter(|file| names.is_empty() || requested.contains(file)).cloned().collect();
+    RunScriptSelection { selected, requested: !names.is_empty(), unknown }
 }
 
 /// What a connection is in the events of a run, e.g. `trino http://localhost:8080` or `the embedded hyper`
@@ -180,10 +182,12 @@ mod tests {
         let files = names(&["a.sql", "b.sql", "c.sql"]);
         let all = select_run_scripts(&files, &[]);
         assert_eq!((all.selected, all.requested, all.unknown.len()), (files.clone(), false, 0));
-        let some = select_run_scripts(&files, &names(&["scripts/c.sql", "dir\\a.sql", "x.sql", "c.sql"]));
+        let some = select_run_scripts(&files, &names(&["scripts/c.sql", "dir\\a.sql", "x.sql", "C", "x"]));
         assert_eq!(some.selected, names(&["a.sql", "c.sql"]));
         assert!(some.requested);
-        assert_eq!(some.unknown, names(&["x.sql"]));
+        assert_eq!(some.unknown, names(&["x"]));
+        let none = select_run_scripts(&files, &names(&["x"]));
+        assert_eq!((none.selected.len(), none.requested), (0, true));
     }
 
     #[test]

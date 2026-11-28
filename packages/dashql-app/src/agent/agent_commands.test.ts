@@ -6,7 +6,7 @@ import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { testRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
 
-import { describeAgentCall, EXIT_FAILED, EXIT_OK, EXIT_USAGE, runAgentCommand, scriptFileName, type AgentCall, type AgentCommandHost } from './agent_commands.js';
+import { describeAgentCall, EXIT_FAILED, EXIT_OK, EXIT_USAGE, runAgentCommand, type AgentCall, type AgentCommandHost } from './agent_commands.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: dashql.DashQL;
@@ -58,10 +58,15 @@ describe('the dashql commands of the agent', () => {
         expect(describeAgentCall({ command: 'teleport', args: {} })).toBe('dashql teleport');
     });
 
-    it('names a script by its display name or its file', () => {
-        expect(scriptFileName('orders')).toBe('orders.sql');
-        expect(scriptFileName('orders.sql')).toBe('orders.sql');
-        expect(scriptFileName('scripts/orders.sql')).toBe('orders.sql');
+    it('names a script by its name or its file in any case', async () => {
+        await call('edit', { script: 'orders' }, 'select 1');
+        const changed = await call('edit', { script: 'scripts/Orders.SQL' }, 'select 2');
+        expect([changed.exit, changed.out.split('\n')[0]]).toEqual([EXIT_OK, 'Changed orders on embedded']);
+        expect((await call('read', { script: 'ORDERS' })).out).toBe('select 2\n');
+        const spaced = await call('edit', { script: 'my report' }, 'select 3');
+        expect(spaced.out).toContain('Created my report on embedded');
+        expect((await call('read', { script: 'My Report.sql' })).out).toBe('select 3\n');
+        expect((await call('scripts')).out).not.toContain('orders-2');
     });
 
     it('creates a script, reads it, changes it and lists it', async () => {

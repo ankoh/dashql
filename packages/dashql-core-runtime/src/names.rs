@@ -18,6 +18,23 @@ pub fn script_display_name(file_name: &str) -> &str {
     file_name
 }
 
+/// The name of a script that a name given by a user or an agent names: a path names its base name, the `.sql` is
+/// optional in any case, e.g. `scripts/Orders.SQL` names `Orders`
+pub fn script_name_of(name: &str) -> &str {
+    script_display_name(name.rsplit(['/', '\\']).next().unwrap_or(name).trim())
+}
+
+/// The file of the script that a name names (`script_name_of`), compared case-insensitively. A file in the same case
+/// comes first.
+pub fn find_script_file<'a>(files: &'a [String], name: &str) -> Option<&'a String> {
+    let name = script_name_of(name);
+    let lower = name.to_lowercase();
+    files
+        .iter()
+        .find(|file| script_display_name(file) == name)
+        .or_else(|| files.iter().find(|file| script_display_name(file).to_lowercase() == lower))
+}
+
 /// The first of `base`, `base-2`, `base-3`, ... that no script and no other taken name has, compared
 /// case-insensitively. The script `exclude` doesn't count, e.g. the script that is renamed.
 pub fn unique_script_base<'a>(
@@ -80,6 +97,24 @@ mod tests {
         assert_eq!(script_display_name("orders"), "orders");
         assert_eq!(script_display_name(".sql"), "");
         assert_eq!(script_display_name("€.sql"), "€");
+    }
+
+    #[test]
+    fn finds_the_script_of_a_name() {
+        let files: Vec<String> = ["orders.sql", "my report.SQL", "a.sql", "A.sql"].map(String::from).into();
+        let find = |name: &str| find_script_file(&files, name).map(String::as_str);
+        assert_eq!(find("orders"), Some("orders.sql"));
+        assert_eq!(find("Orders"), Some("orders.sql"));
+        assert_eq!(find(" scripts/ORDERS.sql "), Some("orders.sql"));
+        assert_eq!(find("dir\\orders.Sql"), Some("orders.sql"));
+        assert_eq!(find("my report"), Some("my report.SQL"));
+        // A file in the same case comes first
+        assert_eq!(find("A"), Some("A.sql"));
+        assert_eq!(find("a.SQL"), Some("a.sql"));
+        assert_eq!(find("order"), None);
+        assert_eq!(find(""), None);
+        assert_eq!(script_name_of("scripts/Orders.SQL"), "Orders");
+        assert_eq!(script_name_of("orders.SQL.sql"), "orders.SQL");
     }
 
     #[test]

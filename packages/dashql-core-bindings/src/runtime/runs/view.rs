@@ -349,7 +349,7 @@ pub struct RunScriptSelection {
     pub selected: Vec<String>,
     /// Did the run name scripts? A run without names reports every script.
     pub requested: bool,
-    /// The names that no script of the workbook has
+    /// The names that no script of the workbook has, without path and `.sql`
     pub unknown: Vec<String>,
 }
 

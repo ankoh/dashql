@@ -1783,8 +1783,8 @@ impl Runtime {
         dashql_core_runtime::connections::SALESFORCE_CATALOG_DATABASE.to_string()
     }
 
-    /// The scripts that a reported run reports, by their file names in the order of the workbook: a name names the
-    /// script of its base name, every script without names
+    /// The scripts that a reported run reports, by their file names in the order of the workbook, every script without
+    /// names. A name is a path or a name with or without `.sql`, compared case-insensitively.
     #[wasm_bindgen(js_name = runScripts, unchecked_return_type = "RunScriptSelection")]
     pub fn run_scripts(files: Vec<String>, names: Vec<String>) -> Result<JsValue, JsError> {
         let selection: runs::view::RunScriptSelection =

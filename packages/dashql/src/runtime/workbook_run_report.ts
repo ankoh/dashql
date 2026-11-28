@@ -24,8 +24,9 @@ export function describeRunError(error: unknown): string {
     return error.cause instanceof Error ? `${error.message}: ${error.cause.message}` : error.message;
 }
 
-/// The scripts of a run by their file names, `scripts/a.sql` names `a.sql`: every script without names. The names
-/// that the workbook doesn't have in `unknown`. The core decides (`workbook_run/report.rs`).
+/// The scripts of a run by their names, every script without names: `scripts/A.sql`, `a.sql` and `A` name `a.sql`.
+/// The names that the workbook doesn't have in `unknown`, without path and `.sql`. The core decides (`names.rs`,
+/// `workbook_run/report.rs`).
 export function runScriptsOf(instance: core.DashQL, workbook: WorkbookScripts, names: readonly string[]): core.RunScriptSelection {
     return instance.runScripts([...workbook.scriptOrder], [...names]);
 }

@@ -103,12 +103,6 @@ function integerArg(args: Record<string, unknown>, name: string, fallback: numbe
     return value;
 }
 
-/// The file name of a script that the agent named: `orders`, `orders.sql` or `scripts/orders.sql`
-export function scriptFileName(name: string): string {
-    const base = name.trim().split(/[\\/]/).pop() ?? name;
-    return base.endsWith('.sql') ? base : `${base}.sql`;
-}
-
 /// The workbook of a call
 function workbookOf(runtime: Runtime, workbookId: string): WorkbookScripts {
     const workbook = runtime.store.get('workbook', workbookId);
@@ -121,12 +115,13 @@ function scriptNames(workbook: WorkbookScripts): string {
     return workbook.scriptOrder.map(scriptDisplayName).join(', ') || 'none';
 }
 
-/// A script of a workbook by the name that the agent gave it
+/// A script of a workbook by the name that the agent gave it, `orders`, `Orders.sql` or `scripts/orders.sql`: the core
+/// resolves the name as it does for `run`
 function scriptOf(runtime: Runtime, workbook: WorkbookScripts, name: string): ScriptData {
-    const fileName = scriptFileName(name);
-    const ref = workbook.scriptRefs[fileName];
+    const { selected, unknown } = runScriptsOf(runtime.core, workbook, [name]);
+    const ref = selected.length === 0 ? null : workbook.scriptRefs[selected[0]];
     const script = ref == null ? null : runtime.store.get('script', ref.scriptId);
-    if (script == null) fail(`the workbook has no script ${scriptDisplayName(fileName)}, its scripts are ${scriptNames(workbook)}`);
+    if (script == null) fail(`the workbook has no script ${unknown[0] ?? name}, its scripts are ${scriptNames(workbook)}`);
     return script;
 }
 
@@ -205,8 +200,11 @@ async function scriptDiagnostics(runtime: Runtime, workbookId: string, scriptKey
 async function editScript(host: AgentCommandHost, call: AgentCall, reply: AgentReplyStream): Promise<number> {
     const { runtime } = host;
     const workbook = workbookOf(runtime, call.workbookId);
-    const fileName = scriptFileName(stringArg(call.args, 'script'));
-    if (!/^[\w.-]+\.sql$/.test(fileName)) usage(`${fileName} is no script name: use letters, digits, - and _`);
+    // The script of the name as `scriptOf` finds it, or the name of a new script
+    const { selected, unknown } = runScriptsOf(runtime.core, workbook, [stringArg(call.args, 'script')]);
+    const ref = selected.length === 0 ? null : workbook.scriptRefs[selected[0]];
+    const base = unknown[0] ?? '';
+    if (ref == null && base.length === 0) usage('missing script');
     const connectionId = optionalString(call.args, 'connection');
     const text = call.input;
     if (text == null) usage('no text: pass the file of the text with --file or pipe it to stdin');
@@ -216,13 +214,12 @@ async function editScript(host: AgentCommandHost, call: AgentCall, reply: AgentR
             fail(`you may not use the connection ${connectionId}, the connections that you may use are ${allowed.map(connection => connection.connectionId).join(', ') || 'none'}`);
         }
     }
-    const ref = workbook.scriptRefs[fileName];
     let scriptKey: number;
     let created = false;
     if (ref == null) {
         const outcome = runtime.dispatch({ workbook: call.workbookId }, {
             kind: 'createScript',
-            value: { base: fileName.slice(0, -'.sql'.length), text, ...(connectionId != null ? { connectionId } : {}) },
+            value: { base, text, ...(connectionId != null ? { connectionId } : {}) },
         });
         if (!outcome.ok || typeof outcome.id !== 'number') fail(outcome.error ?? 'DashQL could not create the script');
         runtime.flush();
@@ -233,19 +230,19 @@ async function editScript(host: AgentCommandHost, call: AgentCall, reply: AgentR
         const outcome = runtime.dispatch({ workbook: call.workbookId }, { kind: 'setScriptText', value: { scriptKey, text } });
         if (!outcome.ok) fail(outcome.error ?? 'DashQL could not change the script');
         if (connectionId != null && runtime.store.get('script', scriptKey)?.connectionId !== connectionId) {
-            const moved = runtime.dispatch({ workbook: call.workbookId }, { kind: 'setScriptConnection', value: { fileName, connectionId } });
+            const moved = runtime.dispatch({ workbook: call.workbookId }, { kind: 'setScriptConnection', value: { fileName: ref.fileName, connectionId } });
             if (!moved.ok) fail(moved.error ?? `DashQL could not move the script to ${connectionId}`);
         }
         runtime.flush();
     }
-    // The workbook names a new script uniquely, its file name may differ from the one of the agent
-    const name = Object.entries(runtime.store.get('workbook', call.workbookId)?.scriptRefs ?? {}).find(([, r]) => r.scriptId === scriptKey)?.[0] ?? fileName;
+    // The workbook names a new script uniquely, its name may differ from the one of the agent
+    const name = Object.entries(runtime.store.get('workbook', call.workbookId)?.scriptRefs ?? {}).find(([, r]) => r.scriptId === scriptKey)?.[0] ?? ref?.fileName ?? base;
     host.onEdited(call.workbookId, name);
     host.onFollow(call.workbookId, scriptKey, 'script');
     const analyzed = await scriptDiagnostics(runtime, call.workbookId, scriptKey);
     const connection = runtime.store.get('script', scriptKey)?.connectionId ?? '?';
     let out = `${created ? 'Created' : 'Changed'} ${scriptDisplayName(name)} on ${connection}`;
-    if (name !== fileName) out += `, DashQL named it ${scriptDisplayName(name)} because ${scriptDisplayName(fileName)} is taken: go on with that name`;
+    if (created && scriptDisplayName(name) !== base) out += `, DashQL named it ${scriptDisplayName(name)} because ${base} is taken: go on with that name`;
     reply.out(`${out}\n${diagnosticsText(scriptDisplayName(name), analyzed.text, analyzed.diagnostics)}`);
     return EXIT_OK;
 }
@@ -381,10 +378,9 @@ async function runForAgent(host: AgentCommandHost, workbook: WorkbookScripts, sc
 
 /// The scripts that a call names, every script without names; fails on names that the workbook doesn't have
 function runScripts(runtime: Runtime, workbook: WorkbookScripts, names: readonly string[]): string[] {
-    const files = names.map(scriptFileName);
-    const { unknown } = runScriptsOf(runtime.core, workbook, files);
-    if (unknown.length > 0) fail(`the workbook has no script ${unknown.map(scriptDisplayName).join(', ')}, its scripts are ${scriptNames(workbook)}`);
-    return files;
+    const { selected, unknown } = runScriptsOf(runtime.core, workbook, names);
+    if (unknown.length > 0) fail(`the workbook has no script ${unknown.join(', ')}, its scripts are ${scriptNames(workbook)}`);
+    return names.length === 0 ? [] : selected;
 }
 
 /// Follow the agent to the scripts of a run while it runs
@@ -532,10 +528,15 @@ async function visCommand(host: AgentCommandHost, call: AgentCall, reply: AgentR
     return problems.length > 0 ? EXIT_FAILED : EXIT_OK;
 }
 
+/// A name of a script in the line of a call, `scripts/orders.sql` is `orders`
+function scriptLabel(name: string): string {
+    return scriptDisplayName(name.trim().split(/[\\/]/).pop() ?? name);
+}
+
 /// The name of a script that a call names, as the feed shows it, null without one
 function namedScript(args: Record<string, unknown>, name: string): string | null {
     const value = args[name];
-    return typeof value === 'string' && value.length > 0 ? scriptDisplayName(scriptFileName(value)) : null;
+    return typeof value === 'string' && value.length > 0 ? scriptLabel(value) : null;
 }
 
 /// What a call does, in one line for the steps of the turn: the page tells the `dashql` commands of the agent better
@@ -561,7 +562,7 @@ export function describeAgentCall(call: Pick<AgentCall, 'command' | 'args'>): st
             return `Format ${script}`;
         case 'run': {
             const names = Array.isArray(call.args.scripts) ? call.args.scripts.filter((name): name is string => typeof name === 'string' && name.length > 0) : [];
-            return names.length === 0 ? 'Run all scripts' : `Run ${names.map(name => scriptDisplayName(scriptFileName(name))).join(', ')}`;
+            return names.length === 0 ? 'Run all scripts' : `Run ${names.map(scriptLabel).join(', ')}`;
         }
         case 'vis':
             return `Check the chart of ${script}`;

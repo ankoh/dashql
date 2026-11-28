@@ -80,7 +80,9 @@ question.
 `dashql <command>` sends `POST /v1/call` with the token of the folder: `{workbookId, command, args, input}`. The page
 answers with text, streamed as NDJSON lines `{"out"}`, `{"err"}` and a last `{"exit"}`; `dashql` prints it and exits
 with the code (0 ok, 1 failed, 2 usage or DashQL not reachable). The command line tool parses the arguments against
-one command table and knows nothing of the workbook, the page does everything else (`agent/agent_commands.ts`).
+one command table and knows nothing of the workbook, the page does everything else (`agent/agent_commands.ts`). A
+`<script>` is a name with or without `.sql` or a path, compared case-insensitively: the core resolves it
+(`find_script_file` in `names.rs`, through `runScripts` of the core module), so `edit Orders` changes `orders.sql`.
 
 | Command | The page |
 |---|---|
