@@ -56,7 +56,7 @@
 }
 
 /* From the bottom of a compact window, at most as high as most of the window, above the home indicator */
-@media only screen and (max-width: 599px) {
+@media only screen and (max-width: 839px) {
     .sheet {
         top: auto;
         right: 0;

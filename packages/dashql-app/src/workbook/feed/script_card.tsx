@@ -122,6 +122,9 @@ const RunIcon: Icon = SymbolIcon('paper_airplane_16');
 const CrossIcon: Icon = SymbolIcon('x_16');
 
 // Memoized, the row renders again with its script and the card with the parts of the script that it shows
+/// The lines of SQL that a folded script shows on a compact window
+const FOLDED_SQL_LINES = 4;
+
 export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCardProps) => {
     const { model, connection, position, display, result, feed } = props;
     const dependencies = props.dependencies ?? DEFAULT_SCRIPT_CARD_DEPENDENCIES;
@@ -138,6 +141,11 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     const resultCard = deriveEntryStatus(query, query?.progress ?? null).kind !== EntryStatusKind.Idle;
 
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
+    // A compact window folds a script of more lines than FOLDED_SQL_LINES to its first lines, the result shows right
+    // below them; a focus in the editor or the button unfolds it (docs/design/narrow_layouts.md). Wider windows ignore
+    // the fold.
+    const [sqlUnfolded, setSqlUnfolded] = React.useState(false);
+    const sqlFoldable = (editorView?.state.doc.lines ?? 0) > FOLDED_SQL_LINES;
     const handleEditorView = React.useCallback((view: EditorView) => {
         setEditorView(view);
         feed.editorView(scriptKey, view);
@@ -178,12 +186,21 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                     dependencies={dependencies}
                 />
                 <div className={styles.feed_body}>
-                    <div className={styles.feed_editor_container}>
+                    <div className={styles.feed_editor_container} data-sql-fold={!sqlFoldable ? undefined : sqlUnfolded ? 'unfolded' : 'folded'}>
                         {display.active && props.editor({
                             className: styles.feed_script_editor,
-                            onFocus: () => feed.focus(fileName),
+                            onFocus: () => {
+                                setSqlUnfolded(true);
+                                feed.focus(fileName);
+                            },
                             setView: handleEditorView,
                         })}
+                        {sqlFoldable && (
+                            <button type="button" className={styles.feed_sql_fold} data-testid="script-sql-fold"
+                                aria-expanded={sqlUnfolded} onClick={() => setSqlUnfolded(unfolded => !unfolded)}>
+                                {sqlUnfolded ? 'Fold SQL' : `Show SQL, ${editorView?.state.doc.lines ?? 0} lines`}
+                            </button>
+                        )}
                         {hasPendingDiff && (
                             <div className={styles.feed_body_overlays}>
                                 <div data-diff-actions>

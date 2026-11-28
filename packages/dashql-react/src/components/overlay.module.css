@@ -119,7 +119,7 @@
 }
 
 /* A compact window has no room for the inset: an expanded overlay fills it below the top bar */
-@media only screen and (max-width: 599px) {
+@media only screen and (max-width: 839px) {
     .overlay.expanded {
         width: 100vw;
         height: calc(100dvh - var(--nav_bar_top_height, 0px));

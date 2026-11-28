@@ -514,6 +514,47 @@ button.feed_entry_mention {
     position: relative;
 }
 
+/* The fold of the SQL of a script, a compact window only */
+.feed_sql_fold {
+    display: none;
+}
+
+@media only screen and (max-width: 839px) {
+    /* The first lines of a folded script, faded towards the button that unfolds it */
+    .feed_editor_container[data-sql-fold='folded'] {
+        max-height: 96px;
+        overflow: hidden;
+    }
+    .feed_editor_container[data-sql-fold='folded']::after {
+        content: '';
+        position: absolute;
+        inset: auto 0 0 0;
+        height: 48px;
+        background: linear-gradient(to bottom, transparent, var(--color_bg_card) 80%);
+        pointer-events: none;
+    }
+    .feed_sql_fold {
+        position: absolute;
+        right: 8px;
+        bottom: 6px;
+        z-index: 1;
+        display: block;
+        height: 28px;
+        padding: 0 10px;
+        border: 1px solid var(--color_border);
+        border-radius: 14px;
+        background: var(--color_bg_card);
+        color: var(--color_fg_muted);
+        font: inherit;
+        font-size: var(--font_size_small);
+        cursor: pointer;
+    }
+    /* Unfolded the button sits below the last line, it covers no text */
+    .feed_editor_container[data-sql-fold='unfolded'] {
+        padding-bottom: 40px;
+    }
+}
+
 /* Staged-rewrite actions stay over the editor body; script diagnostics live in the card header. */
 .feed_body_overlays {
     position: absolute;

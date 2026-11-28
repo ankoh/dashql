@@ -51,7 +51,7 @@ import { DataflowNodeSheet } from './dataflow_node_sheet.js';
 import { useDataflowModule } from './dataflow_module.js';
 import { QueryStatusPlaceholder } from '@akohn/dashql-react/components/card_placeholder';
 import { useObservedSize } from '@akohn/dashql-react/components/size_observer';
-import { MEDIUM_WIDTH } from '@akohn/dashql-react/dom/media_query';
+import { NARROW_CONTAINER_WIDTH } from '@akohn/dashql-react/dom/media_query';
 import { DataflowKpiSummary, DataflowTile, dataflowTileStatus, dataflowTileSummary } from './dataflow_tile.js';
 import * as styles from './dataflow.module.css';
 import { quoteIdentifier as quoteSqlIdentifier } from '@akohn/dashql/platform/utils/sql_quote';
@@ -177,10 +177,10 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
     const [drag, setDrag] = React.useState<{ node: string; position: Position } | null>(null);
     const [resize, setResize] = React.useState<{ scriptKey: number; size: ResizedBox } | null>(null);
     const [arrangeRevision, setArrangeRevision] = React.useState(0);
-    // A canvas narrower than the medium width shows the dense layout: tiles from top to bottom. The layout waits for
+    // A canvas as narrow as a phone (NARROW_CONTAINER_WIDTH) shows the dense layout: tiles from top to bottom. The layout waits for
     // the width of the canvas.
     const viewportSize = useObservedSize(viewportRef);
-    const dense = viewportSize != null && viewportSize.width < MEDIUM_WIDTH;
+    const dense = viewportSize != null && viewportSize.width < NARROW_CONTAINER_WIDTH;
     const denseWidth = dense ? viewportSize.width - 2 * DENSE_PADDING : 0;
     // Is the canvas zoomed out so far that the boxes are drawn as tiles?
     const [zoomedOut, setZoomedOut] = React.useState(false);

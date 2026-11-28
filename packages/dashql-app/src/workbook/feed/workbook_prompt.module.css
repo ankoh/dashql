@@ -19,7 +19,7 @@
 
 /* A compact window shows Wobble in the tab bar of the views, the composer shrunk into its bar doesn't show
    (docs/design/narrow_layouts.md) */
-@media only screen and (max-width: 599px) {
+@media only screen and (max-width: 839px) {
     .prompt_layer[data-collapsed] {
         display: none;
     }

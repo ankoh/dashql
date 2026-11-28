@@ -284,7 +284,7 @@
 /* A compact window gives the rail no column, its pages sit in the stripe (nav_rail.module.css). A page with the dark bar
    of a workbook has no stripe at all: the bar is the top of the window, the drawer of the workbench holds the pages of
    the rail and the overlays (docs/design/narrow_layouts.md). */
-@media only screen and (max-width: 599px) {
+@media only screen and (max-width: 839px) {
     .container,
     .container_wide {
         --nav_bar_width: 0px;

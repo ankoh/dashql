@@ -288,7 +288,7 @@ describe('WorkbookViewsPage', () => {
                     const bounds = header.getBoundingClientRect();
                     expect(header.scrollWidth).toBeLessThanOrEqual(header.clientWidth);
                     // A compact frame switches the views in the tab bar at the bottom, the header keeps Execute All
-                    const compact = width < 600;
+                    const compact = width < 840;
                     const controls = [host.querySelector(busy ? '[data-testid="stop-execution"]' : '[data-testid="execute-all"]')!];
                     if (!compact) controls.push(host.querySelector('[data-testid="workbook-view-switch"]')!);
                     for (const control of controls) {

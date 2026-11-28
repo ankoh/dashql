@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act } from '@akohn/dashql-react/testing/react_act';
+import { act, waitForRender } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as dashql from '@akohn/dashql';
@@ -75,10 +75,10 @@ function cardProps(model: ScriptModel = fakeScriptModel({ script: fakeScript(1, 
     return { props, feed, result };
 }
 
-/// The editor of a test mounts a view, the format of the card needs one
-function EditorSlot(props: { setView: (view: never) => void }) {
-    const { setView } = props;
-    React.useEffect(() => setView({} as never), [setView]);
+/// The editor of a test mounts a view of a script of some lines, the format and the fold of the card need one
+function EditorSlot(props: { setView: (view: never) => void; lines?: number }) {
+    const { setView, lines = 1 } = props;
+    React.useEffect(() => setView({ state: { doc: { lines } } } as never), [setView, lines]);
     return <div data-testid="editor" />;
 }
 
@@ -113,6 +113,22 @@ describe('the card of a script', () => {
             'script-move-up', 'script-move-down']) {
             expect(container.querySelector(`[data-testid="${action}"]`), action).toBeNull();
         }
+    });
+
+    it('folds a long script to its first lines until it is unfolded, a short one not', async () => {
+        const { props } = cardProps();
+        render({ ...props, editor: slot => <EditorSlot setView={slot.setView} lines={16} /> });
+        const editor = () => container.querySelector('[data-sql-fold]');
+        expect(editor()!.getAttribute('data-sql-fold')).toBe('folded');
+        expect(container.querySelector('[data-testid="script-sql-fold"]')!.textContent).toBe('Show SQL, 16 lines');
+        click('script-sql-fold');
+        expect(editor()!.getAttribute('data-sql-fold')).toBe('unfolded');
+        click('script-sql-fold');
+        expect(editor()!.getAttribute('data-sql-fold')).toBe('folded');
+        render({ ...props, editor: slot => <EditorSlot setView={slot.setView} lines={3} /> });
+        // The editor hands its new view in an effect
+        await waitForRender(() => expect(editor()).toBeNull());
+        expect(container.querySelector('[data-testid="script-sql-fold"]')).toBeNull();
     });
 
     it('shows a script that did not run yet with a status bar that runs it', () => {

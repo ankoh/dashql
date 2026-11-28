@@ -9,14 +9,15 @@ dashboard and editing scripts.
 
 | Class | Width | What changes |
 |---|---|---|
-| compact | below 600px | one pane at a time, the rail in the stripe, the bar of the workbook in one row |
-| medium | 600px to 839px | the rail returns, the workbench stays in a drawer, splits are allowed |
-| expanded | from 840px | the workbench next to the workbook |
+| compact | below 840px | the phone layout: dark chrome without rail, one pane at a time, the views in a tab bar, the workbench in a drawer |
+| expanded | from 840px | the desktop layout: the rail, the stripe, the workbench next to the workbook |
 
-`MEDIUM_WIDTH` and `EXPANDED_WIDTH` of `@akohn/dashql-react/dom/media_query` hold the numbers, `COMPACT_WIDTH_QUERY`
-and `EXPANDED_WIDTH_QUERY` the queries for `useMediaQuery`. The stylesheets write the same numbers: `max-width: 599px`
-for compact, `max-width: 839px` below expanded. A view decides its own layout by the width of its container where it
-can (a container query), so a pane as narrow as a phone, e.g. the side panel of Slack, gets the compact layout as well.
+There is no layout between them: a window that has no room for the workbench next to the workbook gets the phone layout
+right away, a tablet too. `EXPANDED_WIDTH` of `@akohn/dashql-react/dom/media_query` holds the number,
+`COMPACT_WIDTH_QUERY` and `EXPANDED_WIDTH_QUERY` the queries for `useMediaQuery`. The stylesheets write the same number,
+`max-width: 839px` for compact. A view decides its own layout by the width of its container where it can (a container
+query, `NARROW_CONTAINER_WIDTH` of 600px for a container as narrow as a phone), so a pane as narrow as a phone, e.g. the
+side panel of Slack, gets the narrow layout as well.
 
 Touch is a separate question from width. `(pointer: coarse)` makes the targets larger and `(hover: none)` shows the
 controls that a mouse would reveal on hover. Neither changes what the view shows.
@@ -36,12 +37,13 @@ valid, and the app no longer reads it.
   the actions. The views switch in the tab bar at the bottom, the bookmark of the default view and the arrows stay on
   wider windows. Without their labels the buttons are as narrow as their icons.
 - **The bottom of a compact window** is the tab bar of the views (`WorkbookTabBar`), the light bottom of the card:
-  Feed and Console, Wobble in the middle, Board and Flow, the active view in the color of the text. The face of Wobble tells the run of the workbook by a dot (running, succeeded, failed), a
-  tap opens the composer over the view and closes it again; the composer shrunk into its bar doesn't show. Wider
-  windows switch the views in the bar at the top and show the bar of Wobble at the bottom of the views.
+  Feed and Console, Wobble in the middle, Board and Flow, the active view in the color of the text. The face of Wobble
+  tells the run of the workbook by a dot (running, succeeded, failed), a tap opens the composer over the view and
+  closes it again; the composer shrunk into its bar doesn't show. Wider windows switch the views in the bar at the top
+  and show the bar of Wobble at the bottom of the views.
 - **The shell** keeps the dark chrome above it on a compact window (`workbook_page.module.css`), with the pages of the
-  rail to leave it; the bar of the workbook and the tab bar don't show. A page without that bar keeps the stripe with the pages of the
-  rail in its middle.
+  rail to leave it; the bar of the workbook and the tab bar don't show. A page without that bar keeps the stripe with
+  the pages of the rail in its middle.
 - **The workbench** opens in a drawer below the expanded width (`WorkbookNavigationDrawer`), the same component as the
   sidebar. Its white header has the brand like the stripe, in the color of the text.
 
@@ -49,10 +51,10 @@ valid, and the app no longer reads it.
 
 `ConsoleLayout` (`workbook/console/console_layout.tsx`) shows one pane at a time on a compact window: the editor with
 the header of its script, the results, or the sidebar with the inputs and the attachments. A segmented control at the
-bottom of the console, in reach of the thumb, picks the pane (SQL, Results, Inputs). The panes stay mounted while hidden, the editor keeps its state. A new
-run of the active script, a new id of its latest query (`runKey`), shows the results; a switch of the tab keeps the
-pane. Wider windows keep the split of the editor over the results, with the sidebar below them up to the expanded width
-and next to them from there.
+bottom of the console, in reach of the thumb, picks the pane (SQL, Results, Inputs). The panes stay mounted while
+hidden, the editor keeps its state. A new run of the active script, a new id of its latest query (`runKey`), shows the
+results; a switch of the tab keeps the pane. An expanded window keeps the split of the editor over the results with the
+sidebar next to them.
 
 A touch screen (`pointer: coarse`) shows the keys of SQL below the editor (`SqlKeyBar` of
 `workbook/editor/sql_key_bar.tsx`): Run, Tab (what the keymap of the editor does with it, else the completion), the
@@ -68,13 +70,17 @@ card like the console and the dataflow: below 760px the statistics and Delete (a
 (`--page_gutter` of the workbook page) and starts the composer shrunk into the bar of Wobble in the feed as well, a tap
 expands it; open, it would cover the cards.
 
+A compact window folds the SQL of a script of more than four lines to its first lines, faded towards a button that says
+how many lines there are (`data-sql-fold` of the editor of `script_card.tsx`); the result of the script shows right
+below. The button or a focus in the editor unfolds it, the button folds it again. Wider windows ignore the fold.
+
 ## The dashboard
 
 A compact window reflows the board (`dashboard.module.css`) in its reading order, row then column: two columns, a KPI
 card (at most three columns of the grid wide, `data-compact-span` of the card) takes one of them and sits next to the
-next KPI card, the other cards take both. The cards keep their heights. A medium window keeps the 12-column grid of the
-desktop, with dragging and resizing. Without hover the header of a KPI card takes a row of its own above the value, an
-overlay would hide the value. A card narrower than 360px hides the segments of its renderers, its menu has them as
+next KPI card, the other cards take both. The cards keep their heights. An expanded window keeps the 12-column grid of
+the desktop, with dragging and resizing. Without hover the header of a KPI card takes a row of its own above the value,
+an overlay would hide the value. A card narrower than 360px hides the segments of its renderers, its menu has them as
 well (Show as).
 
 A compact window can't drag the cards of the reflowed board, Arrange above the cards shows the map of the board
@@ -117,7 +123,7 @@ script fills a compact window, as does any expanded overlay. `dataflow.md` descr
 The other views follow, one at a time. Each keeps its components and changes its arrangement:
 
 - **Result viewer**: a pinned column, a menu of the column.
-- **Feed**: a folded SQL, a card in full screen.
+- **Feed**: a card in full screen.
 - **Dashboard**: the inputs as chips with a sheet.
 
 Charts stay the authored Vega-Lite spec, `VegaLiteView` fits them to their card. Only the config of DashQL may follow

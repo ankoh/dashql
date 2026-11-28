@@ -309,7 +309,7 @@
    actions and the views. The text of the run shows in the bar of Wobble, Export .dashql stays in the menu of the
    actions, the bookmark of the default view and the arrows stay on wider windows, the separators give their room to
    the buttons. */
-@media only screen and (max-width: 599px) {
+@media only screen and (max-width: 839px) {
     .page {
         --workbook_header_height: 44px;
         /* The cards of the feed and the dashboard get the width of a phone, a narrow gutter keeps them apart from the

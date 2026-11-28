@@ -310,7 +310,7 @@
 
 /* A compact window reflows the board in its reading order (docs/design/narrow_layouts.md): two columns, KPI cards
    sit two by two and the others take the width, the cards keep their heights. Wider windows keep the grid. */
-@media only screen and (max-width: 599px) {
+@media only screen and (max-width: 839px) {
     .scroll {
         padding: 12px var(--page_gutter) var(--status_bar_dock_space, 12px) var(--page_gutter);
     }
