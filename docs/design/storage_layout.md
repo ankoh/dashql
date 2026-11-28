@@ -143,7 +143,7 @@ Connections are global and referenced by workbooks through `connectionId`. Their
 - The catalog files. They are a cache of the last catalog refresh and seed the completion before the
   connection comes online. Workbook bundles carry the catalogs of their connections as
   `connections/<id>/dashql-catalog-*.sql`, a `.dashql` file as the rows of its catalog tables (`workbook_tables.md`).
-- `monitoring.hyper` (`STORAGE_CONNECTION_MONITORING_FILE`), a file of earlier versions that nothing writes, deleted
+- `monitoring.hyper`, a file of earlier versions that nothing writes, deleted
   with the connection and never exported.
 
 ### Instances
