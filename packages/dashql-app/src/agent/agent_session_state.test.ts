@@ -5,7 +5,7 @@ import { createAgentSessionState, MAX_AGENT_SESSION_STEPS, MAX_AGENT_SESSION_TUR
 describe('the conversation of the agent on a workbook', () => {
     it('follows a question from the prompt to the final message', () => {
         let state = createAgentSessionState();
-        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'how many orders' }, 1000, 'claude');
+        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'how many orders', harness: 'claude' }, 1000);
         expect(state.harness).toBe('claude');
         expect(state.turns).toHaveLength(1);
         expect(state.turns[0]).toMatchObject({ turnId: 1, question: 'how many orders', status: 'working', note: null, error: null, files: [] });
@@ -28,26 +28,26 @@ describe('the conversation of the agent on a workbook', () => {
 
     it('ends a turn that failed or that the user stopped', () => {
         let state = createAgentSessionState();
-        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q1' });
+        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q1', harness: 'claude' });
         state = reduceAgentSessionEvent(state, { event: 'PreToolUse', status: 'dashql run', toolUseId: 't1' }, 1100);
         state = reduceAgentSessionEvent(state, { event: 'Stop', error: 'The harness exited with code 1: no login' }, 1200);
         expect(state.turns[0]).toMatchObject({ status: null, error: 'The harness exited with code 1: no login', note: null });
         expect(state.turns[0].steps[0].endedAt).toBe(1200);
-        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q2' });
+        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q2', harness: 'claude' });
         state = reduceAgentSessionEvent(state, { event: 'Stop', interrupted: true });
         expect(state.turns[1]).toMatchObject({ turnId: 2, status: null, interrupted: true, error: null });
     });
 
     it('ends a turn that is still open when the next question starts', () => {
         let state = createAgentSessionState();
-        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q1' });
-        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q2' });
+        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q1', harness: 'claude' });
+        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q2', harness: 'claude' });
         expect(state.turns).toMatchObject([{ status: null, interrupted: true }, { status: 'working' }]);
     });
 
     it('follows the uses of the tools of a turn as its steps', () => {
         let state = createAgentSessionState();
-        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q' }, 1000);
+        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q', harness: 'claude' }, 1000);
         // Two tools at once, the second ends first
         state = reduceAgentSessionEvent(state, { event: 'PreToolUse', status: 'Read a.sql', toolUseId: 't1' }, 1100);
         state = reduceAgentSessionEvent(state, { event: 'PreToolUse', status: 'Read b.sql', toolUseId: 't2' }, 1200);
@@ -70,12 +70,12 @@ describe('the conversation of the agent on a workbook', () => {
 
     it('keeps the latest steps of a turn and the latest turns', () => {
         let state = createAgentSessionState();
-        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q' });
+        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q', harness: 'claude' });
         for (let i = 0; i < MAX_AGENT_SESSION_STEPS + 5; ++i) state = reduceAgentSessionEvent(state, { event: 'PostToolUse', status: `step ${i}`, toolUseId: null });
         expect(state.turns[0].steps).toHaveLength(MAX_AGENT_SESSION_STEPS);
         expect(state.turns[0].steps[0].label).toBe('step 5');
         for (let i = 0; i < MAX_AGENT_SESSION_TURNS + 3; ++i) {
-            state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: `q${i}` });
+            state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: `q${i}`, harness: 'claude' });
             state = reduceAgentSessionEvent(state, { event: 'Stop', message: 'a' });
         }
         expect(state.turns).toHaveLength(MAX_AGENT_SESSION_TURNS);
@@ -84,7 +84,7 @@ describe('the conversation of the agent on a workbook', () => {
 
     it('keeps the texts of the agent between its tools as steps, the final message once', () => {
         let state = createAgentSessionState();
-        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q' }, 1000);
+        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q', harness: 'claude' }, 1000);
         state = reduceAgentSessionEvent(state, { event: 'Say', text: '  I look up the orders.  ' }, 1100);
         state = reduceAgentSessionEvent(state, { event: 'Say', text: '   ' }, 1150);
         state = reduceAgentSessionEvent(state, { event: 'PreToolUse', status: 'Run orders', toolUseId: 't1' }, 1200);
@@ -104,17 +104,17 @@ describe('the conversation of the agent on a workbook', () => {
         let state = createAgentSessionState();
         state = reduceAgentSessionEvent(state, { event: 'Say', text: 'hello' });
         expect(state.turns).toEqual([]);
-        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q' });
+        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q', harness: 'claude' });
         state = reduceAgentSessionEvent(state, { event: 'Stop', message: '  ' });
         expect(state.turns[0].note).toBeNull();
     });
 
     it('reads a conversation that it kept, a turn that still ran was stopped', () => {
         let state = createAgentSessionState();
-        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q1' }, 1000, 'codex');
+        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q1', harness: 'codex' }, 1000);
         state = reduceAgentSessionEvent(state, { event: 'Edited', files: ['a.sql'] }, 1010);
         state = reduceAgentSessionEvent(state, { event: 'Stop', message: 'done' }, 1100);
-        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q2' }, 1200);
+        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q2', harness: 'codex' }, 1200);
         state = reduceAgentSessionEvent(state, { event: 'PreToolUse', status: 'Run a', toolUseId: 't1' }, 1300);
         const kept = JSON.parse(JSON.stringify(state));
         const read = parseAgentSessionFile(kept);

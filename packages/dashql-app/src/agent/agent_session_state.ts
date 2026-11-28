@@ -1,10 +1,10 @@
 /// An event of a turn of a harness that the desktop app runs for a question on a workbook, in the order of the turn
 /// (docs/design/agent_integration.md): the page opens the turn with UserPromptSubmit when it asks, the main process
-/// tells the events of the harness, Stop last. Edited names the scripts that a `dashql` command of the agent changed,
-/// by their file names.
+/// tells the events of the harness, Stop last. UserPromptSubmit names the harness that the question goes to. Edited
+/// names the scripts that a `dashql` command of the agent changed, by their file names.
 export type AgentSessionEvent =
     | DashQLAgentEvent
-    | { event: 'UserPromptSubmit'; prompt: string }
+    | { event: 'UserPromptSubmit'; prompt: string; harness: string }
     | { event: 'Edited'; files: string[] };
 
 /// A step of a turn: a use of a tool, which PreToolUse starts and PostToolUse ends, or a text of the agent, which ends
@@ -88,7 +88,8 @@ function isTextOf(text: string, label: string): boolean {
 }
 
 /// Apply an event of a turn of a harness to the conversation of a workbook, at the time of the page
-export function reduceAgentSessionEvent(state: AgentSessionState, event: AgentSessionEvent, now: number = Date.now(), harness: string | null = state.harness): AgentSessionState {
+export function reduceAgentSessionEvent(state: AgentSessionState, event: AgentSessionEvent, now: number = Date.now()): AgentSessionState {
+    let harness = state.harness;
     let turns = state.turns;
     const last = turns[turns.length - 1];
     const open = last != null && last.status != null ? last : null;
@@ -98,6 +99,7 @@ export function reduceAgentSessionEvent(state: AgentSessionState, event: AgentSe
         case 'UserPromptSubmit': {
             const before = open != null ? [...turns.slice(0, -1), closed(open)] : turns;
             turns = [...before, newTurn({ ...state, turns: before }, event.prompt)];
+            harness = event.harness;
             break;
         }
         case 'Edited': {

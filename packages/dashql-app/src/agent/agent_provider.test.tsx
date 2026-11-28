@@ -104,7 +104,7 @@ describe('the agents of the desktop app', () => {
 
     it('shows the conversation that it kept and keeps the next question', async () => {
         let kept = createAgentSessionState();
-        kept = reduceAgentSessionEvent(kept, { event: 'UserPromptSubmit', prompt: 'how many orders' }, 1000, 'codex');
+        kept = reduceAgentSessionEvent(kept, { event: 'UserPromptSubmit', prompt: 'how many orders', harness: 'codex' }, 1000);
         kept = reduceAgentSessionEvent(kept, { event: 'Stop', message: 'There are 42 orders' }, 1100);
         bridge.kept = JSON.parse(JSON.stringify(kept));
         await render();

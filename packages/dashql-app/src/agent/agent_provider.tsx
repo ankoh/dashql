@@ -139,12 +139,10 @@ export const AgentProvider: React.FC<React.PropsWithChildren<{ bridge?: DashQLAg
             return next;
         });
     }, []);
-    // The harness of the running question of a workbook, its events belong to it
-    const harnessOf = React.useRef(new Map<string, AgentHarness>());
     const reduce = React.useCallback((workbookId: string, event: AgentSessionEvent) => {
         conversations.update(prev => {
             const next = new Map(prev);
-            next.set(workbookId, reduceAgentSessionEvent(prev.get(workbookId) ?? createAgentSessionState(), event, Date.now(), harnessOf.current.get(workbookId) ?? prev.get(workbookId)?.harness ?? null));
+            next.set(workbookId, reduceAgentSessionEvent(prev.get(workbookId) ?? createAgentSessionState(), event));
             return next;
         });
     }, [conversations]);
@@ -248,10 +246,7 @@ export const AgentProvider: React.FC<React.PropsWithChildren<{ bridge?: DashQLAg
             logger,
         };
         const calls = new Map<number, AbortController>();
-        const offEvent = bridge.onEvent(({ workbookId, event }) => {
-            reduce(workbookId, event);
-            if (event.event === 'Stop') harnessOf.current.delete(workbookId);
-        });
+        const offEvent = bridge.onEvent(({ workbookId, event }) => reduce(workbookId, event));
         const offCall = bridge.onCall(call => {
             const controller = new AbortController();
             calls.set(call.callId, controller);
@@ -293,8 +288,7 @@ export const AgentProvider: React.FC<React.PropsWithChildren<{ bridge?: DashQLAg
         const harness = prompt.harness;
         // One question at a time: the page opens the turn itself, a second Ask before the harness started is no question
         if (bridge == null || isAgentWorking(conversations.current.get(workbookId))) return;
-        harnessOf.current.set(workbookId, harness);
-        reduce(workbookId, { event: 'UserPromptSubmit', prompt: question });
+        reduce(workbookId, { event: 'UserPromptSubmit', prompt: question, harness });
         const agentPrompt = buildAgentPrompt({
             question,
             dialect: request.dialect,
@@ -304,7 +298,6 @@ export const AgentProvider: React.FC<React.PropsWithChildren<{ bridge?: DashQLAg
         bridge.ask({ workbookId, harness, prompt: agentPrompt }).catch(error => {
             // The main process tells no Stop of a question that it did not start
             reduce(workbookId, { event: 'Stop', error: error instanceof Error ? error.message : stringifyError(error) });
-            harnessOf.current.delete(workbookId);
         });
     }, [bridge, prompt.harness, logger, reduce, conversations]);
     const stop = React.useCallback((workbookId: string) => {
