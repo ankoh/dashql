@@ -1,9 +1,8 @@
 import * as React from 'react';
 
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
-import { useDispatch, useOptionalRuntime, useScript, useViewSelector } from '../hooks.js';
+import { useDispatch, useOptionalRuntime, useScript, useScriptRun, useViewSelector } from '../hooks.js';
 import { useQueryModel, type QueryModel } from './query_model.js';
 
 // The model of a script of a workbook (docs/agents/writing_components.md). A component that shows a script reads the
@@ -48,6 +47,7 @@ type ScriptOperations = Pick<ScriptModel, 'run' | 'cancel' | 'setText' | 'accept
 /// every keystroke.
 export function useScriptModel(workbookId: string, scriptKey: number | null | undefined): ScriptModel | null {
     const runtime = useOptionalRuntime();
+    const runScript = useScriptRun();
     const script = useScript(scriptKey);
     const query = useQueryModel(script?.latestQueryId ?? null);
     // Only whether a run holds the workbook, not the steps of the run
@@ -55,20 +55,13 @@ export function useScriptModel(workbookId: string, scriptKey: number | null | un
     const dispatch = useDispatch({ workbook: workbookId });
     const key = script?.scriptKey ?? null;
     const operations = React.useMemo((): ScriptOperations | null => key == null ? null : {
-        run: async options => {
-            if (runtime == null) return;
-            try {
-                await runtime.runScript(workbookId, key, { refresh: options?.refresh });
-            } catch (error) {
-                runtime.logger.warn('Workbook script run failed', { workbookId, scriptKey: key.toString(), error: stringifyError(error) }, 'workbook_execution');
-            }
-        },
+        run: async options => await runScript?.(workbookId, key, options),
         cancel: async () => await runtime?.cancelScript(workbookId, key),
         setText: text => dispatch({ kind: 'setScriptText', value: { scriptKey: key, text, withDiff: true } }).settled,
         acceptDiff: () => dispatch({ kind: 'acceptPendingDiff', value: { scriptKey: key } }).settled,
         rejectDiff: () => dispatch({ kind: 'rejectPendingDiff', value: { scriptKey: key } }).settled,
         setVisSpec: spec => dispatch({ kind: 'setScriptVisSpec', value: { scriptKey: key, spec } }).settled,
-    }, [runtime, workbookId, key, dispatch]);
+    }, [runtime, runScript, workbookId, key, dispatch]);
     return React.useMemo(
         () => script == null || operations == null ? null : { workbookId, script, query, runActive, ...operations },
         [workbookId, script, query, runActive, operations],
