@@ -744,6 +744,8 @@ impl<'a> Formatter<'a> {
                 }
                 self.comma_join_on_overflow(&values, true)
             }
+            // The options of a column break on overflow in every mode
+            K::SQL_COLUMN_DEF_OPTIONS => self.comma_join_on_overflow(&self.array_regs(node), true),
             // The bounds of a frame break before `and`
             K::SQL_WINDOW_FRAME_BOUNDS => match *self.array_regs(node).as_slice() {
                 [bound] if bound != 0 => bound,
@@ -1361,17 +1363,12 @@ impl<'a> Formatter<'a> {
     }
 
     /// `(m1, m2, ...)` of a type with modifiers
-    fn format_type_modifiers(&self, modifiers: &'a Node) -> FmtReg {
-        let values: Vec<FmtReg> = self.children(modifiers).iter().map(|m| self.reg(m)).collect();
-        self.fmt.parenthesized(self.comma_join(&values, None, true))
-    }
-
     fn format_numeric_type(&self, node: &'a Node) -> FmtReg {
         let [base, modifiers] = attrs!(self.children(node), [K::SQL_NUMERIC_TYPE_BASE, K::SQL_NUMERIC_TYPE_MODIFIERS]);
         let Some(base) = base else { return self.format_unimplemented(node) };
         let mut parts = vec![self.reg(base)];
         if let Some(modifiers) = modifiers.filter(|m| m.node_type() == NodeType::ARRAY && m.children_count() > 0) {
-            parts.push(self.format_type_modifiers(modifiers));
+            parts.push(self.fmt.parenthesized(self.reg(modifiers)));
         }
         self.fmt.concat(&parts)
     }
@@ -1441,7 +1438,7 @@ impl<'a> Formatter<'a> {
             parts.push(self.reg_or_placeholder(qualifiers));
         }
         if let Some(modifiers) = modifiers.filter(|m| m.node_type() == NodeType::ARRAY && m.children_count() > 0) {
-            parts.push(self.format_type_modifiers(modifiers));
+            parts.push(f.parenthesized(self.reg(modifiers)));
         }
         f.concat(&parts)
     }
@@ -1784,30 +1781,13 @@ impl<'a> Formatter<'a> {
             parts.push(f.text(" not null"));
         }
 
-        if let Some(options) = options {
-            if options.node_type() != NodeType::ARRAY {
-                parts.push(f.text(" "));
-                parts.push(self.format_unimplemented(options));
-            } else if options.children_count() > 0 {
-                let option_parts: Vec<FmtReg> =
-                    self.children(options).iter().map(|o| self.reg_or_placeholder(o)).collect();
-                let option_list = self.comma_join_on_overflow(&option_parts, true);
-                parts.push(f.text(" options "));
-                parts.push(f.parenthesized(option_list));
-            }
+        if let Some(options) = options.filter(|o| o.children_count() > 0) {
+            parts.push(f.text(" options "));
+            parts.push(f.parenthesized(self.reg_or_placeholder(options)));
         }
-
-        if let Some(constraints) = constraints {
-            if constraints.node_type() != NodeType::ARRAY {
-                parts.push(f.text(" "));
-                parts.push(self.format_unimplemented(constraints));
-            } else if constraints.children_count() > 0 {
-                let constraint_parts: Vec<FmtReg> =
-                    self.children(constraints).iter().map(|c| self.reg_or_placeholder(c)).collect();
-                let constraint_list = self.space_join(&constraint_parts, FormattingJoinPolicy::BreakOnOverflow, true);
-                parts.push(f.text(" "));
-                parts.push(constraint_list);
-            }
+        if let Some(constraints) = constraints.filter(|c| c.children_count() > 0) {
+            parts.push(f.text(" "));
+            parts.push(self.reg_or_placeholder(constraints));
         }
         f.concat(&parts)
     }
@@ -3005,12 +2985,10 @@ impl<'a> Formatter<'a> {
             {
                 f.concat(&[value, f.text(" "), op_reg, f.text(" "), low, f.text(" and "), high])
             }
-            [lhs, mut rhs] if known_operator && matches!(op, O::IN | O::NOT_IN) => {
-                // The args are the documents of the children of the args node
-                if let Some(rhs_node) = self.children(args_node).get(1).filter(|n| n.node_type() == NodeType::ARRAY) {
-                    let list = self.format_comma_list(rhs_node, true);
-                    rhs = f.parenthesized(list);
-                }
+            [lhs, rhs] if known_operator && matches!(op, O::IN | O::NOT_IN) => {
+                // A list on the right goes in parentheses, `a in (1, 2)`
+                let rhs_is_list = self.children(args_node).get(1).is_some_and(|n| n.node_type() == NodeType::ARRAY);
+                let rhs = if rhs_is_list { f.parenthesized(rhs) } else { rhs };
                 f.concat(&[lhs, f.text(" "), op_reg, f.text(" "), rhs])
             }
             [lhs, rhs] if known_operator && matches!(op, O::IS_DISTINCT_FROM | O::IS_NOT_DISTINCT_FROM) => {
