@@ -3,7 +3,6 @@
 // the live workbook and answers with text and an exit code
 import * as vegaLite from 'vega-lite';
 import * as core from '@akohn/dashql';
-import type * as arrow from 'apache-arrow';
 
 import { ConnectionHealth, connectorInfoOf, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
@@ -422,15 +421,6 @@ function visTagProblems(script: ScriptData, diagnostics: readonly AgentDiagnosti
         .map(diagnostic => diagnostic.message);
 }
 
-/// Render the chart of a script as the image download of the feed renders it: the `@vis vegalite` tag of its last
-/// query with its result
-async function renderChart(runtime: Runtime, workbookId: string, fileName: string, table: arrow.Table, size: { width: number; height: number; scale: number }) {
-    const ref = runtime.store.get('workbook', workbookId)?.scriptRefs[fileName];
-    const vis = ref == null ? null : runtime.store.get('script', ref.scriptId)?.annotations.visualizeQuery;
-    if (vis?.renderer !== 'vegalite') throw new Error(`DashQL finds no @vis vegalite tag in ${scriptDisplayName(fileName)}`);
-    return await renderVegaLitePng(vis.vegaLiteSpec, arrowTableToRows(table), size);
-}
-
 /// `vis`: check the chart of a script against its result and render it as PNG
 async function visCommand(host: AgentCommandHost, call: AgentCall, reply: AgentReplyStream, signal: AbortSignal): Promise<number> {
     const { runtime } = host;
@@ -506,16 +496,16 @@ async function visCommand(host: AgentCommandHost, call: AgentCall, reply: AgentR
         }
     }
 
-    // The PNG of a Vega-Lite chart, as the feed renders it: the first rows of the result that the run read, at most
-    // as many as a chart draws
+    // The PNG of a Vega-Lite chart, as the image download of the feed renders it: the spec that was checked above with
+    // the first rows of the result that the run read, at most as many as a chart draws
     let wrote: string | null = null;
-    if (tag.spec != null && result != null && resultRows != null) {
+    if (vis.renderer === 'vegalite' && result != null && resultRows != null) {
         if (resultRows > CHART_ROWS) {
             problems.push(`⚠ the result has ${resultRows} rows, the chart draws only the first ${CHART_ROWS} and warns about the others: aggregate the query, e.g. by day or week`);
         }
         try {
             if (table == null) throw new Error('the result has no rows to draw');
-            const image = await renderChart(runtime, call.workbookId, fileName, table, size);
+            const image = await renderVegaLitePng(vis.vegaLiteSpec, arrowTableToRows(table), size);
             const path = await host.writeFile(call.workbookId, 'chart', `${name}.png`, image.png);
             wrote = `${path} (${image.width}x${image.height} pixels)`;
         } catch (error) {
