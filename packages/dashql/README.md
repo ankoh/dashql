@@ -68,8 +68,9 @@ const runtime = createRuntime(await createNodePlatform({ logger, storage: new Na
 await runtime.restore();
 ```
 
-Every module of the runtime and of its platforms is a subpath, `@akohn/dashql/runtime/<path>` and
-`@akohn/dashql/platform/<path>`, like in the sources. The embedded Hyper of the platforms needs `hyperdb-wasm`, an
+The public modules of the runtime and of its platforms are subpaths at the paths of their sources,
+`@akohn/dashql/runtime/<path>` and `@akohn/dashql/platform/<path>`. The `exports` of the package list them, the
+other modules stay inside it. The embedded Hyper of the platforms needs `hyperdb-wasm`, an
 optional peer dependency, and Node 24 or later.
 
 This package is ESM-only and does not expose other internal `dist/*` paths.

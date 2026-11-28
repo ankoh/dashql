@@ -10,7 +10,7 @@
 // 3. tsc writes the declarations of the modules next to them.
 //
 // The modules keep their paths in dist/: @akohn/dashql-react/components/button is dist/components/button.js. Which of
-// them a host imports is the exports of the manifest, see npm/manifest.mjs.
+// them a host imports is the exports of the manifest, see //bazel:npm_manifest.mjs.
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';

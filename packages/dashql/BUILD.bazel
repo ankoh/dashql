@@ -6,6 +6,7 @@ load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 load("//bazel:eslint.bzl", "eslint_test")
+load("//bazel:npm_manifest.bzl", "npm_manifest")
 load(":glue.bzl", "dashql_wasm_glue")
 
 # DashQL in TypeScript, shared by the app (//packages/dashql-app) and the hosts in Node, see
@@ -316,19 +317,10 @@ genrule(
 )
 
 # The version of the package is the npm version of the build (DASHQL_VERSION_NPM), not the one in npm/package.json: CI
-# publishes every build that it deploys
-genrule(
+# publishes every build that it deploys. Its exports are the modules that package.json exports
+npm_manifest(
     name = "npm_manifest",
-    srcs = [
-        "npm/package.json",
-        "@dashql_app_version//:version.env",
-    ],
-    outs = ["npm_files/package.json"],
-    cmd = """
-        VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_NPM"{print $$2}' "$(location @dashql_app_version//:version.env)")
-        sed -E 's/^(  "version": )"[^"]*"/\\1"'"$${VERSION}"'"/' "$(location npm/package.json)" > $@
-        grep -qF "  \\"version\\": \\"$${VERSION}\\"," $@
-    """,
+    modules = _MODULES,
 )
 
 npm_package(
@@ -421,6 +413,7 @@ js_test(
     name = "tarball_consumer_test",
     data = [
         "npm/package.json",
+        "package.json",
         "test/npm/consumer.mjs",
         "test/npm/consumer.mts",
         ":license",

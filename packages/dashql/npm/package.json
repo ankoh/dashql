@@ -15,17 +15,9 @@
   "main": "./dist/core/index.js",
   "types": "./dist/core/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/core/index.d.ts", "import": "./dist/core/index.js" },
-    "./buffers": { "types": "./dist/core/buffers.d.ts", "import": "./dist/core/buffers.js" },
-    "./browser-worker": { "types": "./dist/core/browser_worker.d.ts", "import": "./dist/core/browser_worker.js" },
-    "./batch-worker": "./dist/core/batch_worker.js",
     "./wasm": "./dist/wasm/dashql_core.wasm",
     "./dataflow-wasm": "./dist/wasm/dashql_dataflow.wasm",
-    "./wasm/glue": { "types": "./dist/wasm/dashql_core.d.ts", "import": "./dist/wasm/dashql_core.js" },
-    "./runtime": { "types": "./dist/runtime/runtime.d.ts", "import": "./dist/runtime/runtime.js" },
-    "./node": { "types": "./dist/runtime/node/node_platform.d.ts", "import": "./dist/runtime/node/node_platform.js" },
-    "./runtime/*": { "types": "./dist/runtime/*.d.ts", "import": "./dist/runtime/*.js" },
-    "./platform/*": { "types": "./dist/platform/*.d.ts", "import": "./dist/platform/*.js" }
+    "./wasm/glue": { "types": "./dist/wasm/dashql_core.d.ts", "import": "./dist/wasm/dashql_core.js" }
   },
   "files": ["dist", "README.md", "LICENSE", "NOTICE"],
   "dependencies": {

@@ -33,4 +33,6 @@ for (const instance of instances) {
     }
 }
 await assert.rejects(import('@akohn/dashql/dist/core/index.js'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
+// A module that the package doesn't export stays inside it
+await assert.rejects(import('@akohn/dashql/runtime/run_mounts'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
 console.log('Tarball package-name exports, browser-safe imports, and Wasm passed');

@@ -564,8 +564,10 @@ Hyper with `startNodeHyperEngine` and passes them in the options of the runtime.
 `npm/package.json`. `:bundle` builds `dist/` with `npm/build.mjs`: Vite builds the modules of `src/` without tests, test
 helpers and mocks, every module keeps its path, tsc writes the declarations next to them, and the generated packages and
 the library of hyperdb-edge, which are not on npm, are inlined (`dist/wasm`, `dist/gen/<name>`, `dist/hyperdb-edge`).
-The exports mirror those of the source package and are listed in
-[packages/dashql/README.md](../../packages/dashql/README.md).
+Its exports are the files of `npm/package.json` (the Wasm and its glue) and the modules that the source package
+exports (`package.json`, without the tests, their helpers and mocks), written by `//bazel:npm_manifest.mjs`; see
+[packages/dashql/README.md](../../packages/dashql/README.md). A module that a host or another package imports is listed
+in the `exports` of `package.json`, the others stay inside the package.
 
 Its dependencies are `flatbuffers`, `apache-arrow`, `@bufbuild/protobuf`, `immutable` and `@zip.js/zip.js`;
 `hyperdb-wasm` and `vega-lite` are optional peers. `:tarball_consumer_test` installs the archive like a consumer and
@@ -578,7 +580,7 @@ repository; in the workspace it stays a source package. Its `npm/build.mjs` comp
 tests and `src/testing`, every module keeps its path, the CSS modules become `dashql_<class>_<hash>` and one
 `dist/style.css`, and the SVG symbol atlas ships as `dist/symbols.svg` ([ui_icons.md](ui_icons.md)). Its exports are the
 modules that the source package exports (`package.json`, without `testing/` and the CSS modules), written by
-`npm/manifest.mjs`. It has the version of the build and takes `@akohn/dashql` as a peer of exactly that version, the views change with it. CI publishes both
+`//bazel:npm_manifest.mjs`. It has the version of the build and takes `@akohn/dashql` as a peer of exactly that version, the views change with it. CI publishes both
 archives of a build. `:tarball_consumer_test` installs the archive like a host: it renders a page of its components in
 Node, type checks it against the declarations and bundles it with Vite. See
 [packages/dashql-react/README.md](../../packages/dashql-react/README.md).

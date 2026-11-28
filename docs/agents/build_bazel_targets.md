@@ -137,7 +137,7 @@ bazel test //...
 | `//packages/dashql:test_runtime_node` | The tests of the runtime in Node (vitest), without `*.browser.test.ts`. The browser tests of the app run all but `*.node.test.ts` |
 | `//packages/dashql:test_platform_node` | The tests of the platform in Node (vitest), without `*.browser.test.ts`. The browser tests of the app run all but `*.node.test.ts` |
 | `//packages/dashql:node_smoke_test` | The package on npm in Node: the bindings with their Wasm, and a runtime over the platform of Node |
-| `//packages/dashql:tarball_consumer_test` | The archive of the package on npm as a consumer installs it: reproducible, its files and metadata, the exports of the bindings in Node and their declarations for `NodeNext` |
+| `//packages/dashql:tarball_consumer_test` | The archive of the package on npm as a consumer installs it: reproducible, its files and metadata, its exports those of `package.json`, an internal module doesn't resolve, the exports of the bindings in Node and their declarations for `NodeNext` |
 | `//packages/hyperdb-edge:test` | The tests of hyperdb-edge in Node (vitest): the library against the embedded Hyper, every SQL example of the `describe` topics, and the compiled command run as separate processes, see `docs/wip/hyperdb_edge.md` |
 | `//packages/hyperdb-edge:tsc_typecheck_test` | Type check of the library of hyperdb-edge without its Node part, against the WebWorker lib |
 | `//packages/hyperdb-edge:tsc_typecheck_node_test` | Type check of every module and test of hyperdb-edge with the types of Node |

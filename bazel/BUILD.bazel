@@ -71,6 +71,13 @@ sh_binary(
     data = ["@rules_rust//rust/toolchain:current_rustfmt_toolchain"],
 )
 
+# Writes the manifest of a package on npm, see npm_manifest.bzl
+js_binary(
+    name = "npm_manifest",
+    entry_point = "npm_manifest.mjs",
+    visibility = ["//visibility:public"],
+)
+
 # ESLint with --fix on the workspace, see eslint.bzl: bazel run //bazel:eslint_fix [-- <paths>]
 js_binary(
     name = "eslint_fix",

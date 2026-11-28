@@ -4,6 +4,7 @@ load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("//bazel:eslint.bzl", "eslint_test")
+load("//bazel:npm_manifest.bzl", "npm_manifest")
 
 # DashQL in React (docs/design/dashql_runtime.md): the hooks of the views, actions and commands of a runtime, the models
 # that components show, and the design tokens, fonts and brand code (styles/, fonts/, src/brand, src/theme) shared by the
@@ -183,27 +184,10 @@ genrule(
 
 # The manifest on npm, npm/package.json with the version of the build (DASHQL_VERSION_NPM) like the one of @akohn/dashql,
 # which it takes as a peer of exactly that version: the views of the runtime change with it. Its exports are the
-# modules that package.json exports, see npm/manifest.mjs
-js_binary(
-    name = "npm_manifest_writer",
-    entry_point = "npm/manifest.mjs",
-    visibility = ["//visibility:private"],
-)
-
-genrule(
+# modules that package.json exports
+npm_manifest(
     name = "npm_manifest",
-    srcs = [
-        "npm/package.json",
-        "package.json",
-        "@dashql_app_version//:version.env",
-    ],
-    outs = ["npm_files/package.json"],
-    # The paths are those of the execution root, the writer stays there
-    cmd = """
-        BAZEL_BINDIR=$(BINDIR) JS_BINARY__NO_CD_BINDIR=1 $(execpath :npm_manifest_writer) \\
-            $(execpath npm/package.json) $(execpath package.json) $(execpath @dashql_app_version//:version.env) $@
-    """,
-    tools = [":npm_manifest_writer"],
+    modules = _MODULES,
 )
 
 npm_package(

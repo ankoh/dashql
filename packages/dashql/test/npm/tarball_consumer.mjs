@@ -49,9 +49,23 @@ try {
     assert.deepEqual((await readdir(packageDir)).sort(), ['LICENSE', 'NOTICE', 'README.md', 'dist', 'package.json']);
     assert.ok([...paths].every(path => !/\.test\.|test_fixture|\/testing\/|\/node_modules\//.test(path)));
     const metadata = JSON.parse(await readFile(join(packageDir, 'package.json'), 'utf8'));
-    // The manifest of npm/package.json with the npm version of the build (:npm_manifest), nothing else changed
+    // The manifest of npm/package.json with the npm version of the build (:npm_manifest) and the modules that
+    // package.json exports, nothing else changed
     assert.deepEqual(metadata, JSON.parse(await readFile(join(pkg, 'npm_files/package.json'), 'utf8')));
-    assert.deepEqual(metadata, { ...JSON.parse(await readFile(join(pkg, 'npm/package.json'), 'utf8')), version: metadata.version });
+    const source = JSON.parse(await readFile(join(pkg, 'npm/package.json'), 'utf8'));
+    assert.deepEqual(metadata, { ...source, version: metadata.version, exports: metadata.exports });
+    // The exports: the files of npm/package.json, then the modules of the source package without the tests, their
+    // helpers and mocks, each with its JavaScript and declarations
+    const workspace = JSON.parse(await readFile(join(pkg, 'package.json'), 'utf8'));
+    const modules = Object.entries(workspace.exports)
+        .filter(([, file]) => file.startsWith('./src/') && !/\/testing\/|_mock\.ts$/.test(file))
+        .map(([subpath]) => subpath);
+    assert.deepEqual(Object.keys(metadata.exports), [...Object.keys(source.exports), ...modules]);
+    for (const subpath of modules) {
+        for (const file of Object.values(metadata.exports[subpath])) {
+            assert.ok(paths.has(`package/${file.slice(2)}`), `${subpath} exports the missing ${file}`);
+        }
+    }
     assert.match(metadata.version, /^\d+\.\d+\.\d+(-(dev|latest)\.\d+\.g[0-9a-f]+)?$/);
     assert.equal(metadata.license, 'MPL-2.0');
     assert.equal(metadata.publishConfig.access, 'public');
