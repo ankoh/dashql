@@ -112,7 +112,8 @@
     overflow-y: auto;
     padding-bottom: var(--status_bar_dock_space);
     border-left: 1px solid var(--color_border);
-    background: var(--color_bg_pane_subtle);
+    /* A white panel like the workbench on the left, also while it has no sections */
+    background: var(--color_bg_card);
 }
 
 /* A narrow page leaves the width to the editor, the sidebar moves below the results */
