@@ -27,7 +27,7 @@ import { LoggerProvider } from '../host/logger_provider.js';
 import type { HyperDB, HyperDBConnection } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { TEST_CONNECTION_ID, testWorkbook, WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
-import { testWorkbookTables } from './cloud_test_tables.js';
+import { testWorkbookTables } from '../tests/cloud_test_tables.js';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { quoteLiteral } from '@akohn/dashql/platform/utils/sql_quote';

@@ -4,7 +4,7 @@ import * as core from '@akohn/dashql';
 import type { HyperDB, HyperDBConnection } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { TEST_CONNECTION_ID, testWorkbook } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { VERSIONS_TABLE, type WorkbookTables } from '@akohn/dashql/platform/storage/workbook_tables';
-import { testWorkbookTables } from './cloud_test_tables.js';
+import { testWorkbookTables } from '../tests/cloud_test_tables.js';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import {
     createCloudFolder,

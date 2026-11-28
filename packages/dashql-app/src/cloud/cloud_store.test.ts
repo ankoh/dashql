@@ -14,7 +14,7 @@ import {
     VERSIONS_TABLE,
     type WorkbookTables,
 } from '@akohn/dashql/platform/storage/workbook_tables';
-import { cloudRows, testWorkbookTables, withVersionKey } from './cloud_test_tables.js';
+import { cloudRows, testWorkbookTables, withVersionKey } from '../tests/cloud_test_tables.js';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { listCloudEntries, type CloudCursor, type CloudSearch } from './cloud_folders.js';
 import {

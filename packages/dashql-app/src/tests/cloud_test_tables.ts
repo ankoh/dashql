@@ -19,7 +19,7 @@ function testDataTableName(prefix: string): string {
     return `${prefix}${crypto.randomUUID().replace(/-/g, '')}`;
 }
 
-import type { CloudWorkbookTables } from './cloud_store.js';
+import type { CloudWorkbookTables } from '../cloud/cloud_store.js';
 
 // The workbook tables of the tests of the clouds, written as the runtime exports them (`workbook_bundle_to_tables` of
 // the crate): a version of a fresh id whose key every row carries, the metadata of the workbook and the params of the

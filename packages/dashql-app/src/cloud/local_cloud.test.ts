@@ -5,7 +5,7 @@ import { HyperDB } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { getTestHyperDBClient, openTestHyperDBWindow, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { TEST_CONNECTION_ID, testWorkbook } from '@akohn/dashql/platform/testing/workbook_test_backend';
-import { testWorkbookTables } from './cloud_test_tables.js';
+import { testWorkbookTables } from '../tests/cloud_test_tables.js';
 import { publishCloudWorkbook } from './cloud_store.js';
 import { createCloudFolder, listCloudEntries } from './cloud_folders.js';
 import { dropCloudStore, inspectCloudStore, installCloudStore, type CloudQuery } from './cloud_store_schema.js';
