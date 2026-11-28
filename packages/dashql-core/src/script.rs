@@ -445,18 +445,11 @@ impl Script {
         Ok(Formatter::new(&parsed).format(config))
     }
 
-    /// Format the script and return the raw bytes, which may contain partial UTF-8 sequences where
-    /// comments were wrapped (see `Formatter::format_bytes`)
-    pub fn format_bytes(&mut self, config: &FormattingConfigT, parse_if_outdated: bool) -> Result<Vec<u8>> {
-        let parsed = self.parsed_or_parse(parse_if_outdated)?;
-        Ok(Formatter::new(&parsed).format_bytes(config))
-    }
-
     /// The nodes that formatting could not represent
     pub fn unformattable_nodes(&mut self, config: &FormattingConfigT, parse_if_outdated: bool) -> Result<Vec<u32>> {
         let parsed = self.parsed_or_parse(parse_if_outdated)?;
         let mut formatter = Formatter::new(&parsed);
-        formatter.format_bytes(config);
+        formatter.format(config);
         Ok(formatter.unformattable_nodes())
     }
 
@@ -466,7 +459,7 @@ impl Script {
     pub fn is_fully_formattable(&mut self, config: &FormattingConfigT, parse_if_outdated: bool) -> Result<bool> {
         let parsed = self.parsed_or_parse(parse_if_outdated)?;
         let mut formatter = Formatter::new(&parsed);
-        formatter.format_bytes(config);
+        formatter.format(config);
         Ok(formatter.is_fully_formatted())
     }
 

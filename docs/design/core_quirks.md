@@ -78,13 +78,11 @@ entry when you find another one. The headings name where the behavior lives.
 - **Attribute lookup picks different duplicates** (`attrs!` in `dashql_parser::attributes`). With one
   key it returns the first matching child; with several keys it returns the last match of each. The
   analyzer relies on the same helper.
-- **Comment wrapping splits words at byte offsets** (`append_wrapped_comment_paragraph`) and can cut a
-  UTF-8 character in half. `Formatter::format_bytes` returns the raw bytes.
 - **Three whitespace sets in comments.** Trimming uses C `isspace` (including `\v`), word splitting
   uses `" \t\r\n\f"`, and the words of `@vis` tags are split at `" \t\r\f\v"` (`split_word`).
 - **Keyword upper-casing** (`append_generated_text`) only touches exact lower-case keywords in
   generated text, so source `TRUE` or `Select` stay as written. Line widths count characters, not display
-  columns, and the wrapping of comments counts bytes.
+  columns, also in the wrapping of comments.
 - **An empty property graph** formats as `Text("")`, a non-empty document.
 - **Unformattable nodes** are recorded in visit order and can repeat.
 - **Unknown enum values** are unformattable, and unknown operators get precedence 0, non-associative
@@ -132,8 +130,6 @@ entry when you find another one. The headings name where the behavior lives.
   that is then not on a boundary is an error.
 - **Cursor bookkeeping.** `analyze` stamps the cursor versions even when placing the cursor failed;
   `apply` does not.
-- **`format` allocates the entry id** before rejecting output that is not valid UTF-8 (comment
-  wrapping can cut a character).
 - **Text padding.** Spans that end past the text read two NUL padding bytes after the text
   (`padded_text` in `dashql-core/src/script_diff.rs`).
 

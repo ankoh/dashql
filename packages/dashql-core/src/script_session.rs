@@ -1201,14 +1201,10 @@ impl ScriptSession {
         compile(&mut self.script, catalog, config)
     }
 
-    /// Format the script into a new script with an entry id of `catalog`. The formatter can cut a
-    /// UTF-8 character when it wraps comments; such output is rejected after the entry id was allocated
-    /// (see docs/design/core_quirks.md).
+    /// Format the script into a new script with an entry id of `catalog`
     pub fn format(&mut self, catalog: &Catalog, config: &FormattingConfigT, parse_if_outdated: bool) -> Result<Script> {
-        let text = self.script.format_bytes(config, parse_if_outdated)?;
+        let text = self.script.format(config, parse_if_outdated)?;
         let mut result = Script::new(catalog);
-        let text = String::from_utf8(text)
-            .map_err(|_| Error::invalid_argument("invalid UTF-8 while computing rope text statistics"))?;
         result.replace_text(&text);
         Ok(result)
     }

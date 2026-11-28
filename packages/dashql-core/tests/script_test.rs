@@ -844,7 +844,6 @@ fn formatting_needs_a_parse_unless_requested() {
     script.replace_text("select   a ,b from   t");
     assert_eq!(script.format(&config, false).unwrap_err().status, Some(StatusCode::SCRIPT_NOT_PARSED));
     assert_eq!(script.format(&config, true).unwrap(), "select a, b from t;");
-    assert_eq!(script.format_bytes(&config, false).unwrap(), b"select a, b from t;");
     assert!(script.is_fully_formattable(&config, false).unwrap());
     assert!(script.unformattable_nodes(&config, false).unwrap().is_empty());
 

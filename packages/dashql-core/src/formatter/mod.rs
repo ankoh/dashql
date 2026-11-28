@@ -334,18 +334,14 @@ impl<'a> Formatter<'a> {
 
     /// Format the script
     pub fn format(&mut self, config: &FormattingConfigT) -> String {
-        bytes_to_string(self.format_bytes(config))
-    }
-
-    /// Format the script, the output may contain partial UTF-8 sequences where comments were wrapped
-    pub fn format_bytes(&mut self, config: &FormattingConfigT) -> Vec<u8> {
         self.prepare(config);
         self.prepare_precedence();
         for i in 0..self.ast.len() {
             self.identify_parentheses(self.ast.len() - 1 - i);
         }
         self.build_docs();
-        self.write_output()
+        // The output copies the text between chars, the conversion replaces nothing
+        String::from_utf8(self.write_output()).unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned())
     }
 
     /// Format a single node
@@ -3749,15 +3745,6 @@ impl<'a> Formatter<'a> {
         }
         comments::append_comments(&mut output, input, comment_range(comment_begin, comments.len()), max_width, None);
         output
-    }
-}
-
-/// The formatted output as a string. Wrapped comments may split UTF-8 sequences, they are replaced
-/// with U+FFFD.
-fn bytes_to_string(bytes: Vec<u8>) -> String {
-    match String::from_utf8(bytes) {
-        Ok(text) => text,
-        Err(e) => String::from_utf8_lossy(e.as_bytes()).into_owned(),
     }
 }
 

@@ -1040,6 +1040,19 @@ fn compatibility_query_formatting_and_diff_apis() {
 }
 
 #[test]
+fn formats_long_comments_of_multi_byte_chars() {
+    let catalog = new_catalog();
+    let mut session = session(&catalog, UTF8);
+    // 100 chars of 3 bytes without a space wrap after 77 chars, the content width of 80, not inside a char
+    session.replace_text(0, &format!("-- {}\nselect 1", "漢".repeat(100)));
+    session.analyze();
+    let mut config = config();
+    config.mode = FormattingMode::PRETTY;
+    let formatted = session.format(&config, true).unwrap();
+    assert_eq!(formatted.to_text(), format!("-- {}\n-- {}\nselect 1;", "漢".repeat(77), "漢".repeat(23)));
+}
+
+#[test]
 fn rewrites_the_board_placement_through_the_parsed_comments() {
     let catalog = new_catalog();
     let mut session = session(&catalog, UTF16);

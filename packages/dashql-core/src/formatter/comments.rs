@@ -1,7 +1,7 @@
 //! Comment output of the formatter.
 //!
-//! Comments work on bytes: wrapping splits long words at byte offsets, which can split UTF-8
-//! sequences (see docs/design/core_quirks.md).
+//! Comments work on the bytes of the text. Wrapping measures them in chars, like the renderer, and
+//! splits long words between chars.
 
 use super::{is_leaf, FmtReg, Formatter};
 use crate::analyzer::{vis_family_tag, BOARD_TAG, FLOW_TAG, VIS_TAG};
@@ -56,6 +56,16 @@ fn find_subslice(text: &[u8], needle: &[u8]) -> Option<usize> {
     text.windows(needle.len()).position(|w| w == needle)
 }
 
+/// The width of a text in chars, the bytes that start a UTF-8 character
+fn char_width(text: &[u8]) -> usize {
+    text.iter().filter(|&&ch| ch & 0xC0 != 0x80).count()
+}
+
+/// The byte offset of the char `n` chars into a text, or its length
+fn char_offset(text: &[u8], n: usize) -> usize {
+    text.iter().enumerate().filter(|(_, &ch)| ch & 0xC0 != 0x80).nth(n).map_or(text.len(), |(i, _)| i)
+}
+
 fn count_line_breaks(text: &[u8]) -> usize {
     text.iter().filter(|&&ch| ch == b'\n').count()
 }
@@ -97,34 +107,35 @@ fn append_wrapped_comment_paragraph(output: &mut Vec<u8>, words: &[&[u8]], max_w
         }
         let mut rest: &[u8] = word;
         while !rest.is_empty() {
-            let remaining = rest.len();
-            if !line.is_empty() && line.len() + 1 + remaining > content_width {
+            let remaining = char_width(rest);
+            let line_width = char_width(&line);
+            if !line.is_empty() && line_width + 1 + remaining > content_width {
                 append_comment_line(output, &line, max_width);
                 line.clear();
                 continue;
             }
 
             let separator = if line.is_empty() { 0 } else { 1 };
-            if remaining <= content_width - line.len() - separator {
+            if remaining <= content_width - line_width - separator {
                 if !line.is_empty() {
                     line.push(b' ');
                 }
                 line.extend_from_slice(rest);
                 rest = &[];
             } else {
-                let available = content_width - line.len() - separator;
+                let available = content_width - line_width - separator;
                 if !line.is_empty() {
                     line.push(b' ');
                 }
-                // `available` is below the length of the rest, the rest of a split word does not start with `@`
+                // `available` chars are fewer than the rest, the rest of a split word does not start with `@`
                 let mut available = available;
-                while available > 1 && rest.get(available) == Some(&b'@') {
+                while available > 1 && rest.get(char_offset(rest, available)) == Some(&b'@') {
                     available -= 1;
                 }
-                while rest.get(available) == Some(&b'@') {
+                while rest.get(char_offset(rest, available)) == Some(&b'@') {
                     available += 1;
                 }
-                let (head, tail) = rest.split_at_checked(available).unwrap_or((rest, &[]));
+                let (head, tail) = rest.split_at_checked(char_offset(rest, available)).unwrap_or((rest, &[]));
                 line.extend_from_slice(head);
                 rest = tail;
                 append_comment_line(output, &line, max_width);
@@ -775,6 +786,15 @@ mod tests {
         assert_eq!(format(input, &["-- aaa bbb", "-- ccc"], 9), "-- aaa\n-- bbb\n-- ccc");
         // Words longer than the line are split
         assert_eq!(format("--abcdefgh", &["--abcdefgh"], 6), "-- abc\n-- def\n-- gh");
+    }
+
+    #[test]
+    fn wraps_line_comments_between_chars() {
+        // Widths count chars and long words are split between them, never inside a UTF-8 sequence
+        assert_eq!(format("-- äö üß", &["-- äö üß"], 8), "-- äö üß");
+        assert_eq!(format("-- äö üß", &["-- äö üß"], 7), "-- äö\n-- üß");
+        assert_eq!(format("--漢字仮名交じり", &["--漢字仮名交じり"], 5), "-- 漢字\n-- 仮名\n-- 交じ\n-- り");
+        assert_eq!(format("--ab@漢字", &["--ab@漢字"], 5), "-- a\n-- b@\n-- 漢字");
     }
 
     #[test]
