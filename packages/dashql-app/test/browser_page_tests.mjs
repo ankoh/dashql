@@ -347,12 +347,17 @@ async function testAppFeedScrollPosition(page, navigate) {
             }
             return { scrollTop: list.scrollTop, rows: measured };
         };
-        // The wheel of the test scrolls a few frames later
-        for (let stable = 0, scrollTop = list.scrollTop; stable < 10; ++stable) {
+        // The wheel of the test scrolls a few frames later. The cards in the viewport may still change after the run
+        // succeeded, e.g. a result that shows its panel: a card that grows in the viewport moves the rows below it,
+        // no scrolling does. The scrolling starts once the scroll offset and the rows stayed for 10 frames and 500ms.
+        const layout = () => JSON.stringify([list.scrollTop, [...measure().rows]]);
+        for (let stable = 0, since = performance.now(), shown = layout(); stable < 10 || performance.now() - since < 500; ++stable) {
             await nextFrame();
-            if (list.scrollTop !== scrollTop) {
-                scrollTop = list.scrollTop;
+            const next = layout();
+            if (next !== shown) {
+                shown = next;
                 stable = 0;
+                since = performance.now();
             }
         }
         let maxMoved = 0;
