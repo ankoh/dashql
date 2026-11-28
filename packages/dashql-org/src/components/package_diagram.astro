@@ -115,6 +115,7 @@ const cards: DiagramCard[] = [
                 y: 552,
                 width: columnWidth,
                 height: 168,
+                badge: 'npm',
                 lines: [
                     { text: 'dashql-react' },
                     { text: 'Hooks and components', tone: 'accent' },
@@ -356,7 +357,7 @@ const arrow = `${diagram}-arrow`;
     <desc id={`${diagram}-description`}>
         The integrations dashql-mcp and dashql-slack are Cloudflare Workers that open the embed of dashql-app at run time. The website
         dashql-org takes the brand assets of the app, and the desktop app dashql-native wraps the bundle of dashql-app in Electron. The website
-        builds on dashql-react, the hooks, models, components and design tokens. The app builds on dashql-react, on dashql, the runtime in
+        builds on dashql-react, the hooks, models, components and design tokens, published on npm as @akohn/dashql-react. The app builds on dashql-react, on dashql, the runtime in
         TypeScript published on npm as @akohn/dashql, and on hyperdb-wasm, the embedded Hyper of its web connections and its embed. The
         desktop app bundles dashql-cli, the Rust command that the agents of its questions call. dashql-react builds on dashql. dashql binds the core module dashql_core.wasm and the
         dataflow layout dashql_dataflow.wasm, runs Hyper on hyperdb-wasm and checks the WebAssembly features of Node with hyperdb-edge, which
