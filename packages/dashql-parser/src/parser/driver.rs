@@ -4,7 +4,7 @@
 //! (`MAX_STACK_DEPTH`), a shift past it is a syntax error.
 
 use super::actions::{ReduceError, ReduceStack};
-use super::context::ParseContext;
+use super::context::{ParseContext, ParseError};
 use super::syntax_error::{syntax_error, Unexpected};
 use super::value::Value;
 use crate::scanner::SymbolValue;
@@ -391,8 +391,7 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
                             .map(|la| Unexpected::at(ctx.text(), ctx.symbols(), la.kind, index, previous_on_top));
                         syntax_error(&stack.states, unexpected, &mut scratch)
                     };
-                    ctx.state.borrow_mut().pending_hint = hint;
-                    ctx.error(lookahead_location, &message);
+                    ctx.state.borrow_mut().errors.push(ParseError { location: lookahead_location, message, hint });
                 }
                 unwind |= deep;
                 error_range_begin = lookahead_location;

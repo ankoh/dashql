@@ -122,8 +122,6 @@ pub(crate) struct State {
     pub(crate) errors: Vec<ParseError>,
     /// The names of the scanned script, extended by names the parser registers
     pub(crate) names: NameRegistry,
-    /// The hint of the next error, produced while building a syntax error message
-    pub(crate) pending_hint: String,
     /// Set by an action to drop the lookahead (`yyclearin`)
     pub(crate) clear_lookahead: bool,
     /// The statement being parsed, its nodes start at `nodes_begin`
@@ -513,7 +511,7 @@ impl<'a> ParseContext<'a> {
     pub fn require_table_ref_after_from(&self, from: SymbolSpan) {
         let next = (from.offset() + from.length()) as usize;
         if self.symbols.get(next).is_some_and(|symbol| symbol.kind != crate::symbol_kind::S_YYEOF) {
-            self.error(from, "expected a table reference after FROM");
+            self.add_error(from, "expected a table reference after FROM");
         }
     }
 
@@ -656,13 +654,6 @@ impl<'a> ParseContext<'a> {
             message: message.to_string(),
             hint: String::new(),
         });
-    }
-
-    /// Report an error from the parser or an action, attaching the pending hint
-    pub fn error(&self, loc: SymbolSpan, message: &str) {
-        let mut state = self.state.borrow_mut();
-        let hint = std::mem::take(&mut state.pending_hint);
-        state.errors.push(ParseError { location: loc, message: message.to_string(), hint });
     }
 
     /// Drop the lookahead after the action (`yyclearin`)
