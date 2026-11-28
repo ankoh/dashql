@@ -67,7 +67,6 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     const controllerRef = React.useRef<ShellViewController | null>(null);
     const [shell, setShell] = React.useState<DashQLShell | null>(null);
     const shellRef = React.useRef<DashQLShell | null>(null);
-    const generationRef = React.useRef(0);
     const [status, setStatus] = React.useState('Instantiating Shell');
     const releaseResult = React.useCallback((queryId: number) => {
         runtime?.dispatch({ computation: queryId }, { kind: 'deleteComputation' });
@@ -111,7 +110,6 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     const shellConnectionId = connection?.connectionId ?? null;
     React.useEffect(() => {
         if (shellConnectionId == null || catalog == null) return;
-        const generation = ++generationRef.current;
         let cancelled = false;
         const environment = createWorkbookShellEnvironment(
             workbookId,
@@ -149,7 +147,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
             environment,
             commands: mountsFiles ? [examplesCommand, lastCommand, filesCommand] : [examplesCommand, lastCommand],
         }).then(nextShell => {
-            if (cancelled || generation !== generationRef.current) {
+            if (cancelled) {
                 nextShell.destroy();
                 return;
             }
@@ -160,7 +158,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
             setShell(nextShell);
             setStatus('');
         }).catch(error => {
-            if (cancelled || generation !== generationRef.current) return;
+            if (cancelled) return;
             const message = `Failed to load shell: ${stringifyError(error)}`;
             logger.warn(message, {}, LOG_CTX);
             controllerRef.current?.writeStatus(message);
@@ -182,7 +180,6 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     // A shell goes once the view shows the next one, or with the page
     React.useEffect(() => () => shell?.destroy(), [shell]);
     React.useEffect(() => () => {
-        ++generationRef.current;
         shellRef.current = null;
     }, []);
     const exitShell = React.useCallback(() => setMode(WorkbookViewMode.Workbook), [setMode]);
@@ -212,5 +209,3 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
         </main>
     );
 };
-
-export default WorkbookShellPage;
