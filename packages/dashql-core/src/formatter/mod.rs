@@ -410,25 +410,6 @@ impl<'a> Formatter<'a> {
         self.node_states.get(begin..begin + count).unwrap_or_default().iter().map(|s| s.reg).collect()
     }
 
-    /// Look up attributes of an object.
-    ///
-    /// A single key finds the first child with that key, several keys find the last child with each
-    /// key (see docs/design/core_quirks.md).
-    fn attrs<const N: usize>(&self, node: &Node, keys: [AttributeKey; N]) -> [Option<&'a Node>; N] {
-        let mut out = [None; N];
-        for child in self.children(node) {
-            for (slot, key) in out.iter_mut().zip(keys.iter()) {
-                if child.attribute_key() == *key {
-                    *slot = Some(child);
-                    if N == 1 {
-                        return out;
-                    }
-                }
-            }
-        }
-        out
-    }
-
     /// The text of a symbol span
     fn text_at(&self, span: &SymbolSpan) -> &'a str {
         let text: &'a str = &self.scanned.text;
@@ -3819,29 +3800,5 @@ mod tests {
         assert_eq!(formatter.unformattable_nodes(), vec![0]);
         assert!(!formatter.is_fully_formatted());
         assert_eq!(formatter.format_node_at(parsed.nodes.len(), &config), "");
-    }
-
-    #[test]
-    fn looks_up_attributes_like_cxx() {
-        let node = |key: AttributeKey| Node::new(&SymbolSpan::default(), NodeType::NAME, key, 3, 0, 0);
-        let nodes = vec![
-            node(K::SQL_ALIAS_NAME),
-            node(K::SQL_ALIAS_NAME),
-            node(K::SQL_ALIAS_COLUMN_NAMES),
-            Node::new(&SymbolSpan::default(), NodeType::OBJECT_SQL_ALIAS, K::NONE, u32::MAX, 0, 3),
-        ];
-        let mut parsed = parse(Arc::new(scan("", 0, 2)));
-        parsed.nodes = nodes;
-        parsed.statements.clear();
-        let formatter = Formatter::new(&parsed);
-        let object = &parsed.nodes[3];
-        // One key: the first match, several keys: the last match
-        let [first] = formatter.attrs(object, [K::SQL_ALIAS_NAME]);
-        assert_eq!(formatter.node_id(first.unwrap()), 0);
-        let [last, columns, missing] =
-            formatter.attrs(object, [K::SQL_ALIAS_NAME, K::SQL_ALIAS_COLUMN_NAMES, K::SQL_ALIAS_COLUMN_DEFS]);
-        assert_eq!(formatter.node_id(last.unwrap()), 1);
-        assert_eq!(formatter.node_id(columns.unwrap()), 2);
-        assert!(missing.is_none());
     }
 }

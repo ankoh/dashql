@@ -12,7 +12,7 @@ use dashql_parser::comment_blocks::{
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::span::TextSpan;
 
-/// `std::isspace` in the C locale
+/// A space, tab, line break, vertical tab, form feed or carriage return
 pub(super) fn is_space(ch: u8) -> bool {
     matches!(ch, b' ' | b'\t' | b'\n' | 0x0b | 0x0c | b'\r')
 }
@@ -37,7 +37,7 @@ fn trim_whitespace(mut text: &[u8]) -> &[u8] {
     text
 }
 
-/// `std::string_view::substr`, clamped to the text
+/// `length` bytes from `offset` on, clamped to the text
 fn substr(text: &[u8], offset: usize, length: usize) -> &[u8] {
     let rest = text.get(offset..).unwrap_or_default();
     rest.get(..length).unwrap_or(rest)
@@ -47,7 +47,7 @@ fn comment_text<'a>(input: &'a [u8], comment: &TextSpan) -> &'a [u8] {
     substr(input, comment.offset as usize, comment.length as usize)
 }
 
-/// `find_first_of`
+/// The offset of the first of the chars
 fn find_first_of(text: &[u8], chars: &[u8]) -> Option<usize> {
     text.iter().position(|ch| chars.contains(ch))
 }
