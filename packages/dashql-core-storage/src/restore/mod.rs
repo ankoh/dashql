@@ -435,7 +435,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
                 None
             }
         };
-        let restore = match self.planner.begin_workbook_json(workbook_id, stored.as_ref()) {
+        let restore = match self.planner.begin_workbook(workbook_id, stored.as_ref()) {
             Ok(restore) => restore,
             Err(invalid) if invalid.error == WorkbookValidationError::WorkbookNotRestored => {
                 self.log(

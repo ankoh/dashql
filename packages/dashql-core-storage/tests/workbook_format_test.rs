@@ -1634,14 +1634,14 @@ fn planner() -> RestorePlanner {
 }
 
 fn restore(planner: &mut RestorePlanner, workbook: &Value, files: &[&str]) -> RestoredWorkbookPlan {
-    let begun = planner.begin_workbook(TEST_WORKBOOK_ID, Some(&workbook.to_string())).unwrap();
+    let begun = planner.begin_workbook(TEST_WORKBOOK_ID, Some(&workbook)).unwrap();
     planner.finish_workbook(begun, Some(&names(files))).unwrap()
 }
 
 #[test]
 fn restores_unlisted_scripts_in_natural_order_and_writes_the_list() {
     let mut planner = planner();
-    let begun = planner.begin_workbook(TEST_WORKBOOK_ID, Some(&test_workbook_json(json!({})).to_string())).unwrap();
+    let begun = planner.begin_workbook(TEST_WORKBOOK_ID, Some(&test_workbook_json(json!({})))).unwrap();
     // The workbook registered its connection, the host restores its catalog
     assert_eq!(begun.catalogs_to_restore, [TEST_CONNECTION_ID]);
     let plan = planner.finish_workbook(begun, Some(&names(&["10_last.sql", "2_first.sql"]))).unwrap();
@@ -1702,12 +1702,11 @@ fn keeps_an_empty_ephemeral_workbook_and_promotes_one_that_holds_scripts() {
     let plan = restore(&mut empty, &workbook, &[]);
     assert!(!plan.promoted && plan.metadata.is_ephemeral());
     assert_eq!(plan.pending_connection.map(|c| c.connection_id).as_deref(), Some(TEST_CONNECTION_ID));
-    assert!(empty.pending().promoted_workbooks.is_empty() && empty.pending().workbook_script_lists.is_empty());
+    assert!(empty.pending().workbook_script_lists.is_empty());
 
     let mut crashed = planner();
     let plan = restore(&mut crashed, &workbook, &["1.sql"]);
     assert!(plan.promoted && !plan.metadata.is_ephemeral());
-    assert_eq!(crashed.pending().promoted_workbooks, [TEST_WORKBOOK_ID]);
     // The writer promotes the workbook with its properties as the file holds them
     let stored = WorkbookData::from_json(&workbook);
     let promoted =
@@ -1719,18 +1718,14 @@ fn keeps_an_empty_ephemeral_workbook_and_promotes_one_that_holds_scripts() {
 fn surfaces_invalid_workbooks() {
     let mut planner = planner();
     assert_eq!(
-        planner.begin_workbook("not-a-uuid", Some("{}")).unwrap_err().error,
+        planner.begin_workbook("not-a-uuid", Some(&json!({}))).unwrap_err().error,
         WorkbookValidationError::InvalidWorkbookId
     );
     assert_eq!(
         planner.begin_workbook(TEST_WORKBOOK_ID, None).unwrap_err().error,
         WorkbookValidationError::WorkbookUnreadable
     );
-    assert_eq!(
-        planner.begin_workbook(TEST_WORKBOOK_ID, Some("{")).unwrap_err().error,
-        WorkbookValidationError::WorkbookUnreadable
-    );
-    let v1 = test_workbook_json(json!({ "formatVersion": 1 })).to_string();
+    let v1 = test_workbook_json(json!({ "formatVersion": 1 }));
     let invalid = planner.begin_workbook(TEST_WORKBOOK_ID, Some(&v1)).unwrap_err();
     assert_eq!(
         (invalid.error, invalid.title.as_str()),
@@ -1738,7 +1733,7 @@ fn surfaces_invalid_workbooks() {
     );
     assert!(planner.connections().is_empty());
     // A workbook whose scripts can't be listed
-    let begun = planner.begin_workbook(TEST_WORKBOOK_ID, Some(&test_workbook_json(json!({})).to_string())).unwrap();
+    let begun = planner.begin_workbook(TEST_WORKBOOK_ID, Some(&test_workbook_json(json!({})))).unwrap();
     assert_eq!(planner.finish_workbook(begun, None).unwrap_err().error, WorkbookValidationError::WorkbookNotRestored);
 }
 
@@ -1759,7 +1754,7 @@ fn lets_the_app_manifest_win_over_stale_workbook_copies() {
     let stale = test_workbook_json(
         json!({ "connections": [{ "connectionId": TEST_CONNECTION_ID, "params": { "trino": { "endpoint": "https://stale" } } }] }),
     );
-    let begun = planner.begin_workbook(TEST_WORKBOOK_ID, Some(&stale.to_string())).unwrap();
+    let begun = planner.begin_workbook(TEST_WORKBOOK_ID, Some(&stale)).unwrap();
     // The catalog of a connection of the manifest is restored already
     assert!(begun.catalogs_to_restore.is_empty());
     planner.finish_workbook(begun, Some(&[][..])).unwrap();
@@ -1832,11 +1827,13 @@ fn restores_an_imported_workbook_against_the_live_connections() {
         ],
         "scripts": [{ "name": "01_known.sql", "connectionId": OTHER_CONNECTION_ID }, { "name": "02_new.sql", "connectionId": TEST_CONNECTION_ID }],
     }));
-    let begun = planner.begin_workbook(TEST_WORKBOOK_ID, Some(&workbook.to_string())).unwrap();
+    let begun = planner.begin_workbook(TEST_WORKBOOK_ID, Some(&workbook)).unwrap();
     assert_eq!(begun.connection_ids, [OTHER_CONNECTION_ID, TEST_CONNECTION_ID]);
     assert_eq!(begun.catalogs_to_restore, [TEST_CONNECTION_ID]);
     planner.finish_workbook(begun, Some(&names(&["01_known.sql", "02_new.sql"]))).unwrap();
-    assert_eq!(planner.new_connections().map(|c| c.connection_id.as_str()).collect::<Vec<_>>(), [TEST_CONNECTION_ID]);
+    // The workbook registered the connection the app didn't know
+    let registered: Vec<&str> = planner.pending().connection_entries.iter().map(|c| c.id.as_str()).collect();
+    assert_eq!(registered, [TEST_CONNECTION_ID]);
     // A workbook without a usable copy of its embedded database registers a new one
     let mut fresh = self::planner();
     let remote_only = test_workbook_json(

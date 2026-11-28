@@ -69,8 +69,6 @@ pub struct RestorePendingWrites {
     pub workbook_copies: Vec<(String, String)>,
     /// Workbooks whose script lists or connections disagree with the restored scripts
     pub workbook_script_lists: Vec<WorkbookScriptListWrite>,
-    /// Ephemeral workbooks that hold scripts, the app stopped before their promotion was written
-    pub promoted_workbooks: Vec<String>,
 }
 
 /// The script list of a restored workbook to write
@@ -123,8 +121,6 @@ pub struct RestoredWorkbookPlan {
 pub struct RestorePlanner {
     /// The connections in the order they were registered
     connections: Vec<RestoreConnection>,
-    /// The connections that workbooks registered
-    new_connections: Vec<String>,
     /// The connections whose catalog is restored or live
     catalogs_restored: HashSet<String>,
     /// The writes after the restore
@@ -145,7 +141,6 @@ impl RestorePlanner {
     pub fn new(now: impl Into<String>, new_uuid: Box<dyn FnMut() -> Option<String>>) -> Self {
         Self {
             connections: Vec::new(),
-            new_connections: Vec::new(),
             catalogs_restored: HashSet::new(),
             pending: RestorePendingWrites::default(),
             now: now.into(),
@@ -176,11 +171,6 @@ impl RestorePlanner {
     /// A known connection
     pub fn connection(&self, connection_id: &str) -> Option<&RestoreConnection> {
         self.connections.iter().find(|connection| connection.connection_id == connection_id)
-    }
-
-    /// The connections that workbooks registered, in order
-    pub fn new_connections(&self) -> impl Iterator<Item = &RestoreConnection> {
-        self.new_connections.iter().filter_map(|id| self.connection(id))
     }
 
     /// The writes after the restore
@@ -231,7 +221,6 @@ impl RestorePlanner {
             name: copy.name.clone(),
         };
         self.connections.push(connection.clone());
-        self.new_connections.push(connection_id.clone());
         self.pending.connection_entries.push(ConnectionEntry {
             params_draft: copy.params_draft.clone(),
             name: copy.name.clone(),
@@ -269,19 +258,10 @@ impl RestorePlanner {
         self.resolve_workbook_connection(workbook_id, &copy)
     }
 
-    /// Load a workbook of the workbook tree: check its id and its file (None if it couldn't be read) and resolve the
-    /// connections it uses. A workbook that fails is invalid, the workbench shows it and the user can delete it.
+    /// Load a workbook of the workbook tree: check its id and its file as JSON (None if it couldn't be read) and
+    /// resolve the connections it uses. A workbook that fails is invalid, the workbench shows it and the user can delete
+    /// it.
     pub fn begin_workbook(
-        &mut self,
-        entry_path: &str,
-        text: Option<&str>,
-    ) -> std::result::Result<WorkbookRestore, InvalidWorkbook> {
-        let json = text.and_then(|text| serde_json::from_str::<Value>(text).ok());
-        self.begin_workbook_json(entry_path, json.as_ref())
-    }
-
-    /// Load a workbook of the workbook tree from its file as JSON, see `begin_workbook`
-    pub fn begin_workbook_json(
         &mut self,
         entry_path: &str,
         json: Option<&Value>,
@@ -345,7 +325,6 @@ impl RestorePlanner {
         let promoted = metadata.is_ephemeral() && !resolved.scripts.is_empty();
         if promoted {
             metadata.ephemeral = None;
-            self.pending.promoted_workbooks.push(workbook_id.clone());
         }
         // A folder without any script file whose workbook file lists scripts lost its files only for a while, more
         // likely than the user deleted every script outside the app. The list is kept for the files to come back.
