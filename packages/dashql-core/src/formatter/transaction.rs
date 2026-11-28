@@ -5,7 +5,7 @@
 //! meaning, the parser drops them. The formatter writes `start transaction`, `release savepoint` and `rollback to
 //! savepoint` in full and leaves out the other noise words.
 
-use super::{value_u8, FmtReg, Formatter, K};
+use super::{is_true, value_u8, FmtReg, Formatter, K};
 use dashql_buffers::parser::{Node, NodeType, TransactionCommand as C, TransactionIsolationLevel};
 use dashql_parser::attrs;
 
@@ -50,7 +50,6 @@ impl<'a> Formatter<'a> {
             self.children(node),
             [K::SQL_TRANSACTION_ISOLATION_LEVEL, K::SQL_TRANSACTION_READ_ONLY, K::SQL_TRANSACTION_DEFERRABLE],
         );
-        let flag = |n: &Node| n.children_begin_or_value() != 0;
         let text = match (isolation_level, read_only, deferrable) {
             (Some(level), None, None) if level.node_type() == NodeType::ENUM_SQL_TRANSACTION_ISOLATION_LEVEL => {
                 match TransactionIsolationLevel(value_u8(level)) {
@@ -62,14 +61,14 @@ impl<'a> Formatter<'a> {
                 }
             }
             (None, Some(read_only), None) => {
-                if flag(read_only) {
+                if is_true(Some(read_only)) {
                     "read only"
                 } else {
                     "read write"
                 }
             }
             (None, None, Some(deferrable)) => {
-                if flag(deferrable) {
+                if is_true(Some(deferrable)) {
                     "deferrable"
                 } else {
                     "not deferrable"

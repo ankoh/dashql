@@ -1,6 +1,6 @@
 //! CREATE, DROP and ALTER of tables, views, schemas and functions, ATTACH, SET and RESET statements.
 
-use super::{FmtReg, Formatter, FormattingJoinPolicy, K};
+use super::{is_true, FmtReg, Formatter, FormattingJoinPolicy, K};
 use dashql_buffers::parser::{
     FunctionOption, FunctionParameterMode, Node, NodeType, OnCommitOption, SessionParameter, TableLikeOption, TempType,
     ZoneValueType,
@@ -154,8 +154,7 @@ impl<'a> Formatter<'a> {
         let body = self.space_join(&[header, self.reg(statement)], FormattingJoinPolicy::BreakAllOrNone, false);
         match with_data {
             Some(with_data) => {
-                let include_data = with_data.node_type() == NodeType::BOOL && with_data.children_begin_or_value() != 0;
-                f.concat(&[body, f.text(if include_data { " with data" } else { " with no data" })])
+                f.concat(&[body, f.text(if is_true(Some(with_data)) { " with data" } else { " with no data" })])
             }
             None => body,
         }

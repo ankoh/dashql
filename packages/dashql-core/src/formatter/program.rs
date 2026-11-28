@@ -11,16 +11,6 @@ use std::cell::RefCell;
 pub const FORMATTING_DEFAULT_INDENTATION_WIDTH: usize = 2;
 pub const FORMATTING_DEFAULT_MAX_WIDTH: usize = 120;
 
-/// Parse a formatting mode, compact is the default
-pub fn parse_formatting_mode(value: &str) -> FormattingMode {
-    match value {
-        "inline" => FormattingMode::INLINE,
-        "compact" => FormattingMode::COMPACT,
-        "pretty" => FormattingMode::PRETTY,
-        _ => FormattingMode::COMPACT,
-    }
-}
-
 /// The name of a formatting mode
 pub fn formatting_mode_to_string(mode: FormattingMode) -> &'static str {
     match mode {
@@ -28,15 +18,6 @@ pub fn formatting_mode_to_string(mode: FormattingMode) -> &'static str {
         FormattingMode::COMPACT => "compact",
         FormattingMode::PRETTY => "pretty",
         _ => "compact",
-    }
-}
-
-/// Parse a formatting dialect, hyper is the default
-pub fn parse_formatting_dialect(value: &str) -> FormattingDialect {
-    match value {
-        "hyper" => FormattingDialect::HYPER,
-        "trino" => FormattingDialect::TRINO,
-        _ => FormattingDialect::HYPER,
     }
 }
 
@@ -170,21 +151,6 @@ impl<'a> FormattingProgram<'a> {
         let mut program = self.program.borrow_mut();
         program.clear();
         program.push(FormattingOperation::default());
-    }
-
-    /// The number of operations, including the empty document
-    pub fn len(&self) -> usize {
-        self.program.borrow().len()
-    }
-
-    /// Is the program empty (only the empty document)?
-    pub fn is_empty(&self) -> bool {
-        self.len() <= 1
-    }
-
-    /// A copy of an operation, the empty document for a register outside of the program
-    pub fn get(&self, reg: FmtReg) -> FormattingOperation<'a> {
-        self.program.borrow().get(reg as usize).cloned().unwrap_or_default()
     }
 
     pub fn empty(&self) -> FmtReg {
@@ -1041,10 +1007,10 @@ mod tests {
         config.mode = FormattingMode::PRETTY;
         f.set_config(&config);
         let all_or_none = comma_list(&f, &["a"; 3], None);
-        assert_eq!(f.get(overflow).join_policy, FormattingJoinPolicy::BreakOnOverflow);
-        assert_eq!(f.get(all_or_none).join_policy, FormattingJoinPolicy::BreakAllOrNone);
+        assert_eq!(f.program.borrow()[overflow as usize].join_policy, FormattingJoinPolicy::BreakOnOverflow);
+        assert_eq!(f.program.borrow()[all_or_none as usize].join_policy, FormattingJoinPolicy::BreakAllOrNone);
         f.reset();
-        assert!(f.is_empty());
+        assert_eq!(f.program.borrow().len(), 1);
     }
 
     #[test]

@@ -53,7 +53,7 @@ struct Args {
     help: bool,
 }
 
-/// Parse a dialect, unlike `parse_formatting_dialect` of the core an unknown name is an error
+/// Parse a dialect, an unknown name is an error
 fn parse_dialect(name: &str) -> Result<FormattingDialect, String> {
     match name {
         "hyper" => Ok(FormattingDialect::HYPER),

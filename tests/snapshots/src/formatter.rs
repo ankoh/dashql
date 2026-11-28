@@ -4,10 +4,25 @@
 //! formatted output against a live database.
 
 use crate::{load_category, SnapshotCase, Yaml};
-use dashql_buffers::formatting::FormattingConfigT;
-use dashql_core::formatter::{
-    parse_formatting_dialect, parse_formatting_mode, FORMATTING_DEFAULT_INDENTATION_WIDTH, FORMATTING_DEFAULT_MAX_WIDTH,
-};
+use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode};
+use dashql_core::formatter::{FORMATTING_DEFAULT_INDENTATION_WIDTH, FORMATTING_DEFAULT_MAX_WIDTH};
+
+/// Parse a formatting mode, compact is the default
+pub fn parse_formatting_mode(value: &str) -> FormattingMode {
+    match value {
+        "inline" => FormattingMode::INLINE,
+        "pretty" => FormattingMode::PRETTY,
+        _ => FormattingMode::COMPACT,
+    }
+}
+
+/// Parse a formatting dialect, hyper is the default
+pub fn parse_formatting_dialect(value: &str) -> FormattingDialect {
+    match value {
+        "trino" => FormattingDialect::TRINO,
+        _ => FormattingDialect::HYPER,
+    }
+}
 
 /// One (config, expected output) pair
 pub struct Expectation {

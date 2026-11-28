@@ -18,8 +18,7 @@ use dashql_core::catalog::Catalog;
 use dashql_core::completion::Completion;
 use dashql_core::cursor::{ScriptCursor, ScriptView};
 use dashql_core::formatter::{
-    formatting_mode_to_string, parse_formatting_dialect, parse_formatting_mode, Formatter,
-    FORMATTING_DEFAULT_INDENTATION_WIDTH, FORMATTING_DEFAULT_MAX_WIDTH,
+    formatting_mode_to_string, Formatter, FORMATTING_DEFAULT_INDENTATION_WIDTH, FORMATTING_DEFAULT_MAX_WIDTH,
 };
 use dashql_core::script_diff::ScriptDiff;
 use dashql_core::visualize::{compile_markdown_spec, generate_vegalite_spec};
@@ -31,6 +30,7 @@ use dashql_snapshots::encode::query_profile::{
 };
 use dashql_snapshots::encode::visualize::encode_markdown_spec;
 use dashql_snapshots::encode::{analyzer, dataflow, diff, encode_location_text, parser, planner, Map};
+use dashql_snapshots::formatter::{parse_formatting_dialect, parse_formatting_mode};
 use dashql_snapshots::ryml::{self, Node};
 use dashql_snapshots::trim_input;
 use std::fs;

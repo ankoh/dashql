@@ -142,15 +142,7 @@ impl<'a> Formatter<'a> {
             clauses.push(f.concat(&[f.text("columns "), f.parenthesized(self.reg(columns))]));
         }
         let body = self.space_join(&clauses, self.pretty_policy(FormattingJoinPolicy::BreakOnOverflow), true);
-        if self.is_pretty() {
-            return f.concat(&[
-                f.text("graph_table("),
-                f.indented(f.concat(&[f.break_(), body])),
-                f.break_(),
-                f.text(")"),
-            ]);
-        }
-        f.concat(&[f.text("graph_table"), f.parenthesized(body)])
+        f.concat(&[f.text("graph_table"), self.pretty_parenthesized(body)])
     }
 
     pub(super) fn format_graph_match(&self, node: &'a Node) -> FmtReg {

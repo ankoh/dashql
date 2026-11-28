@@ -264,7 +264,7 @@ fn bool_value(node: Option<&Node>) -> Option<bool> {
 
 /// Is the node a true BOOL?
 fn is_true(node: Option<&Node>) -> bool {
-    node.is_some_and(|n| n.node_type() == NodeType::BOOL && n.children_begin_or_value() != 0)
+    bool_value(node) == Some(true)
 }
 
 /// A part of the formatted script
@@ -318,10 +318,6 @@ impl<'a> Formatter<'a> {
         self.replace_obfuscated_literals = true;
     }
 
-    pub fn estimate_formatted_size(&self) -> usize {
-        self.scanned.text.len() + 64
-    }
-
     /// The nodes that could not be formatted by the last call of `format` or `format_node_at`
     pub fn unformattable_nodes(&self) -> Vec<u32> {
         self.unformattable_nodes.borrow().clone()
@@ -335,12 +331,7 @@ impl<'a> Formatter<'a> {
 
     /// Format the script
     pub fn format(&mut self, config: &FormattingConfigT) -> String {
-        self.prepare(config);
-        self.prepare_precedence();
-        for i in 0..self.ast.len() {
-            self.identify_parentheses(self.ast.len() - 1 - i);
-        }
-        self.build_docs();
+        self.build(config);
         // The output copies the text between chars, the conversion replaces nothing
         String::from_utf8(self.write_output()).unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned())
     }
@@ -350,14 +341,19 @@ impl<'a> Formatter<'a> {
         if node_id >= self.ast.len() {
             return String::new();
         }
+        self.build(config);
+        // There is a state per node
+        self.render(self.node_states.get(node_id).map_or(0, |state| state.reg))
+    }
+
+    /// Build the documents of all nodes
+    fn build(&mut self, config: &FormattingConfigT) {
         self.prepare(config);
         self.prepare_precedence();
         for i in 0..self.ast.len() {
             self.identify_parentheses(self.ast.len() - 1 - i);
         }
         self.build_docs();
-        // There is a state per node
-        self.render(self.node_states.get(node_id).map_or(0, |state| state.reg))
     }
 
     fn prepare(&mut self, config: &FormattingConfigT) {
@@ -376,7 +372,7 @@ impl<'a> Formatter<'a> {
 
     /// The id of a node of the AST
     fn node_id(&self, node: &Node) -> usize {
-        (node as *const Node as usize - self.ast.as_ptr() as usize) / std::mem::size_of::<Node>()
+        self.parsed.node_id(node) as usize
     }
 
     /// The state of a node, there is one per node
@@ -421,6 +417,15 @@ impl<'a> Formatter<'a> {
 
     fn is_pretty(&self) -> bool {
         self.config.mode == FormattingMode::PRETTY
+    }
+
+    /// Parentheses that put their content on an indented line of its own in pretty mode
+    fn pretty_parenthesized(&self, body: FmtReg) -> FmtReg {
+        let f = &self.fmt;
+        if !self.is_pretty() {
+            return f.parenthesized(body);
+        }
+        f.concat(&[f.text("("), f.indented(f.concat(&[f.break_(), body])), f.break_(), f.text(")")])
     }
 
     /// ForceBreak in pretty mode, `otherwise` in the other modes
@@ -909,12 +914,11 @@ impl<'a> Formatter<'a> {
                 return self.format_unimplemented(node);
             }
             // The alias of the target of an INSERT and of the table of a property graph element needs its AS
-            let separator =
-                if matches!(node.attribute_key(), K::SQL_INSERT_TARGET | K::SQL_GRAPH_ELEMENT_TABLE_TABLE) {
-                    " as "
-                } else {
-                    " "
-                };
+            let separator = if matches!(node.attribute_key(), K::SQL_INSERT_TARGET | K::SQL_GRAPH_ELEMENT_TABLE_TABLE) {
+                " as "
+            } else {
+                " "
+            };
             base_reg = f.concat(&[base_reg, f.text(separator), alias_reg]);
         }
         if let Some(sample) = sample {
@@ -1121,8 +1125,8 @@ impl<'a> Formatter<'a> {
             return f.empty();
         };
         let arg_reg = match arg {
-            Some(arg) if arg.node_type() != NodeType::NONE => self.reg(arg),
-            _ => 0,
+            Some(arg) => self.reg(arg),
+            None => 0,
         };
         let wrap = |keyword: &'static str| {
             if arg_reg == 0 {
@@ -2047,11 +2051,8 @@ impl<'a> Formatter<'a> {
         }
 
         if let Some(constraint_definition) = constraint_definition {
-            let def_reg = self.reg_or_placeholder(constraint_definition);
-            if def_reg != 0 {
-                parts.push(f.text(" with "));
-                parts.push(f.parenthesized(def_reg));
-            }
+            parts.push(f.text(" with "));
+            parts.push(f.parenthesized(self.reg_or_placeholder(constraint_definition)));
         }
         f.concat(&parts)
     }
@@ -2089,8 +2090,8 @@ impl<'a> Formatter<'a> {
             return f.concat(&[key_reg, f.text(" => "), self.reg_or_placeholder(value)]);
         }
         match value {
-            Some(value) if value.node_type() != NodeType::NONE => f.concat(&[key_reg, f.text(" "), self.reg(value)]),
-            _ => key_reg,
+            Some(value) => f.concat(&[key_reg, f.text(" "), self.reg(value)]),
+            None => key_reg,
         }
     }
 
@@ -2814,10 +2815,8 @@ impl<'a> Formatter<'a> {
 
         let body = if graph.is_some_and(|g| g.children_count() == 0) {
             f.text("()")
-        } else if self.is_pretty() {
-            f.concat(&[f.text("("), f.indented(f.concat(&[f.break_(), body_reg])), f.break_(), f.text(")")])
         } else {
-            f.parenthesized(body_reg)
+            self.pretty_parenthesized(body_reg)
         };
 
         let as_reg = if graph.is_some() {
@@ -3462,7 +3461,7 @@ impl<'a> Formatter<'a> {
         let options = self.render_options();
         let statements = &self.parsed.statements;
         let parts = self.output_parts();
-        let mut output: Vec<u8> = Vec::with_capacity(self.estimate_formatted_size());
+        let mut output: Vec<u8> = Vec::with_capacity(self.scanned.text.len() + 64);
 
         if self.config.debug_mode {
             output.extend_from_slice(
