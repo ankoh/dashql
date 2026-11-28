@@ -9,7 +9,6 @@ exports_files([
     "external_bison.bzl",
     "external_duckdb_cli.BUILD",
     "external_m4.bzl",
-    "macos_packaging.bzl",
     "rustfmt_test.sh",
 ])
 

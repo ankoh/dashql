@@ -6,7 +6,7 @@
 # bazel run //packages/dashql-cli:dashql -- --session <folder>/session.json scripts
 
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
-load("//bazel:macos_packaging.bzl", "platform_binary")
+load("//bazel:platform_binary.bzl", "platform_binary")
 load("//bazel:rust_safety.bzl", "rust_safety_test")
 load("//bazel:rustfmt.bzl", "rustfmt_test")
 

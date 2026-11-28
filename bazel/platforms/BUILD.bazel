@@ -17,7 +17,7 @@ platform(
     constraint_values = [":is_wasm_tool_exec"],
 )
 
-# macOS platforms for universal binary builds (macos_universal_binary rule).
+# The macOS platforms that platform_binary builds the arm64 and x86_64 binaries of the macOS bundle for.
 platform(
     name = "aarch64_macos",
     constraint_values = [

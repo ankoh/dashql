@@ -194,7 +194,7 @@ when they are gone, and without the third rule they stop receiving updates witho
 
 ## Not Implemented
 
-- Universal macOS app and DMG; the `lipo` rule in `bazel/macos_packaging.bzl` is unused.
+- Universal macOS app and DMG.
 - Signed update manifests, staged rollout cohorts, a kill switch, and update failure tests.
 - Proxy request cancellation, backpressure, a startup timeout, response size bounds, and restart after a
   utility-process crash.
