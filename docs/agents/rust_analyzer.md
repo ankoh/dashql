@@ -24,7 +24,7 @@ The script wraps `@rules_rust//tools/rust_analyzer:gen_rust_project` and fixes u
 
 - Crates that are also built for wasm32 appear only once, in their native configuration.
 - The parser crate mixes checked-in and generated sources. The script symlinks the generated sources next to
-  the checked-in ones (`src/tables.rs`, `src/keywords/table.rs`, `tests/calc_tables.rs`). The links are
+  the checked-in ones (`src/tables.rs`, `src/keywords/table.rs`). The links are
   git-ignored, and Bazel resolves their paths to the generated files, so they do not affect the build.
 
 `rust-project.json` and the links contain absolute paths of the local Bazel output base and are not checked in.

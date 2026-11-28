@@ -6,7 +6,6 @@
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 load("//bazel:rust_safety.bzl", "rust_safety_test")
 load("//bazel:rustfmt.bzl", "rustfmt_test")
-load("//grammar/rust:defs.bzl", "bison_rust_tables")
 
 # rules_rust places generated sources next to the checked-in ones only if they belong to the same
 # package, copy the generated modules of //grammar into the crate.
@@ -57,25 +56,6 @@ rust_test(
 rust_safety_test(
     name = "clippy_test",
     deps = [":dashql_parser"],
-)
-
-# A calculator grammar with Rust actions exercises the action path of the skeleton.
-bison_rust_tables(
-    name = "calc_tables_rs",
-    actions = True,
-    grammar = "tests/calc.y",
-    out = "tests/calc_tables.rs",
-)
-
-rust_test(
-    name = "dashql_parser_skeleton_test",
-    size = "small",
-    srcs = [
-        "tests/calc_test.rs",
-        ":calc_tables_rs",
-    ],
-    crate_root = "tests/calc_test.rs",
-    edition = "2021",
 )
 
 # rustfmt of the Rust files of the package, see //bazel:rustfmt.bzl

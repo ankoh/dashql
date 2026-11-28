@@ -115,7 +115,6 @@ genrule(
 
 bison_rust_tables(
     name = "parser_tables_rs",
-    actions = True,
     grammar = ":grammar_y",
     out = "gen/rust/parser_tables.rs",
 )

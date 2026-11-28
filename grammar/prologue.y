@@ -8,7 +8,6 @@ use crate::parser::actions::*;
 %define api.token.raw true
 %define api.rust.context {ParseContext}
 %define api.rust.location {SymbolSpan}
-%define api.rust.error {ReduceError}
 
 %require "3.3"
 

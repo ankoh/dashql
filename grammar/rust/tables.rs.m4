@@ -8,8 +8,7 @@
 #   - the automaton constants (YYNTOKENS, YYLAST, YYFINAL, ...),
 #   - the symbol names (yytname) for verbose error messages,
 #   - one `pub const S_*: u16` per symbol kind (mirrors bison's C++ symbol_kind),
-#   - optionally (-Dapi.rust.actions=true) a `reduce` function that dispatches the
-#     user actions of the grammar by rule number.
+#   - a `reduce` function that dispatches the user actions of the grammar by rule number.
 #
 # The LR driver (parse loop, LAC, error recovery, completion probes) is hand-written
 # Rust and lives in the consuming crate. Keeping it out of the skeleton lets the
@@ -32,7 +31,7 @@
 #   }
 #
 # Usage (see //grammar/rust:defs.bzl):
-#   bison -S tables.rs.m4 [-Dapi.rust.actions=true] -o out.rs grammar.y
+#   bison -S tables.rs.m4 -o out.rs grammar.y
 
 m4_include(b4_skeletonsdir/[c-like.m4])
 
@@ -41,13 +40,8 @@ m4_include(b4_skeletonsdir/[c-like.m4])
 ## ------------------- ##
 
 b4_percent_define_default([[api.symbol.prefix]], [[S_]])
-b4_percent_define_default([[api.rust.actions]], [[false]])
 b4_percent_define_default([[api.rust.context]], [[ParseContext]])
 b4_percent_define_default([[api.rust.location]], [[Location]])
-b4_percent_define_default([[api.rust.error]], [[ReduceError]])
-
-m4_define([b4_rust_actions_if],
-[b4_percent_define_flag_if([[api.rust.actions]], [$1], [$2])])
 
 # The C++ grammar prologue defines options for lalr1.cc (variants, token
 # constructors, ...). They are irrelevant for table emission; mark them as used so
@@ -160,9 +154,9 @@ m4_define([b4_case],
                 ctx: &mut ]b4_percent_define_get([[api.rust.context]])[,
                 yystack: &impl ReduceStack,
                 yyloc: ]b4_percent_define_get([[api.rust.location]])[,
-            ) -> Result<Value, ]b4_percent_define_get([[api.rust.error]])[> {
+            ) -> Value {
                 let yyvalue = $2;
-                Ok(Value::from(yyvalue))
+                Value::from(yyvalue)
             }
             action(ctx, yystack, yyloc)
         }
@@ -211,25 +205,23 @@ pub static YYTNAME: &@{&str@} = &@{
 /// Symbol kinds, numbered like bison's C++ `symbol_kind`.
 pub mod symbol_kind {
 ]b4_symbol_foreach([b4_symbol_kind_const])[}
-]b4_rust_actions_if([[
+
 /// Run the user action of rule YYN.
 ///
 /// `yystack` holds the right-hand side of the rule, the top of the stack being the
 /// last symbol. `yyloc` is the location of the left-hand side. Rules without an
-/// action return `Ok(None)`, the caller applies the default action.
+/// action return `None`, the caller applies the default action.
 pub fn reduce(
     ctx: &mut ]b4_percent_define_get([[api.rust.context]])[,
     yyn: usize,
     yystack: &impl ReduceStack,
     yyloc: ]b4_percent_define_get([[api.rust.location]])[,
-) -> Result<Option<Value>, ]b4_percent_define_get([[api.rust.error]])[> {
-    let yyresult: Result<Value, ]b4_percent_define_get([[api.rust.error]])[> = match yyn {
+) -> Option<Value> {
+    Some(match yyn {
 ]b4_user_actions[
-        _ => return Ok(None),
-    };
-    yyresult.map(Some)
+        _ => return None,
+    })
 }
-]])[
 ]b4_percent_code_get([[epilogue]])[]dnl
 b4_epilogue[]dnl
 b4_output_end

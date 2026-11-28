@@ -32,13 +32,6 @@ pub trait ReduceStack {
     fn location_at(&self, i: usize) -> SymbolSpan;
 }
 
-/// An action failed
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ReduceError {
-    /// The action raised `YYERROR`
-    YyError,
-}
-
 /// Set the attribute key of a node
 pub fn attr(key: AttributeKey, node: Node) -> Node {
     Node::new(

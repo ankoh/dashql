@@ -3,7 +3,7 @@
 //! token, and a custom default location for reductions. The stack has a depth limit
 //! (`MAX_STACK_DEPTH`), a shift past it is a syntax error.
 
-use super::actions::{ReduceError, ReduceStack};
+use super::actions::ReduceStack;
 use super::context::{ParseContext, ParseError};
 use super::syntax_error::{syntax_error, Unexpected};
 use super::value::Value;
@@ -350,30 +350,16 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
                 let rhs = stack.locations.get(n.saturating_sub(len)..).unwrap_or_default();
                 let location = default_location(rhs, stack.locations.last().copied().unwrap_or_default());
                 error_range_begin = location;
-                match reduce(ctx, rule, &stack, location) {
-                    Ok(value) => {
-                        // Keep statement separators and closing brackets available to the recovery productions.
-                        if std::mem::take(&mut ctx.state.borrow_mut().clear_lookahead)
-                            && lookahead.is_none_or(|la| !keeps_after_recovery(la.kind))
-                        {
-                            lookahead = None;
-                        }
-                        stack.pop(len);
-                        stack.push(lhs_state, value.unwrap_or(Value::Empty), location);
-                        Label::NewState
-                    }
-                    Err(ReduceError::YyError) => {
-                        // Keep statement separators and closing brackets available to the recovery productions.
-                        if std::mem::take(&mut ctx.state.borrow_mut().clear_lookahead)
-                            && lookahead.is_none_or(|la| !keeps_after_recovery(la.kind))
-                        {
-                            lookahead = None;
-                        }
-                        // yyerrorlab: do not reclaim the symbols of the rule
-                        stack.pop(len);
-                        Label::ErrLab1
-                    }
+                let value = crate::tables::reduce(ctx, rule, &stack, location);
+                // Keep statement separators and closing brackets available to the recovery productions.
+                if std::mem::take(&mut ctx.state.borrow_mut().clear_lookahead)
+                    && lookahead.is_none_or(|la| !keeps_after_recovery(la.kind))
+                {
+                    lookahead = None;
                 }
+                stack.pop(len);
+                stack.push(lhs_state, value.unwrap_or(Value::Empty), location);
+                Label::NewState
             }
             Label::ErrLab => {
                 let deep = std::mem::take(&mut too_deep);
@@ -452,16 +438,6 @@ pub(super) fn statement_bottom(states: &[StateId]) -> Option<usize> {
 /// part of a statement, otherwise the recovery is already at the statement level.
 pub(super) fn inside_statement(states: &[StateId]) -> bool {
     statement_bottom(states).is_some_and(|bottom| states.len() > bottom + 2)
-}
-
-/// Run the action of a rule
-fn reduce(
-    ctx: &mut ParseContext,
-    rule: usize,
-    stack: &Stack,
-    location: SymbolSpan,
-) -> Result<Option<Value>, ReduceError> {
-    crate::tables::reduce(ctx, rule, stack, location)
 }
 
 #[cfg(test)]

@@ -106,7 +106,7 @@ bazel test //...
 
 | Target | Purpose |
 |--------|---------|
-| `//packages/dashql-parser:all` | Scanner and parser unit tests, bison skeleton test, Clippy with the safety lints |
+| `//packages/dashql-parser:all` | Scanner and parser unit tests, Clippy with the safety lints |
 | `//packages/dashql-core:all` | Core unit tests with the script session, compiler, batch and touched relation tests, the analyzer, completion, formatter, diff and visualize snapshot tests, the Hyper validation, Clippy with the safety lints |
 | `//packages/dashql-core-runtime:all` | Runtime tests without the storage, the planner and dataflow snapshot tests, the Hyper validation of the planner, and Clippy with the safety lints (`clippy_test`, see "Clippy") |
 | `//packages/dashql-core-storage:all` | The storage writer, the restore, the workbook format and the migrations of the storage on fake hosts, Clippy with the safety lints |
