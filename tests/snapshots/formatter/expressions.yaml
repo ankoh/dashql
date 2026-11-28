@@ -662,7 +662,16 @@ formatter-snapshots:
       select a not glob b
     dialects:
       hyper:
-        skip: true
+        formatted:
+          - mode: inline
+            expected: |-
+              select a not glob b;
+          - mode: compact
+            expected: |-
+              select a not glob b;
+          - mode: pretty
+            expected: |-
+              select a not glob b;
 
   - name: expr_similar_to
     input: |-

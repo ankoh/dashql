@@ -249,7 +249,6 @@ formatter-snapshots:
     input: select a not glob b
     dialects:
       hyper:
-        skip: true
 
   - name: expr_similar_to
     input: select a similar to b
