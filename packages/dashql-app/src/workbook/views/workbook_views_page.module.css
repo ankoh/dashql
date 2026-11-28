@@ -312,9 +312,9 @@
 @media only screen and (max-width: 839px) {
     .page {
         --workbook_header_height: 44px;
-        /* The cards of the feed and the dashboard get the width of a phone, a narrow gutter keeps them apart from the
-           edges */
-        --page_gutter: 8px;
+        /* The cards of the feed and the dashboard get the width of a phone, the gutter of a narrow desktop window keeps
+           them apart from the edges */
+        --page_gutter: 16px;
         /* The dark chrome is the top of the window, there is no stripe (navbar.module.css). It shows in the rounded
            corners of the card below it, like below the stripe of a wide window. */
         border-radius: 0;
