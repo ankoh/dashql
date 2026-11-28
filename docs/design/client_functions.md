@@ -390,7 +390,6 @@ The same walk tells a key position from a value position. Completion inside a st
 {
   "namespace": "tickets",
   "function": "webhook_create",
-  "effect": "write",
   "explain": false,
   "options": { "url": null, "signing_key": null, "retries": 3 },
   "bindings": [

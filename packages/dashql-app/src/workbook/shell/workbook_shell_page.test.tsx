@@ -538,7 +538,6 @@ describe('WorkbookShellPage', () => {
             expect(lastArgs().clientFunctionCall).toEqual({
                 namespace: 'd360',
                 function: 'segment_list',
-                effect: 'read',
                 explain: false,
                 options: { dataspace: 'default' },
             });

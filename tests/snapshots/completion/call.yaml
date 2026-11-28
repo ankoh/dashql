@@ -421,7 +421,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\"}}"}
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"project\":\"a\"}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, statement-id: 0, text: "'a'"}
         - {id: 1, type: literal/integer, is-const: true, statement-id: 1, text: "1"}
@@ -813,7 +813,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\"}}"}
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"project\":\"a\"}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'a'"}
       constants:

@@ -140,7 +140,6 @@ export interface ClientFunctionCallBinding {
 export interface ClientFunctionCallDescription {
     namespace: string;
     function: string;
-    effect: 'read' | 'write';
     explain: boolean;
     options: Record<string, unknown>;
     bindings?: ClientFunctionCallBinding[];

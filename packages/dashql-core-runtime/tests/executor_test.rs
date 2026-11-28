@@ -1662,7 +1662,6 @@ fn segment_call() -> ClientFunctionCallDescription {
     ClientFunctionCallDescription {
         namespace: "d360".into(),
         function: "segment_list".into(),
-        effect: "read".into(),
         ..ClientFunctionCallDescription::default()
     }
 }

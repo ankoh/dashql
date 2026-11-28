@@ -43,7 +43,6 @@ fn call(name: &str, options: Value) -> ClientFunctionCallDescription {
     ClientFunctionCallDescription {
         namespace: "t".into(),
         function: name.into(),
-        effect: "read".into(),
         explain: false,
         options: options.as_object().cloned().unwrap_or_default(),
         bindings: Vec::new(),
@@ -484,19 +483,17 @@ fn sends_writes_like_any_other_call() {
         json!({ "name": "d", "method": "DELETE", "path": "/items/{id}", "options": [{ "name": "id", "in": "path" }] }),
         json!({ "name": "r", "raw": true }),
     ]);
-    let write =
-        |name: &str, options: Value| ClientFunctionCallDescription { effect: "write".into(), ..call(name, options) };
-    let (created, host) = run(&s, write("w", json!({ "label": "x" })), vec![status(201, json!({ "id": "a1" }))]);
+    let (created, host) = run(&s, call("w", json!({ "label": "x" })), vec![status(201, json!({ "id": "a1" }))]);
     assert_eq!(host.sent[0].method, "POST");
     assert_eq!(host.body(0), json!({ "label": "x" }));
     assert_eq!((text(&created, 0, "id").as_deref(), status_of(&created, 0)), (Some("a1"), Cell::Int32(201)));
     // No body is one row with only the standard columns
-    let (removed, host) = run(&s, write("d", json!({ "id": 7 })), vec![HttpResponse::new(204, "")]);
+    let (removed, host) = run(&s, call("d", json!({ "id": 7 })), vec![HttpResponse::new(204, "")]);
     assert_eq!((host.sent[0].method.as_str(), host.url(0)), ("DELETE", format!("{BASE}/v2/items/7").as_str()));
     assert_eq!((removed.rows.len(), status_of(&removed, 0)), (1, Cell::Int32(204)));
     let (_, host) = run(
         &s,
-        write("r", json!({ "method": "PATCH", "path": "/x", "host": "api" })),
+        call("r", json!({ "method": "PATCH", "path": "/x", "host": "api" })),
         vec![json_response(json!({ "ok": true }))],
     );
     assert_eq!(host.sent[0].method, "PATCH");

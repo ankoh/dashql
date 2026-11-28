@@ -593,7 +593,7 @@ describe('The queries of the runtime', () => {
         platform.describe = async () => ({ type: 'host' });
         const runtime = createRuntime(platform);
         runtime.dispatch('app', { kind: 'createConnection', value: { connectionId: 'sf', connectorType: dashql.ConnectorType.SALESFORCE_DATA_CLOUD, setupParams: {} } });
-        const call = { namespace: 'd360', function: 'query', effect: 'read' };
+        const call = { namespace: 'd360', function: 'query' };
         const ticket = runtime.executeQuery('sf', { text: 'call d360.query()', metadata: USER_QUERY, traceId: 1, options: { throwOnError: true, clientFunctionCall: call } }, undefined, null);
         // The call waits for the spec that the registration of the client functions of the connection loads, one load
         await vi.waitFor(() => expect(loads).toBe(1));

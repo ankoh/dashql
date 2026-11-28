@@ -50,7 +50,6 @@ describe('Client functions', () => {
         expect(JSON.parse(call.description()!)).toEqual({
             namespace: 'tickets',
             function: 'ticket_list',
-            effect: 'read',
             explain: false,
             options: { project: "it's", page_size: null },
             bindings: [{ pointer: '/page_size', param: 'size' }],

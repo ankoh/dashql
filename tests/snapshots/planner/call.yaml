@@ -93,7 +93,7 @@ planner-snapshots:
           statement-id: 1
           type: CALL
           sql: "call tickets.ticket_list (project => 'a')"
-          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\"}}"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"project\":\"a\"}}"
           produces-output: true
           barrier: true
           accesses: []
@@ -102,7 +102,7 @@ planner-snapshots:
           statement-id: 2
           type: EXPLAIN
           sql: "explain call tickets.ticket_delete (id => 1)"
-          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":true,\"options\":{\"id\":1}}"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"explain\":true,\"options\":{\"id\":1}}"
           produces-output: true
           barrier: true
           accesses: []
@@ -213,7 +213,7 @@ planner-snapshots:
           statement-id: 0
           type: CALL
           sql: "call tickets.ticket_create (project => 'a', title => 'b', affected => (select 1))"
-          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"select 1\"}}"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"select 1\"}}"
           produces-output: true
           barrier: true
           accesses: []
@@ -222,7 +222,7 @@ planner-snapshots:
           statement-id: 1
           type: CALL
           sql: "call tickets.ticket_create (project => 'a', title => 'b', affected => (((select 1))))"
-          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"select 1\"}}"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"select 1\"}}"
           produces-output: true
           barrier: true
           accesses: []
@@ -231,7 +231,7 @@ planner-snapshots:
           statement-id: 2
           type: CALL
           sql: "call tickets.ticket_create (project => 'a', title => 'b', affected => ((select 1) union (select 2)))"
-          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"(select 1) union (select 2)\"}}"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"(select 1) union (select 2)\"}}"
           produces-output: true
           barrier: true
           accesses: []
@@ -240,7 +240,7 @@ planner-snapshots:
           statement-id: 3
           type: CALL
           sql: "call tickets.ticket_create (project => 'a', title => 'b', affected => (((select 1) union (select 2))))"
-          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"(select 1) union (select 2)\"}}"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"(select 1) union (select 2)\"}}"
           produces-output: true
           barrier: true
           accesses: []
@@ -249,7 +249,7 @@ planner-snapshots:
           statement-id: 4
           type: CALL
           sql: "call tickets.ticket_create (project => 'a', title => 'b', affected => (with a as (select ')' as b) select b from a))"
-          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"with a as (select ')' as b) select b from a\"}}"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"with a as (select ')' as b) select b from a\"}}"
           produces-output: true
           barrier: true
           script-result: true
@@ -309,7 +309,7 @@ planner-snapshots:
           statement-id: 0
           type: CALL
           sql: "call tickets.ticket_list (project => 'OPS', page_size => 50)"
-          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"OPS\",\"page_size\":50}}"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"project\":\"OPS\",\"page_size\":50}}"
           produces-output: true
           barrier: true
           accesses: []
@@ -318,7 +318,7 @@ planner-snapshots:
           statement-id: 1
           type: CALL
           sql: "call tickets.ticket_search (query => (full = true))"
-          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_search\",\"effect\":\"read\",\"explain\":false,\"options\":{\"query\":{\"full\":true}}}"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_search\",\"explain\":false,\"options\":{\"query\":{\"full\":true}}}"
           produces-output: true
           barrier: true
           script-result: true
@@ -353,7 +353,7 @@ planner-snapshots:
           statement-id: 0
           type: CALL
           sql: "call tickets.ticket_list (project => :project)"
-          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":null}}"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"project\":null}}"
           produces-output: true
           barrier: true
           script-result: true
@@ -399,7 +399,7 @@ planner-snapshots:
           statement-id: 1
           type: CALL
           sql: "call tickets.ticket_list (page_size => 1)"
-          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"page_size\":1}}"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"page_size\":1}}"
           produces-output: true
           barrier: true
           script-result: true
@@ -478,7 +478,7 @@ planner-snapshots:
           statement-id: 0
           type: EXPLAIN
           sql: "explain call tickets.ticket_delete (id => 1)"
-          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":true,\"options\":{\"id\":1}}"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"explain\":true,\"options\":{\"id\":1}}"
           produces-output: true
           barrier: true
           script-result: true
@@ -488,7 +488,7 @@ planner-snapshots:
           statement-id: 0
           type: CALL
           sql: "call tickets.ticket_list (project => 'a')"
-          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\"}}"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"project\":\"a\"}}"
           produces-output: true
           barrier: true
           script-result: true
@@ -498,7 +498,7 @@ planner-snapshots:
           statement-id: 0
           type: CALL
           sql: "call tickets.request (method => 'GET', path => '/x', host => 'api')"
-          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"request\",\"effect\":\"read\",\"explain\":false,\"options\":{\"method\":\"GET\",\"path\":\"/x\",\"host\":\"api\"}}"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"request\",\"explain\":false,\"options\":{\"method\":\"GET\",\"path\":\"/x\",\"host\":\"api\"}}"
           produces-output: true
           barrier: true
           script-result: true
@@ -538,7 +538,7 @@ planner-snapshots:
           statement-id: 0
           type: CALL
           sql: "call tickets.ticket_delete (id => 1)"
-          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":false,\"options\":{\"id\":1}}"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"explain\":false,\"options\":{\"id\":1}}"
           produces-output: true
           barrier: true
           script-result: true
@@ -642,7 +642,7 @@ planner-snapshots:
           statement-id: 0
           type: CALL
           sql: "call tickets.ticket_list (project => 'a', _pages => 3)"
-          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"_pages\":3}}"
+          client-function-call: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"project\":\"a\",\"_pages\":3}}"
           produces-output: true
           barrier: true
           script-result: true

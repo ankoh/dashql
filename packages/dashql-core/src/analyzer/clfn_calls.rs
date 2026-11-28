@@ -720,7 +720,6 @@ impl AnalyzedScript {
         let mut out = json!({
             "namespace": &*record.namespace,
             "function": &**function_name,
-            "effect": if record.effect == ClientFunctionEffect::Read { "read" } else { "write" },
             "explain": record.explain,
             "options": options,
         });

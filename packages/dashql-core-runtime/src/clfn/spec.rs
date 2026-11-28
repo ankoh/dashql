@@ -151,10 +151,6 @@ pub struct ClientFunctionErrors {
 #[serde(default)]
 pub struct ClientFunction {
     pub name: String,
-    /// A grouping for documents and lists
-    pub family: Option<String>,
-    /// A call that completion shows
-    pub example: Option<String>,
     pub method: Option<String>,
     pub host: Option<String>,
     pub path: Option<String>,
@@ -168,8 +164,6 @@ pub struct ClientFunction {
     #[serde(deserialize_with = "present")]
     pub pending: Option<Value>,
     pub errors: Option<ClientFunctionErrors>,
-    /// `read` or `write`
-    pub effect: Option<String>,
     /// The escape hatch: takes `method`, `path`, `host` and `body`
     pub raw: bool,
 }
@@ -279,8 +273,6 @@ pub struct ClientFunctionCallBinding {
 pub struct ClientFunctionCallDescription {
     pub namespace: String,
     pub function: String,
-    /// `read` or `write`
-    pub effect: String,
     pub explain: bool,
     pub options: Map<String, Value>,
     pub bindings: Vec<ClientFunctionCallBinding>,

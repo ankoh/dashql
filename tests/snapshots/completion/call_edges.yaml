@@ -201,7 +201,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\"}}"}
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"project\":\"a\"}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'a'"}
       constants:
@@ -281,7 +281,7 @@ completion-snapshots:
       errors:
         - {type: CLIENT_FUNCTION_MISSING_OPTION, message: tickets.ticket_list needs the option project, text: "call ticke..size => 1)"}
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"page_size\":1}}"}
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"page_size\":1}}"}
       expressions:
         - {id: 0, type: literal/integer, is-const: true, text: "1"}
       constants:
@@ -322,7 +322,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"ab\"}}"}
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"project\":\"ab\"}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'ab'"}
       constants:
@@ -365,7 +365,7 @@ completion-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\"}}"}
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"project\":\"a\"}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'a'"}
       constants:

@@ -30,7 +30,7 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"OPS\",\"page_size\":50}}"}
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"project\":\"OPS\",\"page_size\":50}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'OPS'"}
         - {id: 1, type: literal/integer, is-const: true, text: "50"}
@@ -46,7 +46,7 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"OPS\",\"page_size\":50}}"}
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"project\":\"OPS\",\"page_size\":50}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'OPS'"}
         - {id: 1, type: literal/integer, is-const: true, text: "50"}
@@ -68,7 +68,7 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"it's\",\"title\":\"raw ' text\",\"labels\":[1,-2,-1.5,true,false,null,\"x\",[2]],\"assignee\":{\"id\":42,\"notify\":true}}}"}
+        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"explain\":false,\"options\":{\"project\":\"it's\",\"title\":\"raw ' text\",\"labels\":[1,-2,-1.5,true,false,null,\"x\",[2]],\"assignee\":{\"id\":42,\"notify\":true}}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'it''s'"}
         - {id: 1, type: literal/string, is-const: true, text: "$$raw ' text$$"}
@@ -103,7 +103,7 @@ analyzer-snapshots:
       catalog-id: 2
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"select host from alerts where level > 1\"}}"}
+        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"affected\":\"select host from alerts where level > 1\"}}"}
       table-refs:
         - {type: name/catalog, catalog-id: "256.65536.1:0", text: "alerts"}
       expressions:
@@ -133,7 +133,7 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: webhook_create, description: "{\"namespace\":\"tickets\",\"function\":\"webhook_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"url\":null,\"signing_key\":null,\"credentials\":[{\"param_name\":\"pw\",\"value\":null}]},\"bindings\":[{\"pointer\":\"/url\",\"param\":\"hook_url\"},{\"pointer\":\"/signing_key\",\"param\":\"hook_key\"},{\"pointer\":\"/credentials/0/value\",\"param\":\"stored\"}]}"}
+        - {statement: 0, namespace: tickets, function: webhook_create, description: "{\"namespace\":\"tickets\",\"function\":\"webhook_create\",\"explain\":false,\"options\":{\"url\":null,\"signing_key\":null,\"credentials\":[{\"param_name\":\"pw\",\"value\":null}]},\"bindings\":[{\"pointer\":\"/url\",\"param\":\"hook_url\"},{\"pointer\":\"/signing_key\",\"param\":\"hook_key\"},{\"pointer\":\"/credentials/0/value\",\"param\":\"stored\"}]}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'pw'"}
       constants:
@@ -153,7 +153,7 @@ analyzer-snapshots:
         - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: 'tickets.ticket_delete has no option idd, did you mean id?', text: "idd"}
         - {type: CLIENT_FUNCTION_MISSING_OPTION, message: tickets.ticket_delete needs the option id, text: "call ticke..(idd => 7)"}
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_delete, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":true,\"options\":{\"idd\":7}}"}
+        - {statement: 0, namespace: tickets, function: ticket_delete, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"explain\":true,\"options\":{\"idd\":7}}"}
       expressions:
         - {id: 0, type: literal/integer, is-const: true, text: "7"}
       constants:
@@ -196,7 +196,7 @@ analyzer-snapshots:
         - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: 'tickets.ticket_list has no option pageSize, did you mean page_size?', text: "pageSize"}
         - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: tickets.ticket_list has no option offset, text: "offset"}
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"batch_size\":1,\"pageSize\":2,\"offset\":3}}"}
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"project\":\"a\",\"batch_size\":1,\"pageSize\":2,\"offset\":3}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'a'"}
         - {id: 1, type: literal/integer, is-const: true, text: "1"}
@@ -216,7 +216,7 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"pageSize\":2,\"offset\":3}}"}
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"project\":\"a\",\"pageSize\":2,\"offset\":3}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'a'"}
         - {id: 1, type: literal/integer, is-const: true, text: "2"}
@@ -234,7 +234,7 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"X-Trace-Id\":\"c\",\"DataSourceId__c\":\"d\"}}"}
+        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"X-Trace-Id\":\"c\",\"DataSourceId__c\":\"d\"}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'a'"}
         - {id: 1, type: literal/string, is-const: true, text: "'b'"}
@@ -256,7 +256,7 @@ analyzer-snapshots:
         - {type: CLIENT_FUNCTION_DUPLICATE_OPTION, message: duplicate option project, text: "PROJECT"}
         - {type: CLIENT_FUNCTION_MISSING_OPTION, message: tickets.ticket_create needs the option title, text: "call ticke..CT => 'b')"}
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"b\"}}"}
+        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"explain\":false,\"options\":{\"project\":\"b\"}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'a'"}
         - {id: 1, type: literal/string, is-const: true, text: "'b'"}
@@ -281,7 +281,7 @@ analyzer-snapshots:
         - {type: CLIENT_FUNCTION_MISSING_OPTION, message: needs the attribute id, text: "(notify = ..nam = 'x')"}
         - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: 'no attribute nmae here, did you mean name?', text: "nmae"}
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"assignee\":{\"notify\":true,\"nam\":\"x\"},\"components\":[{\"name\":\"a\",\"children\":[{\"name\":\"b\",\"children\":{\"nmae\":\"c\"}}]}]}}"}
+        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"assignee\":{\"notify\":true,\"nam\":\"x\"},\"components\":[{\"name\":\"a\",\"children\":[{\"name\":\"b\",\"children\":{\"nmae\":\"c\"}}]}]}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'a'"}
         - {id: 1, type: literal/string, is-const: true, text: "'b'"}
@@ -307,7 +307,7 @@ analyzer-snapshots:
       errors:
         - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, severity: WARNING, message: no attribute other here, text: "other"}
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"inferred\":{\"other\":1},\"metadata\":{\"someKey\":1,\"with space\":2}}}"}
+        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"inferred\":{\"other\":1},\"metadata\":{\"someKey\":1,\"with space\":2}}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'a'"}
         - {id: 1, type: literal/string, is-const: true, text: "'b'"}
@@ -330,7 +330,7 @@ analyzer-snapshots:
       errors:
         - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, severity: WARNING, message: tickets.ticket_search has no option other, text: "other"}
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_search, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_search\",\"effect\":\"read\",\"explain\":false,\"options\":{\"query\":\"a\",\"other\":1}}"}
+        - {statement: 0, namespace: tickets, function: ticket_search, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_search\",\"explain\":false,\"options\":{\"query\":\"a\",\"other\":1}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'a'"}
         - {id: 1, type: literal/integer, is-const: true, text: "1"}
@@ -346,7 +346,7 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: request, description: "{\"namespace\":\"tickets\",\"function\":\"request\",\"effect\":\"write\",\"explain\":false,\"options\":{\"method\":\"POST\",\"path\":\"/x\",\"body\":{\"a\":1},\"someParam\":1}}"}
+        - {statement: 0, namespace: tickets, function: request, description: "{\"namespace\":\"tickets\",\"function\":\"request\",\"explain\":false,\"options\":{\"method\":\"POST\",\"path\":\"/x\",\"body\":{\"a\":1},\"someParam\":1}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'POST'"}
         - {id: 1, type: literal/string, is-const: true, text: "'/x'"}
@@ -373,7 +373,7 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: webhook_create, description: "{\"namespace\":\"tickets\",\"function\":\"webhook_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"signing_key\":\"literal\",\"credentials\":[{\"param_name\":\"user\",\"value\":\"public\"},{\"param_name\":\"password\",\"value\":null}]},\"bindings\":[{\"pointer\":\"/credentials/1/value\",\"param\":\"stored\"}]}"}
+        - {statement: 0, namespace: tickets, function: webhook_create, description: "{\"namespace\":\"tickets\",\"function\":\"webhook_create\",\"explain\":false,\"options\":{\"signing_key\":\"literal\",\"credentials\":[{\"param_name\":\"user\",\"value\":\"public\"},{\"param_name\":\"password\",\"value\":null}]},\"bindings\":[{\"pointer\":\"/credentials/1/value\",\"param\":\"stored\"}]}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'literal'"}
         - {id: 1, type: literal/string, is-const: true, text: "'user'"}
@@ -398,7 +398,7 @@ analyzer-snapshots:
         - {type: CLIENT_FUNCTION_INVALID_VALUE, message: a value can't call a function, text: "secret(a)"}
         - {type: CLIENT_FUNCTION_INVALID_VALUE, message: a value can't call a function, text: "cast(1 as text)"}
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":null,\"page_size\":null,\"page_token\":null}}"}
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"project\":null,\"page_size\":null,\"page_token\":null}}"}
       expressions:
         - {id: 0, type: colref/unresolved, text: "a"}
         - {id: 1, type: function, name: now, is-const: true, text: "now()"}
@@ -417,7 +417,7 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"page_size\":50,\"_next\":\"abc\",\"_pages\":10}}"}
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"project\":\"a\",\"page_size\":50,\"_next\":\"abc\",\"_pages\":10}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'a'"}
         - {id: 1, type: literal/integer, is-const: true, text: "50"}
@@ -437,7 +437,7 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_feed, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_feed\",\"effect\":\"read\",\"explain\":false,\"options\":{\"_next\":\"/feed?page=2\"}}"}
+        - {statement: 0, namespace: tickets, function: ticket_feed, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_feed\",\"explain\":false,\"options\":{\"_next\":\"/feed?page=2\"}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'/feed?page=2'"}
       constants:
@@ -452,7 +452,7 @@ analyzer-snapshots:
       errors:
         - {type: CLIENT_FUNCTION_DUPLICATE_OPTION, message: '_next sets the option page_token, use one of them', text: "call ticke..xt => 'y')"}
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"page_token\":\"x\",\"_next\":\"y\"}}"}
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"project\":\"a\",\"page_token\":\"x\",\"_next\":\"y\"}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'a'"}
         - {id: 1, type: literal/string, is-const: true, text: "'x'"}
@@ -475,8 +475,8 @@ analyzer-snapshots:
         - {type: CLIENT_FUNCTION_UNSUPPORTED_OPTION, message: tickets.ticket_delete has no option _next, text: "_next"}
         - {type: CLIENT_FUNCTION_UNSUPPORTED_OPTION, message: tickets.ticket_delete has no option _unknown, text: "_unknown"}
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\",\"_pages\":0}}"}
-        - {statement: 1, namespace: tickets, function: ticket_delete, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":false,\"options\":{\"id\":1,\"_next\":\"x\",\"_unknown\":1}}"}
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"explain\":false,\"options\":{\"project\":\"a\",\"_pages\":0}}"}
+        - {statement: 1, namespace: tickets, function: ticket_delete, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"explain\":false,\"options\":{\"id\":1,\"_next\":\"x\",\"_unknown\":1}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, statement-id: 0, text: "'a'"}
         - {id: 1, type: literal/integer, is-const: true, statement-id: 0, text: "0"}
@@ -500,8 +500,8 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":{\"first\":{\"id\":1},\"Second\":{\"id\":2,\"notify\":true}}}}"}
-        - {statement: 1, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":[{\"id\":{\"id\":1}}]}}"}
+        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":{\"first\":{\"id\":1},\"Second\":{\"id\":2,\"notify\":true}}}}"}
+        - {statement: 1, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":[{\"id\":{\"id\":1}}]}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, statement-id: 0, text: "'a'"}
         - {id: 1, type: literal/string, is-const: true, statement-id: 0, text: "'b'"}
@@ -532,8 +532,8 @@ analyzer-snapshots:
         - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: 'no attribute notifi here, did you mean notify?', text: "notifi"}
         - {type: CLIENT_FUNCTION_DUPLICATE_OPTION, message: duplicate key first, text: "first"}
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":{\"first\":{\"notify\":true},\"second\":{\"id\":2,\"notifi\":true}}}}"}
-        - {statement: 1, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":{\"first\":{\"id\":2}}}}"}
+        - {statement: 0, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":{\"first\":{\"notify\":true},\"second\":{\"id\":2,\"notifi\":true}}}}"}
+        - {statement: 1, namespace: tickets, function: ticket_create, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_create\",\"explain\":false,\"options\":{\"project\":\"a\",\"title\":\"b\",\"owners\":{\"first\":{\"id\":2}}}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, statement-id: 0, text: "'a'"}
         - {id: 1, type: literal/string, is-const: true, statement-id: 0, text: "'b'"}
@@ -560,7 +560,7 @@ analyzer-snapshots:
       errors:
         - {type: CLIENT_FUNCTION_MISSING_OPTION, message: tickets.ticket_delete needs the option id, text: "call \"TICK.._delete ()"}
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_delete, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":false,\"options\":{}}"}
+        - {statement: 0, namespace: tickets, function: ticket_delete, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"explain\":false,\"options\":{}}"}
 
   - name: call_pending
     catalog:
@@ -573,9 +573,9 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: export_start, description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"effect\":\"write\",\"explain\":false,\"options\":{\"format\":\"csv\",\"_wait\":60}}"}
-        - {statement: 1, namespace: tickets, function: export_start, description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"effect\":\"write\",\"explain\":false,\"options\":{\"format\":\"csv\",\"_wait\":0}}"}
-        - {statement: 2, namespace: tickets, function: export_start, description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"effect\":\"write\",\"explain\":false,\"options\":{\"_poll\":\"/results/1\"}}"}
+        - {statement: 0, namespace: tickets, function: export_start, description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"explain\":false,\"options\":{\"format\":\"csv\",\"_wait\":60}}"}
+        - {statement: 1, namespace: tickets, function: export_start, description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"explain\":false,\"options\":{\"format\":\"csv\",\"_wait\":0}}"}
+        - {statement: 2, namespace: tickets, function: export_start, description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"explain\":false,\"options\":{\"_poll\":\"/results/1\"}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, statement-id: 0, text: "'csv'"}
         - {id: 1, type: literal/integer, is-const: true, statement-id: 0, text: "60"}
@@ -599,7 +599,7 @@ analyzer-snapshots:
         - {type: CLIENT_FUNCTION_UNSUPPORTED_OPTION, message: tickets.ticket_delete has no option _wait, text: "_wait"}
         - {type: CLIENT_FUNCTION_UNSUPPORTED_OPTION, message: tickets.ticket_delete has no option _poll, text: "_poll"}
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: ticket_delete, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"effect\":\"write\",\"explain\":false,\"options\":{\"id\":1,\"_wait\":60,\"_poll\":\"x\"}}"}
+        - {statement: 0, namespace: tickets, function: ticket_delete, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_delete\",\"explain\":false,\"options\":{\"id\":1,\"_wait\":60,\"_poll\":\"x\"}}"}
       expressions:
         - {id: 0, type: literal/integer, is-const: true, text: "1"}
         - {id: 1, type: literal/integer, is-const: true, text: "60"}
@@ -618,7 +618,7 @@ analyzer-snapshots:
       errors:
         - {type: CLIENT_FUNCTION_INVALID_VALUE, message: _wait takes a number of seconds, text: "-1"}
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: export_start, description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"effect\":\"write\",\"explain\":false,\"options\":{\"format\":\"csv\",\"_wait\":-1}}"}
+        - {statement: 0, namespace: tickets, function: export_start, description: "{\"namespace\":\"tickets\",\"function\":\"export_start\",\"explain\":false,\"options\":{\"format\":\"csv\",\"_wait\":-1}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'csv'"}
         - {id: 1, type: literal/integer, is-const: true, text: "1"}
@@ -635,7 +635,7 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"target\":{\"kind\":\"EMAIL\",\"address\":\"a@b.c\",\"owner\":{\"id\":1}}}}"}
+        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"explain\":false,\"options\":{\"target\":{\"kind\":\"EMAIL\",\"address\":\"a@b.c\",\"owner\":{\"id\":1}}}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'EMAIL'"}
         - {id: 1, type: literal/string, is-const: true, text: "'a@b.c'"}
@@ -655,7 +655,7 @@ analyzer-snapshots:
         - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: no attribute queue when kind is 'Email', text: "queue"}
         - {type: CLIENT_FUNCTION_MISSING_OPTION, message: needs the attribute address, text: "(kind = 'E..e = 'ops')"}
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"target\":{\"kind\":\"Email\",\"queue\":\"ops\"}}}"}
+        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"explain\":false,\"options\":{\"target\":{\"kind\":\"Email\",\"queue\":\"ops\"}}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'Email'"}
         - {id: 1, type: literal/string, is-const: true, text: "'ops'"}
@@ -671,7 +671,7 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"target\":{\"kind\":null,\"queue\":\"ops\"}},\"bindings\":[{\"pointer\":\"/target/kind\",\"param\":\"kind\"}]}"}
+        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"explain\":false,\"options\":{\"target\":{\"kind\":null,\"queue\":\"ops\"}},\"bindings\":[{\"pointer\":\"/target/kind\",\"param\":\"kind\"}]}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'ops'"}
       constants:
@@ -687,7 +687,7 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"trigger\":{\"event\":\"created\",\"filter\":\"x\"}}}"}
+        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"explain\":false,\"options\":{\"trigger\":{\"event\":\"created\",\"filter\":\"x\"}}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'created'"}
         - {id: 1, type: literal/string, is-const: true, text: "'x'"}
@@ -704,7 +704,7 @@ analyzer-snapshots:
       errors:
         - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: cron does not fit the attributes before it, text: "cron"}
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"trigger\":{\"event\":\"created\",\"cron\":\"* * * * *\"}}}"}
+        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"explain\":false,\"options\":{\"trigger\":{\"event\":\"created\",\"cron\":\"* * * * *\"}}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'created'"}
         - {id: 1, type: literal/string, is-const: true, text: "'* * * * *'"}
@@ -722,7 +722,7 @@ analyzer-snapshots:
         - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: 'no attribute evnt here, did you mean event?', text: "evnt"}
         - {type: CLIENT_FUNCTION_MISSING_OPTION, message: 'needs one of the attributes cron, event', text: "(evnt = 'created')"}
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"trigger\":{\"evnt\":\"created\"}}}"}
+        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"explain\":false,\"options\":{\"trigger\":{\"evnt\":\"created\"}}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'created'"}
       constants:
@@ -738,7 +738,7 @@ analyzer-snapshots:
         - {type: CLIENT_FUNCTION_UNKNOWN_OPTION, message: no attribute nope here, text: "nope"}
         - {type: CLIENT_FUNCTION_MISSING_OPTION, message: needs the attribute id, text: "(nope = 1)"}
       client-function-calls:
-        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"effect\":\"write\",\"explain\":false,\"options\":{\"target\":{\"kind\":\"Queue\",\"queue\":\"ops\",\"owner\":{\"nope\":1}}}}"}
+        - {statement: 0, namespace: tickets, function: rule_create, description: "{\"namespace\":\"tickets\",\"function\":\"rule_create\",\"explain\":false,\"options\":{\"target\":{\"kind\":\"Queue\",\"queue\":\"ops\",\"owner\":{\"nope\":1}}}}"}
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'Queue'"}
         - {id: 1, type: literal/string, is-const: true, text: "'ops'"}

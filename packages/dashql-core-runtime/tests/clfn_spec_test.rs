@@ -1,5 +1,6 @@
 //! The client functions with the generated spec of the Data 360 extension.
 
+use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -77,9 +78,16 @@ fn the_examples_build_a_request_of_their_function() {
     catalog.register_client_functions(&spec_text()).unwrap();
     let functions: Vec<_> = spec.functions.iter().filter(|f| !f.raw).collect();
     assert!(!functions.is_empty());
+    let value: Value = serde_json::from_str(&spec_text()).unwrap();
+    let examples: HashMap<&str, &str> = value["functions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|f| Some((f["name"].as_str()?, f["example"].as_str()?)))
+        .collect();
     let variables = salesforce_client_function_variables();
     for function in functions {
-        let example = function.example.as_deref().unwrap();
+        let example = examples[function.name.as_str()];
         let described = describe(&catalog, example);
         assert_eq!(described.len(), 1, "{example}");
         let description = with_values(described.into_iter().next().unwrap());
@@ -235,7 +243,6 @@ fn d360(name: &str, options: Value, explain: bool) -> ClientFunctionCallDescript
     ClientFunctionCallDescription {
         namespace: "d360".into(),
         function: name.into(),
-        effect: "read".into(),
         explain,
         options: options.as_object().cloned().unwrap(),
         bindings: Vec::new(),
@@ -316,12 +323,11 @@ fn fails_without_a_login() {
 #[test]
 fn sends_a_write_such_as_creating_a_connection() {
     let tokens = tokens();
-    let mut create = d360(
+    let create = d360(
         "connection_create",
         json!({ "connector_type": "SNOWFLAKE", "label": "Snowflake prod", "name": "snowflake_prod", "method": "Ingress" }),
         false,
     );
-    create.effect = "write".into();
     let (result, sent) =
         execute(&create, Some(&tokens), json!({ "id": "0Xx000000000001", "name": "snowflake_prod" })).unwrap();
     assert_eq!(
