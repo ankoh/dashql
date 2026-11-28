@@ -30,26 +30,28 @@ alias(
     visibility = ["//visibility:public"],
 )
 
+_DEPS = [
+    "@crates//:anyhow",
+    "@crates//:aws-config",
+    "@crates//:aws-credential-types",
+    "@crates//:aws-sdk-s3",
+    "@crates//:clap",
+    "@crates//:env_logger",
+    "@crates//:log",
+    "@crates//:serde",
+    "@crates//:serde_json",
+    "@crates//:sha2",
+    "@crates//:tokio",
+    "@crates//:walkdir",
+]
+
 # The indexer + R2 mirror. `index` runs inside the hermetic build (below); `sync`
 # runs via the :sync target. Client/deps mirror //tools/pack but stay independent.
 rust_binary(
     name = "dashql-datasets",
     srcs = glob(["src/**/*.rs"]),
     crate_root = "src/main.rs",
-    deps = [
-        "@crates//:anyhow",
-        "@crates//:aws-config",
-        "@crates//:aws-credential-types",
-        "@crates//:aws-sdk-s3",
-        "@crates//:clap",
-        "@crates//:env_logger",
-        "@crates//:log",
-        "@crates//:serde",
-        "@crates//:serde_json",
-        "@crates//:sha2",
-        "@crates//:tokio",
-        "@crates//:walkdir",
-    ],
+    deps = _DEPS,
     visibility = ["//visibility:public"],
 )
 
@@ -75,20 +77,7 @@ rust_binary(
     ],
     data = [":datasets"],
     tags = ["manual"],
-    deps = [
-        "@crates//:anyhow",
-        "@crates//:aws-config",
-        "@crates//:aws-credential-types",
-        "@crates//:aws-sdk-s3",
-        "@crates//:clap",
-        "@crates//:env_logger",
-        "@crates//:log",
-        "@crates//:serde",
-        "@crates//:serde_json",
-        "@crates//:sha2",
-        "@crates//:tokio",
-        "@crates//:walkdir",
-    ],
+    deps = _DEPS,
     visibility = ["//visibility:public"],
 )
 

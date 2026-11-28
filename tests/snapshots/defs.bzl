@@ -2,18 +2,25 @@
 
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
-def snapshot_library(filter, files_srcs = None):
-    """Defines :files (filegroup) and :update (run snapshotter for this category).
+def snapshot_library(filter):
+    """Defines :files (the snapshot files of the category) and :update.
 
     Args:
         filter: Snapshot category passed to snapshotter --filter (e.g. "parser").
-        files_srcs: If set, use these targets for :files instead of glob (use for root package).
     """
     native.filegroup(
         name = "files",
-        srcs = files_srcs if files_srcs != None else native.glob(["*.yaml"]),
+        srcs = native.glob(["*.yaml"]),
         visibility = ["//visibility:public"],
     )
+    snapshot_update(filter)
+
+def snapshot_update(filter):
+    """Defines :update, which runs the snapshotter for a category, or for all with an empty filter.
+
+    Args:
+        filter: Snapshot category passed to snapshotter --filter (e.g. "parser"), empty for all.
+    """
 
     # The snapshotter uses the snapshot encoders of the (testonly) test library
     sh_binary(

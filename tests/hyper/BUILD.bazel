@@ -25,24 +25,6 @@ alias(
     }),
 )
 
-alias(
-    name = "runtime_files",
-    actual = select({
-        "//bazel/platforms:linux_x86_64": "@tableauhyperapi_cxx_linux_x86_64//:runtime_files",
-        "//bazel/platforms:macos_arm64": "@tableauhyperapi_cxx_macos_arm64//:runtime_files",
-        "//bazel/platforms:macos_x86_64": "@tableauhyperapi_cxx_macos_x86_64//:runtime_files",
-    }),
-)
-
-alias(
-    name = "licenses",
-    actual = select({
-        "//bazel/platforms:linux_x86_64": "@tableauhyperapi_cxx_linux_x86_64//:licenses",
-        "//bazel/platforms:macos_arm64": "@tableauhyperapi_cxx_macos_arm64//:licenses",
-        "//bazel/platforms:macos_x86_64": "@tableauhyperapi_cxx_macos_x86_64//:licenses",
-    }),
-)
-
 # Executes one SQL statement through the bundled Hyper runtime. Build actions use this
 # instead of relying on a separately installed Hyper command-line client.
 cc_binary(

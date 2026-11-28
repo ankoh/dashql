@@ -6,32 +6,14 @@
 
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test")
 load("//bazel:rustfmt.bzl", "rustfmt_test")
-load("//tests/snapshots:defs.bzl", "snapshot_library")
+load("//tests/snapshots:defs.bzl", "snapshot_update")
 
 package(default_visibility = ["//visibility:public"])
 
 exports_files(["run_snapshotter.sh"])
 
 # Empty filter = update all categories in one run. Run with: bazel run //tests/snapshots:update
-# files_srcs needed because glob() cannot see into subpackages (parser/, analyzer/, etc.)
-snapshot_library(
-    filter = "",
-    files_srcs = [
-        "//tests/snapshots/analyzer:files",
-        "//tests/snapshots/completion:files",
-        "//tests/snapshots/dataflow:files",
-        "//tests/snapshots/diff:files",
-        "//tests/snapshots/formatter:files",
-        "//tests/snapshots/parser:files",
-        "//tests/snapshots/planner:files",
-        "//tests/snapshots/profiles/hyper/tests:files",
-        "//tests/snapshots/profiles/progress:files",
-        "//tests/snapshots/profiles/trino/recordings:files",
-        "//tests/snapshots/profiles/trino/plans:files",
-        "//tests/snapshots/profiles/trino/progress:files",
-        "//tests/snapshots/visualize:files",
-    ],
-)
+snapshot_update(filter = "")
 
 rust_library(
     name = "dashql_snapshots",
