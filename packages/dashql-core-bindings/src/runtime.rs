@@ -65,7 +65,7 @@ use crate::query_history::{progress_recording, QueryProgressFollower};
 use crate::runtime::connections::view::{
     ConnectionListView, ConnectionSecrets, ConnectionView, ConnectorType, JsonParams,
 };
-use crate::views::{from_js, to_js, value_to_js, FlatBufferBytes, JsonValue};
+use crate::views::{from_js, to_js, FlatBufferBytes, JsonValue};
 use crate::{js_error, Catalog, ScriptSession, SharedCatalog, WorkbookScriptSession};
 use changes::{Read, Slice, Taken};
 use computation::{AnalyzeTableOptions, ComputationView};
@@ -346,7 +346,7 @@ impl Runtime {
                         .collect()
                 });
                 match reads {
-                    Some(reads) => value_to_js(&reads).map_err(|e| JsError::new(&e.to_string())),
+                    Some(reads) => views_to_js(&reads),
                     None => all_busy(ids.into_iter().map(number).collect(), busy),
                 }
             }

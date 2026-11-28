@@ -546,6 +546,16 @@ pub(crate) fn field(value: &JsValue, name: &str) -> Option<JsValue> {
     Reflect::get(value, &JsValue::from_str(name)).ok().filter(|value| !value.is_undefined() && !value.is_null())
 }
 
+/// A string field of an object
+pub(crate) fn string_field(value: &JsValue, name: &str) -> Option<String> {
+    field(value, name).and_then(|value| value.as_string())
+}
+
+/// A text as a JS value
+pub(crate) fn text(value: &str) -> JsValue {
+    JsValue::from_str(value)
+}
+
 /// A member of an object
 fn member(object: &JsValue, name: &str) -> Result<JsValue, HostError> {
     let value = Reflect::get(object, &JsValue::from_str(name)).map_err(host_error)?;

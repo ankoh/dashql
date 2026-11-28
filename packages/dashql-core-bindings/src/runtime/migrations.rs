@@ -22,7 +22,7 @@ use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-use crate::host::{call_method, details_value, field, message_of, JsPlatform};
+use crate::host::{call_method, details_value, field, message_of, text, JsPlatform};
 use crate::runtime::storage::stamp_of;
 
 /// What a migration of the storage changed, with the versions it migrated to
@@ -65,11 +65,6 @@ impl StorageVersions {
     pub fn current() -> Self {
         StorageVersions { storage_version: STORAGE_VERSION, format_version: WORKBOOK_FORMAT_VERSION }
     }
-}
-
-/// A text of JS
-fn text(value: &str) -> JsValue {
-    JsValue::from_str(value)
 }
 
 /// A workbook folder of the platform

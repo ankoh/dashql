@@ -41,7 +41,7 @@ use wasm_bindgen::JsCast;
 
 use super::changes::Slice;
 use super::connections::Connections;
-use crate::host::{field, host_value, JsPlatform};
+use crate::host::{field, host_value, string_field, JsPlatform};
 use crate::runtime::connections::view::JsonParams;
 use crate::views::JsonValue;
 
@@ -150,10 +150,6 @@ fn events_callback(events: OAuthEvents) -> Closure<dyn FnMut(JsValue)> {
             events(event);
         }
     }) as Box<dyn FnMut(JsValue)>)
-}
-
-fn string_field(value: &JsValue, name: &str) -> Option<String> {
-    field(value, name).and_then(|value| value.as_string())
 }
 
 /// A JSON value as a JS value, objects as plain objects

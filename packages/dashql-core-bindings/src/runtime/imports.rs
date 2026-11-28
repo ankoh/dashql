@@ -62,7 +62,7 @@ use super::storage::restore_view::RestoreScriptFile;
 use super::storage::{entry_path, find_workbook, load_workbook, RuntimeWriter};
 use super::workbooks::view::WorkbookDataFile;
 use super::Restorer;
-use crate::host::{call_method, field, JsPlatform};
+use crate::host::{call_method, field, string_field, text, JsPlatform};
 use crate::views::JsonValue;
 
 /// The error prefix of workbook folders without one of their own
@@ -298,17 +298,8 @@ fn source_of(value: &JsValue) -> Result<Source, HostError> {
     Err(HostError::new("an import reads an archive, a folder or workbook tables"))
 }
 
-fn text(value: &str) -> JsValue {
-    JsValue::from_str(value)
-}
-
 fn format_error(error: dashql_core::error::Error) -> HostError {
     HostError::new(error.what())
-}
-
-/// A string field of an object
-fn string_field(value: &JsValue, name: &str) -> Option<String> {
-    field(value, name).and_then(|value| value.as_string())
 }
 
 /// The bytes of a `Uint8Array`

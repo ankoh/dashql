@@ -42,11 +42,6 @@ where
     Ok(value.to_rust()?)
 }
 
-/// A value of the views that is no view of its own, e.g. a list of views, as a JS object
-pub(crate) fn value_to_js<T: Serialize>(value: &T) -> Result<JsValue, serde_wasm_bindgen::Error> {
-    value.serialize(&serde_wasm_bindgen::Serializer::new().serialize_missing_as_null(true))
-}
-
 /// Opaque JSON in a view: a workbook file, a connection entry, the params of a connection. It crosses as a plain JS
 /// value and is read the way `JSON.stringify` reads it: members that are undefined or functions are left out, `toJSON`
 /// is called, numbers that are not finite are null.

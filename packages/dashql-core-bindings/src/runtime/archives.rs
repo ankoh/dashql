@@ -23,7 +23,7 @@ use serde::de::DeserializeOwned;
 use serde_json::{json, Map, Value};
 use wasm_bindgen::prelude::*;
 
-use crate::host::{field, JsPlatform};
+use crate::host::{field, text, JsPlatform};
 use crate::runtime::storage::restore_view::RestoreScriptFile;
 use crate::runtime::workbooks::view::WorkbookDataFile;
 
@@ -75,10 +75,6 @@ impl Drop for HostFiles {
     fn drop(&mut self) {
         self.release();
     }
-}
-
-fn text(value: &str) -> JsValue {
-    JsValue::from_str(value)
 }
 
 /// The items of a list that the platform handed over

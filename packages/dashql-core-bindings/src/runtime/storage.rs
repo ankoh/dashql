@@ -36,7 +36,7 @@ use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 
-use crate::host::{call_method, field, message_of, JsPlatform};
+use crate::host::{call_method, field, message_of, string_field, text, JsPlatform};
 use crate::runtime::changes::Read;
 use crate::runtime::migrations::migrate_workbook_folder;
 use crate::runtime::workbooks::view::WorkbookDataFile;
@@ -46,14 +46,6 @@ use view::{FailedStorageWriteView, StorageHoldView};
 
 /// The storage writer of the runtime
 pub(crate) type RuntimeWriter = StorageWriter<JsStorage>;
-
-/// A string field of a JS value
-fn string_field(value: &JsValue, name: &str) -> Option<String> {
-    if !value.is_object() {
-        return None;
-    }
-    Reflect::get(value, &JsValue::from_str(name)).ok().and_then(|v| v.as_string())
-}
 
 /// A host error that keeps what the storage failed with. A file that changed outside the app is named by the error, a
 /// missing workbook folder makes the call unavailable.
@@ -294,10 +286,6 @@ impl OnHost for JsStorage {
     fn log_on_host(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
         self.platform.log_on(level, message, details, "storage_writer");
     }
-}
-
-fn text(value: &str) -> JsValue {
-    JsValue::from_str(value)
 }
 
 impl StorageHost for JsStorage {
