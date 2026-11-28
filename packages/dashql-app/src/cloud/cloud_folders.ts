@@ -1,5 +1,5 @@
 import { SCRIPTS_TABLE } from '@akohn/dashql/platform/storage/workbook_tables';
-import { CLOUD_FOLDER_DEPTH, latestVersionsSQL, versionFromRow, type CloudWorkbook } from './cloud_store.js';
+import { CLOUD_FOLDER_DEPTH, latestVersionsSQL, versionFromRow, workbooksTable, type CloudWorkbook } from './cloud_store.js';
 import { quoteLiteral } from '@akohn/dashql/platform/utils/sql_quote';
 import {
     checkCloudId,
@@ -88,10 +88,6 @@ export interface CloudPage {
 
 function foldersTable(options: CloudStoreOptions): string {
     return cloudTable(CLOUD_FOLDERS_TABLE, options);
-}
-
-function workbooksTable(options: CloudStoreOptions): string {
-    return cloudTable(CLOUD_WORKBOOKS_TABLE, options);
 }
 
 /// The condition that a folder `p` shows

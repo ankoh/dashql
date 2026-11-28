@@ -42,7 +42,7 @@ import {
 // is written before anything of its version and removed after everything else, a data table is named by a row before
 // it is created and dropped before its row is removed. Only the rows of ready versions are read. The current version of
 // a workbook is the one that turned ready last, the earlier ones stay readable. Every operation opens the tables first,
-// which creates and migrates them (cloud_store_schema.ts).
+// a writer refuses tables that the installer didn't create or update (cloud_store_schema.ts).
 
 /// The workbook tables besides the versions, their tables in the cloud have only the columns of the workbook tables.
 /// The versions table adds the columns of the store.
@@ -177,7 +177,7 @@ function versionsTable(options: CloudStoreOptions): string {
     return cloudTable(CLOUD_VERSIONS_TABLE, options);
 }
 
-function workbooksTable(options: CloudStoreOptions): string {
+export function workbooksTable(options: CloudStoreOptions): string {
     return cloudTable(CLOUD_WORKBOOKS_TABLE, options);
 }
 
