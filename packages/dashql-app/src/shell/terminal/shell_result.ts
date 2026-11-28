@@ -14,22 +14,13 @@ export const SHELL_QUERY_METADATA: QueryMetadataView = {
     userProvided: true,
 };
 
+/// The plan text of a result of one row with one string column, null if the value is no plan. The parser of the
+/// engine decides when the plan is loaded.
 export function getPlanResultText(table: arrow.Table | null): string | null {
     if (table == null || table.numRows !== 1 || table.numCols !== 1) return null;
     const value = table.getChildAt(0)?.get(0);
     if (typeof value !== 'string') return null;
-    if (detectPlanEngine(value) == null) return null;
-    try {
-        const parsed = JSON.parse(value);
-        if (parsed == null || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-        // A Hyper plan has a root operator, a Trino plan maps fragment ids to plan nodes
-        const isHyperPlan = typeof parsed.operator === 'string';
-        const isTrinoPlan = Object.values(parsed).every(node =>
-            node != null && typeof node === 'object' && typeof (node as { name?: unknown }).name === 'string');
-        return isHyperPlan || isTrinoPlan ? value : null;
-    } catch {
-        return null;
-    }
+    return detectPlanEngine(value) == null ? null : value;
 }
 
 /// Open the last result again. `reopen` tells whether there is one.

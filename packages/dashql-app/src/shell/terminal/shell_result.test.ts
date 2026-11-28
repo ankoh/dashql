@@ -11,7 +11,6 @@ describe('shell plan results', () => {
     it('recognizes only a 1x1 string result containing a plan candidate', () => {
         expect(getPlanResultText(tableFromArrays({ value: [PLAN] }))).toBe(PLAN);
         expect(getPlanResultText(tableFromArrays({ value: [TRINO_PLAN] }))).toBe(TRINO_PLAN);
-        expect(getPlanResultText(tableFromArrays({ value: ['{"0": {"id": "1"}}'] }))).toBeNull();
         expect(getPlanResultText(tableFromArrays({ value: ['{"key":1}'] }))).toBeNull();
         expect(getPlanResultText(tableFromArrays({ value: ['{"operator":'] }))).toBeNull();
         expect(getPlanResultText(tableFromArrays({ value: [42] }))).toBeNull();
