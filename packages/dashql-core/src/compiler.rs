@@ -159,9 +159,7 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
         result.errors = Some(errors);
         result
     };
-    if script.parsed.as_ref().is_none_or(|p| p.scanned.text_version != script.text_version()) {
-        script.parse();
-    }
+    script.parse_if_outdated();
     let Some(parsed) = script.parsed.clone() else {
         errors.push(error(ErrorCode::EMPTY_SCRIPT, "script is not parsed", PROTO_NULL_U32, PROTO_NULL_U32, None));
         return finish(result, errors);

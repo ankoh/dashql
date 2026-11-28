@@ -126,7 +126,7 @@ entry when you find another one. The headings name where the behavior lives.
   hold token indexes.
 - **Field presence differs by offset unit.** In UTF-16 mode, completions leave out empty strings and
   vectors, and a diff without operations has no `ops`; in UTF-8 mode they are kept.
-- **Stale spans.** `ScriptSession::diff` and the rewrites of `Script::parsed_for_rewrite`
+- **Stale spans.** `ScriptSession::diff` and the rewrites of a `Script`
   (`rewrite_annotation`, `rewrite_vis_renderer`, `rewrite_vis_board`, ...) apply the spans of a possibly
   outdated parse to the current text, unless `parse_if_outdated` is set. In UTF-16 mode, a diff span
   that is then not on a boundary is an error.

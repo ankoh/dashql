@@ -209,26 +209,19 @@ impl Script {
         self.timings.parser_ns = watch.elapsed_ns();
     }
 
-    /// Scan and parse if the text changed
-    fn parse_if_outdated(&mut self) {
-        if self.scanned.as_ref().is_none_or(|s| s.text_version != self.text_version) {
-            self.scan();
-        }
-        let current = match (&self.parsed, &self.scanned) {
-            (Some(p), Some(s)) => Arc::ptr_eq(&p.scanned, s),
-            _ => false,
-        };
-        if !current {
+    /// Scan and parse if the parsed script is missing or was parsed from another text version
+    pub(crate) fn parse_if_outdated(&mut self) {
+        if self.parsed.as_ref().is_none_or(|p| p.scanned.text_version != self.text_version) {
             self.parse();
         }
     }
 
-    /// Parse if the parsed script is missing or was parsed from another text version (the check of
-    /// `statement_text` and `rewrite_vis_board`)
-    fn parse_if_text_outdated(&mut self) {
-        if self.parsed.as_ref().is_none_or(|p| p.scanned.text_version != self.text_version) {
-            self.parse();
+    /// The parsed script, parsed first if requested and outdated
+    fn parsed_or_parse(&mut self, parse_if_outdated: bool) -> Result<Arc<ParsedScript>> {
+        if parse_if_outdated {
+            self.parse_if_outdated();
         }
+        self.parsed.clone().ok_or_else(|| Error::status(StatusCode::SCRIPT_NOT_PARSED))
     }
 
     /// Analyze the script
@@ -312,10 +305,7 @@ impl Script {
 
     /// The text of the first statement without its separator or surrounding trivia
     pub fn statement_text(&mut self, parse_if_outdated: bool) -> Result<String> {
-        if parse_if_outdated {
-            self.parse_if_text_outdated();
-        }
-        let parsed = self.parsed.as_ref().ok_or_else(|| Error::status(StatusCode::SCRIPT_NOT_PARSED))?;
+        let parsed = self.parsed_or_parse(parse_if_outdated)?;
         if parsed.statements.is_empty() {
             return Ok(String::new());
         }
@@ -324,21 +314,13 @@ impl Script {
         Ok(self.to_text_span(description.statement_span))
     }
 
-    /// The parsed script whose spans apply to the current text, parsed first if requested and outdated
-    fn parsed_for_rewrite(&mut self, parse_if_outdated: bool) -> Result<Arc<ParsedScript>> {
-        if parse_if_outdated {
-            self.parse_if_text_outdated();
-        }
-        self.parsed.clone().ok_or_else(|| Error::status(StatusCode::SCRIPT_NOT_PARSED))
-    }
-
     /// The annotation of a statement: the comment tags in front of it (see `annotation`)
     pub fn read_annotation(
         &mut self,
         statement_id: usize,
         parse_if_outdated: bool,
     ) -> Result<crate::annotation::Annotation> {
-        let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
+        let parsed = self.parsed_or_parse(parse_if_outdated)?;
         crate::annotation::read_annotation(&parsed, statement_id)
     }
 
@@ -353,7 +335,7 @@ impl Script {
         annotation: &crate::annotation::Annotation,
         parse_if_outdated: bool,
     ) -> Result<String> {
-        let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
+        let parsed = self.parsed_or_parse(parse_if_outdated)?;
         crate::annotation::write_annotation(&self.text.to_string(), &parsed, statement_id, annotation)
     }
 
@@ -368,7 +350,7 @@ impl Script {
         renderer: Option<&VisRenderer>,
         parse_if_outdated: bool,
     ) -> Result<String> {
-        let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
+        let parsed = self.parsed_or_parse(parse_if_outdated)?;
         crate::vis_rewrite::rewrite_vis_renderer(&self.text.to_string(), &parsed, statement_id, renderer)
     }
 
@@ -380,21 +362,21 @@ impl Script {
         board: Option<&VisBoard>,
         parse_if_outdated: bool,
     ) -> Result<String> {
-        let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
+        let parsed = self.parsed_or_parse(parse_if_outdated)?;
         crate::vis_rewrite::rewrite_vis_board(&self.text.to_string(), &parsed, statement_id, board)
     }
 
     /// Set or remove the position of the script on the dataflow canvas, its `@flow` tag. Returns the new
     /// text like `rewrite_vis_renderer`.
     pub fn rewrite_vis_flow(&mut self, flow: Option<&VisFlow>, parse_if_outdated: bool) -> Result<String> {
-        let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
+        let parsed = self.parsed_or_parse(parse_if_outdated)?;
         crate::vis_rewrite::rewrite_vis_flow(&self.text.to_string(), &parsed, flow)
     }
 
     /// Set or remove the value of an input of the script, its `@param` tag. A new tag goes to the statement that uses
     /// the input first. Returns the new text like `rewrite_vis_renderer`.
     pub fn rewrite_param_tag(&mut self, name: &str, value: Option<&str>, parse_if_outdated: bool) -> Result<String> {
-        let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
+        let parsed = self.parsed_or_parse(parse_if_outdated)?;
         let first_use = self
             .analyzed
             .as_ref()
@@ -418,7 +400,7 @@ impl Script {
         config: &FormattingConfigT,
         parse_if_outdated: bool,
     ) -> Result<String> {
-        let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
+        let parsed = self.parsed_or_parse(parse_if_outdated)?;
         crate::result_projection::rewrite_result_projection(&self.text.to_string(), &parsed, columns, config)
     }
 
@@ -432,11 +414,8 @@ impl Script {
     ///
     /// Returns the rewritten text and the span of the written tag in it, from `@vis` to the end of the spec.
     pub fn rewrite_vegalite(&mut self, spec: &str, parse_if_outdated: bool) -> Result<(String, TextSpan)> {
-        if parse_if_outdated {
-            self.parse_if_text_outdated();
-        }
         let not_parsed = || Error::status(StatusCode::SCRIPT_NOT_PARSED);
-        let parsed = self.parsed.clone().ok_or_else(not_parsed)?;
+        let parsed = self.parsed_or_parse(parse_if_outdated)?;
         if !parsed.errors.is_empty() || parsed.statements.is_empty() {
             return Err(not_parsed());
         }
@@ -460,31 +439,23 @@ impl Script {
         Ok((text, span))
     }
 
-    /// Scan and parse if requested and outdated, then return the parsed script to format
-    fn parsed_for_formatting(&mut self, parse_if_outdated: bool) -> Result<&Arc<ParsedScript>> {
-        if parse_if_outdated {
-            self.parse_if_outdated();
-        }
-        self.parsed.as_ref().ok_or_else(|| Error::status(StatusCode::SCRIPT_NOT_PARSED))
-    }
-
     /// Format the script
     pub fn format(&mut self, config: &FormattingConfigT, parse_if_outdated: bool) -> Result<String> {
-        let parsed = self.parsed_for_formatting(parse_if_outdated)?;
-        Ok(Formatter::new(parsed).format(config))
+        let parsed = self.parsed_or_parse(parse_if_outdated)?;
+        Ok(Formatter::new(&parsed).format(config))
     }
 
     /// Format the script and return the raw bytes, which may contain partial UTF-8 sequences where
     /// comments were wrapped (see `Formatter::format_bytes`)
     pub fn format_bytes(&mut self, config: &FormattingConfigT, parse_if_outdated: bool) -> Result<Vec<u8>> {
-        let parsed = self.parsed_for_formatting(parse_if_outdated)?;
-        Ok(Formatter::new(parsed).format_bytes(config))
+        let parsed = self.parsed_or_parse(parse_if_outdated)?;
+        Ok(Formatter::new(&parsed).format_bytes(config))
     }
 
     /// The nodes that formatting could not represent
     pub fn unformattable_nodes(&mut self, config: &FormattingConfigT, parse_if_outdated: bool) -> Result<Vec<u32>> {
-        let parsed = self.parsed_for_formatting(parse_if_outdated)?;
-        let mut formatter = Formatter::new(parsed);
+        let parsed = self.parsed_or_parse(parse_if_outdated)?;
+        let mut formatter = Formatter::new(&parsed);
         formatter.format_bytes(config);
         Ok(formatter.unformattable_nodes())
     }
@@ -493,8 +464,8 @@ impl Script {
     ///
     /// Statements with syntax errors are copied as written, which is not formatting them.
     pub fn is_fully_formattable(&mut self, config: &FormattingConfigT, parse_if_outdated: bool) -> Result<bool> {
-        let parsed = self.parsed_for_formatting(parse_if_outdated)?;
-        let mut formatter = Formatter::new(parsed);
+        let parsed = self.parsed_or_parse(parse_if_outdated)?;
+        let mut formatter = Formatter::new(&parsed);
         formatter.format_bytes(config);
         Ok(formatter.is_fully_formatted())
     }
