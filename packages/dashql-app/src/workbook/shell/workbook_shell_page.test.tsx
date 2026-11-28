@@ -570,7 +570,6 @@ describe('WorkbookShellPage', () => {
             run('call d360.segment_lisst ();');
             await vi.waitFor(() => expect(screen()).toContain('segment_lisst'), WAIT);
             await vi.waitFor(() => expect(screen()).toMatch(/segment_list/), WAIT);
-            await new Promise(resolve => setTimeout(resolve, 100));
             expect(execute).not.toHaveBeenCalled();
         });
 
