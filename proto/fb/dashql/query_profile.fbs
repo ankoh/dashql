@@ -153,8 +153,6 @@ struct ProfileLayoutConfig {
 struct DerivedProfileLayoutConfig {
     /// The config
     input: ProfileLayoutConfig;
-    /// The computed node width
-    computed_node_width: double;
 }
 
 struct ProfileLayoutRect {

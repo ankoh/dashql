@@ -4,7 +4,7 @@ use super::types::*;
 use super::AnalyzedScript;
 use crate::catalog::*;
 use crate::hash::HashMap;
-use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType, NameTag, SemanticNodeMarkerType};
+use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType, NameTag};
 use dashql_buffers::parser::{Node, NodeType, SymbolSpan};
 use dashql_parser::names::NameId;
 use dashql_parser::parser::context::resolve_text_span;
@@ -56,7 +56,6 @@ impl<'a> AnalysisState<'a> {
             name_objects: Vec::new(),
             empty_name,
             errors: Vec::new(),
-            node_markers: vec![SemanticNodeMarkerType::NONE; node_count],
             table_references: Vec::new(),
             insert_statements: Vec::new(),
             expressions: Vec::new(),
@@ -227,13 +226,6 @@ impl<'a> AnalysisState<'a> {
         let begin = (ts.offset as usize).min(text.len());
         let end = (begin + ts.length as usize).min(text.len());
         text.get(begin..end).unwrap_or("")
-    }
-
-    /// Mark a node
-    pub fn mark(&mut self, node_id: u32, marker: SemanticNodeMarkerType) {
-        if let Some(m) = self.out.node_markers.get_mut(node_id as usize) {
-            *m = marker;
-        }
     }
 
     /// Add an expression

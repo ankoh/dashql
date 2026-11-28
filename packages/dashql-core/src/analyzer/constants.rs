@@ -8,7 +8,6 @@ use super::state::{literal_type, AnalysisState};
 use super::types::*;
 use crate::hash::HashSet;
 use dashql_buffers::algebra::{BinaryExpressionFunction, ComparisonFunction, UnaryFunction};
-use dashql_buffers::analyzer::SemanticNodeMarkerType;
 use dashql_buffers::parser::{AttributeKey as K, ExpressionOperator as Op, IntervalType as IntervalTypeEnum, NodeType};
 use dashql_parser::attrs;
 use std::ops::Range;
@@ -52,20 +51,13 @@ impl ConstantPropagationPass {
         state.expression_of(node_id).filter(|&e| state.out.expression(e).is_some_and(|e| e.is_constant_expression))
     }
 
-    fn add_constant(
-        &mut self,
-        state: &mut AnalysisState,
-        node_id: u32,
-        inner: ExpressionInner,
-        marker: SemanticNodeMarkerType,
-    ) {
+    fn add_constant(&mut self, state: &mut AnalysisState, node_id: u32, inner: ExpressionInner) {
         let Some(node) = state.node(node_id) else { return };
         let expr = state.add_expression(node_id, *node.symbol_span(), inner);
         if let Some(e) = state.out.expression_mut(expr) {
             e.is_constant_expression = true;
         }
         state.set_expression_of(node_id, expr);
-        state.mark(node_id, marker);
         self.constants.push(expr);
     }
 
@@ -83,9 +75,7 @@ impl ConstantPropagationPass {
                     let raw_value = state.text_span(*node.symbol_span());
                     let inner =
                         ExpressionInner::Literal(Literal { literal_type: literal_type(node.node_type()), raw_value });
-                    // The literal node types share the values of the semantic markers
-                    let marker = SemanticNodeMarkerType(node.node_type().0 as u8);
-                    self.add_constant(state, node_id, inner, marker);
+                    self.add_constant(state, node_id, inner);
                 }
                 // interval '30 days'
                 NodeType::OBJECT_SQL_CONST_INTERVAL_CAST => {
@@ -107,12 +97,7 @@ impl ConstantPropagationPass {
                             precision.and_then(|p| state.expression_of(state.node_id(p))).map(|e| e as i32);
                         cast.interval = Some(IntervalType { interval_type, precision_expression });
                     }
-                    self.add_constant(
-                        state,
-                        node_id,
-                        ExpressionInner::ConstIntervalCast(cast),
-                        SemanticNodeMarkerType::CONSTANT_EXPRESSION,
-                    );
+                    self.add_constant(state, node_id, ExpressionInner::ConstIntervalCast(cast));
                 }
                 // N-ary expressions
                 NodeType::OBJECT_SQL_NARY_EXPRESSION => {
@@ -141,7 +126,7 @@ impl ConstantPropagationPass {
                             func: UnaryFunction::NEGATE,
                             input_expression_id: *input_expression_id,
                         });
-                        self.add_constant(state, node_id, inner, SemanticNodeMarkerType::CONSTANT_EXPRESSION);
+                        self.add_constant(state, node_id, inner);
                         continue;
                     }
                     let [left_expression_id, right_expression_id] = *const_args.as_slice() else { continue };
@@ -165,7 +150,7 @@ impl ConstantPropagationPass {
                         }),
                         _ => continue,
                     };
-                    self.add_constant(state, node_id, inner, SemanticNodeMarkerType::CONSTANT_EXPRESSION);
+                    self.add_constant(state, node_id, inner);
                 }
                 // Function calls
                 NodeType::OBJECT_SQL_FUNCTION_EXPRESSION => {
@@ -213,7 +198,6 @@ impl ConstantPropagationPass {
                             }
                             if is_constant {
                                 self.constants.push(expr_id);
-                                state.mark(node_id, SemanticNodeMarkerType::CONSTANT_EXPRESSION);
                             }
                         }
                     }
@@ -255,12 +239,6 @@ impl ConstantPropagationPass {
         for &expr_id in &self.constants {
             if operands.contains(&expr_id) {
                 continue;
-            }
-            let Some(node_id) = state.out.expression(expr_id).map(|e| e.ast_node_id) else { continue };
-            let Some(node) = state.node(node_id) else { continue };
-            // If object, mark as constant expression root
-            if node.node_type().0 >= NodeType::OBJECT_KEYS_.0 {
-                state.mark(node_id, SemanticNodeMarkerType::CONSTANT_EXPRESSION_ROOT);
             }
             state.out.constant_expressions.push(ConstantExpression { root: expr_id });
         }

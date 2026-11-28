@@ -6,20 +6,6 @@ include "dashql/visualization.fbs";
 
 namespace dashql.buffers.analyzer;
 
-enum SemanticNodeMarkerType: uint8 {
-    NONE = 0,
-    COLUMN_REFERENCE = 1,
-    LITERAL_NULL = 5,
-    LITERAL_INTEGER = 6,
-    LITERAL_FLOAT = 7,
-    LITERAL_STRING = 8,
-    LITERAL_INTERVAL = 9,
-    CONSTANT_EXPRESSION = 10,
-    CONSTANT_EXPRESSION_ROOT = 11,
-    TABLE_REFERENCE = 15,
-    RESULT_TARGET = 16,
-}
-
 table DatabaseDeclaration {
     // The unified database id across all catalog entries
     catalog_database_id: uint32;
@@ -389,8 +375,6 @@ table AnalyzerError {
     message: string;
 }
 
-table AnalyzerWarning {}
-
 /// A visualization specification produced by the analyzer from the `@vis` tags of a query.
 table VisualizationSpec {
     /// The AST node id of the visualized query
@@ -475,15 +459,6 @@ table AnalyzedScript {
 
     /// The errors
     errors: [AnalyzerError];
-    /// The warnings
-    warnings: [AnalyzerWarning];
-
-    /// The node markers for every ast node.
-    ///
-    /// Script markers annotate ast nodes with lightweight semantic tags.
-    /// We, for example, remember which ast nodes store a column ref, literals or constant expressions.
-    /// These markers can be used in the UI for hints and highlighting.
-    node_markers: [SemanticNodeMarkerType];
 
     /// The tables
     tables: [Table];
@@ -505,8 +480,6 @@ table AnalyzedScript {
     constant_expressions: [ConstantExpression];
     /// The name scopes
     name_scopes: [NameScope];
-    /// The statement root scopes
-    statement_root_scopes: [uint32];
 
     // The function declarations
     function_declarations: [FunctionDeclaration];

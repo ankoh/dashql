@@ -16,7 +16,7 @@ use super::types::*;
 use crate::catalog::*;
 use crate::hash::{HashMap, HashSet};
 use crate::table_parameters::{TableParameterLookup, TABLE_PARAMETERS_ENTRY_ID};
-use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType, NameTag, SemanticNodeMarkerType};
+use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType, NameTag};
 use dashql_buffers::parser::{
     AttributeKey as K, CopyDirection, JoinType, KnownFunction, MergeMatch, Node, NodeType, StatementType, SymbolSpan,
 };
@@ -844,7 +844,6 @@ impl NameResolutionPass {
             }),
             role,
         });
-        state.mark(node_id, SemanticNodeMarkerType::TABLE_REFERENCE);
         id
     }
 
@@ -2420,7 +2419,6 @@ impl NameResolutionPass {
                         self.column_paths.insert(expr, names);
                     }
                     state.set_expression_of(node_id, expr);
-                    state.mark(node_id, SemanticNodeMarkerType::COLUMN_REFERENCE);
                 }
                 // Column refs may be recursive
                 self.merge_child_states(node_state, node);
@@ -2994,7 +2992,6 @@ impl NameResolutionPass {
         };
         let expr = state.add_expression(column_node_id, *column.symbol_span(), ExpressionInner::ColumnRef(column_ref));
         state.set_expression_of(column_node_id, expr);
-        state.mark(column_node_id, SemanticNodeMarkerType::COLUMN_REFERENCE);
         node_state.column_references.push(expr);
         self.assignment_targets.insert(expr, target);
     }

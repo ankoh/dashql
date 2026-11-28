@@ -36,7 +36,7 @@ use crate::catalog::*;
 use crate::error::Result;
 use crate::hash::HashMap;
 use crate::table_parameters::{TableParameters, TABLE_PARAMETERS_ENTRY_ID};
-use dashql_buffers::analyzer::{AnalyzerErrorType, NameTag, SemanticNodeMarkerType};
+use dashql_buffers::analyzer::{AnalyzerErrorType, NameTag};
 use dashql_buffers::parser::Node;
 use dashql_parser::names::{NameId, NameRegistry};
 use dashql_parser::parser::ParsedScript;
@@ -63,8 +63,6 @@ pub struct AnalyzedScript {
     pub empty_name: NameId,
     /// The analyzer errors
     pub errors: Vec<AnalyzerError>,
-    /// The semantic node markers
-    pub node_markers: Vec<SemanticNodeMarkerType>,
     /// The table references
     pub table_references: Vec<TableReference>,
     /// The INSERT statements

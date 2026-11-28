@@ -33,11 +33,6 @@ table TouchedRelations {
 
 // ----------------------------------------------------------------------------
 
-table CatalogDescriptorPool {
-    /// The entry id
-    catalog_entry_id: uint32;
-}
-
 /// The type of an entry in the catalog.
 /// The user either inserted a schema script or a descriptor flatbuffer.
 enum CatalogEntryType: uint8 {
@@ -101,12 +96,6 @@ table SchemaTableColumn {
     column_name: string;
     // The ordinal position
     ordinal_position: uint32;
-}
-
-/// Descriptors for multiple schemas
-table SchemaDescriptors {
-    /// The schemas
-    schemas: [SchemaDescriptor];
 }
 
 // ----------------------------------------------------------------------------

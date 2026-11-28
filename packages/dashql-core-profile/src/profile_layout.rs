@@ -491,19 +491,11 @@ impl QueryProfile {
     /// Configure the layout
     pub fn configure(&mut self, config: &fb::ProfileLayoutConfig) {
         self.layout_config.set_input(config);
-        self.layout_config.set_computed_node_width(config.node_min_width());
     }
 
     /// Compute the plan layout
     pub fn compute_layout(&mut self) {
         let input = *self.layout_config.input();
-
-        // Retain the widest node pitch in the derived config for layout consumers.
-        let mut cell_width = 0.0;
-        for op in &self.operators {
-            cell_width = max_keep_first(cell_width, compute_node_width(op, &input) + input.node_margin_horizontal());
-        }
-        self.layout_config.set_computed_node_width(cell_width);
 
         // Compute the plan layout
         let mut layouter = ProfileLayouter::new(self, &self.layout_config);
