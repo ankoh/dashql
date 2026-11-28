@@ -152,7 +152,7 @@ impl TableParameters {
         previous: Option<&TableParameters>,
     ) -> TableParameters {
         let names = || scripts.iter().map(|(n, _)| *n).chain(attachments.iter().map(|a| a.name));
-        // The scripts that the terminal query of a script references, attachments reference nothing
+        // The scripts that the table parameters of a script read, attachments read nothing
         let edges: Vec<Vec<usize>> = scripts
             .iter()
             .map(|(_, analyzed)| {
@@ -226,7 +226,7 @@ fn result_table(index: u32, name: &str, columns: Vec<Arc<str>>) -> TableDeclarat
         schema_name: name_of(Arc::from("")),
         table_name: name_of(Arc::from(name)),
     };
-    /* A table parameter belongs to no database and schema of the catalog */
+    // A table parameter belongs to no database and schema of the catalog
     let mut table = TableDeclaration::new(QualifiedCatalogObjectId::schema(0, 0), table_id, table_name);
     let mut by_name = HashMap::default();
     for (i, column) in columns.into_iter().enumerate() {

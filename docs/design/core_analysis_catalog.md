@@ -166,6 +166,8 @@ pub struct CatalogSnapshot {
     databases: BTreeMap<db, Arc<DatabaseDeclaration>>,
     schemas: BTreeMap<(db, schema), Arc<SchemaDeclaration>>,
     client_function_specs: BTreeMap<namespace, Arc<ClientFunctionSpec>>,
+    absent_relations: Vec<QualifiedKey>,   // reported as gone by the connection
+    capabilities: Capabilities,            // the extensions of SQL that the scripts may use
 }
 ```
 
@@ -209,6 +211,7 @@ catalog, so it only moves when what other entries resolve against may have chang
 | `clear` | Remove all entries (id reservations and client function specs stay). | +1 |
 | `register_client_functions` | Parse a spec and shadow its namespace. A taken namespace is an error. | +1 |
 | `drop_client_functions` | Remove the spec of a namespace. | +1 if it existed |
+| `set_capabilities` | Choose the extensions of SQL that the scripts may use, see [Capabilities](capabilities.md). | +1 if they changed |
 
 `same_declarations` compares what other entries resolve against: the ids and names of databases,
 schemas, tables, columns and functions, plus column order, function params and return types. It

@@ -1,8 +1,8 @@
 //! The analyzer.
 //!
-//! The analysis runs three left-to-right passes over the post-order AST, interleaved per morsel of
-//! 1024 nodes: name resolution, function calls and constant propagation. The interleaving determines
-//! the expression ids. The visualizations of the `@vis` comment tags are built at the end. The extensions of SQL that
+//! The analysis runs four left-to-right passes over the post-order AST, interleaved per morsel of
+//! 1024 nodes: name resolution, function calls, constant propagation and parameters. The interleaving
+//! determines the expression ids. The visualizations of the `@vis` comment tags are built at the end. The extensions of SQL that
 //! the catalog doesn't offer are flagged and skipped (`capabilities`).
 //!
 //! The scanned script is not modified. The analyzed script owns a copy of the names with the
