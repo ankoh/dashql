@@ -1,6 +1,5 @@
 import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
-import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import { readFileSync, realpathSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -51,7 +50,7 @@ export default defineConfig({
     site: 'https://dashql.org',
     output: 'static',
     build: { inlineStylesheets: 'never' },
-    integrations: [mdx(), react(), sitemap()],
+    integrations: [mdx(), sitemap()],
     markdown: { shikiConfig: { theme: xcodeLightTheme } },
     // The app dev server runs on 9002
     server: { port: 9003 },
