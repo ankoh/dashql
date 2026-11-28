@@ -22,6 +22,7 @@ import { ResizedColumnWidths, useDataTableColumnResize } from './data_table_colu
 import { DataTableStickyColumn, DataTableStickyHeaders } from './data_table_sticky_views.js';
 import { DataTableFocusStore } from './data_table_focus.js';
 import { useDataTableWindow } from './data_table_window.js';
+import { DataTableRowDetail, rowDetailOf, type RowDetail } from './data_table_row_detail.js';
 
 export { TableColumnHeader } from './data_table_cell.js';
 export { resolveComputationTables, useComputationTables, type ComputationTables } from './computation_tables.js';
@@ -252,6 +253,32 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table; matchingRows: Co
         );
     }, [cellDetail, rowWindow, readRows, dataRowCount, logger]);
 
+    // The detail of a row, opened by its number. A row that the window doesn't hold is read on its own, like the
+    // detail of a cell.
+    const [rowDetail, setRowDetail] = React.useState<RowDetail | null>(null);
+    const showRow = React.useCallback((visibleRow: number) => {
+        if (visibleRow < 0 || visibleRow >= dataRowCount) return;
+        const detail = rowWindow == null ? null : rowDetailOf(rowWindow.table, rowWindow.formatter, gridLayout, visibleRow - rowWindow.offset, visibleRow);
+        if (detail != null) {
+            setRowDetail(detail);
+            return;
+        }
+        readRows(visibleRow, 1).then(
+            result => {
+                const formatter = new ArrowTableFormatter(result.table.schema, result.table.batches, logger);
+                const read = rowDetailOf(result.table, formatter, gridLayout, visibleRow - result.offset, visibleRow);
+                if (read != null) setRowDetail(read);
+            },
+            (error: unknown) => logger.warn('Failed to read a row', { error: stringifyError(error) }, 'data_table'),
+        );
+    }, [rowWindow, gridLayout, readRows, dataRowCount, logger]);
+    const onClickRowHeader: React.MouseEventHandler<HTMLDivElement> = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+        showRow(Number.parseInt(event.currentTarget.dataset["visibleRow"]!));
+    }, [showRow]);
+    const navigateRow = React.useCallback((delta: number) => {
+        if (rowDetail != null) showRow(rowDetail.visibleRow + delta);
+    }, [rowDetail, showRow]);
+
     // Maintain a rendering context for data cells.
     // This context is passed to grid elements as item data.
     const gridData = React.useMemo<DataCellData>(() => ({
@@ -262,6 +289,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table; matchingRows: Co
         onMouseEnter: onMouseEnterCell,
         onMouseLeave: onMouseLeaveCell,
         onClick: onClickCell,
+        onClickRowHeader,
         focus: focusStore,
         rightmostVisibleColumn: gridLayout.columnCount - 1,
         matchingRows,
@@ -280,6 +308,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table; matchingRows: Co
         onMouseEnterCell,
         onMouseLeaveCell,
         onClickCell,
+        onClickRowHeader,
     ]);
     // Track only range boundary changes, rather than updating React state for every scroll event.
     const onCellsRendered = React.useCallback((
@@ -480,6 +509,9 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table; matchingRows: Co
                 maxRow={dataRowCount - 1}
                 onNavigate={onNavigateCell}
             />}
+            {rowDetail != null && (
+                <DataTableRowDetail detail={rowDetail} rowCount={dataRowCount} onNavigate={navigateRow} onClose={() => setRowDetail(null)} />
+            )}
         </div>
     );
 }

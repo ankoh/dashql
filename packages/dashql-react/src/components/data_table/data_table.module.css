@@ -256,7 +256,9 @@
     vertical-align: top;
 }
 
+/* The number of a row opens the detail of the row */
 .row_header_cell {
+    cursor: pointer;
     background-color: var(--data_table_bg, var(--color_bg_card));
     border-right: 1px solid var(--color_border);
     border-bottom: 1px solid var(--color_border);

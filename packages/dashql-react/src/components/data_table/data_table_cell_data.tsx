@@ -39,6 +39,8 @@ export interface DataCellData {
     onMouseEnter: (event: React.PointerEvent<HTMLDivElement>) => void;
     onMouseLeave: (event: React.PointerEvent<HTMLDivElement>) => void;
     onClick: (event: React.MouseEvent<HTMLDivElement>) => void;
+    /// A click on the number of a row opens the detail of the row
+    onClickRowHeader: (event: React.MouseEvent<HTMLDivElement>) => void;
 }
 
 /// The period of the pulse of a loading cell in milliseconds, the period of `data_cell_skeleton_pulse`
@@ -110,7 +112,8 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
             ? `${styles.row_header_cell} ${styles.data_cell_focused_secondary}`
             : styles.row_header_cell;
         return (
-            <div className={className} style={props.style}>
+            <div className={className} style={props.style} data-visible-row={props.rowIndex} data-testid="data-table-row-number"
+                title="Show the fields of the row" onClick={props.onClickRowHeader}>
                 {formatted ?? ""}
             </div>
         );

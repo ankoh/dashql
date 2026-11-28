@@ -1,0 +1,97 @@
+/* A sheet over the page, see sheet.tsx. Above the drawer of the workbench and below the completion list. */
+.backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    background: var(--color_backdrop);
+}
+
+/* At the right edge of a wider window, as high as the window */
+.sheet {
+    position: fixed;
+    z-index: 1201;
+    top: 8px;
+    right: 8px;
+    bottom: 8px;
+    width: min(400px, calc(100vw - 16px));
+    display: grid;
+    grid-template-rows: 0 auto minmax(0, 1fr);
+    border: 1px solid var(--color_border);
+    border-radius: var(--border_radius);
+    background: var(--color_bg_card);
+    box-shadow: var(--shadow_extra_large);
+    overflow: hidden;
+    animation: sheet-in-side 160ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.grabber {
+    display: none;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0 8px 0 16px;
+    border-bottom: 1px solid var(--color_border_muted);
+}
+
+.title {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--font_size_title);
+    font-weight: 600;
+}
+
+.body {
+    min-height: 0;
+    overflow: auto;
+    padding: 8px 16px 16px;
+}
+
+/* From the bottom of a compact window, at most as high as most of the window, above the home indicator */
+@media only screen and (max-width: 599px) {
+    .sheet {
+        top: auto;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: auto;
+        max-height: 85dvh;
+        grid-template-rows: 14px auto minmax(0, 1fr);
+        border-width: 1px 0 0;
+        border-radius: 16px 16px 0 0;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        animation-name: sheet-in-bottom;
+    }
+
+    .grabber {
+        display: block;
+        justify-self: center;
+        align-self: end;
+        width: 36px;
+        height: 5px;
+        border-radius: 3px;
+        background: var(--color_border);
+    }
+}
+
+@keyframes sheet-in-side {
+    from { transform: translateX(16px); opacity: 0; }
+    to { transform: none; opacity: 1; }
+}
+
+@keyframes sheet-in-bottom {
+    from { transform: translateY(24px); opacity: 0; }
+    to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sheet { animation: none; }
+}

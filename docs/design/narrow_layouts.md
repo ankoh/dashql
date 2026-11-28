@@ -65,13 +65,25 @@ desktop, with dragging and resizing. Without hover the header of a KPI card take
 overlay would hide the value. A card narrower than 360px hides the segments of its renderers, its menu has them as
 well (Show as).
 
+## Sheets
+
+`Sheet` (`@akohn/dashql-react/components/sheet`) shows what belongs to one picked thing over the page: from the bottom
+on a compact window, at most 85% of its height, at the right edge on a wider one. Escape, the backdrop and the close
+button close it, its header has a title and optional controls.
+
+## The result viewer
+
+A click or tap on the number of a row opens the detail of the row in a sheet (`DataTableRowDetail` of the data table):
+the fields in the order of the columns with their types, the arrows step through the rows. A row that the window of
+the table doesn't hold is read on its own, like the detail of a cell. It is what a phone can't show side by side in the
+grid, and the same on every width.
+
 ## The views
 
 The other views follow, one at a time. Each keeps its components and changes its arrangement:
 
 - **Console**: a key bar above the keyboard.
-- **Result viewer**: the grid stays a grid, with a pinned column, taller rows on touch, a sheet with the detail of a
-  row and a menu of the column.
+- **Result viewer**: a pinned column, taller rows on touch, a menu of the column.
 - **Feed**: a folded SQL, a card in full screen.
 - **Dashboard**: the inputs as chips with a sheet, arranging on a compact window on the real 12-column grid scaled to
   the window.

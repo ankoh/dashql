@@ -187,6 +187,11 @@
       "types": "./dist/components/segmented_control.d.ts",
       "import": "./dist/components/segmented_control.js"
     },
+    "./components/sheet": {
+      "@akohn/source": "./src/components/sheet.tsx",
+      "types": "./dist/components/sheet.d.ts",
+      "import": "./dist/components/sheet.js"
+    },
     "./components/size_observer": {
       "@akohn/source": "./src/components/size_observer.tsx",
       "types": "./dist/components/size_observer.d.ts",

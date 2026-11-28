@@ -1,0 +1,41 @@
+/* The fields of a row in the sheet: the name with its type, the value below it, a line between the fields */
+.fields {
+    margin: 0;
+}
+
+.field {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    column-gap: 12px;
+    align-items: baseline;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--color_border_muted);
+}
+
+.name {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--color_fg_muted);
+    font-size: var(--font_size_small);
+}
+
+.type {
+    color: var(--color_fg_subtle);
+    font-size: var(--font_size_micro);
+}
+
+.value {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    font-size: var(--font_size_body);
+    font-variant-numeric: tabular-nums;
+}
+
+.value_null {
+    color: var(--color_fg_subtle);
+    font-style: italic;
+}
