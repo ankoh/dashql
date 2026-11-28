@@ -303,6 +303,11 @@
     font-family: var(--font_family_mono);
 }
 
+/* The button that opens the map of the board, a compact window only (dashboard_arrange.tsx) */
+.arrange_bar {
+    display: none;
+}
+
 /* A compact window reflows the board in its reading order (docs/design/narrow_layouts.md): two columns, KPI cards
    sit two by two and the others take the width, the cards keep their heights. Wider windows keep the grid. */
 @media only screen and (max-width: 599px) {
@@ -328,6 +333,12 @@
     .drag_handle,
     .resize_handle {
         display: none;
+    }
+
+    .arrange_bar {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: -12px;
     }
 }
 

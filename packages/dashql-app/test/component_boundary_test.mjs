@@ -21,6 +21,7 @@ const COMPONENTS = [
     'src/workbook/console/console_layout.tsx',
     'src/workbook/console/console_results.tsx',
     'src/workbook/views/workbook_errors_button.tsx',
+    'src/workbook/dashboard/dashboard_arrange.tsx',
     'src/workbook/dashboard/dashboard_card.tsx',
     'src/workbook/dashboard/dashboard_overlays.tsx',
     'src/tools/unpacker/parquet_file_card.tsx',

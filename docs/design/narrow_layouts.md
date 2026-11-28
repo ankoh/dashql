@@ -66,6 +66,12 @@ desktop, with dragging and resizing. Without hover the header of a KPI card take
 overlay would hide the value. A card narrower than 360px hides the segments of its renderers, its menu has them as
 well (Show as).
 
+A compact window can't drag the cards of the reflowed board, Arrange above the cards shows the map of the board
+instead (`DashboardArrange` of `dashboard_arrange.tsx`): the 12-column grid of every section scaled to the width of the
+window, every card a block at its placement. A tap picks a card, the panel at the bottom changes its width and height
+by one and moves it by one row or column, within the 12 columns. A change goes through the same placement of the
+cards as a drag and a resize (`moveDashboardItem`, `resizeDashboardItem`) and writes the `@board` tags.
+
 ## Sheets
 
 `Sheet` (`@akohn/dashql-react/components/sheet`) shows what belongs to one picked thing over the page: from the bottom
@@ -98,8 +104,7 @@ The other views follow, one at a time. Each keeps its components and changes its
 - **Console**: a key bar above the keyboard.
 - **Result viewer**: a pinned column, taller rows on touch, a menu of the column.
 - **Feed**: a folded SQL, a card in full screen.
-- **Dashboard**: the inputs as chips with a sheet, arranging on a compact window on the real 12-column grid scaled to
-  the window.
+- **Dashboard**: the inputs as chips with a sheet.
 
 Charts stay the authored Vega-Lite spec, `VegaLiteView` fits them to their card. Only the config of DashQL may follow
 the width of a card, never the spec.

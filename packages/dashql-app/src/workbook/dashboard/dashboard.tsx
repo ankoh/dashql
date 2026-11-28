@@ -29,6 +29,9 @@ import { StageSection } from '../stage_section.js';
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
 import { useObservedSize } from '@akohn/dashql-react/components/size_observer';
 import * as styles from './dashboard.module.css';
+import { Button, ButtonSize, ButtonVariant } from '@akohn/dashql-react/components/button';
+import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
+import { DashboardArrange, type DashboardArrangeChange } from './dashboard_arrange.js';
 
 const GRID_GAP = DASHBOARD_GRID_GAP;
 
@@ -232,6 +235,23 @@ export function Dashboard(props: Props): React.ReactElement {
         }
     }, [persistLayout]);
 
+    // The map of the board on a compact window moves and resizes a card like a drag and a resize
+    const [arranging, setArranging] = React.useState(false);
+    const handleArrange = React.useCallback((ownerId: number, change: DashboardArrangeChange) => {
+        const current = layoutRef.current;
+        const placement = current.find(item => item.id === ownerId);
+        if (placement == null) return;
+        let next = current;
+        if (change.width !== placement.width || change.height !== placement.height) {
+            next = resizeDashboardItem(next, ownerId, change.width, change.height);
+        }
+        if (change.row !== placement.row || change.column !== placement.column) {
+            next = moveDashboardItem(next, ownerId, change.row, change.column);
+        }
+        setLayout(next);
+        persistLayout(next, current);
+    }, [persistLayout]);
+
     const handleResizeCancel = React.useCallback(() => {
         if (resizeBaselineRef.current != null) setLayout(resizeBaselineRef.current);
         resizeBaselineRef.current = null;
@@ -353,7 +373,19 @@ export function Dashboard(props: Props): React.ReactElement {
             {/* The shadows mark the edges of the scrolling cards like in the feed */}
             <div className={styles.scroll_container}>
                 <div ref={scrollRef} className={styles.scroll} data-testid="dashboard-scroll">
-                    {scripts.length === 0 ? (
+                    {arranging && scripts.length > 0 ? (
+                        <DashboardArrange
+                            sections={(['scripts', 'visualizations'] as const).map(section => ({
+                                label: section === 'scripts' ? 'Scripts' : 'Visualizations',
+                                items: cardScripts.flatMap(script => {
+                                    const placement = placementById.get(script.scriptKey);
+                                    return placement?.section === section ? [{ placement, name: scriptDisplayName(script.fileName) }] : [];
+                                }),
+                            }))}
+                            onChange={handleArrange}
+                            onDone={() => setArranging(false)}
+                        />
+                    ) : scripts.length === 0 ? (
                         <div className={styles.empty_state}>
                             <strong>No scripts yet</strong>
                             <span>Every script of the workbook appears here, queries with @vis comments as visualizations.</span>
@@ -363,6 +395,11 @@ export function Dashboard(props: Props): React.ReactElement {
                             {/* The inputs of the workbook head the page and scroll away with the cards, like in the feed. Then the
                                 scripts without a renderer, the visualizations below. Both sections of cards share the columns. */}
                             <div ref={gridRef} className={styles.sections}>
+                                {/* A compact window has no room to drag and resize the cards, the map of the board arranges them */}
+                                <div className={styles.arrange_bar}>
+                                    <Button size={ButtonSize.Small} variant={ButtonVariant.Default} onClick={() => setArranging(true)}
+                                        data-testid="dashboard-arrange-open">Arrange</Button>
+                                </div>
                                 <WorkbookInputStrip
                                     workbookId={props.workbookScripts.workbookId}
                                     modifyWorkbookScripts={modifyWorkbookScripts}
