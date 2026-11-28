@@ -181,6 +181,33 @@ describe('DashboardCard', () => {
         expect(onOpenChart).toHaveBeenCalledWith(1);
     });
 
+    it('switches the renderer from its menu, which a narrow card keeps when it hides the segments', () => {
+        const onVisualize = vi.fn();
+        const onRemoveVisualization = vi.fn();
+        const tableScript = {
+            ...script,
+            annotations: { visualizeQuery: { renderer: 'table', sql: 'select 1', statementId: 0 } },
+        } as ScriptData;
+        const result = { schema: { fields: [{ name: 'region' }, { name: 'revenue' }] } };
+        act(() => root.render(card({
+            script: tableScript,
+            query: queryModelOf({ queryId: 7, status: QueryExecutionStatus.SUCCEEDED, resultTable: resultTableOf(result as never) } as never),
+            onVisualize,
+            onRemoveVisualization,
+        })));
+        const open = () => act(() => container.querySelector<HTMLButtonElement>('[data-testid="dashboard-card-more"]')!.click());
+        const item = (index: number) => document.querySelector<HTMLButtonElement>(`[data-testid="dashboard-card-menu-item"][data-action="renderer-${index}"]`)!;
+        open();
+        // In the order of the segments, the current one is selected
+        expect([0, 1, 2, 3, 4].map(index => item(index).textContent)).toEqual(['Table', 'Chart', 'Markdown', 'KPI', 'Collapsed']);
+        expect(item(0).getAttribute('aria-selected')).toBe('true');
+        act(() => item(3).click());
+        expect(onVisualize).toHaveBeenCalledWith(1, 'kpi', '');
+        open();
+        act(() => item(4).click());
+        expect(onRemoveVisualization).toHaveBeenCalledWith(1);
+    });
+
     it('accepts or rejects a staged change instead of changing the card', () => {
         const acceptDiff = vi.fn(async () => { });
         const rejectDiff = vi.fn(async () => { });

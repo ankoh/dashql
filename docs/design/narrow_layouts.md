@@ -56,6 +56,15 @@ card like the console and the dataflow: below 760px the statistics and Delete (a
 (`--page_gutter` of the workbook page) and starts the composer shrunk into the bar of Wobble in the feed as well, a tap
 expands it; open, it would cover the cards.
 
+## The dashboard
+
+A compact window reflows the board (`dashboard.module.css`) in its reading order, row then column: two columns, a KPI
+card (at most three columns of the grid wide, `data-compact-span` of the card) takes one of them and sits next to the
+next KPI card, the other cards take both. The cards keep their heights. A medium window keeps the 12-column grid of the
+desktop, with dragging and resizing. Without hover the header of a KPI card takes a row of its own above the value, an
+overlay would hide the value. A card narrower than 360px hides the segments of its renderers, its menu has them as
+well (Show as).
+
 ## The views
 
 The other views follow, one at a time. Each keeps its components and changes its arrangement:
@@ -64,8 +73,8 @@ The other views follow, one at a time. Each keeps its components and changes its
 - **Result viewer**: the grid stays a grid, with a pinned column, taller rows on touch, a sheet with the detail of a
   row and a menu of the column.
 - **Feed**: a folded SQL, a card in full screen.
-- **Dashboard**: one column in the reading order of the grid, the inputs as chips with a sheet, arranging on the real
-  12-column grid scaled to the window.
+- **Dashboard**: the inputs as chips with a sheet, arranging on a compact window on the real 12-column grid scaled to
+  the window.
 - **Dataflow**: a dense flow, compact tiles from top to bottom in the layout of `dashql-dataflow`, the result inside
   the boxes when zoomed in, the lineage of a tapped tile.
 

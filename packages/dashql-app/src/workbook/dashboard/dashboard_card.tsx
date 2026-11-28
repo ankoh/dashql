@@ -197,6 +197,8 @@ export const DashboardCard = React.memo(function DashboardCard(props: DashboardC
             className={`${styles.card} ${collapsed ? styles.card_collapsed : ''} ${kpi ? styles.card_kpi : ''}`}
             data-dashboard-card={script.scriptKey}
             data-staged={staged || undefined}
+            // The columns of the reflowed board of a compact window (dashboard.module.css): a KPI card takes one of two
+            data-compact-span={props.placement.width <= 3 ? 1 : 2}
             style={{
                 gridColumn: `${props.placement.column + 1} / span ${props.placement.width}`,
                 gridRow: `${props.placement.row + 1} / span ${props.placement.height}`,
@@ -311,6 +313,15 @@ export const DashboardCard = React.memo(function DashboardCard(props: DashboardC
                                 scriptName={displayName}
                                 onRename={() => setRenaming(true)}
                                 onDelete={() => props.onDelete(script.scriptKey)}
+                                renderers={[
+                                    { label: 'Table', icon: <TableIcon size={16} />, disabled: !visualizable && currentRenderer !== 'table' },
+                                    { label: 'Chart', icon: <GraphIcon size={16} />, disabled: !visualizable && currentRenderer !== 'vegalite' },
+                                    { label: 'Markdown', icon: <MarkdownIcon size={16} />, disabled: (!visualizable || template == null) && currentRenderer !== 'markdown' },
+                                    { label: 'KPI', icon: <KpiIcon size={16} />, disabled: !visualizable && currentRenderer !== 'kpi' },
+                                    { label: 'Collapsed', icon: <EyeClosedIcon size={16} />, disabled: false },
+                                ]}
+                                selectedRenderer={renderers.indexOf(currentRenderer)}
+                                onRenderer={switchRenderer}
                             />
                         </ButtonGroup>
                         <SegmentedControl
@@ -388,8 +399,26 @@ export const DashboardCard = React.memo(function DashboardCard(props: DashboardC
     );
 });
 
-/// The menu of a card with the actions that change the script itself
-function DashboardCardMenu(props: { scriptName: string; onRename: () => void; onDelete: () => void }): React.ReactElement {
+/// A renderer of a card in its menu, in the order of the segments
+interface DashboardCardMenuRenderer {
+    label: string;
+    icon: React.ReactElement;
+    disabled: boolean;
+}
+
+interface DashboardCardMenuProps {
+    scriptName: string;
+    onRename: () => void;
+    onDelete: () => void;
+    /// The renderers like the segments of the header, which a narrow card hides (docs/design/narrow_layouts.md)
+    renderers: DashboardCardMenuRenderer[];
+    /// The index of the renderer that the card shows
+    selectedRenderer: number;
+    onRenderer: (index: number) => void;
+}
+
+/// The menu of a card with the renderers and the actions that change the script itself
+function DashboardCardMenu(props: DashboardCardMenuProps): React.ReactElement {
     const [open, setOpen] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
     const run = (action: () => void) => {
@@ -421,6 +450,17 @@ function DashboardCardMenu(props: { scriptName: string; onRename: () => void; on
         >
             <div className={menuStyles.menu} role="dialog" aria-label={`Actions for ${props.scriptName}`}>
                 <ActionList.List aria-label={`Actions for ${props.scriptName}`}>
+                    <ActionList.GroupHeading>Show as</ActionList.GroupHeading>
+                    {/* The list takes elements only, the fragment wraps the items of the renderers */}
+                    <>{props.renderers.map((renderer, index) => (
+                        <ActionList.ListItem key={renderer.label} data-testid="dashboard-card-menu-item" data-action={`renderer-${index}`}
+                            selected={index === props.selectedRenderer} disabled={renderer.disabled}
+                            onClick={() => run(() => props.onRenderer(index))}>
+                            <ActionList.Leading>{renderer.icon}</ActionList.Leading>
+                            <ActionList.ItemText>{renderer.label}</ActionList.ItemText>
+                        </ActionList.ListItem>
+                    ))}</>
+                    <ActionList.GroupHeading>Script</ActionList.GroupHeading>
                     <ActionList.ListItem data-testid="dashboard-card-menu-item" data-action="rename" onClick={() => run(props.onRename)}>
                         <ActionList.Leading><RenameIcon size={16} /></ActionList.Leading>
                         <ActionList.ItemText>Rename</ActionList.ItemText>

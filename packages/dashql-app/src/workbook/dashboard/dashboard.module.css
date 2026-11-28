@@ -103,9 +103,26 @@
     opacity: 1;
 }
 
+/* Without hover the header of a KPI card takes its own row above the value, an overlay would hide the value */
 @media (hover: none) {
+    .card_kpi {
+        grid-template-rows: 40px minmax(0, 1fr);
+    }
     .card_kpi .card_header {
+        position: static;
         opacity: 1;
+        background: var(--color_bg_card);
+    }
+}
+
+/* A narrow card keeps its title and actions, its renderers are in its menu */
+.card {
+    container-type: inline-size;
+}
+
+@container (max-width: 360px) {
+    .card_segments {
+        display: none;
     }
 }
 
@@ -286,23 +303,27 @@
     font-family: var(--font_family_mono);
 }
 
-@media only screen and (max-width: 799px) {
+/* A compact window reflows the board in its reading order (docs/design/narrow_layouts.md): two columns, KPI cards
+   sit two by two and the others take the width, the cards keep their heights. Wider windows keep the grid. */
+@media only screen and (max-width: 599px) {
     .scroll {
-        padding: 12px 8px var(--status_bar_dock_space, 12px) 8px;
+        padding: 12px var(--page_gutter) var(--status_bar_dock_space, 12px) var(--page_gutter);
     }
 
     .grid {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-auto-rows: auto;
         min-height: 0 !important;
     }
 
     .card {
-        flex: 0 0 var(--dashboard-card-height, 288px);
-        width: 100%;
+        grid-row: auto !important;
+        height: var(--dashboard-card-height, 288px);
         transform: none !important;
     }
+
+    .card[data-compact-span="1"] { grid-column: span 1 !important; }
+    .card[data-compact-span="2"] { grid-column: span 2 !important; }
 
     .drag_handle,
     .resize_handle {
