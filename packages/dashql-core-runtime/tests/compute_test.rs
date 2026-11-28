@@ -236,9 +236,7 @@ fn computation_from_query_result() {
     // The computation queries are tracked on the connection that ran the query of the table
     assert_eq!(computation.connection_id.as_deref(), Some("connection"));
     assert_eq!(computation.data_table, input_table());
-    assert_eq!(computation.field_index("rowNumber"), Some(0));
-    assert_eq!(computation.field_index("score"), Some(1));
-    assert_eq!(computation.field_index("other"), None);
+    assert_eq!(computation.data_table_fields, ["rowNumber", "score"]);
     assert_eq!(computation.column_groups, input_columns());
     assert_eq!(computation.lifetime, 7);
     assert_eq!(computation.data_frame, None);

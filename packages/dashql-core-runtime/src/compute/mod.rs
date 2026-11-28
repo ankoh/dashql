@@ -164,11 +164,6 @@ impl TableComputation {
         self.revision
     }
 
-    /// The index of a field of the table, the last field of a name
-    pub fn field_index(&self, name: &str) -> Option<usize> {
-        self.data_table_fields.iter().rposition(|field| field == name)
-    }
-
     /// The summary of a column group
     pub fn column_aggregate(&self, column: usize) -> Option<&ColumnAggregate> {
         self.column_aggregates.get(column).and_then(Option::as_ref)

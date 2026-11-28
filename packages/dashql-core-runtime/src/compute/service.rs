@@ -14,7 +14,7 @@
 //! of a selection, and hands them over (`ComputeHost::register_table`). The state names a table by its handle.
 //!
 //! Every run can be cancelled: aborting the lifetime of a computation cancels its runs, `AbortDataSearch` the run of
-//! the search, `cancel_task` the run of a task, `cancel_run` a run by its id, the stop token of an analysis the runs of
+//! the search, `cancel_run` a run by its id, the stop token of an analysis the runs of
 //! its computation. A cancelled run drops its future and tells the host to abort its calls, its task ends cancelled. A task whose call the host cancelled
 //! (`HostError::is_cancelled`) ends cancelled too.
 //!
@@ -204,22 +204,10 @@ impl<H: ComputeHost> ComputeService<H> {
         Some(f())
     }
 
-    /// A new id of a data frame. The ids of the host share the counter with the ones of the tasks and with the other
-    /// services of the thread.
-    pub fn allocate_id(&self) -> u64 {
-        self.shared.inner.borrow_mut().allocate()
-    }
-
     /// Apply an action of the host. The service drops the data frames that the state released and cancels the runs
     /// of aborted computations and searches, the host applies the effects of the outcome that are its own.
     pub fn apply(&self, action: ComputationAction) -> Result<ComputationOutcome> {
         apply(&self.shared, action, false)
-    }
-
-    /// Cancel the run of a task, it ends cancelled
-    pub fn cancel_task(&self, task_id: TaskId) {
-        let runs = self.shared.inner.borrow_mut().take_runs(|run| run.task == Some(task_id));
-        cancel_runs(&self.shared, runs);
     }
 
     /// Cancel a run by its id, e.g. the run of a query of a task that the user stopped: its future is dropped, the host
@@ -1164,11 +1152,6 @@ impl<H: ComputeHost> ComputeService<H> {
             }
         }));
         Ok(())
-    }
-
-    /// Derive the tasks of a computation again, e.g. after its analysis
-    pub fn refresh(&self, table_id: TableId) {
-        refresh(&self.shared, table_id);
     }
 
     /// Rows of a result, e.g. the first ones for a terminal or the last ones for a KPI card: at most `limit` rows from
