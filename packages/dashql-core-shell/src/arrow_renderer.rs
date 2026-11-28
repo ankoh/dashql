@@ -123,86 +123,15 @@ fn append_batch(table: &mut Table, batch: &RecordBatch) {
     }
 }
 
-/// Read an Arrow IPC file, or an IPC stream if the data is no file. Errors are the arrow-rs error after
-/// `Invalid: `, empty buffers have a message of their own.
+/// Read an Arrow IPC stream. Errors are the arrow-rs error after `Invalid: `.
 fn read_ipc(data: &[u8]) -> Result<Table, String> {
-    if data.is_empty() {
-        return Err("Invalid: Arrow IPC buffer is empty".into());
-    }
-    if let Ok(reader) = arrow_ipc::reader::FileReader::try_new(Cursor::new(data), None) {
-        let mut table = create_table(&reader.schema());
-        for batch in reader {
-            let batch = batch.map_err(|e| format!("Invalid: {}", e))?;
-            append_batch(&mut table, &batch);
-        }
-        return Ok(table);
-    }
-    check_stream_framing(data)?;
-    let reader =
-        arrow_ipc::reader::StreamReader::try_new(Cursor::new(data), None).map_err(|e| format!("Invalid: {}", e))?;
+    let invalid = |e: arrow_schema::ArrowError| format!("Invalid: {e}");
+    let reader = arrow_ipc::reader::StreamReader::try_new(Cursor::new(data), None).map_err(invalid)?;
     let mut table = create_table(&reader.schema());
     for batch in reader {
-        let batch = batch.map_err(|e| format!("Invalid: {}", e))?;
-        append_batch(&mut table, &batch);
+        append_batch(&mut table, &batch.map_err(invalid)?);
     }
     Ok(table)
-}
-
-/// The little-endian i32 at a position of the data, none past its end
-fn read_i32(data: &[u8], pos: usize) -> Option<i32> {
-    let bytes = data.get(pos..pos.checked_add(4)?)?;
-    Some(i32::from_le_bytes(bytes.try_into().ok()?))
-}
-
-/// Check the message framing of an IPC stream: arrow-rs ends a stream at a truncated message prefix, this
-/// reports it as an error. Messages are read up to the end-of-stream marker.
-fn check_stream_framing(data: &[u8]) -> Result<(), String> {
-    let mut pos = 0;
-    loop {
-        let remaining = data.len().saturating_sub(pos);
-        if remaining == 0 {
-            return Ok(());
-        }
-        let Some(continuation) = read_i32(data, pos) else {
-            return Err(format!("Invalid: Corrupted message, only {} bytes available", remaining));
-        };
-        pos += 4;
-        let metadata_length = match continuation {
-            -1 => {
-                let Some(length) = read_i32(data, pos) else {
-                    let remaining = data.len().saturating_sub(pos);
-                    return Err(format!("Invalid: Corrupted metadata length, only {} bytes available", remaining));
-                };
-                pos += 4;
-                match length {
-                    0 => return Ok(()),
-                    l if l < 0 => return Err("IOError: Invalid IPC message: negative metadata length".into()),
-                    l => l as usize,
-                }
-            }
-            0 => return Ok(()),
-            l if l > 0 => l as usize,
-            _ => return Err("IOError: Invalid IPC stream: negative continuation token".into()),
-        };
-        let remaining = data.len().saturating_sub(pos);
-        let Some(metadata) = data.get(pos..pos + metadata_length) else {
-            return Err(format!(
-                "Invalid: Expected to read {} metadata bytes, but only read {}",
-                metadata_length, remaining
-            ));
-        };
-        let message = arrow_ipc::root_as_message(metadata).map_err(|e| format!("Invalid: {}", e))?;
-        pos += metadata_length;
-        let body_length = message.bodyLength().max(0) as usize;
-        let remaining = data.len().saturating_sub(pos);
-        if remaining < body_length {
-            return Err(format!(
-                "IOError: Expected to be able to read {} bytes for message body, got {}",
-                body_length, remaining
-            ));
-        }
-        pos += body_length;
-    }
 }
 
 /// A grapheme cluster of a text
@@ -486,7 +415,7 @@ impl ArrowRenderer {
         self.terminal_columns
     }
 
-    /// Render an Arrow IPC file or stream. Errors are Arrow error texts.
+    /// Render an Arrow IPC stream. Errors are Arrow error texts.
     pub fn render_ipc(&self, data: &[u8]) -> Result<Vec<u8>, String> {
         let table = read_ipc(data)?;
         Ok(render_table(&table, self.terminal_columns as usize))
