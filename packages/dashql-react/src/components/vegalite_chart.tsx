@@ -29,8 +29,6 @@ interface Props {
     className?: string;
     /// Receives the view once it is embedded, and null when it is finalized
     onView?: (view: View | null) => void;
-    /// Load the Vega modules, for tests
-    loader?: () => Promise<VegaModules>;
     /// The test id of the chart element
     'data-testid'?: string;
 }
@@ -99,7 +97,6 @@ export function VegaLiteChart(props: Props): React.ReactElement {
     latest.current = { datasets: props.datasets, signals };
     const onView = React.useRef(props.onView);
     onView.current = props.onView;
-    const loader = props.loader ?? loadVega;
     // The canvas does not follow the color scheme or the flavor, the chart is embedded again with their new colors
     const colorScheme = useColorScheme();
     const flavorId = useBrand().id;
@@ -116,7 +113,7 @@ export function VegaLiteChart(props: Props): React.ReactElement {
         let disposed = false;
         let view: View | null = null;
         setReady(false);
-        loader().then(async ({ embed, vega, expressionInterpreter }) => {
+        loadVega().then(async ({ embed, vega, expressionInterpreter }) => {
             if (disposed) return;
             const colors = resolveChartColors();
             const runtimeSpec = {
@@ -153,7 +150,7 @@ export function VegaLiteChart(props: Props): React.ReactElement {
             }
             element.replaceChildren();
         };
-    }, [spec, loader, colorScheme, flavorId]);
+    }, [spec, colorScheme, flavorId]);
 
     // Update the datasets and signals in place
     React.useEffect(() => {

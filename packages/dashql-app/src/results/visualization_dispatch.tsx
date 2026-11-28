@@ -14,7 +14,6 @@ interface Props {
     visualizeQuery: ResolvedVisualizeQuery | null;
     width?: number;
     height?: number;
-    scale?: number;
     hideLegend?: boolean;
     preview?: boolean;
 }

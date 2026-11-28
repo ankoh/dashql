@@ -72,12 +72,6 @@ export interface VegaLiteViewProps {
     /// the container.
     width?: number;
     height?: number;
-    /// Optional uniform scale factor (<1 shrinks). `fit` only rescales the plot *area*; label fonts,
-    /// mark sizes and stroke widths keep their absolute px, so on a tiny box they look oversized.
-    /// This renders the chart into a `1/scale` larger logical box and CSS-scales the result down, so
-    /// *everything* — text, marks, axes — shrinks uniformly while still landing in the width×height
-    /// box. Defaults to 1 (no scaling).
-    scale?: number;
     /// Suppress all legends. Legends eat a lot of space in a cramped host (e.g. a grid card
     /// thumbnail), so the compact rendering strips them by injecting `legend: null` into every
     /// encoding channel. Defaults to false (legends shown as authored).
@@ -193,21 +187,17 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
         crossFilterUpdaterRef.current?.update(crossFilterMask);
     }, [crossFilterMask]);
 
-    // A uniform scale (<1) is applied via CSS transform on the chart container. To still land in the
-    // requested width×height box, the chart is laid out into a `1/scale` larger logical box so that
-    // scaling it back down recovers the exact size — but with fonts/marks/strokes visually smaller.
-    const scale = props.scale != null && props.scale > 0 ? props.scale : 1;
-    const width = props.width != null ? Math.round(props.width / scale) : null;
-    const height = props.height != null ? Math.round(props.height / scale) : null;
+    const width = props.width ?? null;
+    const height = props.height ?? null;
     React.useEffect(() => {
         const el = containerRef.current;
-        if (!el || !spec || !rows) return;
+        // The rows come with a result, and the binding with a spec and a result
+        if (!el || !rows || crossFilterBinding == null) return;
 
         let disposed = false;
         let finalizeView: (() => void) | null = null;
         let stableScaleDomains: VegaStableScaleDomain[] = [];
-        const baseSpec = crossFilterBinding?.spec ?? (props.hideLegend ? stripLegends(spec) : spec);
-        const runtimeSpec = { ...withViewEncodings(baseSpec) } as TopLevelSpec & {
+        const runtimeSpec = { ...withViewEncodings(crossFilterBinding.spec) } as TopLevelSpec & {
             width?: unknown;
             height?: unknown;
             autosize?: unknown;
@@ -251,19 +241,17 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
                 return;
             }
             finalizeView = () => result.view.finalize();
-            if (crossFilterBinding != null) {
-                const updater = new VegaCrossFilterUpdater(
-                    result.view,
-                    crossFilterBinding.sourceDatasetName,
-                    rows,
-                    crossFilterBinding.maskDatasetName,
-                    crossFilterBinding.maskActiveSignalName,
-                    e => setError(e instanceof Error ? e.message : String(e)),
-                    stableScaleDomains,
-                );
-                crossFilterUpdaterRef.current = updater;
-                updater.update(crossFilterMaskRef.current);
-            }
+            const updater = new VegaCrossFilterUpdater(
+                result.view,
+                crossFilterBinding.sourceDatasetName,
+                rows,
+                crossFilterBinding.maskDatasetName,
+                crossFilterBinding.maskActiveSignalName,
+                e => setError(e instanceof Error ? e.message : String(e)),
+                stableScaleDomains,
+            );
+            crossFilterUpdaterRef.current = updater;
+            updater.update(crossFilterMaskRef.current);
             setError(null);
         }).catch((e: unknown) => {
             setError(e instanceof Error ? e.message : String(e));
@@ -275,7 +263,7 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
             finalizeView?.();
             if (el) el.replaceChildren();
         };
-    }, [spec, rows, crossFilterBinding, width, height, scale, props.hideLegend, props.config, dependencies, colorScheme, flavorId]);
+    }, [rows, crossFilterBinding, width, height, props.config, dependencies, colorScheme, flavorId]);
 
     if (!spec) {
         return <CardPlaceholder message="No visualization available" />;
@@ -295,18 +283,11 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
         return <ResultRowsPlaceholder query={props.model?.query ?? null} rows={chartRows} />;
     }
 
-    // When scaling, the chart container is laid out at the enlarged logical size and shrunk with a
-    // CSS transform anchored top-left, so the whole plot renders smaller within the requested box.
     // Reserve explicit dimensions before the async vega-embed import finishes. This is important in
     // the virtualized feed: a remounted chart otherwise collapses temporarily, causing its row's
     // ResizeObserver to publish a smaller height before the canvas restores the final height.
-    const chartStyle: React.CSSProperties | undefined = width != null || height != null || scale !== 1
-        ? {
-            width: width ?? undefined,
-            height: height ?? undefined,
-            transform: scale !== 1 ? `scale(${scale})` : undefined,
-            transformOrigin: scale !== 1 ? 'top left' : undefined,
-        }
+    const chartStyle: React.CSSProperties | undefined = width != null || height != null
+        ? { width: width ?? undefined, height: height ?? undefined }
         : undefined;
 
     return (

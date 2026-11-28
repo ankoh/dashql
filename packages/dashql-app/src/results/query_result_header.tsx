@@ -42,7 +42,6 @@ export function QueryResultHeader(props: HeaderProps): React.ReactElement {
 
 interface PanelProps {
     model: QueryModel | null;
-    cellBackground?: string;
     /// Open the full result table, makes the row count in the header and the column names clickable
     onShowTable?: () => void;
 }
@@ -61,7 +60,6 @@ export function QueryResultPanel(props: PanelProps): React.ReactElement {
                     model={model}
                     maxRows={maxRows}
                     columnHeader={TableColumnHeader.OnlyColumnName}
-                    cellBackground={props.cellBackground}
                     onShowTable={props.onShowTable}
                     fitHeight={false}
                     fillHeight

@@ -8,7 +8,7 @@ import {
     chartImageSpec,
 } from '@akohn/dashql/platform/workbook/chart_config';
 
-import { loadVega, type VegaModules } from './vegalite_loader.js';
+import { loadVega } from './vegalite_loader.js';
 import { createVegaLiteConfig, resolveChartColors } from './vegalite_theme.js';
 
 export { CHART_IMAGE_HEIGHT, CHART_IMAGE_SCALE, CHART_IMAGE_WIDTH };
@@ -23,8 +23,6 @@ export interface ChartImageOptions {
     height?: number;
     /// The pixels per CSS pixel
     scale?: number;
-    /// Load the Vega modules, for tests
-    loader?: () => Promise<VegaModules>;
 }
 
 /// A chart as PNG
@@ -39,7 +37,7 @@ export interface ChartImage {
 /// Render a Vega-Lite spec with the theme of the app as PNG, without a DOM element.
 /// The rows are the data of the spec, like the query result of a `@vis vegalite` tag.
 export async function renderVegaLitePng(spec: TopLevelSpec, rows: readonly object[], options: ChartImageOptions = {}): Promise<ChartImage> {
-    const { vega, vegaLite, expressionInterpreter } = await (options.loader ?? loadVega)();
+    const { vega, vegaLite, expressionInterpreter } = await loadVega();
     const sizedSpec = chartImageSpec(spec, rows, options.width ?? CHART_IMAGE_WIDTH, options.height ?? CHART_IMAGE_HEIGHT);
     const compiled = vegaLite.compile(sizedSpec, { config: chartImageConfig(createVegaLiteConfig(resolveChartColors('light'))) }).spec;
     // The expression interpreter avoids the eval of Vega that CSP forbids, it needs the parsed ASTs

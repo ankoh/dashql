@@ -7,7 +7,7 @@ import { VegaLiteView, type VegaLiteViewProps } from '../vegalite_view.js';
 /// The inset of the chart in its box, the padding of the preview style
 export const VEGALITE_PREVIEW_INSET = 8;
 
-export type VegaLitePreviewProps = Omit<VegaLiteViewProps, 'width' | 'height' | 'scale' | 'hideLegend' | 'config' | 'className'> & {
+export type VegaLitePreviewProps = Omit<VegaLiteViewProps, 'width' | 'height' | 'hideLegend' | 'config' | 'className'> & {
     /// The size of the box of the preview, the chart fits into it with its inset
     width: number;
     height: number;

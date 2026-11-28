@@ -10,7 +10,7 @@ import { resultRowCount } from '../query_result/query_result_toolbar.js';
 /// The height of the header bar over the visualization, see `tab_header.module.css`
 const HEADER_HEIGHT = 32;
 
-export interface VisualizationPanelProps extends Omit<VisualizationDispatchProps, 'visualizeQuery' | 'scale'> {
+export interface VisualizationPanelProps extends Omit<VisualizationDispatchProps, 'visualizeQuery' | 'hideLegend'> {
     visualizeQuery: ResolvedVisualizeQuery;
     /// The width and height of the whole panel in px, the visualization gets the height below the header
     width?: number;
@@ -46,7 +46,6 @@ export function VisualizationPanel(props: VisualizationPanelProps): React.ReactE
                     visualizeQuery={vq}
                     width={props.width}
                     height={props.height == null ? undefined : Math.max(0, props.height - (showHeader ? HEADER_HEIGHT : 0))}
-                    hideLegend={props.hideLegend}
                     preview={props.preview}
                     table={props.table}
                 />

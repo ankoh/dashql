@@ -14,18 +14,15 @@ interface Props {
     /// The width and height of the whole panel in px, the visualization gets the height below the header
     width?: number;
     height?: number;
-    hideLegend?: boolean;
     preview?: boolean;
-    /// The background of the cells of a result table
-    cellBackground?: string;
 }
 
 /// The visualization of a script with the header bar of the feed above it, for the dataflow boxes
-export function VisualizationPanel({ cellBackground, ...props }: Props): React.ReactElement {
+export function VisualizationPanel(props: Props): React.ReactElement {
     return (
         <VisualizationPanelView
             {...props}
-            table={() => <QueryResultPanel model={props.model} cellBackground={cellBackground} />}
+            table={() => <QueryResultPanel model={props.model} />}
         />
     );
 }

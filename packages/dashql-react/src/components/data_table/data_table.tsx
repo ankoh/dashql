@@ -55,7 +55,6 @@ export interface DataTableProps {
     model: ComputationModel;
     maxRows?: number;
     columnHeader?: TableColumnHeader;
-    cellBackground?: string;
     /// Open the full table, makes the column names clickable, and the row of the rows that `maxRows` leaves out
     /// without `onShowMoreRows`
     onShowTable?: () => void;
@@ -410,7 +409,6 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
             })}
             data-electron-drag-region="false"
             style={{
-                ...(props.cellBackground ? { '--data_table_bg': props.cellBackground } : {}),
                 // The row of the hidden rows overlaps the bottom border of the last row by a pixel
                 ...(props.fitHeight ? { height: gridContainerHeight + footerRowCount * (MORE_ROWS_HEIGHT - 1) } : {}),
             } as React.CSSProperties}

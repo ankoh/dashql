@@ -10,7 +10,6 @@ interface Props {
     model: QueryModel | null;
     maxRows?: number;
     columnHeader?: TableColumnHeader;
-    cellBackground?: string;
     onShowTable?: () => void;
     /// Show the rows that `maxRows` leaves out in place instead of opening the full table
     onShowMoreRows?: () => void;
@@ -36,7 +35,6 @@ export function QueryResultView(props: Props) {
                 model={computation}
                 maxRows={props.maxRows}
                 columnHeader={props.columnHeader}
-                cellBackground={props.cellBackground}
                 onShowTable={props.onShowTable}
                 onShowMoreRows={props.onShowMoreRows}
                 onShowFewerRows={props.onShowFewerRows}

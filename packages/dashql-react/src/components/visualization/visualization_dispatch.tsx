@@ -14,8 +14,6 @@ export interface VisualizationDispatchProps {
     /// the whole plot to `fit`).
     width?: number;
     height?: number;
-    /// Optional uniform scale (<1 shrinks fonts/marks/axes). Honored by the Vega-Lite renderer.
-    scale?: number;
     /// Suppress legends (they crowd out a cramped host like a grid card). Honored by the Vega-Lite
     /// renderer.
     hideLegend?: boolean;
@@ -43,7 +41,6 @@ export function VisualizationDispatch(props: VisualizationDispatchProps): React.
                     vegaLiteSpec={vq.vegaLiteSpec}
                     width={props.width}
                     height={props.height}
-                    scale={props.scale}
                     hideLegend={props.hideLegend}
                 />
             );
