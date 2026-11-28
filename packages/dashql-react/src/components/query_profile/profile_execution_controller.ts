@@ -42,22 +42,6 @@ export class ProfileExecutionController {
         if (path != null) path.dataset.status = `${status}`;
     }
 
-    /// Apply the output events of the core query profile
-    public applyEvents(events: dashql.buffers.profile.QueryProfileEvents) {
-        const event = new view.ProfileUpdateEvent();
-        for (let i = 0; i < events.eventsLength(); ++i) {
-            events.events(i, event);
-            switch (event.entity()) {
-                case view.ProfileEntity.OPERATOR:
-                    this.setOperatorStatus(event.index(), event.status());
-                    break;
-                case view.ProfileEntity.PIPELINE:
-                    this.setPipelineStatus(event.index(), event.status());
-                    break;
-            }
-        }
-    }
-
     /// Show the statuses of an execution state, after a reset. An operator without status of its own shows the
     /// status of its fragment (`operatorFragments`, by operator): Trino reports operators of finished stages only.
     public applyState(state: ProfileExecutionState, operatorFragments: readonly number[] = []) {

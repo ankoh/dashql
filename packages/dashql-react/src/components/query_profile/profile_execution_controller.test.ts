@@ -39,7 +39,7 @@ describe('ProfileExecutionController', () => {
         expect(pipeline.dataset.status).toBeUndefined();
     });
 
-    it('applies the operator and pipeline statuses of plan events', () => {
+    it('applies the operator and pipeline statuses of an execution state', () => {
         const controller = new ProfileExecutionController();
         const operator = svg('g');
         const pipeline = svg('path');
@@ -48,7 +48,7 @@ describe('ProfileExecutionController', () => {
         controller.registerPipeline(0, pipeline);
 
         // Operators out of range and unregistered operators are skipped
-        controller.applyEvents(planEvents(operatorUpdate(0, RUNNING), operatorUpdate(1, SUCCEEDED), operatorUpdate(5, RUNNING), pipelineUpdate(0, RUNNING)));
+        controller.applyState(ProfileExecutionState.EMPTY.withEvents(planEvents(operatorUpdate(0, RUNNING), operatorUpdate(1, SUCCEEDED), operatorUpdate(5, RUNNING), pipelineUpdate(0, RUNNING))));
         expect(operator.dataset.status).toEqual(`${RUNNING}`);
         expect(pipeline.dataset.status).toEqual(`${RUNNING}`);
 

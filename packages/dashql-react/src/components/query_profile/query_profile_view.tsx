@@ -202,11 +202,9 @@ export interface QueryProfileViewProps {
     /// The execution state (the rows of an analyzed plan, the progress of a running query)
     execution?: ProfileExecutionState;
     showProgress?: boolean;
-    controllerRef?: React.RefObject<ProfileExecutionController | null>;
     autoFocus?: boolean;
     /// Fill the height of the container instead of picking a height of its own
     fill?: boolean;
-    edgeRendering?: ProfileEdgeRenderingConfig;
     /// Lay out the plan again with the other orientation, the view shows a rotate button with it
     onRotate?: () => void;
     dependencies?: QueryProfileViewDependencies;
@@ -225,12 +223,15 @@ export const PROFILE_EDGE_COLOR_SCHEME_RD_BU: ProfileEdgeColorScheme = value => 
 export const PROFILE_EDGE_COLOR_SCHEME_RD_PU: ProfileEdgeColorScheme = interpolateRdPu;
 export const PROFILE_COST_COLOR_SCHEME_OR_RD: ProfileEdgeColorScheme = interpolateOrRd;
 
-export interface ProfileEdgeRenderingConfig {
-    colorScheme?: ProfileEdgeColorScheme;
-    rowColorScheme?: ProfileEdgeColorScheme;
-    /// The scale of the CPU and memory annotations, from none to the most of all operators
-    costColorScheme?: ProfileEdgeColorScheme;
+/// The color of the relative difference of the actual and the estimated rows of an edge
+function edgeDifferenceColor(difference: number): string {
+    return PROFILE_EDGE_COLOR_SCHEME_RD_BU(difference < 0 ? Math.max(0, (difference + 1) / 2) : Math.min(1, 0.5 + difference / 4));
 }
+/// The gradients of the legends of the annotations
+const legendGradient = (color: (index: number) => string) => Array.from({ length: 11 }, (_, index) => color(index / 10)).join(', ');
+const ESTIMATE_LEGEND_GRADIENT = legendGradient(value => PROFILE_EDGE_COLOR_SCHEME_RD_BU(1 - value));
+const ROW_LEGEND_GRADIENT = legendGradient(PROFILE_EDGE_COLOR_SCHEME_RD_PU);
+const COST_LEGEND_GRADIENT = legendGradient(PROFILE_COST_COLOR_SCHEME_OR_RD);
 
 interface ProfileEdgeBadge {
     x: number;
@@ -316,11 +317,11 @@ export function placeOperatorAnnotation(
     return { x: operator.rect.x - operator.rect.width / 2 + input.nodePaddingLeft, y: operator.rect.y };
 }
 
-export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY, showProgress = false, controllerRef, autoFocus = false, fill = false, edgeRendering, onRotate, dependencies = DEFAULT_DEPENDENCIES }: QueryProfileViewProps) {
+export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY, showProgress = false, autoFocus = false, fill = false, onRotate, dependencies = DEFAULT_DEPENDENCIES }: QueryProfileViewProps) {
     const scene = React.useMemo(() => dependencies.materializeProfileScene(plan), [dependencies, plan]);
-    const ownController = React.useRef<ProfileExecutionController | null>(null);
-    ownController.current ??= new ProfileExecutionController();
-    const controller = controllerRef?.current ?? ownController.current;
+    const controllerRef = React.useRef<ProfileExecutionController | null>(null);
+    controllerRef.current ??= new ProfileExecutionController();
+    const controller = controllerRef.current;
     const viewportRef = React.useRef<HTMLDivElement | null>(null);
     const svgRef = React.useRef<SVGSVGElement | null>(null);
     const sceneRef = React.useRef<SVGGElement | null>(null);
@@ -333,27 +334,6 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
     const [fragmentColors, setFragmentColors] = React.useState(false);
     const operatorRefs = React.useRef(new Map<number, SVGGElement>());
     const [positionRevision, setPositionRevision] = React.useState(0);
-    const edgeColorScheme = edgeRendering?.colorScheme ?? PROFILE_EDGE_COLOR_SCHEME_RD_BU;
-    const rowColorScheme = edgeRendering?.rowColorScheme ?? PROFILE_EDGE_COLOR_SCHEME_RD_PU;
-    const costColorScheme = edgeRendering?.costColorScheme ?? PROFILE_COST_COLOR_SCHEME_OR_RD;
-    const edgeDifferenceColor = React.useCallback(
-        (difference: number) => edgeColorScheme(difference < 0
-            ? Math.max(0, (difference + 1) / 2)
-            : Math.min(1, 0.5 + difference / 4)),
-        [edgeColorScheme],
-    );
-    const estimateLegendGradient = React.useMemo(
-        () => Array.from({ length: 11 }, (_, index) => edgeColorScheme(1 - index / 10)).join(', '),
-        [edgeColorScheme],
-    );
-    const rowLegendGradient = React.useMemo(
-        () => Array.from({ length: 11 }, (_, index) => rowColorScheme(index / 10)).join(', '),
-        [rowColorScheme],
-    );
-    const costLegendGradient = React.useMemo(
-        () => Array.from({ length: 11 }, (_, index) => costColorScheme(index / 10)).join(', '),
-        [costColorScheme],
-    );
     const actualRows = React.useMemo(() => scene.edges.map(edge => {
         const rows = execution.edgeRows(edge.slot, edge.childOperator);
         return rows == null ? null : Number(rows);
@@ -420,7 +400,7 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
                         badge: badge(
                             operator,
                             formatCpuShare(share),
-                            costColorScheme(max === 0 ? 0 : value / max),
+                            PROFILE_COST_COLOR_SCHEME_OR_RD(max === 0 ? 0 : value / max),
                             `CPU ${formatElapsed(value / 1000)}, ${formatCpuShare(share)} of the CPU time of all operators`,
                         ),
                     }];
@@ -439,7 +419,7 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
                         badge: badge(
                             operator,
                             formatShortBytes(value),
-                            costColorScheme(max === 0 ? 0 : value / max),
+                            PROFILE_COST_COLOR_SCHEME_OR_RD(max === 0 ? 0 : value / max),
                             `Memory ${formatCompactBytes(value)}${spilledBytes > 0 ? `, spilled ${formatCompactBytes(spilledBytes)} to disk` : ''}`,
                             spilledBytes > 0 ? SPILLED_BADGE_BORDER : null,
                         ),
@@ -462,9 +442,9 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
             const estimated = edge.outputCardinalityEstimated;
             let annotation: ProfileEdgeBadge | null = null;
             if (annotationMode === 'rows' && actual != null) {
-                annotation = badge(child, formatCompactCount(actual), rowColorScheme(rowScale(actual)), `Actual rows ${formatRowCount(actual)}`);
+                annotation = badge(child, formatCompactCount(actual), PROFILE_EDGE_COLOR_SCHEME_RD_PU(rowScale(actual)), `Actual rows ${formatRowCount(actual)}`);
             } else if (annotationMode === 'estimates' && estimated != null) {
-                annotation = badge(child, formatCompactCount(estimated), rowColorScheme(rowScale(estimated)), `Estimated rows ${formatRowCount(Math.round(estimated))}`);
+                annotation = badge(child, formatCompactCount(estimated), PROFILE_EDGE_COLOR_SCHEME_RD_PU(rowScale(estimated)), `Estimated rows ${formatRowCount(Math.round(estimated))}`);
             } else if (annotationMode === 'accuracy' && actual != null && estimated != null) {
                 const difference = estimateRelativeDifference(estimated, actual);
                 annotation = badge(
@@ -476,7 +456,7 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
             }
             return annotation == null ? [] : [{ operator: child.id, edge, badge: annotation }];
         });
-    }, [scene, execution, actualRows, annotationMode, rowColorScheme, costColorScheme, edgeDifferenceColor]);
+    }, [scene, execution, actualRows, annotationMode]);
     /// Did an operator spill to disk? The memory legend explains the border then.
     const spilled = React.useMemo(
         () => annotationMode === 'memory' && annotations.some(annotation => annotation.badge.border != null),
@@ -530,11 +510,7 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
     React.useLayoutEffect(() => {
         controller.reset(scene.operators.length, scene.pipelines.length);
         controller.applyState(execution, scene.operators.map(operator => operator.fragment));
-        if (controllerRef != null) controllerRef.current = controller;
-        return () => {
-            if (controllerRef != null) controllerRef.current = null;
-        };
-    }, [controller, controllerRef, scene, execution]);
+    }, [controller, scene, execution]);
 
     React.useLayoutEffect(() => {
         if (autoFocus) viewportRef.current?.focus();
@@ -690,7 +666,7 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
                 <span>More rows</span>
                 <i
                     aria-hidden="true"
-                    style={{ backgroundImage: `linear-gradient(to right, ${rowLegendGradient})` }}
+                    style={{ backgroundImage: `linear-gradient(to right, ${ROW_LEGEND_GRADIENT})` }}
                 />
             </div>
         </div>
@@ -708,7 +684,7 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
                 <span>{annotationMode === 'cpu' ? 'More CPU' : 'More memory'}</span>
                 <i
                     aria-hidden="true"
-                    style={{ backgroundImage: `linear-gradient(to right, ${costLegendGradient})` }}
+                    style={{ backgroundImage: `linear-gradient(to right, ${COST_LEGEND_GRADIENT})` }}
                 />
                 {spilled && <span className={styles.edge_legend_note} style={{ borderColor: SPILLED_BADGE_BORDER }}>Spilled to disk</span>}
             </div>
@@ -726,7 +702,7 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
                 <i
                     aria-hidden="true"
                     data-testid="plan-legend-gradient"
-                    style={{ backgroundImage: `linear-gradient(to right, ${estimateLegendGradient})` }}
+                    style={{ backgroundImage: `linear-gradient(to right, ${ESTIMATE_LEGEND_GRADIENT})` }}
                 />
                 <span className={styles.edge_legend_matched}>Matched</span>
             </div>

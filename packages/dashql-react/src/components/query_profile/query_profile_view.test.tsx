@@ -235,10 +235,10 @@ describe('QueryProfileView keyboard navigation', () => {
         return container.querySelector<SVGGElement>(`[data-plan-edge-badge-id="${id}"]`);
     }
 
-    function renderPlan(edgeRendering?: React.ComponentProps<typeof QueryProfileView>['edgeRendering']) {
+    function renderPlan() {
         // The tests mutate the shared scene fixture in place, the view memoizes derived edges per scene
         const freshScene: QueryProfileViewDependencies = { ...dependencies, materializeProfileScene: () => ({ ...scene }) };
-        act(() => root.render(<QueryProfileView plan={plan} execution={executionOf(actualRows)} edgeRendering={edgeRendering} dependencies={freshScene} />));
+        act(() => root.render(<QueryProfileView plan={plan} execution={executionOf(actualRows)} dependencies={freshScene} />));
     }
 
     function annotationButton(mode: 'plain' | 'rows' | 'estimates' | 'accuracy' | 'cpu' | 'memory'): HTMLButtonElement {
@@ -480,21 +480,6 @@ describe('QueryProfileView keyboard navigation', () => {
         act(() => operator(0).dispatchEvent(new MouseEvent('click', { bubbles: true })));
         expect(operatorBadge(0)?.getAttribute('data-highlighted')).toEqual('true');
         expect(operatorBadge(1)?.getAttribute('data-highlighted')).toBeNull();
-    });
-
-    it('supports a custom edge color interpolator', () => {
-        scene.edges[0].outputCardinalityEstimated = 100;
-        actualRows[0] = 0;
-        scene.edges[1].outputCardinalityEstimated = 0;
-        actualRows[1] = 100;
-        renderPlan({ colorScheme: value => value < 0.5 ? '#000000' : '#ffffff' });
-        selectAnnotation('accuracy');
-
-        expect(badge(10)?.querySelector('rect')?.getAttribute('fill')).toEqual('#000000');
-        expect(badge(11)?.querySelector('rect')?.getAttribute('fill')).toEqual('#ffffff');
-        const gradient = accuracyLegend()?.querySelector<HTMLElement>('[data-testid="plan-legend-gradient"]')?.style.backgroundImage;
-        expect(gradient).toContain('rgb(0, 0, 0)');
-        expect(gradient).toContain('rgb(255, 255, 255)');
     });
 
     it('paints the selected edge and its badge blue', () => {
