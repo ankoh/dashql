@@ -445,14 +445,6 @@ impl Script {
         Ok(Formatter::new(&parsed).format(config))
     }
 
-    /// The nodes that formatting could not represent
-    pub fn unformattable_nodes(&mut self, config: &FormattingConfigT, parse_if_outdated: bool) -> Result<Vec<u32>> {
-        let parsed = self.parsed_or_parse(parse_if_outdated)?;
-        let mut formatter = Formatter::new(&parsed);
-        formatter.format(config);
-        Ok(formatter.unformattable_nodes())
-    }
-
     /// Can formatting represent every node and does the script parse without errors?
     ///
     /// Statements with syntax errors are copied as written, which is not formatting them.

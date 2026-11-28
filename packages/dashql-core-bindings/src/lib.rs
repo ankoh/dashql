@@ -555,22 +555,6 @@ impl Script {
         self.format_with(catalog.inner.clone(), config, parse_if_outdated)
     }
 
-    /// The AST node ids that formatting cannot represent
-    #[allow(clippy::too_many_arguments)]
-    #[wasm_bindgen(js_name = getUnformattableNodes)]
-    pub fn get_unformattable_nodes(
-        &mut self,
-        dialect: u8,
-        mode: u8,
-        max_width: u32,
-        indentation_width: u32,
-        debug_mode: bool,
-        parse_if_outdated: bool,
-    ) -> Result<Vec<u32>, JsError> {
-        let config = formatting_config(dialect, mode, max_width, indentation_width, debug_mode, 0);
-        self.inner.unformattable_nodes(&config, parse_if_outdated).map_err(js_error)
-    }
-
     /// Can formatting represent every node?
     #[allow(clippy::too_many_arguments)]
     #[wasm_bindgen(js_name = isFullyFormattable)]

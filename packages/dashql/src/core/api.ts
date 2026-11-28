@@ -1031,17 +1031,6 @@ export class DashQLScript {
             parseIfOutdated,
         );
     }
-    /// AST node ids that prevent formatting.
-    public getUnformattableNodes(config: buffers.formatting.FormattingConfigT, parseIfOutdated: boolean = true): number[] {
-        return Array.from(this.ptr.assertNotNull().getUnformattableNodes(
-            config.dialect,
-            config.mode,
-            config.maxWidth,
-            config.indentationWidth,
-            config.debugMode,
-            parseIfOutdated,
-        ));
-    }
     /// Insert text at a code point offset
     public insertTextAt(offset: number, text: string) {
         this.ptr.assertNotNull().insertTextAt(offset, text);

@@ -845,7 +845,6 @@ fn formatting_needs_a_parse_unless_requested() {
     assert_eq!(script.format(&config, false).unwrap_err().status, Some(StatusCode::SCRIPT_NOT_PARSED));
     assert_eq!(script.format(&config, true).unwrap(), "select a, b from t;");
     assert!(script.is_fully_formattable(&config, false).unwrap());
-    assert!(script.unformattable_nodes(&config, false).unwrap().is_empty());
 
     // A format of an outdated parse is refreshed on request
     script.replace_text("select 2");
@@ -868,7 +867,6 @@ fn formatting_copies_statements_with_syntax_errors() {
     // The broken statement stays as written instead of vanishing, but the script is not fully formatted
     assert_eq!(script.format(&config, true).unwrap(), "select 1;\n\nselec   2;\n\nselect 3;");
     assert!(!script.is_fully_formattable(&config, false).unwrap());
-    assert!(script.unformattable_nodes(&config, false).unwrap().is_empty());
 
     script.replace_text("select   1; select   3");
     assert!(script.is_fully_formattable(&config, true).unwrap());

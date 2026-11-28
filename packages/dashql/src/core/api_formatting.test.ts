@@ -93,7 +93,6 @@ describe('DashQL formatting', () => {
         script.insertTextAt(0, "select cast('1' as bit varying(3))");
         const settings = config(formatting.FormattingMode.COMPACT, 80);
 
-        expect(script.getUnformattableNodes(settings)).toHaveLength(0);
         expect(script.isFullyFormattable(settings)).toBe(true);
         expect(script.format(settings, null, true).toString()).toEqual("select cast('1' as bit varying(3));");
     });
