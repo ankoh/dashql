@@ -470,20 +470,6 @@ impl WorkbookScriptView {
     }
 }
 
-/// A script as storage holds it, on a connection of the runtime
-#[derive(Clone, Debug, Deserialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-#[tsify(missing_as_null)]
-pub struct StoredScriptView {
-    pub name: String,
-    pub sql: String,
-    pub connection_id: String,
-    /// The connection that the workbook file names for the script while the app doesn't know it
-    #[serde(default)]
-    #[tsify(optional)]
-    pub unresolved_connection_id: Option<String>,
-}
-
 /// The update of an editor event for the editor, with its key (`WorkbookScriptView.editorUpdateKey`)
 #[derive(Clone, Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]

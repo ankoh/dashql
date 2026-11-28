@@ -82,10 +82,9 @@ use storage::restore_view::{RestoreOutcome, RestoreProgress as RestoreProgressVi
 use storage::view::{StorageHoldReason, StorageKeyStatistics, StorageWriteStatistics};
 use storage::{error_value, JsStorage, StorageCommand, StorageState, StorageView};
 use workbooks::view::{
-    EditorEventOutcome, StoredScriptView, WorkbookDerivedView, WorkbookListView, WorkbookScriptKeys,
-    WorkbookScriptView, WorkbookView,
+    EditorEventOutcome, WorkbookDerivedView, WorkbookListView, WorkbookScriptKeys, WorkbookScriptView, WorkbookView,
 };
-use workbooks::{Applied, NewWorkbook, StoredScriptRef, Workbooks};
+use workbooks::{Applied, NewWorkbook, Workbooks};
 
 #[wasm_bindgen(typescript_custom_section)]
 const RUNTIME_VIEWS: &str = r#"
@@ -1605,32 +1604,6 @@ impl Runtime {
         let workbook = workbook.try_borrow().map_err(|_| JsError::new("the workbook is busy"))?;
         let mut session = session.inner.try_borrow_mut().map_err(|_| JsError::new("the session is busy"))?;
         Ok(workbook.attach_table_parameters(&mut session))
-    }
-
-    /// Does storage hold the scripts of a workbook as they are: the same files in the same order, on the same
-    /// connections, with the same texts?
-    #[wasm_bindgen(js_name = matchesStoredScripts)]
-    pub fn matches_stored_scripts(
-        &self,
-        workbook_id: &str,
-        scripts: Vec<Ts<StoredScriptView>>,
-    ) -> Result<bool, JsError> {
-        let Some(workbook) = self.workbooks.get(workbook_id) else { return Ok(false) };
-        let scripts = scripts
-            .iter()
-            .map(|script| {
-                let script = script.to_rust()?;
-                Ok(StoredScriptRef {
-                    name: script.name,
-                    sql: script.sql,
-                    connection_id: script.connection_id,
-                    unresolved_connection_id: script.unresolved_connection_id,
-                })
-            })
-            .collect::<Result<Vec<_>, JsError>>()?;
-        let stored = self.workbooks.stored_scripts(scripts).map_err(js_error)?;
-        let workbook = workbook.try_borrow().map_err(|_| JsError::new("the workbook is busy"))?;
-        Ok(workbook.matches_stored_scripts(&stored))
     }
 
     // The restore

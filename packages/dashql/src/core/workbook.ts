@@ -5,7 +5,6 @@ import type { FlatBuffer } from '@akohn/dashql-wasm/dashql_core.js';
 /// The views of the workbooks of the runtime, declared by the module (`packages/dashql-core-bindings/src/runtime/workbooks/view.rs`)
 export type {
     EditorEventOutcome,
-    StoredScriptView,
     WorkbookAttachmentView,
     WorkbookCloudLink,
     WorkbookDataFile,
