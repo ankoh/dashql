@@ -23,32 +23,20 @@ export interface Position {
     left: number;
 }
 
-/// An entry of a table in the side pane
+/// A column in the side pane
 interface CandidateDetailsField {
-    /// The name of a parameter or column, or the label of a fact
+    /// The name of the column
     name: string;
-    /// The type, or the value of a fact
+    /// The type
     detail: string | null;
-    /// The prose
-    description: string | null;
 }
 
 /// What the side pane shows about a candidate
 interface CandidateDetails {
     /// One line: a signature, a type, a table
     detail: string | null;
-    /// The prose
-    description: string | null;
-    /// What the candidate takes
-    parameters: CandidateDetailsField[];
-    /// What a result holds
-    resultDescription: string | null;
-    /// The columns of a result or a table
+    /// The columns of a table
     columns: CandidateDetailsField[];
-    /// A call that shows how to write it
-    example: string | null;
-    /// Short facts
-    facts: CandidateDetailsField[];
 }
 
 export interface VirtualCandidate {
@@ -88,60 +76,21 @@ function getCandidateType(
     const nameTags = candidate.nameTags();
     if (nameTags & dashql.buffers.analyzer.NameTag.FUNCTION_NAME) return CompletionCandidateType.FUNCTION;
     if (nameTags & dashql.buffers.analyzer.NameTag.SCHEMA_NAME) return CompletionCandidateType.SCHEMA;
-    if (nameTags & dashql.buffers.analyzer.NameTag.OPTION_NAME) return CompletionCandidateType.OPTION;
     // The names of the script without catalog objects: CTEs, aliases, derived and output columns
     if (nameTags & (dashql.buffers.analyzer.NameTag.TABLE_NAME | dashql.buffers.analyzer.NameTag.TABLE_ALIAS)) return CompletionCandidateType.TABLE;
     if (nameTags & dashql.buffers.analyzer.NameTag.COLUMN_NAME) return CompletionCandidateType.COLUMN;
     return CompletionCandidateType.KEYWORD;
 }
 
-/// The inline Markdown of a description: code, bold and links
-const INLINE_MARKDOWN = /`([^`]+)`|\*\*([^*]+)\*\*|\[([^\]]+)\]\([^)\s]+\)/g;
-
-/// Render a description into an element.
-/// A description is text, everything goes through text nodes. A link shows its label, a click must not leave the input.
-function renderDescription(element: HTMLElement, description: string) {
-    const nodes: Node[] = [];
-    let offset = 0;
-    for (const match of description.matchAll(INLINE_MARKDOWN)) {
-        nodes.push(document.createTextNode(description.slice(offset, match.index)));
-        offset = match.index + match[0].length;
-        if (match[1] !== undefined) {
-            const code = document.createElement('code');
-            code.textContent = match[1];
-            nodes.push(code);
-        } else if (match[2] !== undefined) {
-            const strong = document.createElement('strong');
-            strong.textContent = match[2];
-            nodes.push(strong);
-        } else {
-            nodes.push(document.createTextNode(match[3]));
-        }
-    }
-    nodes.push(document.createTextNode(description.slice(offset)));
-    element.replaceChildren(...nodes);
-}
-
 /// Read the details of a candidate
 function readCandidateDetails(info: dashql.buffers.completion.CompletionCandidateInfo): CandidateDetails {
     const tmpField = new dashql.buffers.completion.CompletionCandidateField();
-    const readFields = (length: number, field: (index: number, tmp: dashql.buffers.completion.CompletionCandidateField) => dashql.buffers.completion.CompletionCandidateField | null) => {
-        const out: CandidateDetailsField[] = [];
-        for (let i = 0; i < length; ++i) {
-            const f = field(i, tmpField)!;
-            out.push({ name: f.name()!, detail: f.detail(), description: f.description() });
-        }
-        return out;
-    };
-    return {
-        detail: info.detail(),
-        description: info.description(),
-        parameters: readFields(info.parametersLength(), (i, tmp) => info.parameters(i, tmp)),
-        resultDescription: info.resultDescription(),
-        columns: readFields(info.columnsLength(), (i, tmp) => info.columns(i, tmp)),
-        example: info.example(),
-        facts: readFields(info.factsLength(), (i, tmp) => info.facts(i, tmp)),
-    };
+    const columns: CandidateDetailsField[] = [];
+    for (let i = 0; i < info.columnsLength(); ++i) {
+        const field = info.columns(i, tmpField)!;
+        columns.push({ name: field.name()!, detail: field.detail() });
+    }
+    return { detail: info.detail(), columns };
 }
 
 /// Create an element with a class
@@ -152,20 +101,12 @@ function createDetailsElement(tag: string, className: string, text: string | nul
     return element;
 }
 
-/// Render a table of the side pane
-function renderDetailsFields(tableClass: string, fields: CandidateDetailsField[]): HTMLElement {
-    const table = createDetailsElement('div', tableClass);
-    // A table with prose has a third column, every row fills it so that the rows line up
-    const described = fields.some(field => field.description != null);
-    table.classList.toggle(styles.details_fields_described, described);
+/// Render the columns of the side pane
+function renderDetailsFields(fields: CandidateDetailsField[]): HTMLElement {
+    const table = createDetailsElement('div', styles.details_fields);
     for (const field of fields) {
         table.appendChild(createDetailsElement('div', styles.details_field_name, field.name));
         table.appendChild(createDetailsElement('div', styles.details_field_detail, field.detail));
-        if (described) {
-            const description = createDetailsElement('div', styles.details_field_description);
-            renderDescription(description, field.description ?? '');
-            table.appendChild(description);
-        }
     }
     return table;
 }
@@ -211,58 +152,27 @@ class CandidateDetailsRenderer {
             return;
         }
         // A selection and a keystroke can both change the details, so compare what they say
-        const key = JSON.stringify([details, selected!.candidateType]);
+        const key = JSON.stringify(details);
         if (key != this.renderedKey) {
-            this.rootElement.replaceChildren(...this.renderContent(selected!.candidateType, details));
+            this.rootElement.replaceChildren(...this.renderContent(details));
             this.renderedKey = key;
             this.rootElement.scrollTop = 0;
         }
         this.show();
     }
-    /// Render the pane: a header that says what the candidate is, and a section for everything else
-    protected renderContent(type: CompletionCandidateType, details: CandidateDetails): HTMLElement[] {
+    /// Render the pane: a header that says what the candidate is, and its columns
+    protected renderContent(details: CandidateDetails): HTMLElement[] {
         const out: HTMLElement[] = [];
-        if (details.detail != null || details.description != null) {
+        if (details.detail != null) {
             const header = createDetailsElement('div', styles.details_header);
-            if (details.detail != null) {
-                // The table below has the same parameters, the description should stay in view
-                const detail = createDetailsElement('div', styles.details_detail, details.detail);
-                detail.classList.toggle(styles.details_detail_clamped, details.parameters.length > 0);
-                header.appendChild(detail);
-            }
-            if (details.description != null) {
-                const description = createDetailsElement('div', styles.details_description);
-                renderDescription(description, details.description);
-                header.appendChild(description);
-            }
+            header.appendChild(createDetailsElement('div', styles.details_detail, details.detail));
             out.push(header);
         }
-        const addSection = (title: string, ...content: HTMLElement[]) => {
+        if (details.columns.length > 0) {
             const section = createDetailsElement('div', styles.details_section);
-            section.appendChild(createDetailsElement('div', styles.details_title, title));
-            section.append(...content);
+            section.appendChild(createDetailsElement('div', styles.details_title, 'Columns'));
+            section.appendChild(renderDetailsFields(details.columns));
             out.push(section);
-        };
-        if (details.parameters.length > 0) {
-            addSection(type == CompletionCandidateType.OPTION ? 'Attributes' : 'Parameters', renderDetailsFields(styles.details_fields, details.parameters));
-        }
-        if (details.resultDescription != null || details.columns.length > 0) {
-            const content: HTMLElement[] = [];
-            if (details.resultDescription != null) {
-                const description = createDetailsElement('div', styles.details_description);
-                renderDescription(description, details.resultDescription);
-                content.push(description);
-            }
-            if (details.columns.length > 0) {
-                content.push(renderDetailsFields(styles.details_fields, details.columns));
-            }
-            addSection(type == CompletionCandidateType.FUNCTION ? 'Result' : 'Columns', ...content);
-        }
-        if (details.example != null) {
-            addSection('Example', createDetailsElement('div', styles.details_example, details.example));
-        }
-        if (details.facts.length > 0) {
-            addSection('Details', renderDetailsFields(styles.details_facts, details.facts));
         }
         return out;
     }
@@ -709,7 +619,7 @@ export function collectCandidates(completion: dashql.buffers.completion.Completi
             ? selectedCatalogObject
             : null;
         const object = objectCount > 0 ? ca.catalogObjects(selectedObject ?? 0, tmpCatalogObject)! : null;
-        const info = object != null ? object.info(tmpInfo) : ca.info(tmpInfo);
+        const info = object?.info(tmpInfo) ?? null;
         out.push({
             candidateLabel: ca.displayText()!,
             candidateType: getCandidateType(ca, object),

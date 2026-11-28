@@ -14,12 +14,11 @@ use dashql_buffers::algebra::{
     FunctionCallExpressionT, LiteralT, ResolvedColumnT, UnaryExpressionT,
 };
 use dashql_buffers::analyzer::{
-    AnalyzedScriptT, AnalyzerErrorT, ClientFunctionCallT, ClientFunctionEffect as PackedClientFunctionEffect,
-    ConstantExpressionT, FunctionDeclarationT, FunctionParamT, IndexedColumnReferenceT, IndexedTableReferenceT,
-    InferredColumnT, InferredTableSchemaT, InsertStatementT, InsertTargetColumnT, NameScopeT,
-    ParameterKind as PackedParameterKind, ParameterT, QualifiedColumnNameT, QualifiedFunctionNameT,
-    QualifiedTableNameT, ResolvedTableT, SqlTypeKind as PackedSqlTypeKind, SqlTypeT, TableColumnT, TableReferenceRole,
-    TableReferenceT, TableResolutionType, TableT, VisualizationSpecT,
+    AnalyzedScriptT, AnalyzerErrorT, ConstantExpressionT, FunctionDeclarationT, FunctionParamT,
+    IndexedColumnReferenceT, IndexedTableReferenceT, InferredColumnT, InferredTableSchemaT, InsertStatementT,
+    InsertTargetColumnT, NameScopeT, ParameterKind as PackedParameterKind, ParameterT, QualifiedColumnNameT,
+    QualifiedFunctionNameT, QualifiedTableNameT, ResolvedTableT, SqlTypeKind as PackedSqlTypeKind, SqlTypeT,
+    TableColumnT, TableReferenceRole, TableReferenceT, TableResolutionType, TableT, VisualizationSpecT,
 };
 use dashql_buffers::parser::{
     AttachDatabaseStatementT, AttributeKey, CommentBlockT, ErrorT, Node, NodeT, NodeType, ParsedScriptT,
@@ -702,24 +701,6 @@ pub fn pack_analyzed_script(script: &AnalyzedScript) -> AnalyzedScriptT {
             })
         })
         .collect();
-    let client_function_calls = script
-        .client_function_calls
-        .iter()
-        .map(|call| {
-            build!(ClientFunctionCallT {
-                ast_node_id: call.ast_node_id,
-                ast_statement_id: call.ast_statement_id,
-                explain: call.explain,
-                namespace_name: Some(call.namespace.to_string()),
-                function_name: call.function.as_deref().map(str::to_string),
-                effect: match call.effect {
-                    crate::catalog::clfn::ClientFunctionEffect::Read => PackedClientFunctionEffect::READ,
-                    crate::catalog::clfn::ClientFunctionEffect::Write => PackedClientFunctionEffect::WRITE,
-                },
-                description: script.describe_client_function_call(call.ast_statement_id).map(|d| d.to_string()),
-            })
-        })
-        .collect();
     let function_declarations = entry.function_declarations.iter().map(pack_function_declaration).collect();
     let visualization_specs = script
         .visualization_specs
@@ -795,7 +776,6 @@ pub fn pack_analyzed_script(script: &AnalyzedScript) -> AnalyzedScriptT {
         visualization_specs: Some(visualization_specs),
         inferred_table_schemas: Some(inferred_table_schemas),
         parameters: non_empty(parameters),
-        client_function_calls: non_empty(client_function_calls),
     })
 }
 
@@ -920,7 +900,6 @@ fn pack_candidate_fields(
         let mut out = dashql_buffers::completion::CompletionCandidateFieldT::default();
         out.name = Some(field.name.clone());
         out.detail = field.detail.clone();
-        out.description = field.description.clone();
         out
     };
     Some(fields.iter().map(pack).collect())
@@ -934,12 +913,7 @@ fn pack_candidate_info(
     }
     let mut out = dashql_buffers::completion::CompletionCandidateInfoT::default();
     out.detail = info.detail.clone();
-    out.description = info.description.clone();
-    out.parameters = pack_candidate_fields(&info.parameters);
-    out.result_description = info.result_description.clone();
     out.columns = pack_candidate_fields(&info.columns);
-    out.example = info.example.clone();
-    out.facts = pack_candidate_fields(&info.facts);
     Some(Box::new(out))
 }
 
@@ -1045,7 +1019,6 @@ pub fn pack_completion(
             c.candidate_tags = candidate.candidate_tags;
             c.name_tags = candidate.coarse_name_tags;
             c.catalog_objects = Some(catalog_objects);
-            c.info = pack_candidate_info(&candidate.info);
             c.score = candidate.score;
             c.target_location = Some(symbol_span(candidate.target_location));
             c.target_location_qualified = Some(symbol_span(candidate.target_location_qualified));
@@ -1062,7 +1035,6 @@ pub fn pack_completion(
     let mut out = CompletionT::default();
     out.cursor_offset = completion.cursor.text_offset as u32;
     out.dot_completion = completion.dot_completion;
-    out.client_function_name = completion.client_function_name;
     out.strategy = completion.strategy;
     out.candidates = Some(candidates);
     out.syntax_error = completion.syntax_error.as_ref().map(|error| {

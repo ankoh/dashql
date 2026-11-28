@@ -13,8 +13,6 @@ Completion::compute(cursor, k)
 ├─ Validate cursor has scanner location
 ├─ [the name of a table parameter in table position, `from :fo|`] the names of the scripts with a result, then stop
 │  (complete_table_parameter, see script_references.md)
-├─ [in a CALL of a namespace with client functions] its functions, options and attributes, then stop
-│  (complete_client_function_call, see client_functions.md)
 ├─ Select target symbol (current vs. previous)
 ├─ Detect dot-completion context
 ├─ Skip non-completable symbols (constants, operators, punctuation)
@@ -161,9 +159,8 @@ Each candidate carries a coarse type used for visual identification:
 | IDENTITY   | ID     | Identity candidate (matches what the user typed) |
 | SCRIPT     | :      | Script of the session, after the `:` of a table parameter (`script_references.md`) |
 | ATTACHMENT | :      | Attachment of the session, after the `:` of a table parameter (`script_references.md`) |
-| OPTION     | OPT    | Option or attribute of a client function (`client_functions.md`) |
 
-The type comes from the catalog object of a candidate, the selected one on the selected row. A candidate without objects has only its name tags: the candidates of a client function call carry `SCHEMA_NAME`, `FUNCTION_NAME` or `OPTION_NAME`, the names of the script (CTEs and aliases, derived and output columns) `TABLE_NAME`, `TABLE_ALIAS` or `COLUMN_NAME`, and everything else is a keyword. The fields of `@vis` tags have no name tags and show as keywords.
+The type comes from the catalog object of a candidate, the selected one on the selected row. A candidate without objects has only its name tags: the names of the script (CTEs and aliases, derived and output columns) carry `TABLE_NAME`, `TABLE_ALIAS` or `COLUMN_NAME`, and everything else is a keyword. The fields of `@vis` tags have no name tags and show as keywords.
 
 ### Name-index candidates
 
@@ -303,27 +300,21 @@ has the cases.
 
 ## Candidate info
 
-`CandidateInfo` is what the pane of a list shows about a candidate:
+`CandidateInfo` is what the pane of a list shows about a catalog object of a candidate:
 
 - `detail` is one line: a signature, a type or a table.
-- `description` is prose for the selected candidate. It can have inline Markdown: code, bold and links.
-- `parameters` is a table of what the candidate takes, with a name, a type and prose for each entry.
-- `result_description` tells what a result holds, in prose.
-- `columns` is a table of the columns of a result or a table.
-- `example` is a call that shows how to write it.
-- `facts` are short labels and values.
+- `columns` is a table of the columns of a table, with a name and a type for each entry.
 
-The core formats all of it, so that snapshots cover the text and the app has no rules of its own. Only the top candidates get an info, and scoring doesn't read it. A catalog object has its own info, so that it follows the object that the arrows select. A candidate without objects has it on the candidate.
+The core formats all of it, so that snapshots cover the text and the app has no rules of its own. Only the catalog objects of the top candidates get an info, and scoring doesn't read it. Each object has its own info, so that it follows the object that the arrows select.
 
-| Candidate | `detail` | `description` |
-|---|---|---|
-| Function | `(a INT, b TEXT) → INT`, with `· aggregate` for an aggregate | None yet |
-| Function declared as `name()` returning `any` | None, or `aggregate` | None yet |
-| Table | `12 columns`, or `view · 12 columns` | None |
-| Column | Its type and table, such as `bigint · orders` | None |
-| Client function call | From the spec, see `client_functions.md` | From the spec |
+| Candidate | `detail` |
+|---|---|
+| Function | `(a INT, b TEXT) → INT`, with `· aggregate` for an aggregate |
+| Function declared as `name()` returning `any` | None, or `aggregate` |
+| Table | `12 columns`, or `view · 12 columns` |
+| Column | Its type and table, such as `bigint · orders` |
 
-`columns` holds the result of a client function and the columns of a table. A client function's signature lists the options of its spec, and `?` marks an optional one. In the pane it's clamped to three lines above a table with the same parameters. Only client function calls fill the parameters and the example so far. A catalog function's signature is its detail in the pane, and enrichment can fill the same fields through `describe_function`.
+A catalog function's signature is its detail in the pane.
 
 Everything known about a catalog function goes through `describe_function`. A function without parameters that returns `any` is one whose signature is unknown: the catalog file of the bundled functions declares all of them like that, and the functions of `pg_proc` whose signature DashQL doesn't model. A table lists up to 200 of its columns as they are written, with the types of a `CREATE TABLE`. Other tables, such as views and table parameters, only know the names. A connection's catalog script writes each type as a quoted name, such as `"id" "bigint"`, since a backend can name types that aren't SQL. The text stays as it is, only in lower case.
 
@@ -399,7 +390,7 @@ The editor renders inline decorations for pending patches:
 - **Candidate hints** — ghost text showing what Tab will insert or delete.
 - **Catalog object hints** — ghost text showing the qualification prefix/suffix that the next Tab will add.
 
-At a zero-length completion target, the editor and shell show only the best candidate as an inline hint. The candidate list appears after the user enters the first character of the prefix. Right after a dot both open the list at once, and the editor also opens it at the names of a client function call (`client_function_name`).
+At a zero-length completion target, the editor and shell show only the best candidate as an inline hint. The candidate list appears after the user enters the first character of the prefix. Right after a dot both open the list at once.
 
 Each hint category has a distinct visual style (color-coded CSS classes) and a Tab key icon widget.
 
@@ -423,9 +414,9 @@ The TypeScript layer is split into four CodeMirror plugins:
 
 ### The list
 
-A row shows the type and the name. The pane next to the list shows what is known about the selected candidate, its [info](#candidate-info): a header with the detail and the description, then sections for the parameters, the result or columns, the example and the facts. It scrolls on its own, and a section keeps its title in view. A table is an overview with one row per entry: its name, its type and one line of its prose. The pane is up to 520px wide and gives way to a narrow window first, then hides. A candidate without an info, such as a keyword, has no pane.
+A row shows the type and the name. The pane next to the list shows what is known about the selected candidate, its [info](#candidate-info): a header with the detail, then a "Columns" section with one row per column, its name and its type. It scrolls on its own, and the section keeps its title in view. The pane is up to 520px wide and gives way to a narrow window first, then hides. A candidate without an info, such as a keyword, has no pane.
 
-A description is rendered through text nodes, with `code` and `strong` elements for its inline Markdown. A link shows its label and can't be clicked, since a click must not leave the editor. A click anywhere in the list keeps the focus in the editor, because a blur ends the completion.
+A click anywhere in the list keeps the focus in the editor, because a blur ends the completion.
 
 The list is as wide as its content. If that doesn't fit the window, the pane goes first, then the list moves left from the cursor.
 

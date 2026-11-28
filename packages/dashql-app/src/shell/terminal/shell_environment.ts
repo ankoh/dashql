@@ -1,4 +1,3 @@
-import type { ClientFunctionCallDescription } from '@akohn/dashql/platform/connections/clfn_spec';
 import type { QueryExecutor } from '@akohn/dashql/platform/connections/query_execution_args';
 import type { DashQLShellEnvironment } from './api.js';
 import { SHELL_QUERY_METADATA } from './shell_result.js';
@@ -6,8 +5,6 @@ import { SHELL_QUERY_METADATA } from './shell_result.js';
 interface ShellEnvironmentOptions {
     /// The workbook of the shell, its queries name it in their metadata
     workbookId?: string;
-    /// The client function call of a statement, null if the statement goes to the backend
-    resolveCall?: (query: string) => ClientFunctionCallDescription | null;
     /// Called after a statement ran or failed, before its result shows and the prompt returns, e.g. to wait for the
     /// catalog of the connection
     afterStatement?: (query: string) => Promise<void>;
@@ -33,7 +30,6 @@ export function createShellEnvironment(
             signal?.throwIfAborted();
             const [queryId, execution] = execute(connectionId, {
                 query,
-                clientFunctionCall: options.resolveCall?.(query) ?? undefined,
                 metadata: { ...SHELL_QUERY_METADATA, workbookId: options.workbookId },
                 abortSignal: signal,
                 analyzeResults: true,

@@ -23,8 +23,7 @@ The map of the Rust side is [dashql_core.md](../design/dashql_core.md), the seam
 - **The SQL language.** Tokens, statements, names and their quoting, comments and comment tags, dialects, formatting,
   completion, signatures, positions and ranges in a script.
 - **What a script means.** References, dependencies, the planner, the dataflow, inputs and parameters, the specs of
-  `VISUALIZE` and `@vis`, client function calls and their checks. Derived graphs come from the analyzer and the
-  planner, never from a matcher of their own.
+  `VISUALIZE` and `@vis`. Derived graphs come from the analyzer and the planner, never from a matcher of their own.
 - **The catalog.** Names, resolution, what a connection reported, see
   [core_analysis_catalog.md](../design/core_analysis_catalog.md) and [catalog_updates.md](../design/catalog_updates.md).
 - **The state of the runtime and its rules.** Workbooks, connections, queries, runs, the storage writer, the restore,

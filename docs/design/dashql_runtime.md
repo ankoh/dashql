@@ -78,9 +78,6 @@ breaks a rule:
   `?url`, `?raw` or `.css`, `import.meta.glob`, `navigator.storage`, `new Worker`, the Electron bridge) unless it is
   listed in `KNOWN_SEAMS`: `platform/opfs_root.ts` (the origin private file system; Node hands a folder of
   the host through `setOPFSRootProvider`) and `platform/electron_fs.ts` (the file system of the desktop app).
-  The specs of the client functions come through `provideClientFunctionSpecs` of
-  `platform/connections/clfn_specs.ts`: the app passes its `import.meta.glob` in
-  `connections/bundled_clfn_specs.ts`, the tests in Node in `test/setup_node.mjs`.
 - The checks of the assets and the seams skip all of `core/` and every `*.test.ts`. The bindings load their Wasm in
   Node and in the browsers on their own, e.g. `core/batch_worker_client.ts` uses `new Worker(`, and a test may stand
   in for a platform.
@@ -146,7 +143,6 @@ declared in `packages/dashql-core-bindings/src/host.rs`) from the members above,
 | `mounts` | The attachments of the workbooks in the compute database, unmounted when their workbook is deleted | `run_mounts.ts` |
 | `crypto` | `randomUuid`, `sha256` (the core has no randomness and no SHA-256) | `crypto` of the platform |
 | `oauth` | PKCE, flow info, loopback and redirect-page authorization, abort | `platform_requests.ts` |
-| `extensions` | `loadSpec`, the JSON of a client function spec | `loadClientFunctionSpec` |
 | `storage` | The workbook files, scripts, attachments, the app manifest, connection files, native folders | `runtime_storage.ts` |
 | `archives` | The ZIP container and the Parquet files of the workbook tables | the factory of the platform |
 | `changed` | The state changed, `urgent` or not | the store |
@@ -423,8 +419,8 @@ when the store took the changes. Every effect tells the host. `HandleTable.apply
 ### Results stay in JavaScript
 
 A query result never lives in the core module. The executor streams it into a table of the platform opened for the
-query (`tables.open`, `push`, `finish`): Hyper over HTTP hands its chunks over as they are, Trino and client functions
-pass one page at a time as the next part of an Arrow IPC stream, host channels (the embedded Hyper, gRPC, test channels)
+query (`tables.open`, `push`, `finish`): Hyper over HTTP hands its chunks over as they are, Trino passes one page at
+a time as the next part of an Arrow IPC stream, host channels (the embedded Hyper, gRPC, test channels)
 keep their record batches. The stream of a host channel is an async iterator of its batches and its progress (`read`
 of `QueryExecutionResponseStream`): the runtime pulls the next message with `channels.next`, and `query_channels.ts`
 pulls the next item of the stream for it, so the stream is read no faster than the runtime takes it. `QueryResultStream` frames the parts and `apache-arrow` builds the table. The history of the

@@ -731,7 +731,7 @@ impl<'a> Formatter<'a> {
             K::EXT_EXPLAIN_EXPRESSIONS => {
                 self.comma_join(&self.array_regs(node), Some(FormattingJoinPolicy::ForceBreak), false)
             }
-            K::EXT_VARARG_FIELD_VALUE | K::SQL_FUNCTION_ARG_VALUE => self.format_vararg_object(node),
+            K::EXT_VARARG_FIELD_VALUE => self.format_vararg_object(node),
             K::SQL_GENERIC_OPTION_VALUE => f.parenthesized(self.format_comma_list(node, true)),
             K::SQL_INDIRECTION_PATH | K::SQL_SELECT_EXPRESSION_INDIRECTION => self.format_indirection_path(node),
             K::SQL_ROW_EXPRESSION_VALUES
@@ -3573,7 +3573,7 @@ mod tests {
             ("select t /* c */ .from from t", "select /* c */ t.from\nfrom t;"),
             ("select t\n-- c\n.from from t", "select\n-- c\nt.from\nfrom t;"),
             ("select a.b /* c */ .c, t./* d */ x from t", "select /* c */ a.b.c, /* d */ t.x\nfrom t;"),
-            ("CALL d360/* c */ .select (limit => 1)", "call /* c */ d360.select (limit => 1);"),
+            ("CALL ns/* c */ .select (x => 1)", "call /* c */ ns.select (x => 1);"),
         ] {
             let [_, pretty] = format_stable(input, 120);
             assert_eq!(pretty, expected);

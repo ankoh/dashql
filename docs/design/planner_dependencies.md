@@ -149,8 +149,7 @@ A referenced script is a single SELECT that writes nothing (`ScriptReferences::c
 statements, a statement of another kind or a syntax error is the error "foo.sql is no single SELECT that bar.sql could
 read", a SELECT with a data-modifying WITH the error "foo.sql writes with a data-modifying WITH, bar.sql can only read
 a query that writes nothing" (`query_writes` of `workbook_run/result_key.rs`, which cacheability uses too). A
-reference thus never runs a command of the referenced script. A single call of a client function that reads is the
-exception that a scan reads (`unreadable`), its node is the terminal node of the materialization.
+reference thus never runs a command of the referenced script.
 
 `splice_statement` resolves the references of a statement into the scripts it reads, every script after the scripts
 its query references. Inline references are followed into the query of the inlined script, so a statement also reads
@@ -278,10 +277,9 @@ A script is cacheable if it parses, has a statement and every statement is a SEL
 (`ExecutionGraphScript.cacheable`, `cacheable` in `workbook_run/result_key.rs`): a SELECT with a data-modifying WITH
 (`with gone as (delete from t returning a) select * from gone`) and an EXPLAIN that runs a statement that writes
 (`explain (analyze) update t set a = 1`) write every time they run, a reuse would skip the write. An EXPLAIN that
-doesn't run its statement writes nothing. The scripts it references need no check: a referenced script is a single SELECT that writes nothing or a
-call that reads, anything else invalidates the plan. A call isn't cacheable, so the key of a script that reads one isn't
-reusable (`workbook_results.md`). Whether a stored result is reused also depends on the connections
-(`workbook_results.md`, Result Keys).
+doesn't run its statement writes nothing. The scripts it references need no check: a referenced script is a single
+SELECT that writes nothing, anything else invalidates the plan. Whether a stored result is reused also depends on the
+connections (`workbook_results.md`, Result Keys).
 
 ## Outputs of a Target
 

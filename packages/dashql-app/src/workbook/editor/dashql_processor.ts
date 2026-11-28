@@ -385,7 +385,7 @@ export function hasEmptyCompletionTarget(buffer: dashql.buffers.completion.Compl
 
 // An empty target is only an inline hint, unless the position asks for a name
 function isPassiveHint(buffer: dashql.buffers.completion.Completion): boolean {
-    return hasEmptyCompletionTarget(buffer) && !buffer.dotCompletion() && !buffer.clientFunctionName();
+    return hasEmptyCompletionTarget(buffer) && !buffer.dotCompletion();
 }
 
 // Helper to determine if a user event triggers completions.

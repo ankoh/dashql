@@ -199,7 +199,7 @@ a command line from the page, a secret on disk besides the token of the session.
 - Claude Code with its sandbox on (settings of the user or managed settings) keeps `dashql` off loopback: the app
   could pass `sandbox.excludedCommands: ["dashql"]` with `--settings`, managed settings may still forbid it.
 - Scripts that the agent deletes or renames: the guide forbids both.
-- The functions of a connection in the answer of `catalog`, client functions included.
+- The functions of a connection in the answer of `catalog`.
 - A query policy per connection: today the agent may run every script on the connections that the user allows.
 - An end-to-end test of the IPC in Electron, see [agent_integration_tests.md](agent_integration_tests.md).
 

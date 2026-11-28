@@ -1,8 +1,7 @@
 //! Results as Arrow IPC: what crosses between the executor and the host.
 //!
-//! A result never stays in the module. A connector that converts its pages to Arrow (Trino, client functions) writes
-//! every page as the next part of one Arrow IPC stream and hands it to the host right away, the host builds the result
-//! from the parts. The metadata queries of the catalog loader cross the other way, as a whole stream.
+//! A result never stays in the module. A connector that converts its pages to Arrow (Trino) writes every page as the
+//! next part of one Arrow IPC stream and hands it to the host right away, the host builds the result from the parts. The metadata queries of the catalog loader cross the other way, as a whole stream.
 
 use std::io::Cursor;
 use std::sync::Arc;

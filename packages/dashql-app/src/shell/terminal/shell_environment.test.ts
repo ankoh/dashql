@@ -34,13 +34,12 @@ describe('shell environment', () => {
         expect(calls[0][1]).toMatchObject({ query: 'SELECT 42', analyzeResults: true, metadata: { userProvided: true } });
     });
 
-    it('names the workbook of the shell and the client function call of a statement', async () => {
-        const call = { namespace: 'd360' } as never;
+    it('names the workbook of the shell', async () => {
         const { execute, calls } = executor(async () => tableFromArrays({ value: [42] }));
-        const environment = createShellEnvironment(execute, 'shell', { workbookId: 'workbook', resolveCall: () => call });
+        const environment = createShellEnvironment(execute, 'shell', { workbookId: 'workbook' });
 
-        await environment.executeQuery('CALL d360.segment_list()');
-        expect(calls[0][1]).toMatchObject({ clientFunctionCall: call, metadata: { userProvided: true, workbookId: 'workbook' } });
+        await environment.executeQuery('SELECT 42');
+        expect(calls[0][1]).toMatchObject({ metadata: { userProvided: true, workbookId: 'workbook' } });
     });
 
     it('reports the logs and timings of the executor and the result by the id of its query', async () => {

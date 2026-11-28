@@ -73,7 +73,6 @@ fn provide(
     let name = planned.names[script as usize].clone();
     let target = Fixture {
         catalog: fixture.catalog.clone(),
-        client_functions: fixture.client_functions,
         connections: fixture
             .connections
             .iter()

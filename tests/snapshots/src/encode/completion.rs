@@ -6,7 +6,7 @@ use crate::ryml::Node;
 use dashql_buffers::analyzer::NameTag;
 use dashql_buffers::completion::CandidateTag;
 use dashql_core::catalog::{Catalog, CatalogLayer};
-use dashql_core::completion::{CandidateField, CandidateInfo, CandidateObjectRef, Completion};
+use dashql_core::completion::{CandidateInfo, CandidateObjectRef, Completion};
 use dashql_core::cursor::{ScriptCursor, ScriptView};
 use dashql_core::utils::quote_identifier;
 use dashql_parser::parser::parse;
@@ -29,58 +29,22 @@ fn candidate_tag_names(value: u32) -> Vec<Node> {
     tag_names(value, 32, |t| CandidateTag(t).variant_name())
 }
 
-/// Encode a table of the details of a candidate
-fn insert_fields(out: &mut Map, key: &str, fields: &[CandidateField]) {
-    if fields.is_empty() {
-        return;
-    }
-    // A table of names and types stays on one line
-    if fields.iter().all(|field| field.description.is_none()) {
-        let fields = fields
-            .iter()
-            .map(|field| {
-                Node::dquo(
-                    field.detail.as_ref().map_or(field.name.clone(), |detail| format!("{} {detail}", field.name)),
-                )
-            })
-            .collect();
-        out.insert(key, Node::flow_seq(fields));
-        return;
-    }
-    let fields = fields
-        .iter()
-        .map(|field| {
-            let mut m = Map::new();
-            m.quoted("name", &field.name);
-            if let Some(detail) = &field.detail {
-                m.quoted("detail", detail);
-            }
-            if let Some(description) = &field.description {
-                m.quoted("description", description);
-            }
-            m.into_node()
-        })
-        .collect();
-    out.insert(key, Node::seq(fields));
-}
-
-/// Encode what a list shows about a candidate or a catalog object
+/// Encode what a list shows about a catalog object: its detail and its columns, a table of names and types on one line
 fn insert_info(out: &mut Map, info: &CandidateInfo) {
     if let Some(detail) = &info.detail {
         out.quoted("detail", detail);
     }
-    if let Some(description) = &info.description {
-        out.quoted("description", description);
+    if info.columns.is_empty() {
+        return;
     }
-    insert_fields(out, "parameters", &info.parameters);
-    if let Some(description) = &info.result_description {
-        out.quoted("result-description", description);
-    }
-    insert_fields(out, "columns", &info.columns);
-    if let Some(example) = &info.example {
-        out.quoted("example", example);
-    }
-    insert_fields(out, "facts", &info.facts);
+    let columns = info
+        .columns
+        .iter()
+        .map(|field| {
+            Node::dquo(field.detail.as_ref().map_or(field.name.clone(), |detail| format!("{} {detail}", field.name)))
+        })
+        .collect();
+    out.insert("columns", Node::flow_seq(columns));
 }
 
 /// Encode a completion, without the limit and text keys
@@ -90,9 +54,6 @@ pub fn encode_completion(out: &mut Map, completion: &Completion) {
     out.plain("strategy", completion.strategy.variant_name().unwrap_or(""));
     if completion.dot_completion {
         out.int("dot", 1);
-    }
-    if completion.client_function_name {
-        out.int("client-function-name", 1);
     }
     if let (Some(node_id), Some(parsed)) = (cursor.ast_node_id, cursor.script.parsed) {
         out.plain("symbol", parsed.nodes[node_id as usize].node_type().variant_name().unwrap_or(""));
@@ -130,7 +91,6 @@ pub fn encode_completion(out: &mut Map, completion: &Completion) {
             if qualified.offset() != 0 || qualified.length() != 0 {
                 encode_location_text(&mut m, text, qualified.offset(), qualified.length(), "location-qualified");
             }
-            insert_info(&mut m, &candidate.info);
             let objects = candidate
                 .catalog_objects
                 .iter()
@@ -195,7 +155,6 @@ pub struct CompletionCase {
 /// Run a completion snapshot case: analyze the catalog script and the editor script like the
 /// analyzer snapshots, place the cursor after the search text plus `index`, and complete.
 pub fn complete_case(
-    client_functions: Option<&str>,
     capabilities: Option<dashql_core::capabilities::Capabilities>,
     catalog_input: Option<&str>,
     editor_input: &str,
@@ -205,9 +164,6 @@ pub fn complete_case(
     let mut catalog = Catalog::new();
     if let Some(capabilities) = capabilities {
         catalog.set_capabilities(capabilities);
-    }
-    if let Some(spec) = client_functions {
-        catalog.register_client_functions(spec).map_err(|e| e.message)?;
     }
     let mut catalog_yaml = None;
     if let Some(input) = catalog_input {

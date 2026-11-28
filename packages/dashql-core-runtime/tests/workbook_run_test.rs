@@ -875,47 +875,18 @@ fn a_shown_workbook_reads_the_stored_results_of_every_key_of_the_connections_tha
     assert_eq!((last.skipped_scripts, last.total_statements), (0, 0));
 }
 
-/// A connection with the client functions of a made-up service
-fn connection_with_client_functions(id: &str, local: bool) -> Rc<ScriptConnection> {
-    let mut catalog = new_catalog();
-    let spec = r#"{
-        "format": 1,
-        "namespace": "t",
-        "hosts": { "api": { "base_path": "/v1" } },
-        "errors": { "message": ["/message"] },
-        "functions": [
-            { "name": "list", "method": "GET", "host": "api", "path": "/items" },
-            { "name": "create", "method": "POST", "effect": "write", "host": "api", "path": "/items" }
-        ]
-    }"#;
-    catalog.register_client_functions(spec).unwrap();
-    let profile = ScriptConnectionProfile {
-        dialect: FormattingDialect::HYPER,
-        local,
-        params: None,
-        default_database: String::new(),
-        default_schema: String::new(),
-    };
-    Rc::new(ScriptConnection::new(id, Rc::new(RefCell::new(catalog)), profile))
-}
-
 #[test]
-fn a_shown_workbook_runs_on_the_embedded_hyper_and_calls_no_client_function() {
-    let (local, remote) = (connection_with_client_functions("local", true), connection("remote", false));
-    let workbook = workbook(&[
-        ("remote.sql", "select 1 as a", &remote),
-        ("post.sql", "select count(*) from :remote", &local),
-        ("call.sql", "call t.list()", &local),
-        ("after.sql", "select * from :call", &local),
-    ]);
+fn a_shown_workbook_runs_on_the_embedded_hyper() {
+    let (local, remote) = (connection("local", true), connection("remote", false));
+    let workbook =
+        workbook(&[("remote.sql", "select 1 as a", &remote), ("post.sql", "select count(*) from :remote", &local)]);
     let s = setup(true, Some("/mnt/cache"), 1);
     {
         let mut state = s.state.borrow_mut();
         state.offline.insert("remote".into());
-        // An imported result of the remote script, and the last result of the call
+        // An imported result of the remote script
         state.stored.insert("remote.sql".into(), "imported".into());
         state.names.insert("remote.sql".into(), "remote.sql.imported.1.parquet".into());
-        state.stored.insert("call.sql".into(), "earlier".into());
     }
     let result = s.run(&workbook, RunOptions { local: true, ..workbook_run() });
     assert!(result.failure.is_none(), "{:?}", result.failure);
@@ -923,16 +894,8 @@ fn a_shown_workbook_runs_on_the_embedded_hyper_and_calls_no_client_function() {
     assert_eq!(s.events("remote.sql"), vec!["cached"]);
     assert!(s.texts().iter().any(|text| text.contains("/mnt/cache/remote.sql.imported.1.parquet")), "{:?}", s.texts());
     assert!(stores(&s).iter().any(|(script, _, _)| script == "post.sql"), "{:?}", stores(&s));
-    // The call doesn't run but shows its stored result, the script after it is left out
-    assert_eq!(s.events("call.sql"), vec!["skipped"]);
-    assert_eq!(s.events("after.sql"), vec!["skipped"]);
-    let statements = &s.state.borrow().statements;
-    assert!(statements.iter().all(|s| s.request.client_function_call.is_none()));
-    let calls: Vec<&Statement> = statements.iter().filter(|s| s.request.text.contains("call")).collect();
-    assert_eq!(calls.len(), 1);
-    assert!(matches!(calls[0].request.result, StatementResult::Read { .. }));
     let last = s.last_state();
-    assert_eq!((last.phase, last.completed_scripts, last.total_scripts), (RunPhase::Succeeded, 4, 4));
+    assert_eq!((last.phase, last.completed_scripts, last.total_scripts), (RunPhase::Succeeded, 2, 2));
     assert_eq!(last.skipped_scripts, 0);
 }
 
@@ -954,44 +917,22 @@ fn a_shown_workbook_runs_no_script_that_runs_only_on_request() {
 }
 
 #[test]
-fn execute_all_calls_the_client_functions_that_a_shown_workbook_leaves_out() {
-    let local = connection_with_client_functions("local", true);
-    let workbook = workbook(&[("call.sql", "call t.list()", &local)]);
-    let s = setup(true, Some("/mnt/cache"), 1);
-    let result = s.run(&workbook, workbook_run());
-    assert!(result.failure.is_none(), "{:?}", result.failure);
-    let statements = &s.state.borrow().statements;
-    assert_eq!(statements.len(), 1);
-    assert!(statements[0].request.client_function_call.is_some());
-}
-
-#[test]
 fn execute_all_holds_back_the_scripts_that_run_only_on_request() {
-    let local = connection_with_client_functions("local", true);
-    // A call is a barrier, the scripts after the write would follow it
+    let local = connection("local", true);
     let workbook = workbook(&[
-        ("read.sql", "call t.list()", &local),
         ("manual.sql", "/* @manual */\nselect 1 as a", &local),
         ("west.sql", "select count(*) from :manual", &local),
-        ("write.sql", "call t.create()", &local),
     ]);
     let s = setup(true, Some("/mnt/cache"), 1);
     let result = s.run(&workbook, workbook_run());
     assert!(result.failure.is_none(), "{:?}", result.failure);
-    // The manual script and the write don't run, the read runs and the reference inlines the manual script
+    // The manual script doesn't run, the reference inlines it
     assert_eq!(s.events("manual.sql"), vec!["skipped"]);
-    assert_eq!(s.events("write.sql"), vec!["skipped"]);
     let statements = &s.state.borrow().statements;
-    let calls: Vec<&str> = statements
-        .iter()
-        .filter(|s| s.request.client_function_call.is_some())
-        .map(|s| s.request.text.as_str())
-        .collect();
-    assert_eq!(calls, vec!["call t.list()"], "{:?}", s.texts());
     assert!(statements.iter().any(|s| s.request.text.contains("select 1")), "{:?}", s.texts());
     // The scripts that the run holds back are done, they need no connection
     let last = s.last_state();
-    assert_eq!((last.phase, last.completed_scripts, last.total_scripts), (RunPhase::Succeeded, 4, 4));
+    assert_eq!((last.phase, last.completed_scripts, last.total_scripts), (RunPhase::Succeeded, 2, 2));
     assert_eq!(last.skipped_scripts, 0);
 }
 

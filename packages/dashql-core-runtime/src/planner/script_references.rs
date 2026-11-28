@@ -382,7 +382,7 @@ impl ScriptReferences {
                 let producer = match r.source() {
                     Some(TableParameterSource::Script(producer)) => {
                         let Some(p) = prepared.get(producer as usize).and_then(Option::as_ref) else { continue };
-                        if let Some(message) = unreadable(request, p, producer, script as u32, r.kind) {
+                        if let Some(message) = unreadable(request, p, producer, script as u32) {
                             reporter.error(script as u32, Some(r.text_span), message);
                         }
                         Some(producer)
@@ -520,54 +520,17 @@ impl ScriptReferences {
 }
 
 /// Why a script cannot read the result of a script it references, None if it can. A referenced script is a single
-/// SELECT that writes nothing, or a single call of a client function that reads. A call runs in the host and not in a database, so no query
-/// can inline it: only a scan reads its result, which the host materializes.
-fn unreadable(
-    request: &SessionPlanRequest,
-    p: &Prepared,
-    producer: u32,
-    consumer: u32,
-    kind: ReferenceKind,
-) -> Option<String> {
+/// SELECT that writes nothing.
+fn unreadable(request: &SessionPlanRequest, p: &Prepared, producer: u32, consumer: u32) -> Option<String> {
     let (producer_label, consumer_label) = (script_label(request, producer), script_label(request, consumer));
-    if !p.parses() {
-        return Some(format!("{producer_label} is no single SELECT that {consumer_label} could read"));
-    }
-    let Some(call) = p.analyzed.single_client_function_call() else {
-        return match p.parsed.statements.as_slice() {
-            // A data-modifying WITH writes whenever the query runs, a reference would run it with its consumer
-            [statement] if statement.statement_type == StatementType::SELECT => {
-                query_writes(p.parsed, statement).then(|| {
-                    format!("{producer_label} writes with a data-modifying WITH, {consumer_label} can only read a query that writes nothing")
-                })
-            }
-            _ => Some(format!("{producer_label} is no single SELECT that {consumer_label} could read")),
-        };
-    };
-    let function = match &call.function {
-        Some(function) => format!("{}.{function}", call.namespace),
-        None => format!("an unknown function of {}", call.namespace),
-    };
-    if call.explain {
-        Some(format!(
-            "{producer_label} explains a call of {function} and sends nothing, {consumer_label} cannot read it"
-        ))
-    } else if !call.readable() {
-        Some(format!(
-            "{producer_label} calls {function}, which writes, {consumer_label} can only read a call that reads"
-        ))
-    } else if kind == ReferenceKind::Inline {
-        let connection = request
-            .scripts
-            .get(consumer as usize)
-            .and_then(|s| request.connections.get(s.connection as usize))
-            .map(|c| c.id)
-            .unwrap_or_default();
-        Some(format!(
-            "{producer_label} calls {function}, which no query of the connection {connection} can inline, only the scripts of the embedded Hyper read its result"
-        ))
-    } else {
-        None
+    match p.parsed.statements.as_slice() {
+        // A data-modifying WITH writes whenever the query runs, a reference would run it with its consumer
+        [statement] if p.parses() && statement.statement_type == StatementType::SELECT => {
+            query_writes(p.parsed, statement).then(|| {
+                format!("{producer_label} writes with a data-modifying WITH, {consumer_label} can only read a query that writes nothing")
+            })
+        }
+        _ => Some(format!("{producer_label} is no single SELECT that {consumer_label} could read")),
     }
 }
 

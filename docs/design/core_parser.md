@@ -49,10 +49,10 @@ The parser stack may not reach `MAX_STACK_DEPTH` (1000 states, `parser/driver.rs
 parentheses, brackets, subqueries, CASE, prefix operators; the snapshot corpus stays below 150. A shift past the
 limit is the syntax error `NESTING_TOO_DEEP`, and the recovery drops the whole statement: it unwinds to the lowest
 state that shifts the error token and skips to the next statement. Recovering inside the nesting would leave the
-stack at the limit, where no closing token could shift. The tree itself is flat, but the analyzer, the formatter and
-the checks of client function calls walk parts of it recursively on the 1 MiB stack of the module, where an overflow
-traps it; `packages/dashql-core/tests/nesting_test.rs` analyzes and formats every kind of nesting at the limit on half
-of that stack. A left-deep chain (`a + b + c`, `x::int::int`, `select 1 union all select 2 union all ...`) builds a deep
+stack at the limit, where no closing token could shift. The tree itself is flat, but the analyzer and the formatter
+walk parts of it recursively on the 1 MiB stack of the module, where an overflow traps it;
+`packages/dashql-core/tests/nesting_test.rs` analyzes and formats every kind of nesting at the limit on half of that
+stack. A left-deep chain (`a + b + c`, `x::int::int`, `select 1 union all select 2 union all ...`) builds a deep
 tree without growing the stack and is not limited; the same test analyzes and formats chains of twice the limit. The
 tools of the snapshot tests are not that robust: the parser snapshot of a chain nests its YAML as deep as the tree, its
 encoder and the YAML reader recurse over it, and a chain of 1100 terms overflows the stack of a test thread there. Long
@@ -207,10 +207,10 @@ The final `.y` file is composed in this order:
 | `sql_alter.y` | ALTER TABLE and ALTER VIEW with the actions that change what a catalog holds, CREATE, DROP and ALTER SCHEMA |
 | `sql_transaction.y` | Hyper transaction control: BEGIN, START TRANSACTION, COMMIT, ROLLBACK, aliases, savepoints and prepared transactions |
 | `sql_pgq.y` | SQL/PGQ: property graph definitions, `GRAPH_TABLE` queries |
+| `sql_call.y` | CALL of the backend, with the arguments of a function call in a query |
 | `ext_set.y` | SET variable statements |
 | `ext_varargs.y` | Nested key/value field syntax |
 | `ext_explain.y` | EXPLAIN wrapper |
-| `ext_call.y` | The generic CALL and its values, see `client_functions.md` |
 
 All supported SQL uses these productions and typed AST projections; see
 [sql_grammar.md](sql_grammar.md#parser-only-sql-coverage) for the additional statement and clause models.

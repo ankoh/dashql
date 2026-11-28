@@ -100,7 +100,6 @@ class TestPlatform {
             randomUuid: () => `uuid-${this.next}`,
         },
         oauth: NO_OAUTH,
-        extensions: { loadSpec: () => Promise.reject(new Error('no extensions')) },
         storage: null,
         archives: null,
         changed: () => { },
@@ -582,29 +581,6 @@ describe('The queries of the runtime', () => {
         await runtime.flushResultWrites();
         expect(files.map(file => file.name)).toEqual([`q.${'b'.repeat(64)}.00000000000100000001.parquet`, name]);
         expect(viewOf(runtime, 'query', ticket.queryId)!.servedFromCache).toBe(false);
-        runtime.free();
-    });
-
-    it('cancels a call of a client function while its spec loads, the call never starts', async () => {
-        const platform = new TestPlatform();
-        let loads = 0;
-        let load: (spec: string) => void = () => { };
-        platform.platform.extensions = { loadSpec: () => { ++loads; return new Promise(resolve => { load = resolve; }); } };
-        platform.describe = async () => ({ type: 'host' });
-        const runtime = createRuntime(platform);
-        runtime.dispatch('app', { kind: 'createConnection', value: { connectionId: 'sf', connectorType: dashql.ConnectorType.SALESFORCE_DATA_CLOUD, setupParams: {} } });
-        const call = { namespace: 'd360', function: 'query' };
-        const ticket = runtime.executeQuery('sf', { text: 'call d360.query()', metadata: USER_QUERY, traceId: 1, options: { throwOnError: true, clientFunctionCall: call } }, undefined, null);
-        // The call waits for the spec that the registration of the client functions of the connection loads, one load
-        await vi.waitFor(() => expect(loads).toBe(1));
-        // The cancel resolves once the query ended, it doesn't wait for the spec
-        await runtime.cancelQuery(ticket.queryId);
-        expect(viewOf(runtime, 'query', ticket.queryId)!.status).toBe(dashql.QueryExecutionStatus.CANCELLED);
-        expect(await ticket.done).toMatchObject({ status: 'rejected', failure: { kind: 'cancelled' } });
-        load('{"functions":[]}');
-        await new Promise(resolve => setTimeout(resolve, 0));
-        expect(platform.requests).toHaveLength(0);
-        expect(viewOf(runtime, 'query', ticket.queryId)!.status).toBe(dashql.QueryExecutionStatus.CANCELLED);
         runtime.free();
     });
 

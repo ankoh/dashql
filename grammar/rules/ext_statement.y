@@ -43,7 +43,7 @@ sql_query_statement:
   | sql_insert_stmt           { $1 }
   | sql_delete_stmt           { $1 }
   | sql_transaction_stmt      { $1 }
-  | call_stmt                 { $1 }
+  | sql_call_stmt             { $1 }
   | sql_cmd_update_stmt { $1 }
   | sql_cmd_merge_stmt { $1 }
   | sql_cmd_copy_stmt { $1 }

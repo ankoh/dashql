@@ -122,7 +122,6 @@ bazel test //...
 | `//packages/dashql-core:formatter_snapshot_test` | Formatter snapshot tests |
 | `//packages/dashql-core:formatter_validation_hyper_test` | Execute the formatted SQL of the formatter snapshots in Hyper |
 | `//packages/dashql-core-runtime:planner_validation_hyper_test` | Execute the planned SQL of the planner snapshots with script references in Hyper |
-| `//extensions/d360-api:all` | The Data 360 extension: `clfn/spec/*.yaml` generates `spec.json` and the documents, and the core reads the spec, see `extensions/d360-api/clfn/docs/overview.md`. `bazel run //extensions/d360-api:update` regenerates the documents |
 | `//packages/dashql:all` | The tests of `@akohn/dashql` in Node, its type checks, the boundary test of its folders, and the package on npm: tarball consumer and Node smoke tests |
 | `//packages/dashql/test/browser:all` | The tests of the bindings in Chromium, Firefox and WebKit, and the bindings of the package on npm with a browser worker |
 | `//tests/hyper:smoke_test` | Native Tableau Hyper API integration test |
@@ -589,7 +588,7 @@ stdout or with `--write` in place. `--check` only names the files that aren't fo
 Trino scripts. A script with syntax errors or that is not UTF-8 is reported and stays as it is.
 
 ```bash
-bazel run //tools/sql_format -- --write extensions/d360-api/snippets
+bazel run //tools/sql_format -- --write examples/snippets/hyper
 echo "SELECT  1" | bazel run //tools/sql_format -- -
 ```
 

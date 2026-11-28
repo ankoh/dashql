@@ -69,16 +69,6 @@
       "types": "./dist/platform/compute/computation_types.d.ts",
       "import": "./dist/platform/compute/computation_types.js"
     },
-    "./platform/connections/clfn_spec": {
-      "@akohn/source": "./src/platform/connections/clfn_spec.ts",
-      "types": "./dist/platform/connections/clfn_spec.d.ts",
-      "import": "./dist/platform/connections/clfn_spec.js"
-    },
-    "./platform/connections/clfn_specs": {
-      "@akohn/source": "./src/platform/connections/clfn_specs.ts",
-      "types": "./dist/platform/connections/clfn_specs.d.ts",
-      "import": "./dist/platform/connections/clfn_specs.js"
-    },
     "./platform/connections/connection_params": {
       "@akohn/source": "./src/platform/connections/connection_params.ts",
       "types": "./dist/platform/connections/connection_params.d.ts",

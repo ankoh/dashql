@@ -44,39 +44,7 @@ describe('DashQL Completion', () => {
         const completion = script.completeAtCursor(10).read();
         const candidates = Array.from({ length: completion.candidatesLength() }, (_, i) => completion.candidates(i)!);
         const candidate = candidates.find(c => c.displayText() === 'myfn')!;
-        expect(candidate.info()).toBeNull();
         expect(candidate.catalogObjects(0)!.info()!.detail()).toEqual('(x int) → text');
-    });
-
-    test('what a list shows about a client function', () => {
-        const catalog = dql!.createCatalog();
-        catalog.registerClientFunctions(JSON.stringify({
-            format: 1,
-            namespace: 'svc',
-            functions: [{
-                name: 'item_get',
-                method: 'GET',
-                description: 'Reads an `item`.',
-                options: [{ name: 'id', type: 'string', required: true }],
-                columns: [{ name: 'size', type: 'BIGINT' }],
-            }],
-        }));
-        const text = 'call svc.';
-        const script = dql!.createScript(catalog);
-        script.insertTextAt(0, text);
-        script.analyze();
-        script.moveCursor(text.length);
-        const completion = script.completeAtCursor(10).read();
-        const candidate = completion.candidates(0)!;
-        expect(candidate.displayText()).toEqual('item_get');
-        expect(candidate.catalogObjectsLength()).toEqual(0);
-        const info = candidate.info()!;
-        expect(info.detail()).toEqual('(id string)');
-        expect(info.description()).toEqual('Reads an `item`.');
-        expect(info.parameters(0)!.name()).toEqual('id');
-        expect(info.parameters(0)!.detail()).toEqual('string · required');
-        expect(info.columns(0)!.name()).toEqual('size');
-        expect(info.columns(0)!.detail()).toEqual('BIGINT');
     });
 
     test('simple qualified column name', () => {

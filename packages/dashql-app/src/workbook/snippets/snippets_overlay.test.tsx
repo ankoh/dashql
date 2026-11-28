@@ -246,28 +246,6 @@ describe('SnippetsOverlay', () => {
         });
     });
 
-    it('shows the roots of a connector with several as top-level folders', async () => {
-        const core = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
-        const roots = buildSnippetRegistry(core, {
-            'd360-api/agent-memory/01-create.sql': file('call d360.agent_list ();'),
-            'd360/json/access.sql': file('select 1;'),
-            'hyper/json/access.sql': file('select 2;'),
-        });
-        expect(roots.errors).toEqual([]);
-        render(ConnectorType.SALESFORCE_DATA_CLOUD, false, roots);
-        open();
-        const folders = () => Array.from(document.querySelectorAll<HTMLElement>('[data-testid="snippet-folder"]')).map(item => item.dataset.folder);
-        expect(folders()).toEqual(['d360', 'd360/json', 'd360-api', 'd360-api/agent-memory']);
-        selectSnippet('d360-api/agent-memory/01-create');
-        applySelected();
-        expect(onApply.mock.calls[0][0]).toContain('call d360.agent_list');
-        act(() => root.unmount());
-        root = createRoot(container);
-        render(ConnectorType.HYPER, false, roots);
-        open();
-        expect(folders()).toEqual(['json']);
-    });
-
     it('keeps a long name on one line at the start of the entry', () => {
         render(ConnectorType.DBCOM);
         open();

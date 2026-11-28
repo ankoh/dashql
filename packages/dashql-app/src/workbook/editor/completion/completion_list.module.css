@@ -109,7 +109,7 @@
     display: flex;
     flex-direction: column;
 
-    /* A single line needs little room, a description wraps at the maximum */
+    /* A single line needs little room, a long one wraps at the maximum */
     width: max-content;
     min-width: 280px;
     max-width: 520px;
@@ -124,10 +124,6 @@
 .details_container > * {
     flex: none;
 }
-.details_container code {
-    font-family: var(--font_family_mono);
-    font-size: 0.9em;
-}
 
 .details_header {
     display: flex;
@@ -139,16 +135,6 @@
     color: var(--color_fg);
     font-family: var(--font_family_mono);
     font-size: 0.7rem;
-}
-.details_detail_clamped {
-    display: -webkit-box;
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-}
-.details_description {
-    color: var(--color_fg_muted);
 }
 
 .details_section {
@@ -171,8 +157,7 @@
     text-transform: uppercase;
 }
 
-.details_fields,
-.details_facts {
+.details_fields {
     display: grid;
     /* A long name wraps, so that it leaves room for the type */
     grid-template-columns: fit-content(55%) minmax(0, 1fr);
@@ -187,35 +172,6 @@
     color: var(--color_fg_muted);
     font-family: var(--font_family_mono);
     font-size: 0.7rem;
-}
-.details_fields_described {
-    grid-template-columns: fit-content(38%) fit-content(32%) minmax(0, 1fr);
-    row-gap: 4px;
-}
-/* A table is an overview, the pane of an option shows its description in full */
-.details_field_description {
-    min-width: 0;
-    overflow: hidden;
-    color: var(--color_fg_muted);
-    font-size: 0.7rem;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.details_facts .details_field_name {
-    color: var(--color_fg_muted);
-    font-family: inherit;
-    font-size: inherit;
-}
-.details_facts .details_field_detail {
-    color: var(--color_fg);
-}
-.details_example {
-    padding: 4px 6px;
-    border-radius: 4px;
-    background-color: var(--color_bg_selected);
-    font-family: var(--font_family_mono);
-    font-size: 0.7rem;
-    white-space: pre-wrap;
 }
 
 .info_container {

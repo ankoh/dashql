@@ -9,7 +9,7 @@ const CONTINUATION = 0xffffffff;
 /// they arrive, and the table is built from them once the result is complete.
 ///
 /// - The parts of one Arrow IPC stream, in the order of the result: the chunks of Hyper over HTTP as the server sent
-///   them, or the pages of Trino and of client functions that the core wrote as Arrow. A message may span parts, a
+///   them, or the pages of Trino that the core wrote as Arrow. A message may span parts, a
 ///   schema after the first one and an end-of-stream marker inside the stream are skipped, so a server that repeats the
 ///   schema or ends every chunk still gives one table.
 /// - Or the record batches of a channel of the host, e.g. the embedded Hyper, which never leave JavaScript.

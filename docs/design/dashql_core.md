@@ -79,7 +79,7 @@ that wants the composition would depend on that rather than copy it.
 | The planner, references, dataflow, inputs | `planner/` | `workbooks.rs` (the derived view) |
 | Connections and their histories | `connections/`, `query/` | `connections.rs` |
 | Setups and health checks | `connection_setup/`, `trino/`, `salesforce/`, `hyper/` | `setups.rs` |
-| The query executor | `executor/`, `http/`, `trino/`, `hyper/`, `clfn/`, `salesforce/` | `queries.rs` |
+| The query executor | `executor/`, `http/`, `trino/`, `hyper/`, `salesforce/` | `queries.rs` |
 | Computations | `compute/` | `computation.rs`, `compute_tracking.rs` |
 | The catalog loader | `catalog_loader/` | `catalog.rs` |
 | Runs of workbooks | `workbook_run/` | `runs.rs`, `runs/stored_results.rs` |
@@ -173,10 +173,8 @@ that wants the composition would depend on that rather than copy it.
   of the connector (`hyper::connector`, `trino::connector`, `salesforce::connector`). It holds the params key, the
   display name, the features, the default params and their draft rows, the probe of the health check, the queries
   that run at once, whether the catalog outlives the app, the params that sharing keeps, the login hint, the parts of
-  a label, the names of unqualified relations, the update of the catalog and the
-  binding of its client functions (`ClientFunctionBinding`, Data 360 on Salesforce Data Cloud). A call hands the
-  binding the channel of its connection, which holds the credentials. A new decision of a connector is a method of
-  the trait, not another match. The setups stay one match in the bindings crate (`runtime/setups.rs`): their hosts
+  a label, the names of unqualified relations and the update of the catalog. A new decision of a connector is a method
+  of the trait, not another match. The setups stay one match in the bindings crate (`runtime/setups.rs`): their hosts
   return `impl Future` and are no trait objects, and the bindings pick the connectors of a module.
 - **The rules of the connectors are Rust** and show in the view: whether a connection is open, the label of its health, whether its queries read attachments, whether
   its catalog can be refreshed (`canRefresh`). The labels of connections (`connections/label.rs`) are in the view: the
@@ -229,8 +227,8 @@ that wants the composition would depend on that rather than copy it.
 
 - **Description in Rust.** `executeQuery` registers the query in the history of its connection and describes it
   (`queries.rs`): the target on the channel of the connection, the key of its result, whether the statement touches
-  relations, and the options of the caller (`QueryOptions`: analyze, publish, throw on error, a client function call,
-  the read timeout, the stored result of its script). The platform describes only a channel of the host by its handle (`channels.describe`),
+  relations, and the options of the caller (`QueryOptions`: analyze, publish, throw on error, the read
+  timeout, the stored result of its script). The platform describes only a channel of the host by its handle (`channels.describe`),
   the targets of the channels that the module speaks come from the connection.
 - **The result key** is the lowercase hex SHA-256 of the signature of the script, its inputs, its attachments and
   the results it references, never the connection (`workbook_run/result_key.rs`, SHA-256 of our own). It names the
@@ -241,7 +239,7 @@ that wants the composition would depend on that rather than copy it.
   (`ExecutorHost::Run`, `ExecutorRun`): the executor gets it with the request and hands it to every call of its host,
   the host never looks a query up by its id. Its token is the one cancellation of the query: `cancelQuery`, a reset
   of the connection, a catalog update that is cancelled and a caller that stops waiting cancel it while the query is
-  described, loads the spec of its client functions, reads its stored result or runs; once the query ended, a cancel
+  described, reads its stored result or runs; once the query ended, a cancel
   stops the analysis of its result. A channel of the host
   learns it from the executor (`channel_cancel`), also while it still opens the query, e.g. a query of the embedded
   Hyper that waits for the one before it. Its controls (`QueryControls`) count the views of its profile from the
@@ -270,9 +268,8 @@ that wants the composition would depend on that rather than copy it.
 - **The connectors are sans-IO state machines** driven by the executor over `HttpHost::fetch`: Trino (`TrinoQuery`,
   pages of up to 32 MB as Arrow batches, retries, the profile only while it shows, named time zones through
   `ExecutorHost::time_zones` since the crate has no time zone database), Hyper over HTTP (`HyperResultReader`, the
-  chunks passed on unread), Salesforce Data Cloud, and client functions (`ClientFunctionCallRun` with the spec that the
-  catalog loader registered, see [client_functions.md](client_functions.md)). A fetch whose future is dropped is
-  aborted. The cancellation of a Trino query or of a Hyper query over HTTP at the backend is given up after 10 s
+  chunks passed on unread) and Salesforce Data Cloud. A fetch whose future is dropped is aborted. The cancellation of
+  a Trino query or of a Hyper query over HTTP at the backend is given up after 10 s
   (`BACKEND_CANCEL_TIMEOUT_MS`) and logged, so a stopped run never waits for a network that is gone. The gRPC channel of Hyper and the embedded Hyper stay channels of the host.
 - **Results never live in the module.** A result passes through it at most one page at a time, see
   [dashql_runtime.md](dashql_runtime.md#results-stay-in-javascript).
@@ -318,8 +315,7 @@ parsed in the module (`CatalogBatch::prepare`), published into the catalog of th
 runs the update. The connector makes the steps of an update (`ConnectorCatalogUpdate`) and parses its batches,
 `CatalogUpdate::run` runs them over a `CatalogUpdateHost` and knows no connector: the loader answers it with queries,
 a refreshed channel (`ConnectionChannel::fresh`) and the HTTP requests that an update asks for, e.g. the Data Cloud
-metadata of Salesforce, the tests of the loader with a fake. Client functions are registered on the catalogs of their
-connectors with specs that the platform loads (`extensions.loadSpec`). A busy connection keeps its requested refreshes
+metadata of Salesforce, the tests of the loader with a fake. A busy connection keeps its requested refreshes
 and is looked at again after 10 ms, a connection that is not online keeps them until it comes online. `refreshCatalog(id, force)` requests a refresh, `runCatalogLoader(false)` stops the
 loader. See [catalog_updates.md](catalog_updates.md) and [catalog_batching.md](catalog_batching.md).
 
@@ -342,7 +338,7 @@ loader. See [catalog_updates.md](catalog_updates.md) and [catalog_batching.md](c
   its key, it is skipped only without one.
 - A run of the whole workbook plans tolerantly (`PlanScope::Tolerant`): a script that doesn't analyze, can't be planned
   or whose visualization doesn't decode fails on its own and blocks what follows it. It holds back the scripts that run
-  only on request (`@manual`, a call that writes) and what follows them. A run of targets, of a script or
+  only on request (`@manual`) and what follows them. A run of targets, of a script or
   of a change of inputs, still needs all of its plan.
 - One run holds a workbook. A run of the whole workbook takes the connections of its scripts and starts only while they
   are idle; otherwise it resolves `refused` with the reason. A change of inputs while the workbook is busy stops the run
@@ -434,7 +430,7 @@ follows from it with every call of the other host, only the log may differ. A se
 | `storage::StorageHost`, `restore::RestoreHost` (`dashql_core_storage`) | The operations of the storage backend, the reads of the restore |
 | `connection_setup::OAuthHost`, `SetupHost` | The OAuth flows, PKCE and random ids; connecting and closing channels, the token of a Hyper link, the probe of a health check |
 | `executor::ExecutorHost` | The run of a query (`ExecutorHost::Run`) that every call gets: the events of a query, the parts of its result, the stored results of the workbook, the analysis of a result, host channels, time zones |
-| `catalog_loader::CatalogLoaderHost` | The start and end of updates, metadata queries, the specs of client functions |
+| `catalog_loader::CatalogLoaderHost` | The start and end of updates, metadata queries |
 | `workbook_run::RunHost` | Statements, preparing connections, stored results, the files of a run (mounts), the workbook |
 | `compute::host::ComputeHost` | The compute database by handle |
 | `workbook_format` (`dashql_core_storage`): `FolderHost`, `StorageRootHost` | Folders and the storage root |
@@ -554,7 +550,7 @@ analyzer and the planner. The targets and how to run them are in
   [script_references.md](script_references.md), [dataflow.md](dataflow.md), [workbook_inputs.md](workbook_inputs.md),
   [workbook_graph_execution.md](workbook_graph_execution.md).
 - Connections and queries: [catalog_updates.md](catalog_updates.md), [catalog_batching.md](catalog_batching.md),
-  [client_functions.md](client_functions.md), [workbook_results.md](workbook_results.md), [trino_plan.md](trino_plan.md),
+  [workbook_results.md](workbook_results.md), [trino_plan.md](trino_plan.md),
   [oauth_salesforce.md](oauth_salesforce.md), [hyper_links.md](hyper_links.md).
 - Storage: [storage_layout.md](storage_layout.md), [workbook_tables.md](workbook_tables.md),
   [native_file_sync.md](native_file_sync.md), [cloud.md](cloud.md), [workbook_publishing.md](workbook_publishing.md).

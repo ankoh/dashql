@@ -130,16 +130,6 @@ impl CatalogLoaderHost for LoaderHost {
         }
     }
 
-    fn load_spec(&self, extension: &str) -> impl Future<Output = Result<String, HostError>> + 'static {
-        self.platform.load_spec(extension)
-    }
-
-    fn catalog_changed(&self, connection_id: &str) {
-        if let Some(connections) = self.connections.upgrade() {
-            connections.announce_catalog(connection_id);
-        }
-    }
-
     fn connection_changed(&self, connection_id: &str) {
         self.platform.changed(super::changes::Slice::Connection(connection_id), true);
     }

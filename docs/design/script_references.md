@@ -10,8 +10,7 @@ select region, count(*) from :foo group by region;
 A script that is referenced is a single SELECT, its result is the result of the query. A reference reads the query
 like a view: it never runs commands, neither in a run of the workbook nor in a run of the consumer. A SELECT with a
 data-modifying WITH (`with g as (delete from t returning a) select * from g`) writes whenever it runs, a reference to
-it is an error ("gone.sql writes with a data-modifying WITH, bar.sql can only read a query that writes nothing"). A script that is a
-single call of a client function that reads is referenced too, but only scanned, see [Client Function Calls](#client-function-calls). A script with
+it is an error ("gone.sql writes with a data-modifying WITH, bar.sql can only read a query that writes nothing"). A script with
 commands, e.g. `create table t as ...; select * from t`, is split into a script with the commands and one with the
 query; the planner orders the query after the commands by the relations it reads (`planner_dependencies.md`).
 
@@ -52,26 +51,7 @@ select count(*) from foo
 The host writes the result of foo.sql through hyperdb-wasm for every connection type, into the results folder of the
 workbook that is mounted read-write at `/mnt/external/results/<workbook>`, not as a path below `/mnt/fs`.
 
-## Client Function Calls
-
-A script that is a single `CALL` of a client function that reads (`client_functions.md`, Running calls) has a result like
-a query: the columns of the function followed by the standard columns, `_status`, `_poll` if the function can
-answer before it finishes, `_meta` and `_raw`. The call runs in the host and not in a database, no query can
-inline it, so only a **scan** reads it:
-
-| bar.sql runs on | foo.sql is a call that reads, on | `:foo` in bar.sql |
-|---|---|---|
-| LOCAL | another connection | **scan**: the call runs first, its result is written as Parquet file and scanned |
-| the connection of foo.sql | | an error, the call cannot be inlined |
-| REMOTE | another connection | an error, as for a query |
-
-A call of a function that writes, of an unknown function or an `EXPLAIN CALL` is an error for every reference
-("deleted.sql calls tickets.ticket_delete, which writes, consumer.sql can only read a call that reads"). A script
-with a call isn't cacheable, so its file is transient and a script that reads it has no reusable key.
-
 ## Scripts That Run on Request
-
-A script that calls a client function that writes runs only on request too, without a tag (`client_functions.md`, Writes).
 
 A script whose query is too expensive without a filter is a building block. A `@manual` tag in a comment of any of
 its statements says so; the text after the tag is free, e.g. the reason:
@@ -165,7 +145,7 @@ A run of one script (`runScript` of the runtime) analyzes every script, publishe
 declarations and plans the script with what it needs as the targets: the statements of the script, with the queries
 it inlines spliced in, the queries of the scripts it materializes, and the scripts that create or write the relations
 that these queries read (`required_scripts` of `workbook_run/plan.rs`, upstream along the relation edges of the
-dataflow, through the references). A script that runs only on request (`@manual`, a call that writes) runs only as a
+dataflow, through the references). A script that runs only on request (`@manual`) runs only as a
 target of its own: what a target needs never runs it, a target of its connection that references it inlines its query
 as always. A relation edge starts at the latest writer of a relation, so the walk goes on through such a script: it
 stays back, the scripts before it run, and the target reads what it wrote last. A run of the workbook

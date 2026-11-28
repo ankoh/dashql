@@ -187,7 +187,6 @@ export function testPlatform(storage: MemoryStorage = new MemoryStorage()): { pl
             randomUuid: () => `00000000-0000-4000-8000-${(++uuid).toString().padStart(12, '0')}`,
         },
         oauth: NO_OAUTH,
-        extensions: { loadSpec: () => Promise.reject(new Error('no extensions')) },
         storage,
         archives: null,
         changed: urgent => {

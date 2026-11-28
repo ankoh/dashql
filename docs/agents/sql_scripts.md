@@ -9,15 +9,12 @@ reentrant: running a script a second time against the same database must succeed
   insert the rows twice (see `examples/snippets/hyper/datasets/tpch_0_01.sql`).
 
 This does not apply to parser, analyzer, planner or formatter snapshot inputs, where the exact statement
-shape is what the test covers. It also doesn't apply to `extensions/*/snippets/`: an API has no `if not exists`, and
-the steps of a workflow build on each other.
+shape is what the test covers.
 
-The snippets are what `sql_format` prints, `//extensions/d360-api:snippets_formatted_test` and
-`//tools/sql_format:example_snippets_formatted_test` check that. After writing one, format its folder, with the dialect
-of its engine:
+The snippets are what `sql_format` prints, `//tools/sql_format:example_snippets_formatted_test` checks that. After
+writing one, format its folder, with the dialect of its engine:
 
 ```bash
-bazel run //tools/sql_format -- --write extensions/d360-api/snippets
 bazel run //tools/sql_format -- --write examples/snippets/hyper examples/snippets/d360
 bazel run //tools/sql_format -- --write --dialect trino examples/snippets/trino
 ```

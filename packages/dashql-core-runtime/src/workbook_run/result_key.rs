@@ -64,15 +64,13 @@ pub fn script_signature<N: Display, V: Display, F: Display, S: Display>(
 }
 
 /// May a run reuse the stored result of a script? A script of queries that write nothing: a reuse skips the whole
-/// script, so a script with commands before its query always runs, as does a query that writes, and a client function
-/// call asks a service and not the backend.
-pub fn cacheable(parsed: &ParsedScript, calls_client_functions: bool) -> bool {
+/// script, so a script with commands before its query always runs, as does a query that writes.
+pub fn cacheable(parsed: &ParsedScript) -> bool {
     parses(parsed)
         && !parsed.statements.is_empty()
         && parsed.statements.iter().all(|s| {
             matches!(s.statement_type, StatementType::SELECT | StatementType::EXPLAIN) && !query_writes(parsed, s)
         })
-        && !calls_client_functions
 }
 
 /// Does a node of a statement change the database when the statement runs? The statements that write or define
@@ -466,7 +464,7 @@ mod tests {
     fn scripts_with_errors_have_no_signature() {
         assert_eq!(ast_signature(&parsed("select 1 +;")), None);
         assert_eq!(ast_signature(&parsed("select 'unterminated")), None);
-        assert!(!cacheable(&parsed("select 1 +;"), false));
+        assert!(!cacheable(&parsed("select 1 +;")));
     }
 
     #[test]
@@ -483,16 +481,15 @@ mod tests {
 
     #[test]
     fn only_scripts_of_queries_are_cacheable() {
-        assert!(cacheable(&parsed("select 1; select 2"), false));
-        assert!(!cacheable(&parsed("select 1"), true));
-        assert!(!cacheable(&parsed("create table t as select 1; select * from t"), false));
-        assert!(!cacheable(&parsed(""), false));
+        assert!(cacheable(&parsed("select 1; select 2")));
+        assert!(!cacheable(&parsed("create table t as select 1; select * from t")));
+        assert!(!cacheable(&parsed("")));
         // A query that writes runs every time
-        assert!(!cacheable(&parsed("with gone as (delete from t returning a) select * from gone"), false));
-        assert!(!cacheable(&parsed("explain (analyze) update t set a = 1"), false));
-        assert!(!cacheable(&parsed("explain (analyze) create table u as select 1"), false));
+        assert!(!cacheable(&parsed("with gone as (delete from t returning a) select * from gone")));
+        assert!(!cacheable(&parsed("explain (analyze) update t set a = 1")));
+        assert!(!cacheable(&parsed("explain (analyze) create table u as select 1")));
         // An EXPLAIN that doesn't run its statement writes nothing
-        assert!(cacheable(&parsed("explain update t set a = 1"), false));
-        assert!(cacheable(&parsed("explain (analyze) select * from t"), false));
+        assert!(cacheable(&parsed("explain update t set a = 1")));
+        assert!(cacheable(&parsed("explain (analyze) select * from t")));
     }
 }

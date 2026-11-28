@@ -40,7 +40,6 @@ import '@akohn/dashql-react/styles/colors.css';
 import '@akohn/dashql-react/styles/tokens.css';
 import '../styles/globals.css';
 import '@akohn/dashql-react/styles/flavors/dbcom.css';
-import '../connections/bundled_clfn_specs.js';
 
 const LOG_CTX = 'app';
 

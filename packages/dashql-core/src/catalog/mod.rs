@@ -3,13 +3,11 @@
 //! through [`CatalogEntryRef`]. A script entry holds only declarations and names, never the analysis,
 //! so publishing does not keep ASTs or earlier analyses alive (see `docs/design/core_analysis_catalog.md`).
 
-pub mod clfn;
 pub mod descriptor;
 pub mod entry;
 pub mod ids;
 pub mod names;
 
-pub use clfn::ClientFunctionSpec;
 pub use descriptor::DescriptorEntry;
 pub use entry::*;
 pub use ids::*;
@@ -225,8 +223,6 @@ pub struct CatalogSnapshot {
     databases: BTreeMap<Arc<str>, Arc<DatabaseDeclaration>>,
     /// The schemas referenced by entries
     schemas: BTreeMap<(Arc<str>, Arc<str>), Arc<SchemaDeclaration>>,
-    /// The client function specs by namespace, a spec shadows its namespace for `CALL`
-    client_function_specs: BTreeMap<Arc<str>, Arc<ClientFunctionSpec>>,
     /// The relations that the connection reported as gone, their declarations in scripts are hidden until the
     /// connection has them again. An empty part of a name matches any database or schema.
     absent_relations: Vec<QualifiedKey>,
@@ -285,7 +281,6 @@ impl Catalog {
                 entries_by_schema: BTreeMap::new(),
                 databases: BTreeMap::new(),
                 schemas: BTreeMap::new(),
-                client_function_specs: BTreeMap::new(),
                 absent_relations: Vec::new(),
                 capabilities: Capabilities::ALL,
             }),
@@ -743,26 +738,7 @@ impl Catalog {
         let _ = self.publish_entries(staged);
     }
 
-    /// Register a client function spec. Its namespace must be free, drop the spec first to replace it.
-    pub fn register_client_functions(&mut self, json: &str) -> Result<Arc<str>> {
-        let spec = ClientFunctionSpec::parse(json)?;
-        if self.client_function_specs.contains_key(spec.namespace.as_str()) {
-            return Err(Error::invalid_argument(format!("the namespace {} is already registered", spec.namespace)));
-        }
-        let namespace: Arc<str> = Arc::from(spec.namespace.as_str());
-        self.client_function_specs.insert(namespace.clone(), Arc::new(spec));
-        self.version += 1;
-        Ok(namespace)
-    }
-
-    /// Drop a client function spec
-    pub fn drop_client_functions(&mut self, namespace: &str) {
-        if self.client_function_specs.remove(namespace).is_some() {
-            self.version += 1;
-        }
-    }
-
-    /// Clear the catalog. The client function specs stay, they come with the connector and not from the backend.
+    /// Clear the catalog
     pub fn clear(&mut self) {
         self.entries_by_qualified_schema.clear();
         self.entries_by_schema.clear();
@@ -776,22 +752,6 @@ impl Catalog {
 }
 
 impl CatalogSnapshot {
-    /// The client function spec of a namespace
-    pub fn client_function_spec(&self, namespace: &str) -> Option<&Arc<ClientFunctionSpec>> {
-        self.client_function_specs.get(namespace)
-    }
-
-    /// The namespace and the client function spec that a name in a script names. A namespace is a plain lower-case
-    /// name, also if a script quotes it.
-    pub fn client_function_spec_of_name(&self, text: &str) -> Option<(&Arc<str>, &Arc<ClientFunctionSpec>)> {
-        self.client_function_specs.get_key_value(text.trim_matches('"').to_ascii_lowercase().as_str())
-    }
-
-    /// The client function specs by namespace
-    pub fn client_function_specs(&self) -> &BTreeMap<Arc<str>, Arc<ClientFunctionSpec>> {
-        &self.client_function_specs
-    }
-
     /// Flatten the catalog.
     ///
     /// Databases, schemas and tables are merged across entries and ordered by name. A table name that

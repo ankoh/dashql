@@ -1080,10 +1080,6 @@ export class DashQLScript {
     public analyze(parseIfOutdated: boolean = true) {
         this.ptr.assertNotNull().analyze(parseIfOutdated);
     }
-    /// Does a statement of the parsed script start with a call in a namespace with client functions, even if it doesn't parse?
-    public startsClientFunctionCall(): boolean {
-        return this.ptr.assertNotNull().startsClientFunctionCall();
-    }
     /// Get the parsed script
     public getParsed(): FlatBufferPtr<buffers.parser.ParsedScript> {
         const bytes = this.ptr.assertNotNull().getParsed();
@@ -1228,17 +1224,6 @@ export class DashQLCatalog {
     /// scripts are analyzed, an unknown name throws. A runtime gives its connections the `capabilities` of its settings.
     public setCapabilities(capabilities: glue.RuntimeCapability[]): void {
         this.ptr.assertNotNull().setCapabilities(capabilities);
-    }
-    /// Register client functions from their JSON spec and return their namespace. The namespace must be free.
-    public registerClientFunctions(spec: string): string {
-        const namespace = this.ptr.assertNotNull().registerClientFunctions(spec);
-        this.deleteFlat();
-        return namespace;
-    }
-    /// Drop the client functions of a namespace
-    public dropClientFunctions(namespace: string): void {
-        this.ptr.assertNotNull().dropClientFunctions(namespace);
-        this.deleteFlat();
     }
     /// Update the tables of a descriptor entry, an unknown entry is created in the layer
     public replaceTables(catalogEntryId: number, layer: buffers.catalog.CatalogLayer, update: CatalogTableUpdate): void {

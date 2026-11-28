@@ -24,8 +24,7 @@ reads what the catalog doesn't offer and flags it with a `DISABLED_CAPABILITY` d
   tags skip it: no visualization, no placement, no input value, the script is not manual. The statement runs like one
   with an ordinary comment. A Javadoc `@param x the x` names no parameter and stays quiet.
 - **A named parameter** is an error of its statement, `the parameter :min is not available here`. A database doesn't
-  know `:min` or `:foo`, so the planner stops at the error like at one of a client function call and doesn't run the
-  statement.
+  know `:min` or `:foo`, so the planner stops at the error and doesn't run the statement.
 - **Completion** offers no disabled tag after `@` and completes nothing in the content of a disabled tag.
 
 ## Where the capabilities live

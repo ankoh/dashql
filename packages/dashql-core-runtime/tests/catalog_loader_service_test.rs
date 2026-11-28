@@ -31,7 +31,6 @@ use dashql_core_runtime::settings::RuntimeSettings;
 
 /// 2026-01-01T00:00:00.000Z
 const NOW: Timestamp = 1_767_225_600_000.0;
-const SPEC: &str = "extensions/d360-api/clfn/spec/spec.json";
 
 // The executor
 
@@ -132,7 +131,6 @@ struct State {
     /// The answers of the HTTP server
     responses: VecDeque<HttpResponse>,
     sent: Vec<HttpRequest>,
-    spec: Option<Result<String, String>>,
 }
 
 struct FakeHost {
@@ -372,21 +370,6 @@ impl CatalogLoaderHost for FakeHost {
                 None => Err(HostError::new("Query was cancelled")),
             }
         }
-    }
-
-    fn load_spec(&self, extension: &str) -> impl Future<Output = Result<String, HostError>> + 'static {
-        self.event(format!("load spec {extension}"));
-        let spec = self
-            .state
-            .borrow()
-            .spec
-            .clone()
-            .unwrap_or_else(|| std::fs::read_to_string(SPEC).map_err(|e| e.to_string()));
-        async move { spec.map_err(HostError::new) }
-    }
-
-    fn catalog_changed(&self, connection_id: &str) {
-        self.event(format!("changed {connection_id}"));
     }
 
     fn connection_changed(&self, connection_id: &str) {
@@ -847,37 +830,4 @@ fn salesforce_without_a_login_fails_its_update() {
     host.service().enqueue("database", true);
     host.run();
     assert!(host.events().contains(&"finished 1 Failed".to_string()), "{:?}", host.events());
-}
-
-// The client functions
-
-#[test]
-fn the_client_functions_of_a_connection_are_registered_and_announced() {
-    let host = setup(ConnectorType::SalesforceDataCloud, json!({}));
-    host.observe();
-    let events = host.events();
-    assert!(events.contains(&"load spec d360-api".to_string()), "{events:?}");
-    assert!(events.contains(&"changed database".to_string()), "{events:?}");
-    // Once
-    host.observe();
-    assert_eq!(host.events().iter().filter(|event| event.starts_with("load spec")).count(), 1);
-}
-
-#[test]
-fn a_spec_that_fails_to_load_is_tried_again_with_the_next_change() {
-    let host = setup(ConnectorType::SalesforceDataCloud, json!({}));
-    host.state.borrow_mut().spec = Some(Err("chunk failed".to_string()));
-    host.observe();
-    assert!(host.logged("Failed to register client functions"));
-    assert!(!host.events().contains(&"changed database".to_string()));
-    host.state.borrow_mut().spec = None;
-    host.observe();
-    assert!(host.events().contains(&"changed database".to_string()));
-}
-
-#[test]
-fn a_hyper_connection_has_no_client_functions() {
-    let host = setup(ConnectorType::Hyper, http());
-    host.observe();
-    assert!(!host.events().iter().any(|event| event.starts_with("load spec")));
 }

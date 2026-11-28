@@ -41,7 +41,7 @@ table ExecutionGraphScript {
     /// The signature of the script for its result key: its AST, its inputs and its attachments, empty if it does not
     /// parse (`workbook_run/result_key.rs`)
     signature: string;
-    /// May a run reuse the stored result of the script? Its statements are queries and it calls no client function.
+    /// May a run reuse the stored result of the script? Its statements are queries.
     cacheable: bool;
     /// The last statement of the script, the query that a script reference reads
     terminal_statement_id: uint32 = 4294967295;
@@ -135,9 +135,6 @@ table ExecutionGraphNode {
     inlined_scripts: [uint32];
     /// The attachments that the statement scans, also those that inlined queries read
     attachments: [uint32];
-    /// A call of a client function: what `describe_client_function_call` says, as JSON, with the values of the inputs
-    /// filled in. The host runs it instead of sending `sql`, no backend sees the statement.
-    client_function_call: string;
 }
 
 table ExecutionGraphEdge {
@@ -239,8 +236,8 @@ table DataflowScript {
     text_version: uint64;
     /// The statements in script order
     statements: [DataflowStatement];
-    /// Does the script run only on request, its `@manual` tag or a call of a client function that writes? Runs of the
-    /// whole session and of input changes leave it out.
+    /// Does the script run only on request, its `@manual` tag? Runs of the whole session and of input changes leave it
+    /// out.
     manual: bool;
 }
 

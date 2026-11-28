@@ -55,8 +55,6 @@ rust_test(
     # The recordings of Trino are compiled in with include_str!
     compile_data = ["//tests/snapshots/profiles/trino/recordings:files"],
     crate_root = "tests/main.rs",
-    # The generated spec of the Data 360 extension
-    data = ["//extensions/d360-api:files"],
     edition = "2021",
     deps = [
         ":dashql_core_runtime",

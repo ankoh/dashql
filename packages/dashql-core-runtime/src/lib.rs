@@ -22,7 +22,6 @@
 
 pub mod attachments;
 pub mod catalog_loader;
-pub mod clfn;
 pub mod compute;
 pub mod connection_setup;
 pub mod connections;

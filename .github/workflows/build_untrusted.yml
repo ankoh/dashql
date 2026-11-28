@@ -47,7 +47,7 @@ jobs:
               shell: bash
               run: |
                 bazel build --config=fastbuild \
-                    //packages/... //tests/snapshots/... //tests/hyper/... //tests/trino/... //tools/... //extensions/...
+                    //packages/... //tests/snapshots/... //tests/hyper/... //tests/trino/... //tools/...
 
             - name: Test Everything
               shell: bash

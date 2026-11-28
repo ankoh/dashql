@@ -21,8 +21,7 @@
 //!
 //! The runtime runs queries of its own as well (`run_internal`): the metadata queries of the catalog loader and the
 //! probes of the health checks, and the statements of the runs of workbooks (`run_statement`). They are queries of
-//! their connection like the others and are described in the same way. The specs of the client functions come from
-//! the platform (`extensions`) when a call runs.
+//! their connection like the others and are described in the same way.
 
 use std::cell::{Cell, RefCell};
 use std::collections::BTreeMap;
@@ -30,13 +29,12 @@ use std::pin::Pin;
 use std::rc::{Rc, Weak};
 use std::task::{Context, Poll};
 
-use dashql_core_runtime::clfn::{client_function_binding, ClientFunctionCallDescription, ClientFunctionSpec};
 use dashql_core_runtime::compute::service::AnalysisHandles;
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as RuntimeAnalyzeOptions;
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionChannel, ConnectorType, DetailedError};
 use dashql_core_runtime::executor::{
-    ChannelMessage, ClientFunctionTarget, ExecutorHost, ExecutorRun, FailureKind, HostTable, QueryControls, QueryEvent,
-    QueryFailure, QueryId, QueryOutcome, QueryRequest, QueryTarget, ResultRequest, StoredFile,
+    ChannelMessage, ExecutorHost, ExecutorRun, FailureKind, HostTable, QueryControls, QueryEvent, QueryFailure,
+    QueryId, QueryOutcome, QueryRequest, QueryTarget, ResultRequest, StoredFile,
 };
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
@@ -97,10 +95,6 @@ pub struct QueryOptions {
     #[serde(default)]
     #[tsify(optional)]
     pub throw_on_error: Option<bool>,
-    /// A call of a client function that runs instead of the text, as the core describes it
-    #[serde(default)]
-    #[tsify(optional)]
-    pub client_function_call: Option<JsonValue>,
     /// The time to wait for the next batch of a channel of the host, the default of the channel without
     #[serde(default)]
     #[tsify(optional)]
@@ -996,27 +990,16 @@ impl Connections {
             publish_results,
             connector: connector.connector().display_name(),
         };
-        let target = match (&options.client_function_call, channel) {
-            // The call runs with the spec that the catalog of the connection registered and sends its requests with
-            // the credentials of the channel of the connection
-            (Some(call), channel) => {
-                let description = ClientFunctionCallDescription::from_value(call.0.clone())
-                    .map_err(|error| QueryFailure::new(FailureKind::Error, error.message))?;
-                let spec = self
-                    .client_function_spec(connection_id, connector)
-                    .await
-                    .map_err(|message| QueryFailure::new(FailureKind::Error, message))?;
-                QueryTarget::ClientFunction(ClientFunctionTarget { connector, spec, description, channel })
-            }
+        let target = match channel {
             // The queries of a connection share its channel
-            (None, Some(ConnectionChannel::Trino(trino))) => QueryTarget::Trino(trino),
-            (None, Some(ConnectionChannel::HyperHttp { channel, auth })) => QueryTarget::HyperHttp { channel, auth },
-            (None, Some(ConnectionChannel::Salesforce(salesforce))) => {
+            Some(ConnectionChannel::Trino(trino)) => QueryTarget::Trino(trino),
+            Some(ConnectionChannel::HyperHttp { channel, auth }) => QueryTarget::HyperHttp { channel, auth },
+            Some(ConnectionChannel::Salesforce(salesforce)) => {
                 QueryTarget::HyperHttp { channel: salesforce.hyper(), auth: salesforce.auth() }
             }
             // A channel of the host, or none: a query that reads the stored result of its script needs none, any other
             // fails when it opens the channel
-            (None, channel) => {
+            channel => {
                 let handle = channel.as_ref().and_then(ConnectionChannel::host_handle);
                 let query = serde_wasm_bindgen::to_value(&query)
                     .map_err(|error| QueryFailure::new(FailureKind::Error, error.to_string()))?;
@@ -1098,24 +1081,6 @@ impl Connections {
         executor.execute(request, run.clone()).await
     }
 
-    /// The spec of the client functions of a call: the one that the catalog of its connection registered, so a call
-    /// runs only with the spec that the core checked it against. A spec that the registration still loads is awaited.
-    async fn client_function_spec(
-        &self,
-        connection_id: &str,
-        connector: ConnectorType,
-    ) -> Result<Rc<ClientFunctionSpec>, String> {
-        client_function_binding(connector).map_err(|error| error.message)?;
-        let spec = self.loader.borrow().as_ref().map(|loader| loader.client_function_spec(connection_id));
-        let spec = match spec {
-            Some(spec) => spec.await,
-            None => None,
-        };
-        spec.ok_or_else(|| {
-            format!("The client functions of {} connections are not registered", connector.connector().display_name())
-        })
-    }
-
     /// Run a query of the runtime on a connection, e.g. a metadata query of the catalog loader or the probe of a health
     /// check. It is a query of the history of the connection, the platform describes where it runs. Returns its id and
     /// a future of its result: the result table as an Arrow IPC stream if `read` asks for it, empty bytes otherwise,
@@ -1179,9 +1144,9 @@ impl Connections {
     }
 
     /// Run a statement of a run of a workbook on its connection. It is a query of the history of the connection, the
-    /// platform describes where it runs with the options of the statement (`queries.describe`): its stored result, whether it
-    /// publishes and analyzes its result, a call of a client function. Returns its id and a future of its end, once its
-    /// result is there: whether it has a result, or its failure. The analysis of the result runs on after it.
+    /// platform describes where it runs with the options of the statement (`queries.describe`): its stored result and
+    /// whether it publishes and analyzes its result. Returns its id and a future of its end, once its result is there:
+    /// whether it has a result, or its failure. The analysis of the result runs on after it.
     pub(crate) fn run_statement(
         self: &Rc<Self>,
         statement: Statement,
@@ -1196,7 +1161,6 @@ impl Connections {
                 analyze_results: Some(statement.analyze_results),
                 publish_results: Some(statement.publish_results),
                 throw_on_error: Some(true),
-                client_function_call: statement.client_function_call.clone().map(JsonValue),
                 read_timeout_ms: None,
                 result: statement.result.as_ref().map(QueryResultOptions::from),
             },
@@ -1282,8 +1246,6 @@ pub(crate) struct Statement {
     pub connection_id: String,
     pub text: String,
     pub metadata: QueryMetadata,
-    /// A call of a client function as JSON, it runs instead of the text
-    pub client_function_call: Option<serde_json::Value>,
     pub analyze_results: bool,
     pub publish_results: bool,
     /// The stored result of the script of the statement

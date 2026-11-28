@@ -11,34 +11,6 @@ import * as styles from './completion_list.module.css';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
-const LONG_TYPE = 'a_very_long_schema_name_that_a_row_cuts_off';
-
-/// Client functions with what a list shows about them
-const SPEC = {
-    format: 1,
-    namespace: 'svc',
-    title: 'The Service',
-    schemas: { [LONG_TYPE]: { attributes: [{ name: 'id', type: 'integer' }] } },
-    functions: [
-        {
-            name: 'item_get',
-            method: 'GET',
-            family: 'Items',
-            path: '/items/{id}',
-            description: 'Reads `one` **item**, see [the docs](https://example.com/docs). <b>No</b> markup.',
-            example: "CALL svc.item_get (id => 'a');",
-            result_description: 'One row for `the` item.',
-            columns: [{ name: 'size', type: 'BIGINT' }],
-            options: [
-                { name: 'id', in: 'path', type: 'string', required: true, description: 'The id.' },
-                { name: 'owner', schema: LONG_TYPE },
-                { name: 'plain', type: 'string' },
-            ],
-        },
-        { name: 'item_list', method: 'GET' },
-    ],
-};
-
 let dql: dashql.DashQL;
 beforeAll(async () => {
     dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
@@ -99,10 +71,14 @@ describe('DashQLCompletionListPlugin', () => {
         view.dispatch({ effects: DashQLUpdateEffect.of(completionAtEnd(dql, text, catalog, candidate, setup)) });
         return view;
     }
-    function clientFunctionEditor(text: string, candidate: string): EditorView {
+    /// An editor that completes a table of the catalog, the pane shows its columns
+    function tableEditor(): EditorView {
         const catalog = dql.createCatalog();
-        catalog.registerClientFunctions(JSON.stringify(SPEC));
-        return editorAt(text, catalog, candidate);
+        const schema = dql.createScript(catalog);
+        schema.insertTextAt(0, 'create table db0.public.orders(id int);');
+        schema.analyze();
+        catalog.loadScript(schema, 0);
+        return editorAt(ORDERS_COMPLETION_TEXT, catalog, 'orders');
     }
     const waitForSelected = () => vi.waitFor(() => expect(list().querySelector(`.${styles.selected}`)).not.toBeNull());
 
@@ -184,68 +160,14 @@ describe('DashQLCompletionListPlugin', () => {
         expect(cell(styles.details_field_detail)).toEqual(['integer', 'integer']);
     });
 
-    it('shows the description of the selected candidate in a pane', async () => {
-        clientFunctionEditor('call svc.', 'item_get');
-        await waitForSelected();
-        expect(paneVisible()).toBe(true);
-        // The signature comes first
-        expect(pane().firstElementChild?.firstElementChild?.textContent).toBe('(id string, owner?, plain? string)');
-        expect(pane().textContent).toContain('Reads one item');
-    });
-
-    it('shows the parameters, the result and the facts of a function in the pane', async () => {
-        clientFunctionEditor('call svc.', 'item_get');
-        await waitForSelected();
-        await vi.waitFor(() => expect(paneVisible()).toBe(true));
-        expect(titles()).toEqual(['Parameters', 'Result', 'Example', 'Details']);
-        const [parameters, result] = [...pane().querySelectorAll<HTMLElement>(`.${styles.details_fields}`)];
-        const cells = (table: HTMLElement, cell: string) => [...table.querySelectorAll(`.${cell}`)].map(e => e.textContent);
-        expect(cells(parameters, styles.details_field_name)).toEqual(['id', 'owner', 'plain']);
-        expect(cells(parameters, styles.details_field_detail)).toEqual(['string · required', '', 'string']);
-        expect(cells(parameters, styles.details_field_description)).toEqual(['The id.', '', '']);
-        expect(cells(result, styles.details_field_name)).toEqual(['size']);
-        expect(cells(result, styles.details_field_detail)).toEqual(['BIGINT']);
-        expect(pane().textContent).toContain('One row for the item.');
-        expect(pane().querySelector(`.${styles.details_example}`)?.textContent).toBe("CALL svc.item_get (id => 'a');");
-        const facts = pane().querySelector<HTMLElement>(`.${styles.details_facts}`)!;
-        expect(cells(facts, styles.details_field_name)).toEqual(['Family', 'Endpoint']);
-        expect(cells(facts, styles.details_field_detail)).toEqual(['Items', 'GET /items/{id}']);
-    });
-
-    it('shows the attributes of the schema of an option in the pane', async () => {
-        clientFunctionEditor('call svc.item_get (ow', 'owner');
-        await waitForSelected();
-        await vi.waitFor(() => expect(paneVisible()).toBe(true));
-        expect(titles()).toEqual(['Attributes']);
-    });
-
-    it('shows the type of an option in the pane, and only its name in the row', async () => {
-        clientFunctionEditor('call svc.item_get (pla', 'plain');
-        await waitForSelected();
-        expect(paneVisible()).toBe(true);
-        expect(paneDetail()).toBe('string');
-        expect(selected().textContent).not.toContain('string');
-    });
-
     it('hides the pane if nothing is known about a candidate', async () => {
         editorAt('sel', dql.createCatalog(), 'select');
         await waitForSelected();
         expect(paneVisible()).toBe(false);
     });
 
-    it('renders a description as text with inline Markdown', async () => {
-        clientFunctionEditor('call svc.', 'item_get');
-        await waitForSelected();
-        expect(pane().querySelector('code')?.textContent).toBe('one');
-        expect(pane().querySelector('strong')?.textContent).toBe('item');
-        expect(pane().querySelector('a')).toBeNull();
-        expect(pane().querySelector('b')).toBeNull();
-        expect(pane().textContent).toContain('see the docs.');
-        expect(pane().textContent).toContain('<b>No</b> markup.');
-    });
-
     it('keeps the focus in the editor when the pane is clicked', async () => {
-        clientFunctionEditor('call svc.', 'item_get');
+        tableEditor();
         await waitForSelected();
         const event = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
         pane().dispatchEvent(event);
@@ -253,30 +175,11 @@ describe('DashQLCompletionListPlugin', () => {
     });
 
     it('stays in the window', async () => {
-        clientFunctionEditor('call svc.', 'item_get');
+        tableEditor();
         await waitForSelected();
         await vi.waitFor(() => expect(paneVisible()).toBe(true));
         expect(list().getBoundingClientRect().right).toBeLessThanOrEqual(window.innerWidth);
         expect(list().getBoundingClientRect().left).toBeGreaterThanOrEqual(0);
-    });
-
-    it('shows the badges of client function candidates', async () => {
-        clientFunctionEditor('call sv', 'svc');
-        await waitForSelected();
-        expect(badgeOf('svc')).toBe('NS');
-        expect(paneDetail()).toBe('The Service');
-    });
-
-    it('shows the badge of a client function', async () => {
-        clientFunctionEditor('call svc.', 'item_get');
-        await waitForSelected();
-        expect(badgeOf('item_get')).toBe('FN');
-    });
-
-    it('shows the badge of an option', async () => {
-        clientFunctionEditor('call svc.item_get (', 'id');
-        await waitForSelected();
-        expect(badgeOf('id')).toBe('OPT');
     });
 
     it('shows the badge of a CTE, a table without catalog objects', async () => {

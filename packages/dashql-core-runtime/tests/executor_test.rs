@@ -15,13 +15,12 @@ use arrow_schema::{DataType, Field, Schema, SchemaRef};
 use serde_json::{json, Value};
 
 use dashql_buffers::profile as fb;
-use dashql_core_runtime::clfn::{ClientFunctionCallDescription, ClientFunctionSpec};
 use dashql_core_runtime::connections::{ConnectorType, DetailedError, TrinoSessionDefaults};
 use dashql_core_runtime::executor::connectors::{BACKEND_CANCEL_TIMEOUT_MS, TRINO_TOKEN_REFRESH_TIMEOUT_MS};
 use dashql_core_runtime::executor::ipc::{read_stream, write_stream};
 use dashql_core_runtime::executor::{
-    ChannelMessage, ClientFunctionTarget, ExecutorHost, ExecutorRun, FailureKind, HostTable, QueryControls, QueryEvent,
-    QueryExecutor, QueryId, QueryOutcome, QueryRequest, QueryTarget, ResultRequest, StoredFile,
+    ChannelMessage, ExecutorHost, ExecutorRun, FailureKind, HostTable, QueryControls, QueryEvent, QueryExecutor,
+    QueryId, QueryOutcome, QueryRequest, QueryTarget, ResultRequest, StoredFile,
 };
 use dashql_core_runtime::host::signal::{oneshot, Receiver};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
@@ -31,8 +30,6 @@ use dashql_core_runtime::http::{
 use dashql_core_runtime::hyper::{HyperChannelContext, HyperHttpChannel};
 use dashql_core_runtime::query::progress::{EngineProgressPayload, HyperQueryStatus};
 use dashql_core_runtime::query::{QueryExecutionMetrics, QueryExecutionProgress};
-use dashql_core_runtime::salesforce::client_functions::DATA_360_API_VERSION;
-use dashql_core_runtime::salesforce::SalesforceTokens;
 use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::trino::protocol::ACCESS_TOKEN_REFRESH_MARGIN_MS;
 use dashql_core_runtime::trino::{
@@ -1620,143 +1617,4 @@ fn a_cancel_during_the_read_of_a_stored_result_waits_for_the_table_of_the_run() 
     assert_eq!(*host.cache_tables.borrow(), [1]);
     assert_eq!(host.events(), ["cancelled"]);
     assert_eq!(host.state.borrow().cache_calls, ["read:a.parquet"]);
-}
-
-// Client functions
-
-/// The channel of a Salesforce connection with the tokens
-fn salesforce_channel() -> dashql_core_runtime::connections::ConnectionChannel {
-    let params = dashql_core_runtime::salesforce::SalesforceConnectionParams::default();
-    let channel = dashql_core_runtime::salesforce::SharedSalesforceChannel::new(
-        ConnectorType::SalesforceDataCloud,
-        &params,
-        salesforce_tokens(),
-    );
-    dashql_core_runtime::connections::ConnectionChannel::Salesforce(channel.unwrap())
-}
-
-fn salesforce_tokens() -> SalesforceTokens {
-    SalesforceTokens {
-        core: serde_json::from_value(
-            json!({ "accessToken": "core-token", "instanceUrl": "https://org.my.salesforce.com" }),
-        )
-        .unwrap(),
-        data_cloud: serde_json::from_value(
-            json!({ "instanceUrl": "https://tenant.c360a.salesforce.com/", "jwt": { "raw": "tenant-jwt" } }),
-        )
-        .unwrap(),
-    }
-}
-
-fn segment_spec() -> Rc<ClientFunctionSpec> {
-    let spec = json!({
-        "format": 1,
-        "namespace": "d360",
-        "hosts": { "core": { "base_path": "/services/data/v{api_version}" } },
-        "functions": [{ "name": "segment_list", "method": "GET", "host": "core", "path": "/ssot/segments", "rows": "/segments" }],
-    });
-    Rc::new(ClientFunctionSpec::from_value(spec).unwrap())
-}
-
-fn segment_call() -> ClientFunctionCallDescription {
-    ClientFunctionCallDescription {
-        namespace: "d360".into(),
-        function: "segment_list".into(),
-        ..ClientFunctionCallDescription::default()
-    }
-}
-
-#[test]
-fn a_client_function_call_asks_the_service() {
-    let host = FakeHost::new();
-    host.serve(|request| {
-        assert_eq!(
-            request.url,
-            format!("https://org.my.salesforce.com/services/data/v{DATA_360_API_VERSION}/ssot/segments")
-        );
-        assert_eq!(request.header("Authorization"), Some("Bearer core-token"));
-        json_response(json!({ "segments": [{ "apiName": "Vip" }, { "apiName": "New" }] }))
-    });
-    let executor = QueryExecutor::new(host.clone());
-    let target = ClientFunctionTarget {
-        connector: ConnectorType::SalesforceDataCloud,
-        spec: segment_spec(),
-        description: segment_call(),
-        channel: Some(salesforce_channel()),
-    };
-    let outcome = run(&host, &executor, request(1, QueryTarget::ClientFunction(target)));
-    assert_eq!(resolved(&outcome), Some(true));
-    assert_eq!(host.state.borrow().results.get(&1), Some(&2));
-}
-
-#[test]
-fn a_client_function_call_hands_over_a_page_at_a_time() {
-    let host = FakeHost::new();
-    let mut pages = VecDeque::from([
-        json!({ "segments": [{ "apiName": "A" }, { "apiName": "B" }], "nextPageToken": "t1" }),
-        json!({ "segments": [{ "apiName": "C" }], "nextPageToken": "t2" }),
-    ]);
-    host.serve(move |_| json_response(pages.pop_front().unwrap_or(json!({ "segments": [] }))));
-    let spec = json!({
-        "format": 1,
-        "namespace": "d360",
-        "hosts": { "core": { "base_path": "/services/data/v{api_version}" } },
-        "functions": [{
-            "name": "segment_list", "method": "GET", "host": "core", "path": "/ssot/segments", "rows": "/segments",
-            "options": [{ "name": "page_token", "api_name": "pageToken", "in": "query" }],
-            "paging": { "kind": "token", "from": { "body": "/nextPageToken" }, "option": "page_token" },
-        }],
-    });
-    let mut description = segment_call();
-    description.options = json!({ "_pages": 2 }).as_object().cloned().unwrap();
-    let target = ClientFunctionTarget {
-        connector: ConnectorType::SalesforceDataCloud,
-        spec: Rc::new(ClientFunctionSpec::from_value(spec).unwrap()),
-        description,
-        channel: Some(salesforce_channel()),
-    };
-    let executor = QueryExecutor::new(host.clone());
-    let outcome = run(&host, &executor, request(1, QueryTarget::ClientFunction(target)));
-    assert_eq!(resolved(&outcome), Some(true));
-    assert_eq!(host.state.borrow().results.get(&1), Some(&3));
-    // A batch per page
-    assert_eq!(host.events().iter().filter(|event| event.starts_with("batch:")).count(), 2);
-}
-
-#[test]
-fn a_client_function_call_fails_with_the_service() {
-    let host = FakeHost::new();
-    host.serve(|_| Answer::Now(Ok(HttpResponse::new(403, json!([{ "message": "No access" }]).to_string()))));
-    let executor = QueryExecutor::new(host.clone());
-    let target = ClientFunctionTarget {
-        connector: ConnectorType::SalesforceDataCloud,
-        spec: segment_spec(),
-        description: segment_call(),
-        channel: Some(salesforce_channel()),
-    };
-    let mut query = request(1, QueryTarget::ClientFunction(target));
-    query.throw_on_error = true;
-    let QueryOutcome::Rejected(failure) = run(&host, &executor, query) else { panic!("expected a rejection") };
-    assert_eq!(failure.details, [("status".to_string(), "403".to_string())]);
-}
-
-#[test]
-fn a_client_function_call_stops_its_request_when_cancelled() {
-    let host = FakeHost::new();
-    host.serve(|_| Answer::Hold);
-    let executor = QueryExecutor::new(host.clone());
-    let target = ClientFunctionTarget {
-        connector: ConnectorType::SalesforceDataCloud,
-        spec: segment_spec(),
-        description: segment_call(),
-        channel: Some(salesforce_channel()),
-    };
-    let query = request(1, QueryTarget::ClientFunction(target));
-    let run = query.run.clone();
-    let outcome = start(&host, &executor, query);
-    host.advance(0);
-    run.token.cancel();
-    host.advance(0);
-    assert_eq!(resolved(outcome.borrow().as_ref().unwrap()), Some(false));
-    assert_eq!(host.events(), ["sending", "cancelled"]);
 }

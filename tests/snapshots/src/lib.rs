@@ -3,7 +3,6 @@
 //! This crate loads the snapshot files, turns every case into a libtest-mimic trial, and compares
 //! produced YAML structurally against the `expected` node of a case.
 
-pub mod clfn_fixture;
 pub mod encode;
 pub mod formatter;
 pub mod ryml;
@@ -45,14 +44,6 @@ impl SnapshotCase {
             Yaml::BadValue => None,
             expected => Some(expected),
         }
-    }
-}
-
-/// The client functions of a snapshot case, `catalog.client_functions: <name>`
-pub fn client_functions_of(case: &Yaml) -> Option<&'static str> {
-    match case["catalog"]["client_functions"].as_str()? {
-        "tickets" => Some(clfn_fixture::TICKETS),
-        other => panic!("unknown client functions {other}"),
     }
 }
 

@@ -1,12 +1,11 @@
 //! The connectors of the executor: how a query of a target streams its result.
 //!
 //! Trino and the HTTP API of Hyper are state machines of the crate, the executor sends their requests with
-//! `HttpHost::fetch`, runs their timers with `Host::sleep` and feeds the outcomes back. A client function call sends
-//! the requests of its run until the result is complete. A channel of the host streams the metrics of its batches.
-//! Every connector reports `Running` once the result streams, its progress and the parts of its result, and stops at
-//! the backend when the query is cancelled. No connector keeps a part of the result: a page of Trino or of a client
-//! function is written as the next part of an Arrow IPC stream and handed to the host, a chunk of Hyper is handed on
-//! as it is.
+//! `HttpHost::fetch`, runs their timers with `Host::sleep` and feeds the outcomes back. A channel of the host streams
+//! the metrics of its batches. Every connector reports `Running` once the result streams, its progress and the parts of
+//! its result, and stops at the backend when the query is cancelled. No connector keeps a part of the result: a page of
+//! Trino is written as the next part of an Arrow IPC stream and handed to the host, a chunk of Hyper is handed on as it
+//! is.
 
 use std::collections::VecDeque;
 use std::rc::Rc;
@@ -17,10 +16,8 @@ use arrow_schema::SchemaRef;
 use super::ipc::IpcStreamWriter;
 use super::wait::{next, TaskSet, Wake};
 use super::{
-    ChannelMessage, ClientFunctionTarget, ExecutorHost, ExecutorRun, FailureKind, QueryEvent, QueryFailure,
-    QueryTarget, LOG_TARGET,
+    ChannelMessage, ExecutorHost, ExecutorRun, FailureKind, QueryEvent, QueryFailure, QueryTarget, LOG_TARGET,
 };
-use crate::clfn::{start_connection_client_function, CallStep, ClientFunctionResult, ConnectionCallStart};
 use crate::connections::DetailedError;
 use crate::host::signal::Receiver;
 use crate::host::{timeout, HostError, LogLevel};
@@ -230,7 +227,6 @@ pub async fn run<H: ExecutorHost>(
         QueryTarget::Host => run_host_channel(context).await,
         QueryTarget::Trino(channel) => run_trino(context, channel, text).await.map(Some),
         QueryTarget::HyperHttp { channel, auth } => run_hyper(context, channel, auth, text).await.map(Some),
-        QueryTarget::ClientFunction(target) => run_client_function(context, target).await.map(Some),
     }
 }
 
@@ -570,71 +566,6 @@ async fn stream_hyper<H: ExecutorHost>(
             Wake::Idle => return Err((QueryFailure::new(FailureKind::Error, "The Hyper query stalled"), true)),
         }
     }
-}
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Client functions
-// ---------------------------------------------------------------------------------------------------------------------
-
-async fn run_client_function<H: ExecutorHost>(
-    context: &mut StreamContext<H>,
-    target: &ClientFunctionTarget,
-) -> Result<StreamEnd, QueryFailure> {
-    let host = context.host.clone();
-    match start_connection_client_function(target.connector, target.spec.clone(), &target.description, host.now())? {
-        ConnectionCallStart::Explained(result) => client_function_rows(context, result)?,
-        ConnectionCallStart::Running { binding, mut run, mut step } => loop {
-            // The rows of a page go to the host once the page arrived
-            if let Some(rows) = run.take_rows() {
-                client_function_rows(context, rows)?;
-            }
-            step = match step {
-                CallStep::Send(request) => {
-                    let http = binding.http_request(target.channel.as_ref(), &request, host.now())?;
-                    context.metrics.total_query_requests_started += 1;
-                    let started_at = host.now();
-                    let response = match context.token.run(host.fetch(http, &context.token)).await {
-                        None => return Err(QueryFailure::cancelled()),
-                        Some(Err(error)) => {
-                            context.metrics.total_query_requests_failed += 1;
-                            return Err(context.request_failure(&error));
-                        }
-                        Some(Ok(response)) => response,
-                    };
-                    context.metrics.total_query_requests_succeeded += 1;
-                    context.metrics.total_query_request_duration_ms += (host.now() - started_at) as i64;
-                    context.metrics.total_data_bytes_received += response.body.len() as u64;
-                    run.on_response(response, host.now())?
-                }
-                CallStep::Sleep { ms } => {
-                    if context.token.run(host.sleep(ms)).await.is_none() {
-                        return Err(QueryFailure::cancelled());
-                    }
-                    run.on_wake(host.now())?
-                }
-                CallStep::Done => {
-                    // A result without rows has the columns of the function
-                    context.running();
-                    context.schema(ClientFunctionResult { fields: run.fields(), rows: Vec::new() }.schema());
-                    break;
-                }
-            };
-        },
-    }
-    context.end()
-}
-
-/// The rows of a page of a client function call: the result streams once the first page arrived
-fn client_function_rows<H: ExecutorHost>(
-    context: &mut StreamContext<H>,
-    rows: ClientFunctionResult,
-) -> Result<(), QueryFailure> {
-    let batch = rows.to_record_batch()?;
-    drop(rows);
-    context.running();
-    context.metrics.total_batches_received += 1;
-    context.metrics.total_rows_received += batch.num_rows() as u64;
-    context.batch(batch)
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

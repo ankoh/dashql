@@ -188,27 +188,6 @@ pub fn encode_script(script: &AnalyzedScript, scope_catalog: ScopeCatalog) -> No
         out.insert("transactions", Node::seq(blocks));
     }
 
-    // The calls in a namespace with client functions, with their descriptions
-    if !script.client_function_calls.is_empty() {
-        let calls = script
-            .client_function_calls
-            .iter()
-            .map(|call| {
-                let mut m = Map::new();
-                m.int("statement", call.ast_statement_id as i64);
-                m.plain("namespace", &call.namespace);
-                if let Some(function) = &call.function {
-                    m.plain("function", function);
-                }
-                if let Some(description) = script.describe_client_function_call(call.ast_statement_id) {
-                    m.quoted("description", &description.to_string());
-                }
-                m.into_flow_node()
-            })
-            .collect();
-        out.insert("client-function-calls", Node::seq(calls));
-    }
-
     // Table references
     if !script.table_references.is_empty() {
         let items = script
@@ -724,10 +703,9 @@ fn encode_visualization(e: &Encoder, spec: &VisualizationSpec) -> Node {
 }
 
 /// The keys the analyzer snapshot test compares
-pub const COMPARED_KEYS: [&str; 13] = [
+pub const COMPARED_KEYS: [&str; 12] = [
     "errors",
     "transactions",
-    "client-function-calls",
     "tables",
     "catalog-changes",
     "table-refs",
@@ -743,7 +721,6 @@ pub const COMPARED_KEYS: [&str; 13] = [
 /// Analyze the scripts of an analyzer snapshot case: the catalog script is analyzed and loaded into the connection layer, then the main script is analyzed.
 /// Returns the encoded catalog script (if any) and the encoded main script.
 pub fn analyze_case(
-    client_functions: Option<&str>,
     capabilities: Option<dashql_core::capabilities::Capabilities>,
     catalog_input: Option<&str>,
     functions_complete: bool,
@@ -757,9 +734,6 @@ pub fn analyze_case(
     let mut catalog = Catalog::new();
     if let Some(capabilities) = capabilities {
         catalog.set_capabilities(capabilities);
-    }
-    if let Some(spec) = client_functions {
-        catalog.register_client_functions(spec).map_err(|e| e.message)?;
     }
     let analyze_text = |catalog: &Catalog, text: &str| -> Result<AnalyzedScript, String> {
         let entry_id = catalog.allocate_entry_id();

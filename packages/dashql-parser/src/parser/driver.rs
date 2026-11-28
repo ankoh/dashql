@@ -17,11 +17,11 @@ use dashql_buffers::parser::SymbolSpan;
 pub type StateId = i32;
 
 /// The depth of the parser stack that a shift may not reach. Nesting grows the stack: parentheses, brackets, subqueries,
-/// CASE, prefix operators. The parse tree is flat, but the analyzer, the formatter and the checks of client function
-/// calls walk parts of it recursively, on the 1 MiB stack of the module, where an overflow traps the module. A token
-/// that would nest deeper is a syntax error with `NESTING_TOO_DEEP` that drops the statement: the parser recovers at
-/// the bottom of its stack, where the statement began, and skips to the next one. Recovering inside the nesting would
-/// leave the stack at the limit, where no closing token could shift.
+/// CASE, prefix operators. The parse tree is flat, but the analyzer and the formatter walk parts of it recursively, on
+/// the 1 MiB stack of the module, where an overflow traps the module. A token that would nest deeper is a syntax error
+/// with `NESTING_TOO_DEEP` that drops the statement: the parser recovers at the bottom of its stack, where the
+/// statement began, and skips to the next one. Recovering inside the nesting would leave the stack at the limit, where
+/// no closing token could shift.
 pub const MAX_STACK_DEPTH: usize = 1000;
 
 /// The error of a token that would nest deeper than `MAX_STACK_DEPTH`

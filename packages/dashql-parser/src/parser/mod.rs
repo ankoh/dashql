@@ -330,7 +330,6 @@ mod tests {
             format!("select {}", nested("(", "1", ")", 300)),
             format!("select {}", nested("f(", "1", ")", 100)),
             format!("select * from {}", nested("(select * from ", "x", ") t", 50)),
-            format!("call ns.f(x => {})", nested("[", "1", "]", 300)),
         ] {
             let parsed = parse_text(&text);
             assert!(parsed.errors.is_empty(), "{:?}", parsed.errors);
@@ -343,7 +342,6 @@ mod tests {
         for deep in [
             format!("select {}", nested("(", "1", ")", 100_000)),
             format!("select {}", nested("f(", "1", ")", 100_000)),
-            format!("call ns.f(x => {})", nested("[", "1", "]", 100_000)),
             format!("select {}1", "- ".repeat(100_000)),
             format!("select {}true", "not ".repeat(100_000)),
             format!("select {}", nested("case when true then ", "1", " end", 10_000)),

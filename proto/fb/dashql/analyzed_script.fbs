@@ -320,8 +320,6 @@ enum NameTag: uint8 {
     TABLE_ALIAS = 8,
     COLUMN_NAME = 16,
     FUNCTION_NAME = 32,
-    /// An option or an attribute of a client function
-    OPTION_NAME = 64,
 }
 
 enum AnalyzerErrorType: uint8 {
@@ -333,12 +331,6 @@ enum AnalyzerErrorType: uint8 {
     MALFORMED_COMMENT_TAG,
     INVALID_VIS_TAG,
     INVALID_PARAM_TAG,
-    CLIENT_FUNCTION_UNKNOWN_FUNCTION,
-    CLIENT_FUNCTION_UNKNOWN_OPTION,
-    CLIENT_FUNCTION_MISSING_OPTION,
-    CLIENT_FUNCTION_DUPLICATE_OPTION,
-    CLIENT_FUNCTION_UNSUPPORTED_OPTION,
-    CLIENT_FUNCTION_INVALID_VALUE,
     /// A transaction control statement without its counterpart in the script
     UNMATCHED_TRANSACTION_CONTROL,
     /// A qualified column ref names a FROM item that it doesn't see: one that an aliased join hides, whose alias names
@@ -429,30 +421,6 @@ table InferredTableSchema {
     columns: [InferredColumn];
 }
 
-/// Does a client function change anything?
-enum ClientFunctionEffect: uint8 {
-    READ = 0,
-    WRITE = 1,
-}
-
-/// A call in a namespace with client functions, it never reaches the backend
-table ClientFunctionCall {
-    // The id of the call node, the root of the statement or the body of its EXPLAIN
-    ast_node_id: uint32;
-    // The id of the statement
-    ast_statement_id: uint32;
-    // Prints the request, sends nothing?
-    explain: bool = false;
-    // The namespace of the spec
-    namespace_name: string;
-    // The function, null if the spec does not know it
-    function_name: string;
-    // The effect of the function, a write if it is unknown
-    effect: ClientFunctionEffect = WRITE;
-    // The call as JSON for the runtime, null if the spec does not know the function
-    description: string;
-}
-
 table AnalyzedScript {
     /// The external id that the user specified for this catalog entry
     catalog_entry_id: uint32;
@@ -496,7 +464,4 @@ table AnalyzedScript {
 
     /// The parameters, in the order of the script
     parameters: [Parameter];
-
-    /// The calls in a namespace with client functions
-    client_function_calls: [ClientFunctionCall];
 }

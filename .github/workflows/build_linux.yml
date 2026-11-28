@@ -62,7 +62,7 @@ jobs:
               shell: bash
               run: |
                 bazel build --config=${{ inputs.config }} \
-                    //packages/... //tests/snapshots/... //tests/hyper/... //tests/trino/... //tools/... //extensions/...
+                    //packages/... //tests/snapshots/... //tests/hyper/... //tests/trino/... //tools/...
 
             # Kept as long as the npm and Electron packages: a failed deploy of publish.yml can be re-run days later and
             # takes everything from this run

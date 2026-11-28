@@ -53,7 +53,6 @@ function platform() {
         results: null,
         crypto: { randomUuid: () => 'uuid' },
         oauth: NO_OAUTH,
-        extensions: { loadSpec: () => Promise.reject(new Error('no extensions')) },
         storage: null,
         archives: null,
         changed: urgent => {

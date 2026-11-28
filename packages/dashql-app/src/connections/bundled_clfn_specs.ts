@@ -1,6 +1,0 @@
-import type { ClientFunctionSpec } from '@akohn/dashql/platform/connections/clfn_spec';
-import { provideClientFunctionSpecs } from '@akohn/dashql/platform/connections/clfn_specs';
-
-// The client function specs of extensions/ as chunks of the bundle, every page that may run a client function imports
-// this module once
-provideClientFunctionSpecs(import.meta.glob<ClientFunctionSpec>('@dashql/extensions/*/clfn/spec/spec.json', { import: 'default' }));

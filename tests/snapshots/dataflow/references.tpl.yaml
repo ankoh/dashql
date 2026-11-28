@@ -288,30 +288,6 @@ dataflow-snapshots:
         input: |
           select * from :broken;
 
-  # A call that reads is scanned by the LOCAL connection, a script with a call that writes runs only on request, an
-  # input feeds a call
-  - name: ClientFunctionCalls
-    client_functions: tickets
-    connections:
-      - name: d360
-        kind: REMOTE
-      - name: local
-        kind: LOCAL
-    scripts:
-      - name: listed
-        connection: d360
-        input: |
-          /* @param :project = 'OPS' */
-          call tickets.ticket_list (project => :project);
-      - name: counted
-        connection: local
-        input: |
-          select count(*) from :listed;
-      - name: deleted
-        connection: d360
-        input: |
-          call tickets.ticket_delete (id => 1);
-
   # The inlined script reads the table before the writer, the consumer after it: the table edge goes into the consumer
   - name: InlinedReadBeforeTheWriter
     catalog: |

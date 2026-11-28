@@ -51,7 +51,7 @@ entries as other entries.
 
 The computation of a file stays while its archive is shown, a card that opens again shows it at once. Another file
 replaces the cards and deletes their computations. The table shows no column plots, the analysis skips the column
-aggregates. The page loads no client function specs and no flavor.
+aggregates. The page loads no flavor.
 
 `src/tools/unpacker/unpacker_page.test.tsx` writes an archive with Hyper and zip.js, drops it on the page, reads a
 table and opens and closes its full table. The page test boots the real page and drops a file that is no archive.

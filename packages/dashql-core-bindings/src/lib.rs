@@ -203,19 +203,6 @@ impl Catalog {
         Ok(())
     }
 
-    /// Register client functions from their JSON spec and return their namespace. The namespace must be free.
-    #[wasm_bindgen(js_name = registerClientFunctions)]
-    pub fn register_client_functions(&self, spec: &str) -> Result<String, JsError> {
-        self.writable()?.register_client_functions(spec).map(|namespace| namespace.to_string()).map_err(js_error)
-    }
-
-    /// Drop the client functions of a namespace
-    #[wasm_bindgen(js_name = dropClientFunctions)]
-    pub fn drop_client_functions(&self, namespace: &str) -> Result<(), JsError> {
-        self.writable()?.drop_client_functions(namespace);
-        Ok(())
-    }
-
     /// Update the tables of a descriptor entry with a packed `CatalogTableUpdate`
     #[wasm_bindgen(js_name = replaceTables)]
     pub fn replace_tables(&self, id: u32, layer: u8, update: &[u8]) -> Result<(), JsError> {
@@ -408,15 +395,6 @@ impl Script {
     pub fn analyze(&mut self, parse_if_outdated: bool) -> Result<(), JsError> {
         let catalog = self.catalog.borrow();
         self.inner.analyze(&catalog, parse_if_outdated).map_err(js_error)
-    }
-
-    /// Does a statement of the parsed script start with a call in a namespace with client functions, even if it doesn't parse?
-    #[wasm_bindgen(js_name = startsClientFunctionCall)]
-    pub fn starts_client_function_call(&self) -> bool {
-        let catalog = self.catalog.borrow();
-        self.inner.parsed.as_ref().is_some_and(|parsed| {
-            dashql_core::analyzer::clfn_calls::starts_client_function_call(&parsed.scanned, &catalog)
-        })
     }
 
     /// The packed `ParsedScript`

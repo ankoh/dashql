@@ -5,14 +5,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll } from 'vitest';
 
-import { provideClientFunctionSpecs } from '../src/platform/connections/clfn_specs.ts';
 import { startNodeHyperEngine, useNodeRoot } from '../src/platform/node/node_hyperdb.ts';
 import { PROCESS_LOCKS } from '../src/platform/node/node_locks.ts';
 
 // The Wasm of the source package (the export ./wasm in the workspace)
 globalThis.DASHQL_PRECOMPILED = readFile(new URL('../dependencies/dashql-wasm/dashql_core.wasm', import.meta.url)).then(bytes => new Uint8Array(bytes));
-// The client function specs of the extensions, vitest resolves the glob like the bundler of the app
-provideClientFunctionSpecs(import.meta.glob('@dashql/extensions/*/clfn/spec/spec.json', { import: 'default' }));
 
 // Every test file gets a root of its own with the layout of the origin private file system (platform/node/node_directory_handle.ts),
 // like the browser tests get an OPFS folder. Node before 24.5 has no Web Locks, the locks of the process stand in.

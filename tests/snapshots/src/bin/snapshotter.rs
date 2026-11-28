@@ -199,10 +199,6 @@ fn read_catalog(test: &mut Node) -> Catalog {
         let names = names.children().into_iter().map(|n| n.val().expect("a capability is a name"));
         catalog.set_capabilities(Capabilities::only(names).unwrap_or_else(|e| panic!("{e}")));
     }
-    if let Some(spec) = test.get("catalog").and_then(|c| c.get("client_functions")).and_then(Node::val) {
-        assert_eq!(spec, "tickets", "unknown client functions");
-        catalog.register_client_functions(dashql_snapshots::clfn_fixture::TICKETS).expect("the fixture spec is valid");
-    }
     let functions_complete =
         test.get("catalog").and_then(|c| c.get("functions_complete")).and_then(Node::val) == Some("true");
     let Some(script_node) = test.get_mut("catalog").and_then(|c| c.get_mut("script")) else { return catalog };

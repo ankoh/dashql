@@ -19,7 +19,6 @@ import { createProgressLayoutConfig } from '../platform/query/profile_layout_con
 import type { CancelQuery, QueryExecutionArgs, QueryExecutor, WatchQueryProfile } from '../platform/connections/query_execution_args.js';
 import { createConnectionAction, type ConnectionState, type NewConnection } from '../platform/connections/connection_state.js';
 import type { ConnectionParams } from '../platform/connections/connection_params.js';
-import { loadClientFunctionSpec } from '../platform/connections/clfn_specs.js';
 import type { OAuthFlow } from '../platform/oauth_flow.js';
 import { PlatformRequests } from './platform_requests.js';
 import { createRuntimeStorage, StorageCommands } from './runtime_storage.js';
@@ -178,7 +177,7 @@ function destroyedError(): Error {
 /// connections, the catalog loader, the workbooks with their scripts, the runs of the workbooks, the storage writer,
 /// the restore, the imports and the exports. This class is the platform object of the
 /// module (the clock, the log, the handle table, the Arrow tables by handle, fetch, the channels of the host, the stored
-/// results, the compute database, the OAuth flows, the specs of the extensions, the storage, the files of the
+/// results, the compute database, the OAuth flows, the storage, the files of the
 /// runs, the archives), the store, and typed commands where a caller needs more than the module returns: the flush of
 /// the store after a command, handles for the objects that cross. The app reads views through the store and calls the
 /// module directly (`module`) for everything else.
@@ -291,7 +290,6 @@ export class Runtime {
                 randomUuid: () => crypto.randomUUID(),
             },
             oauth: this.requests.oauth(),
-            extensions: { loadSpec: async extension => JSON.stringify(await loadClientFunctionSpec(extension)) },
             storage: platform.storage == null ? null : createRuntimeStorage(platform.storage, this.attachmentMounts),
             archives: platform.archives?.(this.handles) ?? null,
             changed: urgent => this.store.changed(urgent),

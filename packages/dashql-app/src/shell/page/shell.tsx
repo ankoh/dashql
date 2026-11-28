@@ -26,7 +26,6 @@ import '@akohn/dashql-react/styles/colors.css';
 import '@akohn/dashql-react/styles/tokens.css';
 import '../../styles/globals.css';
 import '@akohn/dashql-react/styles/flavors/dbcom.css';
-import '../../connections/bundled_clfn_specs.js';
 
 /// The runtime of the shell, its connection to the embedded Hyper of the page follows the statements of the shell
 const ShellRuntime = (props: { children?: React.ReactNode }) => {

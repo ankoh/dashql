@@ -8,7 +8,6 @@ import {
     DashQLShell,
 } from '../../shell/terminal/api.js';
 import { ShellView, type ShellViewController } from '../../shell/view/shell_view.js';
-import { resolveClientFunctionCall } from './workbook_shell_environment.js';
 import { createShellEnvironment } from '../../shell/terminal/shell_environment.js';
 import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
 import { createShellLastCommand } from '../../shell/terminal/shell_result.js';
@@ -118,7 +117,6 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
             shellConnectionId,
             {
                 workbookId,
-                resolveCall: query => resolveClientFunctionCall(catalog, query),
                 previewResult: async (queryId, limit) => {
                     const current = runtimeRef.current;
                     if (current == null) throw new Error('the preview of a result needs a RuntimeProvider');

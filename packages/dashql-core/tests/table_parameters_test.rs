@@ -97,42 +97,6 @@ fn results_are_the_output_columns_of_single_selects() {
 }
 
 #[test]
-fn results_of_calls_are_the_columns_of_their_functions() {
-    let mut catalog = Catalog::new();
-    catalog
-        .register_client_functions(
-            r#"{ "format": 1, "namespace": "t", "functions": [
-                { "name": "list", "method": "GET", "columns": [{ "name": "id" }, { "name": "label" }] },
-                { "name": "remove", "method": "DELETE", "columns": [{ "name": "id" }] }
-            ] }"#,
-        )
-        .unwrap();
-    let results = session(
-        &catalog,
-        &[
-            ("listed", "call t.list ()"),
-            ("removed", "call t.remove ()"),
-            ("explained", "explain call t.list ()"),
-            ("two", "call t.list (); call t.list ()"),
-        ],
-    );
-    let columns = |i: usize| {
-        results.entries[i]
-            .table
-            .as_ref()
-            .map(|t| t.table_columns.iter().map(|c| c.column_name.text().to_string()).collect::<Vec<_>>().join(","))
-    };
-    // The columns of the function come first, the standard columns follow (their order is tested with the spec)
-    assert!(columns(0).unwrap().starts_with("id,label,"));
-    // Only a single call that reads has a result that other scripts read
-    assert_eq!(columns(1), None);
-    assert_eq!(columns(2), None);
-    assert_eq!(columns(3), None);
-    let script = consumer(&catalog, &results, "select l.label, _meta from :listed l");
-    assert_eq!(resolve(&script, &results), ["label -> listed.label", "_meta -> listed._meta"]);
-}
-
-#[test]
 fn table_parameters_resolve_columns_of_results() {
     let catalog = Catalog::new();
     let results = session(&catalog, &[("foo", "select 1 as a, 2 as b")]);

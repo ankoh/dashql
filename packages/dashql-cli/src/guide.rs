@@ -74,9 +74,6 @@ Scripts:
   run fails while a scalar parameter has no value.
 - A script with a @manual tag in its comment is too expensive to run in full, a run of the workbook leaves it out.
   Read it as :name from another script of its connection that filters or aggregates it instead.
-- A connection can have client functions: CALL <namespace>.<function>(<option> => <value>, ...) in a script of that
-  connection calls its REST API instead of its database and returns one table. EXPLAIN CALL prints the request and
-  sends nothing. A function that writes changes the service as soon as its script runs.
 
 Charts:
 - A chart is a @vis tag in the comment right above the last query of a script, the result of the query is its data:

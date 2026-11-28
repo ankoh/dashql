@@ -3,15 +3,14 @@
 //! The task runs a query on its connection and reports what happens as `QueryEvent`s, the host applies them to the
 //! query history of the connection (`query::QueryExecutionHistory` of the Rust connection). It serves a result from the
 //! stored result of its script or drives the connector: Trino over `TrinoQuery`, Hyper over its HTTP API with a
-//! `HyperResultReader` (Salesforce Data Cloud too, with its bearer token), client functions with a
-//! `ClientFunctionCallRun`, all over `HttpHost::fetch` and the timers of the host. A connection whose channel is an
-//! object of the host (the gRPC channel of Hyper in the desktop app, the embedded Hyper, a channel of a test) stays a
+//! `HyperResultReader` (Salesforce Data Cloud too, with its bearer token), both over `HttpHost::fetch` and the timers
+//! of the host. A connection whose channel is an object of the host (the gRPC channel of Hyper in the desktop app, the embedded Hyper, a channel of a test) stays a
 //! channel of the host: the task asks the host to run the query and follows the metrics of its batches.
 //!
 //! A result never lives in the module, it passes through one page at a time where a protocol needs a conversion. The
 //! chunks of Hyper over HTTP are parts of one Arrow IPC stream already, they go to the host as they arrive, unread and
-//! mostly without entering the module (`ExecutorHost::fetch_result`). A page of Trino or of a client function becomes
-//! the next part of an Arrow IPC stream and goes to the host right away (`ExecutorHost::push_result`). The batches of a
+//! mostly without entering the module (`ExecutorHost::fetch_result`). A page of Trino becomes the next part of an
+//! Arrow IPC stream and goes to the host right away (`ExecutorHost::push_result`). The batches of a
 //! channel of the host stay with the host. Once the result is complete, the host builds its table from the parts
 //! (`ExecutorHost::finish_result`).
 //!
@@ -41,8 +40,7 @@ use std::rc::Rc;
 
 use dashql_buffers::profile::ProfileLayoutConfig;
 
-use crate::clfn::{ClientFunctionCallDescription, ClientFunctionError, ClientFunctionSpec};
-use crate::connections::{ConnectionChannel, ConnectorType, DetailedError};
+use crate::connections::DetailedError;
 use crate::host::signal::{oneshot, Sender};
 use crate::host::{HostError, LogLevel};
 use crate::http::{Body, CancellationToken, Headers, HttpHost, HttpRequest, HttpResponse};
@@ -87,19 +85,6 @@ pub struct ResultRequest {
     pub read: Option<StoredFile>,
 }
 
-/// A client function call on a connection
-#[derive(Debug, Clone)]
-pub struct ClientFunctionTarget {
-    /// The connector of the connection
-    pub connector: ConnectorType,
-    /// The spec of the client functions that the catalog of the connection registered
-    pub spec: Rc<ClientFunctionSpec>,
-    /// The call as the core describes it
-    pub description: ClientFunctionCallDescription,
-    /// The channel of the connection that holds the credentials of the calls, none without one
-    pub channel: Option<ConnectionChannel>,
-}
-
 /// Where a query runs
 #[derive(Debug, Clone)]
 pub enum QueryTarget {
@@ -109,8 +94,6 @@ pub enum QueryTarget {
     Trino(SharedTrinoChannel),
     /// The HTTP API of a Hyper, the auth headers go with every request
     HyperHttp { channel: HyperHttpChannel, auth: Headers },
-    /// A client function call, it sends its requests to the services of the spec
-    ClientFunction(ClientFunctionTarget),
 }
 
 /// A query to run
@@ -223,13 +206,6 @@ impl From<HyperError> for QueryFailure {
             target: error.target().to_string(),
             value: None,
         }
-    }
-}
-
-impl From<ClientFunctionError> for QueryFailure {
-    fn from(error: ClientFunctionError) -> Self {
-        let details = error.status.map(|status| vec![("status".to_string(), status.to_string())]).unwrap_or_default();
-        Self { kind: FailureKind::Error, message: error.message, details, target: "clfn".to_string(), value: None }
     }
 }
 

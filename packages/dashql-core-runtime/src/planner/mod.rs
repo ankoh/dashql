@@ -46,7 +46,7 @@ use dashql_parser::parser::ParsedScript;
 use dashql_parser::scanner::ScannedScript;
 use dashql_parser::span::TextSpan;
 use script_references::{ReferenceErrors, ReferenceKind, ScriptReferences};
-use session_inputs::{bind_inputs, collect_session_inputs, describe_call, SessionInputs};
+use session_inputs::{bind_inputs, collect_session_inputs, SessionInputs};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
@@ -408,12 +408,6 @@ fn diagnose_syntax(state: &mut PlanState, index: u32, prepared: &Prepared) {
     }
 }
 
-/// Does a script run only on request? Its current analysis has a `@manual` tag, or it calls a client function that
-/// writes: a run of the session and of input changes would send the write again with every run.
-pub(crate) fn runs_on_request(script: &Script) -> bool {
-    script.current_analysis().is_some_and(|(_, _, analyzed)| analyzed.manual || analyzed.calls_writes())
-}
-
 /// Does a script have a `@manual` tag?
 pub(crate) fn has_manual_tag(script: &Script) -> bool {
     script.current_analysis().is_some_and(|(_, _, analyzed)| analyzed.manual)
@@ -426,7 +420,7 @@ fn seeds(request: &SessionPlanRequest) -> Vec<u32> {
         PlanScope::Session => (0..request.scripts.len() as u32)
             .filter(|&i| {
                 !request.materialized.contains(&i)
-                    && request.scripts.get(i as usize).is_some_and(|s| !runs_on_request(s.script))
+                    && request.scripts.get(i as usize).is_some_and(|s| !has_manual_tag(s.script))
             })
             .collect(),
         PlanScope::Targets(targets) => targets.to_vec(),
@@ -793,9 +787,6 @@ fn plan_statements(request: &SessionPlanRequest) -> Plan {
                 | Type::DROP_VIEW => {}
                 // Transaction control is a barrier without a diagnostic, see below
                 Type::TRANSACTION => {}
-                // A client function call doesn't run on the backend, see below
-                Type::CALL
-                    if analyzed.client_function_calls.iter().any(|c| c.ast_statement_id == statement_id as u32) => {}
                 _ => {
                     barrier!("unsupported statement effects; backend session semantics are not guaranteed");
                 }
@@ -804,14 +795,6 @@ fn plan_statements(request: &SessionPlanRequest) -> Plan {
             // one after the other and no other statement of the connection runs in between
             if analyzed.transactions.iter().any(|t| t.contains(statement_id as u32)) {
                 barrier = true;
-            }
-            // A spec shadows its namespace, a call in it never reaches the backend: the host runs its description, `sql`
-            // only tells what the statement says. Any other call goes to the backend as written.
-            let client_function_call =
-                analyzed.client_function_calls.iter().any(|c| c.ast_statement_id == statement_id as u32);
-            if client_function_call {
-                barrier = true;
-                node.client_function_call = describe_call(&state.inputs, analyzed, statement_id as u32);
             }
             // A query with `@vis` tags carries its visualization
             let visualization =
@@ -845,10 +828,9 @@ fn plan_statements(request: &SessionPlanRequest) -> Plan {
                 if error_node < statement.nodes_begin || error_node >= statement.nodes_begin + statement.node_count {
                     continue;
                 }
-                // No backend gets to judge a client function call, so an error of its checks stops the plan. Neither
-                // does a backend know the parameters of a disabled capability.
+                // No backend knows the parameters of a disabled capability, so its error stops the plan
                 let stops = e.severity == AnalyzerErrorSeverity::ERROR
-                    && (client_function_call || e.error_type == AnalyzerErrorType::DISABLED_CAPABILITY);
+                    && e.error_type == AnalyzerErrorType::DISABLED_CAPABILITY;
                 state.report(node_id, si as u32, None, format!("analyzer: {}", e.message), stops);
                 if e.severity == AnalyzerErrorSeverity::ERROR {
                     barrier = true;
@@ -1337,9 +1319,8 @@ fn finish(
                         .map(|a| (a.file, a.stamp))
                         .collect();
                     meta.signature = opt(script_signature(p.parsed, values.iter(), attachments));
-                    // The scripts that a script references are single queries or calls, or the plan is invalid, and the
-                    // key of a script that references a call isn't reusable either
-                    meta.cacheable = cacheable(p.parsed, !p.analyzed.client_function_calls.is_empty());
+                    // The scripts that a script references are single queries, or the plan is invalid
+                    meta.cacheable = cacheable(p.parsed);
                     meta.terminal_statement_id = p.terminal().unwrap_or(NONE);
                     meta.referenced_scripts = opt_vec(references.producers_of(i as u32));
                 } else {
@@ -1653,12 +1634,8 @@ mod tests {
             ("create table t (a int)", false),
             ("select 1 +;", false),
             ("call x.y ()", false),
-            ("explain call clfn.f ()", false),
         ] {
-            let mut catalog = Catalog::new();
-            catalog
-                .register_client_functions(r#"{ "format": 1, "namespace": "clfn", "functions": [{ "name": "f" }] }"#)
-                .unwrap();
+            let catalog = Catalog::new();
             let mut script = Script::new(&catalog);
             script.replace_text(text);
             script.scan();

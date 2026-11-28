@@ -153,6 +153,6 @@ formatter-snapshots:
       select t /* c */ .from, a.b
         -- d
         .c from t;
-      call d360/* e */ .select (limit => 1)
+      call ns/* e */ .select (x => 1)
     dialects:
       hyper:

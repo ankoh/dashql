@@ -181,5 +181,5 @@ Sharing the table declarations between versions of an entry would make the updat
 - Changes made outside of DashQL. They reach the catalog with the next statement that touches the relation.
 - Statements the parser doesn't know, for example `DROP DATABASE` or `ALTER TABLE` actions of a dialect that change columns
   in a way the grammar doesn't cover, and `SELECT INTO` under `EXPLAIN ANALYZE`.
-- Client function calls that change the relations of a connection: `CALL` goes through the REST API, not through SQL.
+- Procedures that change the relations of a connection: the parser doesn't name what a `CALL` touches.
 - The tables of a database that an `ATTACH` statement adds. The catalog describes the databases of the connection settings.

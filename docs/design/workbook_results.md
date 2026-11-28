@@ -132,7 +132,7 @@ connection can't run, and runs again once the user runs it on its connection.
 A key is reusable if the script is cacheable and the keys of the scripts it references are reusable. Only scripts whose statements are all `SELECT` or `EXPLAIN` that write nothing are cacheable: a reuse skips the
 complete script, so a script with commands before its terminal query, such as `CREATE TABLE t AS ...; SELECT * FROM t`,
 always executes, as does a query that writes, a `SELECT` with a data-modifying `WITH` or an `EXPLAIN (ANALYZE)` of an
-`UPDATE` (`planner_dependencies.md`, Cacheability). A referenced call of a client function is never cacheable.
+`UPDATE` (`planner_dependencies.md`, Cacheability).
 
 Every connection reuses results the same way, there is no choice per connection: **Run**, **Execute All** and a
 change of inputs reuse a stored result whose key fits, only **Refresh** computes a result anew. A refresh outdates the
@@ -166,7 +166,7 @@ result, a result of another version of the keys or of an earlier text of the scr
 card marks such a result as outdated, the log names the key of the script and the key of the file. The scripts
 downstream of it cover its file like any reused file and scan it. A refresh uses no stored result. A script of such a
 connection without a stored result, or one that isn't cacheable, is skipped with every statement that follows it. A
-script runs completely or not at all. A script that runs only on request (`@manual` or a call that writes,
+script runs completely or not at all. A script that runs only on request (`@manual`,
 `script_references.md`) is held back with the scripts that follow it in the plan, they count as completed. The run
 counts the skipped scripts that need a connection (`WorkbookRunState.skippedScripts`, `skippedFiles`), the status
 shows `3/5 completed · 2 need a connection`, its tooltip names the scripts, and the connections of the workbook pulse
@@ -204,8 +204,8 @@ the run of the query owns the table that it read, then the query ends as cancell
 
 Loading a workbook doesn't read its results. Showing it does: the feed page tells the runtime that it shows a
 workbook (`showWorkbook(workbookId)`), and the first time a workbook is shown, the runtime runs it on the embedded
-Hyper. The run is an Execute All that runs only on the connections of the embedded Hyper that are online and calls no
-client function (`local` of the run options, `open` of `runs/stored_results.rs`): the scripts of every other
+Hyper. The run is an Execute All that runs only on the connections of the embedded Hyper that are online (`local` of
+the run options, `open` of `runs/stored_results.rs`): the scripts of every other
 connection, e.g. Trino, never run, so the dashboard of a workbook renders from the results of its last run without a
 query on the remote backends. An imported workbook shows its imported results the same way.
 
@@ -215,8 +215,8 @@ query on the remote backends. An imported workbook shows its imported results th
   query, runs.
 - A script of another connection uses its stored result whatever its key, like a script of a connection that can't run
   in Execute All (Reuse), and the scripts after it scan its file.
-- A script that calls a client function doesn't run, nor does a script that runs only on request (`@manual`) or one
-  whose visualization doesn't decode. The scripts that follow them in the plan don't run either.
+- A script that runs only on request (`@manual`) doesn't run, nor does one whose visualization doesn't decode. The
+  scripts that follow them in the plan don't run either.
 - A script that doesn't run and shows no result yet reads its stored result whatever its key, also one that isn't
   cacheable or that follows a script that doesn't run. A script without a stored result shows nothing.
 - A run that fails or is stopped, e.g. by an error of a script, Stop or an embedded Hyper that drops, shows the stored

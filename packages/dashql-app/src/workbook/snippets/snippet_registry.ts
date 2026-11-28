@@ -20,12 +20,6 @@ const SNIPPET_FILES = import.meta.glob<string>('@dashql/snippets/**/*.sql', {
     import: 'default',
     eager: true,
 });
-/// The snippet files of the extensions, `<extension>/snippets/<folders>/<name>.sql`
-const EXTENSION_SNIPPET_FILES = import.meta.glob<string>('@dashql/extensions/*/snippets/**/*.sql', {
-    query: '?raw',
-    import: 'default',
-    eager: true,
-});
 
 /// The text of a snippet for a connector
 export function snippetText(snippet: Snippet, connector: ConnectorType): string {
@@ -55,7 +49,7 @@ function mergeSnippetFiles(files: SnippetFile[]): Snippet {
     };
 }
 
-/// Compare the ids of snippets by their path segments, so that `d360` sorts before `d360-api`
+/// Compare the ids of snippets by their path segments, so that `dates` sorts before `dates-x`
 function compareSnippetIds(left: string, right: string): number {
     const l = left.split('/');
     const r = right.split('/');
@@ -95,11 +89,6 @@ export function bundledSnippetFiles(): Record<string, string> {
     const folder = '/snippets/';
     for (const [path, raw] of Object.entries(SNIPPET_FILES)) {
         files[path.slice(path.indexOf(folder) + folder.length)] = raw;
-    }
-    for (const [path, raw] of Object.entries(EXTENSION_SNIPPET_FILES)) {
-        const begin = path.indexOf(folder);
-        const extension = path.slice(path.lastIndexOf('/', begin - 1) + 1, begin);
-        files[`${extension}/${path.slice(begin + folder.length)}`] = raw;
     }
     return files;
 }

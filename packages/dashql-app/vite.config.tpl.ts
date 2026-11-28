@@ -58,8 +58,6 @@ export default vite.defineConfig(({ mode, command }) => {
     const SVG_SYMBOLS_PATH = path.resolve(rootDir, 'dependencies/svg-symbols/symbols.generated.svg');
     // The SQL snippets of examples/snippets, bundled as text
     const SNIPPETS_PATH = path.resolve(rootDir, 'dependencies/snippets');
-    // The extensions: the app bundles their generated specs and their snippets
-    const EXTENSIONS_PATH = path.resolve(rootDir, 'dependencies/extensions');
     // copy_to_bin can leave deleted sources in the execroot. Only bundle declared test inputs, the dev server too: a new
     // test file is served after the rebuild that adds it to the manifests.
     const declaredTestInputs = (manifest: string) => includesBrowserTests
@@ -391,7 +389,6 @@ export default vite.defineConfig(({ mode, command }) => {
                 },
                 { find: /@akohn\/dashql-svg-symbols/, replacement: SVG_SYMBOLS_PATH },
                 { find: /^@dashql\/snippets/, replacement: SNIPPETS_PATH },
-                { find: /^@dashql\/extensions/, replacement: EXTENSIONS_PATH },
                 ...(includesBrowserTests ? [{
                     find: /^vitest$/,
                     replacement: path.resolve(rootDir, "src/tests/vitest_compat.ts"),
@@ -428,7 +425,6 @@ export default vite.defineConfig(({ mode, command }) => {
                         PROTOBUF_PATH,
                         path.dirname(SVG_SYMBOLS_PATH),
                         SNIPPETS_PATH,
-                        EXTENSIONS_PATH,
                     ]
                         .map(p => { try { return nodeFs.realpathSync(p); } catch { return p; } });
                     return paths;

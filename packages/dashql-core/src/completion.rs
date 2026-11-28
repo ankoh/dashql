@@ -243,15 +243,13 @@ impl CandidateObjectRef {
     }
 }
 
-/// An entry of a table in the details of a candidate
+/// A column in the details of a candidate
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CandidateField {
-    /// The name of a parameter or column, or the label of a fact
+    /// The name of the column
     pub name: String,
-    /// The type, or the value of a fact
+    /// The type
     pub detail: Option<String>,
-    /// The prose, it can have inline Markdown
-    pub description: Option<String>,
 }
 
 /// What the pane of a list shows about a candidate or a catalog object
@@ -259,18 +257,8 @@ pub struct CandidateField {
 pub struct CandidateInfo {
     /// One line: a signature, a type, a table
     pub detail: Option<String>,
-    /// The prose for the selected candidate. It can have inline Markdown: code, bold and links.
-    pub description: Option<String>,
-    /// What the candidate takes: the parameters of a function, the attributes of a schema
-    pub parameters: Vec<CandidateField>,
-    /// What a result holds, it can have inline Markdown
-    pub result_description: Option<String>,
-    /// The columns of a result or a table
+    /// The columns of a table
     pub columns: Vec<CandidateField>,
-    /// A call that shows how to write it
-    pub example: Option<String>,
-    /// Short facts: a label and a value
-    pub facts: Vec<CandidateField>,
 }
 
 /// What a list shows about a function. Everything known about a function goes through here.
@@ -316,10 +304,9 @@ fn describe_table(table: &TableDeclaration) -> CandidateInfo {
         .map(|column| CandidateField {
             name: column.column_name.text.to_string(),
             detail: column.column_type.as_deref().map(str::to_string),
-            description: None,
         })
         .collect();
-    CandidateInfo { detail, columns, ..Default::default() }
+    CandidateInfo { detail, columns }
 }
 
 /// What a list shows about a column: its type and its table
@@ -379,8 +366,6 @@ pub struct Candidate {
     pub keyword_symbol: Option<SymbolKind>,
     /// The keyword continuation (e.g. "by")
     pub keyword_continuation: Option<&'static str>,
-    /// What a list shows about a candidate without catalog objects
-    pub info: CandidateInfo,
 }
 
 impl Candidate {
@@ -402,7 +387,6 @@ impl Candidate {
             score: 0,
             keyword_symbol: None,
             keyword_continuation: None,
-            info: CandidateInfo::default(),
         }
     }
 }
@@ -430,8 +414,6 @@ pub struct Completion<'c, 'a> {
     pub strategy: CompletionStrategy,
     /// Is the target qualified?
     pub dot_completion: bool,
-    /// Is the target a function, option or attribute of a client function call?
-    pub client_function_name: bool,
     /// Is the cursor at a name definition?
     pub at_definition: bool,
     /// Is the target the name of a parameter, `:foo`?
@@ -520,7 +502,6 @@ impl<'c, 'a> Completion<'c, 'a> {
             cursor,
             strategy,
             dot_completion: false,
-            client_function_name: false,
             at_definition: false,
             at_parameter_name: false,
             qualifier_source: None,
@@ -794,10 +775,6 @@ impl<'c, 'a> Completion<'c, 'a> {
         completion.target_symbol = Some(location.current);
         // The name of a table parameter, the scripts of the session
         if completion.complete_table_parameter(&location) {
-            return completion;
-        }
-        // A function, an option or an attribute of a client function call
-        if crate::completion_clfn::complete_client_function_call(&mut completion, k) {
             return completion;
         }
         let mut previous_symbol = location.previous;
@@ -1090,9 +1067,8 @@ impl<'c, 'a> Completion<'c, 'a> {
                 .any(|&n| parsed.nodes.get(n as usize).is_some_and(|n| n.node_type() == NodeType::OBJECT_SQL_SELECT))
         });
 
-        // CALL is only worth offering if client functions give it a meaning, it must not outrank CREATE otherwise
-        let has_client_functions = !self.catalog().client_function_specs().is_empty();
-        let offers = |keyword: SymbolKind| keyword != S_CALL_P || has_client_functions;
+        // CALL runs a procedure of the backend, which is rare, it must not outrank CREATE
+        let offers = |keyword: SymbolKind| keyword != S_CALL_P;
 
         // The expected keywords with their names. A lookahead token like NULLS_LA stands for its keyword, once and
         // only if the keyword itself is not expected.

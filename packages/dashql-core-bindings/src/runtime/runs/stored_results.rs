@@ -241,8 +241,8 @@ impl Runs {
         self.blocker(workbook_id, &self.embedded(&scope.connections), false)
     }
 
-    /// Show a workbook: an Execute All that runs only on the embedded Hyper and calls no client function. The scripts
-    /// of the other connections show their stored results whatever their keys (docs/design/workbook_results.md).
+    /// Show a workbook: an Execute All that runs only on the embedded Hyper. The scripts of the other connections show
+    /// their stored results whatever their keys (docs/design/workbook_results.md).
     fn open(self: &Rc<Self>, workbook_id: &str) {
         let Some(scope) = self.scope(workbook_id) else { return };
         self.stored.opened.borrow_mut().insert(workbook_id.to_string());

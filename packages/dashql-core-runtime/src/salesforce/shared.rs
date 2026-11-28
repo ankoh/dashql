@@ -2,7 +2,7 @@
 //!
 //! The connection owns the channel from the moment its setup made it ready (`SalesforceAction::ChannelReady`): the HTTP
 //! API of the Hyper of Data Cloud and the tokens of the login, the core token and the Data Cloud token. The channel is
-//! the one owner of the tokens: the queries, the catalog loader and the client functions read them from it. A Data
+//! the one owner of the tokens: the queries and the catalog loader read them from it. A Data
 //! Cloud token about to expire is refreshed once for all of them with the refresh token of the core login: the first
 //! caller starts the refresh in a task of its own that runs to its end, the others wait for its outcome.
 

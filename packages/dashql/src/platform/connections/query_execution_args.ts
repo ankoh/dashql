@@ -1,14 +1,10 @@
 import type * as core from '../../core/index.js';
 import type * as arrow from 'apache-arrow';
-import type { ClientFunctionCallDescription } from "./clfn_spec.js";
 
 /// A query that a caller in TypeScript runs on a connection. A failure rejects the result with its error.
 export interface QueryExecutionArgs {
     query: string;
     metadata: core.QueryMetadataView;
-    /// The statement is a call of a client function: the runtime sends this, `query` only tells what the statement says
-    /// and never reaches the backend.
-    clientFunctionCall?: ClientFunctionCallDescription;
     /// Optional caller-owned cancellation signal. The executor links this to its
     /// own query cancellation controller without taking ownership of it.
     abortSignal?: AbortSignal;

@@ -1,11 +1,11 @@
 //! URLs as far as the requests of the runtime need them: parsing an absolute URL, resolving a URL of a response against
 //! its base, the origin and the text, and the encodings of URL components and forms.
 //!
-//! `Url` follows the URL parser of the browsers where it matters for the origin check of client functions: a backslash
-//! is a slash in a special URL, any number of slashes start its authority, dot segments resolve, the default port is no
-//! port, an IPv6 host keeps its brackets. `Url::parse` takes HTTP and HTTPS URLs, `Url::parse_with_authority` any
-//! scheme with an authority, e.g. the endpoint of a Hyper. The functions on the text of a URL (`url_path`,
-//! `set_query_param`) leave the rest of the text as it is, the Trino protocol follows the URIs of the server verbatim.
+//! `Url` follows the URL parser of the browsers where it matters for an origin: a backslash is a slash in a special
+//! URL, any number of slashes start its authority, dot segments resolve, the default port is no port, an IPv6 host
+//! keeps its brackets. `Url::parse` takes HTTP and HTTPS URLs, `Url::parse_with_authority` any scheme with an
+//! authority, e.g. the endpoint of a Hyper. The functions on the text of a URL (`url_path`, `set_query_param`) leave
+//! the rest of the text as it is, the Trino protocol follows the URIs of the server verbatim.
 
 use std::fmt;
 

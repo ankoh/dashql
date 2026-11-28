@@ -4,7 +4,6 @@ import '@akohn/dashql-react/fonts/fonts.css';
 import '@akohn/dashql-react/styles/colors.css';
 import '@akohn/dashql-react/styles/tokens.css';
 import { installSharedCoreTestPool } from './core_pool.js';
-import '../connections/bundled_clfn_specs.js';
 import { OPFS_TESTS_FOLDER, setOPFSAppFolder } from '@akohn/dashql/platform/opfs_root';
 import * as core from '@akohn/dashql';
 

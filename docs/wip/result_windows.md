@@ -22,7 +22,7 @@ file therefore holds 500 MB of JavaScript heap, and more on its way:
 4. A workbook that opens reads its stored results back into JavaScript (`readTable`, ordered by `__dashql_row`).
 
 The views read the data frame instead of the table: the grid a window of rows (step 2), the charts, the cards and the
-agent a capped number of rows (step 5). Remote connections (Trino, Hyper over HTTP, Data Cloud, client functions) end in
+agent a capped number of rows (step 5). Remote connections (Trino, Hyper over HTTP, Data Cloud) end in
 the same table, so their results pass through 2 to 4 as well.
 
 ## The model

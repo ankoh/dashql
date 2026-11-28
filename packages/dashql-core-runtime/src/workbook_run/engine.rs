@@ -24,7 +24,7 @@ use crate::executor::{QueryId, StoredFile};
 use crate::host::signal::{oneshot, Sender};
 use crate::host::{join_all, HostError, LocalFuture, LogLevel};
 use crate::perf_marks;
-use crate::planner::runs_on_request;
+use crate::planner::has_manual_tag;
 use crate::workbook::{RunPlanRequest, ScriptKey, ScriptVisualization, SessionHandle, Workbook, WorkbookAction};
 
 /// The statements that settle between two yields to the host
@@ -939,10 +939,10 @@ impl<H: RunHost> Run<H> {
         }
         let mut decoded = self.visualizations(&graph)?;
         // The scripts that the run leaves out. A run of the workbook holds back the scripts that run only on request
-        // (`@manual`, a call that writes), its tolerant plan has them. A run of a shown workbook also calls no client
-        // function and holds back the scripts whose visualizations don't decode. A run of the workbook that isn't a
-        // shown one refuses the scripts that it can't plan, those whose analysis or references fail and those whose
-        // visualizations don't decode, and runs the others.
+        // (`@manual`), its tolerant plan has them. A run of a shown workbook also holds back the scripts whose
+        // visualizations don't decode. A run of the workbook that isn't a shown one refuses the scripts that it can't
+        // plan, those whose analysis or references fail and those whose visualizations don't decode, and runs the
+        // others.
         let mut excluded: BTreeMap<u32, Exclusion> = BTreeMap::new();
         if self.options.local {
             let undecodable = "its visualization doesn't decode";
@@ -950,16 +950,12 @@ impl<H: RunHost> Run<H> {
         }
         if self.options.local || (self.tolerant() && targets.is_none()) {
             for (script, session) in self.sessions.iter().enumerate() {
-                if runs_on_request(session.borrow().script()) {
+                if has_manual_tag(session.borrow().script()) {
                     excluded.insert(script as u32, Exclusion::Held("runs only on request"));
                 }
             }
         }
-        if self.options.local {
-            for node in nodes(&graph).iter().filter(|node| node.client_function_call.is_some()) {
-                excluded.insert(node.script, Exclusion::Held("calls a client function"));
-            }
-        } else if self.tolerant() {
+        if !self.options.local && self.tolerant() {
             for diagnostic in graph.diagnostics.iter().flatten().filter(|d| d.error && d.script != NONE) {
                 let message = diagnostic.message.clone().unwrap_or_else(|| "The script can't be planned".to_string());
                 excluded.entry(diagnostic.script).or_insert(Exclusion::Refused(message));
@@ -1283,7 +1279,6 @@ impl<H: RunHost> Run<H> {
             connection_id: connection_id.clone(),
             script_key,
             text: node.sql.clone().unwrap_or_default(),
-            client_function_call: None,
             analyze_results: self.options.analyze,
             publish_results: true,
             result: StatementResult::Read { script: self.file(script), file: file.clone() },
@@ -1701,7 +1696,6 @@ impl<H: RunHost> Run<H> {
             connection_id: connection_id.clone(),
             script_key,
             text: node.sql.clone().unwrap_or_default(),
-            client_function_call: node.client_function_call.clone(),
             analyze_results: output && self.options.analyze,
             publish_results: output || materialization.is_some(),
             result,

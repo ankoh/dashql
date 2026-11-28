@@ -702,28 +702,6 @@ describe('DashQL processor completion triggers', () => {
     });
 
     describe('at an empty target', () => {
-        const TICKETS = JSON.stringify({
-            format: 1,
-            namespace: 'tickets',
-            functions: [
-                {
-                    name: 'ticket_list',
-                    method: 'GET',
-                    path: '/tickets',
-                    options: [
-                        { name: 'project', api_name: 'project', in: 'query', type: 'string', required: true },
-                        { name: 'page_size', api_name: 'pageSize', in: 'query', type: 'integer' },
-                    ],
-                },
-            ],
-        });
-
-        function ticketsCatalog() {
-            const catalog = dql!.createCatalog();
-            catalog.registerClientFunctions(TICKETS);
-            return catalog;
-        }
-
         function typeAtEnd(catalog: dashql.DashQLCatalog, before: string, typed: string) {
             const processorState = editorProcessorState(dql!, before, catalog);
             const editorState = EditorState.create({
@@ -738,16 +716,6 @@ describe('DashQL processor completion triggers', () => {
             }).state;
         }
 
-        it.each([
-            ['the functions after the dot', 'call tickets', '.', 'ticket_list'],
-            ['the options after the parenthesis', 'call tickets.ticket_list ', '(', 'project'],
-            ['the remaining options after a comma', "call tickets.ticket_list (project => 'a'", ',', 'page_size'],
-        ])('opens the list of %s of a call', (_name, before, typed, first) => {
-            const completion = typeAtEnd(ticketsCatalog(), before, typed).field(DashQLProcessorPlugin).scriptCompletion;
-            expect(completion!.passiveHint).toBe(false);
-            expect(candidateTexts(completion!.buffer.read())).toContain(first);
-        });
-
         it('opens the list after the dot of a name in SQL', () => {
             const catalog = dql!.createCatalog();
             const schema = dql!.createScript(catalog);
@@ -760,19 +728,18 @@ describe('DashQL processor completion triggers', () => {
             expect(candidateTexts(completion!.buffer.read())).toContain('public');
         });
 
-        it('keeps the inline hint for the namespace of a call', () => {
-            const completion = typeAtEnd(ticketsCatalog(), 'call', ' ').field(DashQLProcessorPlugin).scriptCompletion;
-            expect(completion!.passiveHint).toBe(true);
-            expect(candidateTexts(completion!.buffer.read())).toContain('tickets');
-        });
-
         it('keeps the inline hint for a keyword after a space', () => {
             const completion = typeAtEnd(dql!.createCatalog(), 'select 1', ' ').field(DashQLProcessorPlugin).scriptCompletion;
             expect(completion!.passiveHint).toBe(true);
         });
 
         it('dismisses an open list when the cursor moves', () => {
-            const editorState = typeAtEnd(ticketsCatalog(), 'call tickets', '.');
+            const catalog = dql!.createCatalog();
+            const schema = dql!.createScript(catalog);
+            schema.insertTextAt(0, 'create table db0.public.orders(id int);');
+            schema.analyze();
+            catalog.loadScript(schema, 0);
+            const editorState = typeAtEnd(catalog, 'select * from db0', '.');
             expect(editorState.field(DashQLProcessorPlugin).scriptCompletion).not.toBeNull();
             const moved = editorState.update({ selection: EditorSelection.cursor(0) }).state;
             expect(moved.field(DashQLProcessorPlugin).scriptCompletion).toBeNull();

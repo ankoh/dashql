@@ -1,7 +1,7 @@
 import * as dashql from '@akohn/dashql';
 
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { SNIPPET_ROOT_CONNECTORS, snippetRootIsFolder } from './snippet.js';
+import { SNIPPET_ROOT_CONNECTORS } from './snippet.js';
 
 /// One snippet file, `<root>/<folders>/<name>.sql` with at least one folder, a leading comment describes the snippet.
 /// The files of the roots with the same folders and name are the variants of one snippet. A root that is a folder of
@@ -67,7 +67,6 @@ export function parseSnippetFile(core: dashql.DashQL, path: string, raw: string)
     if (connectors === undefined) {
         throw new Error(`unknown root folder "${root}" of snippet ${path}`);
     }
-    const category = snippetRootIsFolder(root) ? `${root}/${folders}` : folders;
 
     const bytes = encoder.encode(raw);
     const { tags, inner, statements } = readComments(core, raw, bytes);
@@ -84,8 +83,8 @@ export function parseSnippetFile(core: dashql.DashQL, path: string, raw: string)
     }
     return {
         path,
-        id: `${category}/${name}`,
-        category,
+        id: `${folders}/${name}`,
+        category: folders,
         connectors,
         body: raw.trim(),
     };

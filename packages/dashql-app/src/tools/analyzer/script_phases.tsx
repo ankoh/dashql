@@ -407,7 +407,6 @@ function analysisFacts(analyzed: dashql.buffers.analyzer.AnalyzedScriptT, parsed
     // The rarer parts of an analysis only by their count
     const counts: [string, number][] = [
         ['visualization specs', analyzed.visualizationSpecs.length],
-        ['client function calls', analyzed.clientFunctionCalls.length],
         ['insert statements', analyzed.insertStatements.length],
         ['function declarations', analyzed.functionDeclarations.length],
     ];

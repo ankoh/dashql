@@ -7,8 +7,7 @@
 //! over `HttpHost::fetch` and publishes what the update read into the catalog of the connection. The host
 //! applies the start and the end of an update to the connection through its registry (`update_started`,
 //! `update_finished`) and keeps the cancellation of an update: it calls `cancel` when it aborts one, e.g. when the
-//! connection is reset. The client functions of the connections are registered on their catalogs on the way, the
-//! host loads the specs.
+//! connection is reset.
 //!
 //! The service reads the connections that it follows as they are, a dispatch of the host changes them right away. It
 //! keeps them as weak references: a connection that the host destroyed is gone for the service too.
@@ -24,11 +23,9 @@ use super::{
     CatalogLoadError, CatalogLoader, CatalogLoaderCommand, CatalogLoaderConnection, CatalogQuery, CatalogUpdate,
     CatalogUpdateHost, CatalogUpdateOutcome, QueryAnswer, STALE_MESSAGE,
 };
-use crate::clfn::{ClientFunctionRegistrations, ClientFunctionRegistryEffect};
 use crate::connections::{
     CatalogUpdateTask, CatalogUpdateTaskStatus, ConnectionChannel, ConnectionState, RelationName,
 };
-use crate::host::signal::{oneshot, Sender};
 use crate::host::{join_all, HostError, LocalFuture, LogLevel};
 use crate::http::{CancellationToken, HttpHost, HttpRequest, HttpResponse};
 use crate::query::QueryExecutionHistory;
@@ -61,11 +58,6 @@ pub trait CatalogLoaderHost: HttpHost {
         query: &CatalogQuery,
         cancellation: &CancellationToken,
     ) -> impl Future<Output = Result<QueryBatches, HostError>> + 'static;
-    /// Load the spec of the client functions of an extension, the JSON text
-    fn load_spec(&self, extension: &str) -> impl Future<Output = Result<String, HostError>> + 'static;
-    /// The catalog of a connection changed outside of an update, e.g. it registered client functions. The scripts that
-    /// use the connection are analyzed again.
-    fn catalog_changed(&self, connection_id: &str);
     /// The loader changed the state of a connection outside of an action, the text of its function script
     fn connection_changed(&self, connection_id: &str);
 }
@@ -108,9 +100,6 @@ struct LoaderState {
     scheduler: CatalogLoader,
     /// The connections by id, in the order of the registry
     connections: Vec<(String, Followed)>,
-    registrations: ClientFunctionRegistrations,
-    /// The calls that wait for the spec of a registration that loads, by connection
-    spec_waiters: Vec<(String, Sender<()>)>,
     tasks: HashMap<u32, Task>,
     /// Is a scheduling pass requested?
     scheduled: bool,
@@ -164,8 +153,6 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
         let state = LoaderState {
             scheduler: CatalogLoader::new(),
             connections: Vec::new(),
-            registrations: ClientFunctionRegistrations::default(),
-            spec_waiters: Vec::new(),
             tasks: HashMap::new(),
             scheduled: false,
             stopped: true,
@@ -199,37 +186,16 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
     }
 
     /// The registry changed and holds these connections by their ids, in their order. The loader follows them weakly
-    /// and forgets the others, registers the client functions of the connectors, describes the connections that came
-    /// online and schedules.
+    /// and forgets the others, describes the connections that came online and schedules.
     pub fn observe(&self, connections: &[(String, FollowedConnection)]) {
-        {
-            let mut state = self.state.borrow_mut();
-            let gone: Vec<String> = state
-                .connections
-                .iter()
-                .filter(|(id, _)| !connections.iter().any(|(followed, _)| followed == id))
-                .map(|(id, _)| id.clone())
-                .collect();
-            for id in gone {
-                state.registrations.forget(&id);
-            }
-            state.connections = connections
-                .iter()
-                .map(|(id, connection)| {
-                    let state = Rc::downgrade(&connection.state);
-                    (id.clone(), Followed { state, queries: Rc::downgrade(&connection.queries) })
-                })
-                .collect();
-        }
+        self.state.borrow_mut().connections = connections
+            .iter()
+            .map(|(id, connection)| {
+                let state = Rc::downgrade(&connection.state);
+                (id.clone(), Followed { state, queries: Rc::downgrade(&connection.queries) })
+            })
+            .collect();
         let connections = self.live_connections();
-
-        // The client functions of a connection come with its connector, scripts that call them are analyzed again
-        let mut effects = Vec::new();
-        for (_, connection) in &connections {
-            let Ok(connection_state) = connection.state.try_borrow() else { continue };
-            effects.extend(self.state.borrow_mut().registrations.ensure(&connection_state));
-        }
-        self.run_registry_effects(effects);
 
         {
             let (borrowed, busy) = borrow_all(&connections);
@@ -237,83 +203,6 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
             self.state.borrow_mut().scheduler.observe(&views, &busy);
         }
         self.request_schedule();
-    }
-
-    /// Run what the registrations of client functions ask for
-    fn run_registry_effects(&self, effects: Vec<ClientFunctionRegistryEffect>) {
-        for effect in effects {
-            match effect {
-                ClientFunctionRegistryEffect::Updated { connection_id } => self.host.catalog_changed(&connection_id),
-                ClientFunctionRegistryEffect::LoadSpec { connection_id, extension, ticket } => {
-                    let service = self.clone();
-                    let load = self.host.load_spec(extension);
-                    self.host.spawn(Box::pin(async move {
-                        let spec = load.await;
-                        service.spec_loaded(&connection_id, ticket, spec);
-                    }));
-                }
-            }
-        }
-    }
-
-    /// The spec of a connection arrived or failed to load
-    fn spec_loaded(&self, connection_id: &str, ticket: u64, spec: Result<String, HostError>) {
-        let connection = self.connection(connection_id);
-        let (registered, waiters) = {
-            let connection_state = connection.as_ref().and_then(|connection| connection.state.try_borrow().ok());
-            let spec = spec.as_deref().map_err(|error| error.message().to_string());
-            let mut state = self.state.borrow_mut();
-            let registered = state.registrations.spec_loaded(connection_state.as_deref(), ticket, spec);
-            let (waiters, others) =
-                std::mem::take(&mut state.spec_waiters).into_iter().partition(|(id, _)| id == connection_id);
-            state.spec_waiters = others;
-            (registered, waiters)
-        };
-        let waiters: Vec<(String, Sender<()>)> = waiters;
-        for (_, waiter) in waiters {
-            waiter.send(());
-        }
-        match registered {
-            Ok(effects) => self.run_registry_effects(effects),
-            // It stays unregistered: a script then gets no checks and no completion, and a call goes to the backend.
-            // The next change of the registry tries again, a chunk of the spec may only have failed to load.
-            Err(error) => self.log(
-                LogLevel::Error,
-                "Failed to register client functions",
-                &[("connectionId", connection_id), ("error", &error.message)],
-            ),
-        }
-    }
-
-    /// The spec of the client functions that the catalog of a connection registered, the one that its calls run with.
-    /// A spec that loads is awaited. None after its registration failed: the core then describes no calls of the
-    /// connection.
-    pub fn client_function_spec(
-        &self,
-        connection_id: &str,
-    ) -> impl Future<Output = Option<Rc<crate::clfn::ClientFunctionSpec>>> + 'static {
-        let service = self.clone();
-        let connection_id = connection_id.to_string();
-        async move {
-            loop {
-                let waiting = {
-                    let connection = service.connection(&connection_id)?;
-                    let connection_state = connection.state.try_borrow().ok()?;
-                    let mut state = service.state.borrow_mut();
-                    if let Some(spec) = state.registrations.spec(&connection_state) {
-                        return Some(spec);
-                    }
-                    if !state.registrations.loading(&connection_state) {
-                        return None;
-                    }
-                    let (sender, receiver) = oneshot();
-                    state.spec_waiters.push((connection_id.clone(), sender));
-                    receiver
-                };
-                // A load that ends wakes the waiters, the registration says how it went
-                waiting.await?;
-            }
-        }
     }
 
     /// Request a refresh of the catalog of a connection, a forced one supersedes a running update

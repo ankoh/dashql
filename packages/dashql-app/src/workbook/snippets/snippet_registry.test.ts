@@ -3,7 +3,7 @@ import * as dashql from '@akohn/dashql';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { SNIPPET_DATASETS_FOLDER, SNIPPET_ROOT_CONNECTORS, snippetRootIsFolder } from './snippet.js';
+import { SNIPPET_DATASETS_FOLDER, SNIPPET_ROOT_CONNECTORS } from './snippet.js';
 import { buildSnippetRegistry, bundledSnippetFiles, getBundledSnippets, snippetText, snippetsForConnector } from './snippet_registry.js';
 import { createScriptFormatConfig, formatSqlText, formattingDialectForConnector } from '../scripts/script_format.js';
 
@@ -45,13 +45,12 @@ describe('Snippet registry', () => {
         expect(registry.errors).toEqual([]);
         expect(Object.keys(files).length).toBeGreaterThan(0);
         expect(new Set(Object.keys(files).map(path => path.split('/')[0]))).toEqual(new Set(SNIPPET_ROOT_CONNECTORS.keys()));
-        const shownPath = (path: string) => snippetRootIsFolder(path.split('/')[0]) ? path : path.slice(path.indexOf('/') + 1);
-        const folders = new Set(Object.keys(files).map(path => shownPath(path).split('/').slice(0, -1).join('/')));
+        const folders = new Set(Object.keys(files).map(path => path.split('/').slice(1, -1).join('/')));
         expect(new Set(registry.snippets.map(snippet => snippet.category))).toEqual(folders);
         for (const snippet of registry.snippets) {
             for (const connector of snippet.connectors) {
                 const path = snippet.paths.get(connector)!;
-                expect(shownPath(path), snippet.id).toEqual(`${snippet.id}.sql`);
+                expect(path.slice(path.indexOf('/') + 1), snippet.id).toEqual(`${snippet.id}.sql`);
                 expect(SNIPPET_ROOT_CONNECTORS.get(path.split('/')[0])).toContain(connector);
             }
         }
@@ -90,7 +89,7 @@ describe('Snippet registry', () => {
         expect(snippetText(snippet, ConnectorType.HYPER)).toEqual(`${file('select 1;', 'Access a value.')}\n`);
     });
 
-    it('merges the variants of a snippet in the roots without a folder', () => {
+    it('merges the variants of a snippet in the roots', () => {
         const registry = buildSnippetRegistry(core, {
             'hyper/json/access.sql': file("select '{}'::json;"),
             'trino/json/access.sql': file("select json_extract_scalar('{}', '$.a');"),
@@ -98,14 +97,11 @@ describe('Snippet registry', () => {
         });
         expect(registry.errors).toEqual([]);
         const snippet = registry.byId.get('json/access')!;
-        expect(snippet.connectors.sort()).toEqual([ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.DBCOM].sort());
+        expect(snippet.connectors.sort()).toEqual([ConnectorType.HYPER, ConnectorType.TRINO, ConnectorType.DBCOM, ConnectorType.SALESFORCE_DATA_CLOUD].sort());
         expect(snippet.paths.get(ConnectorType.HYPER)).toEqual('hyper/json/access.sql');
         expect(snippet.paths.get(ConnectorType.DBCOM)).toEqual('hyper/json/access.sql');
         expect(snippet.paths.get(ConnectorType.TRINO)).toEqual('trino/json/access.sql');
-        // A root that is a folder of the browser keeps its files apart
-        const d360 = registry.byId.get('d360/json/access')!;
-        expect(d360.connectors).toEqual([ConnectorType.SALESFORCE_DATA_CLOUD]);
-        expect(d360.paths.get(ConnectorType.SALESFORCE_DATA_CLOUD)).toEqual('d360/json/access.sql');
+        expect(snippet.paths.get(ConnectorType.SALESFORCE_DATA_CLOUD)).toEqual('d360/json/access.sql');
         expect(snippetText(snippet, ConnectorType.TRINO)).toContain('json_extract_scalar');
         expect(snippetText(snippet, ConnectorType.HYPER)).toContain('::json');
     });
@@ -126,31 +122,6 @@ describe('Snippet registry', () => {
         expect(registry.byId.get('flows/overview')!.category).toEqual('flows');
         expect(registry.byId.get('a/b/c/d/deep')!.category).toEqual('a/b/c/d');
         expect(registry.snippets[0].id).toEqual('datasets/tpch_1');
-    });
-
-    it('shows the several roots of a connector as folders, in the order of their names', () => {
-        expect(snippetRootIsFolder('d360')).toBe(true);
-        expect(snippetRootIsFolder('d360-api')).toBe(true);
-        expect(snippetRootIsFolder('hyper')).toBe(false);
-        expect(snippetRootIsFolder('trino')).toBe(false);
-        const registry = buildSnippetRegistry(core, {
-            'd360-api/agent-memory/01-create.sql': file(),
-            'd360/json/access.sql': file(),
-            'hyper/json/access.sql': file(),
-        });
-        expect(registry.errors).toEqual([]);
-        expect(snippetsForConnector(registry, ConnectorType.SALESFORCE_DATA_CLOUD).map(snippet => snippet.category)).toEqual(['d360/json', 'd360-api/agent-memory']);
-        expect(snippetsForConnector(registry, ConnectorType.HYPER).map(snippet => snippet.category)).toEqual(['json']);
-    });
-
-    it('bundles the snippets of the extensions on the connectors of their root', () => {
-        const registry = getBundledSnippets(core);
-        const salesforce = snippetsForConnector(registry, ConnectorType.SALESFORCE_DATA_CLOUD);
-        expect(new Set(salesforce.map(snippet => snippet.category.split('/')[0]))).toEqual(new Set(['d360', 'd360-api']));
-        expect([...registry.byId.keys()].some(id => id.startsWith('d360-api/'))).toBe(true);
-        for (const connector of [ConnectorType.HYPER, ConnectorType.DBCOM, ConnectorType.TRINO]) {
-            expect(snippetsForConnector(registry, connector).filter(snippet => snippet.id.startsWith('d360')), ConnectorType[connector]).toEqual([]);
-        }
     });
 
     it('rejects an empty folder and a snippet without a folder', () => {
@@ -195,6 +166,6 @@ describe('Snippet registry', () => {
         expect(ids(ConnectorType.HYPER)).toEqual(['datasets/tpch_1', 'dates/month', 'dates/series', 'json/access', 'my-folder/anything']);
         expect(ids(ConnectorType.TRINO)).toEqual(['dates/month', 'json/access']);
         expect(ids(ConnectorType.DBCOM)).toEqual(ids(ConnectorType.HYPER));
-        expect(ids(ConnectorType.SALESFORCE_DATA_CLOUD)).toEqual(['d360/profiles/recent']);
+        expect(ids(ConnectorType.SALESFORCE_DATA_CLOUD)).toEqual(['profiles/recent']);
     });
 });

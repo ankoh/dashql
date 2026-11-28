@@ -201,7 +201,6 @@ export class QueryChannels {
                 options: {
                     analyzeResults: args.analyzeResults,
                     throwOnError: true,
-                    clientFunctionCall: args.clientFunctionCall,
                 },
             },
             undefined,

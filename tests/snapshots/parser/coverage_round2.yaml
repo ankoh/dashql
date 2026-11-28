@@ -5585,31 +5585,41 @@ parser-snapshots:
 
   - name: recovery_call_arguments
     input: |-
-      call d360.f(a => , b => 1);
+      call ns.f(a => , b => 1);
       select 1
     expected:
       statements:
         - type: CALL
           ast-begin: 0
-          ast-size: 4
+          ast-size: 7
           description:
-            text: "call d360..., b => 1);"
+            text: "call ns.f(.., b => 1);"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_SQL_CALL
-            text: "call d360... , b => 1)"
+            text: "call ns.f(.. , b => 1)"
             children:
               - key: SQL_CALL_NAME
                 type: ARRAY
-                text: "d360.f"
+                text: "ns.f"
                 children:
                   - type: NAME
-                    text: "d360"
+                    text: "ns"
                   - type: NAME
                     text: "f"
+              - key: SQL_CALL_ARGS
+                type: ARRAY
+                text: "(a => , b => 1)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_ARG
+                    text: "a => , b => 1"
+                    children:
+                      - key: SQL_FUNCTION_ARG_NAME
+                        type: NAME
+                        text: "a"
         - type: SELECT
-          ast-begin: 4
+          ast-begin: 7
           ast-size: 4
           description:
             text: "select 1"
@@ -5634,7 +5644,7 @@ parser-snapshots:
         - message: 'syntax error, unexpected ","'
           text: ","
       line-breaks:
-        - text: [27,28]
+        - text: [25,26]
       comments: []
       comment-blocks: []
       comment-warnings: []

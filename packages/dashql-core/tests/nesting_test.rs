@@ -1,33 +1,16 @@
 //! Statements that nest as deep as the parser allows (`MAX_STACK_DEPTH` of the driver) are analyzed and formatted
-//! within the stack of the module. The parse tree is flat, but the analyzer, the formatter and the checks of client
-//! function calls walk parts of it recursively; in the module a stack overflow traps it. The tests run on a thread with
+//! within the stack of the module. The parse tree is flat, but the analyzer and the formatter walk parts of it
+//! recursively; in the module a stack overflow traps it. The tests run on a thread with
 //! half of the 1 MiB stack of the module, natively and unoptimized, whose frames are larger than those of the module.
 //! Left-deep chains (`1 + 1 + ...`) aren't limited by the parser, their trees grow deeper than any nesting.
 
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode};
-use dashql_core::analyzer::clfn_calls::MAX_VALUE_DEPTH;
 use dashql_core::catalog::Catalog;
 use dashql_core::script::Script;
 use dashql_parser::parser::driver::{MAX_STACK_DEPTH, NESTING_TOO_DEEP};
 
 /// The stack of the threads of the tests
 const STACK_SIZE: usize = 512 * 1024;
-
-/// A namespace of client functions with an array option, a map option and a raw function
-const SPEC: &str = r#"{
-  "format": 1,
-  "namespace": "svc",
-  "functions": [
-    { "name": "item_find", "method": "GET", "options": [{ "name": "ids", "type": "integer", "array": 2 }, { "name": "labels", "type": "string", "map": true }] },
-    { "name": "item_raw", "raw": true }
-  ]
-}"#;
-
-fn catalog() -> Catalog {
-    let mut catalog = Catalog::new();
-    catalog.register_client_functions(SPEC).unwrap();
-    catalog
-}
 
 fn nested(open: &str, inner: &str, close: &str, depth: usize) -> String {
     format!("{}{inner}{}", open.repeat(depth), close.repeat(depth))
@@ -42,22 +25,6 @@ fn statements() -> Vec<(&'static str, Box<dyn Fn(usize) -> String>)> {
         ("prefix minus", Box::new(|n| format!("select {}1", "- ".repeat(n)))),
         ("not", Box::new(|n| format!("select {}true", "not ".repeat(n)))),
         ("case", Box::new(|n| format!("select {}", nested("case when true then ", "1", " end", n)))),
-        (
-            "arrays of a client function",
-            Box::new(|n| format!("call svc.item_find(ids => {})", nested("[", "1", "]", n))),
-        ),
-        (
-            "maps of a client function",
-            Box::new(|n| format!("call svc.item_find(labels => {})", nested("(a = ", "'x'", ")", n))),
-        ),
-        (
-            "arrays of a raw client function",
-            Box::new(|n| format!("call svc.item_raw(x => {})", nested("[", "1", "]", n))),
-        ),
-        (
-            "objects of a raw client function",
-            Box::new(|n| format!("call svc.item_raw(x => {})", nested("(a = ", "1", ")", n))),
-        ),
     ]
 }
 
@@ -92,7 +59,7 @@ fn statements_at_the_depth_limit_are_analyzed_and_formatted() {
     std::thread::Builder::new()
         .stack_size(STACK_SIZE)
         .spawn(|| {
-            let catalog = catalog();
+            let catalog = Catalog::new();
             let mut config = FormattingConfigT::default();
             config.dialect = FormattingDialect::HYPER;
             config.mode = FormattingMode::COMPACT;
@@ -107,36 +74,6 @@ fn statements_at_the_depth_limit_are_analyzed_and_formatted() {
         .unwrap()
         .join()
         .unwrap();
-}
-
-#[test]
-fn a_value_of_a_client_function_nests_at_most_64_levels() {
-    let catalog = catalog();
-    let errors = |depth: usize| {
-        let mut script = Script::new(&catalog);
-        script.replace_text(&format!("call svc.item_raw(x => {})", nested("[", "1", "]", depth)));
-        script.analyze(&catalog, true).unwrap();
-        let analyzed = script.analyzed.as_ref().unwrap();
-        let errors: Vec<String> = analyzed.errors.iter().map(|e| e.message.clone()).collect();
-        let description = analyzed.describe_client_function_call(0).expect("a description");
-        (errors, description)
-    };
-    // 63 arrays around a number are 64 levels
-    let (allowed, description) = errors(MAX_VALUE_DEPTH - 1);
-    assert!(allowed.is_empty(), "{allowed:?}");
-    assert!(description.to_string().contains(&format!(
-        "{}1{}",
-        "[".repeat(MAX_VALUE_DEPTH - 1),
-        "]".repeat(MAX_VALUE_DEPTH - 1)
-    )));
-    let (deeper, description) = errors(MAX_VALUE_DEPTH);
-    assert_eq!(deeper, [format!("a value can't nest deeper than {MAX_VALUE_DEPTH} levels")]);
-    // The description leaves a null where the value nests too deep
-    assert!(description.to_string().contains(&format!(
-        "{}null{}",
-        "[".repeat(MAX_VALUE_DEPTH),
-        "]".repeat(MAX_VALUE_DEPTH)
-    )));
 }
 
 /// The left-deep chains of a length: a chain builds a tree as deep as it is long, without growing the stack of the parser
@@ -156,7 +93,7 @@ fn left_deep_chains_beyond_the_depth_limit_are_analyzed_and_formatted() {
     std::thread::Builder::new()
         .stack_size(STACK_SIZE)
         .spawn(|| {
-            let catalog = catalog();
+            let catalog = Catalog::new();
             let mut config = FormattingConfigT::default();
             config.dialect = FormattingDialect::HYPER;
             config.mode = FormattingMode::COMPACT;
@@ -178,7 +115,7 @@ fn left_deep_chains_of_an_operator_format_flat() {
     std::thread::Builder::new()
         .stack_size(STACK_SIZE)
         .spawn(|| {
-            let catalog = catalog();
+            let catalog = Catalog::new();
             for (name, operator) in [("plus", " + "), ("and", " and "), ("concatenation", " || ")] {
                 let text = format!("select {}", vec!["x"; 2000].join(operator));
                 for mode in [FormattingMode::COMPACT, FormattingMode::PRETTY] {

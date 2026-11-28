@@ -11,7 +11,6 @@ use super::details::{CatalogNameDefaults, ConnectionDetails, Timestamp};
 use super::params::{ConnectorType, JsonObject};
 use super::RelationName;
 use crate::catalog_loader::{CatalogEntries, ConnectorCatalogUpdate};
-use crate::clfn::ClientFunctionBinding;
 
 /// A connector of the runtime
 pub trait Connector: Sync {
@@ -79,11 +78,6 @@ pub trait Connector: Sync {
         relations: Option<Vec<RelationName>>,
         now: Timestamp,
     ) -> Box<dyn ConnectorCatalogUpdate>;
-
-    /// The client functions of the connections, none if they have none
-    fn client_functions(&self) -> Option<&'static dyn ClientFunctionBinding> {
-        None
-    }
 }
 
 impl ConnectorType {

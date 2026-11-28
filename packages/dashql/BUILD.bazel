@@ -101,17 +101,6 @@ copy_to_directory(
     },
 )
 
-# The specs of the extensions for the @dashql/extensions alias of the tests
-copy_to_directory(
-    name = "dep_extensions",
-    srcs = ["//extensions/d360-api:files"],
-    out = "dependencies/extensions",
-    replace_prefixes = {
-        "extensions": "",
-    },
-    visibility = ["//visibility:private"],
-)
-
 _GENERATED = [
     ":dep_flatbuffers",
     ":dep_jsonschema",
@@ -202,7 +191,6 @@ _VITEST_DATA = _SOURCES + [
     "package.json",
     "test/setup_node.mjs",
     "vitest.config.mjs",
-    ":dep_extensions",
     "//:node_modules/vitest",
 ] + _TEST_DEPENDENCIES
 

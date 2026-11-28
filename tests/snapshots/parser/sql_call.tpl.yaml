@@ -1,0 +1,13 @@
+parser-snapshots:
+  # A call without arguments
+  - name: call_no_args
+    input: |
+      CALL foo();
+  # A qualified name and positional arguments
+  - name: call_positional_args
+    input: |
+      CALL s.f('hello', 1, :param, (select 1));
+  # Named arguments
+  - name: call_named_args
+    input: |
+      CALL s.f(a => 1, b := 'x');

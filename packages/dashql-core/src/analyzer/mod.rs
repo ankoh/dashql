@@ -9,7 +9,6 @@
 //! analyzer tags and the objects they resolve to.
 
 mod capabilities;
-pub mod clfn_calls;
 mod constants;
 mod function_calls;
 mod function_checks;
@@ -23,7 +22,6 @@ pub mod transactions;
 pub mod types;
 mod vis_tags;
 
-pub use clfn_calls::ClientFunctionCall;
 pub use sql_types::{SqlType, SqlTypeKind};
 pub use transactions::TransactionBlock;
 pub use types::*;
@@ -79,8 +77,6 @@ pub struct AnalyzedScript {
     pub constant_expressions: Vec<ConstantExpression>,
     /// The parameters, in the order of the script
     pub parameters: Vec<Parameter>,
-    /// The calls in a namespace with client functions
-    pub client_function_calls: Vec<ClientFunctionCall>,
     /// The visualization specs
     pub visualization_specs: Vec<VisualizationSpec>,
     /// The dashboard placement of the script, the `@board` tag of its last statement
@@ -231,7 +227,6 @@ pub fn analyze_with(
     vis_tags::analyze(&mut state);
     param_tags::analyze(&mut state);
     manual_tag::analyze(&mut state);
-    clfn_calls::analyze(&mut state);
     function_checks::analyze(&mut state);
     transactions::analyze(&mut state);
     // Malformed comment tags fall back to ordinary comments, warn so that they don't go unnoticed

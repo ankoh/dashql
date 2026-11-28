@@ -200,7 +200,7 @@ parser-snapshots:
   # An error in the arguments of a CALL, the next statement survives
   - name: recovery_call_arguments
     input: |
-      call d360.f(a => , b => 1);
+      call ns.f(a => , b => 1);
       select 1
   # An error in the action of a MERGE
   - name: recovery_merge_action

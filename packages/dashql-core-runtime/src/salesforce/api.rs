@@ -9,10 +9,10 @@ use base64::Engine;
 use serde_json::Value;
 
 use super::types::*;
-use crate::clfn::json::{js_number, js_string, js_truthy, to_json_text};
 use crate::http::url::form_encode;
 use crate::http::Url;
 use crate::http::{Headers, HttpMethod, HttpRequest, HttpResponse};
+use crate::salesforce::json::{js_number, js_string, js_truthy, to_json_text};
 use crate::time::iso_timestamp;
 
 /// The API version of the metadata

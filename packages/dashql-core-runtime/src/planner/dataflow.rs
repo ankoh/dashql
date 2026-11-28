@@ -22,7 +22,7 @@
 
 use crate::planner::script_references::ReferenceKind;
 use crate::planner::session_inputs::SessionInput;
-use crate::planner::{plan, runs_on_request, PlanScope, Prepared, SessionPlanRequest};
+use crate::planner::{has_manual_tag, plan, PlanScope, Prepared, SessionPlanRequest};
 use dashql_buffers::execution::{
     ExecutionGraphAccessMode as Mode, ExecutionGraphEdgeReason as Reason, ExecutionGraphNodeT, ExecutionGraphT,
 };
@@ -79,7 +79,7 @@ pub struct DataflowScript {
     pub text_version: u64,
     /// The statements in script order
     pub statements: Vec<DataflowStatement>,
-    /// Does the script run only on request, its `@manual` tag or a call of a client function that writes?
+    /// Does the script run only on request, its `@manual` tag?
     pub manual: bool,
 }
 
@@ -179,7 +179,7 @@ fn derive_dataflow(request: &SessionPlanRequest) -> Dataflow {
         }
         if script.analyzed {
             script.text_version = input.analyzed.as_ref().map_or(0, |a| a.parsed.scanned.text_version);
-            script.manual = runs_on_request(input);
+            script.manual = has_manual_tag(input);
         }
     }
 

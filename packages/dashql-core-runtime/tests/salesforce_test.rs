@@ -4,12 +4,11 @@ use std::collections::BTreeMap;
 
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
-use dashql_core_runtime::clfn::HttpResponse;
 use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sharing;
 use dashql_core_runtime::connections::OAuthPkceChallenge;
+use dashql_core_runtime::http::HttpResponse;
 use dashql_core_runtime::salesforce::api::*;
 use dashql_core_runtime::salesforce::auth::*;
-use dashql_core_runtime::salesforce::client_functions::*;
 use dashql_core_runtime::salesforce::*;
 use serde_json::{json, Value};
 
@@ -374,59 +373,6 @@ fn resolves_the_data_space() {
     );
     assert_eq!(get_salesforce_data_space(&with_attributes(json!({ "dataspace": "Sales" }))), "Sales");
     assert_eq!(get_salesforce_data_space(&with_attributes(json!({}))), DEFAULT_SALESFORCE_DATA_SPACE);
-}
-
-// The client functions of a connection
-
-fn connected(expires_at: &str) -> SalesforceTokens {
-    SalesforceTokens {
-        core: core_token("https://org.my.salesforce.com"),
-        data_cloud: SalesforceDataCloudAccessToken {
-            instance_url: "https://tenant.c360a.salesforce.com/".into(),
-            expires_at: expires_at.into(),
-            jwt: SalesforceDataCloudJwt { raw: "tenant-jwt".into(), ..Default::default() },
-            ..Default::default()
-        },
-    }
-}
-
-#[test]
-fn sends_the_calls_of_a_host_with_its_token() {
-    let tokens = connected("");
-    for (host, url, authorization) in [
-        ("core", "https://org.my.salesforce.com/", "Bearer core-token"),
-        ("connect", "https://org.my.salesforce.com/", "Bearer core-token"),
-        ("tenant", "https://tenant.c360a.salesforce.com/", "Bearer tenant-jwt"),
-    ] {
-        let target = resolve_salesforce_client_function_host(Some(&tokens), host, NOW).unwrap();
-        assert_eq!(target.base_url.to_string(), url);
-        let header = ("Authorization".to_string(), authorization.to_string());
-        assert!(target.headers.iter().any(|h| *h == header), "{:?}", target.headers);
-    }
-}
-
-#[test]
-fn says_so_when_the_token_of_the_tenant_has_expired() {
-    let expired =
-        resolve_salesforce_client_function_host(Some(&connected("2000-01-01T00:00:00Z")), "tenant", NOW).unwrap_err();
-    assert!(expired.message.contains("has expired, connect again"));
-    assert!(resolve_salesforce_client_function_host(Some(&connected("2999-01-01T00:00:00Z")), "tenant", NOW).is_ok());
-}
-
-#[test]
-fn has_no_other_host() {
-    let error = resolve_salesforce_client_function_host(Some(&connected("")), "other", NOW).unwrap_err();
-    assert!(error.message.contains("no host other"));
-}
-
-#[test]
-fn needs_a_login_for_a_host_and_none_for_the_variables() {
-    let error = resolve_salesforce_client_function_host(None, "core", NOW).unwrap_err();
-    assert!(error.message.contains("not set up"));
-    assert_eq!(
-        salesforce_client_function_variables(),
-        BTreeMap::from([("api_version".to_string(), DATA_360_API_VERSION.to_string())])
-    );
 }
 
 // The authorization

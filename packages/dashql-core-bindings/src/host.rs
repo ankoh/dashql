@@ -3,11 +3,11 @@
 //!
 //! The platform holds the handle table, the Arrow tables by handle, the compute database, the clock, the log, fetch,
 //! the channels of the host, the descriptions of the queries that the runtime runs itself, the stored results of the
-//! scripts, the attachments of the workbooks, the OAuth flows and the specs of the extensions. The runtime
-//! tells it that its state changed (`changed`), the store of the app then takes the changes and reads the views. Every
-//! call into the platform catches: a member that throws or is missing fails the call of the service with a `HostError`
-//! and never unwinds through the module. No borrow of the platform is held while it calls JavaScript, so the platform
-//! may call the runtime again from any of its members.
+//! scripts, the attachments of the workbooks and the OAuth flows. The runtime tells it that its state changed
+//! (`changed`), the store of the app then takes the changes and reads the views. Every call into the platform catches:
+//! a member that throws or is missing fails the call of the service with a `HostError` and never unwinds through the
+//! module. No borrow of the platform is held while it calls JavaScript, so the platform may call the runtime again from
+//! any of its members.
 //!
 //! The helpers of the other hosts of the bindings (the storage) live here as well: reading the fields of JS values,
 //! awaiting the promises of the host, requests and responses.
@@ -64,8 +64,6 @@ export interface RuntimePlatform {
     crypto: { randomUuid(): string };
     /** The OAuth flows of the setups */
     oauth: RuntimeOAuth;
-    /** The specs of the client functions of the extensions, the JSON text */
-    extensions: { loadSpec(extension: string): Promise<string> };
     /** The storage of the workbooks and the connections, the storage writer and the restore read and write through it */
     readonly storage: RuntimeStorage | null;
     /** The `.dashql` archives of imports and exports: the ZIP container and the Parquet files of the workbook tables. Null without. */
@@ -1088,14 +1086,6 @@ impl JsPlatform {
                 }
             }
         }
-    }
-
-    /// Load the spec of the client functions of an extension, the JSON text
-    pub fn load_spec(&self, extension: &str) -> impl Future<Output = Result<String, HostError>> + 'static {
-        let call = self
-            .member("extensions")
-            .and_then(|extensions| call(&extensions, "loadSpec", &[JsValue::from_str(extension)]));
-        async move { settled(call).await?.as_string().ok_or_else(|| HostError::new("a spec that isn't text")) }
     }
 
     /// Does the platform keep anything?

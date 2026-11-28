@@ -5,10 +5,9 @@
 //! the script references, the analyzer and completion find a name the same way.
 //!
 //! The analyzer reads a table parameter like a table: `TableParameters` holds the output columns of the scripts of a
-//! session that are a single SELECT, the result columns of the scripts that are a single call of a client function
-//! that reads, and the columns of the attachments, as table declarations of the reserved catalog entry
-//! `TABLE_PARAMETERS_ENTRY_ID`. Every script session of the session holds the same `TableParameters`,
-//! an analysis is current only with the table parameters it was analyzed with.
+//! session that are a single SELECT and the columns of the attachments, as table declarations of the reserved catalog
+//! entry `TABLE_PARAMETERS_ENTRY_ID`. Every script session of the session holds the same `TableParameters`, an
+//! analysis is current only with the table parameters it was analyzed with.
 
 use crate::analyzer::{AnalyzedScript, ParameterKind};
 use crate::catalog::{
@@ -201,16 +200,11 @@ impl TableParameters {
     }
 }
 
-/// The output columns of a script that is a single SELECT, or the result columns of a script that is a single call of
-/// a client function that reads
+/// The output columns of a script that is a single SELECT
 fn query_columns(analyzed: &AnalyzedScript) -> Option<Vec<Arc<str>>> {
     match &analyzed.parsed.statements[..] {
         [statement] if statement.statement_type == StatementType::SELECT => {
             Some(crate::analyzer::statement_output_columns(analyzed, 0))
-        }
-        [_] => {
-            let call = analyzed.single_client_function_call().filter(|c| c.readable())?;
-            analyzed.client_function_result_columns(call)
         }
         _ => None,
     }

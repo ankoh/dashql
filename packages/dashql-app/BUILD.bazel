@@ -21,17 +21,6 @@ copy_to_directory(
     visibility = ["//visibility:private"],
 )
 
-# Stage the extensions for the @dashql/extensions alias: the app bundles their generated specs and their snippets.
-copy_to_directory(
-    name = "extensions",
-    srcs = ["//extensions/d360-api:files"],
-    out = "dependencies/extensions",
-    replace_prefixes = {
-        "extensions": "",
-    },
-    visibility = ["//visibility:private"],
-)
-
 # The favicons are also used by the website (//packages/dashql-org)
 copy_to_bin(
     name = "favicons",
@@ -180,7 +169,6 @@ _vite_web_deps = [
     ":dashql_react_browser_test_files",
     ":browser_test_stylesheets",
     ":example_snippets",
-    ":extensions",
     ":vite_config",
     "//:node_modules/@akohn/dashql",
     "//:node_modules/@akohn/dashql-react",

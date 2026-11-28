@@ -59,7 +59,6 @@ code without tests and snapshots (`git ls-files <paths> | xargs wc -l`). The are
 - app: navigation, connections, shell, settings, tools, config, storage, results;
 - app: cloud, diagnostics, demos, oauth, agent, host, embed, `examples/`;
 - `dashql-react` (data table, visualization, building blocks);
-- extensions (`extensions/`), client functions (`dashql-core-runtime/src/clfn`, `completion_clfn.rs`);
 - website and docs (`docs/`, AGENTS.md, READMEs, NOTICE, `packages/dashql-org`);
 - CI, Bazel rules, test infrastructure, `tests/agents`, scripts, `tools/`.
 

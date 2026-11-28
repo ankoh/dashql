@@ -51,8 +51,6 @@ pub struct StatementRequest {
     pub script_key: ScriptKey,
     /// The SQL text
     pub text: String,
-    /// A call of a client function as JSON, the host runs it instead of the text
-    pub client_function_call: Option<String>,
     /// Analyze the result, the statement is the output of its script
     pub analyze_results: bool,
     /// Collect the result, a statement whose output nothing reads drains it

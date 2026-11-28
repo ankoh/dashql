@@ -13,7 +13,6 @@ import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_
 import type { Runtime } from '@akohn/dashql/runtime';
 import { addTestConnection, runTestQuery } from '../../tests/test_connections.js';
 import { type TestQueryExecutorFunctions, TestRuntime } from '../../tests/test_runtime.js';
-import { loadClientFunctionSpec } from '@akohn/dashql/platform/connections/clfn_specs';
 import { EmbeddedDatabaseProvider } from '../../host/embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
 import { LoggerProvider } from '../../host/logger_provider.js';
@@ -25,7 +24,6 @@ import { StorageProvider } from '../../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { WorkbookViewMode, WorkbookViewModeProvider, useWorkbookViewMode } from '../workbook_view_mode.js';
-import { resolveClientFunctionCall } from './workbook_shell_environment.js';
 import { WorkbookShellPage, type WorkbookShellPageDependencies } from './workbook_shell_page.js';
 import { ShellQueryResultOverlay } from './shell_query_result_overlay.js';
 import { queryModelOf } from '../../tests/result_tables.js';
@@ -65,7 +63,6 @@ interface TestShellConnection {
 function createConnection(connectionId: string, options: {
     setupParams?: object;
     relationsSql?: string;
-    clientFunctions?: string;
 } = {}): TestShellConnection {
     let runtime: Runtime | null = null;
     return {
@@ -97,7 +94,6 @@ function createConnection(connectionId: string, options: {
             into.module.runCatalogLoader(false);
             into.flush();
             if (options.relationsSql != null) this.write(catalog => loadRelations(catalog, options.relationsSql!));
-            if (options.clientFunctions != null) this.write(catalog => catalog.registerClientFunctions(options.clientFunctions!));
         },
     };
 }
@@ -521,85 +517,6 @@ describe('WorkbookShellPage', () => {
         });
     });
 
-    describe('with client functions', () => {
-        /// A connection whose catalog has the Data 360 client functions
-        async function openWithSpec() {
-            const connection = createConnection(MAIN, { clientFunctions: JSON.stringify(await loadClientFunctionSpec('d360-api')) });
-            await open([connection]);
-        }
-        const lastArgs = () => execute.mock.calls[execute.mock.calls.length - 1][1] as { query: string; clientFunctionCall?: unknown };
-
-        it('runs a call in the namespace as a client function', async () => {
-            await openWithSpec();
-            run("call d360.segment_list (dataspace => 'default');");
-            await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
-            expect(execute.mock.calls[0][0]).toBe(MAIN);
-            expect(lastArgs().query).toContain('call d360.segment_list');
-            expect(lastArgs().clientFunctionCall).toEqual({
-                namespace: 'd360',
-                function: 'segment_list',
-                explain: false,
-                options: { dataspace: 'default' },
-            });
-        });
-
-        it('explains a call as a client function', async () => {
-            await openWithSpec();
-            run('explain call d360.segment_list ();');
-            await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
-            expect(lastArgs().clientFunctionCall).toMatchObject({ function: 'segment_list', explain: true });
-        });
-
-        it('leaves a statement without a call to the backend', async () => {
-            await openWithSpec();
-            run('select 42 as answer;');
-            await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
-            expect(lastArgs().clientFunctionCall).toBeUndefined();
-        });
-
-        it('leaves a call to the backend on a connection without the spec', async () => {
-            await open();
-            run('call d360.segment_list ();');
-            await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
-            expect(lastArgs().clientFunctionCall).toBeUndefined();
-        });
-
-        it('fails a call that the spec does not know without running anything', async () => {
-            await openWithSpec();
-            run('call d360.segment_lisst ();');
-            await vi.waitFor(() => expect(screen()).toContain('segment_lisst'), WAIT);
-            await vi.waitFor(() => expect(screen()).toMatch(/segment_list/), WAIT);
-            expect(execute).not.toHaveBeenCalled();
-        });
-
-        it('fails a parameter without a value without running anything', async () => {
-            await openWithSpec();
-            run('call d360.segment_list (dataspace => :space);');
-            await vi.waitFor(() => expect(screen()).toContain('input :space has no value'), WAIT);
-            expect(execute).not.toHaveBeenCalled();
-        });
-
-        it('fails a call that does not parse without running anything', async () => {
-            await openWithSpec();
-            run('call d360.segment_list (dataspace => );');
-            await vi.waitFor(() => expect(screen()).toMatch(/syntax error/i), WAIT);
-            expect(execute).not.toHaveBeenCalled();
-        });
-
-        it('fails an EXPLAIN with options of a call without running anything', async () => {
-            await openWithSpec();
-            run('explain (analyze) call d360.segment_list ();');
-            await vi.waitFor(() => expect(screen()).toMatch(/syntax error/i), WAIT);
-            expect(execute).not.toHaveBeenCalled();
-        });
-
-        it('fails a call next to another statement', async () => {
-            const catalog = core.createCatalog();
-            catalog.registerClientFunctions(JSON.stringify(await loadClientFunctionSpec('d360-api')));
-            expect(() => resolveClientFunctionCall(catalog, 'select 1; call d360.segment_list ();')).toThrow('statement of its own');
-        });
-    });
-
     describe('when its inputs change', () => {
         it('completes names of the catalog', async () => {
             await open([createConnection(MAIN, { relationsSql: 'create table orders (id integer);' })]);
@@ -631,17 +548,6 @@ describe('WorkbookShellPage', () => {
             type('select * from ite');
             press('Tab');
             await vi.waitFor(() => expect(screen()).toContain('items'), WAIT);
-            expect(created).toHaveLength(1);
-        });
-
-        it('completes client functions that are registered after the shell opened', async () => {
-            const connection = createConnection(MAIN);
-            await open([connection]);
-            const spec = JSON.stringify(await loadClientFunctionSpec('d360-api'));
-            connection.write(catalog => catalog.registerClientFunctions(spec));
-            type('call d360.access_policy_g');
-            press('Tab');
-            await vi.waitFor(() => expect(screen()).toContain('access_policy_get'), WAIT);
             expect(created).toHaveLength(1);
         });
 
