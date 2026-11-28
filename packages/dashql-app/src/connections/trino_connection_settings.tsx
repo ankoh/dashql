@@ -9,7 +9,7 @@ import { BookIcon, KeyIcon } from '@akohn/dashql-react/components/symbol_icon';
 
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { Dispatch } from '@akohn/dashql/platform/utils/variant';
-import { KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '@akohn/dashql-react/components/keyvalue_list';
+import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '@akohn/dashql-react/components/keyvalue_list';
 import { TextField, VALIDATION_WARNING } from '@akohn/dashql-react/components/text_field';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { useConnectionDraftForm } from './connection_draft.js';
@@ -158,19 +158,12 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     }));
     const modifyMetadata: Dispatch<UpdateKeyValueList> = (action: UpdateKeyValueList) => setPageState(s => {
         const metadata = action(s.newParamsMetadata);
-
-        // Flatten the key-value list eagerly for the new params.
-        // We could decide to do this lazily but it shouldn't really matter.
-        const metadataObj: Record<string, string> = {};
-        for (const entry of metadata) {
-            metadataObj[entry.key] = entry.value;
-        }
         return {
             ...s,
             newParamsMetadata: metadata,
             newParams: {
                 ...s.newParams,
-                metadata: metadataObj
+                metadata: flattenKeyValueList(metadata),
             }
         };
     });

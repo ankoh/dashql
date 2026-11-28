@@ -22,6 +22,7 @@ import { AlertIcon, ScreenFullIcon, ScreenNormalIcon, XIcon } from '@akohn/dashq
 import { CopyToClipboardButton } from '@akohn/dashql-react/components/clipboard';
 import { usePendingRequest } from '../../utils/use_pending_request.js';
 import * as styles from './format_dialog.module.css';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
 const IGNORE_OUTSIDE_CLICK = () => {};
 const LOG_CTX = 'shell_format';
@@ -73,10 +74,6 @@ interface ValidationResult {
     diagnostic: string | null;
 }
 
-function errorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
-}
-
 function bufferString(value: string | Uint8Array | null | undefined, fallback: string): string {
     if (typeof value === 'string') return value || fallback;
     return value == null ? fallback : new TextDecoder().decode(value) || fallback;
@@ -122,7 +119,7 @@ function validateSql(
         }
         return { update, diagnostic: null };
     } catch (error) {
-        return { update: null, diagnostic: errorMessage(error) };
+        return { update: null, diagnostic: stringifyError(error) };
     } finally {
         session.destroy();
     }
@@ -279,7 +276,7 @@ function FormatDialog(props: FormatDialogProps) {
                 update = analyzeSql(props.core, props.catalog, text);
                 readonly = true;
             } catch (error) {
-                setDiagnostic(errorMessage(error));
+                setDiagnostic(stringifyError(error));
                 setMode(FormatMode.Raw);
                 return;
             }

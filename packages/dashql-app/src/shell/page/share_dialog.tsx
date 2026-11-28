@@ -19,6 +19,7 @@ import { CopyToClipboardButton } from '@akohn/dashql-react/components/clipboard'
 import { buildShareUrl, encodeShareScript } from './shell_share.js';
 import { usePendingRequest } from '../../utils/use_pending_request.js';
 import * as styles from './share_dialog.module.css';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
 const IGNORE_OUTSIDE_CLICK = () => {};
 /// The URL is encoded once the user pauses typing, deflating the script per keystroke is wasted work
@@ -56,10 +57,6 @@ export function useShareDialog(): ShareDialogHookResult {
 interface ShareDialogProps extends ShareResources {
     scriptRef: React.RefObject<string>;
     onClose: () => void;
-}
-
-function errorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
 }
 
 function scanSql(core: dashql.DashQL, catalog: dashql.DashQLCatalog, text: string): dashql.buffers.editor.EditorUpdateT | null {
@@ -126,7 +123,7 @@ function ShareDialog(props: ShareDialogProps) {
             error => {
                 if (sequence !== updateSequenceRef.current) return;
                 setUrl(null);
-                setDiagnostic(errorMessage(error));
+                setDiagnostic(stringifyError(error));
             },
         );
     }, [cancelUpdate, props.catalog, props.core]);

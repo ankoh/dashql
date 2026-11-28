@@ -8,6 +8,7 @@ import { FileDirectoryIcon, FileIcon, XIcon } from '@akohn/dashql-react/componen
 import { TextInput } from '@akohn/dashql-react/components/text_input';
 import { usePendingRequest } from '../../utils/use_pending_request.js';
 import * as styles from './filesystem_mount_dialog.module.css';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
 export interface MountDialogController {
     /// Choose a file or a folder and mount it, resolves with its path, null if the dialog was closed
@@ -51,7 +52,7 @@ export function useMountDialog(actions: MountDialogActions): MountDialogHookResu
             const next = await action(signal);
             if (next != null) setSelection(next);
         } catch (cause) {
-            setError(errorMessage(cause));
+            setError(stringifyError(cause));
         }
     }, [signal]);
 
@@ -61,7 +62,7 @@ export function useMountDialog(actions: MountDialogActions): MountDialogHookResu
         try {
             resolve(await actions.mount(selection, path || undefined, signal));
         } catch (cause) {
-            setError(errorMessage(cause));
+            setError(stringifyError(cause));
         }
     }, [actions, resolve, selection, signal]);
 
@@ -78,10 +79,6 @@ export function useMountDialog(actions: MountDialogActions): MountDialogHookResu
             <MountDialog actions={actions} selection={selection} error={error} onCancel={dismiss} onMount={mount} onSelect={select} />
         ),
     };
-}
-
-function errorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
 }
 
 interface MountDialogProps {

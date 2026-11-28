@@ -61,7 +61,7 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
             } catch (error) {
                 logger.error("Failed to migrate the storage", { error: stringifyError(error) }, "storage_provider");
                 setMigrationStatus(IndicatorStatus.Failed);
-                setMigrationError(`The storage could not be migrated: ${error instanceof Error ? error.message : String(error)}`);
+                setMigrationError(`The storage could not be migrated: ${stringifyError(error)}`);
                 return;
             }
 

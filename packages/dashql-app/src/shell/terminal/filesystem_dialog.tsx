@@ -17,6 +17,7 @@ import {
 import { useMountDialog } from './filesystem_mount_dialog.js';
 import { usePendingRequest } from '../../utils/use_pending_request.js';
 import * as styles from './filesystem_dialog.module.css';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
 export interface FilesystemDialogActions {
     list(): Promise<readonly ShellFileListing[]>;
@@ -48,7 +49,7 @@ export function useFilesystemDialog(actions: FilesystemDialogActions): Filesyste
         try {
             if (await actions.mount(signal) == null) dismiss();
         } catch (cause) {
-            setMountError(errorMessage(cause));
+            setMountError(stringifyError(cause));
         } finally {
             setMounting(false);
         }
@@ -130,7 +131,7 @@ function FilesystemDialog(props: FilesystemDialogProps) {
             setEntries(await props.actions.list());
             setError(null);
         } catch (cause) {
-            setError(errorMessage(cause));
+            setError(stringifyError(cause));
         }
     }, [props.actions]);
     React.useEffect(() => { void reload(); }, [reload]);
@@ -146,7 +147,7 @@ function FilesystemDialog(props: FilesystemDialogProps) {
             await props.actions.unlink(path);
             await reload();
         } catch (cause) {
-            setError(errorMessage(cause));
+            setError(stringifyError(cause));
         }
     };
 
@@ -199,10 +200,6 @@ function FilesystemEntry(props: { entry: ShellFileListing; onUnlink: (path: stri
             </IconButton>
         </div>
     </div>;
-}
-
-function errorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
 }
 
 function displayMode(mode: ExternalDirectoryMode): string {

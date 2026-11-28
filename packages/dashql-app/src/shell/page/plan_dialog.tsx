@@ -19,6 +19,7 @@ import { AlertIcon, ScreenFullIcon, ScreenNormalIcon, XIcon } from '@akohn/dashq
 import { CopyToClipboardButton } from '@akohn/dashql-react/components/clipboard';
 import { usePendingRequest } from '../../utils/use_pending_request.js';
 import * as styles from './plan_dialog.module.css';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
 const IGNORE_OUTSIDE_CLICK = () => {};
 const LOG_CTX = 'shell_plan';
@@ -82,10 +83,6 @@ interface PlanDialogProps extends PlanResources {
     onClose: () => void;
 }
 
-function errorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
-}
-
 function PlanDialog(props: PlanDialogProps) {
     const ProfileViewComponent = props.dependencies.QueryProfileView;
     const headingId = React.useId();
@@ -121,7 +118,7 @@ function PlanDialog(props: PlanDialogProps) {
             setDiagnostic(null);
             return true;
         } catch (error) {
-            setDiagnostic(errorMessage(error));
+            setDiagnostic(stringifyError(error));
             return false;
         }
     }, [layoutConfig, props.core]);
