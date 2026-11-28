@@ -32,8 +32,8 @@ reads what the catalog doesn't offer and flags it with a `DISABLED_CAPABILITY` d
 
 `Capabilities` (`capabilities.rs` of the core) belongs to the catalog snapshot that a script is analyzed against
 (`CatalogSnapshot::capabilities`, `Catalog::set_capabilities`). Every script of a connection sees the same, and an
-analysis keeps the capabilities it was made with in its snapshot. The owner of a catalog sets them before its scripts
-are analyzed.
+analysis keeps the capabilities it was made with in its snapshot. A change bumps the version of the catalog, so the
+analyses made before are no longer current and their next analysis sees the new capabilities.
 
 - **The runtime** gives every connection the `capabilities` of its settings (`RuntimeSettings`, read once): a new
   connection, a restored one and one that an import creates (`ConnectionStateOptions::capabilities`).

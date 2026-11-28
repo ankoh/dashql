@@ -310,10 +310,12 @@ impl Catalog {
     }
 
     /// Choose the extensions of SQL that the scripts of the catalog may use. An analysis keeps the snapshot with the
-    /// capabilities it was made with, the owner sets them before the scripts are analyzed.
+    /// capabilities it was made with, a change bumps the version so that earlier analyses are no longer current.
     pub fn set_capabilities(&mut self, capabilities: Capabilities) {
         if self.current.capabilities != capabilities {
-            Arc::make_mut(&mut self.current).capabilities = capabilities;
+            let snapshot = Arc::make_mut(&mut self.current);
+            snapshot.capabilities = capabilities;
+            snapshot.version += 1;
         }
     }
 

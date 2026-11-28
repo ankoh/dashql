@@ -2,6 +2,7 @@
 
 use dashql_buffers::status::StatusCode;
 use dashql_core::analyzer::ColumnResolution;
+use dashql_core::capabilities::Capabilities;
 use dashql_core::catalog::{
     Catalog, CatalogEntryId, CatalogLayer, CatalogObjectType, EntryIdSource, ExternalObjectId,
     QualifiedCatalogObjectId, INITIAL_ENTRY_ID,
@@ -618,4 +619,17 @@ fn repeated_names_get_ids_by_occurrence() {
     assert_eq!(tables, vec![0, 1]);
     let columns: Vec<_> = entry.table_declarations[1].table_columns.iter().map(|c| c.column_id()).collect();
     assert_eq!(columns, vec![0, 1]);
+}
+
+#[test]
+fn capabilities_make_earlier_analyses_outdated() {
+    let mut catalog = Catalog::new();
+    let analyzed = analyze(&catalog, "select :min").analyzed.clone().unwrap();
+    assert!(catalog.is_current(&analyzed.snapshot));
+
+    // Setting the same capabilities keeps the analysis current, other ones don't
+    catalog.set_capabilities(Capabilities::ALL);
+    assert!(catalog.is_current(&analyzed.snapshot));
+    catalog.set_capabilities(Capabilities::NONE);
+    assert!(!catalog.is_current(&analyzed.snapshot));
 }
