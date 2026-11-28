@@ -1265,6 +1265,35 @@ fn releases_a_cached_file_that_was_retained_while_the_run_stopped() {
 }
 
 #[test]
+fn runs_targets_with_the_scripts_that_write_the_tables_they_read() {
+    let main = connection("main", true);
+    let workbook = workbook(&[
+        ("1_create.sql", "create table items (id int)", &main),
+        ("2_other.sql", "select 2", &main),
+        ("3_insert.sql", "/* @manual */\ninsert into items values (1)", &main),
+        ("4_query.sql", "select id from items", &main),
+    ]);
+    let s = setup(true, None, 1);
+    // A run of the script runs the table that it reads first, the script that runs on request stays back
+    let script = RunOptions { run: PlanRun::Script("4_query.sql".into()), targets: Some(vec![3]), ..workbook_run() };
+    let result = s.run(&workbook, script);
+    assert!(result.failure.is_none(), "{:?}", result.failure);
+    assert_eq!(s.texts(), vec!["create table items (id int)", "select id from items"]);
+    // A run of the workbook with targets runs the same
+    s.state.borrow_mut().statements.clear();
+    let targets = RunOptions { targets: Some(vec![3]), ..workbook_run() };
+    let result = s.run(&workbook, targets);
+    assert!(result.failure.is_none(), "{:?}", result.failure);
+    assert_eq!(s.texts(), vec!["create table items (id int)", "select id from items"]);
+    // A target that runs on request runs, with the table that it writes
+    s.state.borrow_mut().statements.clear();
+    let insert = RunOptions { run: PlanRun::Script("3_insert.sql".into()), targets: Some(vec![2]), ..workbook_run() };
+    let result = s.run(&workbook, insert);
+    assert!(result.failure.is_none(), "{:?}", result.failure);
+    assert_eq!(s.texts(), vec!["create table items (id int)", "insert into items values (1)"]);
+}
+
+#[test]
 fn runs_a_script_with_the_queries_it_inlines() {
     let main = connection("main", false);
     let workbook = workbook(&[
@@ -1284,9 +1313,11 @@ fn runs_a_script_with_the_queries_it_inlines() {
     };
     let result = s.run(&workbook, options);
     assert!(result.failure.is_none(), "{:?}", result.failure);
+    // The table that the inlined query reads is created first
     let texts = s.texts();
-    assert_eq!(texts.len(), 1);
-    assert!(texts[0].contains("with foo as") && texts[0].ends_with("select count(*) from foo"), "{}", texts[0]);
+    assert_eq!(texts.len(), 2, "{texts:?}");
+    assert_eq!(texts[0], "create table t as select 1 as x");
+    assert!(texts[1].contains("with foo as") && texts[1].ends_with("select count(*) from foo"), "{}", texts[1]);
     let query = result.outputs.get(2).copied().flatten().unwrap();
     assert_eq!(workbook.borrow().script_by_file("bar.sql").unwrap().latest_query_id(), Some(query as u32));
     assert!(s.state.borrow().states.is_empty());

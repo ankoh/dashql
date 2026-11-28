@@ -68,7 +68,8 @@ These scripts are `All`. A script that is `Inlined` or `All` passes its referenc
 referenced script at least `Inlined`, a scan reference makes it `All` unless the host provides its result. A
 referenced script is a single SELECT, so `All` adds one node to the plan. Levels only grow, so a script that is inlined
 by one script and materialized by another is `All`. Every other script is `None`: it has no node, even if it writes
-relations that an included statement reads.
+relations that an included statement reads. The planner takes no such script on its own: a run makes the scripts that
+create or write these relations targets before it plans (`required_scripts`, `script_references.md`).
 
 In a plan of targets, the scripts that must have a current analysis are the targets and every script they reference, transitively and
 whatever the reference becomes (`ExecutionGraphScript.planned`), so a script whose provided result is scanned needs a

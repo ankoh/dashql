@@ -13,7 +13,7 @@ writes of a run.
 ## Background
 
 Every run of a workbook executes a plan. The planner (`packages/dashql-core-runtime/src/planner/mod.rs`)
-turns the scripts of a workbook, or one target script and the scripts it references, into an
+turns the scripts of a workbook, or target scripts with the scripts they need (`required_scripts`), into an
 `ExecutionGraph`. Each node is a statement with the relations it reads, writes or defines. Edges
 order conflicting accesses. The run (`workbook_run`) executes that graph for a run of the workbook
 (`runWorkbook` of the runtime) and for a run of one script (`runScript`), the service of the runs of the runtime

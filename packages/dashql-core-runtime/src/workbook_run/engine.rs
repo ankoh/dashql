@@ -13,7 +13,7 @@ use dashql_buffers::execution::ExecutionGraphT;
 
 use super::plan::{
     affected_scripts, describe_plan_errors, edges, file_of, materialization_path, nodes, planned_statements,
-    script_follows, skipped_nodes, visualization_is_valid, PlanRun, PlannedStatement, NONE,
+    required_scripts, script_follows, skipped_nodes, visualization_is_valid, PlanRun, PlannedStatement, NONE,
 };
 use super::result_key::{result_keys, ResultKey};
 use super::{
@@ -913,7 +913,8 @@ impl<H: RunHost> Run<H> {
         self.emit(|state| state.step = Some(RunStep::Planning));
         self.cooperate().await?;
 
-        // A change of inputs runs the scripts that it affects, with what they read
+        // A change of inputs runs the scripts that it affects, with what they read. A run of targets runs them with the
+        // scripts that create or write the relations they read, a run of the workbook targets every script.
         let mut targets = self.options.targets.clone();
         if let Some(inputs) = &self.options.inputs {
             let dataflow =
@@ -925,6 +926,10 @@ impl<H: RunHost> Run<H> {
                 return Ok(vec![None; count]);
             }
             targets = Some(affected);
+        } else if let Some(given) = &self.options.targets {
+            let dataflow =
+                self.workbook.try_borrow().map_err(|_| RunFailure::error("The workbook is busy"))?.dataflow();
+            targets = Some(required_scripts(&dataflow, given));
         }
         let mount_prefix = host.mount_prefix().unwrap_or_else(|| unique_mount_prefix(host.now()));
         // The plan of the targets checks the workbook and gives the result keys

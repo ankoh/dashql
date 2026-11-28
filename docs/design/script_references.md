@@ -131,7 +131,8 @@ before the ones of the scripts. The signature of a script covers the stamps of t
 The planner (`planner.md`, Script References) resolves the references, splices the common table expressions
 into the SQL of the nodes and orders the statements across connections. A run of the whole workbook plans every
 script whose stored result is not reused, except the scripts that run on request. A run of one script plans the script and the queries of the scripts it materializes, unless the host
-already has their results; the queries it inlines are part of its statements.
+already has their results; the queries it inlines are part of its statements. The scripts that create or write the
+relations these queries read are targets too (Running a Script).
 
 ## Running a Workbook
 
@@ -161,10 +162,15 @@ statements ended, it releases them; the files of scripts stay with the workbook,
 ## Running a Script
 
 A run of one script (`runScript` of the runtime) analyzes every script, publishes the
-declarations and plans the script as the target: the plan holds the statements of the script, with the queries it
-inlines spliced in, and the queries of the scripts it materializes. The scripts that write the relations these queries
-read are no part of the plan, the run reads the relations as the backend has them. A script that references no
-script is a plan of its own statements. The statements run in their order and keep their SQL whatever their kind,
+declarations and plans the script with what it needs as the targets: the statements of the script, with the queries
+it inlines spliced in, the queries of the scripts it materializes, and the scripts that create or write the relations
+that these queries read (`required_scripts` of `workbook_run/plan.rs`, upstream along the relation edges of the
+dataflow, through the references). A relation edge starts at the latest writer of a relation, so the walk goes on
+through a script that runs only on request: that script stays back, the scripts before it run. A run of the workbook
+with targets (`targets` of `runWorkbook`, Execute of the console) runs the same targets, a run of the whole workbook
+targets every script and runs on past the scripts that fail to plan. A change of inputs runs the scripts that it
+affects with the queries they read, not the writers before them. A script that reads nothing of another script is a
+plan of its own statements. The statements run in their order and keep their SQL whatever their kind,
 the last output of the script is its result and a query with `@vis` tags runs as written. An invalid plan fails the
 run with its errors, e.g. an unknown script, and so does a script without statements. The script records them as a
 failed query in the history of its connection, so they show where its result would be, like the error of a failed

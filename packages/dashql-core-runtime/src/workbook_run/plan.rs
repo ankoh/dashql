@@ -356,6 +356,40 @@ pub fn affected_scripts(dataflow: &Dataflow, inputs: &[String]) -> Vec<u32> {
     affected.into_iter().filter(|script| !dataflow.scripts.get(*script as usize).is_some_and(|s| s.manual)).collect()
 }
 
+/// The scripts that a run of target scripts runs: the targets and, upstream of them, the scripts that create or write
+/// the relations they read, by the relation edges of the dataflow. The plan of the targets brings the queries of the
+/// scripts that they reference, the walk goes through these references to the relations that their queries read. A
+/// script that runs only on request (`@manual`) is held back unless it is a target, the walk goes on through it: a
+/// relation edge starts at the latest writer of the relation, the scripts before it created the relation. Indexes the
+/// scripts of the dataflow, in feed order.
+pub fn required_scripts(dataflow: &Dataflow, targets: &[u32]) -> Vec<u32> {
+    let mut required: BTreeSet<u32> = targets.iter().copied().collect();
+    let mut visited = required.clone();
+    let mut pending = targets.to_vec();
+    while let Some(script) = pending.pop() {
+        for edge in &dataflow.edges {
+            let source = edge.from.script;
+            if edge.to.script != script || source == script {
+                continue;
+            }
+            // The source of an input or an attachment edge is no script, an invalid reference reads nothing
+            let table = match edge.kind {
+                DataflowEdgeKind::Table => true,
+                DataflowEdgeKind::InlineReference | DataflowEdgeKind::ScanReference => false,
+                _ => continue,
+            };
+            let manual = dataflow.scripts.get(source as usize).is_some_and(|s| s.manual);
+            if table && !manual {
+                required.insert(source);
+            }
+            if visited.insert(source) {
+                pending.push(source);
+            }
+        }
+    }
+    required.into_iter().collect()
+}
+
 /// Can the views show a visualization? A Markdown visualization needs its document, a Vega-Lite one a spec that is
 /// JSON, a KPI card its spec, a table nothing.
 pub fn visualization_is_valid(visualization: &CompiledVisualizationT) -> bool {
@@ -419,6 +453,59 @@ mod tests {
         assert_eq!(affected_scripts(&dataflow, &names(&["region"])), vec![3]);
         assert_eq!(affected_scripts(&dataflow, &names(&["min", "region"])), vec![1, 2, 3, 4]);
         assert!(affected_scripts(&dataflow, &names(&["nope"])).is_empty());
+    }
+
+    #[test]
+    fn required_scripts_follow_the_tables_upstream_of_the_targets_and_through_their_references() {
+        let dataflow = Dataflow {
+            scripts: vec![DataflowScript::default(); 7],
+            inputs: vec![input("min")],
+            attachments: Vec::new(),
+            edges: vec![
+                // 0 creates a table that 1 reads, 2 references 1, 3 reads a table that 2 writes
+                edge(0, 1, DataflowEdgeKind::Table),
+                edge(1, 2, DataflowEdgeKind::InlineReference),
+                edge(2, 3, DataflowEdgeKind::Table),
+                // 4 scans the result of 5, which reads a table of 6
+                edge(6, 5, DataflowEdgeKind::Table),
+                edge(5, 4, DataflowEdgeKind::ScanReference),
+                // Neither an input, an attachment nor an invalid reference is a script that runs
+                edge(0, 3, DataflowEdgeKind::Input),
+                edge(0, 2, DataflowEdgeKind::Attachment),
+                edge(4, 3, DataflowEdgeKind::InvalidReference),
+                // A statement that reads a table of its own script
+                edge(3, 3, DataflowEdgeKind::Table),
+            ],
+        };
+        // The target alone, nothing runs before it
+        assert_eq!(required_scripts(&dataflow, &[0]), vec![0]);
+        // The plan inlines the query of 1, the table that the query reads comes from 0
+        assert_eq!(required_scripts(&dataflow, &[2]), vec![0, 2]);
+        assert_eq!(required_scripts(&dataflow, &[3]), vec![0, 2, 3]);
+        assert_eq!(required_scripts(&dataflow, &[4]), vec![4, 6]);
+        // Every script as a target needs nothing else
+        assert_eq!(required_scripts(&dataflow, &[0, 1, 2, 3, 4, 5, 6]), vec![0, 1, 2, 3, 4, 5, 6]);
+    }
+
+    #[test]
+    fn required_scripts_hold_back_scripts_that_run_on_request() {
+        let mut scripts = vec![DataflowScript::default(); 4];
+        scripts[1].manual = true;
+        scripts[3].manual = true;
+        let dataflow = Dataflow {
+            scripts,
+            inputs: Vec::new(),
+            attachments: Vec::new(),
+            edges: vec![
+                edge(0, 1, DataflowEdgeKind::Table),
+                edge(1, 2, DataflowEdgeKind::Table),
+                edge(0, 3, DataflowEdgeKind::Table),
+            ],
+        };
+        // 1 runs on request and stays back, 0 created the table that 1 writes into and 2 reads
+        assert_eq!(required_scripts(&dataflow, &[2]), vec![0, 2]);
+        // A target that runs on request runs, with what it needs
+        assert_eq!(required_scripts(&dataflow, &[3]), vec![0, 3]);
     }
 
     #[test]
