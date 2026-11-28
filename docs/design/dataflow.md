@@ -204,6 +204,6 @@ a statement, or Enter) selects the script and shows it in the editor dialog (`Sc
 of a staged rewrite, and the status of the last run. Expand fills the window. A compact window (below 600px) shows
 the dialog expanded and without the expand button: an expanded overlay fills a compact window below its top bar,
 without the inset and the border. A narrow dialog hides the debug statistics
-and delete of the header first, then the chart builder and the snippets, expand and close always show. Escape
+and delete of the header first, then the chart builder and the snippets, close always shows. Escape
 closes an open completion first, then the dialog, a click outside keeps it open. Switching the view or the workbook
 closes it.
