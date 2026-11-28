@@ -31,6 +31,8 @@ export interface KpiReading {
     zero: number;
     /// The message of a column that the result doesn't have
     missing: string | null;
+    /// The name of the column that the result doesn't have, null if nothing is missing or the result has no columns
+    missingColumn: string | null;
     /// The rows of the result
     rows: number;
     /// Is the value column a column of numbers?
@@ -159,13 +161,13 @@ export function readKpi(table: arrow.Table, spec: KpiSpec): KpiReading {
     const valueName = readString(spec.valueColumn);
     const xName = readString(spec.xColumn);
     const valueIndex = valueName != null ? indexOf(valueName) : fields.length - 1;
-    const empty = { label: valueName ?? '', value: null, change: null, chart: null, points: [], zero: 0, rows, numeric: false, xLabel: xName, ordered: null, axis: null };
+    const empty = { label: valueName ?? '', value: null, change: null, chart: null, points: [], zero: 0, rows, numeric: false, xLabel: xName, ordered: null, axis: null, missingColumn: null };
     if (valueIndex < 0) {
-        return { ...empty, missing: fields.length === 0 ? 'Result has no columns' : `Result has no column ${valueName}` };
+        return fields.length === 0 ? { ...empty, missing: 'Result has no columns' } : { ...empty, missing: `Result has no column ${valueName}`, missingColumn: valueName };
     }
     const xIndex = xName != null ? indexOf(xName) : (valueIndex !== 0 ? 0 : -1);
     if (xName != null && xIndex < 0) {
-        return { ...empty, missing: `Result has no column ${xName}` };
+        return { ...empty, missing: `Result has no column ${xName}`, missingColumn: xName };
     }
     const valueField = fields[valueIndex];
     const valueVector = table.getChildAt(valueIndex)!;
@@ -246,6 +248,7 @@ export function readKpi(table: arrow.Table, spec: KpiSpec): KpiReading {
         points: chart == null ? [] : normalize(placed, range),
         zero: range[1] > range[0] ? (0 - range[0]) / (range[1] - range[0]) : 0,
         missing: null,
+        missingColumn: null,
         rows,
         numeric: isNumeric(valueField.type),
         xLabel: xField?.name ?? null,
@@ -273,8 +276,8 @@ function normalize(points: [number, number][], [minY, maxY]: [number, number]): 
 /// What is wrong with a KPI card of a result, for dashql vis: the card shows anyway, but likely not what was meant
 export function kpiProblems(reading: KpiReading, columns: readonly string[]): string[] {
     if (reading.missing != null) {
-        const name = reading.missing.replace(/^Result has no column /, '');
-        return [`the column "${name}" of the tag is no column of the result, its columns are ${columns.join(', ') || 'none'}`];
+        if (reading.missingColumn == null) return ['the result has no columns, the card shows no value'];
+        return [`the column "${reading.missingColumn}" of the tag is no column of the result, its columns are ${columns.join(', ') || 'none'}`];
     }
     const problems: string[] = [];
     if (reading.rows === 0) problems.push('the result has no rows, the card shows a dash');

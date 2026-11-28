@@ -113,6 +113,7 @@ describe('the reading of a KPI card', () => {
         expect(problems(tableFromArrays({ day: new Int32Array([1]) }), spec('total'))).toEqual([
             'the column "total" of the tag is no column of the result, its columns are day',
         ]);
+        expect(problems(tableFromArrays({}))).toEqual(['the result has no columns, the card shows no value']);
         expect(problems(tableFromArrays({ n: new Int32Array([]) }))).toEqual(['the result has no rows, the card shows a dash']);
         expect(problems(tableFromArrays({ day: new Int32Array([2, 1]), n: new Int32Array([1, 2]) }))).toEqual([
             'the rows are not in the order of day, the card shows the last row and compares it with the row before it: add order by day',
