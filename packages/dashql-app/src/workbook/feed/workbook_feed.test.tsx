@@ -81,7 +81,7 @@ function baseProps() {
         fold: { toggle: vi.fn(), autoCollapse: vi.fn(), resetAutoCollapsed: vi.fn() },
         feed: {
             create: vi.fn(), focus: vi.fn(), delete: vi.fn(), rename: vi.fn(), pickConnection: vi.fn(), moveUp: vi.fn(),
-            moveDown: vi.fn(), target: vi.fn(), editorView: vi.fn(),
+            moveDown: vi.fn(), target: vi.fn(), editorView: vi.fn(), editSql: vi.fn(),
         },
         onParameterClick: vi.fn(), topInset: 0,
         dependencies,

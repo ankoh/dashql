@@ -60,6 +60,7 @@ import type { AgentFollowTarget } from '../../agent/agent_session.js';
 import { useLiveWorkbookStatuses, useReportWorkbookOutcomes } from '../status/workbook_status_store.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from '../status/workbook_status.js';
 import type { WorkbookPromptFeed, WorkbookPromptHandle } from './workbook_prompt.js';
+import { ScriptEditorDialog } from '../scripts/script_editor_dialog.js';
 
 export interface WorkbookFeedProps {
     workbookScripts: WorkbookScripts;
@@ -587,6 +588,9 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     // lines at a few characters per row, and gets no resize event to correct that.
     const rowsActive = props.active && feedLayout.listWidth > 0;
     // The commands of the feed for its cards, by file name. The models of the scripts run and rewrite them.
+    // The script that a compact window edits over the feed, a tap on the SQL of its card opens it
+    const [sqlEditorKey, setSqlEditorKey] = React.useState<number | null>(null);
+    const closeSqlEditor = React.useCallback(() => setSqlEditorKey(null), []);
     const feedCommands = React.useMemo<ScriptFeedCommands>(() => ({
         create: handleCreate,
         focus: handleFocus,
@@ -597,6 +601,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         moveDown: handleMoveDown,
         target: handleTargetScript,
         editorView: handleEditorView,
+        editSql: setSqlEditorKey,
     }), [handleCreate, handleFocus, handleDelete, handleRename, pickScriptConnection, handleMoveUp, handleMoveDown, handleTargetScript, handleEditorView]);
     const fold = React.useMemo(() => ({
         toggle: handleToggleResultExpanded,
@@ -712,6 +717,15 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                 getScrollElement={getScrollElement}
                 onClose={closeInputOverlay}
             />
+            {sqlEditorKey != null && (
+                <ScriptEditorDialog
+                    workbookScripts={props.workbookScripts}
+                    modifyWorkbookScripts={modifyWorkbookScripts}
+                    scriptKey={sqlEditorKey}
+                    scriptConnections={props.scriptConnections}
+                    onClose={closeSqlEditor}
+                />
+            )}
         </div>
     );
 };

@@ -46,6 +46,8 @@ export interface ScriptFeedCommands {
     target(fileName: string): void;
     /// The editor of a script mounted its view
     editorView(scriptKey: number, view: EditorView): void;
+    /// Edit the script in the editor over the page, what a tap on its SQL does on a compact window
+    editSql(scriptKey: number): void;
 }
 
 /// The place of the card in the feed
@@ -144,11 +146,12 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     const resultCard = deriveEntryStatus(query, query?.progress ?? null).kind !== EntryStatusKind.Idle;
 
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
-    // A compact window folds a script of more lines than FOLDED_SQL_LINES to its first lines, the result shows right
-    // below them; a focus in the editor or the button unfolds it (docs/design/narrow_layouts.md). Wider windows ignore
-    // the fold.
-    const [sqlUnfolded, setSqlUnfolded] = React.useState(false);
-    const sqlFoldable = (editorView?.state.doc.lines ?? 0) > FOLDED_SQL_LINES;
+    // A compact window shows the SQL of the card as a preview, a script of more lines than FOLDED_SQL_LINES folded to its
+    // first lines: the result shows right below. A tap on the SQL edits the script in the editor over the page, the
+    // keyboard shows there (docs/design/narrow_layouts.md). Wider windows edit in the card.
+    const sqlLines = editorView?.state.doc.lines ?? 0;
+    const sqlFolded = sqlLines > FOLDED_SQL_LINES;
+    const editSql = React.useCallback(() => feed.editSql(scriptKey), [feed, scriptKey]);
     const handleEditorView = React.useCallback((view: EditorView) => {
         setEditorView(view);
         feed.editorView(scriptKey, view);
@@ -189,19 +192,20 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                     dependencies={dependencies}
                 />
                 <div className={styles.feed_body}>
-                    <div className={styles.feed_editor_container} data-sql-fold={!sqlFoldable ? undefined : sqlUnfolded ? 'unfolded' : 'folded'}>
+                    <div className={styles.feed_editor_container} data-sql-fold={sqlFolded ? 'folded' : undefined}>
                         {display.active && props.editor({
                             className: styles.feed_script_editor,
-                            onFocus: () => {
-                                setSqlUnfolded(true);
-                                feed.focus(fileName);
-                            },
+                            onFocus: () => feed.focus(fileName),
                             setView: handleEditorView,
                         })}
-                        {sqlFoldable && (
-                            <button type="button" className={styles.feed_sql_fold} data-testid="script-sql-fold"
-                                aria-expanded={sqlUnfolded} onClick={() => setSqlUnfolded(unfolded => !unfolded)}>
-                                {sqlUnfolded ? 'Fold SQL' : `Show SQL, ${editorView?.state.doc.lines ?? 0} lines`}
+                        {/* The preview of a compact window takes the taps on the SQL, they edit over the page */}
+                        {!readOnly && (
+                            <button type="button" className={styles.feed_sql_edit} aria-label={`Edit the SQL of ${displayName}`}
+                                data-testid="script-sql-edit" onClick={editSql} />
+                        )}
+                        {sqlFolded && (
+                            <button type="button" className={styles.feed_sql_fold} data-testid="script-sql-fold" onClick={editSql}>
+                                {`Show SQL, ${sqlLines} lines`}
                             </button>
                         )}
                         {hasPendingDiff && (

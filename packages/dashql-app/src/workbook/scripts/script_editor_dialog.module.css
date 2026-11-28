@@ -1,7 +1,8 @@
 /* A script in a dialog: the header of the feed entry, the editor and the status of the last run */
 .dialog {
     display: grid;
-    grid-template-rows: 40px minmax(0, 1fr) auto;
+    /* The header, the editor, the keys of a touch screen, the status of the last run */
+    grid-template-rows: 40px minmax(0, 1fr) auto auto;
     /* The long lines of the editor scroll, they don't widen the dialog past the window */
     grid-template-columns: minmax(0, 1fr);
     width: 100%;

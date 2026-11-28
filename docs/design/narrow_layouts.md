@@ -70,9 +70,11 @@ card like the console and the dataflow: below 760px the statistics and Delete (a
 (`--page_gutter` of the workbook page) and starts the composer shrunk into the bar of Wobble in the feed as well, a tap
 expands it; open, it would cover the cards.
 
-A compact window folds the SQL of a script of more than four lines to its first lines, faded towards a button that says
-how many lines there are (`data-sql-fold` of the editor of `script_card.tsx`); the result of the script shows right
-below. The button or a focus in the editor unfolds it, the button folds it again. Wider windows ignore the fold.
+A compact window shows the SQL of a card as a preview: a script of more than four lines folded to its first lines,
+faded towards a button that says how many lines there are (`data-sql-fold` of the editor of `script_card.tsx`), the
+result of the script right below. A tap on the SQL or on the button edits the script over the page in the editor
+dialog of the dataflow (`ScriptEditorDialog`, the `editSql` command of the feed), which fills the window below the dark
+chrome with the keys of SQL above the keyboard; the keyboard never opens in the card. Wider windows edit in the card.
 
 ## The dashboard
 

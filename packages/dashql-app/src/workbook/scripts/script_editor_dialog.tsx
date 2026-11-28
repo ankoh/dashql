@@ -1,4 +1,7 @@
 import * as React from 'react';
+import { useScriptModel } from '@akohn/dashql-react/models/script_model';
+import { SqlKeyBar } from '../editor/sql_key_bar.js';
+import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import type { EditorView } from '@codemirror/view';
 import * as styles from './script_editor_dialog.module.css';
 
@@ -47,6 +50,8 @@ export function ScriptEditorDialog(props: ScriptEditorDialogProps): React.ReactE
     // A compact window has no room for a dialog of its own size, it fills the window and has nothing to expand
     const compact = useMediaQuery(COMPACT_WIDTH_QUERY);
     const scriptReferences = useScriptReferences(workbookId, scriptKey);
+    const model = useScriptModel(workbookId, scriptKey);
+    const readOnly = useWorkbookReadOnly();
     const queryState = useQuery(script?.latestQueryId ?? null);
     const status = deriveEntryStatus(queryState, queryState?.progress ?? null);
     const runtime = useOptionalRuntime();
@@ -168,6 +173,8 @@ export function ScriptEditorDialog(props: ScriptEditorDialogProps): React.ReactE
                         </ButtonGroup>
                     )}
                 </div>
+                {/* The keys of SQL above the keyboard of a touch screen */}
+                <SqlKeyBar editor={editorView} onRun={readOnly || model == null ? undefined : () => void model.run()} />
                 {status.kind !== EntryStatusKind.Idle && (
                     <div className={styles.status}>
                         <EntryStatusBar

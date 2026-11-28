@@ -44,7 +44,7 @@ function connection(health = ConnectionHealth.ONLINE, label = 'Trino', detail = 
 function feedCommands(): { [K in keyof ScriptFeedCommands]: ReturnType<typeof vi.fn> } {
     return {
         create: vi.fn(), focus: vi.fn(), delete: vi.fn(), rename: vi.fn(), pickConnection: vi.fn(), moveUp: vi.fn(),
-        moveDown: vi.fn(), target: vi.fn(), editorView: vi.fn(),
+        moveDown: vi.fn(), target: vi.fn(), editorView: vi.fn(), editSql: vi.fn(),
     };
 }
 
@@ -120,20 +120,22 @@ describe('the card of a script', () => {
         }
     });
 
-    it('folds a long script to its first lines until it is unfolded, a short one not', async () => {
-        const { props } = cardProps();
+    it('previews the SQL folded to its first lines, a tap on it or on the button edits the script over the page', async () => {
+        const { props, feed } = cardProps();
         render({ ...props, editor: slot => <EditorSlot setView={slot.setView} lines={16} /> });
         const editor = () => container.querySelector('[data-sql-fold]');
         expect(editor()!.getAttribute('data-sql-fold')).toBe('folded');
         expect(container.querySelector('[data-testid="script-sql-fold"]')!.textContent).toBe('Show SQL, 16 lines');
         click('script-sql-fold');
-        expect(editor()!.getAttribute('data-sql-fold')).toBe('unfolded');
-        click('script-sql-fold');
-        expect(editor()!.getAttribute('data-sql-fold')).toBe('folded');
+        expect(feed.editSql).toHaveBeenLastCalledWith(1);
+        click('script-sql-edit');
+        expect(feed.editSql).toHaveBeenCalledTimes(2);
+        // A short script shows all of it, a tap still edits it over the page
         render({ ...props, editor: slot => <EditorSlot setView={slot.setView} lines={3} /> });
         // The editor hands its new view in an effect
         await waitForRender(() => expect(editor()).toBeNull());
         expect(container.querySelector('[data-testid="script-sql-fold"]')).toBeNull();
+        expect(container.querySelector('[data-testid="script-sql-edit"]')).not.toBeNull();
     });
 
     it('shows a script that did not run yet with a status bar that runs it', () => {

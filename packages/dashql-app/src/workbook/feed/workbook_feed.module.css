@@ -514,13 +514,14 @@ button.feed_entry_mention {
     position: relative;
 }
 
-/* The fold of the SQL of a script, a compact window only */
-.feed_sql_fold {
+/* The preview of the SQL of a script on a compact window, see script_card.tsx */
+.feed_sql_fold,
+.feed_sql_edit {
     display: none;
 }
 
 @media only screen and (max-width: 839px) {
-    /* The first lines of a folded script, faded towards the button that unfolds it */
+    /* The first lines of a folded script, faded towards the button that shows all of it */
     .feed_editor_container[data-sql-fold='folded'] {
         max-height: 96px;
         overflow: hidden;
@@ -533,11 +534,22 @@ button.feed_entry_mention {
         background: linear-gradient(to bottom, transparent, var(--color_bg_card) 80%);
         pointer-events: none;
     }
+    /* A tap anywhere on the SQL edits the script over the page instead of opening the keyboard in the card */
+    .feed_sql_edit {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        display: block;
+        padding: 0;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+    }
     .feed_sql_fold {
         position: absolute;
         right: 8px;
         bottom: 6px;
-        z-index: 1;
+        z-index: 2;
         display: block;
         height: 28px;
         padding: 0 10px;
@@ -548,10 +560,6 @@ button.feed_entry_mention {
         font: inherit;
         font-size: var(--font_size_small);
         cursor: pointer;
-    }
-    /* Unfolded the button sits below the last line, it covers no text */
-    .feed_editor_container[data-sql-fold='unfolded'] {
-        padding-bottom: 40px;
     }
 }
 
