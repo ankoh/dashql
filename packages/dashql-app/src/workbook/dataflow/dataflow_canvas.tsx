@@ -20,7 +20,9 @@ import type { WorkbookInput } from '@akohn/dashql/platform/workbook/workbook_inp
 import {
     buildDataflowScene,
     dataflowLineage,
+    dataflowNeighbors,
     dataflowRouteKey,
+    type DataflowNeighbor,
     nodeKeyOfInput,
     nodeKeyOfScript,
     type DataflowHint,
@@ -43,6 +45,9 @@ import { createFlowScript, persistFlowPlacement, removeFlowPositions } from './d
 import { deleteScript as deleteWorkbookScript, useScriptSelection } from '../scripts/script_selection.js';
 import { useOptionalRuntime, useWorkbookDerived, useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
 import { useQueryModel } from '@akohn/dashql-react/models/query_model';
+import { useScriptModel } from '@akohn/dashql-react/models/script_model';
+import { ResultTableOverlay } from '../../results/result_table_overlay.js';
+import { DataflowNodeSheet } from './dataflow_node_sheet.js';
 import { useDataflowModule } from './dataflow_module.js';
 import { QueryStatusPlaceholder } from '@akohn/dashql-react/components/card_placeholder';
 import { useObservedSize } from '@akohn/dashql-react/components/size_observer';
@@ -69,6 +74,7 @@ const DENSE_PADDING = 16;
 
 export interface DataflowCanvasDependencies {
     useQueryModel: typeof useQueryModel;
+    useScriptModel: typeof useScriptModel;
     VisualizationPanel: typeof VisualizationPanel;
     useDataflowModule: typeof useDataflowModule;
     ScriptEntryHeader: typeof ScriptEntryHeader;
@@ -78,6 +84,7 @@ export interface DataflowCanvasDependencies {
 
 const DEFAULT_DEPENDENCIES: DataflowCanvasDependencies = {
     useQueryModel,
+    useScriptModel,
     VisualizationPanel,
     useDataflowModule,
     ScriptEntryHeader,
@@ -178,6 +185,9 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
     // Is the canvas zoomed out so far that the boxes are drawn as tiles?
     const [zoomedOut, setZoomedOut] = React.useState(false);
     const tiled = dense || zoomedOut;
+    // The sheet of a tapped tile of the dense layout, and the script whose result shows over the page
+    const [sheet, setSheet] = React.useState<DataflowNeighbor | null>(null);
+    const [resultOf, setResultOf] = React.useState<number | null>(null);
 
     // Where the layout placed the boxes without `@flow` tags, by script key. The boxes keep these positions while
     // the workbook changes, so that only new boxes are placed. A box that a growing neighbour would overlap is placed
@@ -725,7 +735,10 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                                     selected={selection?.scriptKey === box.script.scriptKey && selection.input == null}
                                     faded={fadedScript(box.script.scriptKey)}
                                     useQueryModel={dependencies.useQueryModel}
-                                    onSelect={() => setSelection({ scriptKey: box.script.scriptKey, statementId: null })}
+                                    onSelect={() => {
+                                        setSelection({ scriptKey: box.script.scriptKey, statementId: null });
+                                        if (dense) setSheet({ scriptKey: box.script.scriptKey });
+                                    }}
                                     onInspect={props.onInspect != null ? () => props.onInspect?.(box.script.scriptKey) : undefined}
                                     onPointerDown={dense ? undefined : event => onHandleDown(event, box)}
                                     onHover={hovered => setHover(hovered ? { scriptKey: box.script.scriptKey, statementId: null } : null)}
@@ -733,7 +746,10 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                             ))}
                             {scene.inputs.map(box => {
                                 const input = workbookInputs.find(i => i.name === box.input.name) ?? null;
-                                const select = () => setSelection({ scriptKey: INPUT_PORT_SCRIPT_KEY, statementId: null, input: box.input.name });
+                                const select = () => {
+                                    setSelection({ scriptKey: INPUT_PORT_SCRIPT_KEY, statementId: null, input: box.input.name });
+                                    if (dense) setSheet({ input: box.input.name });
+                                };
                                 return (
                                     <DataflowTile
                                         key={box.input.name}
@@ -833,8 +849,115 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                 <IconButton variant={ButtonVariant.Default} size={ButtonSize.Small} aria-label="Zoom out" onClick={() => zoomBy(0.8)}><ZoomOutIcon size={12} /></IconButton>
                 <IconButton variant={ButtonVariant.Default} size={ButtonSize.Small} aria-label="Fit dataflow" onClick={() => fit(true)}><FitIcon size={12} /></IconButton>
             </ButtonGroup>
+            {dense && sheet != null && (
+                <DataflowSheet
+                    node={sheet}
+                    scene={scene}
+                    workbookId={workbookScripts.workbookId}
+                    scripts={scripts}
+                    input={sheet.input != null ? workbookInputs.find(i => i.name === sheet.input) ?? null : null}
+                    busy={sheet.input != null && busyInputs.has(sheet.input)}
+                    literalOf={literalOf}
+                    onCommitInput={applyInput}
+                    dependencies={dependencies}
+                    onSelect={neighbor => {
+                        setSelection(neighbor.input != null
+                            ? { scriptKey: INPUT_PORT_SCRIPT_KEY, statementId: null, input: neighbor.input }
+                            : { scriptKey: neighbor.scriptKey, statementId: null });
+                        setSheet(neighbor);
+                    }}
+                    onEdit={props.onInspect != null ? scriptKey => { setSheet(null); props.onInspect?.(scriptKey); } : undefined}
+                    onResult={scriptKey => { setSheet(null); setResultOf(scriptKey); }}
+                    onClose={() => setSheet(null)}
+                />
+            )}
+            {resultOf != null && (
+                <DataflowResult
+                    script={scripts[resultOf]}
+                    useQueryModel={dependencies.useQueryModel}
+                    onClose={() => setResultOf(null)}
+                />
+            )}
         </div>
     );
+}
+
+/// The sheet of a tapped tile: the script or the input with its models, its neighbors on the canvas
+function DataflowSheet(props: {
+    node: DataflowNeighbor;
+    scene: ReturnType<typeof buildDataflowScene>;
+    workbookId: string;
+    scripts: Record<number, ScriptData>;
+    input: WorkbookInput | null;
+    busy: boolean;
+    literalOf: (input: WorkbookInput, value: string) => { literal: string } | { error: string };
+    onCommitInput: (name: string, literal: string) => void;
+    dependencies: DataflowCanvasDependencies;
+    onSelect: (neighbor: DataflowNeighbor) => void;
+    onEdit?: (scriptKey: number) => void;
+    onResult: (scriptKey: number) => void;
+    onClose: () => void;
+}): React.ReactElement {
+    const { node, scene, scripts } = props;
+    const model = props.dependencies.useScriptModel(props.workbookId, node.scriptKey ?? null);
+    const script = node.scriptKey != null ? scripts[node.scriptKey] : undefined;
+    const query = props.dependencies.useQueryModel(script?.latestQueryId ?? null);
+    const { reads, readBy } = React.useMemo(
+        () => dataflowNeighbors(scene, node.input != null ? { input: node.input } : { scriptKey: node.scriptKey }),
+        [scene, node],
+    );
+    const nameOf = (neighbor: DataflowNeighbor) => {
+        if (neighbor.input != null) return `:${neighbor.input}`;
+        const fileName = scripts[neighbor.scriptKey]?.fileName;
+        return fileName != null ? scriptDisplayName(fileName) : String(neighbor.scriptKey);
+    };
+    if (node.input != null) {
+        return (
+            <DataflowNodeSheet
+                title={`:${node.input}`}
+                status={props.busy ? 'running' : 'idle'}
+                summary={props.input?.type.sql ?? ''}
+                value={props.input != null && (
+                    <WorkbookInputCard input={props.input} variant="block" busy={props.busy} literalOf={props.literalOf} onCommit={props.onCommitInput} />
+                )}
+                reads={reads}
+                readBy={readBy}
+                nameOf={nameOf}
+                onSelect={props.onSelect}
+                onClose={props.onClose}
+            />
+        );
+    }
+    const scriptKey = node.scriptKey;
+    const status = dataflowTileStatus(query, script?.storedResult ?? null);
+    const visualize = script?.annotations.visualizeQuery ?? null;
+    const summary = dataflowTileSummary(status, query, visualize);
+    const { onEdit, onResult } = props;
+    return (
+        <DataflowNodeSheet
+            title={nameOf(node)}
+            status={status}
+            summary={visualize?.renderer === 'kpi' && status === 'succeeded'
+                ? <DataflowKpiSummary model={query} visualize={visualize} fallback={summary} />
+                : summary}
+            reads={reads}
+            readBy={readBy}
+            nameOf={nameOf}
+            onSelect={props.onSelect}
+            onEdit={onEdit != null ? () => onEdit(scriptKey) : undefined}
+            onRun={model != null ? () => void model.run() : undefined}
+            running={model?.runActive === true || status === 'running'}
+            onResult={query?.result != null ? () => onResult(scriptKey) : undefined}
+            onClose={props.onClose}
+        />
+    );
+}
+
+/// The result of a script in a card over the page, opened from its sheet
+function DataflowResult(props: { script: ScriptData | undefined; useQueryModel: DataflowCanvasDependencies['useQueryModel']; onClose: () => void }): React.ReactElement | null {
+    const model = props.useQueryModel(props.script?.latestQueryId ?? null);
+    if (props.script == null || model == null) return null;
+    return <ResultTableOverlay scriptName={scriptDisplayName(props.script.fileName)} model={model} onClose={props.onClose} />;
 }
 
 interface BoxProps {

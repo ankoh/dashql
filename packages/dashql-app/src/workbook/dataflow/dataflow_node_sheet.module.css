@@ -1,0 +1,87 @@
+/* The sheet of a tapped box of a narrow dataflow canvas, see dataflow_node_sheet.tsx */
+.status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 4px 0 12px;
+    font-size: 0.9rem;
+}
+
+.dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color_fg_subtle);
+}
+.status[data-status="succeeded"] .dot { background: var(--color_success_fg); }
+.status[data-status="failed"] .dot { background: var(--color_danger_fg); }
+.status[data-status="running"] .dot { background: var(--color_accent_fg); }
+.status[data-status="stale"] .dot { background: var(--color_attention_fg); }
+
+.summary {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font_family_mono);
+    font-size: 0.8rem;
+    color: var(--color_fg_muted);
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    padding-bottom: 12px;
+}
+
+.section {
+    padding: 8px 0;
+    border-top: 1px solid var(--color_border_muted);
+}
+
+.heading {
+    margin: 0 0 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color_fg_muted);
+}
+
+.none {
+    font-size: 0.85rem;
+    color: var(--color_fg_subtle);
+}
+
+.list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* A neighbor moves the selection there, a target large enough for a finger */
+.neighbor {
+    min-height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--color_border);
+    border-radius: 16px;
+    background: var(--color_bg_card);
+    color: var(--color_fg);
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+.neighbor:hover {
+    background: var(--color_bg_subtle);
+}
+
+@media (pointer: coarse) {
+    .neighbor {
+        min-height: 40px;
+    }
+}

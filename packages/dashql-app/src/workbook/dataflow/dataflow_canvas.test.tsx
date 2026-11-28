@@ -33,6 +33,7 @@ const NO_CONNECTIONS: ReadonlyMap<string, ConnectionState> = new Map();
 
 const dependencies: DataflowCanvasDependencies = {
     useQueryModel: () => null,
+    useScriptModel: () => null,
     VisualizationPanel: () => <div data-testid="chart" />,
     useDataflowModule: () => ({ layout, error: null }),
     // The header of the feed entry needs the connections and the storage of the app
@@ -254,6 +255,38 @@ describe('DataflowCanvas', () => {
         expect(container.querySelectorAll('[data-dataflow-edge-highlight]').length).toBe(1);
         // The dense layout writes no positions
         expect(written().size).toBe(0);
+    });
+
+    it('opens the sheet of a tapped tile on a narrow canvas, its neighbors move the selection', () => {
+        container.style.width = '390px';
+        container.style.height = '700px';
+        const onInspect = vi.fn();
+        render(onInspect);
+        const tile = (fileName: string) => container.querySelector<SVGGElement>(`[data-dataflow-tile="script:${key(fileName)}"]`)!;
+        const sheet = () => document.querySelector<HTMLElement>('[data-testid="dataflow-node-sheet"]');
+        act(() => tile('report.sql').dispatchEvent(new MouseEvent('click', { bubbles: true })));
+        expect(sheet()!.textContent).toContain('report');
+        expect(document.querySelector('[data-testid="dataflow-node-status"]')!.textContent).toContain('Not run');
+        const reads = document.querySelector('[data-testid="dataflow-node-reads"]')!;
+        expect(reads.textContent).toBe('schema');
+        expect(document.querySelector('[data-testid="dataflow-node-read-by"]')).toBeNull();
+        // Without a result there is nothing to show
+        expect(document.querySelector<HTMLButtonElement>('[data-testid="dataflow-node-result"]')!.disabled).toBe(true);
+        // A neighbor moves the selection and the sheet
+        act(() => reads.querySelector('button')!.click());
+        expect(tile('schema.sql').getAttribute('data-selected')).toBe('true');
+        expect(document.querySelector('[data-testid="dataflow-node-read-by"]')!.textContent).toBe('report');
+        // Edit opens the editor and closes the sheet
+        act(() => document.querySelector<HTMLButtonElement>('[data-testid="dataflow-node-edit"]')!.click());
+        expect(onInspect).toHaveBeenCalledWith(key('schema.sql'));
+        expect(sheet()).toBeNull();
+    });
+
+    it('shows no sheet on a wide canvas, a click on a box focuses its lineage', () => {
+        render();
+        drag('report.sql', 0, 0);
+        expect(box('report.sql').getAttribute('data-selected')).toBe('true');
+        expect(document.querySelector('[data-testid="dataflow-node-sheet"]')).toBeNull();
     });
 
     it('saves every box into its @flow tag after a drop', () => {

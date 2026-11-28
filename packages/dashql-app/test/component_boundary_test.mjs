@@ -16,6 +16,7 @@ const COMPONENTS = [
     'src/workbook/feed/script_card.tsx',
     'src/workbook/feed/feed_entry_header.tsx',
     'src/workbook/dataflow/dataflow_tile.tsx',
+    'src/workbook/dataflow/dataflow_node_sheet.tsx',
     'src/workbook/views/workbook_execution_controls.tsx',
     'src/workbook/console/console_layout.tsx',
     'src/workbook/console/console_results.tsx',

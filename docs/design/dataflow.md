@@ -185,6 +185,13 @@ switch. `src/workbook/dataflow/` holds it:
   fits again. The dense layout neither reads nor writes `@flow` tags and no placements are remembered: tiles don't
   drag or resize, a drag on a tile pans the canvas (`data-dataflow-pan` passes the zoom filter) and a tap selects
   it. The full layout of a wider canvas starts from where it was, untouched by the dense one.
+- **The sheet of a tile.** A tap on a tile of the dense layout also opens its sheet (`DataflowNodeSheet` of
+  `dataflow_node_sheet.tsx` in the `Sheet` of `@akohn/dashql-react`, from the bottom of a compact window): the status
+  and the line of the tile, what the box reads and what reads it (`dataflowNeighbors` of the scene, the direct edges
+  between boxes), and Edit (the editor dialog), Run (the run of the script with what it references) and Result (the
+  full table of the result over the page, `ResultTableOverlay`). A tap on a neighbor moves the selection and the
+  sheet there. The sheet of an input holds the card of its value, Enter applies it like the box of the input. A
+  wider canvas has no sheet: a click focuses the lineage, the header of a box has the actions.
 
 The full layout lays out full boxes, the canvas draws every box with its statements. Every layout starts from where
 the boxes were: where the last layout put them while the canvas is open, else their `@flow` tags. So a box keeps its
