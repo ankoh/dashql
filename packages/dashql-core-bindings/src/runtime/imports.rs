@@ -5,9 +5,9 @@
 //! An import has two steps. `read` reads the source into a pending import of the runtime: the bundle with its
 //! attachments and results by handle, the catalogs that parse, the registered workbook with the same id and the
 //! questions about the connections, which map to the connections of the runtime. `commit` takes the answers: it
-//! rewrites the connection references, adds the results to the query result cache of the platform, writes the workbook
-//! (a fresh workbook, a replacement through a staged copy, or a native folder registered in place), verifies the write
-//! and restores the workbook into the runtime.
+//! rewrites the connection references, adds the stored results of the scripts to the workbook, writes the workbook (a
+//! fresh workbook, a replacement through a staged copy, or a native folder registered in place), verifies the write and
+//! restores the workbook into the runtime.
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;

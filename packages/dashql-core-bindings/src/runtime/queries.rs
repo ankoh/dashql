@@ -274,7 +274,7 @@ struct ChannelQuery<'a> {
 
 /// A query that the runtime runs, one object from its registration in the history to the end of its last follow-up.
 /// The command that runs the query holds it, so do the executor and its follow-ups after the end of the query (the
-/// write of its result into the cache, the touch of a cached entry); the runs of the connections know it weakly. Its
+/// analysis of its result, the write of its stored result); the runs of the connections know it weakly. Its
 /// token is the one cancellation of the query: a cancel, a reset of its connection and a caller that stops waiting
 /// cancel it, before the executor runs the query or while it does, and the executor stops a channel of the host with
 /// it, also one that still opens the query. Its controls count the views of its profile from the start. The run owns
@@ -1014,8 +1014,8 @@ impl Connections {
             (None, Some(ConnectionChannel::Salesforce(salesforce))) => {
                 QueryTarget::HyperHttp { channel: salesforce.hyper(), auth: salesforce.auth() }
             }
-            // A channel of the host, or none: a query from the cache needs none, any other fails when it opens the
-            // channel
+            // A channel of the host, or none: a query that reads the stored result of its script needs none, any other
+            // fails when it opens the channel
             (None, channel) => {
                 let handle = channel.as_ref().and_then(ConnectionChannel::host_handle);
                 let query = serde_wasm_bindgen::to_value(&query)
