@@ -735,6 +735,18 @@ impl NameScope {
         self.source(name).is_some() || self.joins.iter().any(|join| &*join.name == name)
     }
 
+    /// The names of the output columns, each once, without the unnamed ones
+    pub fn output_names(&self) -> Vec<Arc<str>> {
+        let mut names: Vec<Arc<str>> = Vec::new();
+        for column in &self.output_columns {
+            let name = &column.column_name.text;
+            if !name.is_empty() && !names.contains(name) {
+                names.push(name.clone());
+            }
+        }
+        names
+    }
+
     /// The FROM items of the scope that an AST node in it sees, all of them outside of a restricting clause. The
     /// innermost clause around the node decides, it precedes the clauses around it in the post-order AST: the
     /// condition of a join in the FROM items of UPDATE sees the FROM items of its join.

@@ -542,13 +542,7 @@ pub fn statement_output_columns(analyzed: &AnalyzedScript, statement_id: usize) 
     {
         scope = left;
     }
-    let mut columns: Vec<std::sync::Arc<str>> = Vec::new();
-    for column in &scope.output_columns {
-        if !column.column_name.text.is_empty() && !columns.contains(&column.column_name.text) {
-            columns.push(column.column_name.text.clone());
-        }
-    }
-    columns
+    scope.output_names()
 }
 
 /// Build the visualization specs of the statements with `@vis` tags

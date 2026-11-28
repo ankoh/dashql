@@ -67,7 +67,6 @@ const SUFFIX_DEPTH_MANY_BONUS: Score = 1;
 
 // Identity candidate scores
 const IDENTITY_SCORE_TABLE_REF: Score = 50;
-const IDENTITY_SCORE_TABLE_REF_ALIAS: Score = 50;
 const IDENTITY_SCORE_COLUMN_REF: Score = 59;
 
 /// Longer identity candidates are dropped (e.g. an unterminated delimited identifier)
@@ -969,9 +968,10 @@ impl<'c, 'a> Completion<'c, 'a> {
                         Score::MAX
                     } else {
                         match completion.strategy {
-                            CompletionStrategy::TABLE_REF => IDENTITY_SCORE_TABLE_REF,
+                            CompletionStrategy::TABLE_REF | CompletionStrategy::TABLE_REF_ALIAS => {
+                                IDENTITY_SCORE_TABLE_REF
+                            }
                             CompletionStrategy::COLUMN_REF => IDENTITY_SCORE_COLUMN_REF,
-                            CompletionStrategy::TABLE_REF_ALIAS => IDENTITY_SCORE_TABLE_REF_ALIAS,
                             _ => Score::MAX,
                         }
                     };
@@ -1022,19 +1022,12 @@ impl<'c, 'a> Completion<'c, 'a> {
 
     /// Is there a real token after the feed point?
     fn compute_has_post_cursor_token(&self) -> bool {
-        let Some(target) = self.target_symbol else { return false };
-        let replace_target = matches!(
-            target.relative_pos,
-            RelativeSymbolPosition::BEGIN_OF_SYMBOL
-                | RelativeSymbolPosition::MID_OF_SYMBOL
-                | RelativeSymbolPosition::END_OF_SYMBOL
-        );
-        let mut post_id = target.symbol_id;
-        if (target.relative_pos == RelativeSymbolPosition::AFTER_SYMBOL || replace_target)
-            && !self.is_at_eof(target.symbol_id)
-        {
-            post_id = self.next_symbol(target.symbol_id);
+        if self.target_symbol.is_none() {
+            return false;
         }
+        // A replaced target is no token after the cursor, the one after it is
+        let (feed_id, replace_target) = self.feed_point();
+        let post_id = if replace_target && !self.is_at_eof(feed_id) { self.next_symbol(feed_id) } else { feed_id };
         // Past the end of the symbols is EOF
         self.symbols().get(post_id as usize).is_some_and(|s| s.kind != S_YYEOF)
     }
@@ -1414,19 +1407,13 @@ impl<'c, 'a> Completion<'c, 'a> {
         if output_names_at(&analyzed.parsed.nodes, expression.ast_node_id) == OutputNames::Invisible {
             return Vec::new();
         }
-        let scope = cursor
+        cursor
             .name_scopes
             .iter()
             .filter_map(|&scope| analyzed.scope(scope))
-            .find(|scope| scope.expressions.contains(&expression_id));
-        let mut names: Vec<Arc<str>> = Vec::new();
-        for column in scope.map(|scope| scope.output_columns.as_slice()).unwrap_or_default() {
-            let name = &column.column_name.text;
-            if !name.is_empty() && !names.contains(name) {
-                names.push(name.clone());
-            }
-        }
-        names
+            .find(|scope| scope.expressions.contains(&expression_id))
+            .map(|scope| scope.output_names())
+            .unwrap_or_default()
     }
 
     /// The name scopes around the cursor with the FROM items that the column refs of the cursor can see in them.
@@ -2015,18 +2002,13 @@ impl<'c, 'a> Completion<'c, 'a> {
 
     /// The qualified name of a table
     fn qualified_table_name(name: &QualifiedTableName) -> Vec<Arc<str>> {
-        let mut names = Vec::with_capacity(4);
-        if !name.database_name.text.is_empty() {
-            names.push(name.database_name.text.clone());
-            names.push(name.schema_name.text.clone());
-            names.push(name.table_name.text.clone());
-        } else if !name.schema_name.text.is_empty() {
-            names.push(name.schema_name.text.clone());
-            names.push(name.table_name.text.clone());
-        } else if !name.table_name.text.is_empty() {
-            names.push(name.table_name.text.clone());
-        }
-        names
+        Self::qualified_name([&name.database_name.text, &name.schema_name.text, &name.table_name.text])
+    }
+
+    /// A qualified name from its database, schema and name: from the first part that is set
+    fn qualified_name(parts: [&Arc<str>; 3]) -> Vec<Arc<str>> {
+        let unset = parts.iter().take_while(|part| part.is_empty()).count();
+        parts.into_iter().skip(unset).cloned().collect()
     }
 
     /// Derive what a list shows about the catalog objects of the top candidates
@@ -2093,18 +2075,11 @@ impl<'c, 'a> Completion<'c, 'a> {
                             .and_then(|d| d.function_declarations.get(loc.index as usize))
                             .map(|f| {
                                 let name = &f.function_name;
-                                let mut names = Vec::with_capacity(3);
-                                if !name.database_name.text.is_empty() {
-                                    names.push(name.database_name.text.clone());
-                                    names.push(name.schema_name.text.clone());
-                                    names.push(name.function_name.text.clone());
-                                } else if !name.schema_name.text.is_empty() {
-                                    names.push(name.schema_name.text.clone());
-                                    names.push(name.function_name.text.clone());
-                                } else if !name.function_name.text.is_empty() {
-                                    names.push(name.function_name.text.clone());
-                                }
-                                names
+                                Self::qualified_name([
+                                    &name.database_name.text,
+                                    &name.schema_name.text,
+                                    &name.function_name.text,
+                                ])
                             })
                             .unwrap_or_default();
                         Self::set_qualified_name(&mut self.candidate_objects, co, qualified);
