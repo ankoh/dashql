@@ -251,6 +251,12 @@ impl StringDictionary {
     }
 }
 
+/// Serialize an attribute value of a plan as compact JSON
+pub(crate) fn to_json(value: &serde_json::Value) -> String {
+    // A JSON value has string keys and always serializes
+    serde_json::to_string(value).unwrap_or_default()
+}
+
 /// Pack attributes, returns the begin and the count
 fn pack_attributes(
     source: &[(String, String)],

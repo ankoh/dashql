@@ -2,7 +2,7 @@
 
 use super::progress::{ProfileInputEvent, Stats};
 use super::query_profile::{
-    Fragment, OperatorCrossEdge, OperatorReference, ParsedOperatorNode, PathComponent, QueryProfile,
+    to_json, Fragment, OperatorCrossEdge, OperatorReference, ParsedOperatorNode, PathComponent, QueryProfile,
 };
 use dashql_buffers::parser::SymbolSpan;
 use dashql_buffers::profile as fb;
@@ -140,12 +140,6 @@ fn is_join_operator(operator_type: &str) -> bool {
             | "leftmarkjoin"
             | "rightmarkjoin"
     )
-}
-
-/// Serialize an attribute value as compact JSON
-fn to_json(value: &Value) -> String {
-    // A JSON value has string keys and always serializes
-    serde_json::to_string(value).unwrap_or_default()
 }
 
 /// Does a JSON value contain an operator?

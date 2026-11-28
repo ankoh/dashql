@@ -17,13 +17,13 @@
 //!
 //! The floating point operations keep their order, since reordering them changes the last bits of positions.
 //! Minimum and maximum keep the first argument unless the second one is strictly smaller or larger, which differs
-//! from `f64::min` and `f64::max` for NaN and signed zeros, see `cpp_min` and `cpp_max`.
+//! from `f64::min` and `f64::max` for NaN and signed zeros, see `min_keep_first` and `max_keep_first`.
 
 use super::query_profile::{OperatorNode, QueryProfile};
 use dashql_buffers::profile as fb;
 
 /// The minimum, `a` unless `b` is smaller
-fn cpp_min(a: f64, b: f64) -> f64 {
+fn min_keep_first(a: f64, b: f64) -> f64 {
     if b < a {
         b
     } else {
@@ -32,7 +32,7 @@ fn cpp_min(a: f64, b: f64) -> f64 {
 }
 
 /// The maximum, `a` unless `b` is larger
-fn cpp_max(a: f64, b: f64) -> f64 {
+fn max_keep_first(a: f64, b: f64) -> f64 {
     if a < b {
         b
     } else {
@@ -49,7 +49,7 @@ fn compute_node_width(op: &OperatorNode, layout_config: &fb::ProfileLayoutConfig
         let label_chars = label.chars().count().min(layout_config.max_label_chars() as usize);
         label_chars as f64 * layout_config.width_per_label_char()
     };
-    cpp_max(
+    max_keep_first(
         layout_config.node_padding_left()
             + layout_config.icon_width()
             + layout_config.icon_margin_right()
@@ -468,8 +468,8 @@ impl<'a> ProfileLayouter<'a> {
             while let Some(node) = pending.pop() {
                 let breadth = self.breadth(node);
                 let n = &self.node(node);
-                left = cpp_min(left, n.x - breadth / 2.0);
-                right = cpp_max(right, n.x + breadth / 2.0);
+                left = min_keep_first(left, n.x - breadth / 2.0);
+                right = max_keep_first(right, n.x + breadth / 2.0);
                 pending.extend(n.children());
             }
             if has_packed_root {
@@ -501,7 +501,7 @@ impl QueryProfile {
         // Retain the widest node pitch in the derived config for layout consumers.
         let mut cell_width = 0.0;
         for op in &self.operators {
-            cell_width = cpp_max(cell_width, compute_node_width(op, &input) + input.node_margin_horizontal());
+            cell_width = max_keep_first(cell_width, compute_node_width(op, &input) + input.node_margin_horizontal());
         }
         self.layout_config.set_computed_node_width(cell_width);
 
@@ -519,7 +519,7 @@ impl QueryProfile {
             let mut column_widths = vec![0.0; levels];
             for node in &nodes {
                 if let Some(column_width) = column_widths.get_mut(node.level) {
-                    *column_width = cpp_max(*column_width, node.width);
+                    *column_width = max_keep_first(*column_width, node.width);
                 }
             }
             let mut column_lefts = Vec::with_capacity(levels);
@@ -543,10 +543,10 @@ impl QueryProfile {
         // The vertical room of a node: a level in a top-down plan, the node itself in a left-to-right plan
         let level_height = if left_to_right { node_height } else { input.level_height() };
         for node in &nodes {
-            x_max = cpp_max(x_max, node.x + node.width / 2.0);
-            x_min = cpp_min(x_min, node.x - node.width / 2.0);
-            y_max = cpp_max(y_max, node.y);
-            y_min = cpp_min(y_min, node.y);
+            x_max = max_keep_first(x_max, node.x + node.width / 2.0);
+            x_min = min_keep_first(x_min, node.x - node.width / 2.0);
+            y_max = max_keep_first(y_max, node.y);
+            y_min = min_keep_first(y_min, node.y);
         }
         let total_width = (x_max - x_min).abs();
         let total_height = (y_max - y_min).abs() + level_height;

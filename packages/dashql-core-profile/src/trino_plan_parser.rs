@@ -8,7 +8,7 @@
 //! A `RemoteSource` (or `RemoteMerge`) node reads the output of the fragments in `sourceFragmentIds`. The parser
 //! hangs the roots of those fragments below it, so the plan is one tree and the fragments nest.
 
-use super::query_profile::{Fragment, OperatorNode, ParsedOperatorNode, PathComponent, QueryProfile};
+use super::query_profile::{to_json, Fragment, OperatorNode, ParsedOperatorNode, PathComponent, QueryProfile};
 use dashql_buffers::profile as fb;
 use dashql_buffers::status::StatusCode;
 use serde_json::{Map, Value};
@@ -73,12 +73,6 @@ fn trino_operator_kind(op: &OperatorNode) -> fb::ProfileOperatorKind {
         "RemoteSource" | "RemoteMerge" | "RemoteExchange" => K::REMOTE_EXCHANGE,
         _ => K::OTHER,
     }
-}
-
-/// Serialize an attribute value as compact JSON
-fn to_json(value: &Value) -> String {
-    // A JSON value has string keys and always serializes
-    serde_json::to_string(value).unwrap_or_default()
 }
 
 /// The fragments of a node that reads other fragments (`sourceFragmentIds: "[1, 2]"`)
