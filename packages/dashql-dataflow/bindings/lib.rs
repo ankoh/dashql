@@ -171,10 +171,15 @@ impl DataflowLayout {
         self.edges.push(dashql_dataflow::layout::DataflowLayoutEdge { from_box, from_statement, to_box, to_statement });
     }
 
-    /// Lay out the boxes as the tiles of a narrow canvas from top to bottom, the hints are ignored
+    /// Lay out the boxes as the tiles of a narrow canvas from top to bottom, the hints are ignored. A row holds as many
+    /// tiles as fit the width of the canvas (`layout::dense_columns_for_width`), as many as the config says without a
+    /// positive width.
     #[wasm_bindgen(js_name = setDense)]
-    pub fn set_dense(&mut self, dense: bool) {
+    pub fn set_dense(&mut self, dense: bool, width: f64) {
         self.dense = dense;
+        if width > 0.0 {
+            self.config.dense_columns = dashql_dataflow::layout::dense_columns_for_width(width, &self.config);
+        }
     }
 
     /// Lay out the boxes, returns x, y, width and height of every box

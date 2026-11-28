@@ -45,6 +45,8 @@ export interface DataflowLayoutOptions {
     /// Lay out every box as a tile of the size of the config, from top to bottom, for a narrow canvas. The hints are
     /// ignored, the routes run from the bottom of a tile to the top of the next.
     dense?: boolean;
+    /// The width of the canvas that the dense layout fits its rows of tiles into
+    width?: number;
 }
 
 /// A script box of the dataflow canvas
@@ -181,14 +183,14 @@ export class DashQLDataflow {
         edges: DataflowLayoutEdge[],
         options?: DataflowLayoutOptions,
     ): { boxes: DataflowBoxGeometry[]; routes: DataflowLayoutRoute[] } {
-        return perfMarks.measure('dataflow:layout', () => this.layOut(boxes, edges, options?.dense ?? false), () => `${boxes.length} boxes, ${edges.length} edges`);
+        return perfMarks.measure('dataflow:layout', () => this.layOut(boxes, edges, options ?? {}), () => `${boxes.length} boxes, ${edges.length} edges`);
     }
 
     /// See `computeDataflowLayoutWithRoutes`
-    private layOut(boxes: DataflowLayoutBox[], edges: DataflowLayoutEdge[], dense: boolean): { boxes: DataflowBoxGeometry[]; routes: DataflowLayoutRoute[] } {
+    private layOut(boxes: DataflowLayoutBox[], edges: DataflowLayoutEdge[], options: DataflowLayoutOptions): { boxes: DataflowBoxGeometry[]; routes: DataflowLayoutRoute[] } {
         const layout = new this.bindings.DataflowLayout();
         try {
-            layout.setDense(dense);
+            if (options.dense) layout.setDense(true, options.width ?? 0);
             for (const box of boxes) {
                 layout.addBox(
                     box.statements,

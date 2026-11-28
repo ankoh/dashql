@@ -58,6 +58,17 @@ describe('DashQL dataflow layout', () => {
         expect(boxes[1].y).toBeGreaterThan(tileHeight);
         // The edge runs from the middle of the bottom of the producer to the middle of the top of the consumer
         expect(routes).toEqual([{ fromBox: 0, fromStatement: 1, toBox: 1, toStatement: 0, points: [[tileWidth / 2, tileHeight], [tileWidth / 2, boxes[1].y]] }]);
+        // The consumers of a fan-out go into rows of as many tiles as fit the width
+        const fanOut = (width: number) => {
+            const laidOut = layout!.computeDataflowLayout(
+                [{ statements: 1 }, { statements: 1 }, { statements: 1 }, { statements: 1 }],
+                [1, 2, 3].map(toBox => ({ fromBox: 0, fromStatement: 0, toBox, toStatement: 0 })),
+                { dense: true, width },
+            );
+            return new Set(laidOut.slice(1).map(b => b.y)).size;
+        };
+        expect(fanOut(4 * tileWidth)).toBe(1);
+        expect(fanOut(tileWidth)).toBe(3);
     });
 
     it('routes edges around the boxes in the way', () => {

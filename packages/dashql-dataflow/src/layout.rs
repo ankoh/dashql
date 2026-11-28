@@ -66,8 +66,9 @@ pub struct DataflowLayoutConfig {
     pub dense_layer_gap: f64,
     /// The least horizontal space between the tiles of a row of the dense layout
     pub dense_box_gap: f64,
-    /// The tiles without edges per row of the dense layout
-    pub dense_isolated_per_row: usize,
+    /// The most tiles in a row of the dense layout, what fits the width of the canvas. The tiles without edges go into
+    /// rows of as many.
+    pub dense_columns: usize,
     /// The ratio of width to height that ELK packs the connected parts of the dense layout to, a narrow canvas is
     /// higher than wide
     pub dense_aspect_ratio: f64,
@@ -98,7 +99,7 @@ impl Default for DataflowLayoutConfig {
             tile_height: 56.0,
             dense_layer_gap: 48.0,
             dense_box_gap: 24.0,
-            dense_isolated_per_row: 2,
+            dense_columns: 2,
             dense_aspect_ratio: 0.5,
         }
     }
@@ -296,8 +297,8 @@ fn tile_geometry(b: &DataflowLayoutBox, config: &DataflowLayoutConfig) -> Datafl
 
 /// Lay out the boxes as the tiles of a narrow canvas, from top to bottom, with the routes of the edges between them.
 /// The hints are ignored: the positions of the boxes belong to `compute_dataflow_layout_with_routes`, so a dense
-/// layout is the same wherever the boxes were. ELK arranges every connected part in layers from top to bottom and
-/// packs the parts higher than wide, the tiles without edges go into rows below them. A route runs from the middle of
+/// layout is the same wherever the boxes were. ELK arranges every connected part in rows of at most `dense_columns`
+/// tiles from top to bottom and packs the parts higher than wide, the tiles without edges go into rows below them. A route runs from the middle of
 /// the bottom border of its source tile to the middle of the top border of its target tile, the edges of one pair
 /// of tiles share it.
 pub fn compute_dense_dataflow_layout_with_routes(
@@ -319,8 +320,18 @@ pub fn compute_dense_dataflow_layout_with_routes(
     let bottom = geometry_of(&geometry, &connected).map(|g| g.y + g.height).fold(f64::NEG_INFINITY, f64::max);
     let corner = if left.is_finite() { (left, bottom + config.dense_layer_gap) } else { (0.0, 0.0) };
     let isolated: Vec<usize> = (0..count).filter(|b| !linked.contains(b)).collect();
-    place_in_rows(&isolated, corner, (config.dense_isolated_per_row, config.dense_box_gap), &mut geometry);
+    place_in_rows(&isolated, corner, (config.dense_columns, config.dense_box_gap), &mut geometry);
     (geometry, routes)
+}
+
+/// The tiles that fit side by side into a width of the canvas, at least one
+pub fn dense_columns_for_width(width: f64, config: &DataflowLayoutConfig) -> usize {
+    let columns = ((width + config.dense_box_gap) / (config.tile_width + config.dense_box_gap)).floor();
+    if columns.is_finite() && columns >= 1.0 {
+        columns as usize
+    } else {
+        1
+    }
 }
 
 /// How ELK lays out a subset of the boxes
@@ -663,6 +674,9 @@ fn elk(
         set_node(&graph, LayeredOptions::SEPARATE_CONNECTED_COMPONENTS, true);
         if dense {
             set_node(&graph, LayeredOptions::ASPECT_RATIO, config.dense_aspect_ratio);
+            // A row holds at most as many tiles as fit the canvas, the consumers of a wide fan-out go into more rows
+            set_node(&graph, LayeredOptions::LAYERING_STRATEGY, LayeringStrategy::CoffmanGraham);
+            set_node(&graph, LayeredOptions::LAYERING_COFFMAN_GRAHAM_LAYER_BOUND, config.dense_columns.max(1) as i32);
         }
     }
 
@@ -1115,6 +1129,16 @@ mod tests {
     }
 
     #[test]
+    fn dense_columns_fit_the_width() {
+        let config = DataflowLayoutConfig::default();
+        let two = 2.0 * config.tile_width + config.dense_box_gap;
+        assert_eq!(dense_columns_for_width(two, &config), 2);
+        assert_eq!(dense_columns_for_width(two - 1.0, &config), 1);
+        assert_eq!(dense_columns_for_width(0.0, &config), 1);
+        assert_eq!(dense_columns_for_width(f64::NAN, &config), 1);
+    }
+
+    #[test]
     fn dense_ignores_the_hints() {
         let config = DataflowLayoutConfig::default();
         let (boxes, edges) = two_parts();
@@ -1148,10 +1172,20 @@ mod tests {
         let (g, routes) = compute_dense_dataflow_layout_with_routes(&boxes, &edges, &config);
         assert_no_overlaps(&g);
         assert_eq!(routes.len(), edges.len());
-        // The consumers are below their producer
+        // The consumers are below their producer, in rows of at most `dense_columns`
         assert!(g[1..6].iter().all(|c| c.y > g[0].y + g[0].height));
+        let mut rows: BTreeMap<i64, usize> = BTreeMap::new();
+        for c in &g[..8] {
+            *rows.entry(c.y as i64).or_default() += 1;
+        }
+        assert!(rows.values().all(|&n| n <= config.dense_columns), "{rows:?}");
         // The tiles without edges are a row of two below everything else
         let bottom = g[..8].iter().map(|g| g.y + g.height).fold(f64::NEG_INFINITY, f64::max);
         assert!(g[8].y > bottom && g[8].y == g[9].y && g[8].x < g[9].x);
+        // A wider canvas takes more tiles per row
+        let wide = DataflowLayoutConfig { dense_columns: 3, ..config };
+        let (g, _) = compute_dense_dataflow_layout_with_routes(&boxes, &edges, &wide);
+        let rows = g[1..6].iter().map(|c| c.y as i64).collect::<BTreeSet<_>>();
+        assert_eq!(rows.len(), 2);
     }
 }

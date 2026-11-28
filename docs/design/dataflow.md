@@ -102,10 +102,12 @@ dataflow snapshots use them, the app reads them from the module (`DashQLDataflow
   `computeDataflowLayoutWithRoutes`) is the layout of a narrow canvas: every box is a tile of `tile_width` ×
   `tile_height` (160 × 56) and the layers run from top to bottom (ELK `Direction::Down`). A tile has one input port
   in the middle of its top border and one output port in the middle of its bottom border, the edges between two tiles
-  share one route. Rows are at least `dense_layer_gap` (48) apart, the tiles of a row `dense_box_gap` (24), ELK
-  packs the connected parts towards `dense_aspect_ratio` (0.5, higher than wide) and the tiles without edges go into
-  rows of two below them. The horizontal rails between two rows move into the middle of the gap like the vertical
-  ones. The dense layout ignores the hints and has no drops: the positions and sizes of the `@flow` tags belong to the
+  share one route. A row holds at most as many tiles as fit the width of the canvas (`dense_columns_for_width`, the
+  `width` of the options, `dense_columns` (2) without one): ELK layers with Coffman–Graham bounded by that number, so
+  the consumers of a wide fan-out take several rows instead of a row wider than a phone. Rows are at least
+  `dense_layer_gap` (48) apart, the tiles of a row `dense_box_gap` (24), ELK packs the connected parts towards
+  `dense_aspect_ratio` (0.5, higher than wide) and the tiles without edges go into rows of as many below them. The
+  horizontal rails between two rows move into the middle of the gap like the vertical ones. The dense layout ignores the hints and has no drops: the positions and sizes of the `@flow` tags belong to the
   layout of the full boxes, a dense layout is the same wherever the boxes were and is never written back.
 
 A layout that starts from where an earlier one put every box reproduces it, positions and routes. The dataflow
