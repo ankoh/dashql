@@ -165,8 +165,10 @@ A run of one script (`runScript` of the runtime) analyzes every script, publishe
 declarations and plans the script with what it needs as the targets: the statements of the script, with the queries
 it inlines spliced in, the queries of the scripts it materializes, and the scripts that create or write the relations
 that these queries read (`required_scripts` of `workbook_run/plan.rs`, upstream along the relation edges of the
-dataflow, through the references). A relation edge starts at the latest writer of a relation, so the walk goes on
-through a script that runs only on request: that script stays back, the scripts before it run. A run of the workbook
+dataflow, through the references). A script that runs only on request (`@manual`, a call that writes) runs only as a
+target of its own: what a target needs never runs it, a target of its connection that references it inlines its query
+as always. A relation edge starts at the latest writer of a relation, so the walk goes on through such a script: it
+stays back, the scripts before it run, and the target reads what it wrote last. A run of the workbook
 with targets (`targets` of `runWorkbook`, Execute of the console) runs the same targets, a run of the whole workbook
 targets every script and runs on past the scripts that fail to plan. A change of inputs runs the scripts that it
 affects with the queries they read, not the writers before them. A script that reads nothing of another script is a

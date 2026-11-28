@@ -446,7 +446,8 @@ CALL d360.connection_create (connector_type => 'SNOWFLAKE', label => 'Snowflake 
 
 | Run | A script with a write |
 |---|---|
-| The script itself, from its card, the feed, the dashboard, or SQL sent from the composer | Runs |
+| The script itself, from its card, the feed, the dashboard, the Execute of the console, or SQL sent from the composer | Runs |
+| A run of another script that reads a table the write changed | Held back, the scripts before it run (`required_scripts`, [script_references.md](script_references.md#running-a-script)) |
 | The shell of the connection | Runs, the statement is typed there |
 | Execute All, a run of the whole workbook | Held back with the scripts that follow it in the plan, like a `@manual` script (`runs_on_request` of the planner). A script with calls that only read runs |
 | A changed input | Left out, the dataflow marks the script `manual` |
