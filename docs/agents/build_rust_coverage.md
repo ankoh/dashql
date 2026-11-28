@@ -18,15 +18,6 @@ latest push to main.
 
 A test that runs a binary in a subprocess reports nothing either.
 
-## Empty tracefiles under Bazel 8/9
-
-Bazel 8 runs the coverage collection in its own spawn (`SPLIT_COVERAGE_POST_PROCESSING=1`), and
-`collect_coverage.sh` clears `RUNFILES_DIR` before it runs the LCOV merger, which for Rust tests is the
-`collect_coverage` binary of `rules_rust`. Up to `rules_rust` 0.69 that binary took the empty `RUNFILES_DIR` as
-the execroot, did not find the test binary and wrote an empty `coverage.dat`. We patched it to derive the bin
-directory from `COVERAGE_DIR` until `rules_rust` 0.70 shipped the same fix
-([rules_rust PR #3812](https://github.com/bazelbuild/rules_rust/pull/3812)).
-
 ## Rust tests reported no coverage
 
 Under Bazel 9 every `rust_test` produced an empty `coverage.dat`, and the per-test LCOV merger logged

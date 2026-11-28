@@ -258,7 +258,7 @@ bazel run //tests/snapshots/visualize:update
 bazel run //tests/snapshots/diff:update
 bazel run //tests/snapshots/profiles/hyper/tests:update
 bazel run //tests/snapshots/profiles/progress:update
-bazel run //tests/snapshots/profiles/trino/progress:update
+# The Trino plans and progress, both from the recordings
 bazel run //tests/snapshots/profiles/trino/plans:update
 # All categories at once
 bazel run //tests/snapshots:update

@@ -5,7 +5,7 @@
     "baseBranchPatterns": ["main"],
     "rangeStrategy": "bump",
     "automergeStrategy": "rebase",
-    "postUpdateOptions": ["yarnDedupeFewer", "pnpmDedupe"],
+    "postUpdateOptions": ["pnpmDedupe"],
     "prConcurrentLimit": 10,
     "prHourlyLimit": 2,
     "minimumReleaseAge": "3 days",
@@ -223,9 +223,9 @@
             "matchPackageNames": ["/^@bufbuild/.*/"]
         },
         {
-            "groupName": "arrow_datafusion",
+            "groupName": "arrow",
             "automerge": false,
-            "matchPackageNames": ["arrow", "/^arrow-.*/", "datafusion", "/^datafusion-.*/"]
+            "matchPackageNames": ["arrow", "/^arrow-.*/"]
         },
         {
             "groupName": "protobuf",

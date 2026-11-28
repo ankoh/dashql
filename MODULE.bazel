@@ -39,7 +39,7 @@ bazel_dep(name = "rules_nodejs", version = "6.7.7")
 bazel_dep(name = "rules_shell", version = "0.8.0")
 bazel_dep(name = "rules_python", version = "2.4.5")
 
-# Node.js toolchain (for app_bundle postprocess script).
+# Node.js toolchain of the JavaScript and TypeScript rules.
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
 node.toolchain(node_version = "24.22.1")
 use_repo(node, "nodejs_toolchains")
@@ -156,11 +156,10 @@ use_repo(
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
     edition = "2021",
-    # Register both macOS target triples so the universal-binary slices
-    # (mac_app_aarch64 / mac_app_x86_64) can be cross-compiled regardless of the
-    # runner's host arch -- macos-15 runners are Apple Silicon (aarch64 host), so
-    # building the x86_64 slice is a cross-compile that needs x86_64-apple-darwin
-    # registered as a target toolchain.
+    # Register both macOS target triples so the arm64 and x86_64 binaries of the macOS
+    # bundle (platform_binary) can be cross-compiled regardless of the host arch: on an
+    # Apple Silicon runner the x86_64 binaries are a cross-compile that needs
+    # x86_64-apple-darwin registered as a target toolchain.
     # wasm32-unknown-unknown is the target for the core and shell wasm modules,
     # compiled to a cdylib and run through rust_wasm_bindgen.
     extra_target_triples = [
@@ -185,7 +184,7 @@ include("//bazel/crates:native.MODULE.bazel")
 include("//bazel/crates:core.MODULE.bazel")
 
 # Execution platforms: host first (default for non-wasm actions), then the neutral
-# wasm_tool_exec platform used by wasm_tool exec groups in wasm_tools.bzl / rust_wasm.bzl.
+# wasm_tool_exec platform used by the wasm_tool exec groups of wasm_tools.bzl.
 # @platforms//host:host must come first so Bazel 9 (which now auto-selects the first
 # registered exec platform whose toolchains all match) picks the host for regular targets
 # like //proto/pb:ts_gen rather than wasm_tool_exec (which has no Node.js/shell toolchains).

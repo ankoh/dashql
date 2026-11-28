@@ -4,7 +4,6 @@ on:
     push:
         branches-ignore:
             - 'main'
-            - 'akohn-publish'
             # on_push_dev.yml builds and deploys dev
             - 'dev'
 

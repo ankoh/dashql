@@ -17,7 +17,7 @@ CI: the sandbox, the ways out of the sandbox, and a question as the desktop app 
 | A question through `AgentHost` of `packages/dashql-native` (compiled, without Electron) with a fake page (`tests/agents/dashql_app.mjs`) that answers the calls of the Rust `dashql` | Done |
 | A question in Electron through the IPC of the page | Planned |
 | opencode | Planned |
-| The job `agent_integration` of `build_trusted.yml` and `build_untrusted.yml` | Added; the first run on GitHub failed on AppArmor (see [Findings](#findings)), the fix not yet run |
+| The job `agent_integration` of `build_trusted.yml` and `build_untrusted.yml`, see [Findings](#findings) for AppArmor | Done |
 
 ## How it works
 
@@ -97,10 +97,8 @@ below the temporary folder, which the sandbox may allow.
 
 - **Electron:** a question through the IPC of a window, with a fake harness on the `PATH` that calls `dashql edit`.
 - **opencode:** its plugins run in its process and see every event.
-- **CI:** the job `agent_integration` installs `bubblewrap` and `socat` on `ubuntu-26.04`, lifts the restriction of
-  unprivileged user namespaces of Ubuntu, removes the AppArmor profiles `bwrap` and `unpriv_bwrap`, and runs
-  `bazel test //tests/agents/...`. A macOS job could follow, the
-  sandbox of Claude Code uses `sandbox-exec` there, which every Mac has.
+- **CI on macOS:** a job next to `agent_integration`, the sandbox of Claude Code uses `sandbox-exec` there, which every
+  Mac has.
 - **Versions:** a newer harness is a new version and new integrity values in `//bazel:external_agent_harnesses.bzl`
   (`npm view @anthropic-ai/claude-code-<platform>@<version> dist.integrity`). Testing two versions side by side is a
   second repository per platform.

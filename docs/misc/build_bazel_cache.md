@@ -1,7 +1,5 @@
 
-We run a `bazel-remote` server at `bazel-cache.dashql.app`.
-We tried FOSS BuildBuddy, but it was painful.
-We just setup `bazel-remote` with mTLS and mark that topic done.
+We run a `bazel-remote` server with mTLS at `bazel-cache.dashql.app`.
 
 
 # Operational

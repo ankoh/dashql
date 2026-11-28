@@ -36,7 +36,6 @@ build --host_per_file_copt=external/.*@-Wno-deprecated-declarations
 
 # Common pattern for fast validation.
 build:fastbuild -c fastbuild
-build:fastbuild --host_compilation_mode=fastbuild
 
 # Full release mode for shipped artifacts only.
 build:release -c opt
