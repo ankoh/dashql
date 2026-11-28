@@ -170,8 +170,8 @@ pub struct QueryMetadata {
     pub issuer: Option<String>,
     /// Authored by the user or the app?
     pub user_provided: bool,
-    /// The workbook that issued the query. Several workbooks may share a connection, the workbook scopes the query
-    /// result cache and the cleanup of the queries of the workbook.
+    /// The workbook that issued the query. Several workbooks may share a connection, the workbook scopes the stored
+    /// results and the cleanup of the queries of the workbook.
     pub workbook_id: Option<String>,
     /// The owner of the result, e.g. a script of a workbook. A succeeded query releases the result tables of the
     /// earlier queries of its owner, the owner shows only its latest result.

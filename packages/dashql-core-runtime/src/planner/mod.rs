@@ -149,7 +149,8 @@ pub struct SessionPlanRequest<'a> {
     /// The scripts whose materialized results the host provides. A plan computes them only for its targets, a scan
     /// reads the file of the result.
     pub materialized: &'a [u32],
-    /// The directory that the host mounts materialized results in, e.g. the query result cache at `/mnt/external/cache`
+    /// The directory that the host mounts materialized results in, e.g. the stored results of the workbook at
+    /// `/mnt/external/results/<id>`
     pub mount_prefix: &'a str,
     /// The attachments of the session
     pub attachments: &'a [PlannerAttachment<'a>],

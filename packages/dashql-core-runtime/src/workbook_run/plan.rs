@@ -96,7 +96,7 @@ impl PlannedStatement {
     pub fn title(&self) -> String {
         let mut parts = vec![format!("{} {}/{}", self.script, self.statement, self.statements)];
         if self.cached {
-            parts.push("cached result".to_string());
+            parts.push("stored result".to_string());
         }
         if !self.inlined.is_empty() {
             parts.push(format!("inlines {}", self.inlined.join(", ")));
@@ -105,7 +105,7 @@ impl PlannedStatement {
             let scans: Vec<String> = self
                 .scans
                 .iter()
-                .map(|scan| if scan.cached { format!("{} (cached)", scan.script) } else { scan.script.clone() })
+                .map(|scan| if scan.cached { format!("{} (stored)", scan.script) } else { scan.script.clone() })
                 .collect();
             parts.push(format!("scans {}", scans.join(", ")));
         }
@@ -127,7 +127,7 @@ impl PlannedStatement {
         }
         let mut parts = vec![first];
         if self.cached {
-            parts.push("served from the query result cache".to_string());
+            parts.push("reads the stored result of the script".to_string());
         }
         if !self.inlined.is_empty() {
             parts.push(format!("inlines the queries of {}", self.inlined.join(", ")));

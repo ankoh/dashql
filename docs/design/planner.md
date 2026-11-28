@@ -28,9 +28,9 @@ The native API is `planner::plan_session(&SessionPlanRequest)` (`packages/dashql
 A request lists the connections (`PlannerConnection`: the host id, the kind and the catalog), the scripts in
 session order (`PlannerScript`: the live `Script`, its name and its connection index), the scope, the scripts
 whose materialized results the host provides, the directory the host mounts materialized results in
-(`mount_prefix`, e.g. `/mnt/external/cache`), the attachments of the session (`PlannerAttachment`: the name, the file
+(`mount_prefix`, e.g. the stored results of the workbook at `/mnt/external/results/<id>`), the attachments of the session (`PlannerAttachment`: the name, the file
 and its stamp) and the directory the host mounts them in (`attachment_prefix`). A script may name the file of its materialized result below the mount
-prefix (`PlannerScript.materialization_file`, e.g. the cache entry of the result), `s<index>.parquet` otherwise. There is no caller-supplied revision. A script
+prefix (`PlannerScript.materialization_file`, e.g. the stored file of the result), `s<index>.parquet` otherwise. There is no caller-supplied revision. A script
 analyzed with another catalog than the one of its connection, duplicate scripts or script names, duplicate
 attachment files, connections that share a catalog and unknown indexes invalidate the plan. The connection kind comes from the host: LOCAL
 is the embedded Hyper, every other connection is REMOTE.

@@ -8,7 +8,7 @@
 //! (`channels.describe`), which it keeps for the query until the run of the query is dropped (`channels.forget`). The
 //! executor reports every event into the history right away, the start and the end of a query as urgent changes, the
 //! rest with the next frame. What stays with the host goes through the platform: fetch, the channels of the host, the
-//! query result cache, the result tables by handle. The analysis of a result runs on the computations of the runtime,
+//! stored results, the result tables by handle. The analysis of a result runs on the computations of the runtime,
 //! the history decides which result of an owner is the latest and the computations of the others go.
 //!
 //! Every query is one `QueryRun`, the run of the executor (`ExecutorRun`): the executor hands it to every call of its
@@ -951,10 +951,9 @@ impl Connections {
     }
 
     /// Describe where a query runs and what the executor does around it: the target on the channel of its connection,
-    /// the key of its result in the query result cache, whether it touches relations and the details of its log
-    /// messages. The connection owns its channel: the module speaks Trino, Hyper over HTTP and the Hyper of Salesforce
-    /// itself, the platform describes only a channel of the host, which it then keeps for the query until the query is
-    /// forgotten.
+    /// the key of its stored result, whether it touches relations and the details of its log messages. The connection
+    /// owns its channel: the module speaks Trino, Hyper over HTTP and the Hyper of Salesforce itself, the platform
+    /// describes only a channel of the host, which it then keeps for the query until the query is forgotten.
     async fn describe(
         self: &Rc<Self>,
         run: &QueryRun,
