@@ -14,11 +14,6 @@
   "bugs": { "url": "https://github.com/ankoh/dashql/issues" },
   "main": "./dist/core/index.js",
   "types": "./dist/core/index.d.ts",
-  "exports": {
-    "./wasm": "./dist/wasm/dashql_core.wasm",
-    "./dataflow-wasm": "./dist/wasm/dashql_dataflow.wasm",
-    "./wasm/glue": { "types": "./dist/wasm/dashql_core.d.ts", "import": "./dist/wasm/dashql_core.js" }
-  },
   "files": ["dist", "README.md", "LICENSE", "NOTICE"],
   "dependencies": {
     "@bufbuild/protobuf": "^2.17.0",

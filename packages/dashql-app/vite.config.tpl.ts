@@ -352,6 +352,8 @@ export default vite.defineConfig(({ mode, command }) => {
             'process.env.DASHQL_RELATIVE_IMPORTS': JSON.stringify(isReloc),
         },
         resolve: {
+            // The exports of @akohn/dashql and @akohn/dashql-react resolve to their sources, e.g. the Wasm of the core
+            conditions: ['@akohn/source', ...vite.defaultClientConditions],
             alias: [
                 { find: /^@akohn\/dashql$/, replacement: path.join(DASHQL_PATH, 'src/core/index.ts') },
                 { find: /^@akohn\/dashql\/buffers$/, replacement: path.join(DASHQL_PATH, 'src/core/buffers.ts') },

@@ -8,7 +8,7 @@ const metadata = JSON.parse(readFileSync(path.join(packaged, 'package.json'), 'u
 // Exact aliases expose only the published entry points of the bindings, never private package files.
 const packageAliases = Object.entries(metadata.exports).filter(([entry]) => !entry.includes('*')).map(([entry, target]) => ({
     find: new RegExp(`^${metadata.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}${entry === '.' ? '' : entry.slice(1)}(\\?.*)?$`),
-    replacement: path.resolve(packaged, typeof target === 'string' ? target : target.import) + '$1',
+    replacement: path.resolve(packaged, typeof target === 'string' ? target : (target.import ?? target.default)) + '$1',
 }));
 export default defineConfig({
     root,

@@ -24,6 +24,15 @@ const pkg = join(tests, '..', '..');
 const consumer = await mkdtemp(join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-react-consumer-'));
 const env = { ...process.env, NODE_PATH: '', NODE_OPTIONS: '' };
 
+/// The exports of the package on npm: those of the source package without the condition of the sources
+function publishedExports(exports) {
+    return Object.fromEntries(Object.entries(exports).flatMap(([subpath, target]) => {
+        if (typeof target === 'string') return [[subpath, target]];
+        const { '@akohn/source': _, ...published } = target;
+        return Object.keys(published).length > 0 ? [[subpath, published]] : [];
+    }));
+}
+
 /// Unpack an archive of npm_tarball into a folder: regular files and folders in ustar format, no links
 async function unpack(tarball, into) {
     const archive = gunzipSync(tarball);
@@ -81,14 +90,12 @@ try {
         peerDependencies: { ...source.peerDependencies, '@akohn/dashql': metadata.version },
         exports: metadata.exports,
     });
-    // The exports: the files of npm/package.json, then the modules of the source package without the tests and their
-    // helpers, each with its JavaScript and declarations
+    // The exports of package.json without the sources, every file of them in the archive
     const workspace = JSON.parse(await readFile(join(pkg, 'package.json'), 'utf8'));
-    const modules = Object.keys(workspace.exports).filter(subpath => !subpath.endsWith('.css') && !subpath.startsWith('./testing/'));
-    assert.deepEqual(Object.keys(metadata.exports), [...Object.keys(source.exports), ...modules]);
-    for (const subpath of modules) {
-        for (const file of Object.values(metadata.exports[subpath])) {
-            assert.ok(paths.includes(`package/${file.slice(2)}`), `${subpath} exports the missing ${file}`);
+    assert.deepEqual(metadata.exports, publishedExports(workspace.exports));
+    for (const [subpath, target] of Object.entries(metadata.exports)) {
+        for (const file of typeof target === 'string' ? [target] : Object.values(target)) {
+            if (!file.includes('*')) assert.ok(paths.includes(`package/${file.slice(2)}`), `${subpath} exports the missing ${file}`);
         }
     }
     assert.match(metadata.version, /^\d+\.\d+\.\d+(-(dev|latest)\.\d+\.g[0-9a-f]+)?$/);

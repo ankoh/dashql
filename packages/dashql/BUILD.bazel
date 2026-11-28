@@ -317,11 +317,8 @@ genrule(
 )
 
 # The version of the package is the npm version of the build (DASHQL_VERSION_NPM), not the one in npm/package.json: CI
-# publishes every build that it deploys. Its exports are the modules that package.json exports
-npm_manifest(
-    name = "npm_manifest",
-    modules = _MODULES,
-)
+# publishes every build that it deploys. Its exports are those of package.json without the sources (`@akohn/source`)
+npm_manifest(name = "npm_manifest")
 
 npm_package(
     name = "npm_package",

@@ -6,105 +6,479 @@
   "type": "module",
   "license": "MPL-2.0",
   "exports": {
-    ".": "./src/core/index.ts",
-    "./buffers": "./src/core/buffers.ts",
-    "./browser-worker": "./src/core/browser_worker.ts",
-    "./batch-worker": "./src/core/batch_worker.ts",
-    "./wasm": "./dependencies/dashql-wasm/dashql_core.wasm",
-    "./dataflow-wasm": "./dependencies/dashql-wasm/dashql_dataflow.wasm",
-    "./wasm/glue": "./dependencies/dashql-wasm/dashql_core.js",
-    "./runtime": "./src/runtime/runtime.ts",
-    "./node": "./src/runtime/node/node_platform.ts",
-    "./platform/app_ownership": "./src/platform/app_ownership.ts",
-    "./platform/channel_common": "./src/platform/channel_common.ts",
-    "./platform/compute/arrow_formatter": "./src/platform/compute/arrow_formatter.ts",
-    "./platform/compute/computation_types": "./src/platform/compute/computation_types.ts",
-    "./platform/connections/clfn_spec": "./src/platform/connections/clfn_spec.ts",
-    "./platform/connections/clfn_specs": "./src/platform/connections/clfn_specs.ts",
-    "./platform/connections/connection_params": "./src/platform/connections/connection_params.ts",
-    "./platform/connections/connection_state": "./src/platform/connections/connection_state.ts",
-    "./platform/connections/connector_configs": "./src/platform/connections/connector_configs.ts",
-    "./platform/connections/connector_info": "./src/platform/connections/connector_info.ts",
-    "./platform/connections/embedded_database_channel": "./src/platform/connections/embedded_database_channel.ts",
-    "./platform/connections/hyper/hyper_client_context": "./src/platform/connections/hyper/hyper_client_context.ts",
-    "./platform/connections/hyper/hyper_error_info": "./src/platform/connections/hyper/hyper_error_info.ts",
-    "./platform/connections/hyper/hyperdb_grpc_client": "./src/platform/connections/hyper/hyperdb_grpc_client.ts",
-    "./platform/connections/query_execution_args": "./src/platform/connections/query_execution_args.ts",
-    "./platform/connections/salesforce/salesforce_api_client": "./src/platform/connections/salesforce/salesforce_api_client.ts",
-    "./platform/connections/salesforce/salesforce_api_client_mock": "./src/platform/connections/salesforce/salesforce_api_client_mock.ts",
-    "./platform/connections/salesforce/salesforce_connection_state": "./src/platform/connections/salesforce/salesforce_connection_state.ts",
-    "./platform/connections/trino_catalogs": "./src/platform/connections/trino_catalogs.ts",
-    "./platform/electron_fs": "./src/platform/electron_fs.ts",
-    "./platform/embedded_database": "./src/platform/embedded_database.ts",
-    "./platform/file_system": "./src/platform/file_system.ts",
-    "./platform/http_client": "./src/platform/http_client.ts",
-    "./platform/hyperdb/hyperdb_arrow_insert": "./src/platform/hyperdb/hyperdb_arrow_insert.ts",
-    "./platform/hyperdb/hyperdb_opfs_instance": "./src/platform/hyperdb/hyperdb_opfs_instance.ts",
-    "./platform/hyperdb/hyperdb_parquet_export": "./src/platform/hyperdb/hyperdb_parquet_export.ts",
-    "./platform/hyperdb/hyperdb_parquet_read": "./src/platform/hyperdb/hyperdb_parquet_read.ts",
-    "./platform/hyperdb/hyperdb_settings": "./src/platform/hyperdb/hyperdb_settings.ts",
-    "./platform/hyperdb/hyperdb_wasm": "./src/platform/hyperdb/hyperdb_wasm.ts",
-    "./platform/hyperdb/hyperdb_web": "./src/platform/hyperdb/hyperdb_web.ts",
-    "./platform/key_value_storage": "./src/platform/key_value_storage.ts",
-    "./platform/logger/log_buffer": "./src/platform/logger/log_buffer.ts",
-    "./platform/logger/logger": "./src/platform/logger/logger.ts",
-    "./platform/logger/trace_context": "./src/platform/logger/trace_context.ts",
-    "./platform/node/node_file_system": "./src/platform/node/node_file_system.ts",
-    "./platform/oauth_flow": "./src/platform/oauth_flow.ts",
-    "./platform/oauth_types": "./src/platform/oauth_types.ts",
-    "./platform/opfs_root": "./src/platform/opfs_root.ts",
-    "./platform/proto": "./src/platform/proto.ts",
-    "./platform/query/profile_execution_state": "./src/platform/query/profile_execution_state.ts",
-    "./platform/query/profile_layout_config": "./src/platform/query/profile_layout_config.ts",
-    "./platform/query/profile_operator_symbol": "./src/platform/query/profile_operator_symbol.ts",
-    "./platform/query/query_execution_state": "./src/platform/query/query_execution_state.ts",
-    "./platform/query/query_progress": "./src/platform/query/query_progress.ts",
-    "./platform/storage/composite_storage_backend": "./src/platform/storage/composite_storage_backend.ts",
-    "./platform/storage/native_storage_backend": "./src/platform/storage/native_storage_backend.ts",
-    "./platform/storage/opfs_storage_backend": "./src/platform/storage/opfs_storage_backend.ts",
-    "./platform/storage/page_storage": "./src/platform/storage/page_storage.ts",
-    "./platform/storage/storage_backend": "./src/platform/storage/storage_backend.ts",
-    "./platform/storage/storage_migration": "./src/platform/storage/storage_migration.ts",
-    "./platform/storage/workbook_locator": "./src/platform/storage/workbook_locator.ts",
-    "./platform/storage/workbook_tables": "./src/platform/storage/workbook_tables.ts",
-    "./platform/storage/workbook_transfer": "./src/platform/storage/workbook_transfer.ts",
-    "./platform/storage/workbook_tree": "./src/platform/storage/workbook_tree.ts",
-    "./platform/testing/arrow_fixtures": "./src/platform/testing/arrow_fixtures.ts",
-    "./platform/testing/column_aggregates": "./src/platform/testing/column_aggregates.ts",
-    "./platform/testing/forbid_eval": "./src/platform/testing/forbid_eval.ts",
-    "./platform/testing/memory_workbook_result_files": "./src/platform/testing/memory_workbook_result_files.ts",
-    "./platform/testing/opfs_mock": "./src/platform/testing/opfs_mock.ts",
-    "./platform/testing/test_fs_mock": "./src/platform/testing/test_fs_mock.ts",
-    "./platform/testing/test_hyperdb": "./src/platform/testing/test_hyperdb.ts",
-    "./platform/testing/test_logger": "./src/platform/testing/test_logger.ts",
-    "./platform/testing/workbook_test_backend": "./src/platform/testing/workbook_test_backend.ts",
-    "./platform/utils/arrow_vectors": "./src/platform/utils/arrow_vectors.ts",
-    "./platform/utils/async_value": "./src/platform/utils/async_value.ts",
-    "./platform/utils/base64": "./src/platform/utils/base64.ts",
-    "./platform/utils/sleep": "./src/platform/utils/sleep.ts",
-    "./platform/utils/sql_quote": "./src/platform/utils/sql_quote.ts",
-    "./platform/utils/variant": "./src/platform/utils/variant.ts",
-    "./platform/utils/yield_to_browser": "./src/platform/utils/yield_to_browser.ts",
-    "./platform/web_http_client": "./src/platform/web_http_client.ts",
-    "./platform/workbook/attachment_mounts": "./src/platform/workbook/attachment_mounts.ts",
-    "./platform/workbook/chart_config": "./src/platform/workbook/chart_config.ts",
-    "./platform/workbook/kpi_reading": "./src/platform/workbook/kpi_reading.ts",
-    "./platform/workbook/run_events": "./src/platform/workbook/run_events.ts",
-    "./platform/workbook/script_editor_state": "./src/platform/workbook/script_editor_state.ts",
-    "./platform/workbook/script_reference_check": "./src/platform/workbook/script_reference_check.ts",
-    "./platform/workbook/script_types": "./src/platform/workbook/script_types.ts",
-    "./platform/workbook/workbook_inputs": "./src/platform/workbook/workbook_inputs.ts",
-    "./platform/workbook/workbook_result_files": "./src/platform/workbook/workbook_result_files.ts",
-    "./platform/workbook/workbook_scripts": "./src/platform/workbook/workbook_scripts.ts",
-    "./platform/workbook/workbook_zip": "./src/platform/workbook/workbook_zip.ts",
-    "./runtime/embedded_channels": "./src/runtime/embedded_channels.ts",
-    "./runtime/embedded_session": "./src/runtime/embedded_session.ts",
-    "./runtime/runtime_storage": "./src/runtime/runtime_storage.ts",
-    "./runtime/store/runtime_store": "./src/runtime/store/runtime_store.ts",
-    "./runtime/store/update_scheduler": "./src/runtime/store/update_scheduler.ts",
-    "./runtime/testing/connection_fixtures": "./src/runtime/testing/connection_fixtures.ts",
-    "./runtime/testing/test_runtime": "./src/runtime/testing/test_runtime.ts",
-    "./runtime/workbook_archives": "./src/runtime/workbook_archives.ts",
-    "./runtime/workbook_run_report": "./src/runtime/workbook_run_report.ts"
+    ".": {
+      "@akohn/source": "./src/core/index.ts",
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js"
+    },
+    "./buffers": {
+      "@akohn/source": "./src/core/buffers.ts",
+      "types": "./dist/core/buffers.d.ts",
+      "import": "./dist/core/buffers.js"
+    },
+    "./browser-worker": {
+      "@akohn/source": "./src/core/browser_worker.ts",
+      "types": "./dist/core/browser_worker.d.ts",
+      "import": "./dist/core/browser_worker.js"
+    },
+    "./batch-worker": {
+      "@akohn/source": "./src/core/batch_worker.ts",
+      "types": "./dist/core/batch_worker.d.ts",
+      "import": "./dist/core/batch_worker.js"
+    },
+    "./wasm": {
+      "@akohn/source": "./dependencies/dashql-wasm/dashql_core.wasm",
+      "default": "./dist/wasm/dashql_core.wasm"
+    },
+    "./dataflow-wasm": {
+      "@akohn/source": "./dependencies/dashql-wasm/dashql_dataflow.wasm",
+      "default": "./dist/wasm/dashql_dataflow.wasm"
+    },
+    "./wasm/glue": {
+      "@akohn/source": "./dependencies/dashql-wasm/dashql_core.js",
+      "types": "./dist/wasm/dashql_core.d.ts",
+      "import": "./dist/wasm/dashql_core.js"
+    },
+    "./runtime": {
+      "@akohn/source": "./src/runtime/runtime.ts",
+      "types": "./dist/runtime/runtime.d.ts",
+      "import": "./dist/runtime/runtime.js"
+    },
+    "./node": {
+      "@akohn/source": "./src/runtime/node/node_platform.ts",
+      "types": "./dist/runtime/node/node_platform.d.ts",
+      "import": "./dist/runtime/node/node_platform.js"
+    },
+    "./platform/app_ownership": {
+      "@akohn/source": "./src/platform/app_ownership.ts",
+      "types": "./dist/platform/app_ownership.d.ts",
+      "import": "./dist/platform/app_ownership.js"
+    },
+    "./platform/channel_common": {
+      "@akohn/source": "./src/platform/channel_common.ts",
+      "types": "./dist/platform/channel_common.d.ts",
+      "import": "./dist/platform/channel_common.js"
+    },
+    "./platform/compute/arrow_formatter": {
+      "@akohn/source": "./src/platform/compute/arrow_formatter.ts",
+      "types": "./dist/platform/compute/arrow_formatter.d.ts",
+      "import": "./dist/platform/compute/arrow_formatter.js"
+    },
+    "./platform/compute/computation_types": {
+      "@akohn/source": "./src/platform/compute/computation_types.ts",
+      "types": "./dist/platform/compute/computation_types.d.ts",
+      "import": "./dist/platform/compute/computation_types.js"
+    },
+    "./platform/connections/clfn_spec": {
+      "@akohn/source": "./src/platform/connections/clfn_spec.ts",
+      "types": "./dist/platform/connections/clfn_spec.d.ts",
+      "import": "./dist/platform/connections/clfn_spec.js"
+    },
+    "./platform/connections/clfn_specs": {
+      "@akohn/source": "./src/platform/connections/clfn_specs.ts",
+      "types": "./dist/platform/connections/clfn_specs.d.ts",
+      "import": "./dist/platform/connections/clfn_specs.js"
+    },
+    "./platform/connections/connection_params": {
+      "@akohn/source": "./src/platform/connections/connection_params.ts",
+      "types": "./dist/platform/connections/connection_params.d.ts",
+      "import": "./dist/platform/connections/connection_params.js"
+    },
+    "./platform/connections/connection_state": {
+      "@akohn/source": "./src/platform/connections/connection_state.ts",
+      "types": "./dist/platform/connections/connection_state.d.ts",
+      "import": "./dist/platform/connections/connection_state.js"
+    },
+    "./platform/connections/connector_configs": {
+      "@akohn/source": "./src/platform/connections/connector_configs.ts",
+      "types": "./dist/platform/connections/connector_configs.d.ts",
+      "import": "./dist/platform/connections/connector_configs.js"
+    },
+    "./platform/connections/connector_info": {
+      "@akohn/source": "./src/platform/connections/connector_info.ts",
+      "types": "./dist/platform/connections/connector_info.d.ts",
+      "import": "./dist/platform/connections/connector_info.js"
+    },
+    "./platform/connections/embedded_database_channel": {
+      "@akohn/source": "./src/platform/connections/embedded_database_channel.ts",
+      "types": "./dist/platform/connections/embedded_database_channel.d.ts",
+      "import": "./dist/platform/connections/embedded_database_channel.js"
+    },
+    "./platform/connections/hyper/hyper_client_context": {
+      "@akohn/source": "./src/platform/connections/hyper/hyper_client_context.ts",
+      "types": "./dist/platform/connections/hyper/hyper_client_context.d.ts",
+      "import": "./dist/platform/connections/hyper/hyper_client_context.js"
+    },
+    "./platform/connections/hyper/hyper_error_info": {
+      "@akohn/source": "./src/platform/connections/hyper/hyper_error_info.ts",
+      "types": "./dist/platform/connections/hyper/hyper_error_info.d.ts",
+      "import": "./dist/platform/connections/hyper/hyper_error_info.js"
+    },
+    "./platform/connections/hyper/hyperdb_grpc_client": {
+      "@akohn/source": "./src/platform/connections/hyper/hyperdb_grpc_client.ts",
+      "types": "./dist/platform/connections/hyper/hyperdb_grpc_client.d.ts",
+      "import": "./dist/platform/connections/hyper/hyperdb_grpc_client.js"
+    },
+    "./platform/connections/query_execution_args": {
+      "@akohn/source": "./src/platform/connections/query_execution_args.ts",
+      "types": "./dist/platform/connections/query_execution_args.d.ts",
+      "import": "./dist/platform/connections/query_execution_args.js"
+    },
+    "./platform/connections/salesforce/salesforce_api_client": {
+      "@akohn/source": "./src/platform/connections/salesforce/salesforce_api_client.ts",
+      "types": "./dist/platform/connections/salesforce/salesforce_api_client.d.ts",
+      "import": "./dist/platform/connections/salesforce/salesforce_api_client.js"
+    },
+    "./platform/connections/salesforce/salesforce_api_client_mock": {
+      "@akohn/source": "./src/platform/connections/salesforce/salesforce_api_client_mock.ts"
+    },
+    "./platform/connections/salesforce/salesforce_connection_state": {
+      "@akohn/source": "./src/platform/connections/salesforce/salesforce_connection_state.ts",
+      "types": "./dist/platform/connections/salesforce/salesforce_connection_state.d.ts",
+      "import": "./dist/platform/connections/salesforce/salesforce_connection_state.js"
+    },
+    "./platform/connections/trino_catalogs": {
+      "@akohn/source": "./src/platform/connections/trino_catalogs.ts",
+      "types": "./dist/platform/connections/trino_catalogs.d.ts",
+      "import": "./dist/platform/connections/trino_catalogs.js"
+    },
+    "./platform/electron_fs": {
+      "@akohn/source": "./src/platform/electron_fs.ts",
+      "types": "./dist/platform/electron_fs.d.ts",
+      "import": "./dist/platform/electron_fs.js"
+    },
+    "./platform/embedded_database": {
+      "@akohn/source": "./src/platform/embedded_database.ts",
+      "types": "./dist/platform/embedded_database.d.ts",
+      "import": "./dist/platform/embedded_database.js"
+    },
+    "./platform/file_system": {
+      "@akohn/source": "./src/platform/file_system.ts",
+      "types": "./dist/platform/file_system.d.ts",
+      "import": "./dist/platform/file_system.js"
+    },
+    "./platform/http_client": {
+      "@akohn/source": "./src/platform/http_client.ts",
+      "types": "./dist/platform/http_client.d.ts",
+      "import": "./dist/platform/http_client.js"
+    },
+    "./platform/hyperdb/hyperdb_arrow_insert": {
+      "@akohn/source": "./src/platform/hyperdb/hyperdb_arrow_insert.ts",
+      "types": "./dist/platform/hyperdb/hyperdb_arrow_insert.d.ts",
+      "import": "./dist/platform/hyperdb/hyperdb_arrow_insert.js"
+    },
+    "./platform/hyperdb/hyperdb_opfs_instance": {
+      "@akohn/source": "./src/platform/hyperdb/hyperdb_opfs_instance.ts",
+      "types": "./dist/platform/hyperdb/hyperdb_opfs_instance.d.ts",
+      "import": "./dist/platform/hyperdb/hyperdb_opfs_instance.js"
+    },
+    "./platform/hyperdb/hyperdb_parquet_export": {
+      "@akohn/source": "./src/platform/hyperdb/hyperdb_parquet_export.ts",
+      "types": "./dist/platform/hyperdb/hyperdb_parquet_export.d.ts",
+      "import": "./dist/platform/hyperdb/hyperdb_parquet_export.js"
+    },
+    "./platform/hyperdb/hyperdb_parquet_read": {
+      "@akohn/source": "./src/platform/hyperdb/hyperdb_parquet_read.ts",
+      "types": "./dist/platform/hyperdb/hyperdb_parquet_read.d.ts",
+      "import": "./dist/platform/hyperdb/hyperdb_parquet_read.js"
+    },
+    "./platform/hyperdb/hyperdb_settings": {
+      "@akohn/source": "./src/platform/hyperdb/hyperdb_settings.ts",
+      "types": "./dist/platform/hyperdb/hyperdb_settings.d.ts",
+      "import": "./dist/platform/hyperdb/hyperdb_settings.js"
+    },
+    "./platform/hyperdb/hyperdb_wasm": {
+      "@akohn/source": "./src/platform/hyperdb/hyperdb_wasm.ts",
+      "types": "./dist/platform/hyperdb/hyperdb_wasm.d.ts",
+      "import": "./dist/platform/hyperdb/hyperdb_wasm.js"
+    },
+    "./platform/hyperdb/hyperdb_web": {
+      "@akohn/source": "./src/platform/hyperdb/hyperdb_web.ts",
+      "types": "./dist/platform/hyperdb/hyperdb_web.d.ts",
+      "import": "./dist/platform/hyperdb/hyperdb_web.js"
+    },
+    "./platform/key_value_storage": {
+      "@akohn/source": "./src/platform/key_value_storage.ts",
+      "types": "./dist/platform/key_value_storage.d.ts",
+      "import": "./dist/platform/key_value_storage.js"
+    },
+    "./platform/logger/log_buffer": {
+      "@akohn/source": "./src/platform/logger/log_buffer.ts",
+      "types": "./dist/platform/logger/log_buffer.d.ts",
+      "import": "./dist/platform/logger/log_buffer.js"
+    },
+    "./platform/logger/logger": {
+      "@akohn/source": "./src/platform/logger/logger.ts",
+      "types": "./dist/platform/logger/logger.d.ts",
+      "import": "./dist/platform/logger/logger.js"
+    },
+    "./platform/logger/trace_context": {
+      "@akohn/source": "./src/platform/logger/trace_context.ts",
+      "types": "./dist/platform/logger/trace_context.d.ts",
+      "import": "./dist/platform/logger/trace_context.js"
+    },
+    "./platform/node/node_file_system": {
+      "@akohn/source": "./src/platform/node/node_file_system.ts",
+      "types": "./dist/platform/node/node_file_system.d.ts",
+      "import": "./dist/platform/node/node_file_system.js"
+    },
+    "./platform/oauth_flow": {
+      "@akohn/source": "./src/platform/oauth_flow.ts",
+      "types": "./dist/platform/oauth_flow.d.ts",
+      "import": "./dist/platform/oauth_flow.js"
+    },
+    "./platform/oauth_types": {
+      "@akohn/source": "./src/platform/oauth_types.ts",
+      "types": "./dist/platform/oauth_types.d.ts",
+      "import": "./dist/platform/oauth_types.js"
+    },
+    "./platform/opfs_root": {
+      "@akohn/source": "./src/platform/opfs_root.ts",
+      "types": "./dist/platform/opfs_root.d.ts",
+      "import": "./dist/platform/opfs_root.js"
+    },
+    "./platform/proto": {
+      "@akohn/source": "./src/platform/proto.ts",
+      "types": "./dist/platform/proto.d.ts",
+      "import": "./dist/platform/proto.js"
+    },
+    "./platform/query/profile_execution_state": {
+      "@akohn/source": "./src/platform/query/profile_execution_state.ts",
+      "types": "./dist/platform/query/profile_execution_state.d.ts",
+      "import": "./dist/platform/query/profile_execution_state.js"
+    },
+    "./platform/query/profile_layout_config": {
+      "@akohn/source": "./src/platform/query/profile_layout_config.ts",
+      "types": "./dist/platform/query/profile_layout_config.d.ts",
+      "import": "./dist/platform/query/profile_layout_config.js"
+    },
+    "./platform/query/profile_operator_symbol": {
+      "@akohn/source": "./src/platform/query/profile_operator_symbol.ts",
+      "types": "./dist/platform/query/profile_operator_symbol.d.ts",
+      "import": "./dist/platform/query/profile_operator_symbol.js"
+    },
+    "./platform/query/query_execution_state": {
+      "@akohn/source": "./src/platform/query/query_execution_state.ts",
+      "types": "./dist/platform/query/query_execution_state.d.ts",
+      "import": "./dist/platform/query/query_execution_state.js"
+    },
+    "./platform/query/query_progress": {
+      "@akohn/source": "./src/platform/query/query_progress.ts",
+      "types": "./dist/platform/query/query_progress.d.ts",
+      "import": "./dist/platform/query/query_progress.js"
+    },
+    "./platform/storage/composite_storage_backend": {
+      "@akohn/source": "./src/platform/storage/composite_storage_backend.ts",
+      "types": "./dist/platform/storage/composite_storage_backend.d.ts",
+      "import": "./dist/platform/storage/composite_storage_backend.js"
+    },
+    "./platform/storage/native_storage_backend": {
+      "@akohn/source": "./src/platform/storage/native_storage_backend.ts",
+      "types": "./dist/platform/storage/native_storage_backend.d.ts",
+      "import": "./dist/platform/storage/native_storage_backend.js"
+    },
+    "./platform/storage/opfs_storage_backend": {
+      "@akohn/source": "./src/platform/storage/opfs_storage_backend.ts",
+      "types": "./dist/platform/storage/opfs_storage_backend.d.ts",
+      "import": "./dist/platform/storage/opfs_storage_backend.js"
+    },
+    "./platform/storage/page_storage": {
+      "@akohn/source": "./src/platform/storage/page_storage.ts",
+      "types": "./dist/platform/storage/page_storage.d.ts",
+      "import": "./dist/platform/storage/page_storage.js"
+    },
+    "./platform/storage/storage_backend": {
+      "@akohn/source": "./src/platform/storage/storage_backend.ts",
+      "types": "./dist/platform/storage/storage_backend.d.ts",
+      "import": "./dist/platform/storage/storage_backend.js"
+    },
+    "./platform/storage/storage_migration": {
+      "@akohn/source": "./src/platform/storage/storage_migration.ts",
+      "types": "./dist/platform/storage/storage_migration.d.ts",
+      "import": "./dist/platform/storage/storage_migration.js"
+    },
+    "./platform/storage/workbook_locator": {
+      "@akohn/source": "./src/platform/storage/workbook_locator.ts",
+      "types": "./dist/platform/storage/workbook_locator.d.ts",
+      "import": "./dist/platform/storage/workbook_locator.js"
+    },
+    "./platform/storage/workbook_tables": {
+      "@akohn/source": "./src/platform/storage/workbook_tables.ts",
+      "types": "./dist/platform/storage/workbook_tables.d.ts",
+      "import": "./dist/platform/storage/workbook_tables.js"
+    },
+    "./platform/storage/workbook_transfer": {
+      "@akohn/source": "./src/platform/storage/workbook_transfer.ts",
+      "types": "./dist/platform/storage/workbook_transfer.d.ts",
+      "import": "./dist/platform/storage/workbook_transfer.js"
+    },
+    "./platform/storage/workbook_tree": {
+      "@akohn/source": "./src/platform/storage/workbook_tree.ts",
+      "types": "./dist/platform/storage/workbook_tree.d.ts",
+      "import": "./dist/platform/storage/workbook_tree.js"
+    },
+    "./platform/testing/arrow_fixtures": {
+      "@akohn/source": "./src/platform/testing/arrow_fixtures.ts"
+    },
+    "./platform/testing/column_aggregates": {
+      "@akohn/source": "./src/platform/testing/column_aggregates.ts"
+    },
+    "./platform/testing/forbid_eval": {
+      "@akohn/source": "./src/platform/testing/forbid_eval.ts"
+    },
+    "./platform/testing/memory_workbook_result_files": {
+      "@akohn/source": "./src/platform/testing/memory_workbook_result_files.ts"
+    },
+    "./platform/testing/opfs_mock": {
+      "@akohn/source": "./src/platform/testing/opfs_mock.ts"
+    },
+    "./platform/testing/test_fs_mock": {
+      "@akohn/source": "./src/platform/testing/test_fs_mock.ts"
+    },
+    "./platform/testing/test_hyperdb": {
+      "@akohn/source": "./src/platform/testing/test_hyperdb.ts"
+    },
+    "./platform/testing/test_logger": {
+      "@akohn/source": "./src/platform/testing/test_logger.ts"
+    },
+    "./platform/testing/workbook_test_backend": {
+      "@akohn/source": "./src/platform/testing/workbook_test_backend.ts"
+    },
+    "./platform/utils/arrow_vectors": {
+      "@akohn/source": "./src/platform/utils/arrow_vectors.ts",
+      "types": "./dist/platform/utils/arrow_vectors.d.ts",
+      "import": "./dist/platform/utils/arrow_vectors.js"
+    },
+    "./platform/utils/async_value": {
+      "@akohn/source": "./src/platform/utils/async_value.ts",
+      "types": "./dist/platform/utils/async_value.d.ts",
+      "import": "./dist/platform/utils/async_value.js"
+    },
+    "./platform/utils/base64": {
+      "@akohn/source": "./src/platform/utils/base64.ts",
+      "types": "./dist/platform/utils/base64.d.ts",
+      "import": "./dist/platform/utils/base64.js"
+    },
+    "./platform/utils/sleep": {
+      "@akohn/source": "./src/platform/utils/sleep.ts",
+      "types": "./dist/platform/utils/sleep.d.ts",
+      "import": "./dist/platform/utils/sleep.js"
+    },
+    "./platform/utils/sql_quote": {
+      "@akohn/source": "./src/platform/utils/sql_quote.ts",
+      "types": "./dist/platform/utils/sql_quote.d.ts",
+      "import": "./dist/platform/utils/sql_quote.js"
+    },
+    "./platform/utils/variant": {
+      "@akohn/source": "./src/platform/utils/variant.ts",
+      "types": "./dist/platform/utils/variant.d.ts",
+      "import": "./dist/platform/utils/variant.js"
+    },
+    "./platform/utils/yield_to_browser": {
+      "@akohn/source": "./src/platform/utils/yield_to_browser.ts",
+      "types": "./dist/platform/utils/yield_to_browser.d.ts",
+      "import": "./dist/platform/utils/yield_to_browser.js"
+    },
+    "./platform/web_http_client": {
+      "@akohn/source": "./src/platform/web_http_client.ts",
+      "types": "./dist/platform/web_http_client.d.ts",
+      "import": "./dist/platform/web_http_client.js"
+    },
+    "./platform/workbook/attachment_mounts": {
+      "@akohn/source": "./src/platform/workbook/attachment_mounts.ts",
+      "types": "./dist/platform/workbook/attachment_mounts.d.ts",
+      "import": "./dist/platform/workbook/attachment_mounts.js"
+    },
+    "./platform/workbook/chart_config": {
+      "@akohn/source": "./src/platform/workbook/chart_config.ts",
+      "types": "./dist/platform/workbook/chart_config.d.ts",
+      "import": "./dist/platform/workbook/chart_config.js"
+    },
+    "./platform/workbook/kpi_reading": {
+      "@akohn/source": "./src/platform/workbook/kpi_reading.ts",
+      "types": "./dist/platform/workbook/kpi_reading.d.ts",
+      "import": "./dist/platform/workbook/kpi_reading.js"
+    },
+    "./platform/workbook/run_events": {
+      "@akohn/source": "./src/platform/workbook/run_events.ts",
+      "types": "./dist/platform/workbook/run_events.d.ts",
+      "import": "./dist/platform/workbook/run_events.js"
+    },
+    "./platform/workbook/script_editor_state": {
+      "@akohn/source": "./src/platform/workbook/script_editor_state.ts",
+      "types": "./dist/platform/workbook/script_editor_state.d.ts",
+      "import": "./dist/platform/workbook/script_editor_state.js"
+    },
+    "./platform/workbook/script_reference_check": {
+      "@akohn/source": "./src/platform/workbook/script_reference_check.ts",
+      "types": "./dist/platform/workbook/script_reference_check.d.ts",
+      "import": "./dist/platform/workbook/script_reference_check.js"
+    },
+    "./platform/workbook/script_types": {
+      "@akohn/source": "./src/platform/workbook/script_types.ts",
+      "types": "./dist/platform/workbook/script_types.d.ts",
+      "import": "./dist/platform/workbook/script_types.js"
+    },
+    "./platform/workbook/workbook_inputs": {
+      "@akohn/source": "./src/platform/workbook/workbook_inputs.ts",
+      "types": "./dist/platform/workbook/workbook_inputs.d.ts",
+      "import": "./dist/platform/workbook/workbook_inputs.js"
+    },
+    "./platform/workbook/workbook_result_files": {
+      "@akohn/source": "./src/platform/workbook/workbook_result_files.ts",
+      "types": "./dist/platform/workbook/workbook_result_files.d.ts",
+      "import": "./dist/platform/workbook/workbook_result_files.js"
+    },
+    "./platform/workbook/workbook_scripts": {
+      "@akohn/source": "./src/platform/workbook/workbook_scripts.ts",
+      "types": "./dist/platform/workbook/workbook_scripts.d.ts",
+      "import": "./dist/platform/workbook/workbook_scripts.js"
+    },
+    "./platform/workbook/workbook_zip": {
+      "@akohn/source": "./src/platform/workbook/workbook_zip.ts",
+      "types": "./dist/platform/workbook/workbook_zip.d.ts",
+      "import": "./dist/platform/workbook/workbook_zip.js"
+    },
+    "./runtime/embedded_channels": {
+      "@akohn/source": "./src/runtime/embedded_channels.ts",
+      "types": "./dist/runtime/embedded_channels.d.ts",
+      "import": "./dist/runtime/embedded_channels.js"
+    },
+    "./runtime/embedded_session": {
+      "@akohn/source": "./src/runtime/embedded_session.ts",
+      "types": "./dist/runtime/embedded_session.d.ts",
+      "import": "./dist/runtime/embedded_session.js"
+    },
+    "./runtime/runtime_storage": {
+      "@akohn/source": "./src/runtime/runtime_storage.ts",
+      "types": "./dist/runtime/runtime_storage.d.ts",
+      "import": "./dist/runtime/runtime_storage.js"
+    },
+    "./runtime/store/runtime_store": {
+      "@akohn/source": "./src/runtime/store/runtime_store.ts",
+      "types": "./dist/runtime/store/runtime_store.d.ts",
+      "import": "./dist/runtime/store/runtime_store.js"
+    },
+    "./runtime/store/update_scheduler": {
+      "@akohn/source": "./src/runtime/store/update_scheduler.ts",
+      "types": "./dist/runtime/store/update_scheduler.d.ts",
+      "import": "./dist/runtime/store/update_scheduler.js"
+    },
+    "./runtime/testing/connection_fixtures": {
+      "@akohn/source": "./src/runtime/testing/connection_fixtures.ts"
+    },
+    "./runtime/testing/test_runtime": {
+      "@akohn/source": "./src/runtime/testing/test_runtime.ts"
+    },
+    "./runtime/workbook_archives": {
+      "@akohn/source": "./src/runtime/workbook_archives.ts",
+      "types": "./dist/runtime/workbook_archives.d.ts",
+      "import": "./dist/runtime/workbook_archives.js"
+    },
+    "./runtime/workbook_run_report": {
+      "@akohn/source": "./src/runtime/workbook_run_report.ts",
+      "types": "./dist/runtime/workbook_run_report.d.ts",
+      "import": "./dist/runtime/workbook_run_report.js"
+    }
   }
 }

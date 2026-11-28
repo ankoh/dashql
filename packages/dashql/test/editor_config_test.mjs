@@ -32,20 +32,6 @@ for (const name of ['@akohn/dashql-protobuf', '@akohn/dashql-jsonschema', '@akoh
     }
 }
 
-// The source package exports what the package on npm exports, and the root tsconfig.json maps it
-const sourceExports = Object.keys(JSON.parse(readFileSync(join(PACKAGE, 'package.json'), 'utf8')).exports ?? {});
-const npmExports = Object.keys(JSON.parse(readFileSync(join(PACKAGE, 'npm', 'package.json'), 'utf8')).exports ?? {});
-for (const name of npmExports) {
-    if (!sourceExports.includes(name)) violations.push(`package.json doesn't export ${name} of npm/package.json`);
-}
-for (const name of sourceExports) {
-    if (!npmExports.includes(name)) violations.push(`npm/package.json doesn't export ${name} of package.json`);
-    const specifier = name === '.' ? '@akohn/dashql' : `@akohn/dashql/${name.slice(2)}`;
-    // The Wasm files resolve through the package, editors import no module of them
-    if (!specifier.includes('wasm') && !specifier.endsWith('batch-worker') && !(specifier in rootPathMap)) {
-        violations.push(`the root tsconfig.json doesn't map ${specifier}`);
-    }
-}
 const rootPackage = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
 const dependencies = new Set([...Object.keys(rootPackage.dependencies ?? {}), ...Object.keys(rootPackage.devDependencies ?? {})]);
 
@@ -66,6 +52,14 @@ function modules(dir) {
         const path = `${dir}/${entry.name}`;
         return entry.isDirectory() ? modules(path) : entry.name.endsWith('.ts') ? [path] : [];
     });
+}
+// The root tsconfig.json maps every export of the package
+for (const name of Object.keys(JSON.parse(readFileSync(join(PACKAGE, 'package.json'), 'utf8')).exports)) {
+    const specifier = name === '.' ? '@akohn/dashql' : `@akohn/dashql/${name.slice(2)}`;
+    // The Wasm files resolve through the package, editors import no module of them
+    if (!specifier.includes('wasm') && !specifier.endsWith('batch-worker') && !mapped(specifier)) {
+        violations.push(`the root tsconfig.json doesn't map ${specifier}`);
+    }
 }
 for (const file of modules('src')) {
     for (const [, specifier] of readFileSync(join(PACKAGE, file), 'utf8').matchAll(IMPORT)) {

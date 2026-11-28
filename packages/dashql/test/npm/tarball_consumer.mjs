@@ -14,6 +14,15 @@ const pkg = join(tests, '..', '..');
 const consumer = await mkdtemp(join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-consumer-'));
 const env = { ...process.env, NODE_PATH: '', NODE_OPTIONS: '' };
 
+/// The exports of the package on npm: those of the source package without the condition of the sources
+function publishedExports(exports) {
+    return Object.fromEntries(Object.entries(exports).flatMap(([subpath, target]) => {
+        if (typeof target === 'string') return [[subpath, target]];
+        const { '@akohn/source': _, ...published } = target;
+        return Object.keys(published).length > 0 ? [[subpath, published]] : [];
+    }));
+}
+
 try {
     const packageDir = join(consumer, 'node_modules/@akohn/dashql');
     const tarball = await readFile(join(pkg, 'dashql.tgz'));
@@ -49,20 +58,16 @@ try {
     assert.deepEqual((await readdir(packageDir)).sort(), ['LICENSE', 'NOTICE', 'README.md', 'dist', 'package.json']);
     assert.ok([...paths].every(path => !/\.test\.|test_fixture|\/testing\/|\/node_modules\//.test(path)));
     const metadata = JSON.parse(await readFile(join(packageDir, 'package.json'), 'utf8'));
-    // The manifest of npm/package.json with the npm version of the build (:npm_manifest) and the modules that
-    // package.json exports, nothing else changed
+    // The manifest of npm/package.json with the npm version of the build (:npm_manifest) and the exports of
+    // package.json, nothing else changed
     assert.deepEqual(metadata, JSON.parse(await readFile(join(pkg, 'npm_files/package.json'), 'utf8')));
     const source = JSON.parse(await readFile(join(pkg, 'npm/package.json'), 'utf8'));
     assert.deepEqual(metadata, { ...source, version: metadata.version, exports: metadata.exports });
-    // The exports: the files of npm/package.json, then the modules of the source package without the tests, their
-    // helpers and mocks, each with its JavaScript and declarations
+    // The exports of package.json without the sources, every file of them in the archive
     const workspace = JSON.parse(await readFile(join(pkg, 'package.json'), 'utf8'));
-    const modules = Object.entries(workspace.exports)
-        .filter(([, file]) => file.startsWith('./src/') && !/\/testing\/|_mock\.ts$/.test(file))
-        .map(([subpath]) => subpath);
-    assert.deepEqual(Object.keys(metadata.exports), [...Object.keys(source.exports), ...modules]);
-    for (const subpath of modules) {
-        for (const file of Object.values(metadata.exports[subpath])) {
+    assert.deepEqual(metadata.exports, publishedExports(workspace.exports));
+    for (const [subpath, target] of Object.entries(metadata.exports)) {
+        for (const file of typeof target === 'string' ? [target] : Object.values(target)) {
             assert.ok(paths.has(`package/${file.slice(2)}`), `${subpath} exports the missing ${file}`);
         }
     }

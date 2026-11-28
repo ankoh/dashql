@@ -1,5 +1,8 @@
 {
   "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "customConditions": ["@akohn/source"]
+  },
   "include": [".astro/types.d.ts", "src/**/*"],
   "exclude": ["pages"]
 }

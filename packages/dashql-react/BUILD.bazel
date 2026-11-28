@@ -183,12 +183,9 @@ genrule(
 )
 
 # The manifest on npm, npm/package.json with the version of the build (DASHQL_VERSION_NPM) like the one of @akohn/dashql,
-# which it takes as a peer of exactly that version: the views of the runtime change with it. Its exports are the
-# modules that package.json exports
-npm_manifest(
-    name = "npm_manifest",
-    modules = _MODULES,
-)
+# which it takes as a peer of exactly that version: the views of the runtime change with it. Its exports are those of
+# package.json without the sources (`@akohn/source`)
+npm_manifest(name = "npm_manifest")
 
 npm_package(
     name = "npm_dist_package",

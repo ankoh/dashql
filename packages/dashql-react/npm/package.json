@@ -13,12 +13,6 @@
   "homepage": "https://github.com/ankoh/dashql/tree/main/packages/dashql-react#readme",
   "bugs": { "url": "https://github.com/ankoh/dashql/issues" },
   "sideEffects": ["*.css"],
-  "exports": {
-    "./style.css": "./dist/style.css",
-    "./symbols.svg": "./dist/symbols.svg",
-    "./fonts/*.css": "./fonts/*.css",
-    "./styles/*.css": "./styles/*.css"
-  },
   "files": ["dist", "fonts", "styles", "README.md", "LICENSE", "NOTICE"],
   "dependencies": {
     "@primer/behaviors": "^1.11.0",

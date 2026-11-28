@@ -8,98 +8,454 @@
   "exports": {
     "./fonts/*.css": "./fonts/*.css",
     "./styles/*.css": "./styles/*.css",
-    "./components/banner_page.module.css": "./src/components/banner_page.module.css",
-    "./components/graph.module.css": "./src/components/graph.module.css",
-    "./components/query_profile/query_profile_view.module.css": "./src/components/query_profile/query_profile_view.module.css",
-    "./components/query_result/cell_detail_overlay.module.css": "./src/components/query_result/cell_detail_overlay.module.css",
-    "./brand/brand": "./src/brand/brand.ts",
-    "./brand/landing_backdrop": "./src/brand/landing_backdrop.ts",
-    "./brand/wobble_morph": "./src/brand/wobble_morph.ts",
-    "./components/action_list": "./src/components/action_list.tsx",
-    "./components/anchored_overlay": "./src/components/anchored_overlay.tsx",
-    "./components/button": "./src/components/button.tsx",
-    "./components/button_group": "./src/components/button_group.tsx",
-    "./components/card_placeholder": "./src/components/card_placeholder.tsx",
-    "./components/clipboard": "./src/components/clipboard.tsx",
-    "./components/data_table/data_table": "./src/components/data_table/data_table.tsx",
-    "./components/deferred": "./src/components/deferred.tsx",
-    "./components/error_boundary": "./src/components/error_boundary.tsx",
-    "./components/graph_port": "./src/components/graph_port.tsx",
-    "./components/inspector_overlay": "./src/components/inspector_overlay.tsx",
-    "./components/json/json_view": "./src/components/json/json_view.tsx",
-    "./components/keyvalue_list": "./src/components/keyvalue_list.tsx",
-    "./components/name_input": "./src/components/name_input.tsx",
-    "./components/overlay": "./src/components/overlay.tsx",
-    "./components/panel_resize_handle": "./src/components/panel_resize_handle.tsx",
-    "./components/portal": "./src/components/portal.tsx",
-    "./components/progress_bar": "./src/components/progress_bar.tsx",
-    "./components/query_history_viewer": "./src/components/query_history_viewer.tsx",
-    "./components/query_profile/engine_profile_view": "./src/components/query_profile/engine_profile_view.tsx",
-    "./components/query_profile/query_profile_view": "./src/components/query_profile/query_profile_view.tsx",
-    "./components/query_progress/query_progress_panel": "./src/components/query_progress/query_progress_panel.tsx",
-    "./components/query_result/cell_detail_overlay": "./src/components/query_result/cell_detail_overlay.tsx",
-    "./components/query_result/query_result_action_menu": "./src/components/query_result/query_result_action_menu.tsx",
-    "./components/query_result/query_result_details": "./src/components/query_result/query_result_details.tsx",
-    "./components/query_result/query_result_download_button": "./src/components/query_result/query_result_download_button.tsx",
-    "./components/query_result/query_result_header": "./src/components/query_result/query_result_header.tsx",
-    "./components/query_result/query_result_toolbar": "./src/components/query_result/query_result_toolbar.tsx",
-    "./components/query_result/result_table_overlay": "./src/components/query_result/result_table_overlay.tsx",
-    "./components/segmented_control": "./src/components/segmented_control.tsx",
-    "./components/size_observer": "./src/components/size_observer.tsx",
-    "./components/skeleton": "./src/components/skeleton.tsx",
-    "./components/status_indicator": "./src/components/status_indicator.tsx",
-    "./components/symbol_icon": "./src/components/symbol_icon.tsx",
-    "./components/tab_header": "./src/components/tab_header.tsx",
-    "./components/tag": "./src/components/tag.tsx",
-    "./components/text_field": "./src/components/text_field.tsx",
-    "./components/text_input": "./src/components/text_input.tsx",
-    "./components/text_input_action": "./src/components/text_input_action.tsx",
-    "./components/toggle_switch": "./src/components/toggle_switch.tsx",
-    "./components/tooltip": "./src/components/tooltip.tsx",
-    "./components/tree_entry": "./src/components/tree_entry.tsx",
-    "./components/value_list": "./src/components/value_list.tsx",
-    "./components/vegalite_chart": "./src/components/vegalite_chart.tsx",
-    "./components/vegalite_view": "./src/components/vegalite_view.tsx",
-    "./components/vertical_scroll_shadows": "./src/components/vertical_scroll_shadows.tsx",
-    "./components/vertical_split": "./src/components/vertical_split.tsx",
-    "./components/vertical_tabs": "./src/components/vertical_tabs.tsx",
-    "./components/visualization/chart_download_button": "./src/components/visualization/chart_download_button.tsx",
-    "./components/visualization/markdown_view": "./src/components/visualization/markdown_view.tsx",
-    "./components/visualization/result_rows": "./src/components/visualization/result_rows.tsx",
-    "./components/visualization/visualization_dispatch": "./src/components/visualization/visualization_dispatch.tsx",
-    "./components/visualization/visualization_panel": "./src/components/visualization/visualization_panel.tsx",
-    "./dom/anchored_position": "./src/dom/anchored_position.ts",
-    "./dom/app_host": "./src/dom/app_host.ts",
-    "./dom/calm_frames": "./src/dom/calm_frames.ts",
-    "./dom/classnames": "./src/dom/classnames.ts",
-    "./dom/focus": "./src/dom/focus.ts",
-    "./dom/key_events": "./src/dom/key_events.ts",
-    "./dom/media_query": "./src/dom/media_query.ts",
-    "./dom/row_context_menu": "./src/dom/row_context_menu.ts",
-    "./dom/scrollbar": "./src/dom/scrollbar.ts",
-    "./format/format": "./src/format/format.ts",
-    "./format/query_progress_format": "./src/format/query_progress_format.ts",
-    "./format/time_format": "./src/format/time_format.ts",
-    "./hooks": "./src/hooks.ts",
-    "./host": "./src/host.ts",
-    "./logger": "./src/logger.ts",
-    "./models/computation_model": "./src/models/computation_model.ts",
-    "./models/query_model": "./src/models/query_model.ts",
-    "./models/script_model": "./src/models/script_model.ts",
-    "./platform/core_provider": "./src/platform/core_provider.ts",
-    "./platform/embedded_database_provider": "./src/platform/embedded_database_provider.ts",
-    "./platform/page_runtime": "./src/platform/page_runtime.ts",
-    "./testing/computation_mocks": "./src/testing/computation_mocks.ts",
-    "./testing/fake_models": "./src/testing/fake_models.ts",
-    "./testing/react_act": "./src/testing/react_act.ts",
-    "./testing/react_root": "./src/testing/react_root.ts",
-    "./testing/resize_observer_mock": "./src/testing/resize_observer_mock.ts",
-    "./theme/color_scheme": "./src/theme/color_scheme.ts",
-    "./theme/xcode_palette": "./src/theme/xcode_palette.ts",
-    "./utils/plan_engine": "./src/utils/plan_engine.ts",
-    "./vegalite/vegalite_check": "./src/vegalite/vegalite_check.ts",
-    "./vegalite/vegalite_image": "./src/vegalite/vegalite_image.ts",
-    "./vegalite/vegalite_rows": "./src/vegalite/vegalite_rows.ts",
-    "./vegalite/vegalite_theme": "./src/vegalite/vegalite_theme.ts"
+    "./style.css": "./dist/style.css",
+    "./symbols.svg": "./dist/symbols.svg",
+    "./components/banner_page.module.css": {
+      "@akohn/source": "./src/components/banner_page.module.css"
+    },
+    "./components/graph.module.css": {
+      "@akohn/source": "./src/components/graph.module.css"
+    },
+    "./components/query_profile/query_profile_view.module.css": {
+      "@akohn/source": "./src/components/query_profile/query_profile_view.module.css"
+    },
+    "./components/query_result/cell_detail_overlay.module.css": {
+      "@akohn/source": "./src/components/query_result/cell_detail_overlay.module.css"
+    },
+    "./brand/brand": {
+      "@akohn/source": "./src/brand/brand.ts",
+      "types": "./dist/brand/brand.d.ts",
+      "import": "./dist/brand/brand.js"
+    },
+    "./brand/landing_backdrop": {
+      "@akohn/source": "./src/brand/landing_backdrop.ts",
+      "types": "./dist/brand/landing_backdrop.d.ts",
+      "import": "./dist/brand/landing_backdrop.js"
+    },
+    "./brand/wobble_morph": {
+      "@akohn/source": "./src/brand/wobble_morph.ts",
+      "types": "./dist/brand/wobble_morph.d.ts",
+      "import": "./dist/brand/wobble_morph.js"
+    },
+    "./components/action_list": {
+      "@akohn/source": "./src/components/action_list.tsx",
+      "types": "./dist/components/action_list.d.ts",
+      "import": "./dist/components/action_list.js"
+    },
+    "./components/anchored_overlay": {
+      "@akohn/source": "./src/components/anchored_overlay.tsx",
+      "types": "./dist/components/anchored_overlay.d.ts",
+      "import": "./dist/components/anchored_overlay.js"
+    },
+    "./components/button": {
+      "@akohn/source": "./src/components/button.tsx",
+      "types": "./dist/components/button.d.ts",
+      "import": "./dist/components/button.js"
+    },
+    "./components/button_group": {
+      "@akohn/source": "./src/components/button_group.tsx",
+      "types": "./dist/components/button_group.d.ts",
+      "import": "./dist/components/button_group.js"
+    },
+    "./components/card_placeholder": {
+      "@akohn/source": "./src/components/card_placeholder.tsx",
+      "types": "./dist/components/card_placeholder.d.ts",
+      "import": "./dist/components/card_placeholder.js"
+    },
+    "./components/clipboard": {
+      "@akohn/source": "./src/components/clipboard.tsx",
+      "types": "./dist/components/clipboard.d.ts",
+      "import": "./dist/components/clipboard.js"
+    },
+    "./components/data_table/data_table": {
+      "@akohn/source": "./src/components/data_table/data_table.tsx",
+      "types": "./dist/components/data_table/data_table.d.ts",
+      "import": "./dist/components/data_table/data_table.js"
+    },
+    "./components/deferred": {
+      "@akohn/source": "./src/components/deferred.tsx",
+      "types": "./dist/components/deferred.d.ts",
+      "import": "./dist/components/deferred.js"
+    },
+    "./components/error_boundary": {
+      "@akohn/source": "./src/components/error_boundary.tsx",
+      "types": "./dist/components/error_boundary.d.ts",
+      "import": "./dist/components/error_boundary.js"
+    },
+    "./components/graph_port": {
+      "@akohn/source": "./src/components/graph_port.tsx",
+      "types": "./dist/components/graph_port.d.ts",
+      "import": "./dist/components/graph_port.js"
+    },
+    "./components/inspector_overlay": {
+      "@akohn/source": "./src/components/inspector_overlay.tsx",
+      "types": "./dist/components/inspector_overlay.d.ts",
+      "import": "./dist/components/inspector_overlay.js"
+    },
+    "./components/json/json_view": {
+      "@akohn/source": "./src/components/json/json_view.tsx",
+      "types": "./dist/components/json/json_view.d.ts",
+      "import": "./dist/components/json/json_view.js"
+    },
+    "./components/keyvalue_list": {
+      "@akohn/source": "./src/components/keyvalue_list.tsx",
+      "types": "./dist/components/keyvalue_list.d.ts",
+      "import": "./dist/components/keyvalue_list.js"
+    },
+    "./components/name_input": {
+      "@akohn/source": "./src/components/name_input.tsx",
+      "types": "./dist/components/name_input.d.ts",
+      "import": "./dist/components/name_input.js"
+    },
+    "./components/overlay": {
+      "@akohn/source": "./src/components/overlay.tsx",
+      "types": "./dist/components/overlay.d.ts",
+      "import": "./dist/components/overlay.js"
+    },
+    "./components/panel_resize_handle": {
+      "@akohn/source": "./src/components/panel_resize_handle.tsx",
+      "types": "./dist/components/panel_resize_handle.d.ts",
+      "import": "./dist/components/panel_resize_handle.js"
+    },
+    "./components/portal": {
+      "@akohn/source": "./src/components/portal.tsx",
+      "types": "./dist/components/portal.d.ts",
+      "import": "./dist/components/portal.js"
+    },
+    "./components/progress_bar": {
+      "@akohn/source": "./src/components/progress_bar.tsx",
+      "types": "./dist/components/progress_bar.d.ts",
+      "import": "./dist/components/progress_bar.js"
+    },
+    "./components/query_history_viewer": {
+      "@akohn/source": "./src/components/query_history_viewer.tsx",
+      "types": "./dist/components/query_history_viewer.d.ts",
+      "import": "./dist/components/query_history_viewer.js"
+    },
+    "./components/query_profile/engine_profile_view": {
+      "@akohn/source": "./src/components/query_profile/engine_profile_view.tsx",
+      "types": "./dist/components/query_profile/engine_profile_view.d.ts",
+      "import": "./dist/components/query_profile/engine_profile_view.js"
+    },
+    "./components/query_profile/query_profile_view": {
+      "@akohn/source": "./src/components/query_profile/query_profile_view.tsx",
+      "types": "./dist/components/query_profile/query_profile_view.d.ts",
+      "import": "./dist/components/query_profile/query_profile_view.js"
+    },
+    "./components/query_progress/query_progress_panel": {
+      "@akohn/source": "./src/components/query_progress/query_progress_panel.tsx",
+      "types": "./dist/components/query_progress/query_progress_panel.d.ts",
+      "import": "./dist/components/query_progress/query_progress_panel.js"
+    },
+    "./components/query_result/cell_detail_overlay": {
+      "@akohn/source": "./src/components/query_result/cell_detail_overlay.tsx",
+      "types": "./dist/components/query_result/cell_detail_overlay.d.ts",
+      "import": "./dist/components/query_result/cell_detail_overlay.js"
+    },
+    "./components/query_result/query_result_action_menu": {
+      "@akohn/source": "./src/components/query_result/query_result_action_menu.tsx",
+      "types": "./dist/components/query_result/query_result_action_menu.d.ts",
+      "import": "./dist/components/query_result/query_result_action_menu.js"
+    },
+    "./components/query_result/query_result_details": {
+      "@akohn/source": "./src/components/query_result/query_result_details.tsx",
+      "types": "./dist/components/query_result/query_result_details.d.ts",
+      "import": "./dist/components/query_result/query_result_details.js"
+    },
+    "./components/query_result/query_result_download_button": {
+      "@akohn/source": "./src/components/query_result/query_result_download_button.tsx",
+      "types": "./dist/components/query_result/query_result_download_button.d.ts",
+      "import": "./dist/components/query_result/query_result_download_button.js"
+    },
+    "./components/query_result/query_result_header": {
+      "@akohn/source": "./src/components/query_result/query_result_header.tsx",
+      "types": "./dist/components/query_result/query_result_header.d.ts",
+      "import": "./dist/components/query_result/query_result_header.js"
+    },
+    "./components/query_result/query_result_toolbar": {
+      "@akohn/source": "./src/components/query_result/query_result_toolbar.tsx",
+      "types": "./dist/components/query_result/query_result_toolbar.d.ts",
+      "import": "./dist/components/query_result/query_result_toolbar.js"
+    },
+    "./components/query_result/result_table_overlay": {
+      "@akohn/source": "./src/components/query_result/result_table_overlay.tsx",
+      "types": "./dist/components/query_result/result_table_overlay.d.ts",
+      "import": "./dist/components/query_result/result_table_overlay.js"
+    },
+    "./components/segmented_control": {
+      "@akohn/source": "./src/components/segmented_control.tsx",
+      "types": "./dist/components/segmented_control.d.ts",
+      "import": "./dist/components/segmented_control.js"
+    },
+    "./components/size_observer": {
+      "@akohn/source": "./src/components/size_observer.tsx",
+      "types": "./dist/components/size_observer.d.ts",
+      "import": "./dist/components/size_observer.js"
+    },
+    "./components/skeleton": {
+      "@akohn/source": "./src/components/skeleton.tsx",
+      "types": "./dist/components/skeleton.d.ts",
+      "import": "./dist/components/skeleton.js"
+    },
+    "./components/status_indicator": {
+      "@akohn/source": "./src/components/status_indicator.tsx",
+      "types": "./dist/components/status_indicator.d.ts",
+      "import": "./dist/components/status_indicator.js"
+    },
+    "./components/symbol_icon": {
+      "@akohn/source": "./src/components/symbol_icon.tsx",
+      "types": "./dist/components/symbol_icon.d.ts",
+      "import": "./dist/components/symbol_icon.js"
+    },
+    "./components/tab_header": {
+      "@akohn/source": "./src/components/tab_header.tsx",
+      "types": "./dist/components/tab_header.d.ts",
+      "import": "./dist/components/tab_header.js"
+    },
+    "./components/tag": {
+      "@akohn/source": "./src/components/tag.tsx",
+      "types": "./dist/components/tag.d.ts",
+      "import": "./dist/components/tag.js"
+    },
+    "./components/text_field": {
+      "@akohn/source": "./src/components/text_field.tsx",
+      "types": "./dist/components/text_field.d.ts",
+      "import": "./dist/components/text_field.js"
+    },
+    "./components/text_input": {
+      "@akohn/source": "./src/components/text_input.tsx",
+      "types": "./dist/components/text_input.d.ts",
+      "import": "./dist/components/text_input.js"
+    },
+    "./components/text_input_action": {
+      "@akohn/source": "./src/components/text_input_action.tsx",
+      "types": "./dist/components/text_input_action.d.ts",
+      "import": "./dist/components/text_input_action.js"
+    },
+    "./components/toggle_switch": {
+      "@akohn/source": "./src/components/toggle_switch.tsx",
+      "types": "./dist/components/toggle_switch.d.ts",
+      "import": "./dist/components/toggle_switch.js"
+    },
+    "./components/tooltip": {
+      "@akohn/source": "./src/components/tooltip.tsx",
+      "types": "./dist/components/tooltip.d.ts",
+      "import": "./dist/components/tooltip.js"
+    },
+    "./components/tree_entry": {
+      "@akohn/source": "./src/components/tree_entry.tsx",
+      "types": "./dist/components/tree_entry.d.ts",
+      "import": "./dist/components/tree_entry.js"
+    },
+    "./components/value_list": {
+      "@akohn/source": "./src/components/value_list.tsx",
+      "types": "./dist/components/value_list.d.ts",
+      "import": "./dist/components/value_list.js"
+    },
+    "./components/vegalite_chart": {
+      "@akohn/source": "./src/components/vegalite_chart.tsx",
+      "types": "./dist/components/vegalite_chart.d.ts",
+      "import": "./dist/components/vegalite_chart.js"
+    },
+    "./components/vegalite_view": {
+      "@akohn/source": "./src/components/vegalite_view.tsx",
+      "types": "./dist/components/vegalite_view.d.ts",
+      "import": "./dist/components/vegalite_view.js"
+    },
+    "./components/vertical_scroll_shadows": {
+      "@akohn/source": "./src/components/vertical_scroll_shadows.tsx",
+      "types": "./dist/components/vertical_scroll_shadows.d.ts",
+      "import": "./dist/components/vertical_scroll_shadows.js"
+    },
+    "./components/vertical_split": {
+      "@akohn/source": "./src/components/vertical_split.tsx",
+      "types": "./dist/components/vertical_split.d.ts",
+      "import": "./dist/components/vertical_split.js"
+    },
+    "./components/vertical_tabs": {
+      "@akohn/source": "./src/components/vertical_tabs.tsx",
+      "types": "./dist/components/vertical_tabs.d.ts",
+      "import": "./dist/components/vertical_tabs.js"
+    },
+    "./components/visualization/chart_download_button": {
+      "@akohn/source": "./src/components/visualization/chart_download_button.tsx",
+      "types": "./dist/components/visualization/chart_download_button.d.ts",
+      "import": "./dist/components/visualization/chart_download_button.js"
+    },
+    "./components/visualization/markdown_view": {
+      "@akohn/source": "./src/components/visualization/markdown_view.tsx",
+      "types": "./dist/components/visualization/markdown_view.d.ts",
+      "import": "./dist/components/visualization/markdown_view.js"
+    },
+    "./components/visualization/result_rows": {
+      "@akohn/source": "./src/components/visualization/result_rows.tsx",
+      "types": "./dist/components/visualization/result_rows.d.ts",
+      "import": "./dist/components/visualization/result_rows.js"
+    },
+    "./components/visualization/visualization_dispatch": {
+      "@akohn/source": "./src/components/visualization/visualization_dispatch.tsx",
+      "types": "./dist/components/visualization/visualization_dispatch.d.ts",
+      "import": "./dist/components/visualization/visualization_dispatch.js"
+    },
+    "./components/visualization/visualization_panel": {
+      "@akohn/source": "./src/components/visualization/visualization_panel.tsx",
+      "types": "./dist/components/visualization/visualization_panel.d.ts",
+      "import": "./dist/components/visualization/visualization_panel.js"
+    },
+    "./dom/anchored_position": {
+      "@akohn/source": "./src/dom/anchored_position.ts",
+      "types": "./dist/dom/anchored_position.d.ts",
+      "import": "./dist/dom/anchored_position.js"
+    },
+    "./dom/app_host": {
+      "@akohn/source": "./src/dom/app_host.ts",
+      "types": "./dist/dom/app_host.d.ts",
+      "import": "./dist/dom/app_host.js"
+    },
+    "./dom/calm_frames": {
+      "@akohn/source": "./src/dom/calm_frames.ts",
+      "types": "./dist/dom/calm_frames.d.ts",
+      "import": "./dist/dom/calm_frames.js"
+    },
+    "./dom/classnames": {
+      "@akohn/source": "./src/dom/classnames.ts",
+      "types": "./dist/dom/classnames.d.ts",
+      "import": "./dist/dom/classnames.js"
+    },
+    "./dom/focus": {
+      "@akohn/source": "./src/dom/focus.ts",
+      "types": "./dist/dom/focus.d.ts",
+      "import": "./dist/dom/focus.js"
+    },
+    "./dom/key_events": {
+      "@akohn/source": "./src/dom/key_events.ts",
+      "types": "./dist/dom/key_events.d.ts",
+      "import": "./dist/dom/key_events.js"
+    },
+    "./dom/media_query": {
+      "@akohn/source": "./src/dom/media_query.ts",
+      "types": "./dist/dom/media_query.d.ts",
+      "import": "./dist/dom/media_query.js"
+    },
+    "./dom/row_context_menu": {
+      "@akohn/source": "./src/dom/row_context_menu.ts",
+      "types": "./dist/dom/row_context_menu.d.ts",
+      "import": "./dist/dom/row_context_menu.js"
+    },
+    "./dom/scrollbar": {
+      "@akohn/source": "./src/dom/scrollbar.ts",
+      "types": "./dist/dom/scrollbar.d.ts",
+      "import": "./dist/dom/scrollbar.js"
+    },
+    "./format/format": {
+      "@akohn/source": "./src/format/format.ts",
+      "types": "./dist/format/format.d.ts",
+      "import": "./dist/format/format.js"
+    },
+    "./format/query_progress_format": {
+      "@akohn/source": "./src/format/query_progress_format.ts",
+      "types": "./dist/format/query_progress_format.d.ts",
+      "import": "./dist/format/query_progress_format.js"
+    },
+    "./format/time_format": {
+      "@akohn/source": "./src/format/time_format.ts",
+      "types": "./dist/format/time_format.d.ts",
+      "import": "./dist/format/time_format.js"
+    },
+    "./hooks": {
+      "@akohn/source": "./src/hooks.ts",
+      "types": "./dist/hooks.d.ts",
+      "import": "./dist/hooks.js"
+    },
+    "./host": {
+      "@akohn/source": "./src/host.ts",
+      "types": "./dist/host.d.ts",
+      "import": "./dist/host.js"
+    },
+    "./logger": {
+      "@akohn/source": "./src/logger.ts",
+      "types": "./dist/logger.d.ts",
+      "import": "./dist/logger.js"
+    },
+    "./models/computation_model": {
+      "@akohn/source": "./src/models/computation_model.ts",
+      "types": "./dist/models/computation_model.d.ts",
+      "import": "./dist/models/computation_model.js"
+    },
+    "./models/query_model": {
+      "@akohn/source": "./src/models/query_model.ts",
+      "types": "./dist/models/query_model.d.ts",
+      "import": "./dist/models/query_model.js"
+    },
+    "./models/script_model": {
+      "@akohn/source": "./src/models/script_model.ts",
+      "types": "./dist/models/script_model.d.ts",
+      "import": "./dist/models/script_model.js"
+    },
+    "./platform/core_provider": {
+      "@akohn/source": "./src/platform/core_provider.ts",
+      "types": "./dist/platform/core_provider.d.ts",
+      "import": "./dist/platform/core_provider.js"
+    },
+    "./platform/embedded_database_provider": {
+      "@akohn/source": "./src/platform/embedded_database_provider.ts",
+      "types": "./dist/platform/embedded_database_provider.d.ts",
+      "import": "./dist/platform/embedded_database_provider.js"
+    },
+    "./platform/page_runtime": {
+      "@akohn/source": "./src/platform/page_runtime.ts",
+      "types": "./dist/platform/page_runtime.d.ts",
+      "import": "./dist/platform/page_runtime.js"
+    },
+    "./testing/computation_mocks": {
+      "@akohn/source": "./src/testing/computation_mocks.ts"
+    },
+    "./testing/fake_models": {
+      "@akohn/source": "./src/testing/fake_models.ts"
+    },
+    "./testing/react_act": {
+      "@akohn/source": "./src/testing/react_act.ts"
+    },
+    "./testing/react_root": {
+      "@akohn/source": "./src/testing/react_root.ts"
+    },
+    "./testing/resize_observer_mock": {
+      "@akohn/source": "./src/testing/resize_observer_mock.ts"
+    },
+    "./theme/color_scheme": {
+      "@akohn/source": "./src/theme/color_scheme.ts",
+      "types": "./dist/theme/color_scheme.d.ts",
+      "import": "./dist/theme/color_scheme.js"
+    },
+    "./theme/xcode_palette": {
+      "@akohn/source": "./src/theme/xcode_palette.ts",
+      "types": "./dist/theme/xcode_palette.d.ts",
+      "import": "./dist/theme/xcode_palette.js"
+    },
+    "./utils/plan_engine": {
+      "@akohn/source": "./src/utils/plan_engine.ts",
+      "types": "./dist/utils/plan_engine.d.ts",
+      "import": "./dist/utils/plan_engine.js"
+    },
+    "./vegalite/vegalite_check": {
+      "@akohn/source": "./src/vegalite/vegalite_check.ts",
+      "types": "./dist/vegalite/vegalite_check.d.ts",
+      "import": "./dist/vegalite/vegalite_check.js"
+    },
+    "./vegalite/vegalite_image": {
+      "@akohn/source": "./src/vegalite/vegalite_image.ts",
+      "types": "./dist/vegalite/vegalite_image.d.ts",
+      "import": "./dist/vegalite/vegalite_image.js"
+    },
+    "./vegalite/vegalite_rows": {
+      "@akohn/source": "./src/vegalite/vegalite_rows.ts",
+      "types": "./dist/vegalite/vegalite_rows.d.ts",
+      "import": "./dist/vegalite/vegalite_rows.js"
+    },
+    "./vegalite/vegalite_theme": {
+      "@akohn/source": "./src/vegalite/vegalite_theme.ts",
+      "types": "./dist/vegalite/vegalite_theme.d.ts",
+      "import": "./dist/vegalite/vegalite_theme.js"
+    }
   }
 }
