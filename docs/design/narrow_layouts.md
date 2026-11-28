@@ -27,20 +27,20 @@ There is no gate for narrow windows. Before, a window below 800px showed a page 
 layout. The setting it wrote, `narrowScreenLayout`, stays in the schema of the app manifest so that older manifests stay
 valid, and the app no longer reads it.
 
-- **The top of a compact window** is one dark bar, the bar of the workbook (`workbook/views/workbook_views_page.tsx`,
-  `data-workbook-bar`): the stripe and the rail don't show next to it (`navbar.module.css`). It is one row of 44px:
-  the drawer, the pages of the rail (Workspace, Shell), Execute All with the indicator of its run, then at its end the
-  overlays of the stripe (the client, the version, the color scheme), the connections and the actions. The text of the
-  run shows in the bar of Wobble, Export .dashql stays in the menu of the actions. The pages of the rail and the
-  overlays render in the bar on a compact window only, the rail and the stripe have them on wider windows. The card of
-  the workbook below the bar has the rounded top corners of the card below the stripe of a wide window, the dark
-  chrome shows in them.
+- **The top of a compact window** is dark chrome in place of the stripe and the rail (`data-workbook-chrome` of
+  `workbook/views/workbook_views_page.tsx`, the stripe and the rail don't show next to it, `navbar.module.css`): the
+  drawer and the pages of the rail (Workspace, Shell) at its start, the overlays of the stripe (the client, the
+  version, the color scheme) at its end. They render there on a compact window only, the rail and the stripe have them
+  on wider windows. Below it the bar of the workbook is the top of the card with the rounded corners of the card below
+  the stripe of a wide window, one row of 44px like there: Execute All with the text of its run, the connections and
+  the actions. The views switch in the tab bar at the bottom, the bookmark of the default view and the arrows stay on
+  wider windows. Without their labels the buttons are as narrow as their icons.
 - **The bottom of a compact window** is the tab bar of the views (`WorkbookTabBar`), the light bottom of the card:
-  Feed and Console, Wobble in the middle, Board and Flow, the active view in the accent color. The face of Wobble tells the run of the workbook by a dot (running, succeeded, failed), a
+  Feed and Console, Wobble in the middle, Board and Flow, the active view in the color of the text. The face of Wobble tells the run of the workbook by a dot (running, succeeded, failed), a
   tap opens the composer over the view and closes it again; the composer shrunk into its bar doesn't show. Wider
   windows switch the views in the bar at the top and show the bar of Wobble at the bottom of the views.
-- **The shell** keeps the bar of the workbook above it on a compact window (`workbook_page.module.css`), with the pages
-  of the rail to leave it; the tab bar doesn't show. A page without that bar keeps the stripe with the pages of the
+- **The shell** keeps the dark chrome above it on a compact window (`workbook_page.module.css`), with the pages of the
+  rail to leave it; the bar of the workbook and the tab bar don't show. A page without that bar keeps the stripe with the pages of the
   rail in its middle.
 - **The workbench** opens in a drawer below the expanded width (`WorkbookNavigationDrawer`), the same component as the
   sidebar.

@@ -458,31 +458,35 @@ async function testAppDragRegions(page, navigate) {
     }
 }
 
-/// A compact window gets the app as it is (docs/design/narrow_layouts.md): the dark bar of the workbook in one row at
-/// the top of the window without the stripe, with the pages of the rail after the drawer, the views in a tab bar at
-/// the bottom, nothing wider than the window, and the workbench in a drawer
+/// A compact window gets the app as it is (docs/design/narrow_layouts.md): the dark chrome at the top of the window with
+/// the drawer and the pages of the rail instead of the stripe, the bar of the workbook below it in one row, the views in
+/// a tab bar at the bottom, nothing wider than the window, and the workbench in a drawer
 async function testAppNarrow(page, navigate) {
     await navigate('/');
     const drawerButton = page.getByTestId('open-workbench');
     await drawerButton.waitFor();
     const layout = await page.evaluate(() => {
-        const bar = document.querySelector('[data-workbook-bar]');
+        const chrome = document.querySelector('[data-workbook-chrome]');
+        const bar = document.querySelector('[data-workbook-bar]').getBoundingClientRect();
         const rails = [...document.querySelectorAll('nav[aria-label="Areas"]')].filter(rail => rail.getClientRects().length > 0);
         const tabBar = document.querySelector('[data-testid="workbook-tab-bar"]').getBoundingClientRect();
         return {
-            barTop: bar.getBoundingClientRect().top,
-            barHeight: bar.getBoundingClientRect().height,
-            railsInBar: rails.filter(rail => bar.contains(rail)).length,
-            railsElsewhere: rails.filter(rail => !bar.contains(rail)).length,
+            chromeTop: chrome.getBoundingClientRect().top,
+            chromeBottom: chrome.getBoundingClientRect().bottom,
+            barTop: bar.top,
+            barHeight: bar.height,
+            railsInChrome: rails.filter(rail => chrome.contains(rail)).length,
+            railsElsewhere: rails.filter(rail => !chrome.contains(rail)).length,
             tabBarBottom: tabBar.bottom,
             height: window.innerHeight,
             scrollWidth: document.documentElement.scrollWidth,
             width: window.innerWidth,
         };
     });
-    if (layout.barTop > 0) throw new Error(`The bar of the workbook is not at the top of the window: ${layout.barTop}px`);
+    if (layout.chromeTop > 0) throw new Error(`The chrome is not at the top of the window: ${layout.chromeTop}px`);
+    if (Math.abs(layout.barTop - layout.chromeBottom) > 1) throw new Error(`The bar of the workbook is not below the chrome: ${layout.barTop}px`);
     if (layout.barHeight > 48) throw new Error(`The bar of the workbook takes more than a row: ${layout.barHeight}px`);
-    if (layout.railsInBar !== 1 || layout.railsElsewhere > 0) throw new Error('The pages of the rail are not in the bar of the workbook alone');
+    if (layout.railsInChrome !== 1 || layout.railsElsewhere > 0) throw new Error('The pages of the rail are not in the chrome alone');
     if (Math.abs(layout.tabBarBottom - layout.height) > 1) throw new Error(`The tab bar of the views is not at the bottom: ${layout.tabBarBottom}px of ${layout.height}px`);
     if (layout.scrollWidth > layout.width) throw new Error(`The page is wider than the window: ${layout.scrollWidth}px > ${layout.width}px`);
     await drawerButton.click();

@@ -34,7 +34,7 @@
 }
 
 .tab_active {
-    color: var(--color_accent_fg);
+    color: var(--color_fg);
 }
 
 .tab_active .label {

@@ -162,6 +162,7 @@
 }
 
 /* The pages of the rail, the overlays of the stripe and the tab bar of the views show on a compact window only */
+.compact_chrome,
 .rail_pages,
 .system_actions,
 .tab_bar {
@@ -314,51 +315,63 @@
         /* The cards of the feed and the dashboard get the width of a phone, a narrow gutter keeps them apart from the
            edges */
         --page_gutter: 8px;
-        /* The bar is the top of the window, there is no stripe above the card (navbar.module.css). The dark chrome
-           shows in the rounded corners of the card below it, like below the stripe of a wide window. */
+        /* The dark chrome is the top of the window, there is no stripe (navbar.module.css). It shows in the rounded
+           corners of the card below it, like below the stripe of a wide window. */
         border-radius: 0;
         background: var(--chrome_bg_100);
-    }
-    .body_container {
-        border-radius: var(--border_radius) var(--border_radius) 0 0;
-        overflow: hidden;
-        background: var(--page_background);
+        /* The chrome, the bar of the workbook, the views, the tab bar of the views */
+        grid-template-rows: auto auto minmax(0, 1fr) auto;
     }
     .page::after {
         border: none;
     }
-    /* The bar is dark chrome like the stripe that it replaces, the tokens inside resolve dark */
-    .view_bar {
+    /* The dark chrome: the drawer and the pages of the rail at the start, the overlays of the stripe at the end */
+    .compact_chrome {
         color-scheme: dark;
         color: var(--color_fg);
-        flex-wrap: nowrap;
+        grid-row: 1;
+        grid-column: 1;
+        display: flex;
+        align-items: center;
         gap: 2px;
-        padding: 0 4px;
-        padding-top: env(safe-area-inset-top, 0px);
-        border-bottom-color: transparent;
-        background: var(--chrome_bg_100);
+        min-width: 0;
+        min-height: 44px;
+        padding: env(safe-area-inset-top, 0px) 4px 0;
     }
-    .view_bar .view_step,
-    .view_bar .view_default,
-    .view_bar .bar_separator,
-    .view_bar .export_button,
-    .view_bar .view_switch,
-    .execution_progress {
-        display: none;
+    .compact_chrome .system_actions {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        margin-left: auto;
     }
-    .view_bar .system_actions,
-    .view_bar .rail_pages {
+    .compact_chrome .rail_pages {
         display: flex;
         align-items: center;
         gap: 2px;
     }
-    /* The views and Wobble at the bottom, below the body */
-    .page {
-        grid-template-rows: auto minmax(0, 1fr) auto;
+    /* The bar of the workbook is the top of the card, like on a wide window: the execution with its status, the
+       connections and the actions. The views switch in the tab bar at the bottom. */
+    .view_bar {
+        grid-row: 2;
+        flex-wrap: nowrap;
+        gap: 4px;
+        border-radius: var(--border_radius) var(--border_radius) 0 0;
     }
+    .view_bar .view_step,
+    .view_bar .view_default,
+    .view_bar .view_switch,
+    .view_bar .bar_end > .bar_separator:has(+ .view_switch),
+    .view_bar [data-testid="workbook-workbench-group"],
+    .view_bar .start_separator {
+        display: none;
+    }
+    .body_container {
+        grid-row: 3;
+    }
+    /* The views and Wobble at the bottom, below the body */
     .tab_bar {
         display: block;
-        grid-row: 3;
+        grid-row: 4;
         grid-column: 1;
         z-index: 25;
     }
@@ -378,13 +391,17 @@
     .action_label {
         display: none;
     }
+    /* Without their labels the buttons are as narrow as their icons, Execute All too */
     .connections_group button,
-    .actions_group button {
+    .actions_group button,
+    .execution_controls > button {
         min-width: 28px;
         padding: 0 6px;
+        --button_visual_gap: 0px;
     }
     .connections_group button > span > span:first-child,
-    .actions_group button > span > span:first-child {
+    .actions_group button > span > span:first-child,
+    .execution_controls > button > span > span:first-child {
         margin-right: 0;
     }
 }

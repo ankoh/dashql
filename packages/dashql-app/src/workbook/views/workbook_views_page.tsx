@@ -394,12 +394,27 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
                     </div>
                 </main>
                 {/* After the feed in the DOM, so that no-drag rows scrolled behind the bar do not cut holes into its drag region, see docs/design/electron.md */}
+                {/* The dark chrome at the top of a compact window, in place of the stripe and the rail: the drawer, the
+                    pages of the rail and the overlays of the stripe */}
+                {compact && (
+                    <div className={styles.compact_chrome} data-workbook-chrome>
+                        <IconButton className={styles.chrome_menu_button} ref={navigationDrawerTriggerRef} variant={ButtonVariant.Default} aria-label="Open workbook workbench" data-testid="open-workbench" onClick={() => setNavigationDrawerOpen(true)}>
+                            <ThreeBarsIcon />
+                        </IconButton>
+                        <nav className={styles.rail_pages} aria-label="Areas">
+                            <NavRailPages wide={false} />
+                        </nav>
+                        <NavBarActions workbookId={props.workbookScripts.workbookId} className={`${DETACHED_NAV_BAR_ACTIONS} ${styles.system_actions}`} />
+                    </div>
+                )}
                 <header className={styles.view_bar} data-electron-drag-region data-workbook-bar>
                     {/* The groups at the start of the bar: the workbench, then the execution of the workbook */}
                     <div className={styles.bar_group} role="group" aria-label="Workbench" data-testid="workbook-workbench-group">
-                        <IconButton className={styles.mobile_menu_button} ref={navigationDrawerTriggerRef} variant={ButtonVariant.Default} aria-label="Open workbook workbench" data-testid="open-workbench" onClick={() => setNavigationDrawerOpen(true)}>
-                            <ThreeBarsIcon />
-                        </IconButton>
+                        {!compact && (
+                            <IconButton className={styles.mobile_menu_button} ref={navigationDrawerTriggerRef} variant={ButtonVariant.Default} aria-label="Open workbook workbench" data-testid="open-workbench" onClick={() => setNavigationDrawerOpen(true)}>
+                                <ThreeBarsIcon />
+                            </IconButton>
+                        )}
                         <IconButton
                             className={styles.sidebar_toggle}
                             size={ButtonSize.Small}
@@ -412,13 +427,6 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
                             {sidebarHidden ? <ExpandSidebarIcon size={16} /> : <CollapseSidebarIcon size={16} />}
                         </IconButton>
                     </div>
-                    {/* A compact window has no rail, its pages follow the drawer. Rendered there only, the rail has them
-                        on wider windows. */}
-                    {compact && (
-                        <nav className={styles.rail_pages} aria-label="Areas">
-                            <NavRailPages wide={false} />
-                        </nav>
-                    )}
                     {/* A connection overview is not part of the workbook, its controls are hidden */}
                     {!overviewActive && <>
                         {actionsShown && <BarSeparator className={styles.start_separator} />}
@@ -446,10 +454,6 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
                         {/* The groups at the end of the bar: the connections of the workbook, its actions, then its views. A
                             separator stands between two groups that show. */}
                         <div className={styles.bar_end}>
-                            {/* A compact window has no stripe, its overlays sit at the end of the bar before the actions */}
-                            {compact && (
-                                <NavBarActions workbookId={props.workbookScripts.workbookId} className={`${DETACHED_NAV_BAR_ACTIONS} ${styles.system_actions}`} />
-                            )}
                             {connectionsShown && (
                                 <div className={classNames(styles.bar_group, styles.connections_group)} role="group" aria-label="Connections" data-testid="workbook-connections-group">
                                     {/* The connections of the workbook, the user sees which one is not connected */}
