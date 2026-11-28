@@ -43,7 +43,8 @@ start with `packages/`.
 - hyperdb-edge: `wip/hyperdb_edge.md`, `wip/hyperdb_edge_stores.md`
 - Website: `agents/architecture_diagrams.md` (the style of the architecture diagrams of dashql.org, for new ones)
 - Hosts and embeds: `design/electron.md` (desktop app), `design/tauri_origin.md` (the Tauri app on loopback HTTPS
-  with a pinned certificate per launch), `design/app_csp.md`, `design/document_isolation_policy.md`,
+  with a pinned certificate per launch), `wip/tauri_migration.md` (the plan from Electron to Tauri, macOS then iOS),
+  `design/app_csp.md`, `design/document_isolation_policy.md`,
   `wip/embeds.md`, `design/slack_app.md` (deploy: `packages/dashql-slack/README.md`), `packages/dashql-mcp/README.md`,
   `design/tools.md` (pages of their own at `tools.html#/<id>`, e.g. unpacker), `reports/tauri_results.md`
   (experiments: Tauri and WKWebView with loopback HTTPS, a pinned certificate, the custom scheme, iOS memory; their
