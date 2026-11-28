@@ -354,11 +354,13 @@ export function buildDataflowScene(
     config: core.DataflowLayoutConfig,
     /// Routes the edges between boxes, the edges keep their curves without it or where it has no route
     routing: DataflowRouting | null = null,
+    /// Are the positions those of the dense layout, the tiles of a narrow canvas?
+    dense = false,
 ): DataflowScene {
     const boxes: DataflowSceneBox[] = graph.scripts.map((script, index) => {
         const p = positions[index];
         const rows = script.statements.map((statement, i) => ({ statement, y: p.y + (p.rows[i] ?? 0), input: false, output: false }));
-        const chartAt = chartStatement(script);
+        const chartAt = dense ? null : chartStatement(script);
         const chartRow = chartAt != null ? rows[chartAt] : undefined;
         const chart = chartAt == null || chartRow == null ? null : {
             x: p.x + config.rowPadding,
@@ -375,6 +377,7 @@ export function buildDataflowScene(
         return [{ input, x: p.x, y: p.y, width: p.width, height: p.height, rowY: p.y + (p.rows[0] ?? 0), output: false }];
     });
     const inputOf = new Map(inputs.map(i => [i.input.name, i]));
+    if (dense) return { boxes, inputs, edges: denseEdges(graph, boxes, inputs, routing), bounds: sceneBounds([...boxes, ...inputs]) };
 
     // The table edges of a port with the same relation are a bus: they share a straight trunk out of the port with one
     // badge on it, when the nearest target on the right leaves room for it, and curve apart after it.
@@ -518,15 +521,49 @@ export function buildDataflowScene(
         }
     }
 
+    return { boxes, inputs, edges, bounds: sceneBounds([...boxes, ...inputs]) };
+}
+
+/// The bounds of boxes
+function sceneBounds(rects: Rect[]): Rect {
     let [minX, minY, maxX, maxY] = [Infinity, Infinity, -Infinity, -Infinity];
-    for (const box of [...boxes, ...inputs]) {
+    for (const box of rects) {
         minX = Math.min(minX, box.x);
         minY = Math.min(minY, box.y);
         maxX = Math.max(maxX, box.x + box.width);
         maxY = Math.max(maxY, box.y + box.height);
     }
-    const bounds = boxes.length + inputs.length === 0 ? { x: 0, y: 0, width: 0, height: 0 } : { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-    return { boxes, inputs, edges, bounds };
+    return rects.length === 0 ? { x: 0, y: 0, width: 0, height: 0 } : { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}
+
+/// The edges between the tiles of the dense layout: from the middle of the bottom of the source to the middle of the
+/// top of the target, along the route of the layout, or a curve without one. A tile has no rows, the edges inside a
+/// box and the badges are left out, the ports of a tile are its box.
+function denseEdges(graph: DataflowGraph, boxes: DataflowSceneBox[], inputs: DataflowSceneInput[], routing: DataflowRouting | null): DataflowSceneEdge[] {
+    const boxOf = new Map(boxes.map(b => [b.script.scriptKey, b]));
+    const inputOf = new Map(inputs.map(i => [i.input.name, i]));
+    const edges: DataflowSceneEdge[] = [];
+    for (const edge of graph.edges) {
+        const to = boxOf.get(edge.to.scriptKey);
+        const from = edge.input != null ? inputOf.get(edge.input) : boxOf.get(edge.from.scriptKey);
+        if (to == null || from == null || from === to) continue;
+        if ('output' in from) from.output = true;
+        to.input = true;
+        const fromKey = edge.input != null ? nodeKeyOfInput(edge.input) : nodeKeyOfScript(edge.from.scriptKey);
+        const key = dataflowRouteKey(fromKey, edge.from.statementId, nodeKeyOfScript(edge.to.scriptKey), edge.to.statementId);
+        const start: core.DataflowPoint = [from.x + from.width / 2, from.y + from.height];
+        const end: core.DataflowPoint = [to.x + to.width / 2, to.y];
+        const laidOut = routing?.laidOut.get(key);
+        let path: string;
+        if (laidOut != null && sameRect(laidOut.from, from) && sameRect(laidOut.to, to)) {
+            path = orthogonalPath(laidOut.points, ROUTE_CORNER_RADIUS);
+        } else {
+            const d = Math.max(EDGE_CURVE, Math.abs(end[1] - start[1]) / 2);
+            path = `M ${start[0]} ${start[1]} C ${start[0]} ${start[1] + d}, ${end[0]} ${end[1] - d}, ${end[0]} ${end[1]}`;
+        }
+        edges.push({ key: edge.key, kind: edge.kind, from: edge.from, to: edge.to, input: edge.input, internal: false, path, badge: null });
+    }
+    return edges;
 }
 
 /// What is selected on the canvas: a box, or a statement of it, or an input
@@ -544,6 +581,86 @@ export function selectedEdges(scene: DataflowScene, selection: DataflowSelection
     const touches = (port: DataflowPort) => port.scriptKey === selection.scriptKey
         && (selection.statementId == null || port.statementId === selection.statementId);
     return scene.edges.filter(edge => touches(edge.from) || touches(edge.to));
+}
+
+/// The lineage of a selection: the edges, scripts and inputs that it reads, directly or through others, and those that
+/// read it. The walk follows the edges of the scene from statement to statement, so a box reads only what its
+/// statements read; a selected box starts from all its statements. Null without a selection.
+export interface DataflowLineage {
+    edges: ReadonlySet<DataflowSceneEdge>;
+    scripts: ReadonlySet<number>;
+    inputs: ReadonlySet<string>;
+}
+
+export function dataflowLineage(scene: DataflowScene, selection: DataflowSelection | null): DataflowLineage | null {
+    if (selection == null) return null;
+    const sourceOf = (edge: DataflowSceneEdge) => (edge.input != null ? `:${edge.input}` : `${edge.from.scriptKey}.${edge.from.statementId}`);
+    const targetOf = (edge: DataflowSceneEdge) => `${edge.to.scriptKey}.${edge.to.statementId}`;
+    const selected = (port: string) => (selection.input != null
+        ? port === `:${selection.input}`
+        : selection.statementId != null
+          ? port === `${selection.scriptKey}.${selection.statementId}`
+          : port.startsWith(`${selection.scriptKey}.`));
+    const edges = new Set<DataflowSceneEdge>();
+    const reached = new Set<string>();
+    // Downstream along the edges, then upstream against them, until nothing new is reached
+    for (const [near, far] of [[sourceOf, targetOf], [targetOf, sourceOf]] as const) {
+        const walked = new Set<string>();
+        let grown = true;
+        while (grown) {
+            grown = false;
+            for (const edge of scene.edges) {
+                const at = near(edge);
+                if (!selected(at) && !walked.has(at)) continue;
+                edges.add(edge);
+                const next = far(edge);
+                if (!walked.has(next)) {
+                    walked.add(next);
+                    grown = true;
+                }
+            }
+        }
+        for (const port of walked) reached.add(port);
+    }
+    const scripts = new Set<number>();
+    const inputs = new Set<string>();
+    if (selection.input != null) inputs.add(selection.input);
+    else scripts.add(selection.scriptKey);
+    for (const port of reached) {
+        if (port.startsWith(':')) inputs.add(port.slice(1));
+        else scripts.add(Number(port.slice(0, port.indexOf('.'))));
+    }
+    return { edges, scripts, inputs };
+}
+
+/// The neighbors of a script or an input on the canvas: the scripts and inputs that it reads directly and the scripts
+/// that read it, in the order of the edges, each once
+export interface DataflowNeighbors {
+    reads: DataflowNeighbor[];
+    readBy: DataflowNeighbor[];
+}
+
+/// A script by its key, or an input by its name
+export type DataflowNeighbor = { scriptKey: number; input?: undefined } | { input: string; scriptKey?: undefined };
+
+export function dataflowNeighbors(scene: DataflowScene, node: { scriptKey: number } | { input: string }): DataflowNeighbors {
+    const reads: DataflowNeighbor[] = [];
+    const readBy: DataflowNeighbor[] = [];
+    const seen = new Set<string>();
+    const add = (list: DataflowNeighbor[], neighbor: DataflowNeighbor, side: string) => {
+        const key = `${side}${neighbor.input != null ? `:${neighbor.input}` : neighbor.scriptKey}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        list.push(neighbor);
+    };
+    for (const edge of scene.edges) {
+        if (edge.internal) continue;
+        const fromThis = 'input' in node ? edge.input === node.input : edge.input == null && edge.from.scriptKey === node.scriptKey;
+        const toThis = 'scriptKey' in node && edge.to.scriptKey === node.scriptKey;
+        if (fromThis) add(readBy, { scriptKey: edge.to.scriptKey }, '>');
+        if (toThis) add(reads, edge.input != null ? { input: edge.input } : { scriptKey: edge.from.scriptKey }, '<');
+    }
+    return { reads, readBy };
 }
 
 /// The transform that fits a scene into a viewport: centered, at most at its real size and at least at `minScale`

@@ -104,7 +104,8 @@ dataflow snapshots use them, the app reads them from the module (`DashQLDataflow
   in the middle of its top border and one output port in the middle of its bottom border, the edges between two tiles
   share one route. A row holds at most as many tiles as fit the width of the canvas (`dense_columns_for_width`, the
   `width` of the options, `dense_columns` (2) without one): ELK layers with Coffman–Graham bounded by that number, so
-  the consumers of a wide fan-out take several rows instead of a row wider than a phone. Rows are at least
+  the consumers of a wide fan-out take several rows instead of a row wider than a phone. The rows are centered (ELK
+  `Simple` placement), network simplex would line up the edges that pass a row and spread the tiles. Rows are at least
   `dense_layer_gap` (48) apart, the tiles of a row `dense_box_gap` (24), ELK packs the connected parts towards
   `dense_aspect_ratio` (0.5, higher than wide) and the tiles without edges go into rows of as many below them. The
   horizontal rails between two rows move into the middle of the gap like the vertical ones. The dense layout ignores the hints and has no drops: the positions and sizes of the `@flow` tags belong to the
@@ -141,9 +142,13 @@ switch. `src/workbook/dataflow/` holds it:
   fill, the statements inside them are node frames, inline references and table edges are solid, scans and invalid
   references are dashed, the relation of a table edge is a badge. Edges between boxes and their badges run on the outlines up to their
   ports, the layout routes them around the boxes, the edges between the rows of one box run inside its outline. Every
-  edge passes below the statements. Selecting a box, a statement or an input, or hovering a box, redraws its
-  edges and their badges in the highlight layer on top of the boxes and highlights their ports, a drag drops the
-  hover. The ports are a layer of their own on top of the highlight layer, so a highlighted edge ends under its port.
+  edge passes below the statements. Hovering a box redraws its edges and their badges in the highlight layer on top
+  of the boxes and highlights their ports, a drag drops the hover. Selecting a box, a statement or an input (a click)
+  focuses its lineage (`dataflowLineage` of `dataflow_scene.ts`): the edges that it reads through and that read it,
+  directly or through other boxes, are drawn in the highlight layer, and the boxes, inputs, edges and badges outside
+  of it fade to 0.3. The walk follows the edges of the scene from statement to statement, the edges that the core
+  derived, so a box reads only what its statements read; a selected box starts from all its statements. A click on
+  the free canvas or Escape ends the focus. The ports are a layer of their own on top of the highlight layer, so a highlighted edge ends under its port.
   Charts are `foreignObject`s below their statement, in a white frame with a 1px border like the statements. A
   Vega-Lite chart is a `VegaLitePreview`: the chart config of the app with smaller text and marks, four ticks,
   horizontal x labels and no legends, fitted into the frame with an 8px inset. The scene takes the height of a chart
@@ -165,7 +170,23 @@ switch. `src/workbook/dataflow/` holds it:
   query, a double click on the canvas creates a query at that position, the delete button of the header deletes the
   script, and Arrange removes the positions of the `@flow` tags, keeps the sizes and lays out every box again.
 
-The layout always lays out full boxes, the canvas draws every box with its statements. Every layout starts from where
+- **Levels of detail.** Below the scale `TILE_SCALE` (0.6) the text of a box would be smaller than about 7px, the
+  canvas draws every box as a tile instead (`dataflow_tile.tsx`): the name with a status dot (running, succeeded,
+  failed, or stale when the stored result is of another text of the script, `current` of the stored result) and a
+  line about the result, e.g. `4,000 rows`, `bar · 4 rows` or `KPI 23.42K` (the last row of a KPI, `readKpi`). A
+  tile renders no header, rows, ports, badges, edges inside its box and no renderer of a result, a zoomed out
+  workbook stays cheap. Its text keeps 12px on the screen: the zoom writes its scale into `--dataflow_zoom` of the
+  scene, the text of a tile is `clamp(12px, 12px / zoom, what fits the box)`, without a render per frame; only the
+  crossing of the threshold renders. Above it the boxes draw with their headers, rows and results. A tile of a
+  zoomed out box drags and selects like the header of the box.
+- **A narrow canvas** (narrower than `MEDIUM_WIDTH`, 600px, measured on the canvas, not the window) shows the dense
+  layout: every box is a tile from top to bottom, fitted at a scale of at least 0.75 so that the text stays legible,
+  a wider layout pans. The layout waits for the width of the canvas, a change between the dense and the full layout
+  fits again. The dense layout neither reads nor writes `@flow` tags and no placements are remembered: tiles don't
+  drag or resize, a drag on a tile pans the canvas (`data-dataflow-pan` passes the zoom filter) and a tap selects
+  it. The full layout of a wider canvas starts from where it was, untouched by the dense one.
+
+The full layout lays out full boxes, the canvas draws every box with its statements. Every layout starts from where
 the boxes were: where the last layout put them while the canvas is open, else their `@flow` tags. So a box keeps its
 column, its order and its y while the workbook changes, and a new script starts next to the boxes it reads. A drop or
 a resize lays out from the dropped box and the new size, then writes the position and the size of every script box

@@ -199,6 +199,63 @@ describe('DataflowCanvas', () => {
         act(() => { header.dispatchEvent(pointer('pointerup', 100 + dx, 100 + dy)); });
     };
 
+    it('fades what the selected box neither reads nor feeds', () => {
+        show(withTestScript(test, 'other.sql', 'select 1'));
+        render();
+        drag('report.sql', 0, 0);
+        expect(box('report.sql').getAttribute('data-selected')).toBe('true');
+        expect(box('report.sql').hasAttribute('data-faded')).toBe(false);
+        expect(box('schema.sql').hasAttribute('data-faded')).toBe(false);
+        expect(box('other.sql').getAttribute('data-faded')).toBe('true');
+        // The edges of the lineage are highlighted, the edge inside the box it reads as well
+        expect(container.querySelectorAll('[data-dataflow-edge-highlight]').length).toBe(2);
+        act(() => container.querySelector('svg')!.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+        expect(container.querySelectorAll('[data-faded]').length).toBe(0);
+    });
+
+    it('draws the boxes as tiles when zoomed out so far that their text is too small', () => {
+        render();
+        const svg = container.querySelector('svg')!;
+        const wheel = (deltaY: number) => act(() => { svg.dispatchEvent(new WheelEvent('wheel', { deltaY, ctrlKey: true, bubbles: true, cancelable: true, clientX: 100, clientY: 100 })); });
+        // A pinch to half the size
+        wheel(50);
+        expect(container.querySelector('[data-dataflow-tiles="zoomed-out"]')).not.toBeNull();
+        expect(container.querySelector('[data-dataflow-box]')).toBeNull();
+        // The box of two rows has room for the text at its size on the screen
+        const tile = container.querySelector(`[data-dataflow-tile="script:${key('schema.sql')}"]`)!;
+        expect(tile.textContent).toContain('schema');
+        // The text of a tile keeps its size on the screen, the canvas tells its scale
+        const scale = Number((container.querySelector('svg > g') as SVGGElement).style.getPropertyValue('--dataflow_zoom'));
+        expect(scale).toBeLessThan(0.6);
+        expect(Number.parseFloat(getComputedStyle(tile.querySelector('text')!).fontSize)).toBeCloseTo(12 / scale, 0);
+        wheel(-200);
+        expect(container.querySelector('[data-dataflow-tiles]')).toBeNull();
+        expect(box('report.sql')).not.toBeNull();
+    });
+
+    it('lays out tiles from top to bottom on a narrow canvas, a tap shows the lineage and nothing is saved', () => {
+        container.style.width = '390px';
+        container.style.height = '700px';
+        show(withTestScript(test, 'other.sql', 'select 1'));
+        render();
+        expect(container.querySelector('[data-dataflow-tiles="dense"]')).not.toBeNull();
+        expect(container.querySelector('[data-dataflow-box]')).toBeNull();
+        const tile = (fileName: string) => container.querySelector<SVGGElement>(`[data-dataflow-tile="script:${key(fileName)}"]`)!;
+        const frame = (fileName: string) => tile(fileName).querySelector('rect:not(clipPath rect)')!;
+        const top = (fileName: string) => Number(frame(fileName).getAttribute('y'));
+        expect(Number(frame('schema.sql').getAttribute('width'))).toBe(layout.config.tileWidth);
+        expect(top('report.sql')).toBeGreaterThan(top('schema.sql') + layout.config.tileHeight);
+        // One edge between the tiles, the edge inside the box is left out
+        expect(container.querySelectorAll('[data-dataflow-edge]').length).toBe(1);
+        act(() => tile('report.sql').dispatchEvent(new MouseEvent('click', { bubbles: true })));
+        expect(tile('report.sql').getAttribute('data-selected')).toBe('true');
+        expect(tile('other.sql').getAttribute('data-faded')).toBe('true');
+        expect(tile('schema.sql').hasAttribute('data-faded')).toBe(false);
+        expect(container.querySelectorAll('[data-dataflow-edge-highlight]').length).toBe(1);
+        // The dense layout writes no positions
+        expect(written().size).toBe(0);
+    });
+
     it('saves every box into its @flow tag after a drop', () => {
         render();
         const before = cardAt('report.sql');

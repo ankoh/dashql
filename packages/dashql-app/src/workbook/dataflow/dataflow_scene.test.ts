@@ -4,6 +4,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { DataflowEdgeKind, type DataflowGraph, type DataflowScript } from './dataflow_graph.js';
 import {
     buildDataflowScene,
+    dataflowLineage,
+    dataflowNeighbors,
     dataflowRouteKey,
     dataflowChartHeight,
     dataflowLayoutInput,
@@ -201,6 +203,55 @@ describe('dataflow scene', () => {
         expect(selectedEdges(scene, { scriptKey: 1, statementId: 0 }).map(e => e.key)).toEqual(['a']);
         expect(selectedEdges(scene, { scriptKey: 1, statementId: null }).map(e => e.key)).toEqual(['a', 'b']);
         expect(selectedEdges(scene, null)).toEqual([]);
+    });
+
+    it('follows the lineage of a selection through the edges, upstream and downstream', () => {
+        const type = { kind: core.buffers.analyzer.SqlTypeKind.INT4, sql: 'integer', arrayDimensions: 0, withTimeZone: false, cast: true, known: true };
+        // 1.0 -> 1.1 -> 2.0 -> 3.0, an input into 3, and a script 4 that only 1.0 feeds
+        const edge = (key: string, from: [number, number], to: [number, number]) => ({ key, from: { scriptKey: from[0], statementId: from[1] }, to: { scriptKey: to[0], statementId: to[1] }, kind: DataflowEdgeKind.Table, name: 't', input: null });
+        const graph: DataflowGraph = {
+            scripts: [script(1, 2), script(2, 1), script(3, 1), script(4, 1), script(5, 1)],
+            inputs: [{ name: 'min', type }],
+            edges: [
+                ...GRAPH.edges,
+                edge('c', [2, 0], [3, 0]),
+                edge('d', [1, 0], [4, 0]),
+                { key: 'i', from: { scriptKey: -1, statementId: 0 }, to: { scriptKey: 3, statementId: 0 }, kind: DataflowEdgeKind.Input, name: 'min', input: 'min' },
+            ],
+        };
+        const positions = [...graph.scripts.map((_, i) => ({ x: i * 400, y: 0, width: 280, height: 80, rows: [40, 72] })), { x: 0, y: 400, width: 200, height: 80, rows: [40] }];
+        const scene = buildDataflowScene(graph, positions, () => null, config);
+        const keys = (s: ReturnType<typeof dataflowLineage>) => [[...s!.edges].map(e => e.key).sort(), [...s!.scripts].sort(), [...s!.inputs]];
+        // A box reads what its statements read and is read by what reads them, through other boxes too
+        expect(keys(dataflowLineage(scene, { scriptKey: 2, statementId: null }))).toEqual([['a', 'b', 'c'], [1, 2, 3], []]);
+        // The input reaches what reads it, 3 reads the input and what 2 hands it
+        expect(keys(dataflowLineage(scene, { scriptKey: -1, statementId: null, input: 'min' }))).toEqual([['i'], [3], ['min']]);
+        expect(keys(dataflowLineage(scene, { scriptKey: 3, statementId: null }))).toEqual([['a', 'b', 'c', 'i'], [1, 2, 3], ['min']]);
+        // A statement follows only its own edges: 1.1 reads 1.0 but not what 1.0 hands to 4
+        expect(keys(dataflowLineage(scene, { scriptKey: 1, statementId: 1 }))).toEqual([['a', 'b', 'c'], [1, 2, 3], []]);
+        expect(keys(dataflowLineage(scene, { scriptKey: 5, statementId: null }))).toEqual([[], [5], []]);
+        expect(dataflowLineage(scene, null)).toBeNull();
+        // The neighbors of a script: what it reads directly and what reads it, each once
+        expect(dataflowNeighbors(scene, { scriptKey: 3 })).toEqual({ reads: [{ scriptKey: 2 }, { input: 'min' }], readBy: [] });
+        expect(dataflowNeighbors(scene, { scriptKey: 1 })).toEqual({ reads: [], readBy: [{ scriptKey: 2 }, { scriptKey: 4 }] });
+        expect(dataflowNeighbors(scene, { input: 'min' })).toEqual({ reads: [], readBy: [{ scriptKey: 3 }] });
+    });
+
+    it('draws the tiles of the dense layout with edges from the bottom of a tile to the top of the next', () => {
+        const tile = (x: number, y: number) => ({ x, y, width: config.tileWidth, height: config.tileHeight, rows: [0, 0] });
+        const positions = [tile(0, 0), tile(0, 104)];
+        const key = dataflowRouteKey(nodeKeyOfScript(1), 1, nodeKeyOfScript(2), 0);
+        const middle = config.tileWidth / 2;
+        const laidOut = new Map([[key, { from: { x: 0, y: 0, width: config.tileWidth, height: config.tileHeight }, to: { x: 0, y: 104, width: config.tileWidth, height: config.tileHeight }, points: [[middle, config.tileHeight], [middle, 104]] as core.DataflowPoint[] }]]);
+        const route = () => { throw new Error('the dense layout routes no edges'); };
+        const scene = buildDataflowScene(GRAPH, positions, () => 0, config, { laidOut, route }, true);
+        // No charts, no edges inside a tile, no badges
+        expect(scene.boxes.map(b => b.chart)).toEqual([null, null]);
+        expect(scene.edges.map(e => [e.key, e.path, e.badge])).toEqual([['b', `M ${middle} ${config.tileHeight} L ${middle} 104`, null]]);
+        // Without a route a curve leaves the bottom and enters the top
+        const curved = buildDataflowScene(GRAPH, positions, () => null, config, null, true);
+        expect(start(curved.edges[0].path)).toEqual([middle, config.tileHeight]);
+        expect(curved.edges[0].path.endsWith(`${middle} 104`)).toBe(true);
     });
 
     it('lays out an input as a box of one row and routes its edges from the row', () => {

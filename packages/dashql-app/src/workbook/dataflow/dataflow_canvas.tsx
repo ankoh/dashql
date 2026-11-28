@@ -19,6 +19,7 @@ import { useApplyWorkbookInput } from '../inputs/use_apply_workbook_input.js';
 import type { WorkbookInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
 import {
     buildDataflowScene,
+    dataflowLineage,
     dataflowRouteKey,
     nodeKeyOfInput,
     nodeKeyOfScript,
@@ -44,6 +45,9 @@ import { useOptionalRuntime, useWorkbookDerived, useWorkbookScriptMap } from '@a
 import { useQueryModel } from '@akohn/dashql-react/models/query_model';
 import { useDataflowModule } from './dataflow_module.js';
 import { QueryStatusPlaceholder } from '@akohn/dashql-react/components/card_placeholder';
+import { useObservedSize } from '@akohn/dashql-react/components/size_observer';
+import { MEDIUM_WIDTH } from '@akohn/dashql-react/dom/media_query';
+import { DataflowKpiSummary, DataflowTile, dataflowTileStatus, dataflowTileSummary } from './dataflow_tile.js';
 import * as styles from './dataflow.module.css';
 import { quoteIdentifier as quoteSqlIdentifier } from '@akohn/dashql/platform/utils/sql_quote';
 
@@ -56,6 +60,12 @@ const CHART_BORDER = 1;
 /// The resize handle in the bottom right corner of a box, and the step of a resize with the arrow keys
 const RESIZE_HANDLE = 16;
 export const RESIZE_KEY_STEP = 16;
+/// Below this scale the text of a box would be too small to read, the boxes are drawn as tiles
+export const TILE_SCALE = 0.6;
+/// The least scale that fits the dense layout, its text stays legible and a wide layout pans
+const DENSE_MIN_SCALE = 0.75;
+/// The space around the dense layout when it is fitted
+const DENSE_PADDING = 16;
 
 export interface DataflowCanvasDependencies {
     useQueryModel: typeof useQueryModel;
@@ -77,6 +87,7 @@ const DEFAULT_DEPENDENCIES: DataflowCanvasDependencies = {
 
 const NO_REFERENCES: ReadonlyMap<number, ScriptReferenceReport> = new Map();
 const NO_INPUTS: WorkbookInput[] = [];
+const EMPTY_GRAPH: DataflowGraph = { scripts: [], inputs: [], edges: [] };
 
 interface Props {
     workbookScripts: WorkbookScripts;
@@ -159,6 +170,14 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
     const [drag, setDrag] = React.useState<{ node: string; position: Position } | null>(null);
     const [resize, setResize] = React.useState<{ scriptKey: number; size: ResizedBox } | null>(null);
     const [arrangeRevision, setArrangeRevision] = React.useState(0);
+    // A canvas narrower than the medium width shows the dense layout: tiles from top to bottom. The layout waits for
+    // the width of the canvas.
+    const viewportSize = useObservedSize(viewportRef);
+    const dense = viewportSize != null && viewportSize.width < MEDIUM_WIDTH;
+    const denseWidth = dense ? viewportSize.width - 2 * DENSE_PADDING : 0;
+    // Is the canvas zoomed out so far that the boxes are drawn as tiles?
+    const [zoomedOut, setZoomedOut] = React.useState(false);
+    const tiled = dense || zoomedOut;
 
     // Where the layout placed the boxes without `@flow` tags, by script key. The boxes keep these positions while
     // the workbook changes, so that only new boxes are placed. A box that a growing neighbour would overlap is placed
@@ -211,7 +230,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
             const at = last ?? saved;
             return at == null ? null : { x: at.x, y: at.y };
         };
-        if (graph.scripts.length === 0) return { boxes: [], laidOut: new Map() };
+        if (graph.scripts.length === 0 || viewportSize == null) return { boxes: [], laidOut: new Map() };
         const keys = [...graph.scripts.map(script => nodeKeyOfScript(script.scriptKey)), ...graph.inputs.map(input => nodeKeyOfInput(input.name))];
         const input = dataflowLayoutInput(
             graph,
@@ -220,13 +239,16 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
             input => hintOf(nodeKeyOfInput(input.name), placedInputs.get(input.name), null),
             sizeOf,
         );
-        const result = layoutModule.computeDataflowLayoutWithRoutes(input.boxes, input.edges);
+        // The rows of the dense layout fit the canvas, inside the padding of the fit
+        const result = layoutModule.computeDataflowLayoutWithRoutes(input.boxes, input.edges, { dense, width: denseWidth });
         const boxes = result.boxes;
         const rect = (i: number) => ({ x: boxes[i].x, y: boxes[i].y, width: boxes[i].width, height: boxes[i].height });
         const laidOut = new Map(result.routes.map(r => [
             dataflowRouteKey(keys[r.fromBox], r.fromStatement, keys[r.toBox], r.toStatement),
             { from: rect(r.fromBox), to: rect(r.toBox), points: r.points },
         ]));
+        // The dense layout ignores the positions, they stay those of the full boxes
+        if (dense) return { boxes, laidOut };
         // Remember where the boxes of analyzed scripts are, a script without statements is placed again once it has some
         placed.clear();
         graph.scripts.forEach((script, i) => {
@@ -239,7 +261,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         });
         return { boxes, laidOut };
         // eslint-disable-next-line react-hooks/exhaustive-deps -- a drop, a resize and arrange lay out again by a new revision, the layout reads them from refs
-    }, [graph, scriptOf, chartStatement, arrangeRevision, layoutModule]);
+    }, [graph, scriptOf, chartStatement, arrangeRevision, layoutModule, dense, denseWidth, viewportSize == null]);
     const positions = layout.boxes;
 
     // After a drop or a resize, every script box is saved in its `@flow` tag: a reload lays out from there and shows
@@ -248,6 +270,8 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         const commit = commitRef.current;
         if (commit == null) return;
         commitRef.current = null;
+        // The dense layout writes no positions
+        if (dense) return;
         graph.scripts.forEach((s, i) => {
             const script = scripts[s.scriptKey];
             const p = positions[i];
@@ -286,14 +310,23 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         () => ({ laidOut: layout.laidOut, route: (boxes, edges) => layoutModule.routeDataflowEdges(boxes, edges) }),
         [layout, layoutModule],
     );
-    const scene = React.useMemo(() => buildDataflowScene(graph, shown, chartStatement, config, routing), [graph, shown, chartStatement, config, routing]);
-    // The edges of the selection and of the hovered box, a drag hides the ones of the hovered box
+    // No scene until the layout knows the width of the canvas
+    const scene = React.useMemo(
+        () => buildDataflowScene(shown.length < graph.scripts.length ? EMPTY_GRAPH : graph, shown, chartStatement, config, routing, dense),
+        [graph, shown, chartStatement, config, routing, dense],
+    );
+    // The lineage of the selection: what it reads and what reads it, directly or through others. The rest fades.
+    const lineage = React.useMemo(() => dataflowLineage(scene, selection), [scene, selection]);
+    const fadedScript = (scriptKey: number) => lineage != null && !lineage.scripts.has(scriptKey);
+    const fadedInput = (name: string) => lineage != null && !lineage.inputs.has(name);
+    const fadedEdge = (edge: DataflowSceneEdge) => lineage != null && !lineage.edges.has(edge);
+    // The edges of the lineage and of the hovered box, a drag hides the ones of the hovered box
     const dragging = drag != null;
     const highlighted = React.useMemo(() => {
-        const edges = new Set(selectedEdges(scene, selection));
+        const edges = new Set(lineage?.edges ?? []);
         if (!dragging) for (const edge of selectedEdges(scene, hover)) edges.add(edge);
         return scene.edges.filter(edge => edges.has(edge));
-    }, [scene, selection, hover, dragging]);
+    }, [scene, lineage, hover, dragging]);
     const highlightedSet = React.useMemo(() => new Set(highlighted), [highlighted]);
 
     // Zoom and pan, the transform is applied to the DOM directly
@@ -302,23 +335,34 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         const svg = svgRef.current;
         const behavior = zoomRef.current;
         if (viewport == null || svg == null || behavior == null) return;
-        const { x, y, scale } = fitDataflowScene(scene.bounds, viewport.clientWidth, viewport.clientHeight);
+        const { x, y, scale } = dense
+            ? fitDataflowScene(scene.bounds, viewport.clientWidth, viewport.clientHeight, DENSE_PADDING, DENSE_MIN_SCALE)
+            : fitDataflowScene(scene.bounds, viewport.clientWidth, viewport.clientHeight);
         const target = zoomIdentity.translate(x, y).scale(scale);
         if (animate) select(svg).transition().duration(160).call(behavior.transform, target);
         else select(svg).call(behavior.transform, target);
-    }, [scene.bounds]);
+    }, [scene.bounds, dense]);
     React.useLayoutEffect(() => {
         const svg = svgRef.current;
         if (svg == null) return;
         const behavior = zoom<SVGSVGElement, unknown>()
             .scaleExtent([0.1, 2])
             .clickDistance(4)
-            // A pinch on a touchpad is a wheel with ctrlKey and zooms the canvas over the rows and charts too
-            .filter(event => (event.type === 'wheel' && event.ctrlKey) || (!event.ctrlKey && !event.button
-                && !(event.target instanceof Element && event.target.closest('button, [role="button"], foreignObject'))))
+            // A pinch on a touchpad is a wheel with ctrlKey and zooms the canvas over the rows and charts too. A tile of
+            // the dense layout pans the canvas, a tap on it selects it.
+            .filter(event => {
+                if (event.type === 'wheel' && event.ctrlKey) return true;
+                if (event.ctrlKey || event.button) return false;
+                const control = event.target instanceof Element ? event.target.closest('button, [role="button"], foreignObject') : null;
+                return control == null || control.hasAttribute('data-dataflow-pan');
+            })
             .on('zoom', event => {
                 transformRef.current = event.transform;
-                sceneRef.current?.setAttribute('transform', event.transform.toString());
+                const scene = sceneRef.current;
+                scene?.setAttribute('transform', event.transform.toString());
+                // The text of the tiles keeps its size on the screen
+                scene?.style.setProperty('--dataflow_zoom', String(event.transform.k));
+                setZoomedOut(event.transform.k < TILE_SCALE);
             });
         zoomRef.current = behavior;
         select(svg).call(behavior).on('dblclick.zoom', null);
@@ -343,8 +387,11 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
             document.removeEventListener('gesturechange', prevent, options);
         };
     }, []);
-    // Fit once the first boxes are placed
+    // Fit once the first boxes are placed, and again when the canvas switches between the dense and the full layout
     const fittedRef = React.useRef(false);
+    React.useLayoutEffect(() => {
+        fittedRef.current = false;
+    }, [dense]);
     React.useLayoutEffect(() => {
         if (fittedRef.current || scene.boxes.length === 0) return;
         fittedRef.current = true;
@@ -559,6 +606,8 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
     const internal = scene.edges.filter(e => e.internal);
     const between = scene.edges.filter(e => !e.internal);
     const solid = (e: DataflowSceneEdge) => e.kind === DataflowEdgeKind.Inline || e.kind === DataflowEdgeKind.Table || e.kind === DataflowEdgeKind.Input;
+    // A tile is a box at a glance, the rows, the edges inside the boxes and the badges are left out
+    const boxEdges = between.filter(e => !tiled || !e.internal);
     const renderHighlight = (edge: DataflowSceneEdge) => (
         <path
             key={edge.key}
@@ -574,6 +623,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
             className={graphStyles.edgeBadge}
             transform={`translate(${edge.badge.x}, ${edge.badge.y})`}
             data-highlighted={highlightedSet.has(edge) || undefined}
+            data-faded={fadedEdge(edge) || undefined}
             data-dataflow-badge={edge.key}
         >
             <rect
@@ -609,11 +659,12 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                 <g ref={sceneRef}>
                     {/* The outlines of the boxes, below every edge */}
                     <g>
-                        {scene.boxes.map(box => (
+                        {!tiled && scene.boxes.map(box => (
                             <rect
                                 key={box.script.scriptKey}
                                 className={styles.card}
                                 data-dataflow-card={box.script.scriptKey}
+                                data-faded={fadedScript(box.script.scriptKey) || undefined}
                                 // A selected box outlines the whole card, not its header
                                 data-selected={selection?.scriptKey === box.script.scriptKey && selection.statementId == null && selection.input == null}
                                 x={box.x}
@@ -624,10 +675,11 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                                 ry={8}
                             />
                         ))}
-                        {scene.inputs.map(box => (
+                        {!tiled && scene.inputs.map(box => (
                             <rect
                                 key={`input:${box.input.name}`}
                                 className={styles.card}
+                                data-faded={fadedInput(box.input.name) || undefined}
                                 data-selected={selection?.input === box.input.name}
                                 x={box.x}
                                 y={box.y}
@@ -640,26 +692,74 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                     </g>
                     {/* The edges between boxes run on the outlines up to their ports, the layout routes them around the boxes */}
                     <g aria-hidden="true">
-                        {between.filter(solid).map(edge => (
-                            <path key={edge.key} className={graphStyles.edge} d={edge.path} style={{ strokeWidth: 2 }} data-dataflow-edge={edge.key} data-kind={edge.kind} />
+                        {boxEdges.filter(solid).map(edge => (
+                            <path key={edge.key} className={graphStyles.edge} d={edge.path} style={{ strokeWidth: 2 }} data-dataflow-edge={edge.key} data-kind={edge.kind} data-faded={fadedEdge(edge) || undefined} />
                         ))}
                     </g>
                     <g aria-hidden="true">
-                        {between.filter(e => !solid(e)).map(edge => (
-                            <path key={edge.key} className={graphStyles.crossEdge} d={edge.path} data-dataflow-edge={edge.key} data-kind={edge.kind} />
+                        {boxEdges.filter(e => !solid(e)).map(edge => (
+                            <path key={edge.key} className={graphStyles.crossEdge} d={edge.path} data-dataflow-edge={edge.key} data-kind={edge.kind} data-faded={fadedEdge(edge) || undefined} />
                         ))}
                     </g>
-                    <g className={graphStyles.edgeBadgeLayer}>
-                        {between.filter(e => !highlightedSet.has(e)).map(renderBadge)}
-                    </g>
+                    {!tiled && (
+                        <g className={graphStyles.edgeBadgeLayer}>
+                            {between.filter(e => !highlightedSet.has(e)).map(renderBadge)}
+                        </g>
+                    )}
                     {/* The edges between the rows of a box run inside its padding */}
-                    <g aria-hidden="true">
-                        {internal.map(edge => (
-                            <path key={edge.key} className={graphStyles.edge} d={edge.path} style={{ strokeWidth: 2 }} data-dataflow-edge={edge.key} data-kind={edge.kind} />
-                        ))}
-                    </g>
+                    {!tiled && (
+                        <g aria-hidden="true">
+                            {internal.map(edge => (
+                                <path key={edge.key} className={graphStyles.edge} d={edge.path} style={{ strokeWidth: 2 }} data-dataflow-edge={edge.key} data-kind={edge.kind} data-faded={fadedEdge(edge) || undefined} />
+                            ))}
+                        </g>
+                    )}
+                    {tiled && (
+                        <g data-dataflow-tiles={dense ? 'dense' : 'zoomed-out'}>
+                            {scene.boxes.map(box => (
+                                <DataflowScriptTile
+                                    key={box.script.scriptKey}
+                                    box={box}
+                                    script={scripts[box.script.scriptKey]}
+                                    dense={dense}
+                                    selected={selection?.scriptKey === box.script.scriptKey && selection.input == null}
+                                    faded={fadedScript(box.script.scriptKey)}
+                                    useQueryModel={dependencies.useQueryModel}
+                                    onSelect={() => setSelection({ scriptKey: box.script.scriptKey, statementId: null })}
+                                    onInspect={props.onInspect != null ? () => props.onInspect?.(box.script.scriptKey) : undefined}
+                                    onPointerDown={dense ? undefined : event => onHandleDown(event, box)}
+                                    onHover={hovered => setHover(hovered ? { scriptKey: box.script.scriptKey, statementId: null } : null)}
+                                />
+                            ))}
+                            {scene.inputs.map(box => {
+                                const input = workbookInputs.find(i => i.name === box.input.name) ?? null;
+                                const select = () => setSelection({ scriptKey: INPUT_PORT_SCRIPT_KEY, statementId: null, input: box.input.name });
+                                return (
+                                    <DataflowTile
+                                        key={box.input.name}
+                                        x={box.x}
+                                        y={box.y}
+                                        width={box.width}
+                                        height={box.height}
+                                        name={`:${box.input.name}`}
+                                        status={busyInputs.has(box.input.name) ? 'running' : 'idle'}
+                                        summary={input?.value ?? box.input.type.sql}
+                                        dense={dense}
+                                        selected={selection?.input === box.input.name}
+                                        faded={fadedInput(box.input.name)}
+                                        aria-label={`Input :${box.input.name}, ${box.input.type.sql}`}
+                                        data-testid="dataflow-input-tile"
+                                        data-dataflow-tile={nodeKeyOfInput(box.input.name)}
+                                        onSelect={select}
+                                        onPointerDown={dense ? undefined : event => onInputHandleDown(event, box)}
+                                        onHover={hovered => setHover(hovered ? { scriptKey: INPUT_PORT_SCRIPT_KEY, statementId: null, input: box.input.name } : null)}
+                                    />
+                                );
+                            })}
+                        </g>
+                    )}
                     <g>
-                        {scene.boxes.map(box => (
+                        {!tiled && scene.boxes.map(box => (
                             <DataflowBox
                                 config={config}
                                 key={box.script.scriptKey}
@@ -670,6 +770,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                                 scriptReferences={scriptReferences.get(box.script.scriptKey) ?? null}
                                 script={scripts[box.script.scriptKey]}
                                 selection={selection?.scriptKey === box.script.scriptKey ? selection : null}
+                                faded={fadedScript(box.script.scriptKey)}
                                 dragging={drag?.node === nodeKeyOfScript(box.script.scriptKey)}
                                 resizing={resize?.scriptKey === box.script.scriptKey}
                                 dependencies={dependencies}
@@ -683,13 +784,14 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                                 onCreateDownstream={createDownstream}
                             />
                         ))}
-                        {scene.inputs.map(box => (
+                        {!tiled && scene.inputs.map(box => (
                             <DataflowInputBox
                                 config={config}
                                 key={box.input.name}
                                 box={box}
                                 input={workbookInputs.find(i => i.name === box.input.name) ?? null}
                                 selected={selection?.input === box.input.name}
+                                faded={fadedInput(box.input.name)}
                                 dragging={drag?.node === nodeKeyOfInput(box.input.name)}
                                 busy={busyInputs.has(box.input.name)}
                                 onHandleDown={onInputHandleDown}
@@ -702,11 +804,11 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                     </g>
                     {/* The highlighted edges and their badges are drawn on top of the boxes */}
                     <g className={graphStyles.edgeHighlightLayer} aria-hidden="true" data-dataflow-highlight-layer>
-                        {highlighted.map(renderHighlight)}
-                        {highlighted.filter(e => !e.internal).map(renderBadge)}
+                        {highlighted.filter(e => !tiled || !e.internal).map(renderHighlight)}
+                        {!tiled && highlighted.filter(e => !e.internal).map(renderBadge)}
                     </g>
-                    {/* The ports are drawn on top of the highlighted edges that end in them */}
-                    <g aria-hidden="true" data-dataflow-port-layer>
+                    {/* The ports are drawn on top of the highlighted edges that end in them, a tile has none */}
+                    {!tiled && <g aria-hidden="true" data-dataflow-port-layer>
                         {scene.boxes.map(box => <DataflowBoxPorts key={box.script.scriptKey} box={box} highlighted={highlighted} config={config} />)}
                         {scene.inputs.map(box => (
                             <DataflowInputPorts
@@ -716,7 +818,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
                                 highlighted={highlighted.length > 0 && highlighted.some(e => e.input === box.input.name)}
                             />
                         ))}
-                    </g>
+                    </g>}
                 </g>
             </svg>
             {scene.boxes.length === 0 && (
@@ -744,6 +846,8 @@ interface BoxProps {
     scriptReferences: ScriptReferenceReport | null;
     script: ScriptData | undefined;
     selection: DataflowSelection | null;
+    /// Is the box outside of the lineage of the selection?
+    faded: boolean;
     dragging: boolean;
     resizing: boolean;
     dependencies: DataflowCanvasDependencies;
@@ -824,6 +928,7 @@ function DataflowBox(props: BoxProps): React.ReactElement {
             className={styles.box}
             data-dataflow-box={scriptKey}
             data-selected={props.selection != null && props.selection.statementId == null}
+            data-faded={props.faded || undefined}
             data-dragging={props.dragging || undefined}
             data-resizing={props.resizing || undefined}
             onPointerEnter={() => props.onHover({ scriptKey, statementId: null })}
@@ -971,12 +1076,57 @@ function DataflowBox(props: BoxProps): React.ReactElement {
     );
 }
 
+/// The tile of a script box: its status and a line about its result, from the latest query of the script
+function DataflowScriptTile(props: {
+    box: DataflowSceneBox;
+    script: ScriptData | undefined;
+    dense: boolean;
+    selected: boolean;
+    faded: boolean;
+    useQueryModel: DataflowCanvasDependencies['useQueryModel'];
+    onSelect: () => void;
+    onInspect?: () => void;
+    onPointerDown?: (event: React.PointerEvent) => void;
+    onHover: (hovered: boolean) => void;
+}): React.ReactElement {
+    const { box, script } = props;
+    const model = props.useQueryModel(script?.latestQueryId ?? null);
+    const status = dataflowTileStatus(model, script?.storedResult ?? null);
+    const visualize = script?.annotations.visualizeQuery ?? null;
+    const summary = dataflowTileSummary(status, model, visualize);
+    const name = scriptDisplayName(box.script.fileName);
+    return (
+        <DataflowTile
+            x={box.x}
+            y={box.y}
+            width={box.width}
+            height={box.height}
+            name={name}
+            status={status}
+            summary={visualize?.renderer === 'kpi' && status === 'succeeded'
+                ? <DataflowKpiSummary model={model} visualize={visualize} fallback={summary} />
+                : summary}
+            dense={props.dense}
+            selected={props.selected}
+            faded={props.faded}
+            aria-label={`${name}, ${status}, ${summary}`}
+            data-testid="dataflow-tile"
+            data-dataflow-tile={nodeKeyOfScript(box.script.scriptKey)}
+            onSelect={props.onSelect}
+            onInspect={props.onInspect}
+            onPointerDown={props.onPointerDown}
+            onHover={props.onHover}
+        />
+    );
+}
+
 interface InputBoxProps {
     box: DataflowSceneInput;
     config: core.DataflowLayoutConfig;
     /// The input of the workbook, null while the inputs follow the graph
     input: WorkbookInput | null;
     selected: boolean;
+    faded: boolean;
     dragging: boolean;
     busy: boolean;
     onHandleDown: (event: React.PointerEvent, box: DataflowSceneInput) => void;
@@ -1000,6 +1150,7 @@ function DataflowInputBox(props: InputBoxProps): React.ReactElement {
             className={styles.box}
             data-dataflow-input={name}
             data-selected={props.selected}
+            data-faded={props.faded || undefined}
             data-dragging={props.dragging || undefined}
             onPointerEnter={() => props.onHover({ scriptKey: INPUT_PORT_SCRIPT_KEY, statementId: null, input: name })}
             onPointerLeave={() => props.onHover(null)}

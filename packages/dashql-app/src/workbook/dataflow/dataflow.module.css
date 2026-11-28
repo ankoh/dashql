@@ -266,3 +266,56 @@
 .box[data-resizing="true"] .resize_handle {
     color: var(--color_fg_muted);
 }
+
+/* The tile of a box: a box whose text would be too small to read, every box of the dense layout of a narrow canvas.
+   The text of a zoomed out box keeps its size on the screen, `--dataflow_zoom` is the scale of the canvas. */
+.tile {
+    cursor: pointer;
+    outline: none;
+}
+
+.tile_frame {
+    fill: var(--color_bg_card);
+    stroke: var(--color_border_strong);
+    stroke-width: 1px;
+    vector-effect: non-scaling-stroke;
+}
+
+.tile:hover .tile_frame {
+    fill: var(--color_bg_subtle);
+}
+
+.tile[data-selected="true"] .tile_frame,
+.tile:focus-visible .tile_frame {
+    stroke: var(--color_accent_fg);
+    stroke-width: 2px;
+}
+
+.tile_text {
+    font-size: clamp(12px, calc(12px / var(--dataflow_zoom, 1)), var(--tile_font_max, 12px));
+    pointer-events: none;
+}
+
+.tile_name {
+    font-weight: 600;
+    fill: var(--color_fg);
+}
+
+.tile_summary {
+    font-family: var(--font_family_mono);
+    font-size: 0.92em;
+    fill: var(--color_fg_muted);
+}
+
+.tile_dot {
+    fill: var(--color_fg_subtle);
+}
+.tile_dot[data-status="succeeded"] { fill: var(--color_success_fg); }
+.tile_dot[data-status="failed"] { fill: var(--color_danger_fg); }
+.tile_dot[data-status="running"] { fill: var(--color_accent_fg); }
+.tile_dot[data-status="stale"] { fill: var(--color_attention_fg); }
+
+/* The lineage of the selection stays, everything else fades */
+.svg [data-faded="true"] {
+    opacity: 0.3;
+}
