@@ -97,7 +97,7 @@ bazel test --config=release //packages/dashql:all
 - We're maintaining release manifests under [get.dashql.app/stable.json](https://get.dashql.app/stable.json) and [get.dashql.app/latest.json](https://get.dashql.app/latest.json)
 - The npm packages `@akohn/dashql` and `@akohn/dashql-react` are published for the branches `main`, `stable`, `dev`
 - Hosted test datasets are published to **data.dashql.app** (R2 bucket `dashql-data`)
-    - Built hermetically by `//tools/datasets` (hash-pinned sources -> DuckDB CLI) and mirrored with `bazel run //tools/datasets:sync`
+    - Built hermetically by `//tools/datasets` (hash-pinned sources -> DuckDB CLI or Hyper) and mirrored with `bazel run //tools/datasets:sync`
     - Immutable versioned paths `data.dashql.app/<dataset>/v<version>/<file>.parquet`, plus a mutable `data.dashql.app/index.json` registry
 - Our builds heavily rely on a bazel-remote cache server under [bazel-cache.dashql.app](https://bazel-cache.dashql.app)
 - You can see bazel cache statistics [here](https://bazel-cache.dashql.app/public-dashboards/a9d003b26c7c4da6962c2c9bf3e5c329)

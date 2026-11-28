@@ -25,7 +25,7 @@ CSV/Parquet is committed anywhere.
 
 Bazel build actions are offline; network is allowed only in the fetch phase (repo rules like
 `http_file`, which *require* a pinned `sha256`). This is exactly how the repo already pulls
-duckdb/arrow/flatbuffers in `bazel/core_dependencies.bzl`, with hashes maintained by
+flatbuffers and the DuckDB CLI in `bazel/core_dependencies.bzl`, with hashes maintained by
 `scripts/update_bazel_hashes.py` + Renovate. Each dataset source is an `http_file`; the build
 reads the **local** fetched file (`read_json_auto('<path>')`), never over HTTPFS. Conversion is
 remote-cacheable — re-runs are free unless a source hash or an engine version changes.
