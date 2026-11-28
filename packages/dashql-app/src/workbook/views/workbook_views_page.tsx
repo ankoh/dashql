@@ -111,7 +111,6 @@ interface Props {
     connection: ConnectionState | null;
     /// The connections that the scripts of the workbook run on
     scriptConnections: ReadonlyMap<string, ConnectionState>;
-    active: boolean;
     // The heavy parts of the page are slots with the real views as defaults. A test shows stand-ins: they need
     // editors, charts, the layout of the dataflow or the storage of the app.
     /// The feed of the scripts
@@ -193,12 +192,13 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
     const attachEnabled = attachmentsVisible && !preview && (props.connection?.readsAttachments ?? false);
     const attachRef = React.useRef<((files: File[]) => void) | null>(null);
     const attachInputRef = React.useRef<HTMLInputElement>(null);
+    // The page shows while the shell is closed, the view that it shows is the view mode then
+    const pageShown = mode !== WorkbookViewMode.Shell;
+    const activeView = pageShown ? mode : WorkbookViewMode.Feed;
+    // A preview shows its scripts in the feed only
     React.useEffect(() => {
-        if (preview && (mode === WorkbookViewMode.Dashboard || mode === WorkbookViewMode.Dataflow)) setMode(WorkbookViewMode.Feed);
-    }, [preview, mode, setMode]);
-    const dashboardActive = mode === WorkbookViewMode.Dashboard;
-    const dataflowActive = mode === WorkbookViewMode.Dataflow;
-    const activeView = dashboardActive ? WorkbookViewMode.Dashboard : dataflowActive ? WorkbookViewMode.Dataflow : WorkbookViewMode.Feed;
+        if (preview && pageShown && activeView !== WorkbookViewMode.Feed) setMode(WorkbookViewMode.Feed);
+    }, [preview, pageShown, activeView, setMode]);
     // A switch of the view holds the heavy renders until the transitions it starts end, e.g. the morph of the prompt
     // (workbook_composer.module.css, workbook_prompt.module.css), the next view shows skeletons until then. A slow
     // frame delays the end of a transition, the hold follows it. The layout effect runs before the effects of the new
@@ -214,20 +214,19 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
     const overviewActive = overview != null;
     // A version of a published workbook that is being loaded takes the place of the views
     const cloudLoading = useCloudWorkbookLoading() != null;
-    const feedActive = props.active && !dashboardActive && !dataflowActive && !overviewActive && !cloudLoading;
+    // The active view shows unless an overview or a loading version takes its place
+    const viewShown = pageShown && !overviewActive && !cloudLoading;
+    const feedActive = viewShown && activeView === WorkbookViewMode.Feed;
     // The prompt floats over the views of the workbook and creates scripts in every one of them. It docks below the
-    // scripts of the feed and floats over the dashboard and the dataflow. The workbook page is active in the feed only,
-    // it shows in the dashboard and the dataflow too.
-    const otherViewShown = (dashboardActive || dataflowActive) && !overviewActive && !cloudLoading;
-    const promptPlacement = feedActive ? WorkbookPromptPlacement.Feed
-        : otherViewShown ? WorkbookPromptPlacement.Overlay : WorkbookPromptPlacement.Hidden;
+    // scripts of the feed and floats over the other views.
+    const promptPlacement = !viewShown ? WorkbookPromptPlacement.Hidden
+        : feedActive ? WorkbookPromptPlacement.Feed : WorkbookPromptPlacement.Overlay;
     // A click on the bar of Wobble shows or hides the composer. A switch of the view returns it to the default of the
     // view: shown in the feed, shrunk into the bar over the dashboard and the dataflow. An overview keeps it.
     const [promptToggle, setPromptToggle] = React.useState<{ view: WorkbookViewMode; expanded: boolean } | null>(null);
     if (promptToggle != null && promptToggle.view !== activeView) setPromptToggle(null);
     const promptExpanded = promptToggle?.view === activeView ? promptToggle.expanded : activeView === WorkbookViewMode.Feed;
     const togglePrompt = React.useCallback((expanded: boolean) => setPromptToggle({ view: activeView, expanded }), [activeView]);
-    const pageShown = props.active || dashboardActive || dataflowActive;
     useFileDropHandler(pageShown ? files => {
         const attach = attachRef.current;
         if (attach == null || !files.some(file => file.name.toLowerCase().endsWith(ATTACHMENT_EXTENSION))) return false;
@@ -290,7 +289,7 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
     const promptRef = React.useRef<WorkbookPromptHandle | null>(null);
     // The script that the dashboard or the dataflow shows, until the view switches or an overview covers it
     const [viewReveal, setViewReveal] = React.useState<{ view: WorkbookViewMode; scriptKey: number } | null>(null);
-    if (viewReveal != null && (viewReveal.view !== activeView || !otherViewShown)) setViewReveal(null);
+    if (viewReveal != null && (viewReveal.view !== activeView || !viewShown)) setViewReveal(null);
     const dashboardReveal = viewReveal?.view === WorkbookViewMode.Dashboard ? viewReveal : null;
     const dataflowReveal = viewReveal?.view === WorkbookViewMode.Dataflow ? viewReveal : null;
     const feedRef = React.useRef<WorkbookPromptFeed | null>(null);
@@ -398,7 +397,7 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
                                 onClose={closeOverview}
                             />
                         )}
-                        {dashboardActive && !overviewActive && !cloudLoading && (
+                        {viewShown && activeView === WorkbookViewMode.Dashboard && (
                             dashboard({
                                 workbookScripts: props.workbookScripts,
                                 modifyWorkbookScripts: props.modifyWorkbookScripts,
@@ -406,7 +405,7 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
                                 revealRequest: dashboardReveal,
                             })
                         )}
-                        {dataflowActive && !overviewActive && !cloudLoading && (
+                        {viewShown && activeView === WorkbookViewMode.Dataflow && (
                             dataflow({
                                 workbookScripts: props.workbookScripts,
                                 modifyWorkbookScripts: props.modifyWorkbookScripts,

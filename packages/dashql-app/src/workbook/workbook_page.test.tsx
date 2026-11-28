@@ -58,12 +58,12 @@ describe('WorkbookPage view transitions', () => {
     }
 
     /// The views page of the workbook, counts its mounts
-    function Feed(props: { active: boolean }) {
+    function Feed() {
         React.useEffect(() => {
             feedMounts += 1;
             return () => { feedUnmounts += 1; };
         }, []);
-        return <div data-testid="feed" data-active={props.active} />;
+        return <div data-testid="feed" />;
     }
 
     /// The shells of the workbook, without a session
@@ -77,7 +77,7 @@ describe('WorkbookPage view transitions', () => {
 
     const page = (
         <WorkbookPage
-            views={props => <Feed active={props.active} />}
+            views={() => <Feed />}
             shells={props => <Shells connectionId={props.connectionId} onPickConnection={props.onPickConnection} />}
         />
     );
@@ -165,17 +165,14 @@ describe('WorkbookPage view transitions', () => {
         render(workbookPath(WORKBOOK));
         await seed([{ workbookId: WORKBOOK }]);
         expect(feedMounts).toBe(1);
-        expect(feed()?.getAttribute('data-active')).toBe('true');
 
         setMode(WorkbookViewMode.Shell);
         expect(feedUnmounts).toBe(0);
-        expect(feed()?.getAttribute('data-active')).toBe('false');
         expect(shellConnection()).not.toBeUndefined();
 
         setMode(WorkbookViewMode.Feed);
         expect(feedMounts).toBe(1);
         expect(feedUnmounts).toBe(0);
-        expect(feed()?.getAttribute('data-active')).toBe('true');
     });
 
     it('keeps the views page mounted for the Dashboard view', async () => {
@@ -184,7 +181,6 @@ describe('WorkbookPage view transitions', () => {
         setMode(WorkbookViewMode.Dashboard);
         await waitForRender(() => expect(location.search).toBe('?view=dashboard'));
 
-        expect(feed()?.getAttribute('data-active')).toBe('false');
         expect(feedMounts).toBe(1);
         expect(feedUnmounts).toBe(0);
     });

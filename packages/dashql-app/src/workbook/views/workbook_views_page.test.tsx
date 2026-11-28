@@ -111,11 +111,10 @@ async function seed(runtime: Runtime) {
     });
 }
 
-/// The page as the workbook page shows it: active in the feed
+/// The page as the workbook page shows it
 function Page(props: Partial<PageProps> & Pick<PageProps, 'workbookScripts' | 'connection'>) {
-    const { mode } = useWorkbookViewMode();
     const scriptConnections = new Map(props.connection == null ? [] : [[props.connection.connectionId, props.connection]]);
-    return <WorkbookViewsPage modifyWorkbookScripts={vi.fn()} active={mode === WorkbookViewMode.Feed} scriptConnections={scriptConnections}
+    return <WorkbookViewsPage modifyWorkbookScripts={vi.fn()} scriptConnections={scriptConnections}
         {...STAND_INS} {...props} />;
 }
 
@@ -487,6 +486,16 @@ describe('WorkbookViewsPage', () => {
         act(() => slots.workbench!.onOpenOverview!(null));
         act(() => switchButtons()[0]?.click());
         await expectMode(WorkbookViewMode.Feed);
+    });
+
+    it('leaves the feed and the prompt inactive while the shell is open', async () => {
+        await show(<Page workbookScripts={scripts()} connection={null} />);
+        expect(slots.feed?.active).toBe(true);
+        await setMode(WorkbookViewMode.Shell);
+        expect(slots.feed?.active).toBe(false);
+        expect(slots.prompt?.placement).toBe(WorkbookPromptPlacement.Hidden);
+        await setMode(WorkbookViewMode.Feed);
+        expect(slots.feed?.active).toBe(true);
     });
 
     it('connects the prompt over the views with the feed', async () => {

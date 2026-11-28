@@ -90,7 +90,6 @@ export const WorkbookPage: React.FC<Props> = ({ views = renderViews, shells = re
                     modifyWorkbookScripts,
                     connection: conn ?? null,
                     scriptConnections,
-                    active: workbookMode === WorkbookViewMode.Feed,
                 })}
             </div>
             {workbookMode === WorkbookViewMode.Shell && (
