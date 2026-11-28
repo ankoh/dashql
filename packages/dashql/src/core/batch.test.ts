@@ -179,9 +179,11 @@ describe('DashQL batches', () => {
     it('leaves invalid numeric masks to native per-script rejection', () => {
         const process = dql.bindings.processBatch;
         vi.spyOn(dql.bindings, 'processBatch').mockImplementation(bytes => {
-            const request = dashql.buffers.batch.BatchRequest.getRootAsBatchRequest(new flatbuffers.ByteBuffer(bytes));
-            expect(request.scripts(0)!.mutate_outputs(16)).toBe(true);
-            return process(bytes);
+            const request = dashql.buffers.batch.BatchRequest.getRootAsBatchRequest(new flatbuffers.ByteBuffer(bytes)).unpack();
+            request.scripts[0].outputs = 16;
+            const builder = new flatbuffers.Builder();
+            builder.finish(request.pack(builder));
+            return process(builder.asUint8Array());
         });
         const result = dql.processBatch({ scripts: [
             { id: 'invalid', text: 'select 1', outputs: ['parsed'] },
@@ -204,10 +206,11 @@ describe('DashQL batches', () => {
     it('throws when decoding the native result fails', () => {
         const process = dql.bindings.processBatch;
         vi.spyOn(dql.bindings, 'processBatch').mockImplementation(bytes => {
-            const output = process(bytes);
-            const response = dashql.buffers.batch.BatchResult.getRootAsBatchResult(new flatbuffers.ByteBuffer(output));
-            expect(response.scripts(0)!.diagnostics(0)!.mutate_stage(255 as dashql.buffers.batch.ProcessingStage)).toBe(true);
-            return output;
+            const response = dashql.buffers.batch.BatchResult.getRootAsBatchResult(new flatbuffers.ByteBuffer(process(bytes))).unpack();
+            response.scripts[0].diagnostics[0].stage = 255 as dashql.buffers.batch.ProcessingStage;
+            const builder = new flatbuffers.Builder();
+            builder.finish(response.pack(builder));
+            return builder.asUint8Array();
         });
         expect(() => dql.processBatch({ scripts: [
             { id: 'parse', text: 'create table broken(', outputs: ['catalogDescriptor'] },

@@ -16,9 +16,6 @@ SPEC_DIR="$(cd "$(dirname "$(dirname "$SPEC_INDEX")")" && pwd)"
 mkdir -p "${OUT_DIR}"
 "${FLATC}" -I "${SPEC_DIR}" -o "${OUT_DIR}" "${SPEC_INDEX}" --ts \
   --gen-all \
-  --reflect-types --reflect-names \
-  --gen-name-strings --gen-compare \
-  --gen-mutable \
   --gen-object-api
 
 # Imports: a struct nested in another struct imports the enums of the nested struct relative to the root instead of
