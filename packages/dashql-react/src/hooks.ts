@@ -336,7 +336,7 @@ export interface WorkbookExecutionOptions {
     inputs?: readonly string[];
 }
 
-/// Is the compute database of the runtime ready? The runs, the computations and the query result cache wait for it.
+/// Is the compute database of the runtime ready? The runs and the computations wait for it.
 export function useComputeReady(): boolean {
     const runtime = React.useContext(RUNTIME_CTX);
     const database = runtime?.computeDatabase ?? null;
@@ -362,7 +362,7 @@ export function useComputeDatabase(): EmbeddedComputeDatabase | null {
 
 /// The run of a workbook from its `run` slice. `busy` while the whole workbook runs, `runActive` while any run holds
 /// the workbook, a run of the workbook or of one of its scripts: the workbook starts no other run then. A run reads the
-/// cached results and the results of the queries with the compute database, a run is `ready` once the compute database
+/// stored results and the results of the queries with the compute database, a run is `ready` once the compute database
 /// of the runtime is (`useComputeReady`).
 export function useWorkbookExecution(workbookId: string) {
     const runtime = React.useContext(RUNTIME_CTX);

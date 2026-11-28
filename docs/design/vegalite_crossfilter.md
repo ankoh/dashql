@@ -257,19 +257,19 @@ inherit the DashQL result source and are not filtered by the root mask.
 
 For `N` source rows and `K` selected rows:
 
-| Operation | Previous behavior | Current behavior |
-|---|---|---|
-| Initial Arrow conversion | `O(N)` | `O(N)` |
-| Vega-Lite embed | Every accepted brush | Once per source/spec/layout |
-| Brush data conversion | `O(K)` complete rows | `O(K)` row-ID records |
-| Main Vega source replacement | Every accepted brush | Never |
-| Mask update | None | Replace `K` small records |
-| Scenegraph/dataflow construction | Every accepted brush | Retained |
+| Operation | Cost |
+|---|---|
+| Initial Arrow conversion | `O(N)` |
+| Vega-Lite embed | Once per source/spec/layout |
+| Brush data conversion | `O(K)` row-ID records |
+| Main Vega source replacement | Never |
+| Mask update | Replace `K` small records |
+| Scenegraph/dataflow construction | Retained |
 
 The design does not guarantee `O(K)` end-to-end filtering. Updating the lookup relation
 can cause Vega to re-evaluate the source filter and downstream transforms over `N` rows.
-The primary gain is eliminating repeated full-row marshaling, Vega-Lite compilation,
-scenegraph construction, and View teardown.
+A brush marshals no full rows, compiles no Vega-Lite, builds no scenegraph and tears
+down no View.
 
 The source, at most `CHART_ROWS` rows, is still converted from Arrow to JavaScript tuples
 once because Vega's View API consumes JavaScript objects. Avoiding that initial cost requires an Arrow-aware

@@ -21,8 +21,7 @@ export interface CrossFilterController {
     requestFilteredColumnAggregation: (columnId: number) => void;
 }
 
-/// Cross-filter controller shared by every view of a table (the result table header
-/// plots and the visualization tab's aggregation bar).
+/// The cross filters of the column plots of a result table.
 ///
 /// The selection lives in the computation of the runtime, so brushing in any consumer updates the single selection.
 /// The runtime filters the rows, orders them again and summarizes the columns over the selected rows; a request that
