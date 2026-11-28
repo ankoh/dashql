@@ -33,6 +33,7 @@ use dashql_buffers::parser::{
     SubqueryQuantifier, SymbolSpan, TableConstraint, TempType, TrimDirection, WindowBoundDirection, WindowBoundMode,
     WindowExclusionMode, WindowRangeMode,
 };
+use dashql_parser::attributes::lookup_last;
 use dashql_parser::attrs;
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::parser::ParsedScript;
@@ -2127,37 +2128,24 @@ impl<'a> Formatter<'a> {
         f.concat(&[name_reg, f.text(" => "), value_reg])
     }
 
-    /// `name(<a> <keyword> <b>)` of the special function syntaxes, None if a part is missing
-    fn format_special_call(
-        &self,
-        name_reg: FmtReg,
-        args: &'a Node,
-        keys: [AttributeKey; 2],
-        keyword: &'static str,
-    ) -> Option<FmtReg> {
+    /// `<a> <keyword> <b>` in the parentheses of the special function syntaxes, `x as integer` of `cast(x as integer)`
+    fn format_special_args(&self, node: &'a Node, keys: [AttributeKey; 2], keyword: &'static str) -> FmtReg {
         let f = &self.fmt;
-        let [a, b] = self.attrs(args, keys);
-        let [or_null, extra] = self.attrs(args, [K::SQL_FUNCTION_CAST_OR_NULL, K::SQL_FUNCTION_EXTRA_ARGUMENTS]);
-        let a_reg = self.reg(a?);
-        let b_reg = self.reg(b?);
-        if a_reg == 0 || b_reg == 0 {
-            return None;
-        }
-        let mut parts = vec![a_reg, f.text(keyword), b_reg];
+        let [a, b] = lookup_last(self.children(node), &keys);
+        let [or_null, extra] =
+            attrs!(self.children(node), [K::SQL_FUNCTION_CAST_OR_NULL, K::SQL_FUNCTION_EXTRA_ARGUMENTS]);
+        let (Some(a), Some(b)) = (a, b) else { return self.format_unimplemented(node) };
+        let mut parts = vec![self.reg_or_placeholder(a), f.text(keyword), self.reg_or_placeholder(b)];
         // `cast(x as integer or null)`
         if is_true(or_null) {
             parts.push(f.text(" or null"));
         }
         // The arguments after the special syntax, `extract(year from d, 'iso')`
         if let Some(extra) = extra {
-            let extra_reg = self.reg(extra);
-            if extra_reg == 0 {
-                return None;
-            }
             parts.push(f.text(", "));
-            parts.push(extra_reg);
+            parts.push(self.reg_or_placeholder(extra));
         }
-        Some(f.concat(&[name_reg, f.parenthesized(f.concat(&parts))]))
+        f.concat(&parts)
     }
 
     fn format_function_expression(&self, node: &'a Node) -> FmtReg {
@@ -2203,55 +2191,11 @@ impl<'a> Formatter<'a> {
             Some(get_known_function_text(KnownFunction(value_u8(name)))).filter(|t| !t.is_empty())
         };
 
-        if cast_args.is_some()
-            || extract_args.is_some()
-            || overlay_args.is_some()
-            || position_args.is_some()
-            || substring_args.is_some()
-            || treat_args.is_some()
-            || trim_args.is_some()
-        {
+        // The arguments of the special syntaxes print themselves, `cast(x as integer)`
+        let special = [cast_args, extract_args, position_args, treat_args, substring_args, trim_args, overlay_args];
+        if let Some(special) = special.into_iter().flatten().next() {
             let Some(name_text) = known_function_text() else { return self.format_unimplemented(node) };
-            let name_reg = f.text(name_text);
-
-            let special = if let Some(cast_args) = cast_args {
-                self.format_special_call(
-                    name_reg,
-                    cast_args,
-                    [K::SQL_FUNCTION_CAST_VALUE, K::SQL_FUNCTION_CAST_TYPE],
-                    " as ",
-                )
-            } else if let Some(extract_args) = extract_args {
-                self.format_special_call(
-                    name_reg,
-                    extract_args,
-                    [K::SQL_FUNCTION_EXTRACT_TARGET, K::SQL_FUNCTION_EXTRACT_INPUT],
-                    " from ",
-                )
-            } else if let Some(position_args) = position_args {
-                self.format_special_call(
-                    name_reg,
-                    position_args,
-                    [K::SQL_FUNCTION_POSITION_SEARCH, K::SQL_FUNCTION_POSITION_INPUT],
-                    " in ",
-                )
-            } else if let Some(treat_args) = treat_args {
-                self.format_special_call(
-                    name_reg,
-                    treat_args,
-                    [K::SQL_FUNCTION_TREAT_VALUE, K::SQL_FUNCTION_TREAT_TYPE],
-                    " as ",
-                )
-            } else if let Some(substring_args) = substring_args {
-                self.format_substring_args(name_reg, substring_args)
-            } else if let Some(trim_args) = trim_args {
-                self.format_trim_args(name_reg, trim_args)
-            } else if let Some(overlay_args) = overlay_args {
-                self.format_overlay_args(name_reg, overlay_args)
-            } else {
-                None
-            };
-            return special.unwrap_or_else(|| self.format_unimplemented(node));
+            return f.concat(&[f.text(name_text), f.parenthesized(self.reg_or_placeholder(special))]);
         }
 
         let name_reg = if name.node_type() == NodeType::ARRAY {
@@ -2371,10 +2315,11 @@ impl<'a> Formatter<'a> {
         result
     }
 
-    fn format_substring_args(&self, name_reg: FmtReg, args: &'a Node) -> Option<FmtReg> {
+    /// `x from 2 for 3` of `substring(x from 2 for 3)`
+    fn format_substring_args(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
         let [sub_input, sub_from, sub_for, sub_pattern, sub_escape] = attrs!(
-            self.children(args),
+            self.children(node),
             [
                 K::SQL_FUNCTION_SUBSTRING_INPUT,
                 K::SQL_FUNCTION_SUBSTRING_FROM,
@@ -2383,80 +2328,57 @@ impl<'a> Formatter<'a> {
                 K::SQL_FUNCTION_SUBSTRING_ESCAPE,
             ],
         );
-        let input_reg = self.reg(sub_input?);
-        if input_reg == 0 {
-            return None;
-        }
+        let Some(sub_input) = sub_input else { return self.format_unimplemented(node) };
+        let input_reg = self.reg_or_placeholder(sub_input);
         // `substring(x similar pattern escape '#')`
         if let Some(sub_pattern) = sub_pattern {
-            let (pattern_reg, escape_reg) = (self.reg(sub_pattern), self.reg(sub_escape?));
-            if pattern_reg == 0 || escape_reg == 0 || sub_from.is_some() || sub_for.is_some() {
-                return None;
-            }
-            let body = f.concat(&[input_reg, f.text(" similar "), pattern_reg, f.text(" escape "), escape_reg]);
-            return Some(f.concat(&[name_reg, f.parenthesized(body)]));
+            let Some(sub_escape) = sub_escape.filter(|_| sub_from.is_none() && sub_for.is_none()) else {
+                return self.format_unimplemented(node);
+            };
+            let (pattern_reg, escape_reg) = (self.reg_or_placeholder(sub_pattern), self.reg_or_placeholder(sub_escape));
+            return f.concat(&[input_reg, f.text(" similar "), pattern_reg, f.text(" escape "), escape_reg]);
         }
         // `substring(x from 2)`, `substring(x for 3)` or both
+        if sub_from.is_none() && sub_for.is_none() {
+            return self.format_unimplemented(node);
+        }
         let mut parts = vec![input_reg];
         if let Some(sub_from) = sub_from {
-            let from_reg = self.reg(sub_from);
-            if from_reg == 0 {
-                return None;
-            }
             parts.push(f.text(" from "));
-            parts.push(from_reg);
+            parts.push(self.reg_or_placeholder(sub_from));
         }
         if let Some(sub_for) = sub_for {
-            let for_reg = self.reg(sub_for);
-            if for_reg == 0 {
-                return None;
-            }
             parts.push(f.text(" for "));
-            parts.push(for_reg);
-        } else if sub_from.is_none() {
-            return None;
+            parts.push(self.reg_or_placeholder(sub_for));
         }
-        Some(f.concat(&[name_reg, f.parenthesized(f.concat(&parts))]))
+        f.concat(&parts)
     }
 
-    fn format_trim_args(&self, name_reg: FmtReg, args: &'a Node) -> Option<FmtReg> {
+    /// `both 'x' from y` of `trim(both 'x' from y)`
+    fn format_trim_args(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
         let [trim_input, trim_dir, trim_chars] = attrs!(
-            self.children(args),
+            self.children(node),
             [K::SQL_FUNCTION_TRIM_INPUT, K::SQL_FUNCTION_TRIM_DIRECTION, K::SQL_FUNCTION_TRIM_CHARACTERS]
         );
-        let input_reg = self.reg(trim_input?);
-        if input_reg == 0 {
-            return None;
-        }
-        let mut parts = Vec::with_capacity(6);
-        if let Some(trim_dir) = trim_dir {
-            let dir_reg = self.reg(trim_dir);
-            if dir_reg == 0 {
-                return None;
-            }
-            parts.push(dir_reg);
+        let Some(trim_input) = trim_input else { return self.format_unimplemented(node) };
+        let mut parts = Vec::with_capacity(5);
+        for part in [trim_dir, trim_chars].into_iter().flatten() {
+            parts.push(self.reg_or_placeholder(part));
             parts.push(f.text(" "));
         }
-        if let Some(trim_chars) = trim_chars {
-            let chars_reg = self.reg(trim_chars);
-            if chars_reg == 0 {
-                return None;
-            }
-            parts.push(chars_reg);
-            parts.push(f.text(" "));
-        }
-        if trim_dir.is_some() || trim_chars.is_some() {
+        if !parts.is_empty() {
             parts.push(f.text("from "));
         }
-        parts.push(input_reg);
-        Some(f.concat(&[name_reg, f.parenthesized(f.concat(&parts))]))
+        parts.push(self.reg_or_placeholder(trim_input));
+        f.concat(&parts)
     }
 
-    fn format_overlay_args(&self, name_reg: FmtReg, args: &'a Node) -> Option<FmtReg> {
+    /// `x placing y from 1 for 2` of `overlay(x placing y from 1 for 2)`
+    fn format_overlay_args(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
         let [ov_input, ov_placing, ov_from, ov_for] = attrs!(
-            self.children(args),
+            self.children(node),
             [
                 K::SQL_FUNCTION_OVERLAY_INPUT,
                 K::SQL_FUNCTION_OVERLAY_PLACING,
@@ -2464,23 +2386,21 @@ impl<'a> Formatter<'a> {
                 K::SQL_FUNCTION_OVERLAY_FOR,
             ],
         );
-        let (ov_input, ov_placing, ov_from) = (ov_input?, ov_placing?, ov_from?);
-        let input_reg = self.reg(ov_input);
-        let placing_reg = self.reg(ov_placing);
-        let from_reg = self.reg(ov_from);
-        if input_reg == 0 || placing_reg == 0 || from_reg == 0 {
-            return None;
-        }
-        let mut parts = vec![input_reg, f.text(" placing "), placing_reg, f.text(" from "), from_reg];
+        let (Some(ov_input), Some(ov_placing), Some(ov_from)) = (ov_input, ov_placing, ov_from) else {
+            return self.format_unimplemented(node);
+        };
+        let mut parts = vec![
+            self.reg_or_placeholder(ov_input),
+            f.text(" placing "),
+            self.reg_or_placeholder(ov_placing),
+            f.text(" from "),
+            self.reg_or_placeholder(ov_from),
+        ];
         if let Some(ov_for) = ov_for {
-            let for_reg = self.reg(ov_for);
-            if for_reg == 0 {
-                return None;
-            }
             parts.push(f.text(" for "));
-            parts.push(for_reg);
+            parts.push(self.reg_or_placeholder(ov_for));
         }
-        Some(f.concat(&[name_reg, f.parenthesized(f.concat(&parts))]))
+        f.concat(&parts)
     }
 
     fn format_function_table(&self, node: &'a Node) -> FmtReg {
@@ -3374,13 +3294,25 @@ impl<'a> Formatter<'a> {
             NodeType::OBJECT_SQL_GRAPH_LABEL_EXPRESSION => self.format_graph_label_expression(node),
             NodeType::OBJECT_SQL_GRAPH_ROWS => self.format_graph_rows(node),
             NodeType::OBJECT_SQL_FUNCTION_EXPRESSION => self.format_function_expression(node),
-            NodeType::OBJECT_SQL_FUNCTION_CAST_ARGS
-            | NodeType::OBJECT_SQL_FUNCTION_EXTRACT_ARGS
-            | NodeType::OBJECT_SQL_FUNCTION_OVERLAY_ARGS
-            | NodeType::OBJECT_SQL_FUNCTION_POSITION_ARGS
-            | NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS
-            | NodeType::OBJECT_SQL_FUNCTION_TREAT_ARGS
-            | NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS => f.empty(),
+            NodeType::OBJECT_SQL_FUNCTION_CAST_ARGS => {
+                self.format_special_args(node, [K::SQL_FUNCTION_CAST_VALUE, K::SQL_FUNCTION_CAST_TYPE], " as ")
+            }
+            NodeType::OBJECT_SQL_FUNCTION_EXTRACT_ARGS => self.format_special_args(
+                node,
+                [K::SQL_FUNCTION_EXTRACT_TARGET, K::SQL_FUNCTION_EXTRACT_INPUT],
+                " from ",
+            ),
+            NodeType::OBJECT_SQL_FUNCTION_POSITION_ARGS => self.format_special_args(
+                node,
+                [K::SQL_FUNCTION_POSITION_SEARCH, K::SQL_FUNCTION_POSITION_INPUT],
+                " in ",
+            ),
+            NodeType::OBJECT_SQL_FUNCTION_TREAT_ARGS => {
+                self.format_special_args(node, [K::SQL_FUNCTION_TREAT_VALUE, K::SQL_FUNCTION_TREAT_TYPE], " as ")
+            }
+            NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS => self.format_substring_args(node),
+            NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS => self.format_trim_args(node),
+            NodeType::OBJECT_SQL_FUNCTION_OVERLAY_ARGS => self.format_overlay_args(node),
             NodeType::ENUM_SQL_KNOWN_FUNCTION => f.empty(),
             NodeType::OBJECT_SQL_FUNCTION_TABLE => self.format_function_table(node),
             NodeType::OBJECT_SQL_ORDINALITY => self.format_ordinality(node),
