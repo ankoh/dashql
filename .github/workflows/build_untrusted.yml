@@ -20,18 +20,7 @@ jobs:
 
             - uses: ./.github/actions/setup-ubuntu-mirror
 
-            - name: Install apt dependencies
-              shell: bash
-              run: |
-                  sudo apt-get install -y \
-                    clang \
-                    lld \
-                    pkg-config \
-                    libglib2.0-dev \
-                    libgtk-3-dev \
-                    libwebkit2gtk-4.1-dev \
-                    libayatana-appindicator3-dev \
-                    librsvg2-dev
+            - uses: ./.github/actions/install-build-dependencies
 
             # Every browser suite runs here, also those in WebKit
             - uses: ./.github/actions/install-webkit-libraries

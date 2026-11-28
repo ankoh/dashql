@@ -21,20 +21,12 @@ jobs:
 
             - uses: ./.github/actions/setup-ubuntu-mirror
 
-            - name: Install apt dependencies
+            - uses: ./.github/actions/install-build-dependencies
+
+            # llvm-cov and llvm-profdata for the Rust coverage, genhtml of lcov for the report
+            - name: Install coverage tools
               shell: bash
-              run: |
-                  sudo apt-get install -y \
-                    clang \
-                    llvm \
-                    lld \
-                    lcov \
-                    pkg-config \
-                    libglib2.0-dev \
-                    libgtk-3-dev \
-                    libwebkit2gtk-4.1-dev \
-                    libayatana-appindicator3-dev \
-                    librsvg2-dev
+              run: sudo apt-get install -y llvm lcov
 
             - name: Setup Bazel
               uses: ./.github/actions/setup-bazel
