@@ -172,8 +172,9 @@ export function ShellView(props: ShellViewProps): React.ReactElement {
         fillNextPrompt();
     }, [append, appendRecords, fillNextPrompt, setPromptText]);
 
-    // A new shell continues the feed, a query of the old one ends
-    React.useEffect(() => () => {
+    // A new shell continues the feed, a query of the old one ends. The cleanup runs with the commit of the new shell, a
+    // passive effect could run after a statement started on the new shell and cancel it.
+    React.useLayoutEffect(() => () => {
         activeQuery.current?.abort();
         activeQuery.current = null;
         pendingPrompts.current = [];
