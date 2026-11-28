@@ -161,7 +161,7 @@ fn next_symbol(lexer: &mut Lexer, out: &mut ScannedScript, lookahead: &mut VecDe
         None => lexer.lex(out),
     };
     match current.kind {
-        S_NOT | S_NULLS_P | S_WITH | S_DOT | S_WITHOUT | S_ARRAY | S_FORMAT | S_SEMI | S_ANTI => {}
+        S_NOT | S_NULLS_P | S_WITH | S_DOT | S_WITHOUT | S_ARRAY | S_SEMI | S_ANTI => {}
         _ => return current,
     }
     let next = match lookahead.front() {
@@ -436,47 +436,6 @@ enum Xbt {
 /// `{ident_cont}`
 fn is_ident_cont(c: u8) -> bool {
     c.is_ascii_alphanumeric() || c == b'_' || c == b'$' || c >= 0x80
-}
-
-/// The token of a single special character
-fn special_character(c: u8) -> Option<SymbolKind> {
-    Some(match c {
-        b',' => S_COMMA,
-        b'(' => S_LRB,
-        b')' => S_RRB,
-        b'[' => S_LSB,
-        b']' => S_RSB,
-        b'{' => S_LCB,
-        b'}' => S_RCB,
-        b'.' => S_DOT,
-        b';' => S_SEMICOLON,
-        b':' => S_COLON,
-        b'+' => S_PLUS,
-        b'-' => S_MINUS,
-        b'*' => S_STAR,
-        b'/' => S_DIVIDE,
-        b'%' => S_MODULO,
-        b'?' => S_QUESTION_MARK,
-        b'^' => S_CIRCUMFLEX,
-        b'&' => S_AMPERSAND,
-        b'|' => S_PIPE,
-        b'!' => S_EXCLAMATION_MARK,
-        b'<' => S_LESS_THAN,
-        b'>' => S_GREATER_THAN,
-        b'=' => S_EQUALS,
-        _ => return None,
-    })
-}
-
-/// The two-character operator tokens that also match `{operator}`
-fn two_char_operator(a: u8, b: u8) -> Option<SymbolKind> {
-    Some(match (a, b) {
-        (b'=', b'>') => S_EQUALS_GREATER,
-        (b'<', b'=') => S_LESS_EQUALS,
-        (b'>', b'=') => S_GREATER_EQUALS,
-        (b'<', b'>') | (b'!', b'=') => S_NOT_EQUALS,
-        _ => return None,
-    })
 }
 
 /// The scanner, switches between the lexers of the start conditions like the flex scanner
@@ -942,16 +901,12 @@ impl<'a> Lexer<'a> {
         }
         if nchars < yyleng {
             self.yyless(&mut loc, nchars);
-            if nchars == 1 {
-                if let Some(kind) = text.first().and_then(|&c| special_character(c)) {
+            // The rest can be a token of its own, the `=` of `=-1` or the `<=` of `<=/* c */`
+            let rest = text.get(..nchars).unwrap_or_default();
+            let mut lexer = Initial::lexer(rest);
+            if let Some(Ok(Initial::Token(kind))) = lexer.next() {
+                if lexer.span().end == nchars {
                     return Symbol::new(kind, loc);
-                }
-            }
-            if nchars == 2 {
-                if let [first, second, ..] = *text {
-                    if let Some(kind) = two_char_operator(first, second) {
-                        return Symbol::new(kind, loc);
-                    }
                 }
             }
         }
@@ -1073,6 +1028,8 @@ mod tests {
         assert_eq!(kinds("a=>-1"), vec![S_IDENT, S_EQUALS_GREATER, S_MINUS, S_ICONST, S_YYEOF]);
         assert_eq!(kinds("1 +/* c */ 2"), vec![S_ICONST, S_PLUS, S_ICONST, S_YYEOF]);
         assert_eq!(kinds("*/*"), vec![S_STAR, S_YYEOF]);
+        assert_eq!(kinds("a~/* c */"), vec![S_IDENT, S_Op, S_YYEOF]);
+        assert_eq!(kinds("a<>/* c */"), vec![S_IDENT, S_NOT_EQUALS, S_YYEOF]);
     }
 
     #[test]
