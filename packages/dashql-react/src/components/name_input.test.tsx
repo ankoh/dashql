@@ -131,4 +131,18 @@ describe('NameInput', () => {
         expect(commitName).not.toHaveBeenCalled();
         expect(cancelName).toHaveBeenCalledOnce();
     });
+
+    it('focuses with its text selected when it shows and takes the focus back from a closing menu', async () => {
+        const trigger = document.createElement('button');
+        document.body.appendChild(trigger);
+        act(() => root.render(<NameInput name="Original name" onCommit={commitName} ariaLabel="Name" placeholder="Name" autoSelect />));
+        const input = nameInput();
+        expect(document.activeElement).toBe(input);
+        expect([input.selectionStart, input.selectionEnd]).toEqual([0, 'Original name'.length]);
+        // A menu returns the focus to its trigger once the input showed
+        trigger.focus();
+        await act(() => new Promise(resolve => requestAnimationFrame(() => resolve(null))));
+        expect(document.activeElement).toBe(input);
+        trigger.remove();
+    });
 });

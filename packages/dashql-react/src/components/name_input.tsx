@@ -13,6 +13,8 @@ interface Props {
     placeholder: string;
     /// The class of the input
     className?: string;
+    /// Focus the input with its text selected when it shows, e.g. when a rename starts
+    autoSelect?: boolean;
 }
 
 /// An editable name. The input owns its draft so typing does not rerender the surrounding view;
@@ -20,8 +22,21 @@ interface Props {
 export const NameInput = React.forwardRef<HTMLInputElement, Props>((props, forwardedRef) => {
     const inputRef = React.useRef<HTMLInputElement | null>(null);
     const skipBlurCommitRef = React.useRef(false);
-    const { name, onCommit, onCancel } = props;
+    const { name, onCommit, onCancel, autoSelect } = props;
     React.useImperativeHandle(forwardedRef, () => inputRef.current!, []);
+    React.useEffect(() => {
+        if (!autoSelect) return;
+        const select = () => {
+            inputRef.current?.focus();
+            inputRef.current?.select();
+        };
+        select();
+        // A closing menu returns the focus to its trigger after the input showed, the input takes it back
+        const frame = requestAnimationFrame(() => {
+            if (document.activeElement !== inputRef.current) select();
+        });
+        return () => cancelAnimationFrame(frame);
+    }, [autoSelect]);
     // Re-sync the draft when the persisted name changes (e.g. a rename from elsewhere, or switching
     // the named object while the input stays mounted).
     React.useEffect(() => {

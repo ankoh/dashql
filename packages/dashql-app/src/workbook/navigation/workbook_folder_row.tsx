@@ -63,17 +63,6 @@ interface WorkbookFolderRowProps {
     dropTarget: boolean;
 }
 
-/// The input of a name that a row edits: focused with its text selected when the edit starts
-export function useNameEditor(editing: boolean): React.RefObject<HTMLInputElement | null> {
-    const inputRef = React.useRef<HTMLInputElement>(null);
-    React.useEffect(() => {
-        if (!editing) return;
-        inputRef.current?.focus();
-        inputRef.current?.select();
-    }, [editing]);
-    return inputRef;
-}
-
 /// A row of the workbook list that can be dragged: the ref, the attributes and listeners and the style of the row
 export function useSortableRow(rowId: string) {
     const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: rowId });
@@ -151,7 +140,6 @@ export const WorkbookListRowMenu: React.FC<WorkbookListRowMenuProps> = ({ subjec
 
 /// A folder of the workbook list: caret, folder icon, name and a menu
 export const WorkbookFolderRow: React.FC<WorkbookFolderRowProps> = (props) => {
-    const renameInputRef = useNameEditor(props.renaming);
     const sortable = useSortableRow(props.rowId);
     const Caret = props.expanded ? ChevronDownIcon : ChevronRightIcon;
     const FolderIcon = props.expanded ? FileDirectoryOpenFillIcon : FileDirectoryFillIcon;
@@ -173,7 +161,7 @@ export const WorkbookFolderRow: React.FC<WorkbookFolderRowProps> = (props) => {
                     <span className={styles.tree_caret} aria-hidden="true"><Caret size={12} /></span>
                     <FolderIcon size={14} aria-hidden="true" />
                     <NameInput
-                        ref={renameInputRef}
+                        autoSelect
                         className={styles.workbook_rename_input}
                         name={props.folder.name}
                         onCommit={props.onRename}

@@ -322,14 +322,9 @@ interface ConnectionRenameInputProps {
 
 /// The name of a connection as an input, focused and selected when it appears
 const ConnectionRenameInput: React.FC<ConnectionRenameInputProps> = ({ database, placeholder, onCommit, onCancel }) => {
-    const inputRef = React.useRef<HTMLInputElement>(null);
-    React.useEffect(() => {
-        inputRef.current?.focus();
-        inputRef.current?.select();
-    }, []);
     return (
         <NameInput
-            ref={inputRef}
+            autoSelect
             className={styles.connection_rename_input}
             name={database.name ?? null}
             onCommit={onCommit}

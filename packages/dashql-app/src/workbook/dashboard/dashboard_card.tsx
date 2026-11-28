@@ -86,16 +86,6 @@ export const DashboardCard = React.memo(function DashboardCard(props: DashboardC
     const draggable = useDraggable({ id: script.scriptKey });
     // Is the name being edited in the title of the card? Rename in the menu of the card starts it
     const [renaming, setRenaming] = React.useState(false);
-    const renameInputRef = React.useRef<HTMLInputElement>(null);
-    React.useEffect(() => {
-        if (!renaming) return;
-        // Focus after the frame, a closing menu returns the focus to its trigger first
-        const frame = requestAnimationFrame(() => {
-            renameInputRef.current?.focus();
-            renameInputRef.current?.select();
-        });
-        return () => cancelAnimationFrame(frame);
-    }, [renaming]);
     const onRename = props.onRename;
     const scriptKey = script.scriptKey;
     const commitRename = React.useCallback((name: string) => {
@@ -228,7 +218,7 @@ export const DashboardCard = React.memo(function DashboardCard(props: DashboardC
                 </button>
                 {renaming ? (
                     <NameInput
-                        ref={renameInputRef}
+                        autoSelect
                         className={styles.card_title_input}
                         name={displayName}
                         onCommit={commitRename}

@@ -571,12 +571,6 @@ const FolderEntry: React.FC<FolderEntryProps> = (props) => {
         data: { kind: 'folder', folder } satisfies DragData,
         disabled: props.renaming,
     });
-    const renameInputRef = React.useRef<HTMLInputElement>(null);
-    React.useEffect(() => {
-        if (!props.renaming) return;
-        renameInputRef.current?.focus();
-        renameInputRef.current?.select();
-    }, [props.renaming]);
     const contents = [
         props.entry.folders > 0 ? countOf(props.entry.folders, 'folder') : null,
         countOf(props.entry.workbooks, 'workbook'),
@@ -595,7 +589,7 @@ const FolderEntry: React.FC<FolderEntryProps> = (props) => {
             <FileDirectoryFillIcon size={14} aria-hidden="true" />
             {props.renaming ? (
                 <NameInput
-                    ref={renameInputRef}
+                    autoSelect
                     className={styles.rename_input}
                     name={folder.name}
                     onCommit={props.onRename}

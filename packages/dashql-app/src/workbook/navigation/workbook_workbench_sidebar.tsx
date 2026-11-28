@@ -62,7 +62,7 @@ import { useScriptSelection } from '../scripts/script_selection.js';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import { useDeleteWorkbook, useInvalidWorkbooks } from '../workbook_lifecycle.js';
 import { useEnsureEphemeralWorkbook, useOpenGreeter, useWorkbookCreation } from '../workbook_creation.js';
-import { WORKBOOK_LIST_CARET_COLUMN, WorkbookFolderRow, WorkbookListRowMenu, useNameEditor, useSortableRow, workbookListRowPadding } from './workbook_folder_row.js';
+import { WORKBOOK_LIST_CARET_COLUMN, WorkbookFolderRow, WorkbookListRowMenu, useSortableRow, workbookListRowPadding } from './workbook_folder_row.js';
 import {
     type WorkbookListDrop,
     type WorkbookListRow as WorkbookListRowOf,
@@ -342,7 +342,6 @@ const WorkbookRow: React.FC<WorkbookRowProps> = ({ item, depth, selected, onOpen
     const modifyWorkbookScripts = useDispatch({ workbook: item.workbookId });
     // The rename action swaps the name for an input until the edit is committed or abandoned
     const [renaming, setRenaming] = React.useState(false);
-    const renameInputRef = useNameEditor(renaming);
     const commitRename = React.useCallback((name: string) => {
         setRenaming(false);
         if ((name.trim() || null) !== title) modifyWorkbookScripts({ kind: 'renameWorkbook', value: { name } });
@@ -398,7 +397,7 @@ const WorkbookRow: React.FC<WorkbookRowProps> = ({ item, depth, selected, onOpen
                     {caret}
                     <StackIcon size={14} aria-hidden="true" />
                     <NameInput
-                        ref={renameInputRef}
+                        autoSelect
                         className={styles.workbook_rename_input}
                         name={title}
                         onCommit={commitRename}
@@ -450,7 +449,6 @@ interface WorkbookScriptRowProps {
 const WorkbookScriptRow: React.FC<WorkbookScriptRowProps> = ({ fileName, depth, onOpen, onRename }) => {
     const displayName = scriptDisplayName(fileName);
     const [renaming, setRenaming] = React.useState(false);
-    const renameInputRef = useNameEditor(renaming);
     const commitRename = React.useCallback((name: string) => {
         setRenaming(false);
         if (name.trim() !== displayName) onRename(name);
@@ -469,7 +467,7 @@ const WorkbookScriptRow: React.FC<WorkbookScriptRowProps> = ({ fileName, depth, 
                 <div className={styles.script_rename}>
                     <FileIcon size={14} aria-hidden="true" />
                     <NameInput
-                        ref={renameInputRef}
+                        autoSelect
                         className={classNames(styles.workbook_rename_input, styles.script_rename_input)}
                         name={displayName}
                         onCommit={commitRename}
