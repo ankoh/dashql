@@ -464,18 +464,14 @@ ibazel, `bazel run` copies the inputs once and the server never sees an edit. Er
 name the copies in the sandbox, edit the files of the workspace. A new test file reaches the browser tests of the dev
 server once a rebuild puts it into their manifests.
 
-The dev server of the website reads `packages/dashql-react` from its sources, an edit reaches the page without a build
-or a restart.
-
-The website runs its own Astro dev server on port 9003. It uses the `node_modules` of `pnpm install`,
-Bazel builds the SVG symbols it reads from `bazel-bin`:
+The website runs its own Astro dev server on port 9003. It uses the `node_modules` of `pnpm install`, Bazel builds
+the SVG symbols it reads from `bazel-bin`, and it reads `packages/dashql-react` from its sources, so an edit there
+reaches the page without a build or a restart. Without a terminal, for example when an agent starts it, Astro runs
+the dev server in the background; stop it with `node_modules/.bin/astro dev stop` in `packages/dashql-org`.
 
 ```bash
 bazel run //packages/dashql-org:dev
 ```
-
-Without a terminal, for example when an agent starts it, Astro runs the dev server in the background. Stop it with
-`node_modules/.bin/astro dev stop` in `packages/dashql-org`.
 
 Code and styles used by both the app and the website live in `packages/dashql-react` and are imported as
 `@akohn/dashql-react/...`. Move code there instead of copying it between the two.

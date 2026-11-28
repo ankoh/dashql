@@ -13,6 +13,8 @@
 
 ### Building
 
+Every build and test is a Bazel target, see [docs/agents/build_bazel_targets.md](docs/agents/build_bazel_targets.md).
+
 ```
 # Vite dev server for the browser with HMR. It runs ibazel, the watcher of Bazel,
 # in a separate output base.
@@ -49,22 +51,9 @@ bazel test //...
 # the long frames and the renders per component (see "Perf marks" in docs/design/dashql_runtime.md)
 bazel run //packages/dashql-app:perf_workbook -- path/to/workbook.dashql
 
-# Many tests are backed by snapshots / fixtures
-# /tests/snapshots/*.tpl.yaml are the input to generate /tests/snapshots/*.yaml
-# Update a snapshot category after intentional changes:
-bazel run //tests/snapshots/analyzer:update
-bazel run //tests/snapshots/completion:update
-bazel run //tests/snapshots/dataflow:update
-bazel run //tests/snapshots/diff:update
-bazel run //tests/snapshots/formatter:update
-bazel run //tests/snapshots/parser:update
-bazel run //tests/snapshots/planner:update
-bazel run //tests/snapshots/profiles/hyper/tests:update
-bazel run //tests/snapshots/profiles/progress:update
-# The Trino plans and progress, both from the recordings
-bazel run //tests/snapshots/profiles/trino/plans:update
-bazel run //tests/snapshots/visualize:update
-# Or all categories at once:
+# Many tests are backed by snapshots: tests/snapshots/**/*.tpl.yaml generate the *.yaml next to them.
+# Update all categories after intentional changes, the targets of single categories are in
+# docs/agents/build_bazel_targets.md
 bazel run //tests/snapshots:update
 
 # Upgrade the Rust crates declared in bazel/crates/*.MODULE.bazel
@@ -78,9 +67,9 @@ bazel build //tools/datasets:datasets
 # Upload missing test datasets to data.dashql.app (requires R2 key)
 bazel run //tools/datasets:sync
 
-# Build and test the npm package
-bazel build --config=release //packages/dashql:npm_tarball
-bazel test --config=release //packages/dashql:all
+# Build and test the npm packages
+bazel build --config=release //packages/dashql:npm_tarball //packages/dashql-react:npm_tarball
+bazel test --config=release //packages/dashql:all //packages/dashql-react:all
 
 ```
 
