@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
+import { RuntimeContextProvider } from '@akohn/dashql-react/hooks';
 import { ConnectionTree, type ConnectionTreeActions } from './connection_tree.js';
 import { testConnectionTreeActions } from './connection_tree_test_actions.js';
 
@@ -62,13 +63,14 @@ describe('ConnectionTree sections', () => {
 
     function render(props: Partial<React.ComponentProps<typeof ConnectionTree>> = {}): void {
         act(() => root.render(
-            <ConnectionTree
-                databases={[hyper, trino]}
-                catalogOf={() => catalog as never}
-                actions={actions}
-                initiallyExpanded={() => true}
-                {...props}
-            />,
+            <RuntimeContextProvider value={{ catalog: () => catalog } as never}>
+                <ConnectionTree
+                    databases={[hyper, trino]}
+                    actions={actions}
+                    initiallyExpanded={() => true}
+                    {...props}
+                />
+            </RuntimeContextProvider>,
         ));
     }
 

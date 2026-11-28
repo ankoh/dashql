@@ -561,10 +561,8 @@ interface ConnectionTreeProps {
     databases: ConnectionState[];
     /// The commands on the connections
     actions: ConnectionTreeActions;
-    /// The catalogs of the connections, the ones of the runtime by default
-    catalogOf?: (connectionId: string) => core.DashQLCatalog | null;
     /// Is a connection expanded initially?
-    initiallyExpanded?: (database: ConnectionState, databaseCount: number) => boolean;
+    initiallyExpanded: (database: ConnectionState, databaseCount: number) => boolean;
     /// The connections of the current workbook, they are grouped apart from the other connections and the unused ones
     workbookConnectionIds?: ReadonlySet<string>;
     /// Label a connection
@@ -608,21 +606,19 @@ function useShallowStableArray<T>(values: T[]): T[] {
 export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
     databases,
     actions,
-    initiallyExpanded = isConnectionInitiallyExpanded,
+    initiallyExpanded,
     workbookConnectionIds,
     labelOf = defaultConnectionLabelOf,
     attention = false,
     openOverviewId = null,
     cloudConnectionIds = NO_CLOUDS,
-    catalogOf,
 }) => {
     const runtime = useOptionalRuntime();
     // The database states change with every query event while the catalogs rarely change.
     // A catalog caches its flat form until its version changes, so its identity tells us when the trees
     // must be rebuilt.
     const connectionIds = useShallowStableArray(databases.map(database => database.connectionId));
-    const catalog = (connectionId: string) => catalogOf != null ? catalogOf(connectionId) : runtime?.catalog(connectionId) ?? null;
-    const flatCatalogs = useShallowStableArray(databases.map(database => catalog(database.connectionId)?.flatten() ?? null));
+    const flatCatalogs = useShallowStableArray(databases.map(database => runtime?.catalog(database.connectionId)?.flatten() ?? null));
     const catalogTrees = React.useMemo(() => connectionIds.map((connectionId, i) => {
         const reader = flatCatalogs[i]?.read() ?? null;
         return {
