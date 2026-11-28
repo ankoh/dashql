@@ -14,7 +14,7 @@
     "flatbuffers": "25.9.23"
   },
   "devDependencies": {
-    "@anthropic-ai/claude-agent-sdk": "0.3.326",
+    "@anthropic-ai/claude-agent-sdk": "0.3.332",
     "@anthropic-ai/sdk": "^1.8.0",
     "@bazel/ibazel": "^0.28.0",
     "@bufbuild/protoc-gen-es": "^2.17.0",
