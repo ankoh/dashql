@@ -3,6 +3,7 @@ import { type DataFile, type DataFileContent, type DeleteWorkbookFilesOptions, S
 import type * as core from '../../core/index.js';
 import { RESULTS_FOLDER } from '../workbook/workbook_result_files.js';
 import { getOPFSRoot } from '../opfs_root.js';
+import { copyDirectory, moveFile } from './directory_files.js';
 import { HYPER_CLOUDS_DIRECTORY } from '../hyperdb/hyperdb_opfs_instance.js';
 import {
     INITIAL_WORKBOOK_FOLDER,
@@ -32,11 +33,6 @@ function domErrorName(error: unknown): string | null {
 /// Is an error a missing directory of `getWorkbookDir`, or a missing entry of the file system API?
 function isMissingDirectory(error: unknown): boolean {
     return domErrorName(error) === 'NotFoundError' || (error instanceof Error && error.message.startsWith('Directory not found'));
-}
-
-/// `FileSystemFileHandle.move()`, with a directory and a name: WebKit doesn't take the name alone
-interface MovableFileHandle {
-    move?(destination: FileSystemDirectoryHandle, name: string): Promise<void>;
 }
 
 /// Origin Private File System storage backend.
@@ -250,37 +246,6 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
         return scripts;
     }
 
-    /// Move a single file between (or within) OPFS directories, preserving its contents byte-for-byte.
-    ///
-    /// Prefers `FileSystemFileHandle.move()` for a true in-place move, and falls back to copy-then-delete
-    /// where it is unavailable. The same-directory case (`srcDir === destDir`) is a pure rename.
-    private async moveFile(
-        srcDir: FileSystemDirectoryHandle,
-        srcName: string,
-        destDir: FileSystemDirectoryHandle,
-        destName: string,
-    ): Promise<void> {
-        if (srcDir === destDir && srcName === destName) {
-            return;
-        }
-        const srcHandle = await srcDir.getFileHandle(srcName, { create: false });
-        const move = (srcHandle as FileSystemFileHandle & MovableFileHandle).move;
-        if (typeof move === 'function') {
-            // Also a rename in place names the directory, WebKit has no move(name)
-            await move.call(srcHandle, destDir, destName);
-            return;
-        }
-        // Fallback: stream the source File (a Blob, so this is binary-safe) into the new handle, then
-        // drop the original.
-        const file = await srcHandle.getFile();
-        const destHandle = await destDir.getFileHandle(destName, { create: true });
-        const writable = await destHandle.createWritable();
-        await writable.write(file);
-        await writable.close();
-        await srcDir.removeEntry(srcName);
-    }
-
-
     async saveScript(
         workbookId: string,
         scriptName: string,
@@ -327,7 +292,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
             }
             throw error;
         }
-        await this.moveFile(scriptsDir, oldScriptName, scriptsDir, newScriptName);
+        await moveFile(scriptsDir, oldScriptName, scriptsDir, newScriptName);
     }
 
     private async dataDir(workbookId: string, create: boolean): Promise<FileSystemDirectoryHandle | null> {
@@ -400,7 +365,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
         if (oldName === newName) return;
         const dir = await this.dataDir(workbookId, false);
         if (!dir) return;
-        await this.moveFile(dir, oldName, dir, newName);
+        await moveFile(dir, oldName, dir, newName);
     }
 
     async clearAllStorage(): Promise<void> {
@@ -710,19 +675,5 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
             }
         }
         return currentDir;
-    }
-}
-
-/// Copy the files and directories of a directory into another one
-async function copyDirectory(source: FileSystemDirectoryHandle, target: FileSystemDirectoryHandle): Promise<void> {
-    for await (const [name, handle] of source.entries()) {
-        if (handle.kind === 'directory') {
-            await copyDirectory(handle as FileSystemDirectoryHandle, await target.getDirectoryHandle(name, { create: true }));
-            continue;
-        }
-        const file = await (handle as FileSystemFileHandle).getFile();
-        const writable = await (await target.getFileHandle(name, { create: true })).createWritable();
-        await writable.write(file);
-        await writable.close();
     }
 }

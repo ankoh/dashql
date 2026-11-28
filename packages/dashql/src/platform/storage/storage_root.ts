@@ -1,40 +1,13 @@
 import type * as core from '../../core/index.js';
+import { copyDirectory, isNotFound } from './directory_files.js';
 
 /// The storage root of the app as the migrations of the runtime see it (`RuntimeStorageRoot` of the core): the files
 /// and directories of a directory handle by their paths, e.g. the origin private file system of the app or the root of
 /// Node. The runtime brings it to the current storage version with `migrateStorage` (docs/design/storage_layout.md).
 
-/// Is an error of the file system API one of a missing entry?
-function isNotFound(error: unknown): boolean {
-    const name = (error as DOMException | null)?.name;
-    return name === 'NotFoundError' || name === 'TypeMismatchError';
-}
-
 /// The names of a path, `/` separated, without empty ones
 function names(path: string): string[] {
     return path.split('/').filter(name => name.length > 0);
-}
-
-/// Copy the files and folders of a directory into another one. Existing files are replaced, or kept.
-async function copyDirectory(from: FileSystemDirectoryHandle, to: FileSystemDirectoryHandle, keepExisting: boolean): Promise<void> {
-    for await (const [name, handle] of from.entries()) {
-        if (handle.kind === 'directory') {
-            await copyDirectory(handle as FileSystemDirectoryHandle, await to.getDirectoryHandle(name, { create: true }), keepExisting);
-            continue;
-        }
-        if (keepExisting) {
-            try {
-                await to.getFileHandle(name, { create: false });
-                continue;
-            } catch (error) {
-                if (!isNotFound(error)) throw error;
-            }
-        }
-        const content = await (await (handle as FileSystemFileHandle).getFile()).arrayBuffer();
-        const writable = await (await to.getFileHandle(name, { create: true })).createWritable();
-        await writable.write(content);
-        await writable.close();
-    }
 }
 
 /// The storage root over a directory handle. The native workbook folders come from the platform, none without.

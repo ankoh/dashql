@@ -3,6 +3,7 @@ import type * as arrow from 'apache-arrow';
 import type { EmbeddedComputeDatabase } from '../embedded_database.js';
 import { copyArrowTableAsParquet } from '../hyperdb/hyperdb_parquet_export.js';
 import { getOPFSRoot } from '../opfs_root.js';
+import { moveFile } from '../storage/directory_files.js';
 import { STORAGE_WORKBOOKS_FOLDER } from '../storage/storage_backend.js';
 import { appendRowNumbers } from '../utils/arrow_vectors.js';
 import { crc32CheckStream } from '../utils/crc32.js';
@@ -92,10 +93,6 @@ interface ResultMount {
     /// Did this window move or remove files since the mount was refreshed? The database still knows the files it opened.
     stale: boolean;
 }
-
-/// A file handle that can move itself, not every browser has `move`. `move(directory, name)`: WebKit doesn't take the
-/// name alone.
-type MovableFileHandle = FileSystemFileHandle & { move?(directory: FileSystemDirectoryHandle, name: string): Promise<void> };
 
 /// The results of the workbooks in `workbooks/<id>/results/` of a root
 export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = {}): WorkbookResultFiles {
@@ -203,16 +200,6 @@ export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = 
             });
         });
     };
-    /// Move a file of a folder to another name, with a copy where the browser can't move files
-    const moveFile = async (dir: FileSystemDirectoryHandle, from: string, to: string) => {
-        const handle = await dir.getFileHandle(from) as MovableFileHandle;
-        if (typeof handle.move === 'function') {
-            await handle.move(dir, to);
-        } else {
-            await (await handle.getFile()).stream().pipeTo(await (await dir.getFileHandle(to, { create: true })).createWritable());
-            await dir.removeEntry(from);
-        }
-    };
     /// Write a file under a transient name and move it in place once it is complete. A failed write leaves nothing. A
     /// workbook that was unmounted since the write began gets no folder.
     const writeFile = async (workbookId: string, name: string, since: number, write: (temporary: string) => Promise<void>) => {
@@ -222,7 +209,7 @@ export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = 
         let written = false;
         try {
             await write(temporary);
-            await moveFile(dir, temporary, name);
+            await moveFile(dir, temporary, dir, name);
             written = true;
         } finally {
             await releaseTemporary();
@@ -312,7 +299,7 @@ export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = 
         move: async (workbookId, from, to) => {
             const dir = await directory(workbookId, false);
             if (dir == null) return true;
-            return await exclusively(workbookId, from, () => moveFile(dir, from, to));
+            return await exclusively(workbookId, from, () => moveFile(dir, from, dir, to));
         },
         remove,
     };
