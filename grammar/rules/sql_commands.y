@@ -2675,7 +2675,7 @@ sql_cmd_database_name_list:
 sql_cmd_def_arg:
     sql_typename { $1 }
     | sql_cmd_table_column_type { $1 }
-    | sql_cmd_reserved_keyword { $1 }
+    | sql_reserved_keywords { ctx.name_from_keyword(@1, $1) }
     | sql_qual_all_op { $1 }
     | sql_numeric_only { $1 }
     | sql_string_literal { $1 }
@@ -3879,90 +3879,6 @@ sql_cmd_reloption_list:
 
 sql_cmd_reloptions:
     LRB sql_cmd_reloption_list RRB { $2 }
-    ;
-
-sql_cmd_reserved_keyword:
-    ALL { ctx.name_from_keyword(@1,$1) }
-    | ANALYSE { ctx.name_from_keyword(@1,$1) }
-    | ANALYZE { ctx.name_from_keyword(@1,$1) }
-    | AND { ctx.name_from_keyword(@1,$1) }
-    | ANY { ctx.name_from_keyword(@1,$1) }
-    | ARRAY { ctx.name_from_keyword(@1,$1) }
-    | AS { ctx.name_from_keyword(@1,$1) }
-    | ASC_P { ctx.name_from_keyword(@1,$1) }
-    | ASSUMED { ctx.name_from_keyword(@1,$1) }
-    | ASYMMETRIC { ctx.name_from_keyword(@1,$1) }
-    | BOTH { ctx.name_from_keyword(@1,$1) }
-    | CASE { ctx.name_from_keyword(@1,$1) }
-    | CAST { ctx.name_from_keyword(@1,$1) }
-    | CHECK_P { ctx.name_from_keyword(@1,$1) }
-    | COLLATE { ctx.name_from_keyword(@1,$1) }
-    | COLUMN { ctx.name_from_keyword(@1,$1) }
-    | CONSTRAINT { ctx.name_from_keyword(@1,$1) }
-    | CREATE_P { ctx.name_from_keyword(@1,$1) }
-    | CURRENT_CATALOG { ctx.name_from_keyword(@1,$1) }
-    | CURRENT_DATE { ctx.name_from_keyword(@1,$1) }
-    | CURRENT_ROLE { ctx.name_from_keyword(@1,$1) }
-    | CURRENT_TIME { ctx.name_from_keyword(@1,$1) }
-    | CURRENT_TIMESTAMP { ctx.name_from_keyword(@1,$1) }
-    | CURRENT_USER { ctx.name_from_keyword(@1,$1) }
-    | DEFAULT { ctx.name_from_keyword(@1,$1) }
-    | DEFERRABLE { ctx.name_from_keyword(@1,$1) }
-    | DESC_P { ctx.name_from_keyword(@1,$1) }
-    | DISTINCT { ctx.name_from_keyword(@1,$1) }
-    | DO { ctx.name_from_keyword(@1,$1) }
-    | ELSE { ctx.name_from_keyword(@1,$1) }
-    | END_P { ctx.name_from_keyword(@1,$1) }
-    | EXCEPT { ctx.name_from_keyword(@1,$1) }
-    | FALSE_P { ctx.name_from_keyword(@1,$1) }
-    | FETCH { ctx.name_from_keyword(@1,$1) }
-    | FOR { ctx.name_from_keyword(@1,$1) }
-    | FOREIGN { ctx.name_from_keyword(@1,$1) }
-    | FROM { ctx.name_from_keyword(@1,$1) }
-    | GRANT { ctx.name_from_keyword(@1,$1) }
-    | GRAPH_TABLE { ctx.name_from_keyword(@1,$1) }
-    | GROUP_P { ctx.name_from_keyword(@1,$1) }
-    | HAVING { ctx.name_from_keyword(@1,$1) }
-    | INITIALLY { ctx.name_from_keyword(@1,$1) }
-    | INTERSECT { ctx.name_from_keyword(@1,$1) }
-    | INTO { ctx.name_from_keyword(@1,$1) }
-    | IN_P { ctx.name_from_keyword(@1,$1) }
-    | LAMBDA { ctx.name_from_keyword(@1,$1) }
-    | LATERAL_P { ctx.name_from_keyword(@1,$1) }
-    | LEADING { ctx.name_from_keyword(@1,$1) }
-    | LIMIT { ctx.name_from_keyword(@1,$1) }
-    | LOCALTIME { ctx.name_from_keyword(@1,$1) }
-    | LOCALTIMESTAMP { ctx.name_from_keyword(@1,$1) }
-    | NOT { ctx.name_from_keyword(@1,$1) }
-    | NULL_P { ctx.name_from_keyword(@1,$1) }
-    | OFFSET { ctx.name_from_keyword(@1,$1) }
-    | ON { ctx.name_from_keyword(@1,$1) }
-    | ONLY { ctx.name_from_keyword(@1,$1) }
-    | OMIT { ctx.name_from_keyword(@1,$1) }
-    | OR { ctx.name_from_keyword(@1,$1) }
-    | ORDER { ctx.name_from_keyword(@1,$1) }
-    | PLACING { ctx.name_from_keyword(@1,$1) }
-    | PRIMARY { ctx.name_from_keyword(@1,$1) }
-    | REFERENCES { ctx.name_from_keyword(@1,$1) }
-    | RETURNING { ctx.name_from_keyword(@1,$1) }
-    | SELECT { ctx.name_from_keyword(@1,$1) }
-    | SESSION_USER { ctx.name_from_keyword(@1,$1) }
-    | SOME { ctx.name_from_keyword(@1,$1) }
-    | SYMMETRIC { ctx.name_from_keyword(@1,$1) }
-    | TABLE { ctx.name_from_keyword(@1,$1) }
-    | THEN { ctx.name_from_keyword(@1,$1) }
-    | TO { ctx.name_from_keyword(@1,$1) }
-    | TRAILING { ctx.name_from_keyword(@1,$1) }
-    | TRUE_P { ctx.name_from_keyword(@1,$1) }
-    | UNION { ctx.name_from_keyword(@1,$1) }
-    | UNIQUE { ctx.name_from_keyword(@1,$1) }
-    | USER { ctx.name_from_keyword(@1,$1) }
-    | USING { ctx.name_from_keyword(@1,$1) }
-    | VARIADIC { ctx.name_from_keyword(@1,$1) }
-    | WHEN { ctx.name_from_keyword(@1,$1) }
-    | WHERE { ctx.name_from_keyword(@1,$1) }
-    | WINDOW { ctx.name_from_keyword(@1,$1) }
-    | WITH { ctx.name_from_keyword(@1,$1) }
     ;
 
 sql_cmd_reset_rest:

@@ -194,7 +194,6 @@
 %type<Node> sql_cmd_reloption_elem;
 %type<NodeList> sql_cmd_reloption_list;
 %type<NodeList> sql_cmd_reloptions;
-%type<Node> sql_cmd_reserved_keyword;
 %type<Node> sql_cmd_reset_rest;
 %type<NodeList> sql_cmd_role_list;
 %type<Node> sql_cmd_set_clause;
