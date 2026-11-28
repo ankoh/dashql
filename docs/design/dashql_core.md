@@ -498,8 +498,8 @@ A panic in any crate of the module traps it, so every crate linked into the core
 `//bazel:rust_safety_lints`, which denies outside of tests: `unwrap_used`, `expect_used`, `panic`, `unreachable`,
 `todo`, `unimplemented`, `indexing_slicing` (an index or a slice that can fail), `string_slice` (a slice of a `str`
 that can split a character) and `await_holding_refcell_ref`. The crates are `dashql-parser`, `dashql-core`,
-`dashql-core-shell`, `dashql-core-profile`, `dashql-core-runtime` and `dashql-core-bindings`; each sets
-the config as its `lint_config` and has a `clippy_test` (`rust_safety_test` of `bazel/rust_safety.bzl`), the one of
+`dashql-core-shell`, `dashql-core-profile`, `dashql-core-runtime`, `dashql-core-storage` and
+`dashql-core-bindings`; each sets the config as its `lint_config` and has a `clippy_test` (`rust_safety_test` of `bazel/rust_safety.bzl`), the one of
 `dashql-core-bindings` over `:dashql_core_bindings_lint`, a host build of the same sources. In `dashql-core` the analyzer,
 completion, formatter and diff look up the arrays of a parsed and analyzed script by the ids that the script holds,
 through `AnalyzedScript::{node, children, expression, scope, table_ref}` (with `_mut` forms) and
@@ -511,16 +511,18 @@ The layout of the dataflow canvas (`dashql-dataflow`) is a wasm module of its ow
 canvas, so it takes the same lints: its `clippy_test` checks the crate and its bindings, the latter as the host build
 `:dashql_dataflow_bindings_lint`. The layout looks up boxes and grid cells by index with `get` and skips one that is
 missing, which happens only when an invariant of the layout breaks. The crates of ELK are third-party and not linted.
+`dashql-cli`, the command of the agents, takes the same lints too.
 
-`dashql-core-runtime` and `dashql-core-bindings` also fail Clippy on any warning (`#![cfg_attr(clippy, deny(warnings))]` in
-their `lib.rs`), with a few style lints allowed by choice there: `large_enum_variant`, `result_large_err`,
-`type_complexity` and `field_reassign_with_default`.
+`dashql-core-runtime`, `dashql-core-storage` and `dashql-core-bindings` also fail Clippy on any warning
+(`#![cfg_attr(clippy, deny(warnings))]` in their `lib.rs`), with a few style lints allowed by choice there:
+`large_enum_variant`, `result_large_err`, `type_complexity`, `field_reassign_with_default` and `needless_update`.
 
 Clippy doesn't see a borrow held across a synchronous call into JavaScript, `await_holding_refcell_ref` only catches
 one across an await; the rule above is kept by review. A `disallowed_methods` ban of `RefCell::borrow` and
 `borrow_mut` in favour of `try_borrow` was weighed and not taken: about 190 sites in the runtime of the module would
-each need a busy path of their own. A new crate of the module takes the same `lint_config` and a `rust_safety_test`.
-See "Clippy" in [build_bazel_targets.md](../agents/build_bazel_targets.md).
+each need a busy path of their own. A new crate of the module takes the same `lint_config` and a `rust_safety_test`;
+the tests are part of `//packages/...`, the commands are in "Clippy" of
+[build_bazel_targets.md](../agents/build_bazel_targets.md).
 
 ### What stays in TypeScript
 

@@ -373,16 +373,9 @@ bazel build //packages/dashql-native/proxy:addon
 
 ### Clippy
 
-Every crate linked into the core module (`dashql-parser`, `dashql-core`, `dashql-core-shell`, `dashql-core-profile`,
-`dashql-core-runtime` and the bindings `dashql-core-bindings`) runs Clippy with the safety lints of
-`//bazel:rust_safety_lints` (`lint_config` of the crate): `unwrap_used`, `expect_used`, `panic`, `unreachable`, `todo`,
-`unimplemented`, `indexing_slicing`, `string_slice` and `await_holding_refcell_ref` are denied outside of tests, a panic
-traps the whole module. The other lints of Clippy stay warnings, but `dashql-core-runtime` and `dashql-core-bindings` deny
-every warning under Clippy (`lib.rs`). See "The rules" in [dashql_core.md](../design/dashql_core.md). `rust_safety_test` of `bazel/rust_safety.bzl` makes it a test
-(`:clippy_test` of each crate), part of `//packages/...`; the bindings are checked as a host build of the same sources
-(`//packages/dashql-core-bindings:dashql_core_bindings_lint`), they compile on the host. The dataflow layout
-(`dashql-dataflow`), a wasm module of its own, has the same lints, its bindings as
-`//packages/dashql-dataflow:dashql_dataflow_bindings_lint`.
+Every crate of the core module, the dataflow layout and `dashql-cli` run Clippy with the safety lints of
+`//bazel:rust_safety_lints` as a test (`:clippy_test` of each crate), part of `//packages/...`. The lints, the crates
+and the rule behind them are in "The rules" of [dashql_core.md](../design/dashql_core.md).
 
 ```bash
 # Clippy with the safety lints, a breach fails the build of the test
@@ -391,8 +384,6 @@ bazel test //packages/dashql-core-runtime:clippy_test //packages/dashql-core-bin
 # The findings, warnings included
 bazel build //packages/dashql-core-runtime:clippy_test_clippy //packages/dashql-core-bindings:clippy_test_clippy
 ```
-
-A new crate of the module takes the lints with `lint_config = "//bazel:rust_safety_lints"` and a `rust_safety_test`.
 
 ### rustfmt
 
@@ -559,8 +550,8 @@ bazel test //packages/dashql-native/proxy:test //tools/pack:test
 
 # The core
 bazel test //packages/dashql-parser:all //packages/dashql-core:all //packages/dashql-core-runtime:all \
-    //packages/dashql-core-shell:all //packages/dashql-core-profile:all \
-    //packages/dashql-dataflow:all //tests/snapshots:all
+    //packages/dashql-core-storage:all //packages/dashql-core-bindings:all //packages/dashql-core-shell:all \
+    //packages/dashql-core-profile:all //packages/dashql-dataflow:all //packages/dashql-cli:all //tests/snapshots:all
 ```
 
 ### The npm Packages
