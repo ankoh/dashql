@@ -9,7 +9,7 @@ py_binary(
 )
 
 # Re-resolve the crate universes of bazel/crates/*.MODULE.bazel and rewrite their Cargo.lock files.
-# Usage: bazel run //scripts:repin_crates [-- full | <crate>@<version>]
+# Usage: bazel run //scripts:repin_crates [-- [--only <universe>] [full | <crate>@<version>]]
 sh_binary(
     name = "repin_crates",
     srcs = ["repin_crates.sh"],

@@ -645,6 +645,8 @@ beyond what the lockfile pins:
 bazel run //scripts:repin_crates -- full
 # Upgrade a single crate
 bazel run //scripts:repin_crates -- tokio@1.53.0
+# Limit the repin to one universe
+bazel run //scripts:repin_crates -- --only core_crates full
 ```
 
 `wasm-bindgen` is pinned to the `wasm-bindgen-cli` bundled with `rules_rust_wasm_bindgen` and has to move

@@ -5,9 +5,14 @@
 #   bazel run //scripts:repin_crates -- full         upgrade every crate to the newest version the specs allow
 #   bazel run //scripts:repin_crates -- <crate>@<v>  upgrade one crate
 #
-# Set CARGO_BAZEL_REPIN_ONLY=<universe> (crates, core_crates) to limit the repin to one universe.
+# `--only <universe>` (crates, core_crates) before these limits the repin to one universe.
 set -euo pipefail
 cd "${BUILD_WORKSPACE_DIRECTORY:-$(dirname "$0")/..}"
-CARGO_BAZEL_REPIN="${1:-1}" bazel mod deps --lockfile_mode=update
-# Evaluate once more without CARGO_BAZEL_REPIN, so MODULE.bazel.lock does not record it.
-bazel mod deps --lockfile_mode=update
+only=
+if [ "${1:-}" = --only ]; then
+    only="$2"
+    shift 2
+fi
+env -u CARGO_BAZEL_REPIN_ONLY ${only:+CARGO_BAZEL_REPIN_ONLY="$only"} CARGO_BAZEL_REPIN="${1:-1}" bazel mod deps --lockfile_mode=update
+# Evaluate once more without the repin variables, so MODULE.bazel.lock does not record them.
+env -u CARGO_BAZEL_REPIN -u CARGO_BAZEL_REPIN_ONLY bazel mod deps --lockfile_mode=update
