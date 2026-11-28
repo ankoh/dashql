@@ -78,7 +78,7 @@ EXPLAIN CALL tickets.ticket_delete (id => 7);
 
 - **`$$` strings are verbatim.** Nothing is trimmed, so `$$` followed by a line break starts the value with a line break. They're for text the grammar shouldn't touch: SQL it can't parse, CSV, formulas.
 - **`(SELECT ...)` keeps core parsing and completion.** It's analyzed like any other query, and the text is sent as written. A service's SQL dialect isn't enforced, which is what `$$` is for.
-- **Strings need unescaping.** Consumers currently read literals by stripping the outer quotes, without unescaping `''` (see [core_quirks.md](core_quirks.md)). Lowering has to unescape them, or a payload with an apostrophe is sent wrong.
+- **Strings are unescaped.** A call reads `'it''s'` as `it's` (`unquote_string_literal`), unlike the consumers that only strip the outer quotes (see [core_quirks.md](core_quirks.md)).
 - **Spelling comes from the spec or the source text.** `read_identifier` lower-cases unquoted names. Known names take their API spelling from the spec. Unknown and quoted ones read it from the token's byte span in `ScannerTokens`, because keyword names carry token indexes in their byte-span fields (see [core_quirks.md](core_quirks.md)).
 
 ## Grammar
@@ -267,7 +267,7 @@ There are three places to see the actual names: the reference of a spec, such as
 
 ## Connector binding
 
-A connector enables a spec through its `ClientFunctionBinding` (`clfn/connection.rs` in `dashql_core_runtime`): `of_connector` names the binding of a connector, `extension` the folder of its spec in `extensions/`, which the host loads (`loadClientFunctionSpec` of `packages/dashql/src/platform/connections/clfn_specs.ts`). The binding resolves the rest from the connection: where a host that the spec names is and the credentials for it, and the values of the variables in the base paths of the spec, which need no login so `EXPLAIN` prints them. The Salesforce binding doesn't refresh a token yet: an expired Data 360 token fails the call with a message that says so. Requests go through the app's `HttpClient`, and the headers of the host also carry what a service wants on every call, such as an API version header or a token type.
+A connector enables a spec through its `ClientFunctionBinding` (`clfn/connection.rs` in `dashql_core_runtime`), which `Connector::client_functions` hands out: `extension` names the folder of its spec in `extensions/`, which the host loads (`loadClientFunctionSpec` of `packages/dashql/src/platform/connections/clfn_specs.ts`). The binding resolves the rest from the connection: where a host that the spec names is and the credentials for it, and the values of the variables in the base paths of the spec, which need no login so `EXPLAIN` prints them. Before every query, a call included, the channel of the connection refreshes credentials that are about to expire, such as a Data 360 token. The Salesforce binding still fails a call whose Data 360 token has expired, with a message that says so. Requests go through the app's `HttpClient`, and the headers of the host also carry what a service wants on every call, such as an API version header or a token type.
 
 **A connection has its client functions as soon as it exists,** before any login, so a script gets its checks and completion without a token. The catalog loader of the runtime (`catalog_loader/service.rs` with `ClientFunctionRegistrations` of `clfn/connection.rs`) asks the host to load the spec and registers it on the connection's catalog. It does so on every change of the registry, so a spec that failed to load is tried again, and it drops the spec if the connection switches to a connector without it. The shell of a connection runs on that catalog, so its prompt completes the same calls.
 
@@ -369,13 +369,7 @@ The same walk tells a key position from a value position. Completion inside a st
 
 **Highlighting:** names stay plain `NAME` nodes, so attributes aren't colored as keywords. The analyzer could report resolved options later if that's wanted.
 
-## Parse tree changes
-
-This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) asks for.
-
-**Motivation:** the statements above have no representation today, since the grammar has no `CALL` statement.
-
-**New values, appended so existing ordinals don't move:**
+## Parse tree
 
 | Kind | Values |
 |---|---|
@@ -387,15 +381,6 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 **Reused:** `OBJECT_SQL_FUNCTION_ARG` for options, an `ARRAY` of `OBJECT_EXT_VARARG_FIELD` for objects, `OBJECT_EXT_VARARG_ARRAY` for arrays, `OBJECT_SQL_SELECT_EXPRESSION` for embedded SQL, `OBJECT_SQL_PARAMETER_REF` for `:param`, and `LITERAL_STRING` for `$$` strings.
 
 **Names are `NAME` nodes,** not enums, so APIs can grow without changing `parsed_script.fbs`.
-
-**Expressiveness:** no existing rule, node or attribute changes meaning, so every construct still parses as before and stays distinguishable. On the checked grammar, the conflicts resolved by precedence stay at 1,814 with no new conflicts, and no keyword list changes.
-
-**Consumers that must change:**
-- `parser/context.rs`: panics on an unknown statement root.
-- `dashql-core/src/formatter/`: an unknown node renders as `'<OBJECT_...>'`, which fails the round-trip test.
-- `dashql-core-runtime/src/planner/mod.rs`: see [Running calls](#running-calls).
-- `dashql-core/src/compiler.rs` and `dashql-core/src/pack.rs`.
-- `tests/snapshots/parser`, `formatter`, `analyzer`, `completion` and `planner`.
 
 ## Running calls
 
@@ -464,10 +449,9 @@ CALL d360.connection_create (connector_type => 'SNOWFLAKE', label => 'Snowflake 
 |---|---|
 | The script itself, from its card, the feed, the dashboard, or SQL sent from the composer | Runs |
 | The shell of the connection | Runs, the statement is typed there |
-| Execute All, a run of the workbook | Left out (`runs_on_request` of the planner) |
+| Execute All, a run of the whole workbook | Held back with the scripts that follow it in the plan, like a `@manual` script (`runs_on_request` of the planner). A script with calls that only read runs |
 | A changed input | Left out, the dataflow marks the script `manual` |
-
-Agents run no calls: `dashql run` reaches Trino and the embedded Hyper only, a call needs a Salesforce connection.
+| An agent's `dashql run` | Without scripts it runs the whole workbook and holds the write back. A script that it names runs, on the connections that the user lets it use, see [agent_integration.md](agent_integration.md). There is no approval step |
 
 - **No script reads its result,** see [Running calls](#running-calls).
 - **Its result is never reused.** A script with a call isn't cacheable, and the shell reuses no stored result.
@@ -558,7 +542,7 @@ Some services answer before they finish. Snowflake declares `202` on 400 of its 
 | `poll` | What the runtime does | Example |
 |---|---|---|
 | `{ "header": "Location" }` | Requests the URL in that header with `GET` and no body, after the origin check | Snowflake's `Location`, which points to `/api/v2/results/{handle}` |
-| `{ "repeat": true }` | Repeats the request. Only for `effect: read`, which a spec has to keep to: nothing checks it yet, and a write would be sent again | GitHub's statistics endpoints |
+| `{ "repeat": true }` | Repeats the request. Only for `effect: read`, registering a spec rejects it on a function that writes, which would be sent again | GitHub's statistics endpoints |
 
 A status with no `pending` rule is an ordinary success. Data 360's `202`s on deletes are this case.
 
@@ -661,7 +645,7 @@ CALL tickets.request (method => 'POST', path => '/new-thing', host => 'api', bod
 | Result columns | `ClientFunctionSpec::result_columns`, `packages/dashql-core/src/table_parameters.rs` | The columns of a function and the standard columns, the table of a script that is a single call that reads |
 | Script references | `packages/dashql-core-runtime/src/planner/script_references.rs` | `unreadable` lets a reference scan a single call that reads, and nothing else read a call, see [Running calls](#running-calls) |
 | Description | `AnalyzedScript::describe_client_function_call` | The JSON for the runtime, see [Running calls](#running-calls). `AnalyzedScript.client_function_calls` in the packed analysis carries it, so the app needs no second call |
-| Bindings | `Catalog.registerClientFunctions`, `dropClientFunctions` | Wasm and `DashQLCatalog` in `packages/dashql/src/core/api.ts`. A binding registers the spec on the catalog of its connection |
+| Registration | `ClientFunctionRegistrations::spec_loaded` (`dashql-core-runtime/src/clfn/connection.rs`) | Registers the spec of a binding on the catalog of its connection with `Catalog::register_client_functions`. The Wasm and `DashQLCatalog` in `packages/dashql/src/core/api.ts` also have `registerClientFunctions` and `dropClientFunctions`, which the tests of the bindings use |
 | Completion | `packages/dashql-core/src/completion_clfn.rs` | The token walk, see [Completion](#completion) |
 | Planner | `packages/dashql-core-runtime/src/planner/mod.rs` | The barrier and `client_function_call` of the node, see [Running calls](#running-calls) |
 
@@ -688,35 +672,14 @@ a bundled spec as a chunk of its own, for `loadSpec` of a binding.
 
 **The tests use a fake host,** so the browser behavior of real services, such as `Access-Control-Expose-Headers`, is still unchecked. `clfn_test.rs` runs calls against made-up specs and responses, `clfn_spec_test.rs` runs the example of every function of the real Data 360 spec through the core and `EXPLAIN`, `workbook_shell_page.test.tsx` of the app checks the call that the shell hands to the executor, and `runtime_connections.test.ts` of `packages/dashql/src/core` cancels a call while the spec of its connection loads.
 
-## What was checked
-
-- **Grammar:** no conflicts, and precedence resolutions stay at 1,814, the same as without `CALL`. It adds 50 states and one token.
-- **Ordinary SQL:** every existing parser, formatter, analyzer, completion and planner snapshot is unchanged byte for byte.
-- **Examples:** every `CALL` in [the Data 360 reference](../../extensions/d360-api/clfn/docs/functions.md) parses on the real parser and passes the real checks against the spec, and completion offers exactly what the reference lists, see [its tests](../../extensions/d360-api/clfn/docs/overview.md#the-spec-is-the-source).
-- **The format:** [the survey](extensions/api_survey.md) measured the published specs of Snowflake, GitHub and Stripe against it. That was static analysis, and no spec was generated.
-
-**What this doesn't show:**
-- No response of a real service has been recorded. The tests of the runtime make their responses up, so they check it against the format and not against Salesforce.
-- Writes are only checked against a mock `HttpClient`. No write has created anything on an org.
-- A spec's load time isn't measured.
-- Nothing ran against a service, and a call hasn't been run through the UI of the app, which needs a connection that is online.
-
-## Roadmap
-
-Each phase lands separately.
-
-1. **Core:** generic `CALL`, `$$` strings, signature registration, checks and completion, formatter and snapshots, and script references to a call that reads, all tested with a made-up fixture spec. Done.
-2. **Runtime:** calls, paging, polling and `EXPLAIN`, against a mock `HttpClient`. Done, see [The runtime](#the-runtime).
-3. **Generators:** OpenAPI plus annotations to a spec in `extensions/`. Run it over Data 360, Snowflake, GitHub and Stripe, and report how many operations each can express. It needs no org and no account, so it's a repeatable measure of whether the format stays general.
-4. **First spec:** the [Data 360 spec](../../extensions/d360-api/clfn/docs/overview.md) and the Salesforce binding, read-only. Built, the live checks on an org are still open.
-5. **Writes:** mutating calls run, a script with one runs only on request, see [Writes](#writes). Done, an approval step for agents is still to come.
-6. **Publish the format:** document it for other services, once phase 3's coverage is good and a second spec has run against a real service.
-
 ## Open questions
 
-1. **Format stability.** `format` allows changes, but anything published has to keep working. This is why publishing comes last.
+1. **Format stability.** `format` allows changes, but anything published has to keep working, so the format is published only once it has settled.
 2. **Specs from elsewhere.** This document covers bundled specs. Loading others needs a trust decision, even with the security rules above.
 3. **Tags beside an object.** A `tag` reads an attribute of the object itself. Some APIs select a variant with a sibling instead, such as `type` next to `config` in Data 360, so only the attributes of those objects decide. A `tag` that reads a sibling would close this, once a source says which value selects which variant.
 4. **Spec size.** The Data 360 spec is 1,322 KB, or 166 KB gzipped, for 535 functions and it loads lazily. What completion shows is about 575 KB of that. Stripe and GitHub would be larger, with 18,407 and 10,438 attributes against 4,018 here.
 5. **Large uploads.** `$$...$$` works for small bodies. Larger ones probably need a reference to a workbook attachment.
 6. **Non-JSON responses and streaming.** Out of scope for now. A binary or event-stream response has no table shape yet, and the generator leaves such functions out. They're rare: about 10 Snowflake operations, mostly Cortex and Spark Connect.
+7. **No run against a service.** No response of a real service has been recorded, and no write has created anything on an org: the tests of the runtime make their responses up with a fake `HttpClient`. The first real exchange gets a file in the `clfn/tests/` of its extension.
+8. **Generators from OpenAPI.** OpenAPI plus annotations to a spec, run over Data 360, Snowflake, GitHub and Stripe, would measure how many operations each can express, without an org or an account. Publishing the format for other services waits for that and for a second spec that ran against a real service.
+9. **Approval of writes.** Agents may run a write. An approval step is still to come.

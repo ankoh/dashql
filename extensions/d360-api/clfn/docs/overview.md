@@ -1,6 +1,6 @@
 # The Data 360 extension
 
-Status: the spec is in `extensions/d360-api/clfn/spec/`, and the core and the runtime read it. Salesforce connections register it, for checks and completion, and calls that read run in the app. Calls that write fail before anything is sent, and nothing has been tested against an org.
+Status: the spec is in `extensions/d360-api/clfn/spec/`, and the core and the runtime read it. Salesforce connections register it, for checks and completion, and calls run in the app, those that write included: a script with a call that writes runs only when someone runs it, see [the rules for writes](../../../../docs/design/client_functions.md#writes). Nothing has been tested against an org.
 
 The Data 360 extension lets a DashQL script reach the whole Salesforce Data 360 API, with one function per API call. It's the first [extension](../../../../docs/design/extensions.md), and everything Salesforce-specific lives here. The statement, spec format, checks, completion, paging and results are generic, and [extensions.md](../../../../docs/design/extensions.md) describes them.
 
@@ -60,13 +60,11 @@ The binding of the Salesforce connector (`ClientFunctionBinding` of `clfn/connec
 
 **`connect` takes the core host and token for now,** as DashQL's metadata call does, because the sources conflict: the spec places these calls on the tenant host after a token exchange, while that metadata call works on the core host with the core token (see [the notes](api_notes.md#hosts-and-tokens)). The spec only names `connect`, so settling this on an org changes `salesforce/client_functions.rs` of `dashql_core_runtime` and not 400 functions.
 
-**The token exchange** stays in `SalesforceApiClient`, as `POST /services/oauth2/token` and `POST /services/a360/token` aren't functions. The host resolution of the runtime (`resolve_salesforce_client_function_host`) reads the tokens of the connection's channel, and a call without a login fails. Tokens aren't refreshed today, so a call with an expired Data 360 token fails with a message that says so, and the host resolution has to refresh it before long-running sessions can rely on it.
+**The token exchange** stays in `salesforce/api.rs` of `dashql_core_runtime`, as `POST /services/oauth2/token` and `POST /services/a360/token` aren't functions. The host resolution of the runtime (`resolve_salesforce_client_function_host`) reads the tokens of the connection's channel, and a call without a login fails. Before every query, a call included, the channel refreshes a Data 360 token that is about to expire (`SharedSalesforceChannel::fresh`). A call whose token has expired anyway, such as one without a refresh token, fails with a message that says so.
 
 **`api_version`** comes from the binding, which sends 68.0, the version of the spec. DashQL's own calls use v64.0, and the hosted server needs v66 or later. The binding could load a spec per API version later, which needs no rebuild.
 
-**Database.com** spreads the Salesforce descriptor and turns the binding off, since it isn't known whether it has this API, see the [open questions](#open-questions).
-
-**Connector flags:** `readOnly` and `queryResultCaching` are both on for Salesforce connections. See [the rules for writes](../../../../docs/design/client_functions.md#writes).
+**Database.com** shares the Salesforce connector, which hands out no binding for it, since it isn't known whether it has this API, see the [open questions](#open-questions).
 
 ## How Data 360 fits the format
 
@@ -281,19 +279,11 @@ It's the only function with a `body` option.
 
 `effect` follows the method, except for reads that use `POST`, such as `transform_validate` and `ci_run_status`.
 
-## Roadmap
-
-The [client function roadmap](../../../../docs/design/client_functions.md#roadmap) comes first. The spec exists. For Data 360:
-
-1. **Read-only binding:** host and token resolution, with `effect: read` functions only. Built. It still needs a browser CORS check on the tenant host, since only `GET` on `/services/data` is exercised today.
-2. **Live checks:** [the list in the notes](api_notes.md#live-checks), which settles the host question.
-3. **Writes:** all other calls, on the generic write rules. Ingestion needs its own CORS check, since no code calls `/api/v1/ingest` yet.
-4. **High-level forms**, if wanted, compiling to `CALL d360.*`. The canonical segment shapes in [the notes](api_notes.md#segment-sql) are the starting point, but multi-criterion segments need an org to test against.
-
 ## Open questions
 
 1. **Database.com.** Its binding is off. Does Database.com have this API?
-2. **CORS for writes.** If `POST`, `PATCH`, `PUT` and `DELETE` fail on `/services/data` from a browser, even with the org's allowlist, writes are Electron-only.
-3. **Which spec version.** The API has versions, and a spec describes one. An older org could reject what completion offers. The binding could pick a spec per API version, but it's only worth generating more than one if this shows up in practice.
-4. **Functions outside the spec.** The families marked `S`, `D` and `C` in the reference are written from tool sources and docs, not the contract, so their attributes are less certain. They default to `unknown: warning`.
-5. **Unpublished endpoints.** Sources mention calls no function covers: `POST /personalization/decisions`, `/ssot/intelligent-context/{lens}/chunks`, `/ssot/metadata-entities/{nextBatchId}`, some semantic model endpoints, and community-reported agent calls. They work through `d360.request` for now.
+2. **CORS.** Only `GET` on `/services/data` is exercised from a browser. The tenant host and ingestion (`/api/v1/ingest`) need a check. If `POST`, `PATCH`, `PUT` and `DELETE` fail on `/services/data` from a browser, even with the org's allowlist, writes are Electron-only.
+3. **Live checks.** [The list in the notes](api_notes.md#live-checks) settles the host question and what the server accepts.
+4. **Which spec version.** The API has versions, and a spec describes one. An older org could reject what completion offers. The binding could pick a spec per API version, but it's only worth generating more than one if this shows up in practice.
+5. **Functions outside the spec.** The families marked `S`, `D` and `C` in the reference are written from tool sources and docs, not the contract, so their attributes are less certain. They default to `unknown: warning`.
+6. **Unpublished endpoints.** Sources mention calls no function covers: `POST /personalization/decisions`, `/ssot/intelligent-context/{lens}/chunks`, `/ssot/metadata-entities/{nextBatchId}`, some semantic model endpoints, and community-reported agent calls. They work through `d360.request` for now.

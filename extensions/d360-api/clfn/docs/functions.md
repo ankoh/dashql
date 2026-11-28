@@ -50,7 +50,7 @@ Each function has the same parts:
 - **Header:** the HTTP verb and path, a link to its reference, the Salesforce MCP tools it covers, its evidence, and whether it changes org state.
 - **Options:** path parameters, query parameters and request body fields are all options. Only the **In** column tells them apart, and the runtime uses it to build the request. A body field that clashes with a parameter of the same name gets a `body_` prefix.
 - **API name:** every option, attribute and column is snake_case in a script, and this column has the API's exact spelling, which the client sends and reads. For a path option, it's the placeholder. See [Naming](overview.md#naming). Values, free-form keys and JSON in results keep the API's spelling.
-- **Example:** a `CALL` statement. Every example in these documents parses on the proposed `CALL` grammar, see [What was checked](../../../../docs/design/client_functions.md#what-was-checked).
+- **Example:** a `CALL` statement. Every example in these documents parses and passes the checks against the spec, see [the tests](overview.md#the-spec-is-the-source).
 - **Result:** the rows and columns, described below.
 - **Paging, Done when, Token, Notes:** present when they apply. Paging names the options that move through results. Every paged function also takes `_next` and `_pages`, see [Paging](../../../../docs/design/client_functions.md#paging). Done when says what to read to see that an asynchronous call finished.
 
@@ -127,7 +127,7 @@ This shows the shape only. These values are made up, since nothing has run again
 
 | Item | Why |
 |---|---|
-| `POST /services/oauth2/token`, `POST /services/a360/token` | The connection handles authentication, in `SalesforceApiClient` |
+| `POST /services/oauth2/token`, `POST /services/a360/token` | The connection handles authentication, in `salesforce/api.rs` of `dashql_core_runtime` |
 | `d360_smart_mapping_suggest`, `d360_preview_field_matches`, `d360_smart_datastream_create`, `d360_event_date_recommend` | MCP helpers that compute suggestions or wrap other calls |
 | `d360_standard_mapping_preview`, `d360_standard_mapping_create` | MCP tools for predefined mappings, which may be one or more `dmo_mapping_create` calls |
 | `search`, `execute`, `payload_examples` | The MCP server's own discovery tools |

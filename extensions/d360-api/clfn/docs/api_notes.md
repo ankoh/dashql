@@ -55,7 +55,7 @@ Core OAuth token ──POST /services/a360/token──▶ Data 360 JWT + tenant 
 | `/services/data/vXX/ssot/*` | **Sources conflict.** The spec's server is `https://{dne_cdpInstanceUrl}/services/data/v{version}`, and the Connect guide and Postman setup exchange first (D). DashQL's metadata call works on the core host with the core token, and live tests agree (C). The spec also says `segment_list` and `segment_create` need the core token (D) | Make this configurable |
 | `/api/v1/agentic/*` | `agent_id` is a header on most calls, a query parameter on `memory_context_get` | D |
 
-**DashQL today** (`salesforce_api_client.ts`): `/ssot/metadata` on the core host with the core token, on API v64.0, and Hyper over HTTP on the tenant host. Only `GET` on `/services/data` is exercised, so CORS for other verbs is unknown. It needs the org's CORS allowlist. Tokens aren't refreshed.
+**DashQL today** (`salesforce/api.rs` of `dashql_core_runtime`): `/ssot/metadata` on the core host with the core token, on API v64.0, and Hyper over HTTP on the tenant host. Only `GET` on `/services/data` is exercised, so CORS for other verbs is unknown. It needs the org's CORS allowlist. The channel refreshes the core token and exchanges it again before a query when the Data 360 token is about to expire.
 
 **Scopes:** `api` (needed for the exchange), `cdp_api`, `cdp_query_api`, `cdp_profile_api`, `cdp_ingest_api` (X, C).
 

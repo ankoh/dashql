@@ -26,7 +26,7 @@ A folder is named for the API, which needn't equal the namespace of its client f
 
 | Path | Read by |
 |---|---|
-| `<extension>/clfn/spec/spec.json` | `loadClientFunctionSpec` (`connections/clfn_specs.ts`), for the binding of a connector. Every spec is a chunk of its own, so a connection only loads it when it needs it |
+| `<extension>/clfn/spec/spec.json` | `loadClientFunctionSpec` (`packages/dashql/src/platform/connections/clfn_specs.ts`), for the binding of a connector, from the chunks that `connections/bundled_clfn_specs.ts` of the app provides. Every spec is a chunk of its own, so a connection only loads it when it needs it |
 | `<extension>/snippets/**/*.sql` | The snippet registry (`workbook/snippets/snippet_registry.ts`) |
 
 ## Snippets
@@ -38,5 +38,5 @@ The snippets of an extension don't have to be reentrant, because an API has no `
 ## Adding an extension
 
 1. Add a folder in `extensions/`, with a `files` target in its `BUILD.bazel`, and add that target to `//packages/dashql-app:extensions`.
-2. For client functions, add a [spec](client_functions.md#the-spec), and a [binding](client_functions.md#connector-binding) on the descriptor of the connector.
+2. For client functions, add a [spec](client_functions.md#the-spec), and a [binding](client_functions.md#connector-binding) that the connector hands out (`Connector::client_functions` in `dashql_core_runtime`).
 3. For snippets, add the folder name to `SNIPPET_ROOT_CONNECTORS`.
