@@ -59,8 +59,9 @@ sidebar next to them.
 A touch screen (`pointer: coarse`) shows the keys of SQL below the editor (`SqlKeyBar` of
 `workbook/editor/sql_key_bar.tsx`): Run, Tab (what the keymap of the editor does with it, else the completion), the
 symbols that the letter keyboard hides on another page, and the arrows that move the cursor. A key keeps the focus in
-the editor, so the keyboard stays open. The viewport of the app resizes its content for the keyboard
-(`interactive-widget=resizes-content`, Chromium and Firefox), the keys sit right above it.
+the editor, so the keyboard stays open. The viewport of the app resizes its content for the keyboard, the keys sit
+right above it: the app adds `interactive-widget=resizes-content` to the viewport meta in Chromium and Firefox at its
+start (`app/viewport_keyboard.ts`), WebKit logs an error for the key and doesn't know it.
 
 ## The feed
 

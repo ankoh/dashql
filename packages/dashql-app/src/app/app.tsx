@@ -34,6 +34,7 @@ import { perfMarks } from '@akohn/dashql';
 import { EmbeddedDatabaseProvider, type EmbeddedDatabaseOptions } from '../host/embedded_database_provider.js';
 import { NativeWorkbookSync } from '../workbook/persistence/native_workbook_sync_react.js';
 import { WorkbookImportProvider } from '../workbook/persistence/workbook_import_provider.js';
+import { resizeContentForKeyboard } from './viewport_keyboard.js';
 
 import '@akohn/dashql-react/fonts/fonts.css';
 import '@akohn/dashql-react/styles/colors.css';
@@ -136,6 +137,9 @@ function logRecoverableReactError(error: unknown, errorInfo: React.ErrorInfo) {
 
 // `?perf` records the perf marks from the start, see "Perf marks" in docs/design/dashql_runtime.md
 if (new URLSearchParams(window.location.search).has('perf')) perfMarks.setEnabled(true);
+
+// The keyboard of a touch screen resizes the content, where the engine knows how
+resizeContentForKeyboard(document, navigator);
 
 const element = document.getElementById('root');
 const root = createRoot(element!, {
