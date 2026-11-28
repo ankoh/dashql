@@ -1733,12 +1733,6 @@ pub fn quote_identifier(text: &str) -> String {
     dashql_core::utils::quote_identifier(text)
 }
 
-/// Quote a column name for a column reference in SQL text, also quotes keywords that are not unreserved, e.g. `"user"`
-#[wasm_bindgen(js_name = quoteColumnName)]
-pub fn quote_column_name(text: &str) -> String {
-    dashql_core::utils::quote_column_name(text)
-}
-
 /// The relations that the statements of a text create or drop, returns packed `TouchedRelations`
 #[wasm_bindgen(js_name = touchedRelations)]
 pub fn touched_relations(text: &str) -> Vec<u8> {

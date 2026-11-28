@@ -23,7 +23,6 @@ export type DashQLBindings = Pick<
     | 'inputLiteral'
     | 'textChange'
     | 'quoteIdentifier'
-    | 'quoteColumnName'
     | 'processBatch'
     | 'touchedRelations'
     | 'compileMarkdown'
@@ -557,11 +556,6 @@ export class DashQL {
         return this.bindings.quoteIdentifier(text);
     }
 
-    /// Quote a column name for a column reference in SQL text, also quotes keywords that are not unreserved, e.g. `"user"`
-    public quoteColumnName(text: string): string {
-        return this.bindings.quoteColumnName(text);
-    }
-
     public createQueryProfile(layoutConfig: buffers.profile.ProfileLayoutConfigT): DashQLQueryProfile {
         const ptr = new Ptr(QUERY_PROFILE_TYPE, this, new this.bindings.QueryProfile());
         return new DashQLQueryProfile(ptr, layoutConfig);
@@ -694,14 +688,6 @@ export class FlatBufferPtr<T extends FlatBufferObject<T, O>, O = ReturnType<T['u
     /// Get the data
     public get data(): Uint8Array {
         return this.bytes;
-    }
-    /// Copy the data into a buffer
-    public copy(): Uint8Array {
-        return this.data.slice();
-    }
-    /// Equals a different flatbuffer ptr?
-    public equals(other: FlatBufferPtr<T, O>): boolean {
-        return this === other;
     }
     // Get the flatbuffer object
     // C.f. getRootAsAnalyzedScript
@@ -1133,14 +1119,6 @@ export class DashQLScript {
     public completeAtCursor(limit: number, keywordCase = buffers.formatting.KeywordCase.LOWER): FlatBufferPtr<buffers.completion.Completion> {
         const bytes = this.ptr.assertNotNull().completeAtCursor(limit, keywordCase);
         return new FlatBufferPtr(COMPLETION_TYPE, this.ptr.api, bytes, () => new buffers.completion.Completion());
-    }
-    /// Try to complete at cursor
-    public tryCompleteAtCursor(limit: number): FlatBufferPtr<buffers.completion.Completion> | null {
-        try {
-            return this.completeAtCursor(limit);
-        } catch {
-            return null;
-        }
     }
     /// Format the script
     public format(
