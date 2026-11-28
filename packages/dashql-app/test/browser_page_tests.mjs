@@ -458,22 +458,25 @@ async function testAppDragRegions(page, navigate) {
     }
 }
 
-/// A compact window gets the app as it is (docs/design/narrow_layouts.md): the pages of the rail in the stripe at the
-/// top, the bar of the workbook in one row, nothing wider than the window, and the workbench in a drawer
+/// A compact window gets the app as it is (docs/design/narrow_layouts.md): the dark bar of the workbook in one row at
+/// the top of the window without the stripe, nothing wider than the window, and the workbench in a drawer with the
+/// pages of the rail
 async function testAppNarrow(page, navigate) {
     await navigate('/');
     const drawerButton = page.getByTestId('open-workbench');
     await drawerButton.waitFor();
     const layout = await page.evaluate(() => {
-        const rail = document.querySelector('nav[aria-label="Areas"]').getBoundingClientRect();
-        const bar = document.querySelector('[data-testid="open-workbench"]').closest('header').getBoundingClientRect();
-        return { railBottom: rail.bottom, barHeight: bar.height, scrollWidth: document.documentElement.scrollWidth, width: window.innerWidth };
+        const bar = document.querySelector('[data-workbook-bar]').getBoundingClientRect();
+        const rails = [...document.querySelectorAll('nav[aria-label="Areas"]')].filter(rail => rail.getClientRects().length > 0);
+        return { barTop: bar.top, barHeight: bar.height, rails: rails.length, scrollWidth: document.documentElement.scrollWidth, width: window.innerWidth };
     });
-    if (layout.railBottom > 40) throw new Error(`The rail is not in the stripe at the top: it ends at ${layout.railBottom}px`);
+    if (layout.barTop > 0) throw new Error(`The bar of the workbook is not at the top of the window: ${layout.barTop}px`);
     if (layout.barHeight > 48) throw new Error(`The bar of the workbook takes more than a row: ${layout.barHeight}px`);
+    if (layout.rails > 0) throw new Error('The rail shows next to the bar of the workbook');
     if (layout.scrollWidth > layout.width) throw new Error(`The page is wider than the window: ${layout.scrollWidth}px > ${layout.width}px`);
     await drawerButton.click();
     await page.getByRole('heading', { name: 'Workbooks' }).last().waitFor();
+    await page.getByRole('dialog', { name: 'Workbook workbench' }).getByRole('navigation', { name: 'Areas' }).getByRole('button', { name: 'Workspace' }).waitFor();
 }
 
 /// Firefox under Playwright fires `cancel` on a file input when the test intercepts its chooser, before the test picks

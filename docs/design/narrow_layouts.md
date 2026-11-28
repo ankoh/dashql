@@ -27,13 +27,14 @@ There is no gate for narrow windows. Before, a window below 800px showed a page 
 layout. The setting it wrote, `narrowScreenLayout`, stays in the schema of the app manifest so that older manifests stay
 valid, and the app no longer reads it.
 
-- **The rail** (`app/nav_rail.tsx`) gets no column on a compact window: its pages sit in the middle of the dark stripe
-  at the top, as a row. The toggle of the wide rail and the pages that are not there yet stay out
-  (`nav_rail.module.css`, `navbar.module.css`).
-- **The bar of the workbook** (`workbook/views/workbook_views_page.tsx`) is one row of 44px on a compact window: the
-  drawer, Execute All with the indicator of its run, the connections, the actions and the view switch. The text of
-  the run shows in the bar of Wobble. The bookmark of the default view, the arrows of the view switch and the separators
-  stay on wider windows.
+- **The top of a compact window** is one dark bar, the bar of the workbook (`workbook/views/workbook_views_page.tsx`,
+  `data-workbook-bar`): the stripe and the rail don't show next to it (`navbar.module.css`). It is one row of 44px:
+  the drawer, Execute All with the indicator of its run, the connections, the actions and the view switch. The text of
+  the run shows in the bar of Wobble, Export .dashql stays in the menu of the actions. The bookmark of the default view,
+  the arrows of the view switch and the separators stay on wider windows. A page without that bar, e.g. the shell,
+  keeps the stripe with the pages of the rail in its middle.
+- **The drawer** of the workbench has the pages of the rail and the overlays of the stripe (the client, the version,
+  the color scheme) in its dark header on a compact window; a page of the rail closes it.
 - **The workbench** opens in a drawer below the expanded width (`WorkbookNavigationDrawer`), the same component as the
   sidebar.
 - **The bottom** of the window holds one bar, the bar of Wobble. The view switch stays in the bar at the top on every

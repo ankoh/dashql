@@ -62,22 +62,26 @@
 }
 
 /* The buttons are a size smaller in the stripe than in the compact navbar */
-.top_bar .tab {
+.top_bar .tab,
+.top_bar_actions_detached .tab {
     height: 24px;
 }
 
 /* The light tint of the rail buttons, a darkening would vanish on the dark chrome */
-.top_bar .tab:hover {
+.top_bar .tab:hover,
+.top_bar_actions_detached .tab:hover {
     background-color: var(--color_bg_hover);
     border: 1px solid var(--color_bg_hover) !important;
 }
 
-.top_bar .tab_button {
+.top_bar .tab_button,
+.top_bar_actions_detached .tab_button {
     padding: 0 6px;
     column-gap: 6px;
 }
 
-.top_bar .tab_button_text {
+.top_bar .tab_button_text,
+.top_bar_actions_detached .tab_button_text {
     font-size: var(--font_size_caption);
 }
 
@@ -270,10 +274,26 @@
     }
 }
 
-/* A compact window gives the rail no column, its pages sit in the stripe (nav_rail.module.css) */
+/* The overlays of the stripe in the header of the drawer, a row on the dark chrome */
+.top_bar_actions_detached {
+    display: flex;
+    align-items: center;
+    column-gap: 4px;
+}
+
+/* A compact window gives the rail no column, its pages sit in the stripe (nav_rail.module.css). A page with the dark bar
+   of a workbook has no stripe at all: the bar is the top of the window, the drawer of the workbench holds the pages of
+   the rail and the overlays (docs/design/narrow_layouts.md). */
 @media only screen and (max-width: 599px) {
     .container,
     .container_wide {
         --nav_bar_width: 0px;
+    }
+    .container:has([data-workbook-bar]) {
+        grid-template-rows: 0 minmax(0, 1fr);
+    }
+    .container:has([data-workbook-bar]) > .top_bar,
+    .container:has([data-workbook-bar]) > nav {
+        display: none;
     }
 }

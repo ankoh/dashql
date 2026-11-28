@@ -307,11 +307,22 @@
         /* The cards of the feed and the dashboard get the width of a phone, a narrow gutter keeps them apart from the
            edges */
         --page_gutter: 8px;
+        /* The bar is the top of the window, there is no stripe above the card (navbar.module.css) */
+        border-radius: 0;
     }
+    .page::after {
+        border: none;
+    }
+    /* The bar is dark chrome like the stripe that it replaces, the tokens inside resolve dark */
     .view_bar {
+        color-scheme: dark;
+        color: var(--color_fg);
         flex-wrap: nowrap;
         gap: 2px;
         padding: 0 4px;
+        padding-top: env(safe-area-inset-top, 0px);
+        border-bottom-color: transparent;
+        background: var(--chrome_bg_100);
     }
     .view_bar .view_step,
     .view_bar .view_default,

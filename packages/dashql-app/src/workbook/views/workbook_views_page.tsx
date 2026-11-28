@@ -388,7 +388,7 @@ export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Pr
                     </div>
                 </main>
                 {/* After the feed in the DOM, so that no-drag rows scrolled behind the bar do not cut holes into its drag region, see docs/design/electron.md */}
-                <header className={styles.view_bar} data-electron-drag-region>
+                <header className={styles.view_bar} data-electron-drag-region data-workbook-bar>
                     {/* The groups at the start of the bar: the workbench, then the execution of the workbook */}
                     <div className={styles.bar_group} role="group" aria-label="Workbench" data-testid="workbook-workbench-group">
                         <IconButton className={styles.mobile_menu_button} ref={navigationDrawerTriggerRef} variant={ButtonVariant.Default} aria-label="Open workbook workbench" data-testid="open-workbench" onClick={() => setNavigationDrawerOpen(true)}>

@@ -176,6 +176,19 @@ export const CompactNavBar = (props: { showInternals?: boolean }): React.ReactEl
     );
 };
 
+/// The overlays at the end of the stripe: the client, the version and the color scheme. The drawer of the workbench
+/// shows them where a compact window has no stripe (docs/design/narrow_layouts.md).
+export const NavBarActions = (props: { workbookId: string | null; className?: string }): React.ReactElement => (
+    <div className={props.className ?? styles.top_bar_actions}>
+        <InternalsButton workbookId={props.workbookId} />
+        <VersionButton iconSize={14} />
+        <ColorSchemeButton />
+    </div>
+);
+
+/// The class of the overlays of the stripe outside of it, e.g. in the header of the drawer
+export const DETACHED_NAV_BAR_ACTIONS = styles.top_bar_actions_detached;
+
 /// Stand-ins for the traffic lights of the macOS window when the browser shows the layout of the desktop app on macOS
 const TrafficLightPlaceholders = () => (
     <div className={styles.traffic_lights} aria-hidden="true">
@@ -209,11 +222,7 @@ export function NavBarContainer(props: { children: React.ReactElement }) {
             </div>
             <header key={2} className={isMac ? `${styles.top_bar} ${styles.top_bar_mac}` : styles.top_bar} data-electron-drag-region>
                 <TopBarBrand mac={isMac} showName={railWide} />
-                <div className={styles.top_bar_actions}>
-                    <InternalsButton workbookId={route.workbookId} />
-                    <VersionButton iconSize={14} />
-                    <ColorSchemeButton />
-                </div>
+                <NavBarActions workbookId={route.workbookId} />
             </header>
             {isMac && !macHost && <TrafficLightPlaceholders />}
         </div>
