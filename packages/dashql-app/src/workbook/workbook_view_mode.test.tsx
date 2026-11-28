@@ -20,8 +20,8 @@ describe('workbook view URL state', () => {
     it('reads the view from the view query parameter', () => {
         expect(workbookViewModeFromSearch('?view=dashboard')).toBe(WorkbookViewMode.Dashboard);
         expect(workbookViewModeFromSearch('?view=dataflow')).toBe(WorkbookViewMode.Dataflow);
-        expect(workbookViewModeFromSearch('?view=workbook')).toBe(WorkbookViewMode.Workbook);
-        expect(workbookViewModeFromSearch('')).toBe(WorkbookViewMode.Workbook);
+        expect(workbookViewModeFromSearch('?view=workbook')).toBe(WorkbookViewMode.Feed);
+        expect(workbookViewModeFromSearch('')).toBe(WorkbookViewMode.Feed);
     });
 
     it('replaces only the view parameter and preserves other query state', () => {
@@ -77,7 +77,7 @@ describe('workbook view mode', () => {
 
     // The router navigates in a transition, a view of the URL shows once it rendered
     it('shows the views of the URL and keeps the shell until a view of the URL closes it', async () => {
-        expect(view.mode).toBe(WorkbookViewMode.Workbook);
+        expect(view.mode).toBe(WorkbookViewMode.Feed);
         act(() => view.setMode(WorkbookViewMode.Dashboard));
         await waitForRender(() => expect(view.mode).toBe(WorkbookViewMode.Dashboard));
         expect(search).toBe('?view=dashboard');
@@ -89,12 +89,12 @@ describe('workbook view mode', () => {
         act(() => void navigate('/workbooks/a?view=dataflow'));
         await waitForRender(() => expect(view.mode).toBe(WorkbookViewMode.Dataflow));
         act(() => void navigate('/workbooks/a'));
-        await waitForRender(() => expect(view.mode).toBe(WorkbookViewMode.Workbook));
+        await waitForRender(() => expect(view.mode).toBe(WorkbookViewMode.Feed));
     });
 
     it('falls back to the workbook for an unknown view, also in the URL', async () => {
         act(() => void navigate('/workbooks/a?view=unknown&foo=bar'));
         await waitForRender(() => expect(search).toBe('?foo=bar'));
-        expect(view.mode).toBe(WorkbookViewMode.Workbook);
+        expect(view.mode).toBe(WorkbookViewMode.Feed);
     });
 });

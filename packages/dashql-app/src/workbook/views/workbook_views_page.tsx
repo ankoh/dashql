@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as styles from './workbook_feed_page.module.css';
+import * as styles from './workbook_views_page.module.css';
 
 import { LinkIcon, PaperclipIcon, SymbolIcon, ThreeBarsIcon } from '@akohn/dashql-react/components/symbol_icon';
 import * as ActionList from '@akohn/dashql-react/components/action_list';
@@ -20,8 +20,8 @@ import { useWorkbenchHidden } from '../navigation/workbench_hidden.js';
 import { WorkbookURLShareOverlay } from '../persistence/workbook_url_share_overlay.js';
 import { WorkbookFileSaveOverlay } from '../persistence/workbook_file_save_overlay.js';
 import { ScriptEditorDialog } from '../scripts/script_editor_dialog.js';
-import { WorkbookFeed, type WorkbookFeedInsets, type WorkbookFeedRevealRequest } from './workbook_feed.js';
-import { WorkbookPrompt, WorkbookPromptPlacement, type WorkbookPromptFeed, type WorkbookPromptHandle } from './workbook_prompt.js';
+import { WorkbookFeed, type WorkbookFeedInsets, type WorkbookFeedRevealRequest } from '../feed/workbook_feed.js';
+import { WorkbookPrompt, WorkbookPromptPlacement, type WorkbookPromptFeed, type WorkbookPromptHandle } from '../feed/workbook_prompt.js';
 import type { AgentFollowTarget } from '../../agent/agent_session.js';
 import { Dashboard } from '../dashboard/dashboard.js';
 import { DataflowCanvas } from '../dataflow/dataflow_canvas.js';
@@ -65,7 +65,7 @@ const DashboardViewIcon = SymbolIcon('dashboard_16');
 const DataflowViewIcon = SymbolIcon('workflow_16');
 /// The views of the switch, the workbook first
 const WORKBOOK_VIEWS: [WorkbookViewMode, string, typeof FeedViewIcon][] = [
-    [WorkbookViewMode.Workbook, 'Feed', FeedViewIcon],
+    [WorkbookViewMode.Feed, 'Feed', FeedViewIcon],
     [WorkbookViewMode.Dashboard, 'Dashboard', DashboardViewIcon],
     [WorkbookViewMode.Dataflow, 'Dataflow', DataflowViewIcon],
 ];
@@ -134,7 +134,7 @@ interface Props {
 
 /// The page of a workbook. Memoized: the workbook page renders again with a change of any connection, the page only
 /// when its props change.
-export const WorkbookFeedPage = React.memo(function WorkbookFeedPage(props: Props): React.ReactElement {
+export const WorkbookViewsPage = React.memo(function WorkbookViewsPage(props: Props): React.ReactElement {
     const {
         feed = renderFeed, prompt = renderPrompt, dashboard = renderDashboard, dataflow = renderDataflow,
         editorDialog = renderEditorDialog, workbench: workbenchSlot = renderWorkbench,
@@ -215,11 +215,11 @@ export const WorkbookFeedPage = React.memo(function WorkbookFeedPage(props: Prop
     const attachRef = React.useRef<((files: File[]) => void) | null>(null);
     const attachInputRef = React.useRef<HTMLInputElement>(null);
     React.useEffect(() => {
-        if (preview && (mode === WorkbookViewMode.Dashboard || mode === WorkbookViewMode.Dataflow)) setMode(WorkbookViewMode.Workbook);
+        if (preview && (mode === WorkbookViewMode.Dashboard || mode === WorkbookViewMode.Dataflow)) setMode(WorkbookViewMode.Feed);
     }, [preview, mode, setMode]);
     const dashboardActive = mode === WorkbookViewMode.Dashboard;
     const dataflowActive = mode === WorkbookViewMode.Dataflow;
-    const activeView = dashboardActive ? WorkbookViewMode.Dashboard : dataflowActive ? WorkbookViewMode.Dataflow : WorkbookViewMode.Workbook;
+    const activeView = dashboardActive ? WorkbookViewMode.Dashboard : dataflowActive ? WorkbookViewMode.Dataflow : WorkbookViewMode.Feed;
     // A switch of the view holds the heavy renders until the transitions it starts end, e.g. the morph of the prompt
     // (workbook_composer.module.css, workbook_prompt.module.css), the next view shows skeletons until then. A slow
     // frame delays the end of a transition, the hold follows it. The layout effect runs before the effects of the new
@@ -246,7 +246,7 @@ export const WorkbookFeedPage = React.memo(function WorkbookFeedPage(props: Prop
     // view: shown in the feed, shrunk into the bar over the dashboard and the dataflow. An overview keeps it.
     const [promptToggle, setPromptToggle] = React.useState<{ view: WorkbookViewMode; expanded: boolean } | null>(null);
     if (promptToggle != null && promptToggle.view !== activeView) setPromptToggle(null);
-    const promptExpanded = promptToggle?.view === activeView ? promptToggle.expanded : activeView === WorkbookViewMode.Workbook;
+    const promptExpanded = promptToggle?.view === activeView ? promptToggle.expanded : activeView === WorkbookViewMode.Feed;
     const togglePrompt = React.useCallback((expanded: boolean) => setPromptToggle({ view: activeView, expanded }), [activeView]);
     const pageShown = props.active || dashboardActive || dataflowActive;
     useFileDropHandler(pageShown ? files => {
@@ -276,13 +276,13 @@ export const WorkbookFeedPage = React.memo(function WorkbookFeedPage(props: Prop
     const activeViewLabel = WORKBOOK_VIEWS[viewIndex]?.[1] ?? 'Feed';
     const modifyWorkbookScripts = props.modifyWorkbookScripts;
     const toggleDefaultView = React.useCallback(() => {
-        const next = activeViewIsDefault ? WorkbookViewMode.Workbook : activeView;
+        const next = activeViewIsDefault ? WorkbookViewMode.Feed : activeView;
         if (next === defaultView) return;
         modifyWorkbookScripts({ kind: 'setDefaultView', value: { view: defaultViewOfViewMode(next) } });
     }, [activeView, activeViewIsDefault, defaultView, modifyWorkbookScripts]);
     const defaultViewDescription = !activeViewIsDefault
         ? `Open the workbook in the ${activeViewLabel.toLowerCase()}`
-        : activeView === WorkbookViewMode.Workbook
+        : activeView === WorkbookViewMode.Feed
             ? 'The workbook opens in the feed'
             : `The workbook opens in the ${activeViewLabel.toLowerCase()}, click to open it in the feed`;
     // The groups at the end of the bar. An ephemeral workbook has no actions and no Execute All, a preview has its own
@@ -306,7 +306,7 @@ export const WorkbookFeedPage = React.memo(function WorkbookFeedPage(props: Prop
     const openScript = React.useCallback((workbookId: string, fileName: string) => {
         setOverviewConnectionId(null);
         setDetails(null);
-        if (mode !== WorkbookViewMode.Workbook) setMode(WorkbookViewMode.Workbook);
+        if (mode !== WorkbookViewMode.Feed) setMode(WorkbookViewMode.Feed);
         setRevealRequest({ workbookId, fileName });
     }, [mode, setMode, setOverviewConnectionId]);
     // The prompt and the feed ask each other through handles: the feed mentions its scripts in the question of the
@@ -326,14 +326,14 @@ export const WorkbookFeedPage = React.memo(function WorkbookFeedPage(props: Prop
         show: (scriptKey: number) => {
             setOverviewConnectionId(null);
             setDetails(null);
-            if (modeRef.current !== WorkbookViewMode.Workbook) setMode(WorkbookViewMode.Workbook);
+            if (modeRef.current !== WorkbookViewMode.Feed) setMode(WorkbookViewMode.Feed);
             feedRef.current?.show(scriptKey);
         },
         followAgent: () => feedRef.current?.followAgent(),
         // The feed scrolls to the end also while it is hidden, the dashboard and the dataflow show the new script
         appended: (scriptKey: number) => {
             feedRef.current?.appended(scriptKey);
-            if (modeRef.current !== WorkbookViewMode.Workbook) setViewReveal({ view: modeRef.current, scriptKey });
+            if (modeRef.current !== WorkbookViewMode.Feed) setViewReveal({ view: modeRef.current, scriptKey });
         },
     }), [setMode, setOverviewConnectionId]);
     // A failed script of the run of the workbook shows in the feed
@@ -629,7 +629,7 @@ export const WorkbookFeedPage = React.memo(function WorkbookFeedPage(props: Prop
                                     aria-label="Workbook view"
                                     data-testid="workbook-view-switch"
                                     size={SegmentedControlSize.Small}
-                                    onChange={(selectedIndex) => showView(WORKBOOK_VIEWS[selectedIndex]?.[0] ?? WorkbookViewMode.Workbook)}
+                                    onChange={(selectedIndex) => showView(WORKBOOK_VIEWS[selectedIndex]?.[0] ?? WorkbookViewMode.Feed)}
                                 >
                                     {WORKBOOK_VIEWS.map(([view, label, Icon]) => (
                                         <SegmentedControl.IconButton

@@ -65,7 +65,7 @@ export function useOpenGreeter(): () => void {
     return React.useCallback(() => {
         const workbook = ensureEphemeralWorkbook();
         if (workbook == null) return;
-        setMode(WorkbookViewMode.Workbook);
+        setMode(WorkbookViewMode.Feed);
         navigate({ type: OPEN_EPHEMERAL_WORKBOOK, value: workbook.workbookId });
     }, [ensureEphemeralWorkbook, navigate, setMode]);
 }

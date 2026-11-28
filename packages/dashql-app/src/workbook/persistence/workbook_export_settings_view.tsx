@@ -9,7 +9,7 @@ import { WorkbookViewMode, defaultViewOfViewMode, viewModeOfDefaultView } from '
 
 // The views a workbook opens in, with the octicons of the view switch of the workbook bar
 const DEFAULT_VIEWS: [WorkbookViewMode, string, ReturnType<typeof SymbolIcon>][] = [
-    [WorkbookViewMode.Workbook, 'Feed', SymbolIcon('rows_16')],
+    [WorkbookViewMode.Feed, 'Feed', SymbolIcon('rows_16')],
     [WorkbookViewMode.Dashboard, 'Dashboard', SymbolIcon('dashboard_16')],
     [WorkbookViewMode.Dataflow, 'Dataflow', SymbolIcon('workflow_16')],
 ];

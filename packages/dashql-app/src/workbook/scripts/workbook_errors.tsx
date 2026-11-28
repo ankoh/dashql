@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { useWorkbookDerived, useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
 import { collectScriptDiagnostics } from './script_diagnostics.js';
-import { WorkbookErrorsButton, type WorkbookScriptErrors } from '../feed/workbook_errors_button.js';
+import { WorkbookErrorsButton, type WorkbookScriptErrors } from '../views/workbook_errors_button.js';
 
 /// The scripts of a workbook with errors in feed order: the errors of their analyses and of their script references,
 /// as the headers of their entries count them. The component renders again when a script of the workbook changes.

@@ -7,34 +7,34 @@ import { useConnection, useConnectionViews, useDispatch, useWorkbook } from '@ak
 import { useLogger } from '../host/logger_provider.js';
 import { PROMOTE_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router.js';
 
-import { WorkbookFeedPage } from './feed/workbook_feed_page.js';
+import { WorkbookViewsPage } from './views/workbook_views_page.js';
 import { WorkbookViewMode, searchNamesView, useWorkbookViewMode, viewModeOfDefaultView } from './workbook_view_mode.js';
 
 const WorkbookShellsPage = React.lazy(() => import('./shell/workbook_shells_page.js'));
 
 const LOG_CTX = 'workbook_page';
 
-type FeedProps = React.ComponentProps<typeof WorkbookFeedPage>;
+type ViewsProps = React.ComponentProps<typeof WorkbookViewsPage>;
 type ShellsProps = React.ComponentProps<typeof WorkbookShellsPage>;
 
-const renderFeed = (props: FeedProps) => <WorkbookFeedPage {...props} />;
+const renderViews = (props: ViewsProps) => <WorkbookViewsPage {...props} />;
 const renderShells = (props: ShellsProps) => <WorkbookShellsPage {...props} />;
 
 interface Props {
-    /// The feed, dashboard and dataflow of the workbook, the feed page by default. A test shows a stand-in, the feed
-    /// page needs the whole app.
-    feed?: (props: FeedProps) => React.ReactNode;
+    /// The views of the workbook, its feed, dashboard and dataflow, the views page by default. A test shows a stand-in,
+    /// the views page needs the whole app.
+    views?: (props: ViewsProps) => React.ReactNode;
     /// The shells of the workbook, the shells page by default, loaded once a shell opens
     shells?: (props: ShellsProps) => React.ReactNode;
 }
 
-export const WorkbookPage: React.FC<Props> = ({ feed = renderFeed, shells = renderShells }: Props) => {
+export const WorkbookPage: React.FC<Props> = ({ views = renderViews, shells = renderShells }: Props) => {
     const route = useRouteContext();
     const logger = useLogger();
     const workbookScripts = useWorkbook(route.workbookId ?? null);
     const modifyWorkbookScripts = useDispatch(route.workbookId == null ? null : { workbook: route.workbookId });
     // The connections that the scripts of the workbook run on, and the one the next script runs on. The map keeps its
-    // identity while these connections are unchanged, a change of another connection doesn't render the feed page.
+    // identity while these connections are unchanged, a change of another connection doesn't render the views page.
     const workbookConnections = useConnectionViews(workbookScripts?.connectionIds);
     const scriptConnections = React.useMemo(
         () => new Map((workbookConnections ?? []).map(connection => [connection.connectionId, connection])),
@@ -85,12 +85,12 @@ export const WorkbookPage: React.FC<Props> = ({ feed = renderFeed, shells = rend
     return (
         <div className={styles.page}>
             <div className={workbookPageVisible ? styles.view : styles.view_hidden}>
-                {feed({
+                {views({
                     workbookScripts,
                     modifyWorkbookScripts,
                     connection: conn ?? null,
                     scriptConnections,
-                    active: workbookMode === WorkbookViewMode.Workbook,
+                    active: workbookMode === WorkbookViewMode.Feed,
                 })}
             </div>
             {workbookMode === WorkbookViewMode.Shell && (

@@ -4,7 +4,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 /// How a workbook is shown
 export enum WorkbookViewMode {
-    Workbook = 0,
+    /// The scripts one below the other, the view that a workbook opens in unless it names another one
+    Feed = 0,
     Shell = 1,
     Dashboard = 2,
     Dataflow = 3,
@@ -17,10 +18,10 @@ const DEFAULT_VIEW_NAMES: [WorkbookViewMode, string][] = [
     [WorkbookViewMode.Dataflow, 'dataflow'],
 ];
 
-/// The view mode that a workbook opens in, the workbook (its feed) unless it names the dashboard or the dataflow. A
+/// The view mode that a workbook opens in, the feed unless it names the dashboard or the dataflow. A
 /// name that the app doesn't know reads as the feed, e.g. one of a newer app.
 export function viewModeOfDefaultView(view: string | null | undefined): WorkbookViewMode {
-    return DEFAULT_VIEW_NAMES.find(([, name]) => name === view)?.[0] ?? WorkbookViewMode.Workbook;
+    return DEFAULT_VIEW_NAMES.find(([, name]) => name === view)?.[0] ?? WorkbookViewMode.Feed;
 }
 
 /// The name of the default view of a view mode, null for the feed. The shell is no view a workbook opens in.
@@ -46,11 +47,11 @@ export interface WorkbookViewModeContextValue {
 const WORKBOOK_VIEW_MODE_CTX = React.createContext<WorkbookViewModeContextValue | null>(null);
 export const useWorkbookViewMode = () => React.useContext(WORKBOOK_VIEW_MODE_CTX)!;
 
-/// The view of the `view` query parameter, the workbook if the view is unknown
+/// The view of the `view` query parameter, the feed if the view is unknown
 export function workbookViewModeFromSearch(search: string): WorkbookViewMode {
     const value = new URLSearchParams(search).get('view');
     const view = VIEW_PARAMETERS.find(([, parameter]) => parameter === value);
-    return view != null ? view[0] : WorkbookViewMode.Workbook;
+    return view != null ? view[0] : WorkbookViewMode.Feed;
 }
 
 export function workbookViewSearch(search: string, mode: WorkbookViewMode): string {
@@ -89,7 +90,7 @@ export const WorkbookViewModeProvider: React.FC<React.PropsWithChildren> = (prop
 
     const [shellOpen, setShellOpen] = React.useState(false);
     const requested = workbookViewModeFromSearch(location.search);
-    const mode = inSearch(requested) ? requested : shellOpen ? WorkbookViewMode.Shell : WorkbookViewMode.Workbook;
+    const mode = inSearch(requested) ? requested : shellOpen ? WorkbookViewMode.Shell : WorkbookViewMode.Feed;
     const setMode = React.useCallback((next: WorkbookViewMode) => {
         setShellOpen(next === WorkbookViewMode.Shell);
         const navigation = workbookViewNavigation(location, next);
@@ -97,15 +98,15 @@ export const WorkbookViewModeProvider: React.FC<React.PropsWithChildren> = (prop
     }, [location, navigate]);
     const workbookViewModeValue = React.useMemo<WorkbookViewModeContextValue>(() => ({ mode, setMode }), [mode, setMode]);
 
-    // The fallback to the workbook keeps the rest of the current location
+    // The fallback to the feed keeps the rest of the current location
     const showWorkbookInUrl = React.useEffectEvent(() => {
-        const navigation = workbookViewNavigation(location, WorkbookViewMode.Workbook);
+        const navigation = workbookViewNavigation(location, WorkbookViewMode.Feed);
         navigate(navigation.to, navigation.options);
     });
     React.useEffect(() => {
         const parameter = new URLSearchParams(location.search).get('view');
         if (parameter == null) return;
-        // An unknown view falls back to the workbook, also in the URL, a known one closes the shell
+        // An unknown view falls back to the feed, also in the URL, a known one closes the shell
         if (!inSearch(workbookViewModeFromSearch(location.search))) {
             showWorkbookInUrl();
         } else {

@@ -37,7 +37,7 @@ A view that appears with many heavy parts at once, e.g. the charts and tables of
 each of them in `Deferred` (`components/deferred`) with a `Skeleton` (`components/skeleton`, the faint logo of the flavor)
 as its fallback: the parts render one per idle period of the browser (`CalmFrameSchedule` of `dom/calm_frames`), and a
 switch of the view holds them until its transitions end (`hold` of `useRenderSchedule()` with `transitionsEnd`, see
-`workbook_feed_page.tsx`), not for a fixed time. A test that looks at the parts right away provides `IMMEDIATE_SCHEDULE`
+`workbook_views_page.tsx`), not for a fixed time. A test that looks at the parts right away provides `IMMEDIATE_SCHEDULE`
 with `RenderScheduleContext`.
 
 A rule about SQL that a component would need goes into the core and reaches the component through its container, e.g.

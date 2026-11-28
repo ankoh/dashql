@@ -57,7 +57,7 @@ describe('WorkbookPage view transitions', () => {
         return null;
     }
 
-    /// The feed of the workbook, counts its mounts
+    /// The views page of the workbook, counts its mounts
     function Feed(props: { active: boolean }) {
         React.useEffect(() => {
             feedMounts += 1;
@@ -77,7 +77,7 @@ describe('WorkbookPage view transitions', () => {
 
     const page = (
         <WorkbookPage
-            feed={props => <Feed active={props.active} />}
+            views={props => <Feed active={props.active} />}
             shells={props => <Shells connectionId={props.connectionId} onPickConnection={props.onPickConnection} />}
         />
     );
@@ -172,13 +172,13 @@ describe('WorkbookPage view transitions', () => {
         expect(feed()?.getAttribute('data-active')).toBe('false');
         expect(shellConnection()).not.toBeUndefined();
 
-        setMode(WorkbookViewMode.Workbook);
+        setMode(WorkbookViewMode.Feed);
         expect(feedMounts).toBe(1);
         expect(feedUnmounts).toBe(0);
         expect(feed()?.getAttribute('data-active')).toBe('true');
     });
 
-    it('keeps the feed page mounted for the Dashboard view', async () => {
+    it('keeps the views page mounted for the Dashboard view', async () => {
         render(workbookPath(WORKBOOK));
         await seed([{ workbookId: WORKBOOK }]);
         setMode(WorkbookViewMode.Dashboard);
@@ -198,7 +198,7 @@ describe('WorkbookPage view transitions', () => {
         act(() => (root.container.querySelector('[data-testid="pick-other"]') as HTMLButtonElement).click());
         expect(shellConnection()).toBe('other');
 
-        setMode(WorkbookViewMode.Workbook);
+        setMode(WorkbookViewMode.Feed);
         expect(shellConnection()).toBeUndefined();
         setMode(WorkbookViewMode.Shell);
         expect(shellConnection()).toBe('other');
@@ -213,9 +213,9 @@ describe('WorkbookPage view transitions', () => {
         await seed([{ workbookId: WORKBOOK, defaultView: 'dashboard' }, { workbookId: NEXT, defaultView: 'dataflow' }]);
         await waitForRender(() => expect(viewMode.mode).toBe(WorkbookViewMode.Dashboard));
         // The user picks another view, the workbook stays in it
-        setMode(WorkbookViewMode.Workbook);
+        setMode(WorkbookViewMode.Feed);
         await waitForRender(() => expect(location.search).toBe(''));
-        expect(viewMode.mode).toBe(WorkbookViewMode.Workbook);
+        expect(viewMode.mode).toBe(WorkbookViewMode.Feed);
         // Another workbook opens in its own default view
         act(() => navigate({ type: SELECT_WORKBOOK, value: NEXT }));
         await waitForRender(() => expect(viewMode.mode).toBe(WorkbookViewMode.Dataflow));

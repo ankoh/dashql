@@ -15,7 +15,7 @@ import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/c
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { analyzeWorkbook } from '@akohn/dashql/runtime/testing/test_runtime';
-import { WorkbookFeedPage } from './workbook_feed_page.js';
+import { WorkbookViewsPage } from './workbook_views_page.js';
 import { WorkbookViewMode, WorkbookViewModeProvider, useWorkbookViewMode, type WorkbookViewModeContextValue } from '../workbook_view_mode.js';
 import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { AppConfigProvider, useAppConfig, type AppConfig } from '../../config/app_config.js';
@@ -27,7 +27,7 @@ import { StorageProvider } from '../../storage/storage_provider.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
 import { addTestConnection, pendingTestChannel } from '../../tests/test_connections.js';
 import { scriptSelectionOf } from '../scripts/script_selection.js';
-import { WorkbookPromptPlacement } from './workbook_prompt.js';
+import { WorkbookPromptPlacement } from '../feed/workbook_prompt.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -37,7 +37,7 @@ beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PREC
 const WORKBOOK = '00000000-0000-4000-8000-000000000501';
 const trino = (endpoint: string) => ({ trino: { endpoint } }) as ConnectionParams;
 
-type PageProps = React.ComponentProps<typeof WorkbookFeedPage>;
+type PageProps = React.ComponentProps<typeof WorkbookViewsPage>;
 /// The props of a slot of the page
 type SlotProps<K extends 'feed' | 'prompt' | 'dashboard' | 'dataflow' | 'editorDialog' | 'workbench'> = Parameters<NonNullable<PageProps[K]>>[0];
 
@@ -118,11 +118,11 @@ async function seed(runtime: Runtime) {
 function Page(props: Partial<PageProps> & Pick<PageProps, 'workbookScripts' | 'connection'>) {
     const { mode } = useWorkbookViewMode();
     const scriptConnections = new Map(props.connection == null ? [] : [[props.connection.connectionId, props.connection]]);
-    return <WorkbookFeedPage modifyWorkbookScripts={vi.fn()} active={mode === WorkbookViewMode.Workbook} scriptConnections={scriptConnections}
+    return <WorkbookViewsPage modifyWorkbookScripts={vi.fn()} active={mode === WorkbookViewMode.Feed} scriptConnections={scriptConnections}
         {...STAND_INS} {...props} />;
 }
 
-describe('WorkbookFeedPage', () => {
+describe('WorkbookViewsPage', () => {
     let root: ReturnType<typeof createTestRoot>;
     let container: HTMLDivElement;
     const captured = {} as Captured;
@@ -438,7 +438,7 @@ describe('WorkbookFeedPage', () => {
         expect(header.querySelector('[data-testid="open-workbench"]')).not.toBeNull();
         expect(barConnections()).toEqual(['ONLINE']);
         await settle();
-        expect(mode()).toBe(WorkbookViewMode.Workbook);
+        expect(mode()).toBe(WorkbookViewMode.Feed);
     });
 
     it.each([WorkbookViewMode.Dashboard, WorkbookViewMode.Dataflow])('stays in a view while the workbook is ephemeral (%s)', async view => {
@@ -491,7 +491,7 @@ describe('WorkbookFeedPage', () => {
         expect(slots.prompt?.placement).toBe(WorkbookPromptPlacement.Hidden);
         act(() => slots.workbench!.onOpenOverview!(null));
         act(() => switchButtons()[0]?.click());
-        await expectMode(WorkbookViewMode.Workbook);
+        await expectMode(WorkbookViewMode.Feed);
     });
 
     it('connects the prompt over the views with the feed', async () => {
@@ -526,7 +526,7 @@ describe('WorkbookFeedPage', () => {
         expect(slots.prompt?.expanded).toBe(true);
         await setMode(WorkbookViewMode.Dataflow);
         expect(slots.prompt?.expanded).toBe(false);
-        await setMode(WorkbookViewMode.Workbook);
+        await setMode(WorkbookViewMode.Feed);
         expect(slots.prompt?.expanded).toBe(true);
     });
 
@@ -538,7 +538,7 @@ describe('WorkbookFeedPage', () => {
         };
         await show(<Page workbookScripts={scripts()} connection={null} />);
         // The feed scrolls to an appended script itself
-        await showView(WorkbookViewMode.Workbook);
+        await showView(WorkbookViewMode.Feed);
         act(() => slots.prompt!.feed.appended(1));
         expect(feed.appended).toHaveBeenLastCalledWith(1);
 
@@ -569,7 +569,7 @@ describe('WorkbookFeedPage', () => {
         const showScript = vi.fn();
         (slots.feed!.handleRef as unknown as React.RefObject<{ show: typeof showScript }>).current = { show: showScript };
         act(() => slots.prompt!.feed.show(1));
-        await expectMode(WorkbookViewMode.Workbook);
+        await expectMode(WorkbookViewMode.Feed);
         expect(showScript).toHaveBeenCalledExactlyOnceWith(1);
     });
 
@@ -598,13 +598,13 @@ describe('WorkbookFeedPage', () => {
         act(() => button('workbook-view-previous').click());
         await expectMode(WorkbookViewMode.Dashboard);
         act(() => button('workbook-view-previous').click());
-        await expectMode(WorkbookViewMode.Workbook);
+        await expectMode(WorkbookViewMode.Feed);
 
         // The feed is the first view, nothing is left of it
         expect(button('workbook-view-previous').disabled).toBe(true);
         press('ArrowLeft');
         await settle();
-        expect(mode()).toBe(WorkbookViewMode.Workbook);
+        expect(mode()).toBe(WorkbookViewMode.Feed);
     });
 
     it('keeps the arrow keys for a card that the keyboard drags', async () => {

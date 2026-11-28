@@ -181,7 +181,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     React.useEffect(() => () => {
         shellRef.current = null;
     }, []);
-    const exitShell = React.useCallback(() => setMode(WorkbookViewMode.Workbook), [setMode]);
+    const exitShell = React.useCallback(() => setMode(WorkbookViewMode.Feed), [setMode]);
     const mayFocus = React.useCallback(() => activeRef.current, []);
 
     return (

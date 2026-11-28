@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as styles from './workbook_feed_page.module.css';
+import * as styles from './workbook_views_page.module.css';
 
 import type { WorkbookRunState } from '@akohn/dashql';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
@@ -9,7 +9,7 @@ import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
-import { runStepLabel } from './workbook_run_step.js';
+import { runStepLabel } from '../feed/workbook_run_step.js';
 
 const CloseIcon = SymbolIcon('x_16');
 

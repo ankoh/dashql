@@ -105,7 +105,7 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
             viewMode: viewMode.toString(),
             focusedFile: selected?.fileName ?? '',
         }, LOG_CTX);
-        if (viewMode !== WorkbookViewMode.Workbook) {
+        if (viewMode !== WorkbookViewMode.Feed) {
             logger.warn("Ignoring Ctrl+E outside workbook view", { workbookId }, LOG_CTX);
             return;
         }

@@ -22,7 +22,7 @@ export function useOpenWorkbench(): () => void {
     const navigate = useRouterNavigate();
     const { setMode } = useWorkbookViewMode();
     return React.useCallback(() => {
-        setMode(WorkbookViewMode.Workbook);
+        setMode(WorkbookViewMode.Feed);
         navigate(route.workbookId == null
             ? { type: WORKBOOK_PATH, value: null }
             : { type: SELECT_WORKBOOK, value: route.workbookId });

@@ -30,7 +30,7 @@ describe('global workbook execution feedback', () => {
         useConnectionReader: () => (connectionId: string) => connectionId === 'main' ? connection : null,
         useRefreshCatalog: () => vi.fn(),
         useLogger: () => ({ info: vi.fn(), warn: vi.fn(), debug: vi.fn() }),
-        useWorkbookViewMode: () => ({ mode: WorkbookViewMode.Workbook, setMode: vi.fn() }),
+        useWorkbookViewMode: () => ({ mode: WorkbookViewMode.Feed, setMode: vi.fn() }),
         useScriptReader: () => (scriptKey: number) => scriptKey === 1 ? script : null,
         useScriptRun: () => runScript,
     } as unknown as WorkbookCommandsDependencies;

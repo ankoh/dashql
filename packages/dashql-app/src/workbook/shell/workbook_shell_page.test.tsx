@@ -468,7 +468,7 @@ describe('WorkbookShellPage', () => {
             await open();
             expect(api.mode()).toBe(WorkbookViewMode.Dashboard);
             press('d', { ctrlKey: true });
-            await vi.waitFor(() => expect(api.mode()).toBe(WorkbookViewMode.Workbook), WAIT);
+            await vi.waitFor(() => expect(api.mode()).toBe(WorkbookViewMode.Feed), WAIT);
         });
 
         it('offers .fs only for a connection on the embedded database', async () => {
