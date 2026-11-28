@@ -1,8 +1,10 @@
 // The archive of the package on npm as a host installs it:
 //
 // 1. Its files and its metadata: the manifest of npm/package.json with the version of the build, @akohn/dashql a peer
-//    of the same version, no tests, the archive byte-reproducible.
-// 2. Node renders a page of the components of dist/ (react-dom/server), every module resolves with its extension.
+//    of the same version, the modules that package.json exports and their files, no tests, the archive
+//    byte-reproducible.
+// 2. Node renders a page of the components of dist/ (react-dom/server), every module resolves with its extension, a
+//    module that the package doesn't export doesn't resolve.
 // 3. tsc type checks the page against the declarations of dist/, without skipping them.
 // 4. Vite bundles the page like a host without Bazel: the classes of the components are in the stylesheet, the atlas
 //    of the icons is a file of its own and the page refers to it.
@@ -77,7 +79,18 @@ try {
         ...source,
         version: metadata.version,
         peerDependencies: { ...source.peerDependencies, '@akohn/dashql': metadata.version },
+        exports: metadata.exports,
     });
+    // The exports: the files of npm/package.json, then the modules of the source package without the tests and their
+    // helpers, each with its JavaScript and declarations
+    const workspace = JSON.parse(await readFile(join(pkg, 'package.json'), 'utf8'));
+    const modules = Object.keys(workspace.exports).filter(subpath => !subpath.endsWith('.css') && !subpath.startsWith('./testing/'));
+    assert.deepEqual(Object.keys(metadata.exports), [...Object.keys(source.exports), ...modules]);
+    for (const subpath of modules) {
+        for (const file of Object.values(metadata.exports[subpath])) {
+            assert.ok(paths.includes(`package/${file.slice(2)}`), `${subpath} exports the missing ${file}`);
+        }
+    }
     assert.match(metadata.version, /^\d+\.\d+\.\d+(-(dev|latest)\.\d+\.g[0-9a-f]+)?$/);
     for (const file of ['LICENSE', 'NOTICE']) {
         assert.deepEqual(await readFile(join(packageDir, file)), await readFile(join(pkg, file)));
@@ -100,6 +113,14 @@ const Play = SymbolIcon('arrow_right_16');
 console.log(renderToStaticMarkup(React.createElement(Button, { leadingVisual: Play }, 'Run')));
 `);
     const markup = run([join(consumer, 'render.mjs')]);
+    // A module that the package doesn't export stays inside it
+    await writeFile(join(consumer, 'internal.mjs'), `
+await import('@akohn/dashql-react/components/data_table/data_table_layout').then(
+    () => { throw new Error('an internal module resolves'); },
+    error => { if (error.code !== 'ERR_PACKAGE_PATH_NOT_EXPORTED') throw error; },
+);
+`);
+    run([join(consumer, 'internal.mjs')]);
     assert.match(markup, /class="[^"]*\bdashql_button_[\w-]{6}\b/, markup);
     assert.match(markup, /<use [^>]*href="file:\/\/[^"]*\/node_modules\/@akohn\/dashql-react\/dist\/symbols\.svg#arrow_right_16"/, markup);
 

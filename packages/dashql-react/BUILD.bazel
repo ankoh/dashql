@@ -181,22 +181,29 @@ genrule(
     cmd = "cp $(location //:LICENSE) $@",
 )
 
-# The version of the package is the npm version of the build (DASHQL_VERSION_NPM) like the one of @akohn/dashql, which
-# it takes as a peer of exactly that version: the views of the runtime change with it
+# The manifest on npm, npm/package.json with the version of the build (DASHQL_VERSION_NPM) like the one of @akohn/dashql,
+# which it takes as a peer of exactly that version: the views of the runtime change with it. Its exports are the
+# modules that package.json exports, see npm/manifest.mjs
+js_binary(
+    name = "npm_manifest_writer",
+    entry_point = "npm/manifest.mjs",
+    visibility = ["//visibility:private"],
+)
+
 genrule(
     name = "npm_manifest",
     srcs = [
         "npm/package.json",
+        "package.json",
         "@dashql_app_version//:version.env",
     ],
     outs = ["npm_files/package.json"],
+    # The paths are those of the execution root, the writer stays there
     cmd = """
-        VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_NPM"{print $$2}' "$(location @dashql_app_version//:version.env)")
-        sed -E -e 's/^(  "version": )"[^"]*"/\\1"'"$${VERSION}"'"/' \\
-            -e 's/^(    "@akohn\\/dashql": )"[^"]*"/\\1"'"$${VERSION}"'"/' "$(location npm/package.json)" > $@
-        grep -qF "  \\"version\\": \\"$${VERSION}\\"," $@
-        grep -qF "    \\"@akohn/dashql\\": \\"$${VERSION}\\"," $@
+        BAZEL_BINDIR=$(BINDIR) JS_BINARY__NO_CD_BINDIR=1 $(execpath :npm_manifest_writer) \\
+            $(execpath npm/package.json) $(execpath package.json) $(execpath @dashql_app_version//:version.env) $@
     """,
+    tools = [":npm_manifest_writer"],
 )
 
 npm_package(
@@ -256,6 +263,7 @@ js_test(
     name = "tarball_consumer_test",
     data = [
         "npm/package.json",
+        "package.json",
         ":license",
         ":notice",
         ":npm_manifest",

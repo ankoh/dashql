@@ -13,7 +13,8 @@ come from the same build. The Vega libraries are optional peers, for the charts.
 
 ## Using it
 
-The modules keep the paths of the sources, every one is a subpath of its own:
+Every public module is a subpath of its own, at the path of its source. The `exports` of the package list them, the
+other modules stay inside it:
 
 ```tsx
 import '@akohn/dashql-react/style.css';

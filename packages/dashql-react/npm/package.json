@@ -17,8 +17,7 @@
     "./style.css": "./dist/style.css",
     "./symbols.svg": "./dist/symbols.svg",
     "./fonts/*.css": "./fonts/*.css",
-    "./styles/*.css": "./styles/*.css",
-    "./*": { "types": "./dist/*.d.ts", "import": "./dist/*.js" }
+    "./styles/*.css": "./styles/*.css"
   },
   "files": ["dist", "fonts", "styles", "README.md", "LICENSE", "NOTICE"],
   "dependencies": {

@@ -17,7 +17,8 @@ A component of the app shows a model and the state of the user interface. It get
 The hooks of the runtime, the models and the components that other hosts share are the package `@akohn/dashql-react`
 (`packages/dashql-react`): the building blocks (buttons, overlays, inputs, tabs, the JSON view, ...) in
 `src/components` with their stylesheets, their helpers in `src/dom`, imported as `@akohn/dashql-react/components/button`
-and `@akohn/dashql-react/dom/anchored_position`. The largest is the data table (`components/data_table/data_table`, its
+and `@akohn/dashql-react/dom/anchored_position`. A module that a host imports is listed in the `exports` of
+`packages/dashql-react/package.json`, the others stay inside the package; the package on npm exports the same modules. The largest is the data table (`components/data_table/data_table`, its
 entry module exports what a host uses): it shows a computation model, takes the column header as a prop and the detail
 of a cell as a slot; the app wraps it in `DataTableView` (`results/data_table_view.tsx`) of the same model, with the
 column plots of the settings and its cell overlay. The result of a query (`components/query_result`: header, panel,

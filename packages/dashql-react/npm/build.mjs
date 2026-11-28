@@ -9,8 +9,8 @@
 //    as an asset. A data URL would not do, browsers don't resolve the `<use>` of one.
 // 3. tsc writes the declarations of the modules next to them.
 //
-// The subpaths of the source package stay the subpaths of dist/: @akohn/dashql-react/components/button is
-// dist/components/button.js.
+// The modules keep their paths in dist/: @akohn/dashql-react/components/button is dist/components/button.js. Which of
+// them a host imports is the exports of the manifest, see npm/manifest.mjs.
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
