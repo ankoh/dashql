@@ -43,22 +43,25 @@ Other sessions edit the main checkout concurrently: never stash, reset or stage 
 ### Choosing the areas
 
 The codebase splits along its seams into areas of a size one reviewer can read in a night, roughly 5–15k lines of
-code without tests and snapshots (`git ls-files <paths> | xargs wc -l`). The areas, as of 2026-11:
+code without tests and snapshots (`git ls-files <paths> | xargs wc -l`). The areas, as of 2026-11-28:
 - core: formatter, `tools/sql_format`;
-- core: analyzer, catalog, name resolution;
+- core: analyzer, catalog, name resolution (`dashql-core/src` without the formatter, completion and vis files);
 - core: completion, vis tags, visualize, script diff;
-- parser, grammar, scanner;
-- core bindings, flatbuffers (`proto/fb`);
-- Rust runtime: workbook runs, planner, executor;
-- Rust runtime: compute, connections, storage, profile, dataflow;
-- the `dashql` command, `dashql-native` (desktop app, agent harness);
+- parser, grammar, scanner (`packages/dashql-parser`, `grammar/`);
+- core bindings, flatbuffers and JSON schemas (`packages/dashql-core-bindings`, `proto/`);
+- Rust runtime: workbook runs, planner, executor, query (`dashql-core-runtime/src/{workbook.rs,workbook_run,planner,executor,query}`);
+- Rust runtime: connections, connection setup, catalog loader, HTTP, Hyper, Salesforce, Trino, host;
+- Rust runtime: compute, `dashql-core-profile`, `dashql-dataflow`, `dashql-core-shell`;
+- Rust storage `dashql-core-storage`, `hyperdb-edge`;
+- the `dashql` command, `dashql-native` (desktop app, agent harness), `dashql-mcp`, `dashql-slack`;
 - TS runtime `packages/dashql` (runtime, platform, storage);
-- app: workbook feed, dashboard, editor, prompt;
-- app: navigation, connections, shell, settings, tools, host, agent;
+- app: workbook feed, dashboard, editor, prompt (`dashql-app/src/workbook`);
+- app: navigation, connections, shell, settings, tools, config, storage, results;
+- app: cloud, diagnostics, demos, oauth, agent, host, embed, `examples/`;
 - `dashql-react` (data table, visualization, building blocks);
-- extensions (`extensions/`), client functions;
-- website and docs (`docs/`, AGENTS.md);
-- CI, Bazel rules, test infrastructure, `tests/agents`, scripts.
+- extensions (`extensions/`), client functions (`dashql-core-runtime/src/clfn`, `completion_clfn.rs`);
+- website and docs (`docs/`, AGENTS.md, READMEs, NOTICE, `packages/dashql-org`);
+- CI, Bazel rules, test infrastructure, `tests/agents`, scripts, `tools/`.
 
 Adjust the list when the code has moved (new packages, merged ones) and write the adjusted list back here.
 
