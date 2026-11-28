@@ -479,7 +479,7 @@ describe('HyperDB embedded database integration', () => {
         const connection = await database!.connect();
         const name = `values-${crypto.randomUUID()}.csv`;
         const file = new File(['value,name\n1,alpha\n2,beta\n'], name, { type: 'text/csv' });
-        const registry = new ShellFileRegistry(undefined, database!);
+        const registry = new ShellFileRegistry(new TestLogger(), database!);
         let mounted: string | null = null;
         try {
             mounted = await registry.mountFile(file);

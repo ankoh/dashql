@@ -23,9 +23,9 @@ export class ShellFileRegistry {
     private disposed = false;
 
     constructor(
-        private readonly logger?: LoggerLike,
+        private readonly logger: LoggerLike,
         // The database that mounts the files and directories
-        private readonly database?: Pick<
+        private readonly database: Pick<
             EmbeddedComputeDatabase,
             'registerExternalFile' | 'removeExternalFile' | 'registerExternalDirectory' | 'removeExternalDirectory'
         >,
@@ -45,12 +45,11 @@ export class ShellFileRegistry {
 
     async mountFile(file: File, path?: string, options: FileOperationOptions = {}): Promise<string> {
         this.checkUsable();
-        if (this.database == null) throw new Error('external browser files are not supported');
         throwIfAborted(options.signal);
 
         const startedAt = Date.now();
         const name = file.name;
-        this.logger?.info('Mounting shell file', logDetails(file.name, undefined, file.size, 'register_external_file', startedAt), LOG_CTX);
+        this.logger.info('Mounting shell file', logDetails(file.name, undefined, file.size, 'register_external_file', startedAt), LOG_CTX);
         let mountedPath: string | null = null;
         try {
             options.onProgress?.(`Mounting ${name}`);
@@ -60,10 +59,10 @@ export class ShellFileRegistry {
                 throw options.signal?.reason ?? new DOMException('The operation was aborted', 'AbortError');
             }
             this.files.set(mountedPath, file.size);
-            this.logger?.info('Mounted shell file', logDetails(file.name, mountedPath, file.size, 'complete', startedAt), LOG_CTX);
+            this.logger.info('Mounted shell file', logDetails(file.name, mountedPath, file.size, 'complete', startedAt), LOG_CTX);
             return mountedPath;
         } catch (error) {
-            this.logger?.error('Failed to mount shell file', {
+            this.logger.error('Failed to mount shell file', {
                 ...logDetails(file.name, mountedPath ?? undefined, file.size, 'register_external_file', startedAt),
                 error: stringifyError(error),
                 error_name: error instanceof Error ? error.name : undefined,
@@ -78,9 +77,8 @@ export class ShellFileRegistry {
         mode: ExternalDirectoryMode,
     ): Promise<string> {
         this.checkUsable();
-        if (this.database == null) throw new Error('external browser directories are not supported');
         const startedAt = Date.now();
-        this.logger?.info('Mounting shell directory', logDetails(handle.name, undefined, undefined, 'register_external_directory', startedAt), LOG_CTX);
+        this.logger.info('Mounting shell directory', logDetails(handle.name, undefined, undefined, 'register_external_directory', startedAt), LOG_CTX);
         let mountedPath: string | null = null;
         try {
             mountedPath = await this.database.registerExternalDirectory(handle, path, mode);
@@ -89,13 +87,13 @@ export class ShellFileRegistry {
                 throw new Error('shell file registry is disposed');
             }
             this.directories.set(mountedPath, mode);
-            this.logger?.info('Mounted shell directory', {
+            this.logger.info('Mounted shell directory', {
                 ...logDetails(handle.name, mountedPath, undefined, 'complete', startedAt),
                 mode,
             }, LOG_CTX);
             return mountedPath;
         } catch (error) {
-            this.logger?.error('Failed to mount shell directory', {
+            this.logger.error('Failed to mount shell directory', {
                 ...logDetails(handle.name, mountedPath ?? undefined, undefined, 'register_external_directory', startedAt),
                 mode,
                 error: stringifyError(error),
@@ -107,12 +105,12 @@ export class ShellFileRegistry {
 
     async drop(path: string): Promise<boolean> {
         if (this.directories.has(path)) {
-            await this.database!.removeExternalDirectory(path);
+            await this.database.removeExternalDirectory(path);
             this.directories.delete(path);
             return true;
         }
         if (this.files.has(path)) {
-            await this.database!.removeExternalFile(path);
+            await this.database.removeExternalFile(path);
             this.files.delete(path);
             return true;
         }
@@ -124,10 +122,10 @@ export class ShellFileRegistry {
         this.disposed = true;
         for (const path of Array.from(this.files.keys())) {
             try {
-                await this.database!.removeExternalFile(path);
+                await this.database.removeExternalFile(path);
                 this.files.delete(path);
             } catch (error) {
-                this.logger?.warn('Failed to unmount shell file during disposal', {
+                this.logger.warn('Failed to unmount shell file during disposal', {
                     path,
                     error: stringifyError(error),
                 }, LOG_CTX);
@@ -135,10 +133,10 @@ export class ShellFileRegistry {
         }
         for (const path of Array.from(this.directories.keys())) {
             try {
-                await this.database!.removeExternalDirectory(path);
+                await this.database.removeExternalDirectory(path);
                 this.directories.delete(path);
             } catch (error) {
-                this.logger?.warn('Failed to unmount shell directory during disposal', {
+                this.logger.warn('Failed to unmount shell directory during disposal', {
                     path,
                     error: stringifyError(error),
                 }, LOG_CTX);
@@ -152,8 +150,8 @@ export class ShellFileRegistry {
 }
 
 export function createShellFilesCommand(
-    requestMountDialog?: (signal?: AbortSignal) => Promise<string | null>,
-    requestFilesystemDialog?: (signal?: AbortSignal) => Promise<void>,
+    requestMountDialog: (signal?: AbortSignal) => Promise<string | null>,
+    requestFilesystemDialog: (signal?: AbortSignal) => Promise<void>,
 ): DashQLShellCommand {
     return [
         'fs',
@@ -161,12 +159,11 @@ export function createShellFilesCommand(
         async (args, context) => {
             if (args.length === 0 || args[0] === 'ls') {
                 if (args.length > 1) return FS_USAGE;
-                if (requestFilesystemDialog == null) return FS_USAGE;
                 await requestFilesystemDialog(context.signal);
                 return;
             }
             if (args[0] === 'mount' || args[0] === 'mount-dir' || args[0] === 'mount-dir-rw') {
-                if (args.length > 1 || requestMountDialog == null) return FS_USAGE;
+                if (args.length > 1) return FS_USAGE;
                 return await requestMountDialog(context.signal) ?? undefined;
             }
             return FS_USAGE;

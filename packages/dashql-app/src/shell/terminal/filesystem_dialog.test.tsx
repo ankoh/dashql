@@ -8,6 +8,7 @@ import { LoggerProvider } from '../../host/logger_provider.js';
 import type { DashQLShellCommand } from './api.js';
 import { useShellFiles } from './filesystem_dialog.js';
 import { ShellFileRegistry } from './shell_files.js';
+import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 
 class FakeDatabase implements Pick<EmbeddedComputeDatabase, 'registerExternalFile' | 'removeExternalFile' | 'registerExternalDirectory' | 'removeExternalDirectory'> {
     directoryError: Error | null = null;
@@ -30,7 +31,7 @@ describe('shell filesystem dialogs', () => {
     let command: DashQLShellCommand;
 
     const Harness = () => {
-        const registryRef = React.useRef(new ShellFileRegistry(undefined, database));
+        const registryRef = React.useRef(new ShellFileRegistry(new TestLogger(), database));
         const files = useShellFiles(registryRef);
         command = files.command;
         return files.dialogs;
