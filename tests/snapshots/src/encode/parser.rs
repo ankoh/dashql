@@ -3,8 +3,8 @@
 use super::{encode_location_range, encode_location_text, Map};
 use crate::ryml::Node;
 use dashql_buffers::parser::{CommentBlockType, Node as AstNode, NodeType, StatementType};
+use dashql_parser::parser::actions::enum_text;
 use dashql_parser::parser::context::resolve_text_span;
-use dashql_parser::parser::enums::enum_text;
 use dashql_parser::parser::ParsedScript;
 use dashql_parser::span::TextSpan;
 

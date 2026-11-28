@@ -120,6 +120,16 @@ macro_rules! enum_node_types {
                 }
             }
         )*
+
+        /// The name of the value of an enum node, "?" for a value without a name and for a node of another type
+        pub fn enum_text(node: &Node) -> &'static str {
+            let v = node.children_begin_or_value();
+            let name = match node.node_type() {
+                $(NodeType::$node_type => TryFrom::try_from(v).ok().and_then(|v| $t(v).variant_name()),)*
+                _ => None,
+            };
+            name.unwrap_or("?")
+        }
     };
 }
 
@@ -324,4 +334,20 @@ pub fn vararg_field(ctx: &ParseContext, loc: SymbolSpan, path: NodeList, value: 
         );
     }
     root
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn names_enum_values() {
+        let loc = SymbolSpan::default();
+        assert_eq!(enum_text(&enum_node(loc, ExpressionOperator::AND)), "AND");
+        assert_eq!(enum_text(&enum_node(loc, JoinType::OUTER_FULL)), "OUTER_FULL");
+        assert_eq!(enum_text(&enum_node(loc, KeyMatch::FULL)), "FULL");
+        assert_eq!(enum_text(&enum_node(loc, TableConstraint::UNIQUE)), "UNIQUE");
+        assert_eq!(enum_text(&enum_node(loc, SampleCountUnit::PERCENT)), "PERCENT");
+        assert_eq!(enum_text(&operator_node(loc)), "?");
+    }
 }

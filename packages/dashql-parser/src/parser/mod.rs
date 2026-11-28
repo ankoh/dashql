@@ -3,7 +3,6 @@
 pub mod actions;
 pub mod context;
 pub mod driver;
-pub mod enums;
 pub mod probe;
 pub mod syntax_error;
 pub mod value;
