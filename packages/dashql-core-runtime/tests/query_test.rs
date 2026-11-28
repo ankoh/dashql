@@ -4,7 +4,7 @@ use dashql_buffers::profile as fb;
 use dashql_core_profile::{EntityState, ProfileUpdate, Stats, Status};
 use dashql_core_runtime::query::progress::{
     replay_recording, EngineProgressPayload, HyperExecutionStats, HyperQueryStatus, ProfileExecutionState,
-    ProfileRecording, QueryProfileProgress, QueryProgressFollower, QueryProgressModel, NO_INDEX,
+    ProfileRecording, QueryProfileProgress, QueryProgressFollower, QueryProgressModel,
 };
 use dashql_core_runtime::query::{
     QueryError, QueryExecutionAction, QueryExecutionEffect, QueryExecutionHistory, QueryExecutionMetrics,
@@ -541,7 +541,11 @@ fn progress_models_apply_the_operator_summaries_of_a_later_query_info_to_the_pla
     // The pipeline appears in the structure, the edge from the scan carries its rows
     assert_eq!(pipeline_count(&progress), 1);
     let edge = structure(&progress).operator_edges().unwrap().get(0);
-    assert_eq!(progress.execution.edge_rows(edge.slot(), edge.child()), Some(25));
+    let rows = |states: &[Option<EntityState>], index: u32| {
+        states.get(index as usize).copied().flatten().and_then(|state| state.stats.tuples_out)
+    };
+    let execution = &progress.execution;
+    assert_eq!(rows(&execution.slots, edge.slot()).or(rows(&execution.operators, edge.child())), Some(25));
 }
 
 #[test]
@@ -809,20 +813,6 @@ fn profile_execution_state_folds_updates() {
     // An index that no profile has is dropped
     same.apply_updates(&[operator_update(u32::MAX - 1, Status::Running, None)]);
     assert_eq!(same, state);
-}
-
-#[test]
-fn profile_execution_state_takes_the_rows_of_an_edge_from_the_slot_of_the_child_else_from_the_child_operator() {
-    let state = ProfileExecutionState::from_updates(&[
-        update(fb::ProfileEntity::SLOT, 0, Status::Running, Some(3)),
-        operator_update(0, Status::Running, Some(9)),
-        operator_update(1, Status::Running, None),
-    ]);
-    assert_eq!(state.edge_rows(0, 0), Some(3));
-    assert_eq!(state.edge_rows(NO_INDEX, 0), Some(9));
-    assert_eq!(state.edge_rows(1, 0), Some(9));
-    // Not reported is unknown, not 0
-    assert_eq!(state.edge_rows(NO_INDEX, 1), None);
 }
 
 // Clearing the history of a stopped connection

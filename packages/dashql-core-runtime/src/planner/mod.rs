@@ -739,11 +739,7 @@ fn plan_statements(request: &SessionPlanRequest) -> Plan {
             for (script, span, message) in std::mem::take(&mut spliced.input_errors) {
                 state.report(node_id, script, Some(span), message, true);
             }
-            let mut sql = if spliced.edits.is_empty() {
-                read_executable_text(scanned, span)
-            } else {
-                read_executable_text_with(scanned, span, &spliced.edits)
-            };
+            let mut sql = read_executable_text_with(scanned, span, &spliced.edits);
             for r in &spliced.references {
                 let mut reference = ExecutionGraphScriptReferenceT::default();
                 reference.node = node_id;

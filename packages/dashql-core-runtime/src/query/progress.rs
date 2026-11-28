@@ -22,9 +22,6 @@ use serde_json::{json, Value};
 
 use super::Timestamp;
 
-/// No index of an entity (`u32::MAX`), e.g. an edge without slot
-pub const NO_INDEX: u32 = u32::MAX;
-
 /// The work units of a progress fraction, Hyper reports a fraction instead of work units
 const HYPER_PROGRESS_UNITS: u64 = 1000;
 
@@ -242,16 +239,6 @@ impl ProfileExecutionState {
         let mut state = Self::default();
         state.apply_updates(updates);
         state
-    }
-
-    /// The rows that flowed over an edge: the output of the slot of the child that carries the edge, or the output
-    /// of the child operator if the slot reports none. None if unknown.
-    pub fn edge_rows(&self, slot: u32, child_operator: u32) -> Option<u64> {
-        let reported = |states: &[Option<EntityState>], index: u32| {
-            states.get(index as usize).copied().flatten().and_then(|state| state.stats.tuples_out)
-        };
-        let from_slot = if slot != NO_INDEX { reported(&self.slots, slot) } else { None };
-        from_slot.or_else(|| reported(&self.operators, child_operator))
     }
 
     /// The state as packed `QueryProfileEvents` of the core: one update per entity with state, for the structure of

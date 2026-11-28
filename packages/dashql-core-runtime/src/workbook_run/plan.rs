@@ -23,12 +23,12 @@ pub fn edges(graph: &ExecutionGraphT) -> &[ExecutionGraphEdgeT] {
 }
 
 /// The path of a materialization, empty if it is unknown
-fn materialization_path(graph: &ExecutionGraphT, index: u32) -> Option<&str> {
+pub(super) fn materialization_path(graph: &ExecutionGraphT, index: u32) -> Option<&str> {
     graph.materializations.as_ref()?.get(index as usize)?.path.as_deref()
 }
 
 /// The file of a script, `script <index>` for an unknown one
-fn file_of(files: &[String], index: u32) -> String {
+pub(super) fn file_of(files: &[String], index: u32) -> String {
     files.get(index as usize).cloned().unwrap_or_else(|| format!("script {index}"))
 }
 
@@ -39,6 +39,16 @@ pub enum PlanRun {
     Workbook,
     /// A run of a script, the file of the target
     Script(String),
+}
+
+impl PlanRun {
+    /// The run as the log names it
+    pub fn name(&self) -> String {
+        match self {
+            PlanRun::Workbook => "workbook".to_string(),
+            PlanRun::Script(target) => format!("script {target}"),
+        }
+    }
 }
 
 /// A scan of a materialized result by a statement
@@ -158,7 +168,7 @@ impl PlannedStatement {
             .collect();
         let after: Vec<String> = self.after.iter().map(|(node, reason)| format!("{node} {reason}")).collect();
         vec![
-            ("run".to_string(), self.run_name()),
+            ("run".to_string(), self.run.name()),
             ("node".to_string(), self.node.to_string()),
             ("script".to_string(), self.script.clone()),
             ("statement".to_string(), format!("{}/{}", self.statement, self.statements)),
@@ -170,14 +180,6 @@ impl PlannedStatement {
             ("materializes".to_string(), self.materializes.clone().unwrap_or_default()),
             ("after".to_string(), after.join(", ")),
         ]
-    }
-
-    /// The run as the log names it
-    pub fn run_name(&self) -> String {
-        match &self.run {
-            PlanRun::Workbook => "workbook".to_string(),
-            PlanRun::Script(target) => format!("script {target}"),
-        }
     }
 
     /// The statement as the query metadata of the host holds it (`PlannedStatement` of `@akohn/dashql`)

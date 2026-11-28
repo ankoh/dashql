@@ -12,8 +12,8 @@ use std::rc::Rc;
 use dashql_buffers::execution::ExecutionGraphT;
 
 use super::plan::{
-    affected_scripts, describe_plan_errors, edges, nodes, planned_statements, script_follows, skipped_nodes,
-    visualization_is_valid, PlanRun, PlannedStatement, NONE,
+    affected_scripts, describe_plan_errors, edges, file_of, materialization_path, nodes, planned_statements,
+    script_follows, skipped_nodes, visualization_is_valid, PlanRun, PlannedStatement, NONE,
 };
 use super::result_key::{result_keys, ResultKey};
 use super::{
@@ -328,7 +328,7 @@ impl<H: RunHost> Run<H> {
     }
 
     fn file(&self, script: u32) -> String {
-        self.files.get(script as usize).cloned().unwrap_or_else(|| format!("script {script}"))
+        file_of(&self.files, script)
     }
 
     fn connection_of(&self, script: u32) -> &str {
@@ -1643,8 +1643,7 @@ impl<H: RunHost> Run<H> {
         let output = context.output_nodes.get(script as usize).copied().flatten() == Some(index);
         let visualization = context.visualizations.get(index).cloned().flatten();
         let connection_id = context.connection_ids.get(node.connection as usize).cloned().unwrap_or_default();
-        let materialization =
-            (node.materialization != NONE).then(|| graph_path(&context.graph, node.materialization)).flatten();
+        let materialization = materialization_path(&context.graph, node.materialization).map(str::to_string);
         let file = self.file(script);
         let statement_count = statements.len() as u32;
         self.emit(|state| {
@@ -1921,16 +1920,12 @@ impl<H: RunHost> Run<H> {
             .filter(|s| !s.inlined.is_empty())
             .map(|s| format!("{} {} inlines {}", s.node, s.script, s.inlined.join(" ")))
             .collect();
-        let run = match &self.options.run {
-            PlanRun::Workbook => "workbook".to_string(),
-            PlanRun::Script(target) => format!("script {target}"),
-        };
         self.log(
             LogLevel::Info,
             "Running a plan of workbook scripts",
             vec![
                 detail("workbookId", self.workbook_id.clone()),
-                detail("run", run),
+                detail("run", self.options.run.name()),
                 detail("scripts", planned.to_string()),
                 detail("nodes", nodes(graph).len().to_string()),
                 detail("edges", edges(graph).len().to_string()),
@@ -1954,9 +1949,4 @@ fn same_keyed_scripts(first: &ExecutionGraphT, next: &ExecutionGraphT) -> bool {
                         && before.cacheable == after.cacheable
                         && before.referenced_scripts == after.referenced_scripts))
         })
-}
-
-/// The path of a materialization
-fn graph_path(graph: &ExecutionGraphT, index: u32) -> Option<String> {
-    graph.materializations.as_ref()?.get(index as usize).map(|m| m.path.clone().unwrap_or_default())
 }

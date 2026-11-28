@@ -1314,8 +1314,11 @@ fn a_script_of_a_merged_connection_keeps_what_its_session_does_not_hold() {
     set_text(&mut workbook, alpha, "select 3 as x", true);
     workbook.apply(WorkbookAction::SetExecutionVisualization { key: alpha, visualization: None }).unwrap();
     let before = workbook.script(alpha).unwrap();
-    let (diff, statistics, update) =
-        (before.pending_diff().map(|diff| diff.revision), before.statistics().count(), before.editor_update().cloned());
+    let (diff, statistics, update) = (
+        before.pending_diff().map(|diff| diff.revision),
+        before.statistics_with_revisions().count(),
+        before.editor_update().cloned(),
+    );
     assert!(diff.is_some() && statistics > 0 && update.is_some());
     assert_eq!(before.unresolved_connection_id(), Some("missing"));
     let target = connection("target", Some(MAIN_PARAMS));
@@ -1324,7 +1327,7 @@ fn a_script_of_a_merged_connection_keeps_what_its_session_does_not_hold() {
     assert!(Rc::ptr_eq(moved.connection(), &target));
     assert_eq!(moved.pending_diff().map(|diff| diff.revision), diff);
     assert_eq!(moved.unresolved_connection_id(), Some("missing"));
-    assert_eq!(moved.statistics().count(), statistics);
+    assert_eq!(moved.statistics_with_revisions().count(), statistics);
     assert_eq!(moved.editor_update(), update.as_ref());
     assert!(moved.is_analysis_outdated());
 }

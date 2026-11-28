@@ -92,9 +92,6 @@ impl ScriptConnection {
     pub fn dialect(&self) -> FormattingDialect {
         self.profile.borrow().dialect
     }
-    pub fn local(&self) -> bool {
-        self.profile.borrow().local
-    }
     pub fn params(&self) -> Option<ConnectionParams> {
         self.profile.borrow().params.clone()
     }
@@ -404,9 +401,6 @@ impl WorkbookScript {
     /// Names the visualization, an equal revision is the same visualization
     pub fn visualization_revision(&self) -> u64 {
         self.visualization_revision
-    }
-    pub fn statistics(&self) -> impl Iterator<Item = &EditorProcessingStatisticsT> {
-        self.statistics.iter().map(|(_, statistics)| statistics)
     }
     /// The processing statistics with the revisions that name them, the oldest first
     pub fn statistics_with_revisions(&self) -> impl Iterator<Item = (u64, &EditorProcessingStatisticsT)> {
