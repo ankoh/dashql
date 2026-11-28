@@ -138,7 +138,10 @@ fn find_position<'s>(completion: &Completion, specs: &'s CatalogSnapshot, symbol
         return Position::Namespace;
     }
     let Some(namespace) = symbols.get(i).filter(|s| is_name(s.kind)) else { return Position::Outside };
-    let Some(spec) = specs.client_function_spec(&token_text(completion, namespace)) else { return Position::Outside };
+    let text = completion.text_at(namespace.location.offset, namespace.location.length);
+    let Some((_, spec)) = specs.client_function_spec_of_name(&String::from_utf8_lossy(text)) else {
+        return Position::Outside;
+    };
     i += 1;
     let Some(dot) = symbols.get(i) else { return Position::Outside };
     if dot.kind != S_DOT && dot.kind != S_DOT_TRAILING {

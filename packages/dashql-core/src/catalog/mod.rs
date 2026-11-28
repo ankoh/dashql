@@ -781,6 +781,12 @@ impl CatalogSnapshot {
         self.client_function_specs.get(namespace)
     }
 
+    /// The namespace and the client function spec that a name in a script names. A namespace is a plain lower-case
+    /// name, also if a script quotes it.
+    pub fn client_function_spec_of_name(&self, text: &str) -> Option<(&Arc<str>, &Arc<ClientFunctionSpec>)> {
+        self.client_function_specs.get_key_value(text.trim_matches('"').to_ascii_lowercase().as_str())
+    }
+
     /// The client function specs by namespace
     pub fn client_function_specs(&self) -> &BTreeMap<Arc<str>, Arc<ClientFunctionSpec>> {
         &self.client_function_specs

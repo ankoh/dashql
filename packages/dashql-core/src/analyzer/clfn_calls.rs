@@ -63,7 +63,7 @@ pub fn starts_client_function_call(scanned: &ScannedScript, catalog: &CatalogSna
             .as_bytes()
             .get(location.offset as usize..(location.offset + location.length) as usize)
             .unwrap_or_default();
-        catalog.client_function_spec(&String::from_utf8_lossy(name).trim_matches('"').to_ascii_lowercase()).is_some()
+        catalog.client_function_spec_of_name(&String::from_utf8_lossy(name)).is_some()
     };
     scanned.symbols.split(|symbol| symbol.kind == S_SEMICOLON).any(|statement| match statement.split_first() {
         Some((first, rest)) if first.kind == S_EXPLAIN => {
@@ -138,11 +138,10 @@ struct Callee<'a> {
 
 fn resolve_callee<'a>(parsed: &ParsedScript, specs: &'a CatalogSnapshot, call: &Node) -> Option<Callee<'a>> {
     let [name] = attrs!(parsed.children(call), [K::SQL_CALL_NAME]);
-    let mut path = read_name_path(parsed, name?).into_iter();
-    // A namespace is a plain lower-case name, also if a script quotes it, like `starts_client_function_call` and completion read it
-    let namespace = path.next()?.to_ascii_lowercase();
-    let (namespace, spec) = specs.client_function_specs().get_key_value(namespace.as_str())?;
-    Some(Callee { namespace, spec, path: path.collect() })
+    let name = name?;
+    let namespace = parsed.children(name).iter().find(|c| c.node_type() == NodeType::NAME)?;
+    let (namespace, spec) = specs.client_function_spec_of_name(parsed.node_text(namespace))?;
+    Some(Callee { namespace, spec, path: read_name_path(parsed, name).into_iter().skip(1).collect() })
 }
 
 /// The fields of an object: the key and value of every field
