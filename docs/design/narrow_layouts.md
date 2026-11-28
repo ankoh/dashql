@@ -78,6 +78,18 @@ the fields in the order of the columns with their types, the arrows step through
 the table doesn't hold is read on its own, like the detail of a cell. It is what a phone can't show side by side in the
 grid, and the same on every width.
 
+## The dataflow
+
+The canvas changes its level of detail, not its UI. Below a scale of 0.6 every box draws as a tile: its name, a status
+dot (running, succeeded, failed, stale) and a line about its result (`4,000 rows`, `bar · 4 rows`, `KPI 23.42K`). The
+text stays 12px on the screen, and a tile renders no rows or renderers. A canvas narrower than 600px (its own width,
+not the window's) shows the dense layout of `dashql-dataflow`: tiles of one size from top to bottom, rows of at most as
+many tiles as fit the width, fitted at a scale of at least 0.75. The dense layout ignores the `@flow` positions and
+never writes them. A tap or click on a box focuses its lineage on every width: what it reads and what reads it, through
+other boxes too, in the accent color, with the rest faded. On a compact canvas the tap also opens a sheet with the
+status, the boxes it reads and that read it (a tap moves there), and Edit, Run and Result. The editor dialog of a
+script fills a compact window, as does any expanded overlay. `dataflow.md` describes the layout and the canvas.
+
 ## The views
 
 The other views follow, one at a time. Each keeps its components and changes its arrangement:
@@ -87,8 +99,6 @@ The other views follow, one at a time. Each keeps its components and changes its
 - **Feed**: a folded SQL, a card in full screen.
 - **Dashboard**: the inputs as chips with a sheet, arranging on a compact window on the real 12-column grid scaled to
   the window.
-- **Dataflow**: a dense flow, compact tiles from top to bottom in the layout of `dashql-dataflow`, the result inside
-  the boxes when zoomed in, the lineage of a tapped tile.
 
 Charts stay the authored Vega-Lite spec, `VegaLiteView` fits them to their card. Only the config of DashQL may follow
 the width of a card, never the spec.
