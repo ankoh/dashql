@@ -118,7 +118,8 @@
     margin-top: var(--nav_bar_top_height, 0px);
 }
 
-/* A compact window has no room for the inset: an expanded overlay fills it below the top bar */
+/* A compact window has no room for the inset: an expanded overlay fills it below the top bar, with the rounded top
+   corners of the card of the page below the bar */
 @media only screen and (max-width: 839px) {
     .overlay.expanded {
         width: 100vw;
@@ -126,7 +127,7 @@
         max-width: 100vw;
         max-height: calc(100dvh - var(--nav_bar_top_height, 0px));
         border-width: 0;
-        border-radius: 0;
+        border-radius: var(--border_radius) var(--border_radius) 0 0;
         padding-bottom: env(safe-area-inset-bottom, 0px);
         box-sizing: border-box;
     }
