@@ -37,8 +37,11 @@ their line, the lines after them are ordinary text.
 | `@board` | The dashboard placement as `key=value` args: `row`, `column`, `width` and `height`, all integers. |
 | `@flow` | The placement of the script on the dataflow canvas as `key=value` args: the position `x` and `y`, the width of the box `width` and the height of its chart `height`, all integers. |
 
-Older scripts write `@vis board` (or `@vis card`) and `@vis flow`. They are read like `@board` and `@flow`, and
-the rewrites and the formatter write them as `@board` and `@flow`.
+Older scripts write `@vis board` (or `@vis card`) and `@vis flow`. They are read like `@board` and `@flow`, also by
+their capabilities, and the rewrites and the formatter write them as `@board` and `@flow`. The analyzer, completion,
+highlighting, the rewrites and the formatter classify a tag with one function, `vis_family_tag` of
+`analyzer/vis_tags.rs`, which also holds the tag names, the args of `@board`, `@flow` and `@vis kpi` and the grid
+width.
 
 ### Args
 

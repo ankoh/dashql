@@ -54,3 +54,58 @@ completion-snapshots:
     completions:
       limit: 3
       no-target: 1
+
+  - name: capabilities_legacy_board_without_board
+    capabilities: [vis]
+    catalog: {}
+    editor:
+      input: |
+        /* @vis board ro */
+        select 1
+      catalog-id: 1
+      errors:
+        - {type: DISABLED_CAPABILITY, severity: WARNING, message: '@board is not available here, the tag is ignored', text: "board"}
+      expressions:
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 0, text: "1"}
+    cursor:
+      search:
+        text: '@vis board ro'
+        index: 13
+    completions:
+      limit: 5
+      no-target: 1
+
+  - name: capabilities_legacy_board_without_vis
+    capabilities: [board]
+    catalog: {}
+    editor:
+      input: |
+        /* @vis board ro */
+        select 1
+      catalog-id: 1
+      errors:
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: '@board takes key=value args, not "ro"', text: "ro"}
+      expressions:
+        - {id: 0, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 0, text: "1"}
+      board:
+        statement-id: 0
+        width: 6
+        height: 6
+    cursor:
+      search:
+        text: '@vis board ro'
+        index: 13
+    completions:
+      limit: 5
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - value: row=
+          candidate-tags: [PREFIX_MATCH]
+          location: "ro"
+          location-qualified: "ro"
+          objects: []

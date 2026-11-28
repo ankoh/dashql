@@ -9,6 +9,7 @@
 //!
 //! The JSON objects of `vegalite` tags are found with the tokens, editors fold them.
 
+use crate::analyzer::{vis_family_tag, BOARD_TAG, FLOW_TAG, VIS_TAG};
 use crate::vis_args::{scan_args, ArgValue};
 use crate::vis_text::{JsonScanner, JsonSlot, JsonTokenKind, TagText};
 use crate::visualize::markdown_placeholders;
@@ -16,13 +17,6 @@ use dashql_buffers::parser::{CommentBlockType, ScannerTokenType};
 use dashql_parser::comment_blocks::{COMMENT_TAG_END, COMMENT_TAG_PREFIX};
 use dashql_parser::parser::ParsedScript;
 use dashql_parser::span::TextSpan;
-
-/// The tag of visualizations
-const VIS_TAG: &[u8] = b"vis";
-/// The tag of the dashboard placement
-const BOARD_TAG: &[u8] = b"board";
-/// The tag of the position on the dataflow canvas
-const FLOW_TAG: &[u8] = b"flow";
 
 /// The tokens of the content lines of a `board` or `markdown` tag
 struct Lines<'a> {
@@ -137,7 +131,7 @@ fn tag_tokens(parsed: &ParsedScript) -> (Vec<(TextSpan, ScannerTokenType)>, Vec<
         }
         let tag = block.tag_span;
         // A tag outside of the script is not highlighted
-        let Some(name) = script.get(tag.offset as usize..tag.end() as usize) else { continue };
+        let Some(name) = parsed.scanned.text.get(tag.offset as usize..tag.end() as usize) else { continue };
         let mut lines = Lines { script, out: &mut out };
         // The tag with its `@`, and the end line of a region of line comments
         lines.push(tag.offset as usize - 1, tag.end() as usize, ScannerTokenType::KEYWORD);
@@ -166,6 +160,9 @@ fn tag_tokens(parsed: &ParsedScript) -> (Vec<(TextSpan, ScannerTokenType)>, Vec<
         let first_line = script.get(first_begin..first.end() as usize).unwrap_or_default();
         let kind = first_line.split(u8::is_ascii_whitespace).next().unwrap_or_default();
         let kind_end = first_begin + kind.len();
+        // The args of `@vis kpi` and of the `@vis board` and `@vis flow` of older scripts are on the line of the tag
+        let args =
+            kind == b"kpi" || vis_family_tag(VIS_TAG, std::str::from_utf8(kind).unwrap_or_default()) != Some(VIS_TAG);
         lines.push(first_begin, kind_end, ScannerTokenType::KEYWORD);
         if kind == b"vegalite" {
             let text = TagText::new(&parsed.scanned.text, content, block.text_span);
@@ -176,8 +173,7 @@ fn tag_tokens(parsed: &ParsedScript) -> (Vec<(TextSpan, ScannerTokenType)>, Vec<
             let begin = if i == 0 { kind_end } else { line.offset as usize };
             let end = line.end() as usize;
             match kind {
-                b"board" | b"card" | b"flow" if i == 0 => lines.args(begin, end),
-                b"kpi" if i == 0 => lines.args(begin, end),
+                _ if args && i == 0 => lines.args(begin, end),
                 b"markdown" => lines.placeholders(begin, end),
                 _ => {}
             }

@@ -13,7 +13,10 @@
 //!
 //! Candidates replace the token at the cursor, JSON keys and values are inserted as JSON strings.
 
-use crate::analyzer::{kpi_names, statement_output_columns, RENDERERS};
+use crate::analyzer::{
+    kpi_names, statement_output_columns, vis_family_tag, BOARD_ARGS, BOARD_TAG, FLOW_ARGS, FLOW_TAG, KPI_ARGS,
+    RENDERERS, VIS_TAG,
+};
 use crate::completion::{Candidate, CandidateTags, Completion, Score};
 use crate::utils::quote_identifier;
 use crate::vis_args::{arg_at, scan_args, ArgCursor};
@@ -25,19 +28,6 @@ use dashql_parser::comment_blocks::{CommentBlock, COMMENT_TAGS, COMMENT_TAG_END}
 use dashql_parser::parser::ParsedScript;
 use dashql_parser::span::TextSpan;
 use std::sync::Arc;
-
-/// The tag of visualizations
-const VIS_TAG: &[u8] = b"vis";
-/// The tag of the dashboard placement
-const BOARD_TAG: &[u8] = b"board";
-/// The tag of the position on the dataflow canvas
-const FLOW_TAG: &[u8] = b"flow";
-/// The args of `@board`
-const BOARD_ARGS: &[&str] = &["row", "column", "width", "height"];
-/// The args of `@flow`
-const FLOW_ARGS: &[&str] = &["x", "y", "width", "height"];
-/// The args of `@vis kpi`
-const KPI_ARGS: &[&str] = &["value", "x", "delta", "chart"];
 
 /// The top-level properties of a Vega-Lite spec
 const SPEC_KEYS: &[&str] = &[
@@ -528,22 +518,19 @@ fn statement_of_block(parsed: &ParsedScript, block: usize) -> Option<usize> {
 
 /// Complete the content of a `@vis`, `@board` or `@flow` tag
 fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usize, k: usize) -> Option<Vec<Candidate>> {
-    let script = parsed.scanned.text.as_bytes();
+    let script = parsed.scanned.text.as_str();
     let blocks = &parsed.comment_blocks;
     // A tag outside of the text has no name
-    let name_of =
-        |b: &CommentBlock| script.get(b.tag_span.offset as usize..b.tag_span.end() as usize).unwrap_or_default();
+    let name_of = |b: &CommentBlock| script.get(b.tag_span.offset as usize..b.tag_span.end() as usize).unwrap_or("");
     let (block_id, block): (usize, &CommentBlock) = blocks.blocks.iter().enumerate().find(|(_, b)| {
         b.block_type == CommentBlockType::DASHQL_TAG
-            && matches!(name_of(b), VIS_TAG | BOARD_TAG | FLOW_TAG)
+            && vis_family_tag(name_of(b), "").is_some()
             && b.tag_span.end() as usize <= offset
             && offset <= b.text_span.end() as usize
     })?;
     let name = name_of(block);
     // A disabled tag is ignored, its content too
-    if !completion.catalog().capabilities().tag_enabled(std::str::from_utf8(name).unwrap_or_default()) {
-        return None;
-    }
+    let enabled = |tag: &str| completion.catalog().capabilities().tag_enabled(tag);
     let lines = blocks.lines.get(block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize)?;
     let columns = || {
         let statement = statement_of_block(parsed, block_id)?;
@@ -559,23 +546,32 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
     let span =
         |begin: usize, end: usize| if tag.is_empty() { TextSpan::new(offset as u32, 0) } else { tag.span(begin, end) };
     // `@board` and `@flow` start with their args, `@vis` with its kind
-    let (kind, kind_end): (&[u8], usize) = if name == VIS_TAG {
+    let (kind, kind_end): (&str, usize) = if name == VIS_TAG {
         let kind_end = text.iter().position(|c| c.is_ascii_whitespace()).unwrap_or(text.len());
         if at <= kind_end {
+            if !enabled(VIS_TAG) {
+                return None;
+            }
             let mut candidates = Candidates::new(span(0, kind_end), text.get(..at)?);
             candidates.add_all(RENDERERS, false);
             return Some(candidates.finish(k));
         }
-        (text.get(..kind_end)?, kind_end)
+        (tag.text.get(..kind_end)?, kind_end)
     } else {
         (name, 0)
     };
+    // The `@vis board` and `@vis flow` of older scripts belong to the capabilities of `@board` and `@flow`
+    let family = vis_family_tag(name, kind)?;
+    if !enabled(family) {
+        return None;
+    }
     match kind {
-        kind @ (b"board" | b"card" | b"flow" | b"kpi") => {
-            let args = match kind {
-                b"flow" => FLOW_ARGS,
-                b"kpi" => KPI_ARGS,
-                _ => BOARD_ARGS,
+        // The args of `@board`, `@flow` and `@vis kpi`
+        _ if family != VIS_TAG || kind == "kpi" => {
+            let args = match family {
+                BOARD_TAG => BOARD_ARGS,
+                FLOW_TAG => FLOW_ARGS,
+                _ => KPI_ARGS,
             };
             let first_line_end = text.iter().position(|&c| c == b'\n').unwrap_or(text.len());
             if at > first_line_end {
@@ -585,7 +581,7 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
             match arg_at(line, at.checked_sub(kind_end)?) {
                 ArgCursor::Value { key, range } => {
                     // The values of the args of a KPI card are names, those of the placements numbers
-                    if kind != b"kpi" {
+                    if kind != "kpi" {
                         return None;
                     }
                     let (begin, end) = (kind_end + range.start, kind_end + range.end);
@@ -608,7 +604,7 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
                     let used: Vec<String> = scan_args(line, "").args.into_iter().map(|arg| arg.key).collect();
                     let arg_text = text.get(begin..end)?;
                     let mut candidates = Candidates::new(span(begin, end), text.get(begin..at)?);
-                    for &arg in args {
+                    for arg in args {
                         if !used.iter().any(|used| used == arg) || arg_text.starts_with(arg.as_bytes()) {
                             candidates.add(arg, if has_equals { arg.to_string() } else { format!("{arg}=") });
                         }
@@ -617,7 +613,7 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
                 }
             }
         }
-        b"vegalite" => {
+        "vegalite" => {
             let context = scan_json(text.get(kind_end..at)?)?;
             let (begin, end) = match context.token {
                 Some((begin, true)) => {
@@ -647,7 +643,7 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
             add_json_candidates(&mut candidates, &context, &columns().unwrap_or_default());
             Some(candidates.finish(k))
         }
-        b"markdown" => {
+        "markdown" => {
             let open = text.get(..at)?.windows(2).rposition(|w| w == b"{{")? + 2;
             let name = text.get(open..at)?;
             if !name.iter().all(|&c| is_word_byte(c) || c == b' ') {

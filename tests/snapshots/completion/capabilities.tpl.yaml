@@ -27,3 +27,32 @@ completion-snapshots:
         index: 5
     completions:
       limit: 3
+  # The `@vis board` of older scripts belongs to the board capability, like the analyzer reads it: without it, the
+  # args are not completed even though `@vis` is offered
+  - name: capabilities_legacy_board_without_board
+    capabilities: [vis]
+    catalog: {}
+    editor:
+      input: |
+        /* @vis board ro */
+        select 1
+    cursor:
+      search:
+        text: '@vis board ro'
+        index: 13
+    completions:
+      limit: 5
+  # With the board capability, the args of `@vis board` are completed even though `@vis` is not offered
+  - name: capabilities_legacy_board_without_vis
+    capabilities: [board]
+    catalog: {}
+    editor:
+      input: |
+        /* @vis board ro */
+        select 1
+    cursor:
+      search:
+        text: '@vis board ro'
+        index: 13
+    completions:
+      limit: 5

@@ -9,7 +9,7 @@
 //! or loses its renderer loses its board placement, the card moves to another section of the board. `/*` and `*/` in
 //! the strings of a Vega-Lite spec are escaped, they would nest or end the comment.
 
-use crate::analyzer::RENDERERS;
+use crate::analyzer::{vis_family_tag, BOARD_TAG, FLOW_TAG, GRID_COLUMNS, RENDERERS, VIS_TAG};
 use crate::annotation::{Annotation, AnnotationTag};
 use crate::error::{Error, Result};
 use dashql_buffers::parser::StatementType;
@@ -18,16 +18,8 @@ use dashql_parser::parser::ParsedScript;
 use dashql_parser::span::TextSpan;
 use serde_json::{Map, Value};
 
-/// The tag of visualizations
-const VIS_TAG: &str = "vis";
-/// The tag of the dashboard placement of a visualization
-const BOARD_TAG: &str = "board";
-/// The tag of the position of a script on the dataflow canvas
-const FLOW_TAG: &str = "flow";
 /// The width of the JSON in `@vis vegalite` tags: 80 columns behind a comment prefix of 3 characters
 pub(crate) const VIS_JSON_WIDTH: usize = 77;
-/// The dashboard grid has 12 columns
-const GRID_COLUMNS: i32 = 12;
 
 /// The renderer of a visualization
 #[derive(Clone, Debug, PartialEq)]
@@ -165,12 +157,12 @@ fn is_renderer(tag: &AnnotationTag) -> bool {
 
 /// Is a tag the dashboard placement of a visualization, `@board` or the `@vis board` of older scripts?
 fn is_board(tag: &AnnotationTag) -> bool {
-    tag.name == BOARD_TAG || (is_vis(tag) && matches!(tag.kind(), "board" | "card"))
+    vis_family_tag(&tag.name, tag.kind()) == Some(BOARD_TAG)
 }
 
 /// Is a tag the flow position of a script, `@flow` or the `@vis flow` of older scripts?
 fn is_flow(tag: &AnnotationTag) -> bool {
-    tag.name == FLOW_TAG || (is_vis(tag) && tag.kind() == "flow")
+    vis_family_tag(&tag.name, tag.kind()) == Some(FLOW_TAG)
 }
 
 /// Rewrite the annotation of a query

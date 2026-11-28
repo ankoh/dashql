@@ -28,6 +28,9 @@ pub use sql_types::{SqlType, SqlTypeKind};
 pub use transactions::TransactionBlock;
 pub use types::*;
 pub use vis_tags::{has_vis_tags, kpi_names, statement_output_columns, RENDERERS};
+pub(crate) use vis_tags::{
+    vis_family_tag, BOARD_ARGS, BOARD_TAG, FLOW_ARGS, FLOW_TAG, GRID_COLUMNS, KPI_ARGS, VIS_TAG,
+};
 
 use crate::catalog::*;
 use crate::error::Result;

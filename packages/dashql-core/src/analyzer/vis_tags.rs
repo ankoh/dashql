@@ -34,15 +34,33 @@ use serde_json::{Map, Value};
 use std::collections::HashSet;
 
 /// The tag of visualizations
-const VIS_TAG: &str = "vis";
+pub(crate) const VIS_TAG: &str = "vis";
 /// The tag of the dashboard placement of a visualization
-const BOARD_TAG: &str = "board";
+pub(crate) const BOARD_TAG: &str = "board";
 /// The tag of the position of a script on the dataflow canvas
-const FLOW_TAG: &str = "flow";
+pub(crate) const FLOW_TAG: &str = "flow";
 /// The renderers of a visualization, the kinds of `@vis` that visualize a query
 pub const RENDERERS: &[&str] = &["vegalite", "markdown", "kpi", "table"];
+/// The args of `@board`
+pub(crate) const BOARD_ARGS: [&str; 4] = ["row", "column", "width", "height"];
+/// The args of `@flow`
+pub(crate) const FLOW_ARGS: [&str; 4] = ["x", "y", "width", "height"];
+/// The args of `@vis kpi`
+pub(crate) const KPI_ARGS: [&str; 4] = ["value", "x", "delta", "chart"];
 /// The dashboard grid has 12 columns
-const GRID_COLUMNS: i64 = 12;
+pub(crate) const GRID_COLUMNS: i32 = 12;
+
+/// The tag that a comment tag stands for, by its name and, for `@vis`, its kind: `@board`, `@flow` and the
+/// `@vis board`, `@vis card` and `@vis flow` of older scripts are the board placement and the flow position, any other
+/// `@vis` is a visualization. None for the tags outside of the visualization.
+pub(crate) fn vis_family_tag(name: &str, kind: &str) -> Option<&'static str> {
+    match (name, kind) {
+        (BOARD_TAG, _) | (VIS_TAG, "board" | "card") => Some(BOARD_TAG),
+        (FLOW_TAG, _) | (VIS_TAG, "flow") => Some(FLOW_TAG),
+        (VIS_TAG, _) => Some(VIS_TAG),
+        _ => None,
+    }
+}
 /// The output columns listed in the message of an unknown field
 const LISTED_COLUMNS: usize = 8;
 
@@ -209,13 +227,13 @@ impl StatementTags {
             warn(state, kind, "the statement already has a @board, this tag is ignored".into());
             return;
         }
-        self.board = Some((read_args(state, tag, args, "board", ["row", "column", "width", "height"]), kind));
+        self.board = Some((read_args(state, tag, args, "board", BOARD_ARGS), kind));
     }
 
     /// Read the args of `@vis kpi`: the columns `value` and `x`, each a name of an output column, the `delta` and the
     /// `chart`
     fn read_kpi(&mut self, state: &mut AnalysisState, tag: &TagText, args: usize, columns: Option<&HashSet<String>>) {
-        let [value, x, delta, chart] = read_arg_values(state, tag, args, "vis kpi", ["value", "x", "delta", "chart"]);
+        let [value, x, delta, chart] = read_arg_values(state, tag, args, "vis kpi", KPI_ARGS);
         let column = |state: &mut AnalysisState, arg: Option<(ArgValue, TextSpan)>, key: &str| {
             let (value, span) = arg?;
             match value {
@@ -361,7 +379,7 @@ fn read_flow(state: &mut AnalysisState, tag: &TagText, args: usize, kind: TextSp
         warn(state, kind, "the script already has a @flow, this tag is ignored".into());
         return;
     }
-    let [x, y, width, height] = read_args(state, tag, args, "flow", ["x", "y", "width", "height"]);
+    let [x, y, width, height] = read_args(state, tag, args, "flow", FLOW_ARGS);
     let given = [x, y, width, height].iter().any(Option::is_some);
     let int = |state: &mut AnalysisState, value: Option<(i64, TextSpan)>, key: &str, min: i64| {
         let (value, span) = value?;
@@ -413,6 +431,7 @@ fn find_key(json: &str, key: &str) -> Option<(usize, usize)> {
 /// 12, the height at least 1, and a board placement is moved left to fit the grid
 fn normalize_board(state: &mut AnalysisState, mut spec: DashboardSpec, args: BoardArgs) -> DashboardSpec {
     let [row, column, width, height] = args;
+    let grid = i64::from(GRID_COLUMNS);
     let mut column_was_clamped = false;
     if let Some((value, span)) = row {
         if value < 0 {
@@ -425,16 +444,16 @@ fn normalize_board(state: &mut AnalysisState, mut spec: DashboardSpec, args: Boa
         if value < 0 {
             warn_layout(state, span, "dashboard column must be non-negative and was removed");
         } else {
-            spec.column = Some(value.min(GRID_COLUMNS - 1) as i32);
-            if value > GRID_COLUMNS - 1 {
+            spec.column = Some(value.min(grid - 1) as i32);
+            if value > grid - 1 {
                 column_was_clamped = true;
                 warn_layout(state, span, "dashboard column was clamped to 11");
             }
         }
     }
     if let Some((value, span)) = width {
-        spec.width = value.clamp(1, GRID_COLUMNS) as i32;
-        if !(1..=GRID_COLUMNS).contains(&value) {
+        spec.width = value.clamp(1, grid) as i32;
+        if !(1..=grid).contains(&value) {
             warn_layout(state, span, "dashboard width was clamped to the range 1..12");
         }
     }
@@ -445,8 +464,8 @@ fn normalize_board(state: &mut AnalysisState, mut spec: DashboardSpec, args: Boa
         }
     }
     if let (Some(c), Some((_, span))) = (spec.column, column) {
-        if c + spec.width > GRID_COLUMNS as i32 {
-            spec.column = Some(GRID_COLUMNS as i32 - spec.width);
+        if c + spec.width > GRID_COLUMNS {
+            spec.column = Some(GRID_COLUMNS - spec.width);
             if !column_was_clamped {
                 warn_layout(state, span, "dashboard column was moved so column + width does not exceed 12");
             }
@@ -508,7 +527,7 @@ pub fn has_vis_tags(parsed: &dashql_parser::parser::ParsedScript, statement_id: 
     let descriptions = parsed.associate_descriptions();
     descriptions.get(statement_id).is_some_and(|d| {
         statement_tags(parsed, d, &[VIS_TAG])
-            .any(|(block, _)| !matches!(tag_kind(parsed, block), "flow" | "board" | "card"))
+            .any(|(block, _)| vis_family_tag(VIS_TAG, tag_kind(parsed, block)) == Some(VIS_TAG))
     })
 }
 
@@ -565,22 +584,18 @@ pub(super) fn analyze(state: &mut AnalysisState) {
             };
             let body = tag.text.get(rest..).unwrap_or("").trim();
             // `@vis board` and `@vis flow` of older scripts belong to the capabilities of `@board` and `@flow`
-            let capability = match kind {
-                "flow" => FLOW_TAG,
-                "board" | "card" => BOARD_TAG,
-                _ => VIS_TAG,
-            };
+            let capability = vis_family_tag(name, kind).unwrap_or(VIS_TAG);
             // The older forms flag their kind, `flow` of `@vis flow`
             let span = if capability == VIS_TAG { block.tag_span } else { kind_span };
             if !super::capabilities::tag_enabled(state, capability, span) {
                 continue;
             }
-            if kind == "flow" {
+            // Any statement is placed on the canvas and on the board, only queries are visualized
+            if capability == FLOW_TAG {
                 read_flow(state, &tag, rest, kind_span, statement_id as u32);
                 continue;
             }
-            // Any statement is placed on the board, only queries are visualized
-            if matches!(kind, "board" | "card") {
+            if capability == BOARD_TAG {
                 out.read_board(state, &tag, rest, kind_span);
                 continue;
             }

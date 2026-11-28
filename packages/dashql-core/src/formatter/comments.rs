@@ -4,6 +4,7 @@
 //! sequences (see docs/design/core_quirks.md).
 
 use super::{is_leaf, FmtReg, Formatter};
+use crate::analyzer::{vis_family_tag, BOARD_TAG, FLOW_TAG, VIS_TAG};
 use crate::annotation::{Annotation, AnnotationTag, ANNOTATION_GUTTER};
 use dashql_parser::comment_blocks::{
     group_comment_bytes, is_comment_tag, CommentBlockType, COMMENT_TAG_END, COMMENT_TAG_PREFIX,
@@ -221,13 +222,6 @@ fn read_comment_tag<'a>(input: &'a [u8], comment: &TextSpan) -> Option<CommentTa
     Some(CommentTag { name, alone })
 }
 
-/// The tag of visualizations, `@vis <kind> ...`
-const VIS_TAG: &str = "vis";
-/// The tag of the dashboard placement, `@board <args>`
-const BOARD_TAG: &str = "board";
-/// The tag of the position on the dataflow canvas, `@flow <args>`
-const FLOW_TAG: &str = "flow";
-
 /// Split a line at its first whitespace, the rest is trimmed
 fn split_word(line: &str) -> (&str, &str) {
     let end = line.find([' ', '\t', '\r', '\x0c', '\x0b']).unwrap_or(line.len());
@@ -271,11 +265,7 @@ fn legacy_layout_tag(tag: &AnnotationTag) -> Option<AnnotationTag> {
     if tag.name != VIS_TAG {
         return None;
     }
-    let name = match tag.kind() {
-        "board" | "card" => BOARD_TAG,
-        "flow" => FLOW_TAG,
-        _ => return None,
-    };
+    let name = vis_family_tag(VIS_TAG, tag.kind()).filter(|&name| name != VIS_TAG)?;
     let (_, args) = split_word(tag.lines.first().map(String::as_str).unwrap_or("").trim_start());
     let lines = std::iter::once(args.to_string()).chain(tag.lines.iter().skip(1).cloned()).collect();
     Some(AnnotationTag::new(name, lines))
