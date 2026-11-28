@@ -269,3 +269,11 @@
         display: none;
     }
 }
+
+/* A compact window gives the rail no column, its pages sit in the stripe (nav_rail.module.css) */
+@media only screen and (max-width: 599px) {
+    .container,
+    .container_wide {
+        --nav_bar_width: 0px;
+    }
+}

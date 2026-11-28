@@ -458,12 +458,21 @@ async function testAppDragRegions(page, navigate) {
     }
 }
 
-/// The warning on a narrow screen, then the app with the workbench in a drawer
+/// A compact window gets the app as it is (docs/design/narrow_layouts.md): the pages of the rail in the stripe at the
+/// top, the bar of the workbook in one row, nothing wider than the window, and the workbench in a drawer
 async function testAppNarrow(page, navigate) {
     await navigate('/');
-    await page.getByRole('heading', { name: 'Narrow Screen' }).waitFor();
-    await page.getByRole('button', { name: 'Enable Narrow Screen Layout' }).click();
-    await page.getByTestId('open-workbench').click();
+    const drawerButton = page.getByTestId('open-workbench');
+    await drawerButton.waitFor();
+    const layout = await page.evaluate(() => {
+        const rail = document.querySelector('nav[aria-label="Areas"]').getBoundingClientRect();
+        const bar = document.querySelector('[data-testid="open-workbench"]').closest('header').getBoundingClientRect();
+        return { railBottom: rail.bottom, barHeight: bar.height, scrollWidth: document.documentElement.scrollWidth, width: window.innerWidth };
+    });
+    if (layout.railBottom > 40) throw new Error(`The rail is not in the stripe at the top: it ends at ${layout.railBottom}px`);
+    if (layout.barHeight > 48) throw new Error(`The bar of the workbook takes more than a row: ${layout.barHeight}px`);
+    if (layout.scrollWidth > layout.width) throw new Error(`The page is wider than the window: ${layout.scrollWidth}px > ${layout.width}px`);
+    await drawerButton.click();
     await page.getByRole('heading', { name: 'Workbooks' }).last().waitFor();
 }
 

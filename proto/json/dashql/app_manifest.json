@@ -70,7 +70,8 @@
           "type": "boolean"
         },
         "narrowScreenLayout": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "No longer read: narrow screens get the narrow layout without a setting. Kept so that older manifests stay valid."
         },
         "scriptDebugMode": {
           "type": "boolean"

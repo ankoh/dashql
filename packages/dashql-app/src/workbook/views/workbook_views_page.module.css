@@ -33,11 +33,11 @@
     pointer-events: none;
 }
 
-@media only screen and (max-width: 799px) {
+/* Below the expanded width the page opens the workbench in a drawer (EXPANDED_WIDTH of media_query.ts) */
+@media only screen and (max-width: 839px) {
     .page {
         grid-template-columns: 100%;
     }
-    /* The narrow page opens the workbench in a drawer */
     .sidebar_toggle {
         display: none;
     }
@@ -52,7 +52,7 @@
     }
 }
 
-@media only screen and (min-width: 800px) {
+@media only screen and (min-width: 840px) {
     .page {
         grid-template-columns: var(--workbook_navigation_sidebar_width) 6px minmax(0, 1fr);
     }
@@ -130,7 +130,7 @@
     background: var(--color_bg_pane);
 }
 
-@media only screen and (min-width: 800px) {
+@media only screen and (min-width: 840px) {
     .view_bar {
         grid-column: 3;
     }
@@ -297,24 +297,31 @@
     text-decoration: underline;
 }
 
-@media only screen and (max-width: 600px) {
+/* A compact window keeps the bar to one row: the drawer, Execute All with the indicator of its run, the connections, the
+   actions and the views. The text of the run shows in the bar of Wobble, Export .dashql stays in the menu of the
+   actions, the bookmark of the default view and the arrows stay on wider windows, the separators give their room to
+   the buttons. */
+@media only screen and (max-width: 599px) {
     .page {
-        --workbook_header_height: 76px;
-    }
-    /* A touch screen switches with the switch, the arrows would only take room */
-    .view_bar .view_step {
-        display: none;
+        --workbook_header_height: 44px;
     }
     .view_bar {
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        gap: 2px;
+        padding: 0 4px;
+    }
+    .view_bar .view_step,
+    .view_bar .view_default,
+    .view_bar .bar_separator,
+    .view_bar .export_button,
+    .execution_progress {
+        display: none;
     }
     .execution_controls {
-        order: 3;
-        flex-basis: 100%;
+        flex-shrink: 0;
     }
-    /* Execute All takes a row of its own, nothing to separate it from */
-    .start_separator {
-        display: none;
+    .bar_end {
+        column-gap: 2px;
     }
 }
 
@@ -333,19 +340,6 @@
     }
 }
 
-@media only screen and (max-width: 400px) {
-    .page {
-        --workbook_header_height: 108px;
-    }
-    .view_bar {
-        gap: 4px;
-        padding: 0 4px;
-    }
-    .bar_end {
-        flex-basis: 100%;
-        justify-content: flex-end;
-    }
-}
 
 .content_container {
     position: relative;

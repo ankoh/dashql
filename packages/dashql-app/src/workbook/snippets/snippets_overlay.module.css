@@ -108,8 +108,8 @@
     overflow: auto;
 }
 
-/* A phone has no room for two columns, the list sits above the preview. The width is PHONE_WIDTH_QUERY. */
-@media (max-width: 600px) {
+/* A phone has no room for two columns, the list sits above the preview. The width is COMPACT_WIDTH_QUERY. */
+@media (max-width: 599px) {
     .body {
         grid-template-columns: minmax(0, 1fr);
         grid-template-rows: minmax(0, 2fr) minmax(0, 3fr);

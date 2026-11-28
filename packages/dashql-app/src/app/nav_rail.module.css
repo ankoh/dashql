@@ -97,3 +97,37 @@
     border-color: transparent;
 }
 
+
+/* A compact window has no room for a column of its own: the pages sit in the middle of the dark stripe at the top, as a
+   row. The toggle of the wide rail and the pages that are not there yet stay out. */
+@media only screen and (max-width: 599px) {
+    .rail,
+    .rail_wide {
+        grid-row: 1;
+        grid-column: 1 / -1;
+        justify-self: center;
+        align-self: center;
+        flex-direction: row;
+        padding: 0;
+        /* Above the stripe, which comes later in the DOM and spans the same row */
+        position: relative;
+        z-index: 1;
+    }
+    .group {
+        flex-direction: row;
+        column-gap: 4px;
+    }
+    .group + .group,
+    .separator,
+    .button.button_upcoming,
+    .button_label {
+        display: none;
+    }
+    .button,
+    .button_wide {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        justify-content: center;
+    }
+}

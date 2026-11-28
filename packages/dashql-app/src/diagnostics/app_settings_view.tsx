@@ -20,7 +20,6 @@ import { ColorScheme } from '@akohn/dashql-react/theme/color_scheme';
 
 /// The boolean settings that the panel toggles directly
 type ToggleSettingKey =
-    | 'narrowScreenLayout'
     | 'macWindowLayout'
     | 'scriptDebugMode'
     | 'formattingDebugMode'
@@ -263,7 +262,6 @@ export function AppSettings(props: { onClose: () => void; }) {
                     </div>
                 </SettingsSection>
                 <SettingsSection title="Layout">
-                    {toggle('narrowScreenLayout', 'Narrow Screen Layout')}
                     {toggle('macWindowLayout', 'Mac Window Layout')}
                 </SettingsSection>
                 <SettingsSection title="Experimental">

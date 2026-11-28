@@ -90,7 +90,6 @@ describe('AppSettings', () => {
         const initial = { ...config!.settings };
 
         const toggles: [string, keyof NonNullable<AppConfig['settings']>][] = [
-            ['Narrow Screen Layout', 'narrowScreenLayout'],
             ['Mac Window Layout', 'macWindowLayout'],
             ['File Attachments', 'experimental_file_attachments'],
             ['Script Debug Mode', 'scriptDebugMode'],

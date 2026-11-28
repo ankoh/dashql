@@ -3,11 +3,9 @@ import * as React from 'react';
 import { useRouteContext, useSelectOpeningWorkbook } from '../router.js';
 import { AppLoadingPage } from '../app_loading_page.js';
 import { canShowWorkbook } from './app_loading_logic.js';
-import { useAppConfig, useAppConfigError, useAppReconfigure } from '../../config/app_config.js';
-import { useAppSettingsReady } from '../../config/app_settings_sync.js';
+import { useAppConfig, useAppConfigError } from '../../config/app_config.js';
 import { useOptionalRuntime, useWorkbook } from '@akohn/dashql-react/hooks';
 import { useHyperLinkTabState } from '../../connections/hyper/hyper_link.js';
-import { NarrowScreenWarning, useNarrowScreenWarning } from '../narrow_screen_warning.js';
 import { AppSetupConfirmationProvider, isAppStateRestored, useAppSetup } from './app_setup.js';
 import { useSharedWorkbookImport } from './shared_workbook_import.js';
 import { isCloudLink, useCloudSetupGate } from './cloud_setup_gate.js';
@@ -16,9 +14,6 @@ import { useHyperLinks } from '../hyper_links.js';
 export const AppLoader: React.FC<React.PropsWithChildren> = (props: React.PropsWithChildren) => {
     const config = useAppConfig();
     const configError = useAppConfigError();
-    const appSettingsReady = useAppSettingsReady();
-    const reconfigure = useAppReconfigure();
-    const showNarrowScreenWarning = useNarrowScreenWarning(appSettingsReady, config?.settings?.narrowScreenLayout ?? false);
     const routeContext = useRouteContext();
     const runtime = useOptionalRuntime();
     // The runtime sets up the connections of the opened workbook that need nothing of the user: the embedded Hyper, and
@@ -50,12 +45,6 @@ export const AppLoader: React.FC<React.PropsWithChildren> = (props: React.PropsW
 
     useSelectOpeningWorkbook();
 
-    if (showNarrowScreenWarning) {
-        return <NarrowScreenWarning onEnable={() => reconfigure(value => value == null ? null : {
-            ...value,
-            settings: { ...value.settings, narrowScreenLayout: true },
-        })} />;
-    }
     if (sharedWorkbookCard != null) {
         return sharedWorkbookCard;
     }

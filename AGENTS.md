@@ -33,8 +33,9 @@ start with `packages/` or `extensions/`.
   `design/workbook_tables.md` (`.dashql` files, links), `design/workbook_publishing.md` (static hosts),
   `design/cloud.md` (published workbooks in a connection), `design/storage_layout.md` (OPFS, Node, migrations),
   `design/native_file_sync.md` (native folders)
-- Views: `design/dataflow.md`, `design/trino_plan.md` (query profiles), `design/vegalite_crossfilter.md`,
-  `design/examples.md` (demos), `design/ui_icons.md` (the SVG symbol atlas), `design/app_theme.md` (colors)
+- Views: `design/narrow_layouts.md` (width classes, one UI from phones to desktops), `design/dataflow.md`,
+  `design/trino_plan.md` (query profiles), `design/vegalite_crossfilter.md`, `design/examples.md` (demos),
+  `design/ui_icons.md` (the SVG symbol atlas), `design/app_theme.md` (colors)
 - Connections: `design/oauth_salesforce.md`, `misc/setup_data_cloud.md`, `misc/salesforce_v3_http.md`,
   `design/hyper_links.md`, `misc/setup_hyperd.md`
 - Client functions: `design/client_functions.md`, `design/extensions.md`, `design/extensions/api_survey.md`, the Data

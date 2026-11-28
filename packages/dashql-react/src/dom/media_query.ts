@@ -14,5 +14,13 @@ export function useMediaQuery(query: string): boolean {
     return matches;
 }
 
-/// A phone, or a window as narrow as one
-export const PHONE_WIDTH_QUERY = '(max-width: 600px)';
+// The width classes of a window (docs/design/narrow_layouts.md), the stylesheets use the same numbers:
+// compact below 600px, medium from 600px, expanded from 840px.
+/// The width where the medium class starts
+export const MEDIUM_WIDTH = 600;
+/// The width where the expanded class starts
+export const EXPANDED_WIDTH = 840;
+/// A phone, or a window as narrow as one: one pane at a time
+export const COMPACT_WIDTH_QUERY = `(max-width: ${MEDIUM_WIDTH - 1}px)`;
+/// A window wide enough for the panes next to each other, e.g. the workbench next to the workbook
+export const EXPANDED_WIDTH_QUERY = `(min-width: ${EXPANDED_WIDTH}px)`;

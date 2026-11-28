@@ -17,7 +17,7 @@ import { TabHeader } from '@akohn/dashql-react/components/tab_header';
 import { getPlanResultText } from '../../shell/terminal/shell_result.js';
 import { detectPlanEngine } from '@akohn/dashql-react/utils/plan_engine';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
-import { PHONE_WIDTH_QUERY, useMediaQuery } from '@akohn/dashql-react/dom/media_query';
+import { COMPACT_WIDTH_QUERY, useMediaQuery } from '@akohn/dashql-react/dom/media_query';
 import * as styles from './shell_query_result_overlay.module.css';
 import { useQueryModel, type QueryModel } from '@akohn/dashql-react/models/query_model';
 import { useResultRows } from '@akohn/dashql-react/components/visualization/result_rows';
@@ -105,7 +105,7 @@ const ResultOverlay: React.FC<Props> = ({
     }, [hasPlan, query.queryId, selectedTab]);
 
     // Only the plan tab can be expanded to fill the window. On a phone the overlay always fills it.
-    const phone = useMediaQuery(PHONE_WIDTH_QUERY);
+    const phone = useMediaQuery(COMPACT_WIDTH_QUERY);
     const [planExpanded, setPlanExpanded] = React.useState(false);
     const expanded = phone || (planExpanded && selectedTab === ResultTab.Plan);
 

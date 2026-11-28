@@ -57,7 +57,7 @@ export function WorkbookActions(props: Props): React.ReactElement {
         <div className={classNames(styles.bar_group, styles.actions_group)} role="group" aria-label="Actions" data-testid="workbook-actions-group">
             {preview && <CloudPreviewActions workbookId={workbookScripts.workbookId} labelClassName={styles.action_label} />}
             {exportButton && ownActions && (
-                <Button ref={exportTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={FileZipIcon} aria-label="Export .dashql" data-testid="export-workbook" aria-expanded={exportOpen === 'button'} onClick={() => {
+                <Button ref={exportTriggerRef} className={styles.export_button} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={FileZipIcon} aria-label="Export .dashql" data-testid="export-workbook" aria-expanded={exportOpen === 'button'} onClick={() => {
                     setShareOpen(false);
                     setExportOpen(value => value === 'button' ? null : 'button');
                 }}>
